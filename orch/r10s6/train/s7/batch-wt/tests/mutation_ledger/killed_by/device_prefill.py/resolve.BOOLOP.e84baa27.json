@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/device_prefill.py:resolve BOOLOP e84baa27",
+  "killed_by": "tests/features.py",
+  "old": "            if pair in matched and role not in resolved:",
+  "reason": "Recorded by `mutation_table.py --drain` against 59b76606e0190139eecc8496607687a87cb05054: BOOLOP (`if pair in matched or role not in resolved:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

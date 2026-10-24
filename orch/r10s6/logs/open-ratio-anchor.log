@@ -1,0 +1,5 @@
+===== daemonize pid=54523 2026-10-24T09:13:27Z argv: bash tools/audit/seat/open_pr.sh r10-ratio-anchor 97ce097abeb43faeea0d7c071ee42d574705eeea R10 ratio anchor ratio-anchor
+open_pr: 5 open PRs; the cap gates dispatch, not opening
+  REFUSE   pr-body                ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ratio-anchor/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all) -- no budget leaf raised over 50af6174f...97ce097ab
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-ratio-anchor/p1.log

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty CMP_BOUND 264cd0e6",
+  "killed_by": "tests/features.py",
+  "old": "    s_on = i < len(space) and planned_draw_runs(space[i], modulation_floor=floor)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92accb2cff702c910d33ee1a276d38f5b482061c: CMP_BOUND (`s_on = i <= len(space) and planned_draw_runs(space[i], modulation_floor=floor)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

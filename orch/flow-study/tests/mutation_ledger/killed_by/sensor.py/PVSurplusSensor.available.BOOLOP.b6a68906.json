@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:PVSurplusSensor.available BOOLOP b6a68906",
+  "killed_by": "tests/entities.py",
+  "old": "            super().available and (self._data()).get(\"pv_enabled\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 777c23180a08b0d6c7abd41d6dd5fe7b1abf19b3: BOOLOP (`super().available or (self._data()).get(\"pv_enabled\")`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_memoized_value_and_gradient GUARD_OFF a5f6c7fe",
+  "old": "    if memo is None:",
+  "reason": "Defensive branch that no current call site can reach, so no driver can observe the mutant. GUARD_OFF (`if False:`) makes the wrapper skip handing back the plain fun when memo is None; the mutant then returns the memoising closure over a None memo, whose first `.get` would crash -- but memo is None never happens: the helper's only caller in the tree is _multi_start_minimize (optimizer.py:775), which always passes a real dict (eval_memo, created four lines above), the batch_objective-None case returns at the guard above, and no test drives the helper directly (grep over custom_components and tests, head c1a56b4e2). Survival measured at the pin drive (`mutation_table.py --pin-killed --base origin/main`, ratchet base 7311cc51318f72dc03409ed793b8e4c6772815e8, 2026-10-13): survived every driver in play whose run completed, none red. Equivalent on the reachable domain.",
+  "verdict": "equivalent"
+}

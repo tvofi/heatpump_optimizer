@@ -1,0 +1,72 @@
+2026-10-24T07:46Z	trig_015cv7mtRNX1YSu7Mwo3Yrav	cse_01SAKdguhUBLFp5HRj42MQjY	fixer R10-RATIO-ANCHOR
+2026-10-24T07:47Z	trig_01HtYTAbefmKwnintURpriMz	cse_01PTgoJeozTJLBjKBQN2x86Y	fixer R10-LEARNER-ETA
+2026-10-24T07:47Z	trig_0137yKHgnrnwkvENYhwNibrQ	cse_01BU5TityftbdQYDmjq4mAEU	fixer R10-THERMAL-POWER-OPTION
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01JVK3VLPYEcMci6Z5m4PHDK	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01LR7oL5pwV7XHmyQDNNA2Gc	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01MKD8rzWJ9UyWzvX5TiozC6	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01QCzAXzH7YP8qQ5U56B2JsM	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01TWaLm1jqx82ytdg5fnUR7c	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01WCh9s9VMHjmSCcb7XXoEsp	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01HeDyfMAJgi1wq7kPqQ1YBT	pool w1 (claim/s6/*)
+2026-10-24T07:52Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01DzvbzpQbHVPbcs1hMJZoP4	pool w1 (claim/s6/*)
+2026-10-24T07:56Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_0128kJzNQwatrpNE36mAXUBm	reviewer #2683 delta (rpool)
+2026-10-24T08:01Z	trig_01YbjZdtATQr9W6ewLZAnW2V	cse_01Gf1PXwww5C1j2HzMHkLq3H	fixer R10-CONFIG-NOTICES (sonnet)
+2026-10-24T08:07Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_013jLvr2xE6kQiKiXmfpXcon	reviewer #2688 (rpool)
+2026-10-24T08:37Z	trig_0137yKHgnrnwkvENYhwNibrQ	cse_01Vzhr4QgXgbBTM9WJ7Q3PLE
+2026-10-24T09:16Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_014KJaUG9eRtSKWzTLuXKKx6
+2026-10-24T09:50Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01XW8mgf5SHYHWBJG7QtbGNg
+2026-10-24T09:50Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_016wANRFUBDiUp9d8S9Y6U3z
+2026-10-24T09:50Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01EcK2azqwASD4qKAVSEZd3D
+2026-10-24T10:01:20Z	cse_01UyHVWT8rAfxka2xLZFj2eg	rpool	#2693 7216a12d
+2026-10-24T10:20:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01XbaFv8mVFikAGAL2UXWjkH	fpool 5 owed groups
+2026-10-24T10:20:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01W2SxkAqiMApvUVkjZN1Ncc	fpool 5 owed groups
+2026-10-24T10:20:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_0189iuM9FZ8qXGUrLTDE9wti	fpool 5 owed groups
+2026-10-24T10:20:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_0162yGaXAFKXGAaXQAGrxwyZ	fpool 5 owed groups
+2026-10-24T10:20:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01TBjo3DrJAzxtU2T377Aisi	fpool 5 owed groups
+2026-10-24T10:49:55Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01QpEgfoihT6H1nzrE45HAgv	rpool #2695/#2697
+2026-10-24T10:49:55Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_0189NEokwtVY5gNXkpjSv4TA	rpool #2695/#2697
+2026-10-24T11:58:08Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01DgE46GEYCBFVVyYN1ZQBfv	rpool #2696/#2688/#2689
+2026-10-24T11:58:08Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01PDwRmEaLgCGZgrmuAs8FRY	rpool #2696/#2688/#2689
+2026-10-24T11:58:08Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01VNsEvPLXo86y7SxApjSfbW	rpool #2696/#2688/#2689
+2026-10-24T12:22:30Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_012CyLW3USp4qfrqi2jwh5zQ	fpool repairs 2692/2691/2696/2697
+2026-10-24T12:22:30Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_018NyaNGAaxiETnpr7YgbibN	fpool repairs 2692/2691/2696/2697
+2026-10-24T12:22:30Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01TZ4ASjWj1pohAD5xYy96eV	fpool repairs 2692/2691/2696/2697
+2026-10-24T12:22:30Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_012E5H8FJmV83fYsUGK9P3we	fpool repairs 2692/2691/2696/2697
+2026-10-24T12:25:04Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_016h69u6fffZRXPrRhjNuY6V	rpool #2700
+2026-10-24T12:28:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01VUxdCg9XMDFJRA256MRHYy	fpool sav-comfort/ci-layout-p2
+2026-10-24T12:28:51Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01BbQKTU9odf13ixetWdZHD5	fpool sav-comfort/ci-layout-p2
+2026-10-24T12:33:02Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01JbcNxUSikM1aXfgz6GKBYB	fpool refire 2692/2697
+2026-10-24T12:33:02Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01ETR2sVAdtvpKQ4Wk9pqYx9	fpool refire 2692/2697
+2026-10-24T12:35:19Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01GSnAtaBipD3SuoLRxHRzKR	fpool sav-comfort/ci-layout-p2 (refire)
+2026-10-24T12:35:19Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_015bBgPJCKMAhfCr5yfm2574	fpool sav-comfort/ci-layout-p2 (refire)
+2026-10-24T12:38:18Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_013YYhTFzE3BeFYYt1AN37jh	fpool fly-yield-guard (refire, lost 10:20 run)
+2026-10-24T13:03:19Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_0187xyFWm676HSfvQfCULiLF	rpool #2696 96b8dd7b
+2026-10-24T13:05:27Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_014b7FUV92oKnPvfs7RZYvEe	rpool #2698 3383fb2a CP
+2026-10-24T13:06:07Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01VVhkaJGhe4wYDPTWfsjAGW	fpool roster-runq/codeql-dependabot repairs
+2026-10-24T13:06:07Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_012skmKdJYuvz6h2wAhYvs65	fpool roster-runq/codeql-dependabot repairs
+2026-10-24T13:22:42Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01JCf2vEFGaf3n13FjMZmDpr	rpool #2691 3b5eea20
+2026-10-24T13:29:45Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_0127GyDJvkb38Hk1Bdbhrd12	fpool fly-cloud-setup-toolchain c6 (#2709)
+2026-10-24T13:33:43Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01CRv9VJ1f9GWgcViF49DPHC	fpool ratio-anchor repair #2698 CP
+2026-10-24T13:34:25Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01G4ZQsUJC79zujWmqrNVQpD	rpool #2704 859b74ba
+2026-10-24T13:37:58Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01FDPaAm2mZZrPDGNiEtEK61	fpool thermal/config-notices/mutant-skip repairs
+2026-10-24T13:37:58Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01N6XgAvoKVgGJz5cuppuRPq	fpool thermal/config-notices/mutant-skip repairs
+2026-10-24T13:37:58Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_018jibJrGhGUvRhJ3UZMrTmv	fpool thermal/config-notices/mutant-skip repairs
+2026-10-24T13:45:02Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_018SUwFJLxHsbZUqTMQXKUx2	rpool #2706 ea459c0b
+2026-10-24T13:50:16Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_015UEv62jx49LGT58K6XWe2v	rpool #2707 cd7dc09a
+2026-10-24T13:55:29Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_018SMdgeMn1kDjh5F4y3vZo6	fpool rca-codescan-wait
+2026-10-24T13:56:15Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01LsMTvPYYp3dDqNqaykY2MA	rpool #2709 3580acc0
+2026-10-24T14:02:58Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01DjDA8tyXQcCRKFiGbjU1Kw	rpool #2708 ae77c415
+2026-10-24T14:04:45Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01HUmhmJ2Qtssj7weKUzpvMS	fpool policy-fixer-md repair #2704
+2026-10-24T14:11:33Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01NMMMrBSvn6sasMPukHeGwj	rpool #2711/#2714
+2026-10-24T14:11:33Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01W5NiaijxuZJbhVVS46kZVH	rpool #2711/#2714
+2026-10-24T14:14:53Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_019qZgd2hVHMBJKzG12xf2BM	fpool cipredict-layout/cloud-setup-toolchain/codeql-dependabot body
+2026-10-24T14:14:53Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01ChAqxT5g4JQyUeNDon5bKw	fpool cipredict-layout/cloud-setup-toolchain/codeql-dependabot body
+2026-10-24T14:14:53Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01PwhL4xbmqqT9eJbhPjnvxZ	fpool cipredict-layout/cloud-setup-toolchain/codeql-dependabot body
+2026-10-24T14:26:59Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_011s5g8wKnRwRyVz5RP4vtbW	rpool #2734/#2735
+2026-10-24T14:26:59Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01Ect7mozgH6mnf429BmFnnR	rpool #2734/#2735
+2026-10-24T14:26:59Z	trig_01HTe5p4m5CVecKJSreRhK2M	cse_01KCaJ2iREYoNcjTkdHn5zXA	fpool structure-alias #2711 repair
+2026-10-24T14:41:52Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01E3whcnW7bFvNvbQn9Z4xYV	rpool #2736/#2738
+2026-10-24T14:41:52Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01PdA1pTET8V5wkTS9rokqhF	rpool #2736/#2738
+2026-10-24T14:43:24Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01E4w1RjRehWXqEQpEtpZDRU	rpool #2737
+2026-10-24T14:48:57Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_011bp2rB8EAvrCkMtvqkvsFc	rpool #2735 r2
+2026-10-24T14:54:36Z	trig_01JSn6eUdsPLPeyFw3LpwwNo	cse_01H1AfEyqSY29fCsGqrrt1xs	rpool #2704 r2

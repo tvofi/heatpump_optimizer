@@ -1,0 +1,199 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=12744 start=2026-10-18T01:30:14Z
+BATCH 20261018-013014 pid=12753 base=main queue=1 (#2360)
+BOT #2369 pending at dbba3b21: AUTOMERGE PENDING #2369: pending: Analyze (python); not merged
+beat: waiting CI at e5f7e169 (poll 2, t+242s, required: 14, concluded: 12/14)
+beat: waiting CI at e5f7e169 (poll 3, t+483s, required: 14, concluded: 12/14)
+beat: waiting CI at e5f7e169 (poll 4, t+725s, required: 14, concluded: 12/14)
+beat: waiting CI at e5f7e169 (poll 5, t+967s, required: 14, concluded: 13/14)
+beat: waiting CI at e5f7e169 (poll 6, t+1209s, required: 14, concluded: 13/14)
+beat: waiting CI at e5f7e169 (poll 7, t+1450s, required: 14, concluded: 13/14)
+beat: waiting CI at e5f7e169 (poll 8, t+1692s, required: 14, concluded: 13/14)
+beat: waiting CI at e5f7e169 (poll 9, t+1934s, required: 14, concluded: 13/14)
+beat: waiting CI at e5f7e169 (poll 10, t+2175s, required: 14, concluded: 13/14)
+PARK #2360 recarry: fix/r10-tick-orch-2 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-orch-2; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-18T02:10:40Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=78554 start=2026-10-18T02:11:11Z
+BATCH 20261018-021111 pid=78578 base=main queue=1 (#2360)
+BOT #2369 MERGED 811df3cf3362ea0c626bcfdf8bf4a3cf2937c846
+beat: waiting CI at 811df3cf (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 811df3cf (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 811df3cf (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 811df3cf (poll 5, t+964s, required: 14, concluded: 12/14)
+beat: waiting CI at 811df3cf (poll 6, t+1205s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 7, t+1447s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 8, t+1688s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 9, t+1929s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 10, t+2170s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 11, t+2411s, required: 14, concluded: 13/14)
+beat: waiting CI at 811df3cf (poll 12, t+2653s, required: 14, concluded: 13/14)
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2360 serial: workflow
+serial: #2360
+BOT #2370 MERGED 52f698905868c9140ed213ea542c44053fca7096
+#2360 recarry START (branch fix/r10-tick-orch-2)
+#2360 recarry: main merged, head 52270b29; app_push: RECARRY: prepr SKIPPED: HEAD 52270b29 is the clean merge of the live head a7bb3ec3 and origin/main's 52f69890, and the body is the live one
+beat: waiting CI at 52270b29 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 52270b29 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 52270b29 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 52270b29 (poll 5, t+963s, required: 14, concluded: 11/14)
+beat: waiting CI at 52270b29 (poll 6, t+1204s, required: 14, concluded: 11/14)
+beat: waiting CI at 52270b29 (poll 7, t+1445s, required: 14, concluded: 11/14)
+beat: waiting CI at 52270b29 (poll 8, t+1686s, required: 14, concluded: 13/14)
+beat: waiting CI at 52270b29 (poll 9, t+1927s, required: 14, concluded: 13/14)
+beat: waiting CI at 52270b29 (poll 10, t+2167s, required: 14, concluded: 13/14)
+beat: waiting CI at 52270b29 (poll 11, t+2408s, required: 14, concluded: 13/14)
+#2360 52270b29 ci red=[]
+#2360 approved (mandate)
+#2360 MERGED 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f
+#2360 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2360 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2360' is not a working tree); remove it by hand
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-18T03:45:57Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=77547 start=2026-10-18T04:44:55Z
+BATCH 20261018-044455 pid=77556 base=main queue=1 (#2374)
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+PARK #2374 policy: policy paths changed (dev/governance/dimensions/D15.md): no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driven approval is the owner's only under a mandate in force
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-18T04:45:11Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=83647 start=2026-10-18T04:45:45Z
+BATCH 20261018-044545 pid=83664 base=main queue=1 (#2374)
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2374 serial: grader
+serial: #2374
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+#2374 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-d15-grader/wt held fix/r10-d15-grader-pr, clean at origin/fix/r10-d15-grader-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-d15-grader/wt switch fix/r10-d15-grader-pr)
+#2374 recarry START (branch fix/r10-d15-grader-pr)
+#2374 recarry: main merged, head b65dd3de; app_push: RECARRY: prepr SKIPPED: HEAD b65dd3de is the clean merge of the live head c173d8f4 and origin/main's 9a1ce39c, and the body is the live one
+beat: waiting CI at b65dd3de (poll 2, t+241s, required: 14, concluded: 12/14)
+beat: waiting CI at b65dd3de (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at b65dd3de (poll 4, t+723s, required: 14, concluded: 13/14)
+beat: waiting CI at b65dd3de (poll 5, t+964s, required: 14, concluded: 13/14)
+beat: waiting CI at b65dd3de (poll 6, t+1205s, required: 14, concluded: 13/14)
+beat: waiting CI at b65dd3de (poll 7, t+1445s, required: 14, concluded: 13/14)
+#2374 b65dd3de ci red=[]
+#2374 policy head lands under mandate 6175172275 (scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z)
+#2374 approved (mandate)
+#2374 MERGED 63d8154ce7dfba73aa6c7b83f2e76b8cc3282016
+#2374 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2374 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2374' is not a working tree); remove it by hand
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-18T05:16:20Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=21501 start=2026-10-18T05:16:53Z
+BATCH 20261018-051653 pid=21513 base=main queue=1 (#2366)
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+beat: waiting CI at 63d8154c (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 63d8154c (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 63d8154c (poll 4, t+722s, required: 14, concluded: 11/14)
+beat: waiting CI at 63d8154c (poll 5, t+963s, required: 14, concluded: 11/14)
+beat: waiting CI at 63d8154c (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 63d8154c (poll 7, t+1445s, required: 14, concluded: 12/14)
+beat: waiting CI at 63d8154c (poll 8, t+1686s, required: 14, concluded: 12/14)
+beat: waiting CI at 63d8154c (poll 9, t+1927s, required: 14, concluded: 13/14)
+beat: waiting CI at 63d8154c (poll 10, t+2167s, required: 14, concluded: 13/14)
+beat: waiting CI at 63d8154c (poll 11, t+2408s, required: 14, concluded: 13/14)
+beat: waiting CI at 63d8154c (poll 12, t+2649s, required: 14, concluded: 13/14)
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2366 serial: grader
+serial: #2366
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+#2366 recarry START (branch fix/r10-ref-privacy-2-pr)
+#2366 recarry: main merged, head 40f1b970; app_push: RECARRY: prepr SKIPPED: HEAD 40f1b970 is the clean merge of the live head 60308ef8 and origin/main's 99cf51c1, and the body is the live one
+beat: waiting CI at 40f1b970 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 40f1b970 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 40f1b970 (poll 4, t+722s, required: 14, concluded: 12/14)
+beat: waiting CI at 40f1b970 (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at 40f1b970 (poll 6, t+1204s, required: 14, concluded: 13/14)
+beat: waiting CI at 40f1b970 (poll 7, t+1445s, required: 14, concluded: 13/14)
+#2366 40f1b970 ci red=[]
+#2366 policy head lands under mandate 6175172275 (scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z)
+#2366 approved (mandate)
+#2366 MERGED a73f3320c53aa9494617b87aef351cbb79ea9006
+#2366 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2310,"state":"CLOSED"}]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2366 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2366' is not a working tree); remove it by hand
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-18T06:35:20Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=82542 start=2026-10-18T06:36:33Z
+BATCH 20261018-063633 pid=82552 base=main queue=3 (#2371 #2345 #2376)
+BOT #2372 pending at b8f1b5d7: AUTOMERGE PENDING #2372: pending: Analyze (python); not merged
+beat: waiting CI at a73f3320 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at a73f3320 (poll 3, t+481s, required: 14, concluded: 11/14)
+beat: waiting CI at a73f3320 (poll 4, t+722s, required: 14, concluded: 11/14)
+beat: waiting CI at a73f3320 (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at a73f3320 (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at a73f3320 (poll 7, t+1445s, required: 14, concluded: 13/14)
+beat: waiting CI at a73f3320 (poll 8, t+1685s, required: 14, concluded: 13/14)
+beat: waiting CI at a73f3320 (poll 9, t+1926s, required: 14, concluded: 13/14)
+beat: waiting CI at a73f3320 (poll 10, t+2166s, required: 14, concluded: 13/14)
+beat: waiting CI at a73f3320 (poll 11, t+2407s, required: 14, concluded: 13/14)
+beat: waiting CI at a73f3320 (poll 12, t+2648s, required: 14, concluded: 13/14)
+tools/audit/seat/train.sh: line 251: 82552 Terminated: 15          python3 -u tools/audit/seat/merge_train.py batch "$queue" --repo "$repo" --state-dir "$state" --min-runs "$minruns" ${ignores[@]+"${ignores[@]}"} ${skipbad:+--skip-bad} ${overlap:+--overlap} ${mandate:+--mandate "$mandate"} ${opts[@]+"${opts[@]}"}
+TRAIN_RC=143 end=2026-10-18T07:21:39Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t1 pid=690 start=2026-10-18T07:21:56Z
+BATCH 20261018-072156 pid=712 base=main queue=3 (#2371 #2345 #2376)
+BOT #2383 pending at d2dd36fa: AUTOMERGE PENDING #2383: pending: Analyze (python); not merged
+beat: waiting CI at 994695e0 (poll 2, t+242s, required: 14, concluded: 11/14)
+beat: waiting CI at 994695e0 (poll 3, t+484s, required: 14, concluded: 11/14)
+beat: waiting CI at 994695e0 (poll 4, t+726s, required: 14, concluded: 12/14)
+beat: waiting CI at 994695e0 (poll 5, t+967s, required: 14, concluded: 12/14)
+beat: waiting CI at 994695e0 (poll 6, t+1209s, required: 14, concluded: 12/14)
+beat: waiting CI at 994695e0 (poll 7, t+1451s, required: 14, concluded: 12/14)
+beat: waiting CI at 994695e0 (poll 8, t+1692s, required: 14, concluded: 12/14)
+beat: waiting CI at 994695e0 (poll 9, t+1934s, required: 14, concluded: 13/14)
+PRE-FLIGHT: 3 of 3 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2371 admitted at ecdcc466
+#2345 admitted at 9fc2f98b
+#2376 serial: grader
+proof batch/20261018-072156-1 at cf254793: pushed, 5 workflows dispatched
+beat: waiting proof batch/20261018-072156-1 (poll 2, t+241s, required: 14, concluded: 9/14)
+beat: waiting proof batch/20261018-072156-1 (poll 3, t+481s, required: 14, concluded: 10/14)
+beat: waiting proof batch/20261018-072156-1 (poll 4, t+722s, required: 14, concluded: 10/14)
+beat: waiting proof batch/20261018-072156-1 (poll 5, t+963s, required: 14, concluded: 10/14)
+beat: waiting proof batch/20261018-072156-1 (poll 6, t+1204s, required: 14, concluded: 11/14)
+beat: waiting proof batch/20261018-072156-1 (poll 7, t+1444s, required: 14, concluded: 12/14)
+beat: waiting proof batch/20261018-072156-1 (poll 8, t+1685s, required: 14, concluded: 13/14)
+beat: waiting proof batch/20261018-072156-1 (poll 9, t+1926s, required: 14, concluded: 13/14)
+proof batch/20261018-072156-1 cf254793 red=[]
+#2371 approved (app)
+#2371 MERGED 234087a5105dbf48de92473f3dc6aa17d7e006e2
+#2371 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2371 main 234087a5 tree == proof b0f46d3c
+#2345 approved (app)
+#2345 MERGED f4955e15fc4b56bfc204087a0aee27d0893db7c0
+#2345 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2345 main f4955e15 tree == proof cf254793
+serial: #2376
+BOT #2383 MERGED c09d61dc9c9779e721eb73b1ea402913a52242fb
+#2376 recarry START (branch fix/r10-rca-inert-predict)
+#2376 recarry: main merged, head 9b2251dc; app_push: RECARRY: prepr SKIPPED: HEAD 9b2251dc is the clean merge of the live head 45bd0ee0 and origin/main's c09d61dc, and the body is the live one
+beat: waiting CI at 9b2251dc (poll 2, t+241s, required: 14, concluded: 7/14)
+beat: waiting CI at 9b2251dc (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 9b2251dc (poll 4, t+722s, required: 14, concluded: 12/14)
+beat: waiting CI at 9b2251dc (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at 9b2251dc (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 9b2251dc (poll 7, t+1445s, required: 14, concluded: 13/14)
+beat: waiting CI at 9b2251dc (poll 8, t+1686s, required: 14, concluded: 13/14)
+beat: waiting CI at 9b2251dc (poll 9, t+1927s, required: 14, concluded: 13/14)
+#2376 9b2251dc ci red=[]
+#2376 approved (app)
+#2376 MERGED aac1b5899d99ab23b92a251084c5245cc093dd90
+#2376 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2376 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t1/wt/2376' is not a working tree); remove it by hand
+deleted batch/20261018-072156-1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-18T09:16:05Z

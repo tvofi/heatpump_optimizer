@@ -1,0 +1,4 @@
+===== daemonize pid=23716 2026-10-24T09:41:09Z argv: bash tools/audit/seat/open_pr.sh r10-merge-subject-harden 09b1d002c19f941e9ba77367554e086c8cec50ee R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings from #2423 merge-subject-harden
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-merge-subject-harden/wt' already exists
+open_pr: STOPPED: line 46 exited 128: git worktree add -q -b $BR $WT $C

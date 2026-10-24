@@ -1,0 +1,13 @@
+wait_ref: refs/heads/review/2390 from d906f5348be27ff49395efd7378bf84de0b4c96f every 120s
+wait_ref: refs/heads/review/2403 from 09310e9cda8269163d3fcda8d7f9d7c894d2f271 every 120s
+wait_ref: refs/heads/review/2373 from db89c7e215e461627f173ee18b2c3ffb80a66fef every 120s
+wait_ref: refs/heads/review/2408 from <absent> every 120s
+MOVED refs/heads/review/2408  -> 94ac8b9f48b316241fa40989fda158d37fb3f389
+MOVED refs/heads/review/2373 db89c7e215e461627f173ee18b2c3ffb80a66fef -> 525762098d5b103dd58170b05b1ee87ec2729f87
+MOVED refs/heads/review/2390 d906f5348be27ff49395efd7378bf84de0b4c96f -> afe6e6941e74851f8185dbd7661e75898db81b16
+/Users/timmalmstrom/hpo-orch/r10s3/orch/cloud/wait_ref.sh: line 14: 24328 Terminated: 15          sleep "$every"
+off-body/r10-recarry-head  -> 5bf9e65f8f25c911c408f617c2acf87948970471
+MOVED refs/heads/review/2379 62e4b51f28cbb9af84cc4e070ddc3413bf5225cb -> 05a102cc433c6a09c739858f82509799a305e4f6
+MOVED refs/heads/handoff-body/r10-merge-pr-mandate  -> ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+MOVED refs/heads/review/2404 56327bf2f72cc7e9128fd4991bc894a15ff9e84e -> f3cf1fb0118d1961b639852f3e55180194cd9a27
+MOVED refs/heads/review/2415  -> 36a0f3309ae2cd78fec61d17b538c3dfaed40e6d

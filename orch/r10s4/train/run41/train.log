@@ -1,0 +1,36 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run41/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run41 pid=51588 start=2026-10-23T08:26:24Z
+BATCH 20261023-082624 pid=51609 base=main queue=1 (#2647) --skip-bad
+TRAIN HOLD refs/heads/train-hold 6122975f: the record beat waits
+TRAIN HOLD refs/heads/train-hold d85197f7: the record beat waits
+beat: waiting CI at c6ef0668 (poll 2, t+244s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 936e76bc: the record beat waits
+beat: waiting CI at c6ef0668 (poll 3, t+486s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 95051538: the record beat waits
+beat: waiting CI at c6ef0668 (poll 4, t+729s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 3312c5fb: the record beat waits
+beat: waiting CI at c6ef0668 (poll 5, t+972s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold e2cb05ca: the record beat waits
+beat: waiting CI at c6ef0668 (poll 6, t+1214s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 5f99c8ea: the record beat waits
+beat: waiting CI at c6ef0668 (poll 7, t+1457s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold c982a011: the record beat waits
+beat: waiting CI at c6ef0668 (poll 8, t+1700s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 9070a780: the record beat waits
+beat: waiting CI at c6ef0668 (poll 9, t+1943s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold e07bad55: the record beat waits
+beat: waiting CI at c6ef0668 (poll 10, t+2186s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 1c861579: the record beat waits
+beat: waiting CI at c6ef0668 (poll 11, t+2429s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 35b1f43e: the record beat waits
+beat: waiting CI at c6ef0668 (poll 12, t+2672s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 48f95120: the record beat waits
+beat: waiting CI at c6ef0668 (poll 13, t+2917s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 5ab9427e: the record beat waits
+PARK #2647 approve: 1 budget raise(s), first tests/structure_budgets.json: seam_cut_total: 708 -> 714 (a cap went up): a raise is the owner's (0013): a mandated approval is on this head, but `## Raise justification` lacks an `Architecture score: dS` line from score.py
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-23T09:19:16Z

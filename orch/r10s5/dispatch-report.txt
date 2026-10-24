@@ -1,0 +1,77 @@
+2026-10-23T19:42Z update #2671 fix/r10-orch-ledger code=25ebba408: cure applied (wt detached, a6c1843f1 left unpushed in it; update_pr re-adds the row); update_pr pid 96566 STOPPED: CONFLICT merging origin/main in tools/audit/seat/cloud_relay.sh (line 57). Branch unchanged at 338c9ba49. Log /Users/timmalmstrom/hpo-orch/r10s5/update-2671.log. Back to orchestrator: needs a seat to merge main into handoff/r10-orch-ledger.
+2026-10-23T19:42Z dispatch reviewer #2671: NOT DISPATCHED -- update_pr printed no head (merge conflict above); live head 338c9ba49 lacks the code head and main.
+2026-10-23T19:44Z relay: HANDOFF audit-r10-roster 222cd5278 reported (roster branch, no PR)
+2026-10-23T19:50Z dispatch reviewer #2668 at 9ef0633bc round 2: row dev/programme/delivery/2668.md in three-dot diff; approve_held_runs: none held; bus.sh dispatch nonce 31dd3818d9b6312e2828c9688c2f9d20; SPAWN-OWED written to to-main.txt
+2026-10-23T19:53Z relay: HANDOFF r10-triage-s5-batch2 cb479c42b (body 62290ffe8) open; HANDOFF audit-r10-plan b1ebd3467 open (no body) -- reported
+2026-10-23T20:02Z relay: review/2668 a82ba813b merge at live head 9ef0633bc; bus.sh confirm posted (verdict ref b628674e4), comment 6373636763; CONFIRMED to to-main
+2026-10-23T20:02Z open PR handoff/r10-triage-s5-batch2 cb479c42b: open_pr.sh (group triage-s5-batch2, per #2670's row) printed PR=2672 HEAD=4547d59da AUTHOR=tvofi; log /Users/timmalmstrom/hpo-orch/r10s5/open-triage-s5-batch2.log
+2026-10-23T20:02Z dispatch reviewer #2672 at 4547d59da round 1: row 2672.md in three-dot diff; approve_held_runs: none held; nonce 933687ba87372c41ad57866753493fb2; SPAWN-OWED written
+2026-10-23T20:02Z relay: HANDOFF r10-ci-layout-p2b-v2 2efb2cc2f open (body 0db7b0aa0) reported
+2026-10-23T20:06Z open PR handoff/r10-ci-layout-p2b-v2 2efb2cc2f (CRITICAL): open_pr.sh pid 50269 STOPPED at its main merge: CONFLICT .github/workflows/pr-contract.yml, tools/policy/budget_raise_gate.py; no PR, no dispatch; ESCALATED
+2026-10-23T20:11Z relay: HANDOFF audit-r10-plan 1197a033c open reported
+2026-10-23T20:20Z open PR handoff/r10-ci-layout-p2b-v2 ca1bc2b0e (body 0d44d239a; group R10-CI-LAYOUT-P2): open_pr.sh relaunched from the coordinator's OWED line
+2026-10-23T20:23Z open PR p2b-v2: 20:20Z run STOPPED (stale wt + local branch left by my 20:06Z conflicted run, 2efb2cc2f, ancestor of the handoff); removed both, relaunched pid 52056
+2026-10-23T20:38Z relay: HANDOFF audit-r10-plan 04ed3cd76 open reported
+2026-10-23T20:48Z relay: HANDOFF audit-r10-plan cbe1a6647 open reported
+2026-10-23T20:57Z open PR p2b-v2: #2673 opened at ca1bc2b0e; row push in progress (pid 52056)
+2026-10-23T21:03Z open PR p2b-v2: #2673 open at ca1bc2b0e, row push REFUSED (RED UNANSWERED delivery-status/env-matrix/policy-docs/wave-script; mutants FIXTURE VACUOUS); no dispatch; ESCALATED
+2026-10-23T21:11Z relay: HANDOFF r10-ci-layout-p2b-v2 body 051f2629a update reported
+2026-10-23T21:14Z NOTE #2673 update_pr + dispatch are the orchestrator's: acknowledged, not run
+2026-10-23T21:14Z relay: HANDOFF r10-livestate 16f90d4d7 (body eb826d509) open reported
+2026-10-23T21:23Z confirm #2672: bus.sh confirm 996d1e61a posted (verdict ref 5af76bb74), comment 6375006406; merge-queue line appended; carries routing left OWED in to-main
+2026-10-23T21:23Z NOTE r10-livestate (#2674): no open_pr run -- the line names no title or group; HANDOFF reported 21:14Z
+2026-10-23T21:31Z relay: HANDOFF audit-r10-plan 54def7908 open reported
+2026-10-23T21:39Z window 2 start (box end 2026-10-24T01:40Z). open PR handoff/r10-livestate 16f90d4d7 (body eb826d509, group R10-LIVESTATE): open_pr.sh launched; log /Users/timmalmstrom/hpo-orch/r10s5/open-livestate.log
+2026-10-23T21:42Z update #2671: handoff/r10-orch-ledger moved to 041b22d60 (body 63189b1a8); update_pr.sh launched; log /Users/timmalmstrom/hpo-orch/r10s5/update-2671.log
+2026-10-23T21:55Z open PR r10-livestate: #2675 opened at 1feaf216c on fix/r10-livestate-pr; row push in progress (pid 17287)
+2026-10-23T21:57Z dispatch reviewer #2671 at 5c640992a round 3: update_pr merged 041b22d60 + main, HEAD=5c640992a (= PR head); row 2671.md in three-dot diff; no held runs; bus-nonce: 54dfcab55a587fb155f527c888e64315; SPAWN-OWED written
+2026-10-23T22:01Z relay: HANDOFF r10-rca-2671-wave-script a148b3fa8 open (no body); audit-r10-plan 70d60d47a open -- reported
+2026-10-23T22:07Z queue 'update #2671 ... 041b22d60': already done 21:58Z (HEAD 5c640992a, nonce 54dfcab5..., SPAWN-OWED round 3); not re-run
+2026-10-23T22:08Z queue 'update #2671 ... 041b22d60': already done 21:58Z (HEAD 5c640992a, nonce 54dfcab5..., SPAWN-OWED round 3); not re-run
+2026-10-23T22:10Z confirm #2673: review/2673 97ef9d882 merge at live head c40335889; bus.sh confirm posted (verdict ref 72e2802b2), comment 6375740038; merge-queue line appended
+2026-10-23T22:10Z open PR r10-livestate: #2675 open at 1feaf216c, row push REFUSED (RED UNANSWERED typing/delivery-status); no dispatch; ESCALATED
+2026-10-23T22:13Z NOTE #2673: my 22:10Z merge-queue line removed (merge seat had already held it out 22:11Z); confirm stands. HANDOFF-body r10-ci-layout-p2b-v2 cb9d6f6e4 (PR #2673 open) -- body update, not mine to push
+2026-10-23T22:19Z HOLD (no new PRs until WINDOW-CLOSED) and record-PR/#2671 merge-queue NOTE: acknowledged
+2026-10-23T22:19Z RECORD-PR #2653 20307f5fc: already in merge-queue (line 10); not re-queued
+2026-10-23T22:25Z relay: HANDOFF r10-livestate 213585e67 update reported
+2026-10-23T22:37Z relay: HANDOFF audit-r10-plan bb8b88fb3 reported
+2026-10-23T22:41Z confirm #2671: review/2671 14f4bde43 merge at live head 5c640992a; bus.sh confirm posted (verdict ref 9223bf9f7), comment 6376165890; merge-queue line appended (PRIORITY)
+2026-10-23T22:41Z update #2675: update_pr.sh fix/r10-livestate-pr 213585e67 body 96bdf8d8d launched pid 31744; log /Users/timmalmstrom/hpo-orch/r10s5/update-2675.log
+2026-10-23T22:41Z update #2675: first run refused (my open_pr wt held unpushed row-only commit 7e09c6770); detached it, relaunched
+2026-10-23T22:50Z update #2675: REFUSED at prepr (RED UNANSWERED fast (3.14) [+delivery-status, typing listed]); no push, no dispatch; ESCALATED
+2026-10-23T22:53Z relay: audit-r10-plan 3e7854bd7 reported; further moves batched to window end
+2026-10-23T22:56Z queue: open PR r10-input-staleness 89ef33c7a held until WINDOW-CLOSED (HOLD)
+2026-10-23T22:59Z relay: HANDOFF r10-ci-layout-p2b-v2 d2b3d797a update reported
+2026-10-23T23:08Z queue: #2673 r2 confirm pending (head ac6dc1328); no merge-queue
+2026-10-23T23:11Z relay: HANDOFF r10-livestate 1a2fe17bd update reported
+2026-10-23T23:23Z update #2675: update_pr fix/r10-livestate-pr 1a2fe17bd body 5087071db launched (PR open)
+2026-10-23T23:24Z update #2675: BUSY -- pid 34294 (not mine; same code 1a2fe17bd, body from a cloud-body tmp) already running it; waiting for it, then dispatch at the resulting head
+2026-10-23T23:25Z update #2675: pid 34294 (other caller's body, lacked fast (3.14)) refused; re-ran mine with body 5087071db (names fast (3.14), typing, delivery-status)
+2026-10-23T23:33Z update #2675 done: HEAD=a9e26e070 (row 2675.md in three-dot diff); no held runs; dispatch reviewer round 1 bus-nonce: 2883e993a9d2b4a599feb3f265bcad32; SPAWN-OWED (Opus) written
+2026-10-23T23:42Z confirm #2673 r2: review/2673 7d4a7d302 merge at live head ac6dc1328; comment 6376954983; no merge-queue per NOTE
+2026-10-23T23:57Z confirm #2675: blocked verdict 1e36cdce4 at live head; confirm REFUSED (PR closed for window); retry after reopen
+2026-10-24T00:18Z relay: HANDOFF r10-livestate 5c2fa6de5 update reported
+2026-10-24T00:30Z confirm #2675 r1 blocked: posted after reopen (verdict ref 7a3a50dfe), comment 6377541275
+2026-10-24T00:30Z update #2675: update_pr fix/r10-livestate-pr 5c2fa6de5 body bf6f4c3e3 launched pid 90147
+2026-10-24T00:31Z update #2675: BUSY -- pid 75208 (not mine; same code 5c2fa6de5, cloud-body tmp) running it; waiting, then dispatch at its head
+2026-10-24T00:37Z open PR r10-input-staleness 89ef33c7a (body 273f33deb): removed the 17:40Z open_pr leftovers (clean wt at 28e238127; local fix/r10-input-staleness + -pr, 0 commits outside origin); open_pr launched
+2026-10-24T00:38Z update #2675: refused (RED UNANSWERED env-matrix/policy-docs/pr-contract); not re-run; ESCALATED
+2026-10-24T00:44Z update #2675: refused (RED UNANSWERED env-matrix/policy-docs/pr-contract); not re-run; ESCALATED
+2026-10-24T00:47Z open PR r10-input-staleness: REFUSED (Closes #2234 not intended; 5 CARRY UNROUTED); ESCALATED. relay: HANDOFF r10-livestate 474d303a4 update reported
+2026-10-24T00:50Z queue: #2681 (draft, 16d3ee72a) waits for roster carry C on R10-MERGE-SUBJECT-HARDEN
+2026-10-24T00:56Z update #2675: update_pr fix/r10-livestate-pr 474d303a4 body f5e62112b launched (r1 blocked verdict already confirmed 00:30Z, comment 6377541275)
+2026-10-24T00:57Z update #2675: BUSY -- pid 77510 (not mine) holds the branch; waiting for its result
+2026-10-24T00:58Z update #2675: pid 77510 (cloud-body.SlM50P, lacked env-matrix) refused; re-ran mine with f5e62112b (names all six reds)
+2026-10-24T01:06Z update #2675 done: HEAD=2845e5459 (row in diff); held runs checked; dispatch r2 bus-nonce: 443aff6cb4135efdf0762caace83160b; SPAWN-OWED (Opus) written
+2026-10-24T01:30Z relay: HANDOFF r10-input-staleness 5d5b807e0 (body df843b894) open; audit-r10-plan 642a321b0 window-end tip -- reported
+2026-10-24T01:33Z dispatch #2681: roster carry on R10-MERGE-SUBJECT-HARDEN pushed 10692eba5 (roster-report 00:50Z); marked ready (gh pr ready); row 2681.md in diff; no held runs; bus-nonce: 8ddd6a54243f2ba1376d6dcb84b50dfb; SPAWN-OWED round 1
+2026-10-24T01:33Z open PR r10-input-staleness 5d5b807e0 (body df843b894, issue 2234): removed my 00:37Z run's leftover wt/branch (219d16367, clean, nothing outside origin); open_pr pid 19492 launched; IN FLIGHT at window end
+2026-10-24T01:39Z window 2 end; open_pr r10-input-staleness pid 19492 still running -- handed to next window via to-main
+2026-10-24T01:46Z window 3 start (box end 05:40Z). confirm #2681 r1: review/2681 06be719ed merge at live head 16d3ee72a; comment 6378359494; merge-queue line appended. HANDOFF-body r10-rca-2671-wave-script 0e4dda396 (body-only refresh, per queue)
+2026-10-24T01:49Z open PR r10-input-staleness: #2683 HEAD=07b83e9b2; row 2683.md in diff; held runs checked; bus-nonce: b1e4aefc16fa189c3da536923ab6e2b4; SPAWN-OWED round 1 (Opus)
+2026-10-24T02:04Z confirm #2675 r2: review/2675 619b0989b merge at live head 2845e5459; comment 6378528903; marked ready; merge-queue line PRIORITY appended
+2026-10-24T02:31Z confirm #2683 r1 blocked: review/2683 486e987d5 at live head 07b83e9b2; comment 6378780674
+2026-10-24T02:45Z relay: HANDOFF-body r10-input-staleness 39cb37f13 update reported
+2026-10-24T02:48Z relay: HANDOFF-body r10-input-staleness 39cb37f13 update reported
+2026-10-24T02:51Z dispatch #2683 r2 at unchanged head 07b83e9b2 (row in diff since r1); held runs checked; bus-nonce: e738724dcd211079d8fd05c95c62c121; SPAWN-OWED round 2
+2026-10-24T03:04Z confirm #2683 r2: review/2683 5c58c230d merge at live head 07b83e9b2; comment 6379079217; merge-queue line appended

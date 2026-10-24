@@ -1,0 +1,2 @@
+2026-10-19T07:46:36.7131666Z aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID D818:1EFDC5:62AC54F:140D
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.0002728Z REFUSED: gh api repos/tvofi/heatpump_optimizer/actions/runs/39218093178/rerun exited 1: gh: API rate limit exceeded for installation. If you reach out to Git

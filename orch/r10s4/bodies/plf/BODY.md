@@ -1,0 +1,149 @@
+R10-POLICY-LINT-FAMILY. Part of #2410; part of #201. Two instrument fixes and one owed pin, all in `tools/policy/`:
+
+1. **The family arm no longer re-files a member's occasions (#2410).** `statsFamilies` in `tools/policy/policy_lint.mjs` now leaves out every pull request that a member at or over the threshold already files on its own would-open line. It counts the remaining entries per pull request through a new `byPr` map in `bump`. The table row and the would-open line both say what was taken out. The mutation family also gains the four synonyms that #2561 section 5 measured: `test-vacuous`, `vacuous-test`, `vacuous-check` and `mutant-survives`.
+2. **`--pr-body` asks the raise gate itself (Triage P-F, recurrence 2; the audit-class barrier of `dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md`).** `budget_raise_gate.py --check-body FILE [--base SHA --head SHA]` runs `check_body()`: `justification()` on a section that is present, and, given the diff, the gate's own `raises_between`, refusing a raise whose body has no section. `policy_lint.mjs` `raiseJustification` runs it when the body carries `## Raise justification` or the diff touches a `*_budgets.json`, and forwards `--base`/`--head`. pr-contract (every push and body edit), `prepr.sh` `body_check` (step 7, and `body_push.sh` through `--body-check`) and `body_patch.sh` `contract` now pass `--base`, so each refuses what the gate would refuse at merge.
+3. **The `--record-known-bad` pin (#2408 carry).** `policy_lint_mutants.mjs` gains a `record-known-bad` arm. It drives `cmdRecord` with its write captured rather than made, at both ends, and kills a mutant that restores #2408's shadowing `const at`.
+
+**#2410's disposition, for the orchestrator's row.** #2410's count depends on the keying rule in `policy_lint.mjs`, and this change moves that rule. The merged bodies are untouched. On the recorded window (`## Figures`), the same input reads 7 at both ends, but over different pull requests:
+- at base, 7 = mutation-vacuous's 5, which that member already files, plus #2390 and #2444;
+- at head, 7 = #2297, #2360, #2391, #2400, #2376, #2444 and #2390, none of which any member files.
+
+The keying change alone, without the synonyms, reads 2 there, below the threshold, so it prints no family line (`M2`). The live window #2410 now names, `v7.0.4..origin/main` (47 merges), was **not measured**: `GH_TOKEN` is rejected here, and unauthenticated reads stop at 60 an hour, against about 141 reads for that window. Whether #2410 stays over the threshold on that window is the cron's next run to say. This change does not close it. The roster's `fixes` is empty, so this PR uses Part of rather than Closes.
+
+**Design departures, with the reasons.**
+- *Round 2: the trigger is the heading OR a `*_budgets.json` path, and a raise with no section is REFUSED, not warned (C2).* Round 1 keyed on the heading alone, because 19 of the 26 merges since v7.0.0 that touched a budget file raised nothing. Round 2 keeps that measurement and moves the decision into the gate: the path is only the cheap pre-filter, and the gate's own `raises_between` decides, so those 19 routine re-records read `the diff raises no cap` and pass. Refuse rather than warn, for three reasons. The train refuses that body identically under any mandate. A warning under a green check is read by no one; that is the RCA's own reason for refusing its M2. And the owner's own route then costs one section, which is the list of payments `fixer.md` already owes every raise. A budget path with no `--base`/`--head` to read is refused too, never skipped.
+- *The lint's heading test follows Python's `splitlines()`/`strip()`, not JS's `split('\n')`/`trim()`.* Without that, 13 of the bodies in the agreement corpus part between the two readers (`M5`).
+- *One line in the lint mirrors the gate (the heading test), so the concept is registered.* `agreement.mjs` gains `raise-justification`, which compares the gate's reading with the lint's.
+
+**Alternatives that lost.**
+- Mirroring `JUSTIFICATION_PAID`/`JUSTIFICATION_SCORE` in the `.mjs`: a mirror drifts, and covers only the clauses someone has already been refused on.
+- Calling the gate from `body_patch.sh`: that fixes one of the three callers.
+- C2, a named warning that pr-contract prints instead of a refusal: see the departure above.
+- C2, a trigger on the path alone (no diff read): it refuses the 19 routine re-records.
+- For the family: suppressing the family whenever any member fires. That loses the occasions no member files, which is 7 of the 12 mutation-obligation PRs on the recorded window.
+- For the family: summing member rows instead of taking the union. That breaks the distinct-PR rule the controls window pins.
+
+## Head
+
+`4963b53d09797e42155668214a182d8b7cd7fdaa`, on merge base `a6620c30adcdf0d9529ee66977694bfa2a06d5c3` (`origin/main` at the time of measurement, 2026-10-23T13:16Z). Round 2: the round-1 handoff head `e884b8900` already contained `origin/main`, so `git merge origin/main` was a no-op. Round 2's commits add the C1-C4 barrier and the title-seam record on top of it, and every figure below was re-taken at `4963b53d09797e42155668214a182d8b7cd7fdaa`.
+
+## Root cause
+
+`dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md`, landed in this PR, is the root-cause seat's section verbatim (handoff-body/r10-rca-raise-gate-grammar `2eadf9061`, `BODY.md` from its first line to `## Figures`). State (c): the grammar's one reader, `justification()`, was reachable only after the train's mandated approval. Instances are counted per refusal under mandate 6329234399 (#2633 once, #2647 twice), so the class barrier is owed here. This PR builds it against the RCA's four requirements:
+- **C1, the gate's own function, on the recorded bodies.** The `## Raise justification` sections of the refused bodies are fixtures, verbatim, under `tools/policy/fixtures/policy-rot/prepr/raise/recorded/` (one per handoff-body commit). `policy_lint.mjs`'s acceptance sets each into `raise/good.md` and drives `checkPrBody`. `c6c8fee16` (payments), `84e2aaf66` and `f2b98c1df` (score) are each refused with exactly one error. `8f564875d` and the RCA's two one-line repairs pass. `f2b98c1df` carries `IMPROVES` on 2 lines of its section's prose, which a "verdict word in the section" mirror passes; the gate's function refuses it.
+- **C2, the diff.** `check_body()` refuses a raise whose body has no section. The choice is a refusal, for the reasons in the design departures above.
+- **C3, every path.** pr-contract, prepr step 7 (`open_pr.sh`), `body_push.sh` and `body_patch.sh` all pass `--base`. pr-contract runs on `edited`, so a body edit is graded the same. Each path is shown refusing below (`r10_raise_paths.sh`).
+- **C4, the class.** `N-train-only-predicate` is in `dev/audit/config/bugclasses.json` (status barriered, rca `R10-RCA-RAISE-GATE-GRAMMAR`, nearest `N-body-lint-bounce`). It is also in `finding.schema.json`'s `class_guess` enum and in `audit-find.js` by `fold_ledger.py sync`. `fold_ledger.py check` reads 0 violations.
+- **The title seam, recorded with zero instances, not closed.** 0 of the 345 merged titles in `v7.0.0..a6620c30` fail `preflight.sh` with no intended issue; a title whose closing keyword names an unintended issue refuses (the control). The limit is that a title the train refused and someone then edited is not seen, because the train's Stop lines are not in the tree. The seat never writes a title (the orchestrator does at open), and closing the seam means a new admitted command in pr-contract, which `codeowners_gap.py --check` pins. With nothing to multiply, the RCA's cost test does not pay for it.
+
+## Mutation proof
+
+**Failing first.** With the fixtures and pins added and no fix yet, `node tools/policy/policy_lint.mjs` printed:
+- `FIXTURE VACUOUS: with mutation over threshold on every occasion the family holds, the family line fired anyway -- the same three pull requests filed twice (#2410) ...`
+- `FIXTURE VACUOUS: the double window's family reaches 5 only by re-counting mutation-vacuous's 3 filed occasions, and it printed a family line ...`
+- `FIXTURE VACUOUS: the residual window did not print exactly one ``mutation (family)`` line at 3 ...`
+- after the raise pin was added, `FIXTURE VACUOUS: the raise-justification arm on prepr/raise/bare-payments.md drew 0 error(s)`
+
+`python3 tools/policy/budget_raise_gate.py --self-test` printed `249 checks, 5 failed`: the four `--check-body` rows that need the mode, and the unreadable-body row.
+
+**Each fix line deleted on the head** (`python3 dev/audit/harnesses/r10_policy_lint_family_mutants.py --agreement-json <agreement_py.py --out>`; it restores each file byte for byte):
+
+- `M1-no-exclusion` (`taken = new Set()`): `rc=1`. The controls, double and residual windows each print `FIXTURE VACUOUS` (the three lines above).
+- `M2-no-synonyms` (the four words dropped): `rc=1`. `FIXTURE VACUOUS: the residual window did not print exactly one ``mutation (family)`` line at 3 ...`
+- `M3-no-raise-call` (`const raise = null`): `rc=1`. `FIXTURE VACUOUS: the raise-justification arm on prepr/raise/bare-payments.md drew 0 error(s)`
+- `M4-check-body-ok` (the gate's `--check-body` verdict forced to pass): `rc=1`. Five gate self-test rows fail, for example `FAIL --check-body: a bare ``Payments tried:`` heading over a list exits 1 and names the clause: got (0, True), want (1, True)`.
+- `M5-js-heading-test` (`split('\n')` and `trim()` restored in the heading test): `rc=1`. `RESULT divergent=13`, with these `raise-justification` rows:
+  - 3 where Python strips and JS does not: a leading `\x1c` or `\x85`, and a trailing `\x1f`;
+  - 9 line breaks Python splits on and JS does not: `\r`, `\v`, `\f`, `\x1c`, `\x1d`, `\x1e`, `\x85`, U+2028, U+2029;
+  - 1 that JS trims and Python keeps: U+FEFF.
+
+  The U+00A0, U+3000, U+200B, `\r\n` and leading-tab probes agree under both rules.
+- **Round 2 (C2, C3).** These pins were written beside the code and proven against these mutants, not run red first. The red-first evidence for C2/C3 is the base run of `r10_raise_paths.sh` in `## Null control`: all four paths pass a no-section raise silently.
+  - `M6-gate-no-diff-raise` (`check_body`'s `if raises:` made `if False:`): `rc=1`. `FAIL e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing: got (0, False, False, []), want (1, True, True, [])`.
+  - `M7-no-budget-trigger` (the budget path dropped from the trigger): `rc=1`. `FIXTURE VACUOUS: the raise-justification arm on a budget path, no --base drew 0 error(s)`.
+  - `M8-no-base-refusal` (the no-base refusal removed): `rc=1`. The same case draws the gate's no-section reading instead of `was not read`.
+  - `M9-no-base-forward` (`--base`/`--head` not forwarded to the gate): `rc=1`. `FIXTURE VACUOUS: the raise-justification arm on a budget path, a base git cannot read drew 1 error(s) (the body has no ``## Raise justification`` section ...`.
+  - `M10-pr-contract-no-base` (both `--base "$PR_BASE"` removed from `pr-contract.yml`): `rc=1`. `FIXTURE VACUOUS: .github/workflows/pr-contract.yml no longer passes --base in the body-check invocation`.
+  - `M11-prepr-no-base` (`body_check`'s `--base` line deleted): `FAIL body_check hands policy_lint the base, ...`. The run's `rc=2` also carries the 3 throwaway-check FAILs that the unmutated self-test shows in this container (`## Figures`).
+  - `M12-body-patch-no-base` (`contract`'s `--base "$base"` removed): `rc=1`. `FAIL policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check (got '0', want '1')`.
+- `RESTORED 12 file(s)`.
+
+**The #2408 shadowing mutant** (a `const at = sha` line under `const sha = recordedAtSha()` in `cmdRecord`):
+- At base it survives: the base default run reads `rc=0`, `FIXTURE ok: 93 error(s) hold 254 pins`, and base `policy_lint_mutants.mjs` has no arm that reaches `cmdRecord` (`grep -c 'record-known-bad\|cmdRecord'` reads 0).
+- At head it is killed: `node tools/policy/policy_lint_mutants.mjs` prints `PIN record record-known-bad with a local ``at`` shadowing ``at(path)``, it threw: at is not a function`.
+
+## Unpinned sites
+
+none: no `custom_components/` file changes, so the CI `mutation` lane draws no mutant from this diff. Every new predicate is pinned by a mutant above that turns its owning check red.
+
+## Null control
+
+- `prepr/raise/good.md` (the gate's accepted shape) and `prepr/good.md` (no section) draw no pr-body error.
+- The two recorded r10-scores bodies the gate accepted (`8f564875d`, `52d40a9ac`) draw no raise error.
+- The `acceptance` family window still prints exactly one family line per map at 4, with no member over the threshold. The no-family stats windows still carry no family member (pin unchanged).
+- The `record-known-bad` arm's unmutated drive writes exactly one ledger document, with a `recorded_at` that resolves as a commit. `git status` shows `dev/governance/config/policy_known_bad.json` unmodified after the lane runs.
+- `agreement.mjs` reads `raise-justification: 2 readers, 50 items, 0 divergent` (45 plus the 5 recorded sections), and 13 divergent under `M5`.
+- **C2/C3 at both ends**, `bash dev/audit/harnesses/r10_raise_paths.sh <rev>`. It builds a throwaway clone at `<rev>` and commits one cap raised by 1 (`class_excess_loc` in `tests/structure_budgets.json`). Its `origin` is a throwaway bare repository, so nothing leaves the machine. Each body answers the predicted `budget-raise-gate` red, so the raise arm is the only refusal left to read.
+  - At base (`a6620c30a`), with a body that has no section: every path reads `rc=0 raise_errors=0` (prepr, body_push, body_patch, pr-contract). The defect: all four pass a raise the train refuses.
+  - At head, the same body: every path reads `rc=1 raise_errors=1`. The error is `the diff raises 1 cap(s) (tests/structure_budgets.json: class_excess_loc: 18244 -> 18245 (a cap went up)) and the body has no ``## Raise justification`` section, which a mandated raise owes`.
+  - The null control at head, with `raise/good.md`'s section: every path reads `rc=0 raise_errors=0`. At base it reads the same.
+- The no-section, no-raise case: the gate's e2e row `a routine edit with no section exits 0`, and `prepr/good.md` with `README.md` as the only path draws no error (acceptance).
+
+## Figures
+
+- `FIXTURE ok: 93 error(s) hold 256 pins across 12 check classes` at head; 254 pins at base. Command: `node tools/policy/policy_lint.mjs`.
+- `budget_raise_gate self-test: 255 checks, 0 failed`, including the six `e2e: --check-body` rows over a throwaway repository with a raise. Command: `python3 tools/policy/budget_raise_gate.py --self-test`.
+- **C1, the recorded sections.** For each of `c6c8fee16 9b5742049 84e2aaf66 f2b98c1df 8f564875d`, the fixture `tools/policy/fixtures/policy-rot/prepr/raise/recorded/<c>.md` is a substring of `git show <c>:BODY.md`; a python `in` test prints `VERBATIM` for all 5. `python3 -I tools/policy/budget_raise_gate.py --check-body` on the full body and on the section gives the same rc each time: 1, 1, 1, 1 and 0. `grep -c IMPROVES` on the sections reads 0, 0, 1, 2 and 1. So a "verdict word in the section" regex passes `84e2aaf66` and `f2b98c1df`, and the gate refuses both. The two repairs, each a 1-line change (`diff | grep -c '^[<>]'` reads 2), exit 0: `- Payments tried: each below, as sub-bullets` on `9b5742049`, and `Architecture score: dS +0.0105 IMPROVES` on `f2b98c1df`. The acceptance (`node tools/policy/policy_lint.mjs`, `FIXTURE ok`) holds the same six readings through `checkPrBody`.
+- **The title seam.** Command: `bash dev/audit/harnesses/r10_title_seam.sh v7.0.0..a6620c30a`. It prints `RESULT titles=345 refused=0` and `CONTROL refused=1`.
+- **The class register.** `python3 tools/audit/fold_ledger.py check` prints `45 classes, 746 instances ... 118 rca entries` and `0 violation(s)`. At base it printed 44, 743 and 117, with 0 violations.
+- `MUTANTS ok`, with `record-known-bad` listed in the record lane. Command: `node tools/policy/policy_lint_mutants.mjs`.
+- `RESULT divergent=0 unregistered=0 dead=0 refused=0`, including `pair raise-justification: 2 readers, 50 items, 0 divergent`. Commands: `python3 -I tools/policy/agreement_py.py --out <f>` then `node tools/policy/agreement.mjs --py-json <f>`. Also `SELF-TEST 27 of 27 probes held` (`node tools/policy/agreement.mjs --self-test`) and `agreement_py self-test: 7 checks, 0 failed` (`python3 -I tools/policy/agreement_py.py --self-test`).
+- **The finder's harness at both ends, on the recorded window.** Command: `node dev/audit/harnesses/r10_family_replay.mjs [<root>]`. It reads `dev/audit/rca/harness-friction/verdict_first_lines.tsv`, which #2561 fetched over `v7.0.0..df6ca4bc`. Every number below comes from that file.
+  - Base (`<root>` = an `a6620c30` checkout): `RESULT line=mutation-vacuous count=5`; `RESULT line=mutation (family) count=7`; `CLAUSE counted as DISTINCT pull requests across them (8 entries in all)`. This reproduces #2561's recorded `stats_v7.0.0.txt` rows `5 / 6 mutation-vacuous` and `7 / 8 mutation (family)`.
+  - Head: `RESULT line=mutation-vacuous count=5`; `RESULT line=mutation (family) count=7`; `CLAUSE ... (7 entries in all), less the 5 that mutation-vacuous already files on its own line`.
+  - Null control, the harness's distinct-PR list per word: `mutation 2390`; `mutation-vacuous 2275,2305,2365,2404,2406`; `mutation-survivor 2444`; `test-vacuous 2297,2360`; `vacuous-test 2391`; `vacuous-check 2400`; `mutant-survives 2376`. The union is 12 PRs. At base the family's 7 are mutation-vacuous's 5 plus 2390 and 2444. At head they are the 12 less those 5.
+  - Without the synonyms (`M2`) the head prints no family line: only `RESULT line=mutation-vacuous count=5`.
+- **The finder's instance for P-F.** Every commit on `origin/handoff-body/r10-flow-arch-planner` and `origin/handoff-body/r10-scores` (6 bodies), run through `budget_raise_gate.py --check-body` and `--pr-body` at base and head. Commands per body: `python3 tools/policy/budget_raise_gate.py --check-body <b>`, and `node tools/policy/policy_lint.mjs --pr-body <b>` from each checkout, counting `Raise justification` errors. The loop over the six bodies is a one-off, kept in scratch:
+  - `9b5742049`, `c6c8fee16`, `f2b98c1df`, `84e2aaf66`: gate rc=1; base raise errors 0; head raise errors 1.
+  - `8f564875d`, `52d40a9ac`: gate rc=0; base 0; head 0.
+  - So the lint now refuses exactly the bodies the gate refuses, 4 of 4, and passes the 2 it accepts.
+- **Path-trigger measurement.** 26 merges in `v7.0.0..a6620c30` touched a `*_budgets.json` (`git log --first-parent --merges v7.0.0..origin/main -- '*_budgets.json'`). 7 of them raised: #2647, #2633, #2585, #2586, #2368, #2311, #2209. 19 did not. Rule: `budget_raise_gate.raises_between(merge-base(^1,^2), ^2)` non-empty. The script is a 20-line probe over the gate's own function, kept in scratch, which is allowed for a one-off.
+- **Class seams (step 8).** Two rules, one per half of the class.
+  - **The grammar's readers**, from `git grep -n -E 'Raise justification|JUSTIFICATION_(PAID|SCORE|HEADING)|justification\(|check_body\(|--check-body' -- ':!dev/audit' ':!dev/programme' ':!*.md'`, outside fixtures. It returns 8 files:
+    - `budget_raise_gate.py`: the owner.
+    - `merge_train.py`: calls `g.justification` itself; already shared.
+    - `queue_pre_flight.py`: fixture bodies, not readers.
+    - `policy_lint.mjs`: closed in this diff, by calling the gate.
+    - `agreement.mjs` and `agreement_py.py`: the registered concept.
+    - `prepr.sh` and `pr-contract.yml`: the callers this diff wires (the comment and the self-test row; the `--base` argument).
+  - **The paths that write the text the train reads**: the RCA's section 3 table, which reads every `--json body|title` in `merge_train.py` and `queue_pre_flight.py`. The body row is closed here, on all four paths (`r10_raise_paths.sh`). The recarry and `carry_audit` rows are already guarded, and the train writes `MANDATE_CITE` text itself. The title row is recorded with its zero instances (`## Root cause`).
+
+  The family fold's seams are the declared families × the two maps. One function, `statsFamilies`, serves all four, and the three family windows pin it.
+- **Scoped gate**: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`python3 tests/closure.py select --diff a6620c30 --workdir <d>`). It names `tests/entities.py`: `ALL 2406 ENTITY CHECKS PASSED`. It also names `tests/harness_headers.py`, which reads the four harnesses' `INERT READS`: `ALL 109 HARNESS HEADER CHECKS PASSED`. At `f5016920e` it failed 1 check, `depth seams`, because the two round-2 harnesses walked up `../../..` to find the root. `9d08669b5` replaced that with `git rev-parse --show-toplevel`.
+  - Round 1: an earlier entities run, at `08b2e294f`, failed 1 of 2406: `gate lease priority: concurrency control: two waiters released in one poll, exactly one holds the slot`. That is a timing check in `gate_lock.py`'s self-test, which this diff does not touch. It passed on both later runs. Both ran under a Python 3.13 venv with `tests/requirements-ci.txt`, because the seat recipe's CPython 3.14.7 had no download here.
+- `run_always` (`tests/run.sh`):
+  - `claims hygiene: origin/main ok`. Command: `tests/env_drift.py --claims-only origin/main`.
+  - `ALL 112 closure shrink pins PASSED`. Command: `tests/closure.py selftest`.
+  - `layout self-test: ok`, rc=0, with `reference 959 finding(s)`, the same count as base; the five recorded sections add none. Command: `tests/layout.py`.
+  - Before `9ac1676af`, the four `prepr/raise/` fixtures copied `prepr/good.md`'s retired paths, and layout refused 8 new references to them. They now cite `tools/policy/check-wave-script.mjs` and `dev/governance/dimensions/D7.md`.
+- `STRUCTURE RATCHET PASSED`. Command: `python3 tests/structure.py`.
+- `PRE-PR: 4963b53d09797e42155668214a182d8b7cd7fdaa 000000000000000000000000000`, `clean no refusal`, `agreement lane AGREEMENT ok`, `unpinned sites: the diff adds no unpinned mutation site`. Command: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`. `PIN KILLED: nothing to pin` (`python3 tests/mutation_table.py --pin-killed`).
+- `CI PREDICT: no closures or fast red predicted against a6620c30adcd`. Command: `python3 tools/pr/ci_predict.py --base origin/main`, after `--apply-inert` added `INERT READS` entries for round 1's two harnesses and round 2's two (`r10_raise_paths.sh`, `r10_title_seam.sh`).
+- `body_patch self-test: 62 checks, 0 failed`; `fold_ledger` self-test `209 passed, 0 failed`; `MUTANTS ok` (policy_lint_mutants.mjs); `throwaway_git: 0 raw git init or clone site(s) refused` (`python3 -I tests/throwaway_git.py --check`).
+- `prepr.sh --self-test`: `341 passed, 0 failed` at the head. At `bf00c5466` it read `338 passed, 3 failed`: the raw-git check (`a tree with no raw repository build passes the raw-git check (null control)` and its two follow-ups) refused `r10_raise_paths.sh`'s raw `git clone`/`git init`. `f5016920e` moved those onto `tests/throwaway_git.sh`, and `python3 -I tests/throwaway_git.py --check` now reads 0.
+
+## Approval
+
+Owner approval is owed for the policy paths (`POLICY_GLOBS`). In `tools/policy/`: `policy_lint.mjs`, `policy_lint_mutants.mjs`, `budget_raise_gate.py`, `agreement.mjs`, `agreement_py.py` and the fixtures. Round 2 adds `.github/workflows/pr-contract.yml`, `tools/pr/prepr.sh` and `tools/audit/seat/body_patch.sh`, and the register files `dev/audit/config/bugclasses.json`, `finding.schema.json` and `.claude/workflows/audit-find.js`. This changes what a seat must do: a body whose diff raises a cap now owes `## Raise justification` at pr-contract, the owner's own route included (`## Root cause`, C2). The roster's owner gate merges it on approval under the mandate. None is recorded yet. No `*_budgets.json` changes, so there is no raise.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none.
+
+## Friction
+
+- `environment`: `cost`: `GH_TOKEN` is rejected (HTTP 404 on a public read), and `seat_venv.sh` asks uv for a CPython 3.14.7 that has no download. So the live `v7.0.4` window went unmeasured, and the scoped gate ran on a 3.13 venv. Carry: dismissed: a cloud-seat environment limit, not a defect in this PR; the live window is measured by CI on this head (heavy runs go to cloud CI, owner 2026-10-21)

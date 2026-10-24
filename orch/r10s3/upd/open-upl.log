@@ -1,0 +1,3 @@
+===== daemonize pid=96163 2026-10-20T00:26:23Z argv: bash tools/audit/seat/open_pr.sh r10-rca-worktree-vanish 49577add8c4df47aa24124727fd2f6e250f3434f fix(seat): per-branch lock in update_pr.sh; relay retries a BUSY update R10-UPDATE-PR-LOCK
+open_pr: open-PR cap: 4 open < 6
+PR=2469 HEAD=d2d361a449f0356f877e49a7ff59521f33739c37 AUTHOR=tvofi

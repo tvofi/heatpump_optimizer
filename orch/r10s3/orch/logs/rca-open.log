@@ -1,0 +1,5 @@
+===== daemonize pid=65668 2026-10-20T18:32:29Z argv: bash tools/audit/seat/open_pr.sh r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864 rca: the orphaned-handoff class - cause, state and ledger countermeasure R10-TICK-DRIVERS
+open_pr: open-PR cap: 2 open < 6
+  REFUSE   pr-body                PR-BODY: 1 error(s) in /Users/timmalmstrom/.local/state/hpo/pr/r10-rca-handoff-slip/body.md -- no budget leaf raised over efc0e6733...5c500b791
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-rca-handoff-slip/p1.log

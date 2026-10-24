@@ -1,0 +1,72 @@
+[
+ {
+  "cell": "one|summer_negative|winter_cold",
+  "obj_K1": 15.217915901264572,
+  "obj_K5": 15.217915901264572,
+  "returned_K1": 15.217915901264572,
+  "returned_K5": 15.217915901264572,
+  "gap_rel": 0.0,
+  "passes_K1": [
+   1
+  ],
+  "passes_K": [
+   2
+  ]
+ },
+ {
+  "cell": "one|shoulder|winter_cold",
+  "obj_K1": 54.75346834673832,
+  "obj_K5": 54.75346834673832,
+  "returned_K1": 54.75346834673832,
+  "returned_K5": 54.75346834673832,
+  "gap_rel": 0.0,
+  "passes_K1": [
+   1
+  ],
+  "passes_K": [
+   2
+  ]
+ },
+ {
+  "cell": "two|summer_negative|winter_cold",
+  "obj_K1": 19.553470537589767,
+  "obj_K5": 19.553470537589767,
+  "returned_K1": 19.553470537589767,
+  "returned_K5": 19.553470537589767,
+  "gap_rel": 0.0,
+  "passes_K1": [
+   1
+  ],
+  "passes_K": [
+   2
+  ]
+ },
+ {
+  "cell": "two|shoulder|winter_cold",
+  "obj_K1": 65.22449479799583,
+  "obj_K5": 65.22449479799583,
+  "returned_K1": 65.22449479799583,
+  "returned_K5": 65.22449479799583,
+  "gap_rel": 0.0,
+  "passes_K1": [
+   1
+  ],
+  "passes_K": [
+   2
+  ]
+ },
+ {
+  "cell": "one|summer_negative|shoulder",
+  "obj_K1": 1.1494448730528126,
+  "obj_K5": 1.1494448730528126,
+  "returned_K1": 1.1494448730528126,
+  "returned_K5": 1.1494448730528126,
+  "gap_rel": 0.0,
+  "passes_K1": [
+   1
+  ],
+  "passes_K": [
+   1
+  ]
+ }
+]

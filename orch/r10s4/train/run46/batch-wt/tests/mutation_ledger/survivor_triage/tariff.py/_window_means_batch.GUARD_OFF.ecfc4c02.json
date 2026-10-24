@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_means_batch GUARD_OFF ecfc4c02",
+  "old": "    if n == 0:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the empty-horizon guard of `_window_means_batch`, mirroring `metering_windows`' own `house.size == 0` return. The optimizer always plans at least one step, and no driver hands the twin a zero-column batch; on that unreachable input the scalar twin guards identically. Measured: no driver detects the mutant. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

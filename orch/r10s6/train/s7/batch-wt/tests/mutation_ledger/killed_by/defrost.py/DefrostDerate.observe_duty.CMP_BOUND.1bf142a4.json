@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty CMP_BOUND 1bf142a4",
+  "killed_by": "tests/features.py",
+  "old": "        if not 0.0 <= duty <= 1.0:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: CMP_BOUND (`if not 0.0 < duty <= 1.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
+}

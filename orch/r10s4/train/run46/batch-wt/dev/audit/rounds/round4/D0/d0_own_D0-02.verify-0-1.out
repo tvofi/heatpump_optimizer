@@ -1,0 +1,45 @@
+CELL base winter_typical   tz=0 dhw=1 J=68.81957 solves_so_far=5
+CELL base winter_typical   tz=0 dhw=0 J=60.10428 solves_so_far=10
+CELL base winter_typical   tz=1 dhw=1 J=87.27327 solves_so_far=15
+CELL base winter_typical   tz=1 dhw=0 J=77.98846 solves_so_far=20
+CELL base winter_extreme   tz=0 dhw=1 J=95.78439 solves_so_far=25
+CELL base winter_extreme   tz=0 dhw=0 J=80.74056 solves_so_far=30
+CELL base winter_extreme   tz=1 dhw=1 J=128.37548 solves_so_far=35
+CELL base winter_extreme   tz=1 dhw=0 J=111.65716 solves_so_far=40
+CELL base summer_negative  tz=0 dhw=1 J=15.17211 solves_so_far=47
+CELL base summer_negative  tz=0 dhw=0 J=13.14352 solves_so_far=52
+CELL base summer_negative  tz=1 dhw=1 J=19.33594 solves_so_far=59
+CELL base summer_negative  tz=1 dhw=0 J=17.21383 solves_so_far=64
+CELL base shoulder         tz=0 dhw=1 J=54.53902 solves_so_far=71
+CELL base shoulder         tz=0 dhw=0 J=48.81373 solves_so_far=76
+CELL base shoulder         tz=1 dhw=1 J=64.98693 solves_so_far=83
+CELL base shoulder         tz=1 dhw=0 J=59.06004 solves_so_far=88
+CELL base flat             tz=0 dhw=1 J=90.55169 solves_so_far=93
+CELL base flat             tz=0 dhw=0 J=82.46331 solves_so_far=98
+CELL base flat             tz=1 dhw=1 J=107.67103 solves_so_far=103
+CELL base flat             tz=1 dhw=0 J=100.49951 solves_so_far=108
+RESULT own_cells_total=20
+RESULT own_cells_priced=16
+RESULT own_cells_flat_null_control=4
+RESULT own_solves_observed_scipy_boundary=108
+RESULT own_solves_on_cap_shipped=0
+RESULT own_max_nit_shipped=47
+RESULT own_median_nit_shipped=8
+RESULT own_maxiter_values_seen=[200, 300]
+RESULT own_max_nit_dhw_path_300=46
+RESULT own_max_nit_space_path_200=47
+RESULT own_tight_cap_used=47
+RESULT own_solves_on_cap_tight=1
+RESULT own_max_abs_gap_tightcap_priced_pct=0 %
+RESULT own_max_abs_gap_tightcap_flat_pct=0 %
+RESULT own_cells_plan_changed_tightcap=0
+RESULT own_solves_on_cap_starved3=99
+RESULT own_solves_observed_starved3=106
+RESULT own_mean_gap_starved3_priced_pct=-3.1176 %
+RESULT own_max_gap_starved3_priced_pct=0 %
+RESULT own_min_gap_starved3_priced_pct=-11.8578 %
+RESULT own_mean_gap_starved3_flat_pct=-1.5336 %
+RESULT thread_factor=1.0003
+RESULT load1=5.25
+RESULT swapins=42498245
+RESULT concurrent_python_procs=3

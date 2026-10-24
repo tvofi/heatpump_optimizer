@@ -1,0 +1,53 @@
+{
+ "lane": "UI",
+ "kind": "owner",
+ "class": "owner",
+ "severity": "medium",
+ "size": "M",
+ "issues": [
+  2257
+ ],
+ "fixes": [
+  2257
+ ],
+ "findings": [],
+ "wave": 5,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "mandated approval under 6329234399",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "group": "R10-ADVISOR-RESIDUE",
+ "after": [],
+ "files": [
+  "custom_components/heatpump_optimizer/price_tiles.py",
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "tests/features.py"
+ ],
+ "carry": [
+  "From #2572 (body, item a47745dc), routed by routing audit 1 (2026-10-24): its destination #2257 is done and did not implement it (#2257 is open and no live group lists it; coordinator.py:8809 and :11242 still publish the single-solve `monthly_cost_delta` as the advisor's `cost_delta_sek_month`). **Open seam (a), the Plan page's what-if.** `async_simulate`'s `monthly_cost_delta`, which is also the fuse advisor's `cost_delta_sek_month`, scales the plan's single-solve spend, one-off coast or heat-up included. That is #2257 item 8's class, at the seam this group's architect note leaves alone. Its size is the `null` arm's `first_solve_plan` against `truth_per_delivered_degree`. The Advisor's \"Try in what-if\" lands on it, and `docs/dashboard-card.md` says so.",
+  "From #2572 (body, item 69e7c431), routed by routing audit 1 (2026-10-24): its destination #2257 is done and did not implement it (#2257 open, no live owner; seam (b) untouched after #2572 (no later commit names it: `git log --grep '#2257'` shows only 5e1fdb77b)). **Open seam (b), the inbox's sensor-gap and hot-water rows.** They are today's window, scaled to a month (the class seams above), so they swing day to day: #2257 item 6's class, outside the what-if this group owns.",
+  "From #2572 (body, item 87849118), routed by routing audit 1 (2026-10-24): its destination #2257 is done and did not implement it (#2257 open, no live owner; seam (c) was measured only in a scratch probe). **Open seam (c), the held estimator's per-solve asymmetry** between a degree cooler and a degree warmer. Its causes are the horizon's unsettled end state and the 15-minute quantisation of a coast. - Size: up to 23.5 of about 66 per month at one 07:00 start, in this seat's scratch probe (not a committed instrument). It averages to the `rotation` gaps above. - It is what keeps the brief's convexity check from being built here. A later change that wants that check, or compares the two tiles, starts from it.",
+  "From #2572 (review 6322582323, item ae0472c3), routed by routing audit 1 (2026-10-24): its destination R10-ADVISOR is done and did not implement it (MX4 still survives: tests/features.py:33575-33584 folds exactly two samples into every day, so a pooled mean equals the mean of daily means). **MX4 survives.** Replacing the mean of daily means with a pooled mean (`sum(sums)/sum(counts)`) passes features.py, because the horizon check folds exactly two samples into every day, so the two estimators agree. The check named `… publishes the mean of their daily means` cannot tell them apart.",
+  "From #2572 (review 6322582323, item e8626144), routed by routing audit 1 (2026-10-24): its destination R10-ADVISOR is done and did not implement it (the copy question (per degree held vs per degree of setting) was left to judge/owner; no later commit). **The null bounds the held figure per delivered degree, but the tile is read per degree of setting.** In the `null` arm the plan delivers −0.514 K and +0.327 K per degree of schedule moved, at +59.4 per delivered degree. Over a three-day loop, moving the setting a degree therefore changes the bill by roughly 30 and 19 SEK a month, against the tile's 54.4. The body states the delivered fraction, so this is disclosed. Whether three days reaches steady state is not shown.",
+  "From #2572 (review 6328189370, item f1c7e1de), routed by routing audit 1 (2026-10-24): its destination #2257 is done and did not implement it (same as ae0472c3 (MX4), round 2). Non-blocking: MX4 still survives at this head. I replaced the mean of daily means in `price_tiles.published` with a pooled mean (`sum(sums)/sum(counts)`), and `tests/features.py` reads `ALL 4282 FEATURE CHECKS PASSED`, rc 0 (`ev/mut-MX4.diff`, `ev/MX4-features.log`). The horizon check still cannot tell the two estimators apart, because every day it builds holds the same sample count. The body's \"mean of their daily means\" is not pinned against a pooled mean. A check needs days with unequal counts.",
+  "From #2572 (review 6328189370, item 5df8a03b), routed by routing audit 1 (2026-10-24): its destination #2257 is done and did not implement it (same as e8626144, round 2). Non-blocking: the tile prices a degree held (+54.4 in the `null` arm). The plan delivers only −0.514 K and +0.327 K per degree of setting, so the row overstates what pressing the button saves, by roughly 1.8× and 3×. The body discloses this and leaves the copy question to the judge or owner. Nothing in this round changes it.",
+  "From #2572 (review 6322344533, item 5f30f170), routed by routing audit 1 (2026-10-24): it carried no Carry: marker and is not implemented (same as e8626144). **Null control (carry 1).** The held figure reads +54.4 against +59.4 realised per delivered degree (−8.4 %, inside the fixer's own 15 % bound). But the plan delivers only −0.514 K / +0.327 K per degree of setting, so the tile overstates what moving the setting saves by roughly 1.8× and 3×. The body discloses this. Whether \"a degree cooler ≈ 54\" is the right copy for a button that moves the setting is a question for the judge or owner, not a block here.",
+  "From #2572 (review 6322344533, item 4468b8a1), routed by routing audit 1 (2026-10-24): it carried no Carry: marker and is not implemented (the mixing question was left to the re-cut and not measured). **Mixing.** The 30-day mean mixes days priced at different schedules (after a target change, or an away setback that shifts `comfort_temp_day`). The overrides kept on the tile are only the latest. Not measured; stated so the re-cut can decide."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-advisor-residue"
+ },
+ "brief": "Residue of #2257 that R10-ADVISOR (#2572, merged f24895c) recorded and left: its body's open seams (a) the what-if's single-solve monthly_cost_delta that the fuse advisor and the Advisor's 'Try in what-if' read, (b) the inbox sensor-gap and hot-water rows that scale one day to a month and swing, (c) the held estimator's per-solve asymmetry; and its reviews' notes: mutant MX4 (a pooled mean in price_tiles.published) survives because tests/features.py folds exactly two samples into every day, the degree tile prices a degree held while the plan delivers -0.514 K / +0.327 K per degree of setting (roughly 1.8x and 3x overstated), and a 30-day mean mixes days priced at different schedules. Each carry holds its source and evidence (routing audit 1). Fix MX4 with a fixture of unequal daily counts, decide the per-degree copy with the owner's screenshot as the finder harness, and size (a)-(c) with the null arm of r10_sav_null_terms.py before any change; a seam that does not move under its own perturbation is recorded, not fixed. Last group on #2257: closes it."
+}

@@ -1,0 +1,2 @@
+===== daemonize pid=12744 2026-10-18T01:30:13Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/t1 --mandate 6175172275 --bot-prs --pre-flight
+===== daemonize pid=78554 2026-10-18T02:11:11Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/t1/queue.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/t1 --mandate 6175172275 --bot-prs --pre-flight --free-holders

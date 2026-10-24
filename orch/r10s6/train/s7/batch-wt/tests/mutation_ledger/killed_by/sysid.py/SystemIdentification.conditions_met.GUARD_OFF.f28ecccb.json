@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF f28ecccb",
+  "killed_by": "tests/features.py",
+  "old": "        if learner_samples >= cfg.converged_samples:",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

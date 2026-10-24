@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/disinfection.py:DisinfectionSwitch.turn_on GUARD_OFF 62a47053",
+  "killed_by": "tests/features.py",
+  "old": "        if not await self._write(entity_id, \"turn_on\"):",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=33."
+}

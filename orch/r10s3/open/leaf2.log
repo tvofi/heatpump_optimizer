@@ -1,0 +1,3 @@
+===== daemonize pid=23675 2026-10-18T02:06:05Z argv: bash tools/audit/seat/open_pr.sh r10-leaf-imports 29ccddab0130e462fbb825a0f6cc48426dd9fbcd R10-LEAF-IMPORTS: leaf modules stop importing the solver R10-LEAF-IMPORTS
+  REFUSE   ancestry reds          RED UNANSWERED (mutation):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-leaf-imports/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

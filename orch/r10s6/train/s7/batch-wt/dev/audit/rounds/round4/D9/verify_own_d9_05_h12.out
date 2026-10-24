@@ -1,0 +1,26 @@
+# verifier-own D9-05 harness; baseline=7dd68dd; horizon=12.0h
+# procs_at_start=0 load1=16.51
+RESULT winter_typical.own_comfort_calls_per_solve=9855 calls
+RESULT winter_typical.own_comfort_calls_per_gradient=49.0299 calls/grad
+RESULT winter_typical.own_rows_per_gradient=48 rows/grad
+RESULT winter_typical.own_njev=201 grads
+RESULT winter_typical.own_minimize_calls=5 calls
+RESULT winter_typical.own_comfort_calls_minus_rows=207 calls
+RESULT winter_typical.own_comfort_cpu_share_pct=31.0173 pct
+RESULT winter_typical.own_batch_cpu_share_pct=33.7876 pct
+RESULT winter_typical.own_comfort_over_batch_cpu=0.918006
+RESULT flat_NULL.own_comfort_calls_per_solve=11325 calls
+RESULT flat_NULL.own_comfort_calls_per_gradient=49.026 calls/grad
+RESULT flat_NULL.own_rows_per_gradient=48 rows/grad
+RESULT flat_NULL.own_njev=231 grads
+RESULT flat_NULL.own_minimize_calls=5 calls
+RESULT flat_NULL.own_comfort_calls_minus_rows=237 calls
+RESULT flat_NULL.own_comfort_cpu_share_pct=32.1535 pct
+RESULT flat_NULL.own_batch_cpu_share_pct=33.9281 pct
+RESULT flat_NULL.own_comfort_over_batch_cpu=0.947697
+RESULT own_null_control_share_delta_pp=1.13626 pp
+RESULT own_null_control_calls_per_grad_delta=-0.00387672 calls/grad
+RESULT thread_factor=nan
+RESULT load1=16.4727
+RESULT swapins=42830315
+RESULT concurrent_gate_procs=0

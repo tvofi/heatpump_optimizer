@@ -1,0 +1,5 @@
+open_pr: OVER-CAP: 12 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+PR=2555 HEAD=50b73644b8eab70a44cdfb7b67c446f6f1fd86b6 AUTHOR=tvofi
+ndate/p1.log matches
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-merge-pr-mandate/p1.log
+rc=0

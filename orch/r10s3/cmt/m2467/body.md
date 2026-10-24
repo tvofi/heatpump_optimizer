@@ -1,0 +1,1 @@
+Merged #2467 (round-10 roster PR) as dc84fd12 under mandate 6175172275, after a round-2 merge verdict. Main's roster now has 89 groups, including R10-CEILING-PROBE, R10-SETPOINT-BOOST, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK, R10-BUFFER-STORE and R10-COP-PARTLOAD, so #2465's carries now resolve against main. Leaves #201 open.

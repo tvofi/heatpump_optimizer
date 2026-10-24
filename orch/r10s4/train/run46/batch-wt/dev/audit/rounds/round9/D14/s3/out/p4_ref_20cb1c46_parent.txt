@@ -1,0 +1,19 @@
+CELL two|nodhw|winter_typical           flat=0 _optimize_space_only   cold n=4 prod=77.884228 dense=77.421824 gap=0.5937% tight=nan tgap=nan% E=67.86/66.84
+CELL two|nodhw|winter_typical           flat=1 _optimize_space_only   cold n=4 prod=99.671176 dense=99.455797 gap=0.2161% tight=nan tgap=nan% E=75.54/75.35
+RESULT p4_seam_calls=1 count
+RESULT p4_bracket_misses=1 count
+RESULT p4_bracket_misses_flat=1 count
+RESULT p4_tol_misses=0 count
+RESULT p4_tol_misses_flat=0 count
+RESULT p4_max_tgap_pct=nan %
+RESULT p4_max_tgap_flat_pct=nan %
+RESULT p4_max_gap_pct=0.5937 %
+RESULT p4_max_gap_flat_pct=0.2161 %
+RESULT p4_misses_optimize_space_only_cold=1/1 count
+RESULT p4_misses_optimize_space_only_warm=0/0 count
+RESULT p4_misses_solve_space_cold=0/0 count
+RESULT p4_misses_solve_space_warm=0/0 count
+RESULT wall_s=50.1 s provisional
+RESULT thread_factor=1.000
+RESULT load1=6.88
+RESULT swapins=0

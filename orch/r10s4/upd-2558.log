@@ -1,0 +1,4 @@
+  REFUSE   push order             origin/fix/r10-plan-artifact and HEAD have diverged, 1 commit(s) there against 12 here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge origin/fix/r10-plan-artifact, then rewrite `## Head` at the merge commit
+  REFUSE   ancestry reds          RED UNANSWERED (closures nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/body-2558.cdtO/BODY.md: check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-plan-artifact.log

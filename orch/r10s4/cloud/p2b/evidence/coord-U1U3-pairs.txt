@@ -1,0 +1,15 @@
+== hassfest: BEFORE 39906931829 (hassfest.yml at ci-probe/base) vs AFTER 39906614369 (hassfest / * in ci.yml at ci-probe/all)
+  RUNTIME steps 3->3 perms 1->1 rc 0
+== validate: BEFORE 39906934547 (validate.yml at ci-probe/base) vs AFTER 39906614369 (validate / * in ci.yml at ci-probe/all)
+  RUNTIME steps 3->3 perms 1->1 rc 0
+== codeql: BEFORE 39906937078 (codeql.yml at ci-probe/base) vs AFTER 39906614369 (codeql / * in ci.yml at ci-probe/all)
+  LOST   step  Analyze (actions) | Say what scope decided for this leg
+  LOST   step  Analyze (javascript-typescript) | Say what scope decided for this leg
+  LOST   step  Analyze (python) | Say what scope decided for this leg
+  LOST   step  scope | Run actions/checkout@<sha>
+  LOST   step  scope | Run set -euo pipefail
+  GAINED step  Analyze (actions) | Say what the prelude decided for this leg
+  GAINED step  Analyze (javascript-typescript) | Say what the prelude decided for this leg
+  GAINED step  Analyze (python) | Say what the prelude decided for this leg
+  LOST   perm  scope | Contents: read,Metadata: read
+  RUNTIME steps 14->12 perms 4->3 rc 1

@@ -1,0 +1,9 @@
+start 2026-10-23T06:18:28Z driver 7fa5b4bde
+SWEEP run=39908579484 attempt=1 completed_at=2026-10-23T05:58:26Z started=1792736310 superseded=0 rc=0 :: SWEEP re-ran gate of run 39908575096 (attempt 1, completed red) | SWEEP-DONE run=39908579484 reruns=1
+SWEEP run=39908575096 attempt=1 completed_at=2026-10-23T05:57:30Z started=1792736311 superseded=0 rc=0 :: SKIP run 39908575096: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39911090068 attempt=1 completed_at=2026-10-23T06:23:24Z started=1792736623 superseded=0 rc=0 :: SKIP run 39911090068: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39911090487 attempt=1 completed_at=2026-10-23T06:24:11Z started=1792736686 superseded=0 rc=0 :: SKIP run 39911090487: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39911128328 attempt=1 completed_at=2026-10-23T06:25:37Z started=1792736749 superseded=0 rc=0 :: SKIP run 39911128328: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39911235897 attempt=1 completed_at=2026-10-23T06:26:42Z started=1792736812 superseded=0 rc=0 :: SWEEP re-ran gate of run 39911090068 (attempt 1, completed red) | SWEEP re-ran gate of run 39911090487 (attempt 1, completed red) | SWEEP re-ran gate of run 39911128328 (attempt 1, completed red) | SWEEP-DONE run=39911235897 reruns=3
+IDLE-EXIT: every run completed, no sweep alive, nothing new for the idle bound
+exit rc=0 2026-10-23T06:42:25Z

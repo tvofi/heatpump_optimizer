@@ -1,0 +1,5 @@
+===== daemonize pid=53250 2026-10-15T18:54:36Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-b3/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=53250 queue=2 (#2284 #2275)
+#2284 recarry START (branch fix/r10-i1-pr)
+#2284 recarry: main merged, head 5f7bded0; app_push: RECARRY: prepr SKIPPED: HEAD 5f7bded0 is the clean merge of the live head 9bee177a and origin/main's e7002ec7, and the body is the live one
+beat: waiting CI at 5f7bded0 (poll 2, t+241s, required: 14, concluded: 9/14)

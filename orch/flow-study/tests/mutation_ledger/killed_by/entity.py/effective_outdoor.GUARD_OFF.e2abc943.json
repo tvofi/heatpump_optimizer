@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF e2abc943",
+  "killed_by": "tests/entities.py",
+  "old": "    if (data.get(\"reading_ok\") or {}).get(\"outdoor_temperature\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

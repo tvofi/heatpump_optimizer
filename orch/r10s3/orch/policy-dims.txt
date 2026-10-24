@@ -1,0 +1,882 @@
+=================== D0.md
+# D0 — Price optimality
+
+Owner's brief: *"Price optimality. Specifically hunt for sub-optimal planning."*
+
+Read `COMMON.md` first. This brief says what to measure and how; the contract
+there says what counts.
+
+## What you are hunting
+
+Plans the shipped solver returns that a better search finds strictly cheaper
+on the **same objective, bounds and inputs**, with comfort and hot-water
+feasibility no worse. Sub-optimality has three known homes: the seeding and
+multi-start (which basin the starts land in), the budget (iterations, function
+evaluations, tolerance), and structure the solver cannot see (bang-bang
+schedules, the DHW/space decomposition, the terminal credit, horizon effects).
+You are not asked whether the objective is the right objective — that is D2 —
+but whether the solver minimises the one it has.
+
+## Method
+
+1. **Capture harness.** `mock.patch.object(optimizer_module, "_multi_start_minimize", ...)`
+   (the idiom in `tests/optimality.py`) to record every call's objective,
+   candidates, bounds, args, `maxiter` and result, then race challengers
+   against the exact recorded objective. Score every plan with the production
+   objective, never with energy price alone: a challenger that is cheaper on
+   energy and worse on comfort pull or cycling is not cheaper.
+2. **Challengers**, cheapest first: more L-BFGS-B starts (structured seeds:
+   bang-bang at several energy fractions, greedy-cheapest-hours, the
+   thermostat baseline, the previous cell's plan); larger `maxiter` and
+   `maxfun`; tighter `ftol`; a different `eps`; warm-starting L-BFGS-B from
+   the best challenger; a global method (`scipy.optimize.differential_evolution`
+   or a dynamic program on a coarsened grid) as an outer bound on the same
+   objective. Report the gap between production and the best feasible
+   challenger, and the gap to the outer bound.
+3. **Feasibility parity** before any "cheaper" verdict: per-step comfort floor
+   and ceiling, DHW availability in windows, power bounds, manual pins.
+4. **The grid**: every price profile × weather profile in `tests/profiles.py`
+   (8 × 5), topologies single/two-zone, DHW on/off, valve storage, wood,
+   horizon 6/24/48 h, and the coordinator captures. Report per cell; the
+   aggregate needs leave-one-out and the most-favourable-cell drop.
+5. **Null control**: the same race at `profiles.prices("flat")`. A gap that
+   survives flat prices is not price optimality; name what it is. A real
+   finding that is out of dimension is carried per `finding-propagation.md`.
+6. **MPC masking**: for every cell with a gap, does the step-0 action differ?
+   If re-planning at the next step reaches the same trajectory, the gap is
+   not realised. Simulate the receding horizon over a day for the cells that
+   matter (`tests/rolling.py:run_rolling` shape).
+7. **Decomposition**: does iterating DHW ↔ space more than once change cost?
+   Does the terminal credit change the plan the way its docstring claims?
+
+## Reuse
+
+`tests/optimality.py` (`setup`, `evaluate`, the patch idiom), `tests/golden.py:make`
+and `SCENARIOS`, `tests/backtest.py:score` and its strategies,
+`tests/stress.py:build_case`, `tests/profiles.py`.
+
+## Traps
+
+- Timing under the fan-out is provisional; function-evaluation counts and
+  iteration counts are your evidence.
+- The batched gradient serves some bound shapes and not others; a race
+  must use the same `jac` path production would (capture it).
+- `_MULTI_START_SOLVES` and the pre-refinement scoring decide which
+  candidates get refined at all; count what is discarded.
+- Report SEK/day only beside the flat-price arm and the bill share; a 1 %
+  gap on a 60 SEK day is a finding, a 1 % gap on a 2 SEK summer day is not.
+=================== D1.md
+# D1 — Robustness and stability
+
+Owner's brief: *"Robustness and stability — lifecycle, staleness, executor
+boundaries, store corruption, guards."*
+
+Read `COMMON.md` first.
+
+## What you are hunting
+
+Ways the integration wedges, leaks, races, publishes stale or fabricated data
+as measured, or turns a corrupt input into a permanent failure — under real
+Home Assistant semantics, not the test stub's.
+
+## Method
+
+1. **A real-loop harness.** Subclass `tests/harness.py:FakeHass` so
+   `async_add_executor_job` runs in a `ThreadPoolExecutor` on a real
+   `asyncio` loop, and `async_create_task` schedules instead of closing.
+   Then setup → first refresh → reload mid-solve → unload mid-solve → setup
+   again. Assert no live task, listener, timer or executor future references
+   the torn-down coordinator (`asyncio.all_tasks`, `gc.get_referrers`), no
+   exception escapes, and the new instance's first cycle completes.
+2. **Store corruption fuzzing.** Enumerate every persisted payload
+   (`Store(`, `async_load`, `async_save`, snapshots, ledger, learners,
+   manual plan). Per store, at least 200 seeded mutants of the healthy
+   payload: type swaps, missing keys, `NaN`/`inf`, negative or huge numbers,
+   wrong nesting, truncation, strings where dicts go. Load through the real
+   loader, run one cycle, assert it completes, the corrupt part is quarantined
+   or reset with one log line, and the *next* cycle does not repeat the failure.
+   Add one perturbation to the store-fuzz set: an instant written by a clock ahead of
+   the one that reads it back, driven across a restart.
+3. **Staleness.** Drive the watchdog and every "age" sensor under: a frozen
+   clock jump forward/back, DST transitions (`tests/hastub` `dt.freeze`,
+   `tests/dst_checks.py`), `last_reported` in the future, states `unknown`
+   and `unavailable`, a price list that stops updating, a weather entity
+   that returns an empty forecast.
+4. **Executor boundary.** From `_solve_record` and `_solve_hubs`,
+   list every `self._*` the solve thread reads and every loop-side writer of
+   them; a race harness mutates each writer mid-solve and checks the plan and
+   the published payload for torn state.
+5. **Guards.** Every `try/except` that swallows: does it log once, does it
+   set `last_update_success`, does it recover on the next cycle, does it
+   hide a bug that should surface? Executed by injecting the exception.
+6. **External-input parsers.** Every parse of input the integration did not
+   produce — ECL110 MQTT, pump-signal states, the Tibber and Open-Meteo
+   responses, the weather forecast — driven with malformed, non-finite,
+   oversized and hostile payloads: the cycle completes, the failure logs once,
+   the arm is pinned. #1090 made the ECL110 handler drop a NaN or malformed
+   payload whole, logging each drop at DEBUG; drive the parsers it left.
+
+## Reuse
+
+`tests/harness.py`, `tests/entities.py:_honest_coordinator`,
+`tests/golden.py:_capture_coordinator`, `tests/hastub/homeassistant/util/dt.py:freeze`.
+
+## Traps
+
+`FakeHass` serialises the executor and closes coroutines. Real HA runs setup
+and unload through the config-entry state machine, one at a time per entry; a
+race reproduced only by calling a lifecycle method directly is a stub artefact.
+=================== D2.md
+# D2 — Mathematical and physical sanity
+
+Owner's brief: *"Mathematical and physical sanity — the optimizer's objective,
+the thermal model, COP and derates, tariff and price arithmetic."*
+
+Read `COMMON.md` first.
+
+## What you are hunting
+
+Equations that are wrong, units that do not cancel, identities that do not
+hold, and physical bounds that are violated — each shown by an executed
+identity with a stated tolerance, not by reading the code.
+
+## Method
+
+1. **Thermal model.** Energy conservation per step (stores' enthalpy change
+   equals delivered heat minus losses, to 1e-9 kWh); dt-invariance (four
+   15-minute steps versus one hour, with the tolerance the integrator's
+   order predicts); scalar `simulate_step` versus `simulate_trajectory_batch`
+   bit parity on space-only, DHW, valve, wood, coil, external-heat and PV
+   inputs; monotonicity (more power never cools a store); the buffer cap
+   clamps a rate, not a state; no store crosses a physical bound in any golden
+   scenario.
+2. **COP and derates.** COP monotone in outdoor and flow temperature, Carnot
+   fraction within the stated band, every derate in [0, 1], defrost derate
+   bounded and continuous at the band edges, capacity envelope never below
+   demand-at-derate without a reason code.
+3. **Objective.** `predicted_cost == Σ price·power·dt` on every golden
+   fixture; the savings identity; the terminal credit's sign and magnitude
+   versus a re-simulated continuation; every penalty term's scaling with
+   `price_weight`; the gradient used by the solver versus a central finite
+   difference at random points (relative error and where it is worst).
+4. **Tariff and prices.** Folding 15-minute and hourly prices into steps,
+   month boundaries, 23- and 25-hour DST days, the capacity tariff charging
+   the monthly peak exactly once, grid-fee day/night and weekday windows,
+   currency conversion and the PV export price applied piecewise.
+5. **Estimators.** `sysid.identify` bias under white, quantised (0.1 °C) and
+   drifting noise; the confidence gate versus the bias it admits; the COP and
+   heat-loss learners' clamps.
+
+## Reuse
+
+`thermal_model.py:simulate_step/simulate_trajectory/simulate_trajectory_batch`,
+`compute_cop`, `tests/golden.py:SCENARIOS`, `tests/dst_checks.py`,
+`tariff.py`, `grid_fee.py`, `price_model.py`, `tests/profiles.py`.
+
+## Traps
+
+Five fixtures are non-reproducible across BLAS builds (the `may-drift` set);
+do not report last-ulp differences there as findings. An identity that holds
+at one operating point and fails at another is the finding — sweep.
+=================== D3.md
+# D3 — Test-suite gaps
+
+Owner's brief: *"Test-suite gaps — what the suite cannot fail on. Unnecessary
+test suite resource use."*
+
+Read `COMMON.md` first. You are the one finder with an **isolated worktree**
+(with `.git`; `git log` and `gh` are still off limits) because your method
+mutates production.
+
+## Method: delete the line, re-run, see whether the suite notices
+
+1. **Candidate list.** Parse every production module for guards (`if`,
+   `min`/`max`/`clip`, `try/except`), constants that gate behaviour, and
+   branches a user-facing claim depends on (payload keys, services, config
+   validation, reason codes). Weight by consequence. Sample 30–40 mutants
+   with a recorded seed, no module more than four, and record the weights.
+2. **Pre-screen** each mutant with its **measured closure**
+   (`tests/closures.json`): the fast scripts of that closure (skip
+   `stress.py`, `edge.py`, `backtest.py` in the pre-screen) **plus**
+   `tests/env_drift.py --all <baseline-sha>`. The differential gate is what
+   CI runs; a mutant that moves any golden is caught there even when every
+   assertion passes. A mutant pre-screened against the default five-fixture
+   golden mode instead of `--all` produces a false gap.
+3. **Report candidates, not findings.** Your output is a `prescreened` list:
+   mutant patch, closure, which scripts ran, what killed it or that nothing
+   did. The quiet window runs the full `GATE_SCOPE=full GOLDEN_MODE=drift`
+   gate for the top six survivors; only those become findings.
+4. **The verifier's question, answered in advance**: for every survivor,
+   which single production line, in which file, and which check *should*
+   have failed.
+5. **Resource use.** Per-script wall and CPU from the gate table versus
+   `closures.json`'s recorded seconds; assertions per solve; which scripts
+   kill the same mutants (duplicated coverage); closures that over-approximate
+   and force runs nothing needs; scripts that solve more than they assert.
+
+## Reuse
+
+`tests/closure.py select --diff` logic for the closure of a file;
+`tests/run.sh` with `GATE_JOBS=1`; `tests/env_drift.py --all <sha>` with the
+shared warmed cache; `tests/features.py:12382` for the mutation idiom.
+
+## Traps
+
+Run `stress.py` only in the quiet window, never during the fan-out; keep
+`GATE_JOBS=1`; the comparison ref must be the baseline SHA, never `HEAD`;
+`env_drift.py` adds a worktree in your checkout — one at a time.
+=================== D4.md
+# D4 — UI/UX
+
+Owner's brief: *"UI/UX — the card and the config flow, including grouping and
+setup ergonomics. It should be intuitive, user friendly and look professional."*
+
+Read `COMMON.md` first.
+
+## Method
+
+1. **The card in a real browser.** Install Playwright from the browser lane's
+   lock, as `BASELINE.md` says (`npm ci` of `tests/pwlane/` into a scratch
+   prefix, `NODE_PATH=<tmp>/node_modules`,
+   `PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers`). Build the card the way `tests/card_browser.mjs` does, drive every
+   state in `tests/card_drift.mjs`'s `STATES` (`--list`), at viewports
+   375×812, 768×1024 and 1280×800, light and dark, `sv` and `en`,
+   reduced-motion and coarse pointer. Measure with `getBoundingClientRect`
+   and `getComputedStyle`: overlapping text boxes, text that overflows its
+   box, WCAG AA contrast of every text/background pair, hit targets below
+   24 px (44 px on the coarse pointer), keyboard tab order through every
+   focusable, console errors, layout shift on hover. Screenshots go in your
+   report directory.
+2. **The config flow.** Drive every page through the stub the way
+   `tests/entities.py`'s options loops do: field order and grouping, defaults,
+   selector ranges, validation error keys and their translations, help text.
+   Score each page against a written rubric (one theme per page, related
+   fields adjacent, sensible defaults, errors that say what to change, no
+   jargon without help text, field count). Count the steps from install to
+   the first plan and what a first-time user must know at each.
+3. **Professional look.** Consistency of typography, spacing and colour
+   tokens across card states; legend and series colours across light/dark;
+   alignment of headline numbers; empty and error states.
+
+## Numbers
+
+Pixels of overlap, contrast ratios, hit sizes, counts of fields and steps —
+all contention-immune. A finding says which state, which viewport, which
+element, and what a user cannot do or read because of it.
+
+## Reuse
+
+`tests/card_rig.mjs` (`buildCard`, `planStates`, `qaTopologies`),
+`tests/card_drift.mjs:STATES`, `tests/card_browser.mjs`,
+`tests/setup_qa_render.mjs`, `tests/golden/config_flow.json`.
+
+## Limits to state
+
+There is no Home Assistant frontend locally, so config-flow rendering is
+inferred from schema and strings; say so in the report.
+=================== D5.md
+# D5 — Docs structure, flow and content; code comments
+
+Owner's brief: *"Docs structure, flow and content. Verify claims in docs.
+Comments in code should be concise but precise and easy to understand."*
+
+Read `COMMON.md` first. D6 verifies README and documentation claims
+one by one; you own structure, flow, content quality and the comments in
+code. Coordinate by scope, not by talking: claims you meet on the way go in
+your report tagged `for D6`.
+
+## Method
+
+1. **Reader paths.** Walk three readers through the docs: a new user
+   installing via HACS to a first plan; a user configuring a specific
+   feature (two-tank storage, ECL110, capacity tariff); a developer running
+   the tests. Record every dead end, forward reference, contradiction and
+   place the reader needs a fact that is elsewhere or nowhere.
+2. **Structure.** Heading depth and order, duplication between README and
+   `docs/*.md` (measure with paragraph hashing), orphaned documents, link
+   check on every internal and external link, stale version numbers.
+3. **Content.** Every paragraph that explains a mechanism: is it true to
+   the code (spot-check by reading the code path), current (grep for the
+   symbols it names), and needed?
+4. **Comments in code.** Sample every module's docstring and every comment
+   over three lines. Executable check: identifiers a comment names must
+   exist (grep), numbers a comment cites must match the constant beside it.
+   Judge concision and precision; list comments that explain *what* the
+   next line obviously does, and comments that are wrong.
+
+## Numbers
+
+Dead-end count per reader path, broken links, duplicated paragraphs,
+comment-named symbols that do not exist, cited numbers that disagree with
+code.
+
+## Exposure
+
+Your export has the audit records and the backlog removed, but in-code and
+in-test comments cite earlier finding ids, and `RELEASE_NOTES.md` is gone
+so release-history claims in the docs cannot be checked here (say so).
+Record what you were exposed to in `exposure`; do not use it as a list of
+things to re-find.
+=================== D6.md
+# D6 — README and documentation claim verification
+
+Owner's brief: *"README and other documentation claim verification — every
+claim against actual code and data."*
+
+Read `COMMON.md` first. D5 owns structure and flow; you own truth.
+
+## Method
+
+1. **Extract every claim** from the files your cells name and the live
+   https://tvofi.github.io/heatpump_optimizer/: every sentence with a
+   number, default, entity or service name, field, unit, behaviour,
+   performance statement, version or link. Number them.
+2. **One executed check per claim.** Defaults against `const.py`; entities
+   against `tests/entities.py:collect` via `async_setup_entry`; service
+   fields against the voluptuous schemas, and `services.yaml` examples fed
+   through them; behaviours against a golden scenario or harness;
+   performance against a measurement (provisional under the fan-out);
+   versions against `VERSION` and the tag list in the export's
+   `manifest.json`; links with a HEAD request, which never sends a
+   `#fragment`: anchors on the web page and its sub-pages (D6-s1) by
+   `dev/audit/harnesses/d6_page_anchors.py`, in the tree and live. Pages
+   deploys the latest `v*` tag: diff the live page against its
+   `docs/index.html`, not the baseline's.
+3. **The claims table**: id, source, claim, check command, result, verdict
+   (`true` / `false` / `stale` / `unverifiable`), the truth if false.
+
+## Numbers
+
+Claims extracted, checked, false, stale, unverifiable, with the table as
+the harness output.
+=================== D7.md
+# D7 — Architecture and maintainability
+
+Owner's brief: *"Architecture and maintainability — explicitly revisit
+coordinator.py's size, the first-order sysid plant, the learner-freeze-versus-COP-flow
+item, last_buffer_trajectory statefulness, and everything this year's train
+introduced."*
+
+Read `COMMON.md` first.
+
+## Method
+
+1. **Metrics: read `tests/structure_budgets.json`, do not re-derive them.**
+   `tests/structure.py` measures all 24 every run, so a second AST script
+   yields a second set of numbers with nothing reconciling them — and the
+   ratchet's are the ones that refuse a pull request. The coordinator size,
+   method, attribute and multi-assigned-attribute counts, `max_cc` and the
+   complexity buckets answer this item; the seam cut costs are the `cut_*`
+   keys and `cross_seam_edges`. Report a metric the file does NOT
+   carry, or a reading of one it does.
+2. **The first-order sysid plant.** Generate step responses from the
+   production `ThermalModel` for the three building presets; fit the
+   production first-order identifier and a two-exponential fit; report the
+   UA bias of each and whether the production adoption gate admits the
+   biased fit.
+3. **Learner freeze versus COP flow.** Enumerate every learner and the
+   signal that gates its samples (open window, pump signals, external heat,
+   defrost, away). Build a table; then simulate a contaminated interval and
+   show, per learner, whether it ingests the sample.
+4. **`last_buffer_trajectory`.** Construct the call order the objective and
+   the terminal cost rely on; show what a reordering or a second objective
+   call in between does to the terminal cost.
+5. **This year's train.** For each addition since v4 (the batched gradient
+   and its bounds gate, the drift gate, the scoped gate, the card
+   collaborators, stress budgets, weekly windows, the topology catalogue,
+   wood and coil variants, DHW confidence, Tuya, the re-anchor law):
+   is there a test that fails when it is deleted (spot mutation), a doc
+   paragraph, and one owning module? A table with executed spot-mutation
+   results.
+6. **Dead code**, by AST reachability confirmed with a runtime sentinel
+   where a dynamic lookup could hide a use.
+
+## Numbers
+
+Everything above is a count or a ratio; timing is not your dimension.
+=================== D8.md
+# D8 — Sensor verification and ordering
+
+Owner's brief: *"Sensor verification and ordering — every entity, constructed
+against realistic coordinator payloads in each topology/feature combination,
+publishes a sane, non-stale, correctly-typed value; no entity permanently
+unknown where its data exists; grouping and naming such that alphabetical
+sort clusters related entities; the enabled-by-default set is what a typical
+user needs first."*
+
+Read `COMMON.md` first.
+
+## Method
+
+1. **The matrix.** Topologies from `tests/golden.py:coordinator_scenarios()`
+   crossed with feature toggles (DHW, two-zone, valve storage, two-tank,
+   coil, wood, ECL110, PV, capacity tariff, grid fee, Tuya, away): build the
+   coordinator the way `_capture_coordinator` does (inject prices and
+   forecasts, run `_build_data_dict`), then construct every entity of every
+   platform through the real `async_setup_entry` (`tests/entities.py:collect`).
+   Run two cycles with changed inputs so staleness is observable.
+2. **Per cell, per entity**: state, availability, `device_class`, `state_class`,
+   unit, `entity_category`, `entity_id`, icon, attributes, `translation_key`,
+   `_attr_entity_registry_enabled_default`; not `None`/`unknown` where the
+   source key exists (map it via `native_value`), numeric where `MEASUREMENT`,
+   tz-aware where `TIMESTAMP`, a listed option where `ENUM`, unit matching
+   `device_class`, `orjson`-serialisable (no numpy scalars, no `NaN`), and the
+   value following the payload between the two cycles. An entity publishing an
+   operating state -- running, heating, idle, off, or a power attributed to
+   the pump -- is checked against the plan's own draw (`current_action["power"]`
+   + `dhw_power`, and `heat_pump_on`) in a DHW-only cell (the Tuya overlay
+   with space heating blocked) and at minimum modulation, never its own
+   derivation; a "summary of a dict" lead is resolved per entity against that
+   oracle, not hand-cleared.
+3. **Ordering and naming.** Sort every `entity_id` and every display name;
+   count where a declared family (`ENTITY_FAMILY_OVERRIDES`, else the key's
+   lead token) is split, and compare `strings.json` with both languages. An
+   undeclared grouping is a proposed declaration change, not a split.
+4. **Enabled by default.** Derive a "first hour" list from the README and the
+   card, compare with the enabled set, and list what is on that a typical
+   user never reads and what is off that the card or the README relies on.
+5. **The matrix graduates.** Write it so it can become a `tests/` script:
+   deterministic, no network, one `RESULT` line per violation class.
+
+## Reuse
+
+`tests/entities.py` (`collect`, `DATA`, `display_name`, `_honest_coordinator`),
+`tests/golden.py:_capture_coordinator`, `sensor.py` base classes.
+
+## Traps
+
+`HeatpumpOptimizerSensorBase.__init_subclass__` scrubs non-finite values for
+every subclass. Carried from round 5 D8 (#1333): the finder's `_card_keys()`
+reads only ids the card text SPELLS, so a runtime-derived one -- the savings
+page's `statEntity("_plan_monthly_savings")` -- is invisible and
+`card_headline` reads 1 run, 1 interloper; 0, 0 once added (its own
+`family_metrics`; re-measure at your merge base). Do not patch the family.
+=================== D9.md
+# D9 — CPU and memory efficiency (Raspberry-Pi-class target)
+
+Owner's brief: *"CPU and memory resource efficiency — target hardware is
+Raspberry-Pi-class running all of Home Assistant. Measure, don't assert:
+express findings as relative cost (share of a solve, allocations per step,
+bytes retained, renders per gesture), include the harness, and state the
+extrapolation wherever a Pi conclusion is drawn. A finding without a
+measurement is not a finding. Priorities: the gradient cost (batched jac,
+96 simulate-step-equivalents per L-BFGS iteration, not ~9,300); the longest
+contiguous GIL-holding interval (two 2 ms yields sit between L-BFGS starts);
+how many full solves a cycle actually runs; the DHW planning loops; per-cycle
+loop work outside the executor; retained collections with no trim; published
+payload size versus the recorder exclusion set; and whether the stress budget
+should become a real gate — CI sets no `STRESS_*` variable, the ms budget is
+retired, and `rss_peak_mb`/`traced_peak_mb` record all 51 scenarios."*
+
+Read `COMMON.md` first. You have an isolated worktree for instrumentation.
+
+## Metric definitions (fixed, so two agents cannot score different things)
+
+- **Simulate-step-equivalents per gradient** = scalar `simulate_step` calls
+  + rows of `simulate_trajectory_batch`, both hooked by monkeypatching the
+  production symbols, per gradient evaluation of `_multi_start_minimize`.
+  Report for: the default two-zone DHW solve, the single-zone solve, the
+  zero-range-bounds fallback (a manual pin; a DHW block consuming the whole
+  cap), and each DHW planning loop.
+- **Full solves per cycle** = entries into `_multi_start_minimize` during
+  one coordinator cycle, split by path (main solve, shadow/what-if,
+  diagnose, any other).
+- **Longest contiguous GIL hold** = the maximum gap between 1 ms heartbeat
+  ticks of a task on a real event loop while the solve runs in a
+  `ThreadPoolExecutor`; **starvation share** = the fraction of the solve's
+  wall time during which the gap exceeded 5 ms. Never on `FakeHass`.
+- **Loop-thread work per cycle** = `time.thread_time()` on the loop thread
+  across one cycle, excluding the executor.
+- **Retained bytes** = `tracemalloc` and deep `sys.getsizeof` of every
+  coordinator collection after N cycles, as a slope per cycle, plus
+  `ru_maxrss` in a subprocess.
+- **Payload bytes** = JSON bytes of `_build_data_dict` and of every entity's
+  attributes, split by what `_unrecorded_attributes` excludes, per cycle
+  and per day.
+
+## Method
+
+1. One harness file per metric under your round's `D9/` (round 2's at `d5d8c4a`;
+see `harnesses/README.md`), each with the header the contract requires, each hooking a named symbol and moving under
+a named perturbation (e.g. `maxiter`, horizon length, cycle count). Use
+`tests/stress.py:reference_solve` as the ruler for every "share of a solve".
+2. Then: does the stress gate as shipped detect a synthetic 2× regression
+(inject work into the solve and run its checks)? What can it not see?
+
+## Extrapolation
+
+Every Pi statement carries the factor and its source (state it as an
+assumption if it is one) and the M1 number it scales from.
+
+## Traps
+
+Timing during the fan-out is provisional; counts, bytes and CPU ratios are
+final. Pin threads before numpy; print `thread_factor`. The two existing
+`sleep(0.002)` yields sit between L-BFGS starts and between the DHW and
+space stages, not inside an iteration.
+=================== D10.md
+# D10 — Home Assistant integration quality scale
+
+Owner's brief: *"Adherence to home assistant integration platinum quality
+requirements."*
+
+Read `COMMON.md` first.
+
+## Method
+
+1. Fetch the current rule checklist
+(https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist
+and the per-rule pages under `rules/`) and execute **one check per rule** —
+an AST or grep over the integration, a stub-driven test, or a documentation
+lookup — recording the command and the result. Rules, by tier:
+
+- Bronze: action-setup, appropriate-polling, brands, common-modules,
+  config-flow, config-flow-test-coverage, dependency-transparency,
+  docs-actions, docs-triggers, docs-conditions, docs-high-level-description,
+  docs-installation-instructions, docs-removal-instructions,
+  entity-event-setup, entity-unique-id, has-entity-name, runtime-data,
+  test-before-configure, test-before-setup, unique-config-entry.
+- Silver: action-exceptions, config-entry-unloading,
+  docs-configuration-parameters, docs-installation-parameters,
+  entity-unavailable, integration-owner, log-when-unavailable,
+  parallel-updates, reauthentication-flow, test-coverage.
+- Gold: devices, diagnostics, discovery, discovery-update-info,
+  docs-data-update, docs-examples, docs-known-limitations,
+  docs-supported-devices, docs-supported-functions, docs-troubleshooting,
+  docs-use-cases, dynamic-devices, entity-category, entity-device-class,
+  entity-disabled-by-default, entity-translations, exception-translations,
+  icon-translations, reconfiguration-flow, repair-issues, stale-devices.
+- Platinum: async-dependency, inject-websession, strict-typing.
+
+2. Output a tier table (rule, tier, status `done`/`exempt`/`todo`, evidence
+command, result), a draft `quality_scale.yaml` in your report directory,
+and for every `todo` rule needing a Home Assistant API newer than the floor
+in `hacs.json`, the minimum HA release that carries it. Custom integrations
+cannot declare a tier officially; adherence is rule by rule.
+
+3. For `test-coverage`, measure: `coverage run` per test script (they are
+scripts, not a pytest suite), combined, per module — the number is the
+finding or the non-finding. For `strict-typing`, run mypy strict against the
+integration with the stub on the path and count by category.
+=================== D11.md
+# D11 — Governance mechanisms and policy
+
+Owner's brief: *"Governance mechanisms and policy — audited against public
+golden standards, with the goal of upholding an effective and high-quality
+LLM and coding process, as well as maintenance and improvement of the
+governance structure itself."*
+
+Read `COMMON.md` first. Your subject is the process the other dimensions run
+under, so you read what they are walled off from: the repository's history
+and GitHub's own records — the ruleset, check runs, review comments, merged
+pull-request bodies. You get a worktree with `.git` for that reason. Record
+every such source under `exposure`. The audit register and earlier findings
+stay off-limits: you audit the mechanism, never the verdicts it produced,
+and leave its cost and DORA's four keys, change-failure rate among them, to
+`D13.md`.
+
+## Method
+
+1. **Inventory the mechanisms from the tree and the API, not from the
+   index's account of them.** One row per refusal a seat can meet: the
+   ruleset on `main` and each required check with the workflow job that
+   produces it; each check class `policy_lint.mjs` prints when run;
+   `brief_lint.mjs`; `tests/structure.py`; the claim files; `prepr.sh`; the
+   hooks in `.claude/settings.json`. Per row: what it refuses, where it runs
+   (branch, `main`, both), the positive control that shows it alive, and
+   what it leaves uncovered. A mechanism whose control you cannot make fire
+   is a finding. Derive the row count; never carry it from a document.
+2. **Score against public standards, one executed check per criterion**,
+   with the standard's current text fetched rather than remembered and its
+   own wording as the bar:
+   - OpenSSF Scorecard (https://github.com/ossf/scorecard): run it, or
+     evaluate a check by hand where the tool cannot see this repository.
+     Report per check with its reason string — `Branch-Protection`,
+     `Code-Review`, `Dangerous-Workflow`, `Token-Permissions`,
+     `Pinned-Dependencies`, `CI-Tests`, `SAST`, `Maintained`,
+     `Security-Policy`, `Signed-Releases` — and never the aggregate.
+   - SLSA (https://slsa.dev), Build track: the level the release path
+     meets — `tools/release/stamp.py`, the tag, the artefact — and what the
+     next level would require.
+   - OpenSSF Best Practices Badge criteria on change control, test policy,
+     release notes and vulnerability reporting.
+   - NIST AI 100-1 (the AI RMF), its GOVERN function, and NIST AI 600-1, the
+     generative-AI profile, read for a process in which LLM seats author,
+     review and merge: accountability (is reviewer ≠ author provable from
+     GitHub's records rather than from a comment's word), human oversight
+     points, documented roles, defect and incident handling, measurement of
+     the process itself. ISO/IEC 42001's continual-improvement clause is
+     the bar for the second half of the owner's brief.
+   - OWASP Top 10 for LLM Applications, current edition: prompt injection,
+     improper output handling and excessive agency, applied to every place
+     a job or a seat executes or obeys text it did not write — bodies a
+     workflow reads, issue and comment text, a figure a job re-executes.
+3. **Measure the structure's own health — the improvement half.**
+   - Size and direction: `policy_lint.mjs --budgets` against its caps, and
+     lines added per line deleted across the corpus over the window.
+   - Detector health: every check class has a control that fires, on the
+     acceptance and under `policy_lint_mutants.mjs`; name any that is dead.
+   - Recurrence: the friction histogram `policy_lint.mjs --stats` prints,
+     and any class recurring often enough that `orchestrator.md` section 3
+     asks for a root-cause seat, with no such record beside it.
+   - Conformance, sampled, with the sample and how it was drawn stated. Per
+     merged pull request: a `Fix review: merge` verdict at the merged head
+     from a seat other than the author; a first `pr-contract` run at that
+     head that was green (the commit's check-runs listing, which keeps the
+     red run a summary drops); a disposition row; a red required check
+     answered under `## Red checks`. One fraction per obligation.
+   - Staleness where the `citations` class does not reach: status lines in
+     the decisions against the tree, the traps in the handover,
+     the files and steps the plan cites.
+4. **Perturbation, as for every dimension.** A mechanism finding carries the
+   one-line change under which the mechanism's own output must move: an
+   emptied check, a body with one digit changed, a ruleset read with both
+   arms. Never on `main`, never against the live ruleset, never a comment
+   on a live pull request; a perturbation you cannot run marks the finding
+   `provisional`.
+
+## Output
+
+Beside the report `COMMON.md` requires: the mechanism inventory; the
+standards scorecard (criterion, standard, executed check, result, gap); the
+conformance table; and a ranked list of changes, each with the standard it
+moves and its cost in seconds per merge or lines of policy.
+Severity: `critical` — a merge to `main` can happen with no review or with a
+red required check, or a job executes text a seat did not write; `high` — an
+obligation the record calls enforced that nothing enforces; `medium` — a
+detector with no live control; `low` — hygiene.
+
+## What has fooled people before
+
+- The branch-rules endpoint is not bypass-aware: read the ruleset itself and
+  probe it with both arms.
+- A checks summary hides a run that went red and then green; the commit's
+  check-runs listing does not.
+- A green mutation arm can be a mutation that never applied; drive the
+  control by hand before reading the arm.
+- The merge enumerator reads a free-text subject suffix (#677): compare the
+  set of pull-request numbers against the API, not the totals.
+- A number about the document it sits in goes stale with the next edit;
+  report the derivation and let the instrument print the number.
+=================== D12.md
+# D12 — Generalization
+
+Owner's brief: *"the integration should be possible to use with a wide range
+of setups and heat pumps."*
+
+Read `COMMON.md` first. This is an audit lens, not a feature request. Do not
+invent product surfaces. Judge whether the integration that already exists
+stays usable across a range of plants, rather than only on a single
+reference install.
+
+## What you are hunting
+
+An install the tree already claims to support — a hydronic layout, DHW or
+no DHW, one zone or two, wood, solar, mapped sensors or a missing optional
+entity, an on/off or modulating heat pump, a different control surface —
+where setup does not complete, no plan publishes, the solver invents a
+plant it was not given, or a required path crashes because that cell was
+never the reference plant.
+
+D8 owns per-entity sanity on the same matrix (state, unit, staleness).
+D4 owns the card and config-flow UX of a given cell. D10 owns the quality-
+scale rules. A finding that is only a wrong unit, a clipped label, or a
+quality-scale miss is out of dimension; carry it rather than re-file it.
+
+## Method
+
+1. **Inventory the plant the tree already exposes**, from the options
+   pages and the optional entity slots, not from memory. Cross it with
+   `tests/golden.py` `coordinator_scenarios` (`coord_minimal`, `coord_dhw`,
+   `coord_two_zone`, `coord_grid_fee`, `coord_all_features`) and the golden
+   `SCENARIOS` that already toggle valve storage, wood, coil, two-tank and
+   DHW. Derive the cell count; do not carry one.
+2. **Installation axes.** For each cell: hydronic layout (single-zone,
+   two-zone, wood-valve via `wood_share` at `thermal_model.py:1120`), DHW
+   present or absent, wood present or absent, solar/PV present or absent,
+   and every optional entity both mapped and omitted. Drive setup and one
+   coordinator cycle the way `tests/entities.py` `collect` and
+   `_capture_coordinator` already do.
+3. **Heat-pump axes.** On/off versus modulating (the frequency map and the
+   on/off climate path), and the control surfaces the tree already has
+   (climate, number, switch, ECL110 MQTT, Tuya). A surface the tree does
+   not implement is not a cell.
+4. **Usable** means: setup finishes; a plan is published or a named
+   refusal explains why not; no path invents a tank, a zone, a sensor or a
+   compressor mode the config omitted; an omitted optional entity leaves
+   its dependents unavailable or unused, not crashed. Count cells that
+   fail that bar, and name the first failing step.
+5. **Null control.** The same harness on the fully-mapped reference plant
+   (`coord_all_features` and the richest golden). A failure that appears
+   there is not generalization; name the dimension that owns it.
+6. **Perturbation.** One omitted sensor, DHW dropped, wood dropped, PV
+   dropped, or one zone removed: the fail-count must move. A harness whose
+   number does not move when the plant shrinks is void.
+
+## Reuse
+
+`tests/golden.py` `coordinator_scenarios` and `SCENARIOS`,
+`tests/entities.py` `collect` and `_honest_coordinator`,
+`tests/features.py` `_t2_coord` / `_zone_coord`, `wood_share` at
+`thermal_model.py:1120`, `tests/profiles.py`.
+
+## Traps
+
+- An omitted optional entity that correctly stays unknown or disabled is a
+  non-finding. The finding is a crash, a fabricated value, or a plan that
+  assumes a plant the user did not configure.
+- Do not propose a new heat-pump protocol, a new hydronic layout, or a new
+  entity the tree does not already have a slot for. Those are product
+  requests, not audit findings.
+- The reference plant passing every other dimension does not prove this
+  one. The question is the cells that are not that plant.
+=================== D13.md
+# D13 — Process yield and cost
+
+Owner's brief: *"a governance structure that enforces this and has good first
+pass yield."*
+
+Read `COMMON.md` first. D11 audits the mechanism: does a refusal fire when it
+should. You audit the outcome: what the process pays per merge, and how often
+a pull request passes first time. A check that does not fire is D11's finding;
+a check that fires correctly while the process still pays N rounds for it is
+yours. You read the same sources D11 does — `main`'s history, check runs,
+comments, reviews, bodies — from a worktree with `.git`, each recorded under
+`exposure`; the verdicts' content is your population, never your evidence.
+
+## Required outputs
+
+Each with its rule beside it and its enumerator named; every count derived at
+your own window, none carried from a document or a comment.
+
+1. **First-pass yield and rounds per merge.** Population: merged pull
+   requests whose merge commit is first-parent in the window, from
+   `/commits/<sha>/pulls` — the API mode of `policy_lint.mjs`'s
+   `enumerateMerges` — with `api_failures` printed beside the count. A
+   verdict is an issue comment *or* a pull-request review whose first line
+   matches `^Fix review:\s*(merge|blocked)`, ordered by time. Yield is the
+   share whose first verdict is `merge`; rounds are verdicts per merge, mean
+   and max.
+2. **Verdict coverage by class.** Merges with no parsable verdict, split by
+   title prefix and author: fix and feature, record and chore, bot cycles,
+   other lanes. A class is exempt only by a rule you can cite beside the
+   row; no rule in the tree exempts record pull requests today.
+3. **Block classes, three ways.** Every `blocked` verdict by the class in
+   `web-fix-wave.js`'s `VERDICT_CLASSES`, then bucketed engineering /
+   record-and-body / orchestration; the bucketing is yours, stated in the
+   harness header. A class the grammar does not have is its own row.
+4. **DORA's four keys, by job.** `dev/audit/rounds/round4/D11/dora_keys.py` is
+   the base; its change-failure rate is per *workflow*. Re-take it per check-run
+   name from `d11lib.py`'s `check_runs`, then without the jobs on an exclusion
+   list of by-design reds, a JSON file beside `policy_budgets.json` that your
+   first round creates with a reason per job. A merge also fails if a `main`
+   commit descending from it says `This reverts commit <sha>` of it or of a
+   commit it merged, or a merged `Revert "…"` pull request does.
+5. **CI seconds per merge, governance against the gate.**
+   `governance_cost.py` and its `GOV` set, re-derived from the workflow files
+   at your window: jobs were added since it was recorded.
+6. **The friction histogram's keys.** A rule id `k`, `#` anchor dropped, names
+   each `--budgets` path that is, or ends in `/` and, `k`, `k` plus `.md` or
+   `k/SKILL.md`: one path is that file, several (`README.md`) an ambiguous row.
+   Report the share naming one file, and per file each spelling's count.
+
+## Perturbation
+
+Perturb in a fixture, never on a live pull request: one verdict comment
+re-shaped out of the grammar lowers coverage by one; one job added to the
+exclusion list moves the failure rate by exactly that job's count; one accepted
+entry's `ratchet-budgets.md` re-spelled `README.md` moves to the ambiguous row,
+and as `ratchet-budgets` or unbackticked moves no file's count.
+
+## Severity
+
+`high` — a measured cost exceeds what the mechanism it pays for catches, e.g.
+more review rounds spent on body figures than on any engineering defect over
+the window; `medium` — an instrument that cannot compute its own metric.
+
+## What has fooled people before
+
+- The grammar is `web-fix-wave.js`'s `VERDICT_RE`. A hand-written verdict can
+  fall outside it (`Fix review: PASS — merge <sha>` did); `--stats` prints it
+  as outside the grammar. Count it on its own row, never fold it in silently.
+- `policy_lint.mjs`'s `fetchWindow` reads issue comments only. A verdict posted
+  as a pull-request review is invisible to it and to that endpoint; read
+  `pulls/<n>/reviews` too and say which endpoint each verdict came from.
+- `--paginate` on an object endpoint concatenates page objects; decode each
+  and join their `check_runs`, as `d11lib.py` does.
+- A count of merges compares the set of numbers against the API, never totals.
+- A matrix job's check-run name carries its leg (`fast (3.14)`); keying on the
+  bare job name counts zero. A skipped run's duration is negative; sum only
+  runs that concluded.
+- `actions/runs` caps at 1000 results and silently truncates a longer window;
+  per-commit check runs have no such cap.
+=================== D14.md
+# D14 — Recurring bug classes
+
+Owner's ask (tvofi, round 8): *"an additional dimension, focusing on finding and
+eliminating the most common bug classes."* Confirmed by tvofi on
+2026-09-24: *"Recurring bug classes. Take the classes the programme keeps
+re-finding, build the detector that enumerates every seam of each, and propose
+the barrier that makes the class impossible."*
+
+Read `COMMON.md` first; reading the ledger's earlier instances is the one
+exception to its wall, recorded under `exposure`.
+
+## Method
+
+1. **Class ledger.** `dev/audit/config/bugclasses.json`; a class's `status` is
+   `open`, `detector` (a command lists seams) or `barriered` (a CI check).
+2. **Pick** two or three `open` production classes: most rounds, then severity.
+3. **Detector.** A harness under your round's `D14/` listing every seam in the
+   package, not only known ones. It re-finds each listed instance (at pre-fix
+   commits where it can), finds zero on a clean fixture, and moves under a
+   one-line re-introduction.
+4. **One finding per class**: the property, the detector command, every seam
+   it lists, a proposed barrier.
+5. **Barrier.** Where the detector lives permanently (a `tests/` script, a
+   lint class, a runtime assertion) and its cost in gate seconds.
+
+**After the judge**, steps 3–4 run once per class with a surviving finding: each
+seam is `instance` (with a failing probe), `guarded` or `not applicable`, and the
+count decides the barrier (`defect-root-cause.md`); cite `root-cause.md`'s record.
+
+**Stop rule** (zero findings never comes): two consecutive rounds with no
+`open` class gaining an instance and no new invariant break in the nightly
+replay, and no high or critical production finding.
+=================== D15.md
+# D15 — Debugging run from a live diagnostics bundle
+
+Owner's ask (#1938): *a debugging run from a diagnostics data export*.
+Read `COMMON.md` first.
+
+**Inputs**, at absolute paths outside every tree, named in your task:
+
+- **Primary:** the "Download diagnostics" file's `debug` bundle with its
+  replay half filled (past `INLINE_CAP_BYTES`, the `.storage` copy too).
+- **While the download's `replay` is null** (until R10-DIAG-REPLAY):
+  `tools/replay/export.py` output from the same box and window.
+- **Null control:** `tools/replay/dbg_bundle_gen.py`'s synthetic bundle;
+  every step runs on it first.
+
+**No real bundle: every step `unfinished`, no finding**; a synthetic-only
+anomaly is a lead.
+
+## Method
+
+1. **Intake and version seam.** Unwrap `debug`; `integration_version` is the download's, not each row's. A restart gap is consecutive `cycle_rows[].t` at least three `optimization_interval`s apart (the download's `config`, else 30 min). Releases install on their date: a cycle ran the newest tag (`git for-each-ref refs/tags`) dated before its last gap; a tag after that gap leaves it unknown, never the older. Attribute each anomaly so and re-check it at the baseline; old-version-only is a non-finding, with evidence. A gap is downtime, not a lead, unless the integration ran through it.
+2. **Privacy gate.** `tests/replay.py`'s `LEAK_PROBES` controls green, then `export.violations` over the bundle with a planted-credential arm; either failing stops the run.
+3. **Ingest.** `tools/replay/debug_ingest.py --bundle`; `--corrupt accuracy` is its perturbation; a check passing on an empty section is vacuous.
+4. **Store replay.** Each store document through its loader and `store._sanitize` against `store.DOMAINS`: quarantined leaves, refused versions.
+5. **Timeline replay.** `tools/replay/debug_replay.py --bundle`, stores seeded, over the replay half: the lane's judges, offenders per cycle.
+6. **Monitor re-run.** Bias and MAE per window, stated; `Cusum` and `SnapshotRing.observe_bias` against the recorded `accuracy_drift` latch.
+7. **Row scan.** `cycle_rows` and `payload_snapshots`: solve failures, `solve_wall_ms` outliers, stale feeds, action against plan, each self-test re-derived.
+8. **Anomaly to seam.** Each step-7 anomaly to its `tests/seam_map.json` seam, reproduced by `debug_replay.py --start/--end` over its window, with the perturbation that moves it.
+
+**The bar.** The replay judges, `debug_ingest.py`'s checks and each step's
+re-derivation are the graders. A finding is re-run by one
+command against the bundle path, and moves under its perturbation.
+
+**Privacy.** No bundle value is written unless `export.violations` passes it.
+
+**Out of scope.** Store fuzzing (D1), missing tests (D3), class detectors
+(D14): leads.

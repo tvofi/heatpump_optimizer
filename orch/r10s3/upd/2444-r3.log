@@ -1,0 +1,6 @@
+===== daemonize pid=1653 2026-10-19T14:17:37Z argv: bash tools/audit/seat/update_pr.sh fix/r10-seat-selftests-ci bc94fc2a3502489b99f0adac12637d5472132b02 /Users/timmalmstrom/hpo-seats/r10s3/scratch-2444r2/body.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (790 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+HEAD=8be64a110fa4e741889920c4eff2b6b4cb99cf3a

@@ -1,0 +1,5 @@
+Fix reviewer for PR #2628 (tvofi/heatpump_optimizer), group R10-FLOW-PULL (RP lane, policy, opus). Read the group entry with `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json` (the group whose "group" is R10-FLOW-PULL). Follow dev/governance/roles/fix-review.md exactly, from a detached worktree at the head SHA ced4bf66e91d3c61254066c310f1f9af7ea064ef (re-check the head before you start; the opener may push a second time). Use the finder harness the group brief names, never the fixer harness.
+
+This is prose policy: changes to dev/governance/roles/nudge.md and dev/governance/roles/orchestrator.md. Check the nudge.md line and token budget (node tools/policy/policy_lint.mjs --budgets) and that the dispatch-by-pull, flow-lane cap and fly-in wording agrees with tools/audit/seat/pr_cap.py. A red nightly-status grades main and is not this PR unless its diff reaches what that check reads.
+Your ev/ MUST contain a file holding the full 40-hex head sha (ev/HEAD.txt), or the relay refuses the verdict.
+Do not add Claude Code footers, Co-Authored-By/Claude-Session trailers or any claude.ai session link to commits, verdicts or comments.

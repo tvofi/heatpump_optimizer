@@ -1,0 +1,3 @@
+===== daemonize pid=45216 2026-10-24T13:16:38Z argv: bash tools/audit/seat/open_pr.sh r10-roster-runq aa5b7e069ccb1c80e02095cfafe0491d173db15e roster-runq: tools: roster_queue.py self-test builds its repo through throwaway_git_init roster-runq
+open_pr: 9 open PRs; the cap gates dispatch, not opening
+PR=2714 HEAD=dba7f86b1da529a59bc9b15b6f3641bcfc2c8891 AUTHOR=tvofi

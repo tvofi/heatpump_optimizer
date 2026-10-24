@@ -1,0 +1,10 @@
+RE-REVIEW, round 6, ADVERSARIAL, of PR #2579 (group R10-FLOW-YIELD-PROBE, branch fix/r10-flow-yield-probe) at head 45754ede263322459d69936f5898d26fe64654f4. The fixer's code is handoff/r10-flow-yield-probe 218b0af4c (three commits: d2d6dd688 split the guardrail out and pin the group, product and committer-time seams; 29110ab18 kill the regex-character survivors the widened sweep found; 218b0af4c drop the DISPOSED entry PR 21's fixture now kills), merged with main by update_pr.sh. Read the round-5 verdict with `git fetch origin review/2579; git show FETCH_HEAD:VERDICT.md`. Follow dev/governance/roles/fix-review.md. PREPR_SKIP_CLOSURES=1.
+Required:
+1. Every round-5 finding is answered by code or by a body line with a Carry. Name any that is not.
+2. Re-run the class sweep harness (dev/audit/harnesses/r10_review_strength*) yourself at the head. Report survivors by class. Then try at least five one-line mutants of tools/audit/seat/review_strength.py of your own, outside the classes the sweep generates. A survivor that moves a body figure, or that the self-test passes, is a finding.
+3. Re-take every figure in the body at this head. A figure that differs is a finding.
+4. The guardrail split (d2d6dd688) must be architecturally sound: one definition, no duplicated logic. Report the archscore dS line (tools/audit/archscore/) at the merge base and at the head. structure.py must pass with no budget raise.
+5. The body's `## Red checks` names every red in the branch history (check-runs API).
+6. git merge-tree --write-tree origin/main <head> is clean, and carry_audit.py check --body against origin/main's roster gives 0 unrouted and 0 bad.
+This is round 6. If it blocks again, say in the verdict whether the PR should be split, and what the minimal mergeable part would be (three-round rule).
+Time box 60 min.

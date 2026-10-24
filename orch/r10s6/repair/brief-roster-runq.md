@@ -1,0 +1,4 @@
+Continue from origin/handoff/r10-roster-runq 4f72699f (body c2816b97); do not restart from main. Merge origin/main into your worktree first. Three repairs, in this PR:
+(1) tools/audit/seat/roster_queue.py: build the test repo through tests/throwaway_git.py (throwaway_git_init or throwaway_git_clone) instead of `_git("init", "-q", cwd=repo)`; prepr's throwaway-git check and governance.yml refuse the raw init. Keep the 14-check self-test green, with the two --match mutants still failing their arms.
+(2) In the PR body, fix Forward-carry item 2f615177 (it begins "none. Not run locally: tests/entities.py ...") to the `n/a: <reason>` form, so carry_audit reads it as an explicit none.
+(3) Re-run prepr to a pass at your head, then push refs/heads/handoff/r10-roster-runq and body_push.sh refs/heads/handoff-body/r10-roster-runq.

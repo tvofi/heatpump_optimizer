@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_weather CLAMP_DROP 65731505",
+  "killed_by": "tests/features.py",
+  "old": "                max(0.0, _as_float(first.get(\"precipitation\"), 0.0)),",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: CLAMP_DROP (`(0.0),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

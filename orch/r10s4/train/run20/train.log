@@ -1,0 +1,6 @@
+TRAIN pid=90804 queue=1 (#2628)
+TRAIN HOLD refs/heads/train-hold 70d83b38: the record beat waits
+TRAIN HOLD refs/heads/train-hold 4dba64d3: the record beat waits
+#2628 8a009877 ci red=[]
+TRAIN HOLD released
+TRAIN STOPPED #2628 policy: policy paths changed (dev/governance/roles/nudge.md, dev/governance/roles/orchestrator.md): no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driven approval is the owner's only under a mandate in force

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise CMP_BOUND f4529abb",
+  "killed_by": "tests/entities.py",
+  "old": "    if steps < 1 or (dhw and len(dhw) < steps):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6918cb4b213de25c5d6a560578127beef14f0e43: CMP_BOUND (`if steps <= 1 or (dhw and len(dhw) < steps):`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}

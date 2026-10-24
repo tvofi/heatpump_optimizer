@@ -1,0 +1,24 @@
+# worktree /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/mutation-table-t2koo2ly/w1  branch (detached)  head 1b74d74ba37133befb204ef99010ed64eb5f495c
+ M custom_components/heatpump_optimizer/coordinator.py
+?? tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.3b4c559c.json
+?? tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.56bfbaa7.json
+?? tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.9b5abfbf.json
+?? tests/mutation_ledger/killed_by/draw_range.py/DrawRange._evidence.CMP_BOUND.3a7f8343.json
+?? tests/mutation_ledger/killed_by/draw_range.py/DrawRange._evidence.CMP_BOUND.3e86f7a9.json
+?? tests/mutation_ledger/killed_by/draw_range.py/_stored_idle.CMP_BOUND.d95cb3ca.json
+?? tests/mutation_ledger/killed_by/inputs.py/_on_step.CMP_BOUND.94ce3139.json
+?? tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_command.GUARD_OFF.ec595179.json
+?? tests/mutation_ledger/survivor_triage/pump_arbiter.py/_flow_target.CLAMP_DROP.38a077e7.json
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 8f6ceadec..01424f379 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -499,7 +499,7 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float |
+ 
+ 
+ #: One forecast step, as the clock ``drift.utc_step_starts`` walks; its
+-#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``).
++#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``). (null control)
+ FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
+ 
+ 

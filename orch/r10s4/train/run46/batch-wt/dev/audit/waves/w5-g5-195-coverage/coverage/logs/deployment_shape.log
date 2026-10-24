@@ -1,0 +1,30 @@
+
+=== deployment shape: an installation's layout and module name (#513) ===
+
+-- the shape
+  ok   the tracked package materialised
+  ok   there is no tests/ sibling, so _worker_env takes production's branch
+  ok   the Home Assistant stub cannot make the package under test resolvable
+
+-- what the parent built for the child
+  ok   _worker_env ran against the deployment layout, not this checkout
+  ok   and so added no tests/ or stub directory
+  ok   the integration under test came from the temporary tree
+  ok   no inherited path can resolve the package, so the child has only what _worker_env gave it
+
+-- the process-worker round trip
+  ok   the round trip reached a second interpreter
+
+-- every object shipped to the worker is importable there
+  ok   the worker seams were enumerated from the source
+  ok   every worker call site resolved to an object
+  ok   coordinator.py:945 optimize_in_process -> the child imports custom_components
+  ok   coordinator.py:945 optimize_in_process -> and resolved it from the deployment tree
+  ok   coordinator.py:10587 diagnosis.diagnose_record -> the child imports custom_components
+  ok   coordinator.py:10587 diagnosis.diagnose_record -> and resolved it from the deployment tree
+
+-- nothing runs only in a child interpreter unwatched
+  ok   the package names at least one script it runs by path
+  ok   every module the package runs by path is exercised here
+
+ALL DEPLOYMENT SHAPE CHECKS PASSED

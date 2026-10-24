@@ -1,0 +1,36 @@
+ledger: level carried=4 disposed=22 open-pr=26 owed=17 state-ref=4
+2026-10-24T14:54:34Z cloud_relay: relaying refs/heads/probe/rev-2735-8cffe4ac 4650d6f43203c8df277cd04bf11db7d20b3a74cb
+
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     53bbf9a513974d72fb2d31eb05b9d08b07029fa2 -> review/2735 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of review/2735 was refused
+cloud_relay: relay of refs/heads/probe/rev-2735-8cffe4ac 4650d6f43203c8df277cd04bf11db7d20b3a74cb failed (rc=1, try 1 of 3); the next pass retries: bus: REFUSE: the push of review/2735 was refused
+2026-10-24T14:54:48Z cloud_relay: relaying refs/heads/probe/rev-2736-349bfe5d 5c08de088b66400f0799ffe62452010cc30e7f96
+review/2736 1dfd1ba504582e7161e3ad29c8c91f4c1dca1b4a
+cloud_relay: review/2736 remote tip 1dfd1ba504582e7161e3ad29c8c91f4c1dca1b4a
+cloud_relay: POSTED #2736 1dfd1ba504582e7161e3ad29c8c91f4c1dca1b4a
+cloud_relay: relayed refs/heads/probe/rev-2736-349bfe5d 5c08de088b66400f0799ffe62452010cc30e7f96; next: bus.sh confirm 2736 1dfd1ba504582e7161e3ad29c8c91f4c1dca1b4a
+remote: 
+remote: Create a pull request for 'review/2736' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2736        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2736 fbbd3e61fe312f94b6c4c579b64236fcf9699248
+2026-10-24T14:55:10Z cloud_relay: relaying refs/heads/probe/rev-2737-f3d44a4d d815f304fce04058ba2161fb8bc9c78e5dcf4046
+review/2737 a7ff7325698c86677dc9fbc72219123d1c9bd442
+cloud_relay: review/2737 remote tip a7ff7325698c86677dc9fbc72219123d1c9bd442
+cloud_relay: POSTED #2737 a7ff7325698c86677dc9fbc72219123d1c9bd442
+cloud_relay: relayed refs/heads/probe/rev-2737-f3d44a4d d815f304fce04058ba2161fb8bc9c78e5dcf4046; next: bus.sh confirm 2737 a7ff7325698c86677dc9fbc72219123d1c9bd442
+remote: 
+remote: Create a pull request for 'review/2737' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2737        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2737 594ff9db20f0e6ea5a1c817cb6195ab6fee8536a
+2026-10-24T14:55:32Z cloud_relay: relaying refs/heads/probe/rev-2738-676d5732 43a42f4c990a61380affab623514fb3321758248

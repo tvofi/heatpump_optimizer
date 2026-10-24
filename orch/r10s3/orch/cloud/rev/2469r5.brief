@@ -1,0 +1,30 @@
+Round 5 of R10-UPDATE-PR-LOCK, at head 67ee6adf (code 931e9a0f). This is the SPLIT that the three-round rule required after round 4 at 98fe31c2 was blocked flaky-arm. In that round, the SIGKILL arm failed 7/7 in the cloud container, because of late orphan reaping.
+
+This PR keeps only mechanisms whose arms are deterministic. Each one has the revert that fails it:
+- lock and BUSY 75: mut:lock
+- EXIT-trap release: mut:unlock
+- the TERM/INT/HUP trap (it runs after the foreground push, so kill <pid> frees the lock only after the push): mut:stop
+- the holder lives while its parent does: mut:watch
+- no stale lock after a SIGKILL: a hand-applied while True
+- no lock fd in the shell: round 0's shell-fd version
+- relay body dir: the base mktemp line
+- relay cleanup: rm -rf deleted
+- relay retry on 75: the urc=75 line deleted
+
+These moved out to R10-UPDATE-PR-SIGNALS, now on main via roster #2475 (merged 1e30f876), through three Carry: lines:
+- the group drain;
+- the process-group re-exec, which also removes the ps dependency;
+- mut:drain, mut:pgrp and mut:holdgrp.
+
+Every wait in the arms is on a condition with a generous bound. The fixer's claim is that none depends on reaping speed, because the kernel frees a flock when the holder exits, not when it is reaped. Self-tests on macOS: pr_args 56/0 on 8/8 runs, 3 of them in parallel under load; cloud_relay 74/0. The fixer had no container.
+
+RUN THE SELF-TESTS IN YOUR CLOUD CONTAINER at least 5 times and report N/N. Round 4 failed exactly there.
+
+Also verify:
+- every mutant and revert above;
+- that the moved mechanisms are gone;
+- carry_audit, which should route 3/3 against origin/main;
+- CI from the check-runs API;
+- the merge with origin/main.
+
+Say that this is round 5, the split.

@@ -1,0 +1,54 @@
+RESULT gap[winter_typical/winter_cold/tz0/dhw0/call0]=0.0000 pct  J0=60.1043 Jbest=60.1043 step0_dkW=0.000 energySEK prod=23.28 best=23.28
+RESULT gap[winter_typical/winter_cold/tz0/dhw1/call0]=0.0000 pct  J0=67.6017 Jbest=67.6017 step0_dkW=0.000 energySEK prod=23.06 best=23.06
+RESULT gap[winter_typical/winter_cold/tz1/dhw0/call0]=0.0000 pct  J0=77.7899 Jbest=77.7899 step0_dkW=0.000 energySEK prod=58.85 best=58.85
+RESULT gap[winter_typical/winter_cold/tz1/dhw1/call0]=0.6532 pct  J0=86.1065 Jbest=85.5440 step0_dkW=0.000 energySEK prod=59.55 best=58.72
+RESULT gap[winter_typical/winter_mild/tz0/dhw0/call0]=0.0000 pct  J0=23.4031 Jbest=23.4031 step0_dkW=0.000 energySEK prod=17.83 best=17.83
+RESULT gap[winter_typical/winter_mild/tz0/dhw1/call0]=0.0322 pct  J0=28.9069 Jbest=28.8976 step0_dkW=0.000 energySEK prod=17.99 best=17.83
+RESULT gap[winter_typical/winter_mild/tz1/dhw0/call0]=0.2551 pct  J0=29.7849 Jbest=29.7090 step0_dkW=4.196 energySEK prod=19.62 best=19.66
+RESULT gap[winter_typical/winter_mild/tz1/dhw1/call0]=0.0000 pct  J0=35.1978 Jbest=35.1978 step0_dkW=0.000 energySEK prod=19.77 best=19.77
+RESULT gap[winter_extreme/winter_cold/tz0/dhw0/call0]=0.0000 pct  J0=80.7406 Jbest=80.7406 step0_dkW=0.000 energySEK prod=41.40 best=41.40
+RESULT gap[winter_extreme/winter_cold/tz0/dhw1/call0]=0.0000 pct  J0=94.5548 Jbest=94.5548 step0_dkW=0.000 energySEK prod=41.05 best=41.05
+RESULT gap[winter_extreme/winter_cold/tz1/dhw0/call0]=0.0613 pct  J0=111.6901 Jbest=111.6216 step0_dkW=0.000 energySEK prod=94.67 best=94.51
+RESULT gap[winter_extreme/winter_cold/tz1/dhw1/call0]=0.0001 pct  J0=126.8312 Jbest=126.8311 step0_dkW=0.000 energySEK prod=96.53 best=96.53
+RESULT gap[winter_extreme/winter_mild/tz0/dhw0/call0]=0.1703 pct  J0=33.3028 Jbest=33.2461 step0_dkW=0.583 energySEK prod=26.41 best=26.07
+RESULT gap[winter_extreme/winter_mild/tz0/dhw1/call0]=0.1797 pct  J0=43.4693 Jbest=43.3911 step0_dkW=0.009 energySEK prod=25.93 best=26.26
+RESULT gap[winter_extreme/winter_mild/tz1/dhw0/call0]=0.0000 pct  J0=41.0005 Jbest=41.0005 step0_dkW=0.000 energySEK prod=31.03 best=31.03
+RESULT gap[winter_extreme/winter_mild/tz1/dhw1/call0]=0.0655 pct  J0=51.5220 Jbest=51.4883 step0_dkW=0.842 energySEK prod=25.78 best=26.78
+RESULT gap[winter_narrow/winter_cold/tz0/dhw0/call0]=0.0000 pct  J0=103.1362 Jbest=103.1362 step0_dkW=0.000 energySEK prod=74.92 best=74.92
+RESULT gap[winter_narrow/winter_cold/tz0/dhw1/call0]=0.0000 pct  J0=112.2225 Jbest=112.2225 step0_dkW=0.000 energySEK prod=70.72 best=70.72
+RESULT gap[winter_narrow/winter_cold/tz0/dhw1/call1]=0.0000 pct  J0=112.2311 Jbest=112.2311 step0_dkW=0.000 energySEK prod=70.73 best=70.74
+RESULT gap[winter_narrow/winter_cold/tz1/dhw0/call0]=0.1012 pct  J0=124.6786 Jbest=124.5524 step0_dkW=0.077 energySEK prod=112.38 best=112.09
+RESULT gap[winter_narrow/winter_cold/tz1/dhw1/call0]=1.1317 pct  J0=135.0449 Jbest=133.5165 step0_dkW=0.585 energySEK prod=114.03 best=111.00
+RESULT gap[winter_narrow/winter_mild/tz0/dhw0/call0]=0.0260 pct  J0=45.0135 Jbest=45.0018 step0_dkW=0.000 energySEK prod=29.85 best=29.46
+RESULT gap[winter_narrow/winter_mild/tz0/dhw1/call0]=0.0563 pct  J0=51.2768 Jbest=51.2479 step0_dkW=0.142 energySEK prod=28.37 best=29.78
+RESULT gap[winter_narrow/winter_mild/tz1/dhw0/call0]=0.2418 pct  J0=50.7717 Jbest=50.6490 step0_dkW=0.000 energySEK prod=41.55 best=40.59
+RESULT gap[winter_narrow/winter_mild/tz1/dhw1/call0]=0.0141 pct  J0=56.9783 Jbest=56.9703 step0_dkW=0.000 energySEK prod=41.02 best=40.46
+RESULT gap[winter_moderate/winter_cold/tz0/dhw0/call0]=0.0000 pct  J0=75.9051 Jbest=75.9051 step0_dkW=0.000 energySEK prod=41.10 best=41.10
+RESULT gap[winter_moderate/winter_cold/tz0/dhw1/call0]=0.0000 pct  J0=83.2947 Jbest=83.2947 step0_dkW=0.000 energySEK prod=40.73 best=40.73
+RESULT gap[winter_moderate/winter_cold/tz1/dhw0/call0]=0.0000 pct  J0=95.6090 Jbest=95.6090 step0_dkW=0.000 energySEK prod=81.35 best=81.35
+RESULT gap[winter_moderate/winter_cold/tz1/dhw1/call0]=0.3986 pct  J0=104.6153 Jbest=104.1984 step0_dkW=0.000 energySEK prod=84.44 best=85.92
+RESULT gap[winter_moderate/winter_mild/tz0/dhw0/call0]=0.0985 pct  J0=32.1212 Jbest=32.0896 step0_dkW=0.000 energySEK prod=23.22 best=23.58
+RESULT gap[winter_moderate/winter_mild/tz0/dhw1/call0]=0.0000 pct  J0=37.3949 Jbest=37.3949 step0_dkW=0.000 energySEK prod=23.89 best=23.89
+RESULT gap[winter_moderate/winter_mild/tz1/dhw0/call0]=0.0000 pct  J0=38.1268 Jbest=38.1268 step0_dkW=0.000 energySEK prod=29.65 best=29.65
+RESULT gap[winter_moderate/winter_mild/tz1/dhw1/call0]=0.0000 pct  J0=43.5659 Jbest=43.5659 step0_dkW=0.000 energySEK prod=28.51 best=28.51
+RESULT gap[flat/winter_cold/tz0/dhw0/call0]=0.0001 pct  J0=82.4633 Jbest=82.4632 step0_dkW=0.000 energySEK prod=68.99 best=68.99
+RESULT gap[flat/winter_cold/tz0/dhw1/call0]=0.0332 pct  J0=89.4273 Jbest=89.3976 step0_dkW=0.010 energySEK prod=65.28 best=65.54
+RESULT gap[flat/winter_cold/tz1/dhw0/call0]=0.4544 pct  J0=100.3019 Jbest=99.8462 step0_dkW=2.626 energySEK prod=90.06 best=90.11
+RESULT gap[flat/winter_cold/tz1/dhw1/call0]=0.0019 pct  J0=106.5594 Jbest=106.5574 step0_dkW=0.000 energySEK prod=90.76 best=90.76
+RESULT gap[flat/winter_mild/tz0/dhw0/call0]=0.0000 pct  J0=37.4692 Jbest=37.4692 step0_dkW=0.000 energySEK prod=30.49 best=30.49
+RESULT gap[flat/winter_mild/tz0/dhw1/call0]=0.0087 pct  J0=42.0556 Jbest=42.0519 step0_dkW=5.022 energySEK prod=31.81 best=28.62
+RESULT gap[flat/winter_mild/tz1/dhw0/call0]=0.0000 pct  J0=41.4784 Jbest=41.4784 step0_dkW=0.000 energySEK prod=35.41 best=35.41
+RESULT gap[flat/winter_mild/tz1/dhw1/call0]=0.0068 pct  J0=46.0129 Jbest=46.0097 step0_dkW=0.018 energySEK prod=35.31 best=35.36
+RESULT gap_mean[winter_typical]=0.1176 pct n=8 range=0.0000..0.6532 drop_max_mean=0.0410
+RESULT cells_gap_gt_0.5pct[winter_typical]=1 count
+RESULT gap_mean[winter_extreme]=0.0596 pct n=8 range=0.0000..0.1797 drop_max_mean=0.0425
+RESULT cells_gap_gt_0.5pct[winter_extreme]=0 count
+RESULT gap_mean[winter_narrow]=0.1746 pct n=9 range=0.0000..1.1317 drop_max_mean=0.0549
+RESULT cells_gap_gt_0.5pct[winter_narrow]=1 count
+RESULT gap_mean[winter_moderate]=0.0622 pct n=8 range=0.0000..0.3986 drop_max_mean=0.0141
+RESULT cells_gap_gt_0.5pct[winter_moderate]=0 count
+RESULT gap_mean[flat]=0.0631 pct n=8 range=0.0000..0.4544 drop_max_mean=0.0072
+RESULT cells_gap_gt_0.5pct[flat]=0 count
+RESULT thread_factor=1.000
+RESULT load1=42.58
+RESULT swapins=n/a

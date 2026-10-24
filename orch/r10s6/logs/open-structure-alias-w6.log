@@ -1,0 +1,5 @@
+===== daemonize pid=7720 2026-10-24T12:27:42Z argv: bash tools/audit/seat/open_pr.sh r10-structure-alias ddadd4d4eda57c7ce78701d4615423f88c995403 R10-STRUCTURE-ALIAS: Merge remote-tracking branch 'origin/main' into fix/r10-structure-alia R10-STRUCTURE-ALIAS
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against ac5788f26177 -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-structure-alias/p1.log

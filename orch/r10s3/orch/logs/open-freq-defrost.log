@@ -1,0 +1,4 @@
+===== daemonize pid=62487 2026-10-20T22:59:24Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this is a completed handoff draining r10-freq-defrost 0be6047ca89a8ad5c3ce944c71b73fceb3fee130 fix(pump): a defrost interval never teaches the frequency map (R10-FREQ-DEFROST) R10-FREQ-DEFROST 2238
+open_pr: OVER-CAP: 8 open >= 6, overridden: owner 2026-10-20: the cap gates group dispatch, not opening; this is a completed handoff draining
+Auto-merging tests/features.py
+PR=2527 HEAD=de28f656ba17e2e381471d8d3a50dffdf2840cfc AUTHOR=tvofi

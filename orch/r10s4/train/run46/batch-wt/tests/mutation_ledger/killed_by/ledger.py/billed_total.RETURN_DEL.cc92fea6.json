@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:billed_total RETURN_DEL cc92fea6",
+  "killed_by": "tests/features.py",
+  "old": "    return round(sum(float(lines[name][\"sek\"]) for name in basis), 2), basis",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

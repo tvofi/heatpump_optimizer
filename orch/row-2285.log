@@ -1,0 +1,67 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             586455741e69d9c5adac6e374b65f8e61a69b44d
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 586455741e69
+  ok       pinned graders         
+  ok       self-test              267 passed, 0 failed
+  ok       wave-script            180 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 586455741e69d9c5adac6e374b65f8e61a69b44d ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:391 GUARD_OFF: if not entity_id:
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 586455741e69 (a data-file read is not seen)
+  WARN     unpinned sites         1 site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 586455741e69
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             1:each
+             1:never
+             1:both
+             2:never
+             2:all
+             3:never
+             8:never
+             19:both
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             50 d
+             50 d
+             10 d
+             91 i
+             01 a
+             3 of 4
+             53 l
+             21 o
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/body-2285.md -- no budget leaf raised over 586455741...0266dab15
+  ok       figures                FIGURES: 16 resolved, 2 not verified, 0 refused
+  ok       unpinned sites         `## Unpinned sites` disposes of all 1 site(s) step 6d listed
+  WARN     push order             HEAD is 1 commit(s) ahead of origin/fix/r10-fahrenheit-pr -- A PUSH MUST FOLLOW THIS BODY EDIT
+  ok       ancestry reds          the body answers every red this branch pushed (mutation)
+
+  !!! HEAD is 1 commit(s) ahead of origin/fix/r10-fahrenheit-pr, so `pr-contract` -- which reads
+  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
+  !!! fires before the push, the `edited` run setting it fires included.
+  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
+  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
+  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
+  !!! If setting the body is your LAST action, the refusal stays on your head.
+
+PRE-PR: 0266dab15927b7084089790daf63ce7d71f26884 00000000000000000000000000000
+To https://github.com/tvofi/heatpump_optimizer.git
+   9ab42b06d..0266dab15  fix/r10-fahrenheit-pr -> fix/r10-fahrenheit-pr
+app_push: PUSHED 0266dab15927b7084089790daf63ce7d71f26884 to tvofi/heatpump_optimizer:fix/r10-fahrenheit-pr as the App; pull request #2285 is open at 0266dab15927b7084089790daf63ce7d71f26884 with the body read back: 

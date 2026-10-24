@@ -1,0 +1,13 @@
+Role: root-cause seat. Read dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md from main, and follow them exactly. Topic: r10-rca-body-check-parity. You run beside the R10-FLOW-JIDOKA fixer (topic r10-flow-jidoka) and never inside it: do not push to its refs.
+
+Defect class: a body check that pr-contract.yml runs is missing from the pre-open `prepr.sh --body-check` (what body_push.sh and open_pr's prepr step 7 run). A PR body passes every pre-open instrument, opens, and then goes red at pr-contract. Instances reported by triage (proposals P-N, P-F, P-Q in the orchestrator's proposals file; triage.md batches 7 to 9):
+- P-Q: PR #2664 (head 1270ba9b) and PR #2666 (head 0dda6260) opened 2026-10-23 with `## Forward-carry` reading "none" plus a prose clause. pr-contract's `carry_audit.py check --body` read the prose as UNROUTED (pr-contract job 120428691732 on #2664). `grep -rl carry_audit tools/pr tools/audit/seat` lists app_push.sh and body_patch.sh, not prepr.sh.
+- P-N and P-F: earlier instances of the same class (the raise-gate grammar refusal and its kin). Reconstruct them from git history and the PR check-runs; do not take this brief's word.
+
+Owed, all four:
+(1) A named cause, reproduced at each instance's SHA.
+(2) One process state, (a) to (d), with the quoted process line or check shown present or absent, and obeyed or not.
+(3) A class search with a cost test in measured numbers: instances, red pr-contract runs, main-seat repair minutes, re-review cost. Also: which other pr-contract.yml jobs have no pre-open twin.
+(4) A countermeasure or a recorded refusal. The fixer is building a parity test (every pr-contract body check is run by --body-check or listed with a reason) as the barrier. Judge whether that barrier is sufficient: it catches a new check added to pr-contract.yml, but does it catch a changed check? Say what is missing, if anything, and which group should own it.
+Never assert a number you did not measure.
+Return: write the Root cause section as a body file and run `bash tools/audit/seat/body_push.sh r10-rca-body-check-parity <body.md>`, which pushes refs/heads/handoff-body/r10-rca-body-check-parity and is the return signal. Push code to refs/heads/handoff/r10-rca-body-check-parity only if your countermeasure is a check the fixer is not already building. Before body_push, run `python3 -I tools/audit/carry_audit.py check --body <body.md>` and get 0 unrouted. Policy files are drafted and proposed, not landed. Rules: PREPR_SKIP_CLOSURES=1; spare the GitHub API (bulk-list once, prefer git, stop on a 403); no Claude footers.

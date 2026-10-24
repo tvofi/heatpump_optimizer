@@ -1,0 +1,8 @@
+===== daemonize pid=92678 2026-10-20T07:19:32Z argv: bash tools/audit/seat/open_pr.sh r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8 fix(ci): one effective stale-contract follower run per PR head R10-FOLLOWER-DEBOUNCE
+open_pr: open-PR cap: 4 open < 6
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (795 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+PR=2480 HEAD=5748642ff342ec68a49b085b2ef167f2d05a97ee AUTHOR=tvofi

@@ -1,0 +1,3 @@
+===== daemonize pid=23506 2026-10-15T18:52:11Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-b2/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=23506 queue=1 (#2275)
+TRAIN STOPPED #2275 recarry: [HOLDER] could not make a worktree at /Users/timmalmstrom/.local/state/hpo/merge_train/wt/2275: branch fix/r10-gate-yield-pr is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-yield-pr. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-yield-pr (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-yield-pr status)

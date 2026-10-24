@@ -1,0 +1,41 @@
+{
+  "name": "R10 cloud seat dispatcher (s4)",
+  "enabled": true,
+  "job_config": {
+    "ccr": {
+      "environment_id": "env_01MWCXY5ByfCeQwVGRLhMrGH",
+      "session_context": {
+        "allowed_tools": [
+          "preset:default",
+          "Bash",
+          "Glob",
+          "Grep",
+          "Read",
+          "Write",
+          "BashOutput",
+          "KillBash",
+          "Monitor"
+        ],
+        "model": "claude-opus-5-5",
+        "sources": [
+          {
+            "git_repository": {
+              "url": "https://github.com/tvofi/heatpump_optimizer"
+            }
+          }
+        ]
+      },
+      "events": [
+        {
+          "data": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": "CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-rca-harness-friction, at head d1611efe6b7d7bd0d6fdb1651924d015aed3f74d. Never send push notifications.\nSetup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.\nRole: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch d1611efe6b7d7bd0d6fdb1651924d015aed3f74d for the base you were given.\nOutput: push the code to refs/heads/handoff/r10-rca-harness-friction, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-rca-harness-friction <body.md>`, which pushes refs/heads/handoff-body/r10-rca-harness-friction; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.\nNever write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.\n\nBrief (snapshotted when this payload was rendered):\nGroup R10-RCA-FRICTION, topic r10-rca-harness-friction. Read your roster group: `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | jq '.groups[]|select(.group==\"R10-RCA-FRICTION\")'`; read dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md (the four products an RCA owes), dev/governance/roles/fixer.md, dev/governance/rules/finding-propagation.md, and the INSTRUMENTS.md entries for body_push.sh, prepr.sh and fold_ledger.py.\n\nSituation: origin/handoff/r10-rca-harness-friction (d1611efe, 9 commits, 10 files +763/-6, 55 h old) was never opened. It is 905 commits behind main and conflicts in dev/audit/config/bugclasses.json and dev/governance/roles/orchestrator.md; it also edits dev/governance/roles/fix-review.md and orchestrator.md (policy). Decision 0012's moratorium (to 2026-10-31) allows editing existing policy files but adds no policy file, lint class or .claude/rules entry.\n\nBring it onto current main: `git merge origin/main` into the old tip (never rebase, never force). Union both sides in bugclasses.json and orchestrator.md, never dropping main's newer text, and prove each side's clauses are present by reading the merged file. Re-check every RCA record against the four products (named cause, process state a-d with evidence, cost test with numbers, countermeasure or recorded refusal); re-verify every figure at current main instead of carrying it. `tools/audit/fold_ledger.py check` must pass. Policy edits stay minimal and do not restate rules already in the corpus; `node tools/policy/policy_lint.mjs --budgets` must not grow any cap (pay by cutting spent prose, never raise). Every Forward-carry/Friction line ends `Carry: <GROUP>|#<issue>|dismissed: <reason>` with a destination that exists. Run the scoped gate (fixer.md step 5), `python3 tests/structure.py` and `tools/audit/seat/prepr.sh` on the body before the handoff. Hand off code to handoff/r10-rca-harness-friction (fast-forward) and BODY.md via tools/audit/seat/body_push.sh to handoff-body/r10-rca-harness-friction.\n\nToolchain: this environment may lack the pinned toolchain. If `command -v seat-python` and `/opt/hpo/venv-ci/bin/python` are both absent, run `bash tools/audit/seat/cloud-setup.sh` yourself first (read its header), then put its venv bin and tools/audit/seat/shims first on PATH; if it cannot build, report that and run what you can with the system python3.\n"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

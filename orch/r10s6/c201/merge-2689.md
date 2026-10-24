@@ -1,0 +1,1 @@
+Merged #2689 (triage s6 batch 2) at d2dcfed15 and record #2702 at fa4dad4a7, through train s7 and bot-sweep train s8, both TRAIN_RC=0. Neither closes an issue; the read-backs came back empty. The accepted rulings P45, P46 and P51 are queued as carries to R10-ORCH-BEATD, and P49 to R10-FLOW-RECORD-PITCH. All three destinations are live, at not-started, on the roster branch.

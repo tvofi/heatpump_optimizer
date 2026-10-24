@@ -1,0 +1,16 @@
+M08 entities.py 1
+M11 entities.py 1
+M13 entities.py 1
+M16 entities.py 1
+M18 entities.py 1
+M22 entities.py 1
+M25 entities.py 1
+M27 entities.py 1
+M29 entities.py 1
+M31 entities.py 1
+M33 entities.py 1
+M36 entities.py 1
+RESULT screened=36 count
+RESULT survivors=16 count  M01 M02 M04 M05 M07 M10 M12 M14 M17 M21 M24 M26 M28 M30 M32 M35
+RESULT thread_factor=1.000
+RESULT load1=46.96

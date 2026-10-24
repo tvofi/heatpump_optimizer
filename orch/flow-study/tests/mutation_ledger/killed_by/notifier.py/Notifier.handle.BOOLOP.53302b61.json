@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/notifier.py:Notifier.handle BOOLOP 53302b61",
+  "killed_by": "tests/features.py",
+  "old": "        self._baseline = self._baseline and not adopt",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: BOOLOP (`self._baseline = self._baseline or not adopt`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

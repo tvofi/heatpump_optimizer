@@ -1,0 +1,5 @@
+open_pr: OVER-CAP: 20 open >= 6, overridden: at-risk finished handoff; tvofi: soft guide, work that risks being lost may be opened (#2525)
+Auto-merging tests/features.py
+  REFUSE   pr-body                  ERROR   [pr-body] --paths-file /tmp/prepr-paths.19805 is empty. A pull request changes at least one file; an empty list means the derivation failed. -- no budget leaf raised over 289426c1f...f9a442fb9
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-earlycutoff-coverage/p1.log

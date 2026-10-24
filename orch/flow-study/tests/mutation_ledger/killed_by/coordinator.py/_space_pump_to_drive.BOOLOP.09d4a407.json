@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_space_pump_to_drive BOOLOP 09d4a407",
+  "killed_by": "tests/features.py",
+  "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
+  "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured: tests/features.py rc=1, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among the failures."
+}

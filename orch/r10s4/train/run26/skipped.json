@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2632,
+    "phase": "pre-flight",
+    "reason": "findings: 2 finding item(s) with no valid `Carry:` (carry_audit.py pr 2632); first: review 6354822998 item 9b5e6fd8 (unrouted): - **CI is not settled at this head.** mutation-pins (1) (120155543073) is still in_progress after ab"
+  }
+]

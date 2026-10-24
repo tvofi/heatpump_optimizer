@@ -1,0 +1,249 @@
+ci-ratchet	UNKNOWN STEP	﻿2026-10-19T06:15:10.9829962Z Current runner version: '2.337.0'
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9855621Z ##[group]Runner Image Provisioner
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9856780Z Hosted Compute Agent
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9857371Z Version: 20261012.601
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9858032Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9858841Z Build Date: 2026-10-12T17:48:21Z
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9859563Z Worker ID: {9f26d677-c56c-443c-a3eb-0f7d676527a1}
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9860695Z Region: eastus
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9861251Z Cloud: Azure
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9861772Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9863388Z ##[group]Operating System
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9864031Z Ubuntu
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9864651Z 24.04.5
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9865417Z LTS
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9865933Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9866542Z ##[group]Runner Image
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9867181Z Image: ubuntu-24.04
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9867815Z Version: 20261012.334.1
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9869136Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9870740Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9871698Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9872914Z ##[group]GITHUB_TOKEN Permissions
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9875642Z Actions: read
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9876382Z Contents: read
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9876985Z Metadata: read
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9877575Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9879719Z Secret source: Actions
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9880687Z Cache mode: write
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:10.9882164Z Prepare workflow directory
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.0215731Z Prepare all required actions
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.0264618Z Getting action download info
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.2490566Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.3531204Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.5343771Z Complete job name: ci-ratchet
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6120157Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6121234Z with:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6121711Z   repository: tvofi/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6126034Z   token: ***
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6126537Z   ssh-strict: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6126990Z   ssh-user: git
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6127444Z   persist-credentials: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6127937Z   clean: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6128419Z   sparse-checkout-cone-mode: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6128996Z   fetch-depth: 1
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6129438Z   fetch-tags: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6129891Z   show-progress: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6130396Z   lfs: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6130811Z   submodules: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6131265Z   set-safe-directory: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6131773Z   allow-unsafe-pr-checkout: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.6132646Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7161071Z Syncing repository: tvofi/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7163074Z ##[group]Getting Git version info
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7164103Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7165546Z [command]/usr/bin/git version
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7229872Z git version 2.55.0
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7254352Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7271852Z Temporarily overriding HOME='/home/runner/work/_temp/3b878c1f-0826-40df-92bd-d8b4fa24ec4d' before making global git config changes
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7273395Z Adding repository directory to the temporary git global config as a safe directory
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7278248Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7337049Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7342708Z ##[group]Initializing the repository
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7347836Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7466215Z hint: Using 'master' as the name for the initial branch. This default branch name
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7468124Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7469760Z hint: to use in all of your new repositories, which will suppress this warning,
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7471057Z hint: call:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7471783Z hint:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7472623Z hint: 	git config --global init.defaultBranch <name>
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7473634Z hint:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7474584Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7477839Z hint: 'development'. The just-created branch can be renamed via this command:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7478650Z hint:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7479090Z hint: 	git branch -m <name>
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7479573Z hint:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7480300Z hint: Disable this message with "git config set advice.defaultBranchName false"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7481791Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7484169Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7535696Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7537057Z ##[group]Disabling automatic garbage collection
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7540868Z [command]/usr/bin/git config --local gc.auto 0
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7576302Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7577674Z ##[group]Setting up auth
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7585076Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.7620114Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8005242Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8046522Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8280765Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8319548Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8548161Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8590308Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8591797Z ##[group]Fetching the repository
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:11.8602106Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +913ce1ff5b02d74fd2913534df99ae3c490323cd:refs/remotes/origin/main
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4764138Z From https://github.com/tvofi/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4768310Z  * [new ref]         913ce1ff5b02d74fd2913534df99ae3c490323cd -> origin/main
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4771853Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4773262Z ##[group]Determining the checkout info
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4775079Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4778363Z [command]/usr/bin/git sparse-checkout disable
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4832188Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4867258Z ##[group]Checking out the ref
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:13.4870451Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.0613512Z Switched to a new branch 'main'
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.0620222Z branch 'main' set up to track 'origin/main'.
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.0642998Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.0690070Z [command]/usr/bin/git log -1 --format=%H
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.0717283Z 913ce1ff5b02d74fd2913534df99ae3c490323cd
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1008437Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1008960Z with:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1009216Z   python-version: 3.13
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1009678Z   check-latest: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1012314Z   token: ***
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1012583Z   update-environment: true
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1012880Z   allow-prereleases: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1013224Z   freethreaded: false
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.1013480Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2304449Z ##[group]Installed versions
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2401711Z Successfully set up CPython (3.13.16)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2402689Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2704215Z ##[group]Run set -euo pipefail
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2705222Z ^[[36;1mset -euo pipefail^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2705790Z ^[[36;1mM="$RUNNER_TEMP/metrics"; mkdir -p "$M"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2706499Z ^[[36;1m# This run's three lanes, by name, from this run.^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2707191Z ^[[36;1mfor lane in fast coverage closures; do^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2707949Z ^[[36;1m  gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2708790Z ^[[36;1m    --dir "$M" || echo "no ci-metrics-$lane artifact this run"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2709575Z ^[[36;1mdone^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2710268Z ^[[36;1m# The recent window: the newest ci-metrics artifact per lane per^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2711225Z ^[[36;1m# run of the last 15 runs that are not this one, whatever their^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2712125Z ^[[36;1m# event -- the scoping metric reads pull_request runs, the push^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2713108Z ^[[36;1m# counts read push runs, and every line carries its own event and^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2713938Z ^[[36;1m# run id, so the ratchet groups them itself.^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2714934Z ^[[36;1m# The run association is read as .workflow_run.id with a .run_id^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2715835Z ^[[36;1m# fallback: the artifacts list API stopped returning .run_id^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2716686Z ^[[36;1m# (null for every artifact, 2026-10-12), which left the old^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2717533Z ^[[36;1m# query selecting on null -- null != GITHUB_RUN_ID is true, so^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2718427Z ^[[36;1m# THIS run's own artifacts passed the exclusion and unique_by^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2719289Z ^[[36;1m# over a null run collapsed the window to one artifact per^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2720099Z ^[[36;1m# name, double-counting this run's lanes (96 = 63 + 33 on the^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2720833Z ^[[36;1m# first grade). Both must stay null-safe.^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2721552Z ^[[36;1mgh api "repos/tvofi/heatpump_optimizer/actions/artifacts?per_page=100" \^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2722330Z ^[[36;1m  --jq '[.artifacts[]^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2722890Z ^[[36;1m         | select(.name | startswith("ci-metrics-"))^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2723520Z ^[[36;1m         | select(.expired == false)^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2724129Z ^[[36;1m         | select((.workflow_run.id // .run_id // 0)^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2724967Z ^[[36;1m                  != ($ENV.GITHUB_RUN_ID | tonumber))^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2725661Z ^[[36;1m         | {id: .id, run: (.workflow_run.id // .run_id),^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2726561Z ^[[36;1m            name: .name, at: .created_at}]^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2727413Z ^[[36;1m        | sort_by(.at) | reverse^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2728102Z ^[[36;1m        | unique_by(.run, .name)' > "$RUNNER_TEMP/window.json" || true^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2728918Z ^[[36;1mpython3 - "$RUNNER_TEMP/window.json" "$M" <<'EOF'^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2729647Z ^[[36;1mimport json, os, subprocess, sys, zipfile^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2730286Z ^[[36;1mwindow, out = sys.argv[1], sys.argv[2]^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2730885Z ^[[36;1marts = json.load(open(window))[:45]^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2731540Z ^[[36;1mprint(f"window: {len(arts)} ci-metrics artifact(s)")^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2732234Z ^[[36;1mrepo = os.environ["GITHUB_REPOSITORY"]^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2732823Z ^[[36;1mfor art in arts:^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2733354Z ^[[36;1m    z = os.path.join(out, f"a{art['id']}.zip")^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2733905Z ^[[36;1m    with open(z, "wb") as fh:^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2734384Z ^[[36;1m        subprocess.run(^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2735357Z ^[[36;1m            ["gh", "api", f"repos/{repo}/actions/artifacts/"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2735798Z ^[[36;1m             f"{art['id']}/zip"], stdout=fh, check=True)^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2736185Z ^[[36;1m    with zipfile.ZipFile(z) as f:^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2736522Z ^[[36;1m        for n in f.namelist():^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2736856Z ^[[36;1m            if n.endswith(".tsv"):^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2737430Z ^[[36;1m                dst = os.path.join(out, f"w{art['id']}-"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2737842Z ^[[36;1m                                   + os.path.basename(n))^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2738239Z ^[[36;1m                with open(dst, "wb") as wh:^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2738594Z ^[[36;1m                    wh.write(f.read(n))^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.2738910Z ^[[36;1mEOF^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3043566Z shell: /usr/bin/bash -e {0}
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3043988Z env:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3044358Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3045207Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3045785Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3046261Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3046751Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3047235Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3050092Z   GH_TOKEN: ***
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:14.3050366Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7663861Z window: 37 ci-metrics artifact(s)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7770114Z ##[group]Run gh api "repos/tvofi/heatpump_optimizer/actions/workflows/tests.yml/runs?event=push&branch=main&per_page=8" > "$RUNNER_TEMP/runs.json"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7771172Z ^[[36;1mgh api "repos/tvofi/heatpump_optimizer/actions/workflows/tests.yml/runs?event=push&branch=main&per_page=8" > "$RUNNER_TEMP/runs.json"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7838930Z shell: /usr/bin/bash -e {0}
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7839195Z env:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7839480Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7839926Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7840359Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7840743Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7841123Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7841499Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7844313Z   GH_TOKEN: ***
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:34.7844530Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4215924Z ##[group]Run python3 tests/ci_ratchet.py --metrics-dir "$RUNNER_TEMP/metrics" --runs-json "$RUNNER_TEMP/runs.json"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4216760Z ^[[36;1mpython3 tests/ci_ratchet.py --metrics-dir "$RUNNER_TEMP/metrics" --runs-json "$RUNNER_TEMP/runs.json"^[[0m
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4281658Z shell: /usr/bin/bash -e {0}
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4281919Z env:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4282184Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4282646Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4283092Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4283482Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4283872Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4284263Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:15:35.4284586Z ##[endgroup]
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8909674Z ci-ratchet: 1 metric(s) grew; pay the debt or re-record deliberately with --record "<reason>" (CLAUDE.md rule 2)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8911062Z CI ratchet:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8911587Z   ok    archscore._inlined_bases: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8912318Z   ok    archscore.card_clone_copies: 108 (budget 108)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8913126Z   ok    archscore.card_dead_definitions: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8914017Z   ok    archscore.computed_attr_access: 32 (budget 32)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8915887Z   ok    archscore.coord_footprint: 2498 (budget 2592)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8916630Z   ok    archscore.coordinator_multiassigned_attrs: 115 (budget 120)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8917373Z   ok    archscore.coordinator_private_reach: 2 (budget 2)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8917987Z   ok    archscore.dead_members: 1 (budget 1)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8918566Z   ok    archscore.duplication_copies: 41 (budget 68)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8919196Z   ok    archscore.family_orphan_overrides: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8919809Z   ok    archscore.family_splits: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8920395Z   ok    archscore.hub_solve_writes: 41 (budget 41)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8921003Z   ok    archscore.import_cycle_modules: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8921433Z   ok    archscore.layer_violations: 19 (budget 22)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8921837Z   ok    archscore.literal_clone_copies: 186 (budget 186)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8922243Z   ok    archscore.params_over_10: 8 (budget 12)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8922666Z   ok    archscore.private_cross_module: 12 (budget 17)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8923081Z   ok    archscore.public_unused: 1 (budget 1)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8923453Z   ok    archscore.reflective_writes: 15 (budget 17)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8923830Z   ok    archscore.shape_copies: 44 (budget 66)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8924216Z   ok    archscore.shared_inplace_writes: 19 (budget 22)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8925031Z   ok    archscore.unread_private_globals: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8925446Z   ok    archscore.untyped_payload_keys: 0 (budget 0)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8925832Z   ok    archscore.unused_boundary_imports: 1 (budget 1)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8926186Z   GREW  critical_path_minutes: 55.65 (budget 54.825)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8926607Z   ?     script_runs_full_case_pr: not derived this run (missing input); not graded
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:01.8927058Z   ok    script_runs_per_push: 54 (budget 68)
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.3399800Z ##[error]Process completed with exit code 1.
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.3545735Z Post job cleanup.
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4398025Z [command]/usr/bin/git version
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4443535Z git version 2.55.0
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4482525Z Temporarily overriding HOME='/home/runner/work/_temp/46a78af9-d936-4e21-9050-7c3dc81e64f1' before making global git config changes
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4483930Z Adding repository directory to the temporary git global config as a safe directory
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4488560Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4527982Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4566541Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4823404Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4860758Z http.https://github.com/.extraheader
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4873457Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.4916501Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.5190664Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.5237389Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+ci-ratchet	UNKNOWN STEP	2026-10-19T06:16:02.5648292Z Cleaning up orphan processes

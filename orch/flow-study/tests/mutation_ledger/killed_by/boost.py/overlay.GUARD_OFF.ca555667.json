@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:overlay GUARD_OFF ca555667",
+  "killed_by": "tests/features.py",
+  "old": "        if action.get(\"mode\") in (None, \"off\", \"idle\"):",
+  "reason": "#1499: boost.overlay's DHW channel turns the pump on, and this guard rewrites a standing off/idle/absent mode to hot_water. `if action.get(\"mode\") in (None, \"off\", \"idle\"):` -> `if False:` fails `a DHW boost over an off step reads hot_water; over a space step, the space rung` ([off / eco]): tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 4538cb59, 2026-09-24."
+}

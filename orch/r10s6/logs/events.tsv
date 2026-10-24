@@ -1,0 +1,4 @@
+# imported from relay-w13.log at 2026-10-24T13:52:33Z: 0 open event(s), 0 refused
+open	2026-10-24T13:52:33Z	verdict-unposted	2696	96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0	Fix review: merge 96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0
+open	2026-10-24T13:52:54Z	verdict-unposted	2704	859b74ba8ab4d0020025895b73a53b3833b5e74c	Fix review: blocked 859b74ba8ab4d0020025895b73a53b3833b5e74c carry-missing: not carried to R10-ORCH-ROSTER-SCHEMA or R10-FLY-CLOUD-SETUP-TOOLCHAIN, the body's two Forward-carry destinations are in no roster at origin/main 9586fce08 or handoff/audit-r10-roster db3e513ec
+open	2026-10-24T13:53:16Z	verdict-unposted	2706	ea459c0b5f6b4d753394935dfb49e5386480fd40	Fix review: blocked ea459c0b5f6b4d753394935dfb49e5386480fd40 class-open: tests/gate_lock.py mark_unleased/_unleased torn write destroyed as unparseable

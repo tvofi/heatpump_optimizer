@@ -1,0 +1,1 @@
+Delivered by #2488 (merge `4617d907`): the last tracked residue of `handoff/round9` (`fix/resume/FR-8.md`, `plan-table-live.md`) moved whole to `dev/archive/handoff/round9/`, and `tests/layout.json` records the move. The pull request carried no closing keyword, so the orchestrator closes this by hand at the record. Ships in the next stamp after v7.0.2.

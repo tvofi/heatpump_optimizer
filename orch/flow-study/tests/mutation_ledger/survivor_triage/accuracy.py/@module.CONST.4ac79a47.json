@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:<module> CONST 4ac79a47",
+  "old": "PROMISE_DAYS = 2",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Doubling the retention to 4 days is real behavior -- note_promise prunes sorted(promises)[:-PROMISE_DAYS] and _stored_promises keeps the newest PROMISE_DAYS -- but tests/features.py's UX-6 bound check asserts len(promises) == PROMISE_DAYS against the very constant the mutant doubles, and its fixture notes exactly 4 days of promises, so the mutated bound passes its own assertion. A check pinning the design value 2 (today plus yesterday, the U2 decision) or asserting the retained set rather than its size would kill it; none is recorded.",
+  "verdict": "gap"
+}

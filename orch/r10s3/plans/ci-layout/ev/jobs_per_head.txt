@@ -1,0 +1,46 @@
+# per job (workflow/job, matrix legs separate): heads where listed / executed, over the 5 fix-PR final heads; attempts collapsed to the latest
+Architecture score/arch-score                           listed 5/5 executed 5/5
+Budget raise gate/budget-raise-gate                     listed 5/5 executed 5/5
+CodeQL/Analyze (actions)                                listed 5/5 executed 5/5
+CodeQL/Analyze (javascript-typescript)                  listed 5/5 executed 5/5
+CodeQL/Analyze (python)                                 listed 5/5 executed 5/5
+CodeQL/cancel-superseded                                listed 5/5 executed 5/5
+CodeQL/scope                                            listed 5/5 executed 5/5
+Governance/delivery-status                              listed 5/5 executed 5/5
+Governance/delivery-status-publish                      listed 5/5 executed 0/5
+Governance/env-matrix                                   listed 5/5 executed 5/5
+Governance/instrument-self-tests                        listed 5/5 executed 5/5
+Governance/policy-docs                                  listed 5/5 executed 5/5
+Governance/record                                       listed 5/5 executed 0/5
+Governance/wave-script                                  listed 5/5 executed 5/5
+Hassfest/hassfest                                       listed 5/5 executed 5/5
+PR contract/pr-contract                                 listed 5/5 executed 5/5
+Tests/briefs                                            listed 5/5 executed 5/5
+Tests/browser                                           listed 5/5 executed 5/5
+Tests/cancel-superseded                                 listed 5/5 executed 5/5
+Tests/ci-ratchet                                        listed 5/5 executed 0/5
+Tests/claims-autofix                                    listed 5/5 executed 0/5
+Tests/closure-scope                                     listed 5/5 executed 5/5
+Tests/closures                                          listed 5/5 executed 5/5
+Tests/closures-autofix                                  listed 5/5 executed 0/5
+Tests/composed-proof                                    listed 5/5 executed 5/5
+Tests/coverage                                          listed 5/5 executed 5/5
+Tests/coverage-ratchet                                  listed 5/5 executed 5/5
+Tests/fast (3.14)                                       listed 5/5 executed 5/5
+Tests/graders-head-copy                                 listed 5/5 executed 5/5
+Tests/lane-proofs                                       listed 5/5 executed 5/5
+Tests/mutation                                          listed 5/5 executed 5/5
+Tests/mutation-autofix                                  listed 5/5 executed 0/5
+Tests/mutation-ledger                                   listed 5/5 executed 0/5
+Tests/mutation-ledger-push                              listed 5/5 executed 0/5
+Tests/mutation-nightly                                  listed 5/5 executed 0/5
+Tests/mutation-pin-plan                                 listed 5/5 executed 0/5
+Tests/mutation-pins                                     listed 5/5 executed 0/5
+Tests/nightly-ha                                        listed 5/5 executed 0/5
+Tests/nightly-status                                    listed 5/5 executed 5/5
+Tests/recheck-gate                                      listed 5/5 executed 0/5
+Tests/record-autofix                                    listed 5/5 executed 0/5
+Tests/slow                                              listed 5/5 executed 0/5
+Tests/typing                                            listed 5/5 executed 5/5
+Validate/validate-hacs                                  listed 5/5 executed 5/5
+distinct job names listed: 44  executed at all 5: 29

@@ -1,0 +1,7 @@
+LEDGER-MERGE: resolved tests/closures.json
+  recorded.tests/entities.py.seconds: took the larger of 867.9 and 707.7
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+  REFUSE   push order             origin/fix/r10-loop-cpu and HEAD have diverged, 1 commit(s) there against 3 here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge origin/fix/r10-loop-cpu, then rewrite `## Head` at the merge commit
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-loop-cpu.log

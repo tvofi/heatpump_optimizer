@@ -1,0 +1,3 @@
+===== daemonize pid=90150 2026-10-18T18:37:23Z argv: bash tools/audit/seat/open_pr.sh r10-cloud-shape 1acdb3cdc447966e7caa15aacf0d3a9f6509b4a1 R10-CLOUD-SHAPE: probe-ref return, local relay and watcher for cloud reviewers R10-CLOUD-SHAPE
+  REFUSE   ancestry reds          RED UNANSWERED (instrument-self-tests):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-cloud-shape/body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action BOOLOP f18d7d5c",
+  "killed_by": "tests/features.py",
+  "old": "        if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it (CI's mutation job at 8e41434e reported it LIVES). `and` -> `or` indexes a non-empty DHW trajectory past its end when it is shorter than the schedule. Killed by tests/features.py's `a DHW trajectory shorter than the schedule is read only where it exists`: FAIL [step 8 of a one-entry trajectory: raised IndexError: list index out of range], 1 of 3141, measured at b5121ba3."
+}

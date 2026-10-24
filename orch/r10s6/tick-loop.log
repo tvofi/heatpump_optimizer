@@ -1,0 +1,437 @@
+===== daemonize pid=46508 2026-10-24T07:43:42Z argv: bash /Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/tick_loop.sh --interval 300 --out /Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T07:45:29Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=2 owed=40 state-ref=4
+cloud_relay: OWED confirm #2609 db41f858144d482277013396837a5798a006e510: BUS refused 2609 8ceaffddf3847048314cf0ebda0a97b1f6098660: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2609 is closed; a verdict posts only on an open one
+TICK-RELAY 2026-10-24T07:50:31Z relay=ok started=2026-10-24T07:43:42Z
+TICK-PASS 2026-10-24T07:57:44Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=2 owed=40 state-ref=4
+TICK-RELAY 2026-10-24T08:02:51Z relay=ok started=2026-10-24T07:50:32Z
+TICK-PASS 2026-10-24T08:06:21Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=4 owed=40 state-ref=4
+2026-10-24T08:04:12Z cloud_relay: relaying refs/heads/probe/rev-2683-fae76273 5a68dc3fe76c05191e2a68bd24d4fadf8c7a9934
+
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     eea7e3e605a4799f64917d4753b6d9fe24e469b0 -> review/2683 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of review/2683 was refused
+cloud_relay: relay of refs/heads/probe/rev-2683-fae76273 5a68dc3fe76c05191e2a68bd24d4fadf8c7a9934 failed (rc=1, try 1 of 3); the next pass retries: bus: REFUSE: the push of review/2683 was refused
+TICK-RELAY 2026-10-24T08:11:24Z relay=ok started=2026-10-24T08:02:51Z
+TICK-PASS 2026-10-24T08:13:49Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=4 owed=42 state-ref=4
+2026-10-24T08:12:00Z cloud_relay: relaying refs/heads/probe/rev-2688-c39b48f6 16c3c52b19c3ab7d89f90737456d211cbe8ec1c9
+review/2688 2b981b1b018beebe047fb9d5998e04ff75e888d6
+cloud_relay: review/2688 remote tip 2b981b1b018beebe047fb9d5998e04ff75e888d6
+cloud_relay: POSTED #2688 2b981b1b018beebe047fb9d5998e04ff75e888d6
+cloud_relay: relayed refs/heads/probe/rev-2688-c39b48f6 16c3c52b19c3ab7d89f90737456d211cbe8ec1c9; next: bus.sh confirm 2688 2b981b1b018beebe047fb9d5998e04ff75e888d6
+remote: 
+remote: Create a pull request for 'review/2688' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2688        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2688 b451bde0c45b3218ae4099489ac4c1e71cc06f0e
+TICK-RELAY 2026-10-24T08:18:53Z relay=ok started=2026-10-24T08:11:24Z
+TICK-PASS 2026-10-24T08:22:35Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=6 owed=42 state-ref=4
+TICK-RELAY 2026-10-24T08:27:41Z relay=ok started=2026-10-24T08:18:53Z
+TICK-PASS 2026-10-24T08:31:27Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=6 owed=45 state-ref=4
+2026-10-24T08:29:00Z cloud_relay: relaying refs/heads/probe/rev-2689-90b38f9f fca6c83bf7c6057c8ada3c7f5789437df12933c2
+review/2689 32f03d0723b27f930202496b238ff1360f2d401b
+cloud_relay: review/2689 remote tip 32f03d0723b27f930202496b238ff1360f2d401b
+cloud_relay: POSTED #2689 32f03d0723b27f930202496b238ff1360f2d401b
+cloud_relay: relayed refs/heads/probe/rev-2689-90b38f9f fca6c83bf7c6057c8ada3c7f5789437df12933c2; next: bus.sh confirm 2689 32f03d0723b27f930202496b238ff1360f2d401b
+remote: 
+remote: Create a pull request for 'review/2689' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2689        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2689 44ee0e5fde9cb744bfdd3ee1a7e8ba4d7e8cdb0e
+TICK-RELAY 2026-10-24T08:36:34Z relay=ok started=2026-10-24T08:27:41Z
+TICK-PASS 2026-10-24T08:41:00Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=6 owed=50 state-ref=4
+TICK-RELAY 2026-10-24T08:46:06Z relay=ok started=2026-10-24T08:36:34Z
+TICK-PASS 2026-10-24T08:53:00Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T08:46:13Z cloud_relay: handoff/r10-triage-s6-batch2 e06c58981e10fae40a077294c8af41f4485dadaf is ahead of #2689 44ee0e5fde9cb744bfdd3ee1a7e8ba4d7e8cdb0e; updating
+  REFUSE   ancestry reds          [code-scanning alerts NOT READ: no analysis at refs/pull/2689/merge with commit_sha 1a41588b3f40a29e2cde49c0fd72e553ed0e7623 for leg(s) actions, javascript-typescript, python] RED UNANSWERED (governance / instrument-self-tests): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/cloud-body.nJH10r/BODY.md: check `governance / instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch2.log
+ledger: level carried=100 disposed=25 open-pr=8 owed=52 state-ref=4
+TICK-RELAY 2026-10-24T08:58:08Z relay=ok started=2026-10-24T08:46:06Z
+TICK-PASS 2026-10-24T09:04:34Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T08:58:21Z cloud_relay: handoff/r10-triage-s6-batch2 630c5a75d10e3845f0108ed15d9466379dd45a1a is ahead of #2689 44ee0e5fde9cb744bfdd3ee1a7e8ba4d7e8cdb0e; updating
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 739) holds fix/r10-triage-s6-batch2's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch2; nothing was changed, run again when it ends
+cloud_relay: update_pr busy on fix/r10-triage-s6-batch2; the next pass retries
+2026-10-24T08:58:26Z cloud_relay: handoff/r10-triage-s6-batch1 569da4eed060ba229f548719237ba2c4545dec58 is ahead of #2688 b451bde0c45b3218ae4099489ac4c1e71cc06f0e; updating
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 879) holds fix/r10-triage-s6-batch1's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch1; nothing was changed, run again when it ends
+cloud_relay: update_pr busy on fix/r10-triage-s6-batch1; the next pass retries
+ledger: level carried=100 disposed=25 open-pr=10 owed=50 state-ref=4
+TICK-RELAY 2026-10-24T09:09:39Z relay=ok started=2026-10-24T08:58:08Z
+TICK-PASS 2026-10-24T09:13:58Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T09:09:51Z cloud_relay: handoff/r10-triage-s6-batch2 630c5a75d10e3845f0108ed15d9466379dd45a1a is ahead of #2689 44ee0e5fde9cb744bfdd3ee1a7e8ba4d7e8cdb0e; updating
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 739) holds fix/r10-triage-s6-batch2's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch2; nothing was changed, run again when it ends
+cloud_relay: update_pr busy on fix/r10-triage-s6-batch2; the next pass retries
+2026-10-24T09:09:55Z cloud_relay: handoff/r10-triage-s6-batch1 569da4eed060ba229f548719237ba2c4545dec58 is ahead of #2688 b451bde0c45b3218ae4099489ac4c1e71cc06f0e; updating
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 879) holds fix/r10-triage-s6-batch1's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch1; nothing was changed, run again when it ends
+cloud_relay: update_pr busy on fix/r10-triage-s6-batch1; the next pass retries
+ledger: level carried=100 disposed=25 open-pr=10 owed=53 state-ref=4
+TICK-RELAY 2026-10-24T09:19:03Z relay=ok started=2026-10-24T09:09:39Z
+TICK-PASS 2026-10-24T09:24:48Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T09:19:26Z cloud_relay: handoff/r10-triage-s6-batch1 569da4eed060ba229f548719237ba2c4545dec58 is ahead of #2688 b451bde0c45b3218ae4099489ac4c1e71cc06f0e; updating
+HEAD=1fbc924ab96888b7eb371ebd789a4e6326294a0d
+approve_held_runs: no action_required runs on tvofi/heatpump_optimizer:fix/r10-triage-s6-batch1; nothing to approve
+cloud_relay: OWED reviewer-fire #2688 1fbc924ab96888b7eb371ebd789a4e6326294a0d
+ledger: level carried=102 disposed=25 open-pr=10 owed=53 state-ref=4
+2026-10-24T09:23:19Z cloud_relay: relaying refs/heads/probe/rev-2689-3709b452 16b320f8654af428082b73c9b4f2774ee7d1ff5e
+review/2689 0b7a855f176f6ed6a6581d8d3cddef5d23a04e19
+cloud_relay: review/2689 remote tip 0b7a855f176f6ed6a6581d8d3cddef5d23a04e19
+cloud_relay: POSTED #2689 0b7a855f176f6ed6a6581d8d3cddef5d23a04e19
+cloud_relay: relayed refs/heads/probe/rev-2689-3709b452 16b320f8654af428082b73c9b4f2774ee7d1ff5e; next: bus.sh confirm 2689 0b7a855f176f6ed6a6581d8d3cddef5d23a04e19
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2689 80a62d9a7bba087c216e5370c31efb216581bf92
+TICK-RELAY 2026-10-24T09:29:54Z relay=ok started=2026-10-24T09:19:03Z
+TICK-PASS 2026-10-24T09:35:01Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T09:30:13Z cloud_relay: handoff/r10-triage-s6-batch2 d0492904ea98b9b828b6f653efcb977b8490226d is ahead of #2689 80a62d9a7bba087c216e5370c31efb216581bf92; updating
+HEAD=583219fa8a44c79e038ae091ce907dafa3e847d0
+approve_held_runs: no action_required runs on tvofi/heatpump_optimizer:fix/r10-triage-s6-batch2; nothing to approve
+cloud_relay: OWED reviewer-fire #2689 583219fa8a44c79e038ae091ce907dafa3e847d0
+ledger: level carried=100 disposed=25 open-pr=12 owed=53 state-ref=4
+TICK-RELAY 2026-10-24T09:40:11Z relay=ok started=2026-10-24T09:29:54Z
+TICK-PASS 2026-10-24T09:47:06Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=100 disposed=25 open-pr=12 owed=57 state-ref=4
+TICK-RELAY 2026-10-24T09:52:14Z relay=ok started=2026-10-24T09:40:11Z
+TICK-PASS 2026-10-24T09:57:57Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=12 owed=55 state-ref=4
+2026-10-24T09:54:56Z cloud_relay: relaying refs/heads/probe/rev-2688-aaa2a420 93e91c66e077ed81d6371345e72b91f97f27c3b0
+review/2688 0ba7f40c6bb689f81d7f322f61d0eb178a175899
+cloud_relay: review/2688 remote tip 0ba7f40c6bb689f81d7f322f61d0eb178a175899
+cloud_relay: POSTED #2688 0ba7f40c6bb689f81d7f322f61d0eb178a175899
+cloud_relay: relayed refs/heads/probe/rev-2688-aaa2a420 93e91c66e077ed81d6371345e72b91f97f27c3b0; next: bus.sh confirm 2688 0ba7f40c6bb689f81d7f322f61d0eb178a175899
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2688 1fbc924ab96888b7eb371ebd789a4e6326294a0d
+2026-10-24T09:55:46Z cloud_relay: relaying refs/heads/probe/rev-2689-4fff0b41 c4db54ea633e052d5f726471b7d369ee83cb4a77
+review/2689 17f243781d5eeaceecaae4a19fcbc82731241cf3
+cloud_relay: review/2689 remote tip 17f243781d5eeaceecaae4a19fcbc82731241cf3
+cloud_relay: POSTED #2689 17f243781d5eeaceecaae4a19fcbc82731241cf3
+cloud_relay: relayed refs/heads/probe/rev-2689-4fff0b41 c4db54ea633e052d5f726471b7d369ee83cb4a77; next: bus.sh confirm 2689 17f243781d5eeaceecaae4a19fcbc82731241cf3
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2689 583219fa8a44c79e038ae091ce907dafa3e847d0
+2026-10-24T09:56:25Z cloud_relay: relaying refs/heads/probe/rev-2691-1d103dab 2e18860aa3081c809c0b382337b603941ecb16b1
+review/2691 1fee572f3f83e7a11bf663b05adf4ddfd845e0e8
+cloud_relay: review/2691 remote tip 1fee572f3f83e7a11bf663b05adf4ddfd845e0e8
+cloud_relay: POSTED #2691 1fee572f3f83e7a11bf663b05adf4ddfd845e0e8
+cloud_relay: relayed refs/heads/probe/rev-2691-1d103dab 2e18860aa3081c809c0b382337b603941ecb16b1; next: bus.sh confirm 2691 1fee572f3f83e7a11bf663b05adf4ddfd845e0e8
+remote: 
+remote: Create a pull request for 'review/2691' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2691        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2691 4a81d718e03564dc1b0de06ee5a68edc98d13096
+TICK-RELAY 2026-10-24T10:03:02Z relay=ok started=2026-10-24T09:52:14Z
+TICK-PASS 2026-10-24T10:08:37Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=12 owed=55 state-ref=4
+TICK-RELAY 2026-10-24T10:13:42Z relay=ok started=2026-10-24T10:03:02Z
+TICK-PASS 2026-10-24T10:18:34Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=14 owed=55 state-ref=4
+2026-10-24T10:15:00Z cloud_relay: relaying refs/heads/probe/rev-2693-7216a12d a10ad889b293f9ed81da63122381d3cad199ac09
+review/2693 c7b4324275a0019523fc594970e49ceb3210e946
+cloud_relay: review/2693 remote tip c7b4324275a0019523fc594970e49ceb3210e946
+cloud_relay: POSTED #2693 c7b4324275a0019523fc594970e49ceb3210e946
+cloud_relay: relayed refs/heads/probe/rev-2693-7216a12d a10ad889b293f9ed81da63122381d3cad199ac09; next: bus.sh confirm 2693 c7b4324275a0019523fc594970e49ceb3210e946
+remote: 
+remote: Create a pull request for 'review/2693' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2693        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2693 228d5e48d352f3a38b0a89437baa040f4d3021e9
+TICK-RELAY 2026-10-24T10:23:37Z relay=ok started=2026-10-24T10:13:42Z
+TICK-PASS 2026-10-24T10:26:49Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=16 owed=26 state-ref=4
+TICK-RELAY 2026-10-24T10:31:54Z relay=ok started=2026-10-24T10:23:37Z
+TICK-PASS 2026-10-24T10:35:35Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=18 owed=26 state-ref=4
+TICK-RELAY 2026-10-24T10:40:41Z relay=ok started=2026-10-24T10:31:54Z
+TICK-PASS 2026-10-24T10:43:57Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=18 owed=26 state-ref=4
+TICK-RELAY 2026-10-24T10:49:03Z relay=ok started=2026-10-24T10:40:41Z
+TICK-PASS 2026-10-24T10:59:18Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=102 disposed=25 open-pr=18 owed=30 state-ref=4
+TICK-RELAY 2026-10-24T11:04:26Z relay=ok started=2026-10-24T10:49:03Z
+TICK-PASS 2026-10-24T11:10:19Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=104 disposed=25 open-pr=16 owed=32 state-ref=4
+2026-10-24T11:06:33Z cloud_relay: relaying refs/heads/probe/rev-2695-27edb485 de28f334524ccee87c566e74ee3898f4f05cb995
+review/2695 176332a22c00c5fa73795ee3e74375d48a20fc83
+cloud_relay: review/2695 remote tip 176332a22c00c5fa73795ee3e74375d48a20fc83
+cloud_relay: relayed refs/heads/probe/rev-2695-27edb485 de28f334524ccee87c566e74ee3898f4f05cb995; next: bus.sh confirm 2695 176332a22c00c5fa73795ee3e74375d48a20fc83
+remote: 
+remote: Create a pull request for 'review/2695' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2695        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2695 e5ad7315184614c824690094bb77943bba947a0b
+cloud_relay: UNPOSTED #2695: confirm failed: BUS refused 2695 15fa8c2eee5dd33061573b30b02f21e2a50e86b1: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2695 is closed; a verdict posts only on an open one (the verdict stays owed in the ledger)
+2026-10-24T11:07:06Z cloud_relay: relaying refs/heads/probe/rev-2697-318a6c0e 1fb03d7d3ab0ff72926cebf1ab6613bf8b988645
+review/2697 42fa4f3f5037376dcd7b91391af714231bfd830e
+cloud_relay: review/2697 remote tip 42fa4f3f5037376dcd7b91391af714231bfd830e
+cloud_relay: POSTED #2697 42fa4f3f5037376dcd7b91391af714231bfd830e
+cloud_relay: relayed refs/heads/probe/rev-2697-318a6c0e 1fb03d7d3ab0ff72926cebf1ab6613bf8b988645; next: bus.sh confirm 2697 42fa4f3f5037376dcd7b91391af714231bfd830e
+remote: 
+remote: Create a pull request for 'review/2697' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2697        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2697 b4dd119172d5e0f04f800e752dffe265228d19e1
+cloud_relay: OWED confirm #2695 176332a22c00c5fa73795ee3e74375d48a20fc83: BUS refused 2695 42aad4e1bc1b85e9624d31082d0fe7b2f916af7f: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2695 is closed; a verdict posts only on an open one
+TICK-RELAY 2026-10-24T11:15:27Z relay=ok started=2026-10-24T11:04:26Z
+TICK-PASS 2026-10-24T11:19:56Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=104 disposed=25 open-pr=16 owed=32 state-ref=4
+cloud_relay: OWED confirm #2695 176332a22c00c5fa73795ee3e74375d48a20fc83: BUS refused 2695 347648989acd54b47bb4dcb7421b650932c17bc8: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2695 is closed; a verdict posts only on an open one
+TICK-RELAY 2026-10-24T11:25:02Z relay=ok started=2026-10-24T11:15:27Z
+TICK-PASS 2026-10-24T11:28:25Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=106 disposed=25 open-pr=16 owed=31 state-ref=4
+cloud_relay: OWED confirm #2695 176332a22c00c5fa73795ee3e74375d48a20fc83: BUS refused 2695 37e52ca3b69ba9695098d36716b41947a8fce42f: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2695 is closed; a verdict posts only on an open one
+TICK-RELAY 2026-10-24T11:33:31Z relay=ok started=2026-10-24T11:25:02Z
+TICK-PASS 2026-10-24T11:38:08Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=106 disposed=25 open-pr=16 owed=35 state-ref=4
+TICK-RELAY 2026-10-24T11:43:14Z relay=ok started=2026-10-24T11:33:31Z
+TICK-PASS 2026-10-24T11:46:22Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=98 disposed=24 open-pr=10 owed=35 state-ref=4
+TICK-RELAY 2026-10-24T11:51:26Z relay=ok started=2026-10-24T11:43:14Z
+TICK-PASS 2026-10-24T11:54:15Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=62 disposed=24 open-pr=10 owed=36 state-ref=4
+TICK-RELAY 2026-10-24T11:59:18Z relay=ok started=2026-10-24T11:51:26Z
+TICK-PASS 2026-10-24T12:03:26Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level disposed=22 open-pr=10 owed=39 state-ref=4
+TICK-RELAY 2026-10-24T12:08:29Z relay=ok started=2026-10-24T11:59:18Z
+TICK-PASS 2026-10-24T12:12:56Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level disposed=22 open-pr=10 owed=39 state-ref=4
+2026-10-24T12:09:04Z cloud_relay: relaying refs/heads/probe/rev-2688-ae00f865 1b9aa5d9e7eb5a30940aa865a336443db388e383
+review/2688 6b5e70044d0a73ac1a34ae6b91cfb1f6a79e47b3
+cloud_relay: review/2688 remote tip 6b5e70044d0a73ac1a34ae6b91cfb1f6a79e47b3
+cloud_relay: POSTED #2688 6b5e70044d0a73ac1a34ae6b91cfb1f6a79e47b3
+cloud_relay: relayed refs/heads/probe/rev-2688-ae00f865 1b9aa5d9e7eb5a30940aa865a336443db388e383; next: bus.sh confirm 2688 6b5e70044d0a73ac1a34ae6b91cfb1f6a79e47b3
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2688 1fbc924ab96888b7eb371ebd789a4e6326294a0d
+2026-10-24T12:10:08Z cloud_relay: relaying refs/heads/probe/rev-2689-7c3743ba ef78db7813e4c36e0570278da48921ea3b8674a9
+review/2689 c496978e44fe18cf2477b86d4c0403d9c5bad02c
+cloud_relay: review/2689 remote tip c496978e44fe18cf2477b86d4c0403d9c5bad02c
+cloud_relay: POSTED #2689 c496978e44fe18cf2477b86d4c0403d9c5bad02c
+cloud_relay: relayed refs/heads/probe/rev-2689-7c3743ba ef78db7813e4c36e0570278da48921ea3b8674a9; next: bus.sh confirm 2689 c496978e44fe18cf2477b86d4c0403d9c5bad02c
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2689 583219fa8a44c79e038ae091ce907dafa3e847d0
+2026-10-24T12:10:41Z cloud_relay: relaying refs/heads/probe/rev-2696-0afd3158 fa649b08b334b93b7c821f0c8023af40b016f087
+review/2696 fc9ac28f325c59f5b9ed5ba8cda326f4e6dbb0af
+cloud_relay: review/2696 remote tip fc9ac28f325c59f5b9ed5ba8cda326f4e6dbb0af
+cloud_relay: POSTED #2696 fc9ac28f325c59f5b9ed5ba8cda326f4e6dbb0af
+cloud_relay: relayed refs/heads/probe/rev-2696-0afd3158 fa649b08b334b93b7c821f0c8023af40b016f087; next: bus.sh confirm 2696 fc9ac28f325c59f5b9ed5ba8cda326f4e6dbb0af
+remote: 
+remote: Create a pull request for 'review/2696' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2696        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2696 b5cf12dfe83705acaf5726b8e018e84174ac8883
+TICK-RELAY 2026-10-24T12:18:01Z relay=ok started=2026-10-24T12:08:30Z
+ledger: level disposed=22 open-pr=10 owed=29 state-ref=4
+TICK-PASS 2026-10-24T12:20:22Z relay=ok tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T12:31:15Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level disposed=22 open-pr=11 owed=29 state-ref=4
+TICK-RELAY 2026-10-24T12:36:20Z relay=ok started=2026-10-24T12:25:24Z
+TICK-PASS 2026-10-24T12:40:06Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T12:49:12Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T12:56:49Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T12:36:31Z cloud_relay: handoff/r10-rca-ci-ratchet-run-name b7564b26d43153c8b5d094d6e73fae6f10294517 is ahead of #2696 b5cf12dfe83705acaf5726b8e018e84174ac8883; updating
+HEAD=96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0
+approve_held_runs: no action_required runs on tvofi/heatpump_optimizer:fix/r10-rca-ci-ratchet-run-name-pr; nothing to approve
+cloud_relay: OWED reviewer-fire #2696 96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0
+2026-10-24T13:00:42Z cloud_relay: handoff/r10-rca-strand 3fc563ad83b2a563726bf68920196e8481dce980 is ahead of #2691 4a81d718e03564dc1b0de06ee5a68edc98d13096; updating
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 62239) holds fix/r10-rca-strand-pr's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-strand-pr; nothing was changed, run again when it ends
+cloud_relay: update_pr busy on fix/r10-rca-strand-pr; the next pass retries
+ledger: level carried=2 disposed=22 open-pr=12 owed=27 state-ref=4
+2026-10-24T13:01:02Z cloud_relay: relaying refs/heads/probe/rev-2700-43f59d66 47e6af75847ff1e37db4436dcd7b1766f6bcf38d
+review/2700 f2668fb2078cea433e12f876bf84584419e01d90
+cloud_relay: review/2700 remote tip f2668fb2078cea433e12f876bf84584419e01d90
+cloud_relay: POSTED #2700 f2668fb2078cea433e12f876bf84584419e01d90
+cloud_relay: relayed refs/heads/probe/rev-2700-43f59d66 47e6af75847ff1e37db4436dcd7b1766f6bcf38d; next: bus.sh confirm 2700 f2668fb2078cea433e12f876bf84584419e01d90
+remote: 
+remote: Create a pull request for 'review/2700' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2700        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2700 801e66b244ca1b45a51e78fe3b5e49c82a50641d
+TICK-RELAY 2026-10-24T13:01:54Z relay=ok started=2026-10-24T12:36:20Z
+TICK-PASS 2026-10-24T13:05:06Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:13:33Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:22:02Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:29:57Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:38:06Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:46:38Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T13:55:13Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+2026-10-24T13:02:08Z cloud_relay: handoff/r10-merge-subject-harden f6568a42961232dc0f4fcdc32cb9c187a3602635 is ahead of #2697 b4dd119172d5e0f04f800e752dffe265228d19e1; updating
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against fa4dad4a75ee -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-merge-subject-harden.log
+2026-10-24T13:40:35Z cloud_relay: handoff/r10-rca-strand 3fc563ad83b2a563726bf68920196e8481dce980 is ahead of #2691 4a81d718e03564dc1b0de06ee5a68edc98d13096; updating
+  REFUSE   policy_lint             Node.js v24.22.1 
+  REFUSE   mutants                Node.js v24.22.1
+  REFUSE   rules_sync             Node.js v24.22.1
+  REFUSE   fragments              Node.js v24.22.1
+  REFUSE   hooks                  Node.js v24.22.1
+  REFUSE   codeowners_gap         
+  REFUSE   field coverage         Node.js v24.22.1
+  REFUSE   agreement lane         python3: can't open file 'tools/policy/agreement_py.py': [Errno 2] No such file or directory
+  REFUSE   register check         python3: can't open file 'tools/audit/fold_ledger.py': [Errno 2] No such file or directory
+  REFUSE   temp paths             python3: can't open file 'tools/audit/seat/tmp_paths.py': [Errno 2] No such file or directory
+  REFUSE   pinned graders         no pinned grader found -- the pin reader no longer matches the workflows
+  REFUSE   self-test              bash: tools/pr/prepr.sh: No such file or directory
+  REFUSE   wave-script            Node.js v24.22.1
+  REFUSE   no version edit        
+  REFUSE   claims hygiene          -- run `python3 tests/env_drift.py --claims-only ` for the whole refusal
+  REFUSE   no-copies              the changed-path list did not derive from 9586fce081411da3e552aab930919c40e2b2b233...HEAD, so no-copies was not run
+  REFUSE   preflight              
+  REFUSE   pr-body                the changed-path list did not derive from 9586fce081411da3e552aab930919c40e2b2b233...HEAD, so the `## Approval` gate was not run -- an empty list reads as "touches no policy file", which is the fail-open it exists to close
+  REFUSE   figures                Node.js v24.22.1
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-strand-pr.log
+ledger: level carried=14 disposed=22 open-pr=14 owed=15 state-ref=4
+2026-10-24T13:57:45Z cloud_relay: relaying refs/heads/probe/rev-2707-a27d6c56 a42a094390083aab3348da871d8db04a636d9ca2
+review/2707 cb927a16abf807aaa0447bd7dc2e35d084d3af2b
+cloud_relay: review/2707 remote tip cb927a16abf807aaa0447bd7dc2e35d084d3af2b
+cloud_relay: POSTED #2707 cb927a16abf807aaa0447bd7dc2e35d084d3af2b
+cloud_relay: relayed refs/heads/probe/rev-2707-a27d6c56 a42a094390083aab3348da871d8db04a636d9ca2; next: bus.sh confirm 2707 cb927a16abf807aaa0447bd7dc2e35d084d3af2b
+remote: 
+remote: Create a pull request for 'review/2707' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2707        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2707 cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68
+TICK-RELAY 2026-10-24T14:00:18Z relay=ok started=2026-10-24T13:01:54Z
+TICK-PASS 2026-10-24T14:03:58Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=4 disposed=22 open-pr=24 owed=17 state-ref=4
+2026-10-24T14:00:49Z cloud_relay: relaying refs/heads/probe/rev-2709-68ee7f10 6cfe0cae62b66634bfaf42898b996aaf6edd3c1c
+review/2709 129ec227ce9957b94b6fd45b44a2b55e8512a3b7
+cloud_relay: review/2709 remote tip 129ec227ce9957b94b6fd45b44a2b55e8512a3b7
+cloud_relay: POSTED #2709 129ec227ce9957b94b6fd45b44a2b55e8512a3b7
+cloud_relay: relayed refs/heads/probe/rev-2709-68ee7f10 6cfe0cae62b66634bfaf42898b996aaf6edd3c1c; next: bus.sh confirm 2709 129ec227ce9957b94b6fd45b44a2b55e8512a3b7
+remote: 
+remote: Create a pull request for 'review/2709' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2709        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2709 3580acc051e8b7f8ad5fba1ce8827891111f6ba9
+TICK-RELAY 2026-10-24T14:09:01Z relay=ok started=2026-10-24T14:00:18Z
+ledger: level carried=4 disposed=22 open-pr=24 owed=17 state-ref=4
+TICK-PASS 2026-10-24T14:12:38Z relay=ok tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+TICK-PASS 2026-10-24T14:21:52Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=4 disposed=22 open-pr=24 owed=17 state-ref=4
+2026-10-24T14:18:26Z cloud_relay: relaying refs/heads/probe/rev-2711-94358461 af891c1145e35a4dc411ce0722b5ec52b41a0aa9
+review/2711 5c2690a9ef6302490b2323f1400047c3c927a8e5
+cloud_relay: review/2711 remote tip 5c2690a9ef6302490b2323f1400047c3c927a8e5
+cloud_relay: POSTED #2711 5c2690a9ef6302490b2323f1400047c3c927a8e5
+cloud_relay: relayed refs/heads/probe/rev-2711-94358461 af891c1145e35a4dc411ce0722b5ec52b41a0aa9; next: bus.sh confirm 2711 5c2690a9ef6302490b2323f1400047c3c927a8e5
+remote: 
+remote: Create a pull request for 'review/2711' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2711        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2711 5021b50def0ab7b5769239209d929125767d3636
+2026-10-24T14:18:50Z cloud_relay: relaying refs/heads/probe/rev-2714-016a7230 67e294e79bddbc3362c86319c81245d57fe495dd
+review/2714 763b488ea6953fee069e4f812bf94be1c151c6a3
+cloud_relay: review/2714 remote tip 763b488ea6953fee069e4f812bf94be1c151c6a3
+cloud_relay: POSTED #2714 763b488ea6953fee069e4f812bf94be1c151c6a3
+cloud_relay: relayed refs/heads/probe/rev-2714-016a7230 67e294e79bddbc3362c86319c81245d57fe495dd; next: bus.sh confirm 2714 763b488ea6953fee069e4f812bf94be1c151c6a3
+remote: 
+remote: Create a pull request for 'review/2714' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2714        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2714 dba7f86b1da529a59bc9b15b6f3641bcfc2c8891
+TICK-RELAY 2026-10-24T14:26:55Z relay=ok started=2026-10-24T14:17:41Z
+TICK-PASS 2026-10-24T14:30:51Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=4 disposed=22 open-pr=24 owed=17 state-ref=4
+2026-10-24T14:27:35Z cloud_relay: relaying refs/heads/probe/rev-2708-e21fc36e f39ad6661f089290a9f7aa73391fc692686ce0f8
+review/2708 23bb9d04895aca4ca527ca73167cb3b76b394177
+cloud_relay: review/2708 remote tip 23bb9d04895aca4ca527ca73167cb3b76b394177
+cloud_relay: POSTED #2708 23bb9d04895aca4ca527ca73167cb3b76b394177
+cloud_relay: relayed refs/heads/probe/rev-2708-e21fc36e f39ad6661f089290a9f7aa73391fc692686ce0f8; next: bus.sh confirm 2708 23bb9d04895aca4ca527ca73167cb3b76b394177
+remote: 
+remote: Create a pull request for 'review/2708' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2708        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2708 ae77c4150ee0245f5546c73fd9c3f35691e9a3c6
+TICK-RELAY 2026-10-24T14:35:56Z relay=ok started=2026-10-24T14:26:55Z
+TICK-PASS 2026-10-24T14:39:18Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+ledger: level carried=4 disposed=22 open-pr=26 owed=15 state-ref=4
+2026-10-24T14:36:30Z cloud_relay: relaying refs/heads/probe/rev-2734-c1e7fd5c a38b8bb5652f7da6f758dea65d6a80857cc1014f
+review/2734 92d774fb235f5469abbac54eaf4e5844b6e8cdfc
+cloud_relay: review/2734 remote tip 92d774fb235f5469abbac54eaf4e5844b6e8cdfc
+cloud_relay: POSTED #2734 92d774fb235f5469abbac54eaf4e5844b6e8cdfc
+cloud_relay: relayed refs/heads/probe/rev-2734-c1e7fd5c a38b8bb5652f7da6f758dea65d6a80857cc1014f; next: bus.sh confirm 2734 92d774fb235f5469abbac54eaf4e5844b6e8cdfc
+remote: 
+remote: Create a pull request for 'review/2734' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2734        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2734 35cb7e8cc9380d134c61675a4aedba692e938593
+2026-10-24T14:36:50Z cloud_relay: relaying refs/heads/probe/rev-2735-b96f2797 27e52cf2fc7a0124191036b26708203b3db17674
+review/2735 a9a02c7225892e31418cab4b16bb7d90b26cf8df
+cloud_relay: review/2735 remote tip a9a02c7225892e31418cab4b16bb7d90b26cf8df
+cloud_relay: POSTED #2735 a9a02c7225892e31418cab4b16bb7d90b26cf8df
+cloud_relay: relayed refs/heads/probe/rev-2735-b96f2797 27e52cf2fc7a0124191036b26708203b3db17674; next: bus.sh confirm 2735 a9a02c7225892e31418cab4b16bb7d90b26cf8df
+remote: 
+remote: Create a pull request for 'review/2735' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2735        
+remote: 
+remote: GitHub found 3 vulnerabilities on tvofi/heatpump_optimizer's default branch (1 critical, 1 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+cloud_relay: OWED verdict-unposted #2735 0f77f2ecd80e59c178c66e9f9fae6cab8d363561
+TICK-RELAY 2026-10-24T14:44:20Z relay=ok started=2026-10-24T14:35:56Z
+TICK-PASS 2026-10-24T14:48:47Z relay=running tick=0 out=/Users/timmalmstrom/hpo-orch/r10s6/tick.txt
+HEARTBEAT NOT PUSHED: To https://github.com/tvofi/heatpump_optimizer.git  ! [remote rejected]     df14c53439512adf628abc4c01d44483f34bfa94 -> heartbeat/orchestrator (failed) error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly
+ledger: level carried=4 disposed=22 open-pr=26 owed=17 state-ref=4
+TICK-RELAY 2026-10-24T14:53:51Z relay=ok started=2026-10-24T14:44:20Z

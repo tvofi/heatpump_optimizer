@@ -1,0 +1,7 @@
+- To U9p: nudge.md:93's stamp precondition becomes "the latest ci.yml push run's gate on current origin/main is green" (U9a forward-carry).
+- To U9b (from U1+U2+U7 and U11 bodies): entities "every required context runs on a merge-queue entry" + its null: the producer lookup must follow ci.yml's callers (hassfest/validate/kernel-points no longer list merge_group).
+- To U10 (from U1+U2+U7 and U11): the follower pin "a red that lands after pr-contract ran re-runs it" goes with pr-contract-rerun.yml's deletion (`_PR_WORKFLOW_NAMES`/`_crr_defects`); Hassfest, Validate, Architecture score, Kernel points left the PR workflows.
+- From U6: policy_lint.mjs's red-history arm (#1144) must exclude `pr-contract / pr-contract` and `gate` (U9b). U6 already made the merge-queue check read a callee through its caller (check that U1+U2+U7/U11's merge-queue reds clear on assembly).
+- From U6: tools/audit/seat/body_patch.sh:92 contract() excludes only `pr-contract`; it needs the N4 pair, with a stub that runs the jq program (its self-test pre-filters). Owner: U9b seat (or integration).
+- From U6 (U9p): R-10 policy text owed: PULL_REQUEST_TEMPLATE.md:23 and steward/SKILL.md's pr-contract line (code-scanning alert lines).
+- Integration wiring: governance.yml step for `tools/ci/codescan_wait.py --self-test` (U6), ci_predict + local_alerts self-tests (U9d).

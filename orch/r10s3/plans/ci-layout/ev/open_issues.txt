@@ -1,0 +1,46 @@
+2438 [policy] recurring friction: .claude/rules/finding-propagation.md
+2437 [policy] recurring friction: root-cause-unanswered
+2436 [policy] recurring friction: other
+2429 [policy] recurring friction: .claude/rules/ci-autofix.md
+2428 [policy] recurring friction: carry-missing
+2410 [policy] recurring friction: mutation (family)
+2409 [policy] recurring friction: mutation-vacuous
+2395 [R10-ARCH-DOCS] Architecture document and developer onboarding, last stage of round 10
+2389 [policy] recurring friction: head-moved (rework)
+2381 [policy] recurring friction: .claude/rules/gate-scoping.md
+2378 [policy] recurring friction: tools/audit/briefs/fixer.md
+2353 [policy] recurring friction: class-open
+2331 [policy] recurring friction: harness
+2317 [R10-DEEPLINK] navigation census misses bare open(), Navigation API, form action and Event
+2302 [R10-TICK] record beat auto-merges while a merge train is live
+2298 [R10-D6-web] docs/index.html declares a wrong image height (layout shift)
+2273 [R10-REPLAY-SCOPED] Run the timed replay on a PR only when its diff reaches the replay cos
+2272 [R10-REPLAY-LANE] Land the replay lane: a real recorded day as a fixture, gated nightly
+2271 [R10-DIAG-REPLAY] Download diagnostics: fill the bundle's replay half through the export's
+2269 [R10-BRIEFS-FOLD] Fold arch-score into D7 (M7/M8) and land the round's owed dimension-brie
+2265 [R10-TICK-DRIVERS] Round drivers trust large agent replies and a hand-kept schema; land th
+2263 [R10-UX-HEALTH] Health tab: one label source, responsive list, sticky-header clip, Show li
+2262 [R10-COP-GATE] An honest 'COP not measurable here' state and a draw-follows-plan check for
+2261 [R10-HEAT-METER] Add a delivered-heat energy input; measured COP and the house learner's d
+2260 [R10-LEARNER-ETA] Learner progress payload and Health hints instead of day-count ETAs whil
+2259 [R10-ARCHSCORE-COVERAGE] archscore coverage: layering, card script, dict-literal clones, h
+2258 [R10-SCORES] Plan scores read 0 for no evidence, the house score misreads a two-zone house
+2257 [R10-ADVISOR] Advisor: day-to-day swing, Open settings not deep-linked, and a self-contrad
+2256 [R10-SAV-REASONS] Savings reason attribution: idle time is the costliest category and boos
+2253 [R10-DEEPLINK] Card deep links: one shared helper for options-flow step, filtered entity t
+2252 [R10-TRUST-RELATIVE] The learner trust region is fixed in multiplier units; make it relati
+2250 [R10-N-solve-recompute] The solve recomputes interpreter-bound work per iterate or per row
+2249 [R10-N-order-coupling] Two sibling updaters consume one shared interval and the first clos
+2248 [R10-N-restore-race] A restore applies persisted state after an await during which a write
+2243 [R10-P8] A currency or unit resolved by divergent precedence on different surfaces
+2240 [R10-P4] The optimizer seed set or stop tolerance does not bracket the optimum
+2239 [R10-P3] A capacity floor or divisor applied inconsistently across sibling formulas
+2238 [R10-P2] One fact decided twice by divergent predicates: a guard at one seam, missing at i
+2237 [R10-P10] CPU work (a model kernel, a fit, a batch simulation) runs outside the process wo
+2236 [R10-P1] A non-finite, malformed or out-of-domain value crosses an input boundary (persist
+2235 [R10-N-structure-blind] A structural ratchet or dead-code metric measures a name or regex 
+2234 [R10-N-staleness] A staleness limit is shorter than a report-on-change source's legitimate
+2232 [R10-N-shared-config] Solve-scoped state is mutated on, or read from, live shared objects 
+2223 [R10-N-confounded-learner] An online estimator absorbs the error of an unmodelled or mis-m
+2222 [R10-I5] Docs, comments or a compliance checklist drift stale against the code
+201 Audit — (tracking)

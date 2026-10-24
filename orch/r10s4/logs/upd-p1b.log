@@ -1,0 +1,6 @@
+===== daemonize pid=35165 2026-10-21T19:19:13Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ci-layout-p1 2bd0e21b /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/p1b.body.md
+update_pr: REFUSE: code sha '2bd0e21b' is not 40 lowercase hex characters
+===== daemonize pid=35787 2026-10-21T19:19:33Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ci-layout-p1 2bd0e21b13d3c29795a5f2cba59f14ccf7ff2105 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/p1b.body.md
+update_pr: REFUSE: worktree /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p1/wt holds commits of fix/r10-ci-layout-p1 that origin/fix/r10-ci-layout-p1 lacks (unpushed work, e.g. a PR's row): not detaching it
+===== daemonize pid=38153 2026-10-21T19:19:53Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ci-layout-p1 2bd0e21b13d3c29795a5f2cba59f14ccf7ff2105 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/p1b.body.md
+HEAD=0644c36d4831afd2593f39af61708647035b9972

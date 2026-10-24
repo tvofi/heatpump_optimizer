@@ -1,0 +1,29 @@
+TRAIN pid=96542 queue=1 (#2643)
+TRAIN HOLD refs/heads/train-hold 613de80a: the record beat waits
+TRAIN HOLD refs/heads/train-hold f5ca15c0: the record beat waits
+TRAIN HOLD refs/heads/train-hold 547fc928: the record beat waits
+#2643 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-no-footers-ignore/wt held fix/r10-fly-no-footers-ignore-pr, clean at origin/fix/r10-fly-no-footers-ignore-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-no-footers-ignore/wt switch fix/r10-fly-no-footers-ignore-pr)
+#2643 recarry START (branch fix/r10-fly-no-footers-ignore-pr)
+#2643 recarry: main merged, head d79e833b; app_push: RECARRY: prepr SKIPPED: HEAD d79e833b is the clean merge of the live head fc0ab773 and origin/main's f38f9185, and the body is the live one
+TRAIN HOLD refs/heads/train-hold 1c273277: the record beat waits
+beat: waiting CI at d79e833b (poll 2, t+243s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold d0138164: the record beat waits
+beat: waiting CI at d79e833b (poll 3, t+485s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold e73a5795: the record beat waits
+beat: waiting CI at d79e833b (poll 4, t+727s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold d36e6b37: the record beat waits
+beat: waiting CI at d79e833b (poll 5, t+969s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 8ac82e74: the record beat waits
+beat: waiting CI at d79e833b (poll 6, t+1212s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 50da2ee0: the record beat waits
+beat: waiting CI at d79e833b (poll 7, t+1454s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 59f5909e: the record beat waits
+beat: waiting CI at d79e833b (poll 8, t+1697s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold cc579819: the record beat waits
+#2643 d79e833b ci red=[]
+#2643 approved (app)
+#2643 MERGED a7cf60cfd8acbd0a8b66421d6ac33e06400ac882
+#2643 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run33/wt/2643 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run33/wt/2643' is not a working tree); remove it by hand
+TRAIN HOLD released
+TRAIN DONE

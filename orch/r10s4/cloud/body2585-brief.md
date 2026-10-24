@@ -1,0 +1,9 @@
+Body-only repair of PR #2585 (topic r10-ci-layout-p1, branch fix/r10-ci-layout-p1, R10-CI-LAYOUT-P1). Code is final; change no code. Handoff code SHA 2bd0e21b13d3c29795a5f2cba59f14ccf7ff2105; the PR head is e93de8667eaf46741eb56f84107b8e00056a0faf, a bot main-merge. Work from the current body (refs/heads/handoff-body/r10-ci-layout-p1, dd8e9e74a) and keep every figure in it true at the head named by its `## Head` section; re-take any that the bot merge moved.
+
+Failure: budget-raise-gate (run 119555482347) refuses: "a mandated approval is on this head, but `## Raise justification` lacks a `Payments tried:` line". Read tools/policy/budget_raise_gate.py on origin/main for the exact grammar: JUSTIFICATION_HEADING is "## Raise justification"; JUSTIFICATION_PAID needs a line starting (optionally after "- ") with "Payments tried:" followed on the SAME line by non-space text; JUSTIFICATION_SCORE needs "Architecture score: dS <signed number> IMPROVES|NULL|WORSENS". The raise is tests/ci_budgets.json script_runs_per_push 53 -> 54.
+
+Write a TRUE "Payments tried:" line on one line. Take the payments from the PR body, the commit message of abf4f40b7 (W1 removes the composed subtraction from PR 0's every-script-once count; 54 = lane-plan --all-scripts 34 + coverage fast stage 20, at base 49c222280) and the budget file's reason row. Invent none. If none was tried, say so plainly and give the reason a raise is the only sound option (the count is derived, not chosen). Keep the line "Architecture score: dS +0.0000 NULL".
+
+Standing rule 19 applies to every observation. PREPR_SKIP_CLOSURES=1.
+Run the policy linter (node tools/policy/policy_lint.mjs; read its usage) and prepr's pr-body step on your body to 0 errors, and carry_audit --roster-ref origin/handoff/audit-r10-roster check --body to 0 unrouted.
+Return with bash tools/audit/seat/body_push.sh <topic> <body.md>. Push no code. If body_push.sh insists on a code push, report that instead.

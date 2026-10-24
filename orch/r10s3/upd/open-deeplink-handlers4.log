@@ -1,0 +1,2 @@
+===== daemonize pid=79949 2026-10-19T13:47:19Z argv: bash tools/audit/seat/open_pr.sh r10-deeplink-handlers 68a94415f0db23c72199b20ef71b1d5f63742c77 fix(card): deep-link handlers (R10-DEEPLINK-HANDLERS) R10-DEEPLINK-HANDLERS 2317
+PR=2452 HEAD=a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 AUTHOR=tvofi

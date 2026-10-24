@@ -1,0 +1,8 @@
+===== daemonize pid=5927 2026-10-18T13:40:23Z argv: bash tools/audit/seat/open_pr.sh r10-sav-baseline d2220949d3e35b8fe3bfb6a24e981409154282b7 R10-SAV-BASELINE: thermostat baseline from a held state; month scaling; one month cost R10-SAV-BASELINE 2255
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (772 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+PR=2411 HEAD=b7a34f98aa6013a542e21d28a76bc5159fe7e14f AUTHOR=tvofi

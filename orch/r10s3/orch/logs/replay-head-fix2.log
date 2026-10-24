@@ -1,0 +1,68 @@
+===== daemonize pid=56883 2026-10-20T20:56:41Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/pr/app_push.sh tvofi/heatpump_optimizer /Users/timmalmstrom/hpo-seats/r10s3/r10-replay-lane/wt handoff/r10-replay-lane /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-replay-lane.md
+  ok       body path              not directly in a shared root
+  ok       merge-base             4e5801eb50644df94ccf18650afbb2cc99e854b4
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=3 label=prepr-57022 expires_at=2026-10-20T21:51:11.890541+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  skip     mutants                the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  skip     field coverage         the diff changes no file field coverage reads -- no hit in its declared path list nor in the measured closure(s) of tests/structure.py; the closure table maps all 2 changed file(s), so no read is reached
+  ok       agreement lane         AGREEMENT ok
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 4e5801eb5064
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  ok       wave-script            198 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 4e5801eb50644df94ccf18650afbb2cc99e854b4 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 4e5801eb5064 (a data-file read is not seen)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 4e5801eb5064
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             20:both
+             26:each
+             26:none
+             27:both
+             33:each
+             34:every
+             35:each
+             47:none
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             2339 c
+             20 n
+             25 l
+             19 r
+             20 r
+             0711 a
+             0701 a
+             081 a
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-replay-lane.md -- no budget leaf raised over 4e5801eb5...af03a14e0
+  ok       figures                FIGURES: 10 resolved, 2 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  WARN     push order             HEAD is 1 commit(s) ahead of origin/handoff/r10-replay-lane -- A PUSH MUST FOLLOW THIS BODY EDIT
+  ok       ancestry reds          the body answers every red this branch pushed (nightly-status)
+
+  !!! HEAD is 1 commit(s) ahead of origin/handoff/r10-replay-lane, so `pr-contract` -- which reads
+  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
+  !!! fires before the push, the `edited` run setting it fires included.
+  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
+  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
+  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
+  !!! If setting the body is your LAST action, the refusal stays on your head.
+
+PRE-PR: af03a14e038776d751034ee8b74c7965719cbb1b 0000000000000000000000000
+To https://github.com/tvofi/heatpump_optimizer.git
+   f0b1844ba..af03a14e0  handoff/r10-replay-lane -> handoff/r10-replay-lane
+app_push: PUSHED af03a14e038776d751034ee8b74c7965719cbb1b to tvofi/heatpump_optimizer:handoff/r10-replay-lane as the App; pull request #2514 is open at af03a14e038776d751034ee8b74c7965719cbb1b with the body read back: 

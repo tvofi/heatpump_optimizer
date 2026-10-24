@@ -1,0 +1,12 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run12/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run12 pid=90944 start=2026-10-24T00:36:16Z
+BATCH 20261024-003616 pid=90952 base=main queue=0 (empty) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d4878aec: the record beat waits
+BOT #2679 MERGED 144fb4f900768195c64469f9647ece583a54a52b
+OVERLAP: main at 144fb4f90076 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 0 of 0 admitted
+/Users/timmalmstrom/hpo-seats/r10s5/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 0 skipped of 0
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T00:36:34Z

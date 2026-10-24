@@ -1,0 +1,6 @@
+===== daemonize pid=96168 2026-10-19T21:13:00Z argv: bash tools/audit/seat/open_pr.sh r10-savings-negative 2d1758154b17eaf48699f036c13f0ddec1d21995 fix(ledger): an upgraded month scales savings by the calendar-day ratio (R10-SAVINGS-NEGATIVE) R10-SAVINGS-NEGATIVE
+open_pr: open-PR cap: 1 open < 6
+  REFUSE   pr-body                  ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-savings-negative/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. -- no budget leaf raised over 4a3cbcf62...2d1758154
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/ledger.py:328 BOOLOP; custom_components/heatpump_optimizer/ledger.py:328 CMP_BOUND*2; custom_components/heatpump_optimizer/ledger.py:328 GUARD_OFF
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-savings-negative/p1.log

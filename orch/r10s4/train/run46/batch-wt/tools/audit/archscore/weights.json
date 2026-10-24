@@ -1,0 +1,52 @@
+{
+ "_frozen": "2026-09-29, written before any calibration run of arch_score.py; sha256 recorded in weights.sha256. Not fitted to the corpus.",
+ "_rule": "w = log2(1 + cost_h), cost_h = max(register v2 instance total x 5.4 h, the class RCA's h/month figure), shared equally among the metrics that guard one class. Rounds 1-9 span 2026-09-01..09-29 (~1 month), so the stock cost and the monthly RCA figure are on one scale. A metric that guards no register class gets the floor 1.0. log2 compresses costs known only to about 2x; sensitivity is reported at 0.5x and 2x per weight.",
+ "_sources": {
+  "5.4 h": "RCA-BULK-2 section 1.5 (tools/audit/rca/RCA-BULK-2.md:41, mean of n=3 measured instances)",
+  "N-shared-config 85 h/month": "R9-RCA-1736 cost test (tools/audit/rca/R9-RCA-1736.md:165, a floor)",
+  "N-structure-blind 150 h/month": "RCA-BULK-2 section 2.4 (:87, issue span, an upper figure)",
+  "instance totals": "register v2 bugclasses.v2.json: P2 66, P3 24, P6 22, N-name-sort 8, N-shared-config 4, N-structure-blind 10"
+ },
+ "classes": {
+  "N-shared-config": {
+   "cost_h": 85.0,
+   "metrics": [
+    "hub_solve_writes",
+    "shared_inplace_writes"
+   ]
+  },
+  "P2+P3": {
+   "cost_h": 486.0,
+   "metrics": [
+    "dup_pairs"
+   ],
+   "note": "66x5.4 + 24x5.4; duplication is the direct proxy for one fact written twice; implemented by A1's dup_pairs (AST statement windows, package-wide), not A3's line-based xmodule_duplication, because A3 itself reports a reformat moves the latter (5 -> 3) and A1's N1b null holds dup_pairs at 0. Substitution made before any calibration run."
+  },
+  "P6": {
+   "cost_h": 118.8,
+   "metrics": [
+    "untyped_payload_keys"
+   ]
+  },
+  "N-name-sort": {
+   "cost_h": 43.2,
+   "metrics": [
+    "family_splits"
+   ]
+  }
+ },
+ "floor": 1.0,
+ "floor_metrics": [
+  "coord_footprint",
+  "coord_writers_multi",
+  "private_reach",
+  "import_cycle_modules",
+  "public_unused",
+  "dead_by_reachability"
+ ],
+ "_floor_note": "Metrics that guard no single register class. coord_footprint replaces coordinator_loc/max_class_loc/coordinator_methods, coord_writers_multi replaces coordinator_multiassigned_attrs (A1 verdicts).",
+ "_amendments": [
+  "pre-calibration 1: P2+P3 implemented by dup_pairs (see class note).",
+  "pre-calibration 2: dead_by_reachability moved to the floor. N-structure-blind's 150 h/month is the cost of the INSTRUMENT being blind (issues spent because structure.py read 0), and its countermeasure is the metric's existence, not a lower dead count; pricing each dead member at that cost would make deleting 6 members worth +20 against +6.5 for removing all 92 private reaches. Made before any arch_score.py --calibrate run."
+ ]
+}

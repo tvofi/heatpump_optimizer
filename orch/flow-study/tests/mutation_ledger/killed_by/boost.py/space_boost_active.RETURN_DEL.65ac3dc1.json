@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:space_boost_active RETURN_DEL 65ac3dc1",
+  "killed_by": "tests/boost_drift_replay.py",
+  "old": "    return held_for(coord).active(CHANNEL_SPACE, now or dt_util.now())",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: RETURN_DEL (`pass`) took tests/boost_drift_replay.py from rc=0 failed=0 to rc=1 failed=2."
+}

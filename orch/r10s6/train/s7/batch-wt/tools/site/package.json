@@ -1,0 +1,8 @@
+{
+  "name": "hpo-docs-site",
+  "private": true,
+  "description": "The documentation sub-pages build's one runtime dependency: mermaid, installed by `npm ci` from package-lock.json in the Pages workflow only, so every tarball is integrity-checked (the tests/pwlane precedent, #1548). Never installed by a test; tools/site/build_docs.mjs needs nothing from it.",
+  "dependencies": {
+    "mermaid": "12.1.0"
+  }
+}

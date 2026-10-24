@@ -1,0 +1,1 @@
+Source: #2445 Forward-carry. Raspberry Pi CPU of the relaxed setpoint start is estimated only (+8 to +16 s per clamped solve, from +2.0 to +2.7 s measured on arm64). Owed after the stamp: a measured process_time on the owner's Pi install at the release head and its base, and cap the relaxed pass's maxiter if a clamped solve exceeds the update-interval budget.

@@ -1,0 +1,29 @@
+== M1 no restore call
+  selftest: ['RESULT stamp_self_test=fail'] rc=1
+  fails: ['FAIL claims: suspended entries restored, the stale note dropped', 'FAIL claims: a note after the reason block ends it and keeps its continuation', 'FAIL claims: an entry below the claims is restored in place']
+  stcov: RESULT stcov=fail claims=[] problem="MAY-DRIFT UNCOVERED: tests/golden/claimed_drift.txt claims-for 7.0.1 while this tree is VERSION 7.0.1, and capacity_tariff_ 
+== M2 stale restored too (no live check)
+  selftest: ['RESULT stamp_self_test=fail'] rc=1
+  fails: ['FAIL claims: suspended entries restored, the stale note dropped', 'FAIL claims: an entry below the claims is restored in place']
+  stcov: RESULT stcov=pass claims=[] problem=None 
+== M3 missing tail tolerated
+  selftest: [] rc=1
+  fails: []
+  stcov: RESULT stcov=pass claims=[] problem=None 
+== M4 two notes tolerated
+  selftest: ['RESULT stamp_self_test=fail'] rc=1
+  fails: ['FAIL claims: a malformed suspension refuses (two notes)']
+  stcov: RESULT stcov=pass claims=[] problem=None 
+== M5 tail name mismatch tolerated
+  selftest: ['RESULT stamp_self_test=pass'] rc=0
+  fails: []
+  stcov: RESULT stcov=pass claims=[] problem=None 
+== M6 entry not verbatim (strip)
+  selftest: ['RESULT stamp_self_test=fail'] rc=1
+  fails: ['FAIL claims: a note after the reason block ends it and keeps its continuation', 'FAIL claims: an entry below the claims is restored in place']
+  stcov: RESULT stcov=pass claims=[] problem=None 
+== M7 continuation dropped
+  selftest: ['RESULT stamp_self_test=fail'] rc=1
+  fails: ['FAIL claims: a note after the reason block ends it and keeps its continuation', 'FAIL claims: an entry below the claims is restored in place', 'FAIL claims: a malformed suspension refuses (two notes)']
+  stcov: RESULT stcov=fail claims=[] problem="MAY-DRIFT UNCOVERED: tests/golden/claimed_drift.txt claims-for 7.0.1 while this tree is VERSION 7.0.1, and flat_prices, val 
+restored: True

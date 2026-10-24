@@ -1,0 +1,11 @@
+39158300302 fix/r10-sav-baseline gate 5s first-lane-after-start 27.0 recheck-arm
+39158293266 fix/r10-rca-structure-blind gate 7s first-lane-after-start 21.0 recheck-arm
+39153430782 fix/r10-diag-replay-pr gate 7s first-lane-after-start 156.0 recheck-arm
+39153358075 fix/r10-vent-detector-pr gate 5s first-lane-after-start 12.0 recheck-arm
+39148888366 fix/r10-sav-baseline gate 6s first-lane-after-start 11.0 recheck-arm
+39146481630 fix/r10-roster-fastpath gate 6s first-lane-after-start 13.0 recheck-arm
+39141832759 fix/r10-vent-detector-pr gate 8s first-lane-after-start 19.0 recheck-arm
+39137304254 fix/r10-sav-baseline gate 8s first-lane-after-start 24.0 recheck-arm
+39134490113 fix/r10-diag-replay-pr gate 7s first-lane-after-start 14.0 recheck-arm
+39125825874 fix/r10-vent-detector-pr gate 7s first-lane-after-start 14.0 recheck-arm
+n=10 recheck-gate median 7.0 s; run start -> first gated lane start median 16.5 s max 156.0

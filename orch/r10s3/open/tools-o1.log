@@ -1,0 +1,6 @@
+===== daemonize pid=17148 2026-10-18T08:36:54Z argv: bash tools/audit/seat/open_pr.sh r10-tools-o1 502943a632c4bb7b11ff64357d35262857248d82 R10-TOOLS-O1: prepr label quoting + d15_restart_gaps to harnesses R10-TOOLS-O1
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (769 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+PR=2386 HEAD=834990ca265eb7dbb24165d7148159cb09ce8728 AUTHOR=tvofi

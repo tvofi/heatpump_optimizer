@@ -1,0 +1,173 @@
+2026-10-24T07:49Z pass (s6 dispatch seat)
+queue #2678 head 6ee3e4d4f: REPORT ONLY, no dispatch. PR BLOCKED, reviewDecision REVIEW_REQUIRED. Red: policy-docs, pr-contract (body has no ## Figures section), env-matrix; all started 00:29Z, before the 00:34Z ruleset cutover. No gate check-run on this head (none listed). Main's gate is failure. Logs: /Users/timmalmstrom/.local/state/hpo/failure-logs/2678/
+queue #2683 head 8d965647d: head is a merge (parents 07b83e9b2 verdict, 88744e573 main). verdict->head files: main-side changes only, except tests/structure_budgets.json (14 changed lines not equal to main's side, so not a pure merge of that file). Other overlap files (dst_checks, entities, features) match main-side exactly. Decision (CARRY vs REVIEW-OWED) is the orchestrator's.
+relay level 07:43:47Z: open-owed (handoff/ and handoff-body/ both present, no PR per relay): r10-ci-layout-p2-probe-B1 r10-ci-layout-p2-u0c r10-ci-layout-p2-u10 r10-ci-layout-p2-u11 r10-ci-layout-p2-u1u2u7 r10-ci-layout-p2-u3 r10-ci-layout-p2-u4 r10-ci-layout-p2-u5 r10-ci-layout-p2-u6 r10-ci-layout-p2-u8 r10-ci-layout-p2-u9a r10-ci-layout-p2-u9bp r10-ci-layout-p2-u9d
+relay: confirm-owed review/2609 db41f858 refused, PR 2609 closed.
+relay: handoff-no-pr (handoff/ only, no body): audit-r10-roster-stages 7f28b1bb orch-machinery 09174d94 r10-ratio-anchor db35c6c4 r10-ci-layout-p2-u0c-probe 65f112ec
+relay: handoff-body only (no handoff ref): design-r10-arch-docs-first design-r10-arch-docs-first-r2 design-r10-scores design-verdict-* (3) r10-ci-layout-p2 r10-replay-lane r10-rca-body-check-parity r10-rca-raise-gate-grammar
+2026-10-24T09:36:47Z fire-owed-pool #2689 583219fa8a44c79e038ae091ce907dafa3e847d0 4fff0b41f588c5ca0029da5a4a9d2c9b dispatch/reviewer-2689-4fff0b41
+2026-10-24T09:38:39Z pass (s6 dispatch seat, window 2)
+#2689 head 583219fa8 (update pushed by update_pr; PR retitled P45-P52; row still P45-P51): dispatched nonce 4fff0b41; prompt ref dispatch/reviewer-2689-4fff0b41; pool rewritten.
+fire-owed-pool #2689 583219fa8a44c79e038ae091ce907dafa3e847d0 4fff0b41f588c5ca0029da5a4a9d2c9b dispatch/reviewer-2689-4fff0b41
+#2688 head 1fbc924ab (update pushed; body read back by update_pr): dispatched nonce aaa2a420; prompt ref dispatch/reviewer-2688-aaa2a420; pool now holds 2689 and 2688.
+fire-owed-pool #2688 1fbc924ab96888b7eb371ebd789a4e6326294a0d aaa2a420500efaac6c61fc3ffa6c23b9 dispatch/reviewer-2688-aaa2a420
+#2691 head 4a81d718e: dispatched nonce 1d103dab; prompt ref dispatch/reviewer-2691-1d103dab; pool lists it.
+fire-owed-pool #2691 4a81d718e03564dc1b0de06ee5a68edc98d13096 1d103dab1b2a39330189057d035e8fb1 dispatch/reviewer-2691-1d103dab
+ratio-anchor: opener 54523 exited REFUSE (pr-body). No PR, no fire. ref_privacy guard clean on handoff and body refs. See to-main DECISION-OWED.
+#2692 head 799830bb: bus REFUSE, no delivery row. Not dispatched.
+opened detached (pids 5671-5674): policy-gate-scoping, config-notices, flow-autotrain, triage-s6-batch3. Watcher pending.
+2026-10-24T09:40:16Z ruling-ack (coordinator RULINGS): (1) open demand-overbook d6ab12b4 launched detached; (2) open rca-ci-ratchet-run-name f5b2f462 launched detached; (3) #2692: update_pr at 799830bb is BUSY behind stuck opener 48070 (52 min, holds the worktree); replay-2692.sh waits for it, runs update, then dispatches at the new head; (4) ratio-anchor and merge-subject-harden: waiting for new handoff refs; (5) #2689 row left alone; (6) card decisions ignored. Openers 5671-5674 still running.
+2026-10-24T09:41:12Z ruling-ack: opener launched for merge-subject-harden 09b1d002 detached; will dispatch and fire-owed-pool on open
+2026-10-24T09:41:50Z merge-subject-harden: first opener stopped on a stale worktree; cleared it and relaunched (pid 26354). Dispatch and fire-owed-pool follow on open.
+2026-10-24T10:41:19Z fire-owed-pool #2697 b4dd119172d5e0f04f800e752dffe265228d19e1 318a6c0ebb4eebe791abb025c0d712fd dispatch/reviewer-2697-318a6c0e
+2026-10-24T10:41:28Z fire-owed-pool #2695 e5ad7315184614c824690094bb77943bba947a0b 27edb48521acd45fe34a71b8bd68b304 dispatch/reviewer-2695-27edb485
+2026-10-24T10:41:40Z window4: pool dispatch/rpool-s6 recreated (was absent) with 2695 2697
+NEEDS-JUDGEMENT r10-flow-autotrain: carry_audit.py check at origin/main 145bfe197 says "BAD-DEST body item 577677a1: R10-POLICY-ROLE-PACK is not a group of the roster"; the group (and aa84d185e) exist only on handoff/audit-r10-roster, 127 commits ahead of main. Also handoff/r10-flow-autotrain on origin is still acdc10b22, not b3dceb5ca (b3dceb5ca is local in the PR wt and on wip-sync only). No opener run.
+OPENED #2696 b5cf12dfe83705acaf5726b8e018e84174ac8883 (r10-rca-ci-ratchet-run-name, body Red checks re-taken)
+NEEDS-JUDGEMENT r10-demand-overbook: body carries 3 items with 'Carry: orchestrator' (not a valid destination GROUP/#N/O<n>/dismissed:<reason>): house-learner zero evidence (9f9f1e16), plan 38-40% above DP optimum (a34aa1f6), dhw_temp_trajectory open-loop tank seed (975bbd05); pick a roster group, #N, or dismissed reason. Re-taken body at /Users/timmalmstrom/hpo-seats/r10s6/repair-overbook/body-new.md (not pushed; opener not run). Stale local branch fix/r10-demand-overbook-pr removed (clean merge, no worktree).
+fire-owed-pool #2696 b5cf12dfe83705acaf5726b8e018e84174ac8883 0afd3158490326156c258487e56444d7 dispatch/reviewer-2696-0afd3158
+fire-owed-pool #2688 1fbc924ab96888b7eb371ebd789a4e6326294a0d ae00f8650b0205a5706474130e83e762 dispatch/reviewer-2688-ae00f865
+fire-owed-pool #2689 583219fa8a44c79e038ae091ce907dafa3e847d0 7c3743ba165cbfbf61fab7740ccd4751 dispatch/reviewer-2689-7c3743ba
+UPDATED #2692 f4458d2160d8f9f6b10d7fb3d657140201cd1d31
+14:16:10 w6 start
+14:16:17 addendum: leave #2698 alone; check dispatch/fixer-r10-sav* first
+14:18:22 fire-owed-fixer repair #2691 topic r10-rca-strand head 4a81d718e03564dc1b0de06ee5a68edc98d13096 ref dispatch/fixer-r10-rca-strand
+14:18:25 fire-owed-fixer repair #2696 topic r10-rca-ci-ratchet-run-name head b5cf12dfe83705acaf5726b8e018e84174ac8883 ref dispatch/fixer-r10-rca-ci-ratchet-run-name
+14:18:29 fire-owed-fixer repair #2697 topic r10-merge-subject-harden head b4dd119172d5e0f04f800e752dffe265228d19e1 ref dispatch/fixer-r10-merge-subject-harden
+14:18:33 fire-owed-fixer repair #2692 topic r10-replay-scoped head f4458d2160d8f9f6b10d7fb3d657140201cd1d31 ref dispatch/fixer-r10-replay-scoped
+14:19:12 demand-overbook body re-routed (LEARNER-DEFAULT, SETPOINT-BOOST, PUMP-MODEL; the last two are stage done on main roster) pushed handoff-body 6de0207ff
+14:19:22 open_pr r10-demand-overbook launched detached (log open-demand-overbook-w6.log)
+14:20:28 flow-autotrain: pushed handoff b3dceb5ca (ff from acdc10b22); handoff-body a0a66d2b already carries R10-POLICY-INSTRUMENTS (valid on main), no ROLE-PACK, so no body edit; open_pr launched detached
+14:21:39 sav-comfort: NOT firing a fixer. origin already holds handoff/r10-sav-comfort 50f27375 + handoff-body 420c0e99 (a finished handoff), so dispatch/fixer-r10-sav-comfort (11fa5297, fresh implementation off main) would duplicate it. Held per the brief: awaiting main's word whether to open-pr or fire the existing render.
+14:21:52 open_pr r10-config-notices 5b067738b group R10-CONFIG-NOTICES launched detached (open-config-notices-w6.log)
+14:21:52 open_pr r10-policy-fixer-md 2788ce349 group R10-POLICY-FIXER-MD launched detached (open-policy-fixer-md-w6.log)
+14:21:52 open_pr r10-mutant-skip a7e41d646 group R10-MUTANT-SKIP launched detached (open-mutant-skip-w6.log)
+14:22:21 cleared stale PR worktrees/branches (no unique commits) for flow-autotrain, mutant-skip, config-notices; relaunching openers
+14:22:21 open_pr r10-flow-autotrain b3dceb5ca group R10-FLOW-AUTOTRAIN relaunched detached (open-flow-autotrain-w6b.log)
+14:22:22 open_pr r10-mutant-skip a7e41d646 group R10-MUTANT-SKIP relaunched detached (open-mutant-skip-w6b.log)
+14:22:22 open_pr r10-config-notices 5b067738b group R10-CONFIG-NOTICES relaunched detached (open-config-notices-w6b.log)
+14:22:40 RETRACTED fire-owed-fixer R10-CI-LAYOUT-P2 (dispatch/fixer-r10-ci-layout-p2b-v2, rendered before the carry-ci-graph-tidy order): do not fire; will re-render with --roster-ref origin/handoff/audit-r10-roster once the roster seat reports the carry landed
+14:23:34 fire-owed-pool #2700 801e66b244ca1b45a51e78fe3b5e49c82a50641d 43f59d660e48dff477e6c3eb9b9274c0 dispatch/reviewer-r10-policy-gate-scoping
+14:26:35 ruling (a): overbook carries now LEARNER-DEFAULT / COP-PARTLOAD / HEAT-METER, handoff-body ccc134baa; old opener killed, relaunched (w6c). ruling (b): flow-autotrain opener killed, body carry back to R10-POLICY-ROLE-PACK, handoff-body 2125adcf9 (Head names b3dceb5ca); HOLD open until roster lands on main
+14:27:32 fire-owed-fixer R10-SAV-COMFORT dispatch/fixer-r10-sav-comfort (continue-from 50f27375 prefix, 5 carries inlined, roster tip 23135006)
+14:27:32 fire-owed-fixer R10-CI-LAYOUT-P2 dispatch/fixer-r10-ci-layout-p2b-v2 (roster-ref origin/handoff/audit-r10-roster, carry-ci-graph-tidy landed d13e4ad00)
+14:27:42 open_pr r10-structure-alias ddadd4d4e group R10-STRUCTURE-ALIAS launched detached (open-structure-alias-w6.log)
+14:27:45 open_pr r10-thermal-power-option 1e04be571 group R10-THERMAL-POWER-OPTION launched detached (open-thermal-power-option-w6.log)
+14:27:48 open_pr r10-roster-runq 4f72699f0 group roster-runq launched detached (open-roster-runq-w6.log)
+14:28:14 NEEDS-JUDGEMENT thermal-power-option: open_pr STOPPED, merge of origin/main into handoff 1e04be571 conflicts in custom_components/heatpump_optimizer/const.py (conflict work: needs a fixer/orchestrator resolve and a new handoff; not opened)
+14:30:43 #2698 merge-tree clean (LEDGER-MERGE only); update_pr launched detached with body unpinned-site lines shifted -2 (coordinator.py 5126/5130/5137/5144 -> 5124/5128/5135/5142) per last prepr refusal; log upd-2698-w6.log
+14:30:45 open_pr r10-thermal-power-option 7882a1427 group R10-THERMAL-POWER-OPTION launched detached
+14:31:01 open_pr r10-codeql-dependabot 5832d8c6c launched detached. #2678: handoff covers Dependabot PRs passing pr-contract (dependabot_contract.mjs judges them on a dependency-bump contract, dependabot.yml, automerge workflow); #2678's own reds were main's required-contexts drift per its body; it needs this PR merged then a rebase/recreate
+14:37:14 policy-fixer-md first opener refused ('Closes #2378' not in intended list); relaunched with intended issue 2378 (w6b)
+14:38:20 open_pr r10-fly-cipredict-layout 6965c36b4 group R10-FLY-CIPREDICT-LAYOUT launched detached
+14:38:21 open_pr r10-rca-gate-lease-flake fab4a07c1 group rca-gate-lease-flake launched detached
+14:38:25 liveness: touched dispatch.alive; detached 2-min toucher armed (4 h)
+14:38:38 killed the detached toucher pid 25759 (mine); dispatch.alive now touched only from passes and monitor events
+14:43:21 mutant-skip refused ('Closes #2509' not intended; ci predict pr-contract red same cause); relaunched with issue 2509 (w6c)
+14:43:34 thermal-power-option relaunched with issue 1955 (w6c; earlier opener killed before it could refuse on 'Closes #1955'); fly-envmatrix-noremote launched with issue 2505
+14:44:30 w7 start
+14:45:17 config-notices: body fixed (unpinned 7295/7298->7293/7296, carry note to Friction) handoff-body 83606c760; relaunching opener
+14:45:24 open_pr config-notices relaunched (open-config-notices-w7.log)
+14:45:35 open_pr r10-fly-cloud-setup-toolchain eec03e0ee launched (open-fly-cloud-setup-toolchain-w7.log)
+14:45:42 monitor bd1qbuoov armed (opener logs + upd-2698)
+14:51:17 2691 update_pr launched detached to 3fc563ad8 (upd-2691-w7.log), body = handoff-body 174217903; 2696 relay update pid 86161 alive, queued in prepr slot-take (14 min, 4 heavy slots busy with openers); will not duplicate
+14:59:46 #2698 DIRTY: upd-2698 (pid 89628) not pushed, still in prepr 28min, head still 0b0bb6644; merge-tree LEDGER-MERGE clean locally, GitHub cannot run driver. fire-owed-fixer repair #2698 topic r10-ratio-anchor head 0b0bb664424f7c1541add5b5c73a09bb5af7388c ref dispatch/fixer-r10-ratio-anchor (no old claim existed)
+15:00:06 RETRACTED fire-owed-fixer repair #2698 ref dispatch/fixer-r10-ratio-anchor per main ruling: the local ledger driver resolves the conflict cleanly (merge-tree 14c60f2cc) and a cloud fixer may lack the driver; two writers would race. Update 89628 stays the only writer. Ref deleted from origin.
+15:00:20 #2698: update prepr 94079 already HOLDS heavy slot 0 (live) and is running its self-tests (55779, 4 min); no priority change needed or possible mid-run (printed 0, read at prepr start; aging). #2696 relay prepr 89613 also holds a slot. #2691 update prepr 67228 queued.
+15:00:51 w7 rotating: STATE written, monitors stopped, detached processes left running
+15:01:14 w8 start
+15:03:06 #2696 head 96b8dd7bf: held runs none; dispatched nonce 60371e12; ref dispatch/reviewer-2696-60371e12; rpool-s6 updated (old claim rev-2696-0afd3158 deleted)
+fire-owed-pool #2696 96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0 60371e12bf7ec97419e9c1087a3af987 dispatch/reviewer-2696-60371e12
+15:03:06 #2704 PR open at 04860ee0a, opener 433 still alive; delivery row not yet on head so bus.sh dispatch refused; waiting for opener's PR= print
+15:04:10 structure-alias: first opener refused CARRY UNROUTED (Forward-carry 'none. ...' prose); handoff-body 2afaa66dc now 'n/a: <reason>'; stale wt+branch removed; relaunched open-structure-alias-w8.log
+15:04:36 demand-overbook: refused on unpinned-site line shifts (1007->1008,1011->1012,6468->6466,6505->6503,7659->7657,7670->7668); handoff-body 01adf5034; stale wt/branch removed; relaunched open-demand-overbook-w8.log
+15:05:13 #2698 pushed 3383fb2ac by update 89628; held runs none; row present; dispatched nonce 25b782df; ref dispatch/reviewer-2698-25b782df; rpool-s6 updated
+fire-owed-pool #2698 3383fb2acfcfaabef1ebeb635253c8140a45ebd5 25b782dfd9d50bd872ee5b39897e362b dispatch/reviewer-2698-25b782df
+15:05:41 fixers rendered (claims absent on origin, verified): 
+fire-owed-fixer r10-roster-runq dispatch/fixer-r10-roster-runq
+fire-owed-fixer r10-codeql-dependabot dispatch/fixer-r10-codeql-dependabot
+15:05:53 pass: ownership ok (2678 waits codeql fixer; 2691 upd 62239; 2692/2697 cloud repair; 2696/2698/2700 reviewers dispatched; 2703 record bot; 2704 opener 433). monitor bzbkkr8yg armed (PR heads, opener logs, handoff-body returns)
+15:06:27 w8 rotating: STATE written; monitor bzbkkr8yg stopped; detached processes left running
+15:06:47 w9 start
+15:07:07 w9 pass: all openers/updates alive; 2698 mutation-pins in progress at 3383fb2ac (no tests/mutation result yet); roster-runq/codeql handoffs unmoved; monitor bhvbzbnkz armed
+15:07:19 first monitor bhvbzbnkz stopped (stale-log noise); re-armed bnr6qjvxr (delta-only, live logs)
+15:08:01 coordinator asked: hand-write 2704 row. DECLINED pending: opener 433 live, its app_push 25823 (prepr 7m) is the row writer; messaged main; will dispatch at its PR= line
+15:08:07 main agreed: no override, waiting for opener 433 PR= line
+15:09:41 new PRs 2706 (rca-gate-lease-flake, 02edc2f74) and 2707 (fly-cipredict-layout, d9a6f2f2d): no delivery row yet, openers 24478/24359 live; waiting for their PR= lines (same as 2704)
+15:16:18 #2698 3383fb2ac: mutation red (31 unpinned sites added by diff, thermal_model.py 2085-2090); mutation-autofix job NOT yet present, run 40096446203 still in progress (codeql python, fast, coverage, mutation-pins) -> wait for bot, no fixer render. pr-contract red = step codescan_wait.py exit 1 while codeql Analyze(python) in_progress (transient, rerun after codeql done, not a body defect); gate red = 'run(s) 40096446203 still being judged'. claim/s6/r10-ratio-anchor not touched
+15:16:38 roster-runq handoff aa5b7e069 body f0d59c4db: stale wt/branch removed; opener launched open-roster-runq-w9.log; coordinator: rerun failed pr-contract on 2698 run after codeql concludes (poll >=5min)
+15:22:27 #2691 head 3b5eea206: held runs none; row present; old claim rev-2691-1d103dab deleted; dispatched; rpool-s6 updated
+fire-owed-pool #2691 3b5eea2062c8a444f5f921fc30a2fe4dd18150bd e7e89c0fabeef645d249ff17e8cdc6cb dispatch/reviewer-2691-e7e89c0f
+15:22:51 w9 rotating: STATE written; monitor bnr6qjvxr + wait btfu2qnde stopped; detached openers left running
+15:23:22 w10 start
+15:23:39 w10 pass: 2698 3383fb2ac codeql python in_progress, mutation red, gate+pr-contract red; 4 openers alive; monitor bmmk75kjl armed (5min delta)
+15:28:19 HOLD (main): fly-cloud-setup-toolchain PR -> NO reviewer; on open render fixer continuation implementing roster carry idx 6 (db3e513ec, S6-V1/V2), delete claim/s6/r10-fly-cloud-setup-toolchain first, fire-owed-fixer to main; reviewer follows continuation handoff
+15:28:42 brief ready repair/brief-fly-cloud-setup-toolchain-c6.md; PR not open yet (fix branch e64d9978, handoff eec03e0ee); on PR open: delete claim, render fixer --topic r10-fly-cloud-setup-toolchain --head <PR head> --brief this, SendMessage fire-owed-fixer
+15:29:30 PR 2709 (fly-cloud-setup-toolchain) head e64d99786: claim deleted, fixer continuation published c9fae6243, NO reviewer (hold stays until continuation handoff moves)
+fire-owed-fixer r10-fly-cloud-setup-toolchain dispatch/fixer-r10-fly-cloud-setup-toolchain
+15:29:52 codeql-dependabot handoff moved b64af1cf3: opener launched pid 9856 log open-codeql-dependabot-w10.log; 2708=envmatrix PR (unknown head 369e7e20b), needs row/dispatch check
+15:29:56 relaunched with full sha b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e log open-codeql-dependabot-w10b.log
+15:31:35 #2691 relayed+confirm run, review/2691 68aabda98; merge-ready #2691 3b5eea206
+15:33:15 #2698 blocked verdict relayed (review/2698 16089d01f, already posted/confirmed); fixer repair published dispatch/fixer-r10-ratio-anchor (brief repair/b2698-r2.md; scale clamp-reset + mutation pins + red-check answers); no claim existed
+fire-owed-fixer r10-ratio-anchor dispatch/fixer-r10-ratio-anchor
+15:34:12 #2704 head 859b74ba8 (row present, no held runs, no failing checks at new head): dispatched nonce ccf3f54a; rpool-s6 read back OK
+fire-owed-pool #2704 859b74ba8ab4d0020025895b73a53b3833b5e74c ccf3f54a7b7489266de0d1950bcaa46e dispatch/reviewer-2704-ccf3f54a (pool read back OK)
+15:34:12 pool-s6 read back: fixer-r10-ratio-anchor pos1, fixer-r10-fly-cloud-setup-toolchain pos4 both present (pool read back OK)
+15:34:23 HOLD (main): #2710 roster-batch (fix/audit-r10-roster-pr5, ffec1a9bf) no reviewer; roster seat single writer updating to db3e513ec; dispatch at its new head. 2706/2707/2708 rows still 0, openers 24478/24359/86921 alive. flow-autotrain still held until #2710 merges
+15:34:40 w10 rotating: STATE written
+15:35:40 w11 pass1: handoffs ratio-anchor 97ce097ab and fly-cloud-setup eec03e0ee both already contained in PR heads (unmoved); rows 2706/2707/2708 absent, openers 24478/24359/86921 alive; roster-runq 45216 alive no PR; codeql-dependabot opener 14955 DEAD (branch fix/r10-codeql-dependabot-pr already exists); config-notices, mutant-skip, thermal-power-option openers DEAD (prepr body refusals); structure-alias 98428, demand-overbook 12710 alive no PR; #2710 head unchanged ffec1a9bf
+fire-owed-fixer r10-thermal-power-option dispatch/fixer-r10-thermal-power-option head 7882a1427 brief repair/brief-thermal-power-option-r1.md (pool read back OK)
+fire-owed-fixer r10-config-notices dispatch/fixer-r10-config-notices head 5b067738b brief repair/brief-config-notices-r1.md (pool read back OK)
+fire-owed-fixer r10-mutant-skip dispatch/fixer-r10-mutant-skip head a7e41d646 brief repair/brief-mutant-skip-r1.md (pool read back OK)
+15:37:32 main: policy opener pid 48874 (mech/apppush.log): on PR=N update_pr.sh - row-only, then reviewer with policy note
+2026-10-24T13:37:58Z main: relaunched policy opener pid 54439 (bash; exec bit), log mech/apppush.log; fired 3 fixer runs
+15:38:16 w12 start
+15:38:53 w12 pass1: no handoff moved (ratio-anchor 97ce097ab, thermal 7882a1427, config-notices 5b067738b, mutant-skip a7e41d646, fly-cloud eec03e0ee); rows 2706-2710 absent, their app_push alive (2706 30min); openers 42344/98428/12710/45216/54439 alive; open_pr 12710/98428 >60min, 24478/24359/86921 >2h w/o row; monitor armed
+15:42:19 main: #2709 V7 check - when handoff/r10-fly-cloud-setup-toolchain moves from eec03e0ee: grep diff for fire-path pool-line refusal ('pool read back OK'); if missing render ONE more continuation for V7 only from carries/carry-triage-s6v1.md BEFORE any reviewer (delete claim first, pool line, read back). handoff unmoved now
+15:44:47 #2706 head ea459c0b5 (row present, no held runs): dispatched nonce 4264d0da; rpool-s6 updated
+fire-owed-pool #2706 ea459c0b5f6b4d753394935dfb49e5386480fd40 4264d0dad8305e369491518f2576b6b8 dispatch/reviewer-2706-4264d0da (pool read back OK)
+15:44:47 #2707/#2708/#2711 structure-alias/#2712 demand-overbook: PRs open, rows 0 yet; waiting for opener row push
+15:47:28 #2706 gate+pr-contract red at ea459c0b5: gate='runs still being judged' (transient); codeql Analyze(python) in_progress; detached wait2706.sh will gh run rerun --failed 40099071633 when codeql concludes; gate re-read after
+15:49:39 #2707 head cd7dc09a8: dispatched nonce a27d6c56; rpool read back OK
+fire-owed-pool #2707 cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68 a27d6c562254ee2219692cab721e5de5 dispatch/reviewer-2707-a27d6c56 (pool read back OK)
+15:50:21 w12 rotating: STATE written; #2710 hold (19ab022ea not final)
+15:51:03 w13 start: #2714 roster-runq PR open head aa5b7e069 (no row yet); holds unchanged; arming monitor
+15:53:48 #2709 row-only update launched (no row at e64d99786), main released V7 hold; log upd-2709-w13.log
+15:54:10 late events: #2709 head 3580acc05 (V7 check owed), #2714 roster-runq PR aa5b7e069 (row/dispatch owed); noted in STATE for w13
+15:54:35 w12 ended: monitor bu1oalabb stopped; wait2706.sh left detached; w13 has #2709 V7 + #2714
+15:55:04 fire-owed-fixer r10-rca-codescan-wait dispatch/fixer-r10-rca-codescan-wait head bf9f8aa16 (pool read back OK)
+fire-owed-pool #2709 3580acc051e8b7f8ad5fba1ce8827891111f6ba9 68ee7f105bcd4b226f6957d2b225de4f dispatch/reviewer-2709-68ee7f10 (pool read back OK)
+15:55:54 #2714 awaits opener row; rpool/rca/2709 fired
+15:56:21 w13 rotating: STATE written
+15:56:42 w14 start
+15:57:08 main: #2712 mutation red; checking autofix
+15:57:41 #2712 mutation red, autofix job not yet present (pins in progress); main told; recheck +5min
+fire-owed-pool #2708 ae77c4150ee0245f5546c73fd9c3f35691e9a3c6 e21fc36e00b37bad2d5f2e729ce16e2b dispatch/reviewer-2708-e21fc36e (pool read back OK)
+16:02:32 2708 row landed, reviewer fired; policy opener 54439 REFUSED by prepr
+16:03:41 fire-owed-fixer r10-policy-fixer-md dispatch/fixer-r10-policy-fixer-md head 859b74ba8 brief repair/brief-policy-fixer-md-r1.md roster SHA 928ca213e (pool read back OK)
+16:05:04 w15 start
+16:05:25 w15: rows 2711/2712/2714 absent, openers 98428/12710/45216 alive; #2712 mutation red, mutation-pins 1-3 in_progress (autofix running), recheck +5min; monitor mon14 armed 30min
+16:07:23 codeql-dependabot opener 42344 died: prepr REFUSE pr-body ## Head names b64af1c stale (handoff head moved?); to main NEEDS-JUDGEMENT
+fire-owed-pool #2711 5021b50def0ab7b5769239209d929125767d3636 94358461ac5f70e4c4ef041e760e2159 dispatch/reviewer-2711-94358461 (pool read back OK)
+fire-owed-pool #2714 dba7f86b1da529a59bc9b15b6f3641bcfc2c8891 016a7230ddedbace841a48354f35d2f4 dispatch/reviewer-2714-016a7230 (pool read back OK)
+16:12:22 w15: launched upd #2734 (34788, row-only), upd #2697 to f6568a429 (41010; fixer had already repaired, no new fixer), open_pr r10-ci-layout-p2b-v2 a928a9dc2 (handed off; claim kept)
+SEND-TO-ROSTER 2710: 16:14 governance / instrument-self-tests red at 19ab022ea: roster_sync self-test 53 checks, 1 failed -- FAIL every stage the tree's rosters carry is classified (derivable or protected) (got: {'carries-open': 'wave-r10-groups.json'}); job 120889709188
+fire-owed-fixer r10-fly-cipredict-layout dispatch/fixer-r10-fly-cipredict-layout head cd7dc09a8 (pool read back OK)
+fire-owed-fixer r10-fly-cloud-setup-toolchain dispatch/fixer-r10-fly-cloud-setup-toolchain head 3580acc05 (pool read back OK)
+fire-owed-fixer r10-codeql-dependabot dispatch/fixer-r10-codeql-dependabot head b64af1cf3 body re-take (pool read back OK)
+16:15:20 w15: queue rewritten epoch-prefixed (old in dispatch-queue.w15.bak); #2734/#2735 rows blocked by triage worktrees; config-notices awaits fixer; flow-autotrain held for #2710
+fire-owed-pool #2735 0f77f2ecd80e59c178c66e9f9fae6cab8d363561 b96f2797f4306fdcd233e2161038f462 dispatch/reviewer-2735-b96f2797 (pool read back OK)
+fire-owed-fixer r10-structure-alias dispatch/fixer-r10-structure-alias head 5021b50de (pool read back OK)
+fire-owed-pool #2734 35cb7e8cc9380d134c61675a4aedba692e938593 c1e7fd5ca18d8c993f8be4a4a41ac395 dispatch/reviewer-2734-c1e7fd5c (pool read back OK)
+16:26:50 w15: fire-owed-pool 2734 (c1e7fd5c), 2735 (b96f2797) pool read back OK; fixer 2711 fired; waiting 2736/2697/p2b-v2 updates
+16:40:25 w15: codeql-dependabot body returned f069a1694; opener relaunched (open-codeql-dependabot-w15.log). #2714 verdict ref 3d30ed71b head dba7f86b1, #2708 verdict ref 0e71024d4 head ae77c4150: both already confirmed+posted by hpo-approver
+16:40:49 w15: handed-off-never-opened: open_pr sav-comfort 8e18704ef, mutation-anchor a55a0f47e launched (logs open-*-w15.log)
+fire-owed-pool #2736 fbbd3e61fe312f94b6c4c579b64236fcf9699248 349bfe5d53c6482114137e4323361dbc dispatch/reviewer-2736-349bfe5d (pool read back OK)
+fire-owed-pool #2738 e7baa92c83476e30c825843921904c8b83f301ef 676d5732851a037579944da2baf325f9 dispatch/reviewer-2738-676d5732 (pool read back OK)
+16:41:52 w15: STATE written
+fire-owed-pool #2737 594ff9db20f0e6ea5a1c817cb6195ab6fee8536a f3d44a4d316ef81e4422601fb8785672 dispatch/reviewer-2737-f3d44a4d (pool read back OK)
+16:43:07 w15: #2697 update_pr refused (CARRY UNROUTED 4d83b97b, ci predict); local-owed r10-merge-subject-harden sent; stale claim deleted; #2737 reviewer fired (f3d44a4d)
+fire-owed-pool #2735 5a03e901be80782cfacabf69b6bff1895dddb864 8cffe4ac1109eb77f2cd1c41d30ea179 dispatch/reviewer-2735-8cffe4ac (pool read back OK)
+16:48:50 fire-owed-pool #2735 5a03e901b nonce 8cffe4ac dispatch/reviewer-2735-8cffe4ac (pool read back OK); 2708->c898cc1bb, 2714->7efaa2030 heads moved after verdicts, main told
+fire-owed-pool #2704 859b74ba8ab4d0020025895b73a53b3833b5e74c b96c8e924de2921cbe7d976de73b9d81 dispatch/reviewer-2704-b96c8e92 (pool read back OK)
+16:54:29 fire-owed-pool #2704 859b74ba8 nonce b96c8e92 dispatch/reviewer-2704-b96c8e92 (pool read back OK); body_patch done

@@ -1,0 +1,7 @@
+REVIEW of roster PR #2619 (batch 14) at head abebbedcd4acf859f2313d63ac1b8c9520749487. Data-only roster change (dev/programme/rosters/wave-r10-groups.json and dev/programme/delivery/2619.md). PREPR_SKIP_CLOSURES=1. Spare the GitHub API (one check-runs read). Mirror the #2613 roster review.
+Check:
+1. Four ops: R10-YIELD-PROBE done at a9db4784 (#2579), R10-RELAY-HOLD done at 50808a75 (#2580), R10-PREPR-CAP done at f0724675 (#2528), R10-CURRENCY in-progress. Each SHA is on origin/main; each done group owes no further PR (no "PR 2/2" left in its carry).
+2. No open PR body carries to a group set done.
+3. The body's ops count equals the `git rev-list --count` over the stated range; group counts match, none removed unintentionally.
+4. brief_lint TOTAL 0; carry_audit check --body 0 unrouted 0 bad; merge-tree with origin/main clean; no red check on the head, or the body's Red checks names it.
+Return merge unless an item fails. Time box 30 min.

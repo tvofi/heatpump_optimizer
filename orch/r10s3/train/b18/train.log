@@ -1,0 +1,48 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b18/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b18 pid=92980 start=2026-10-19T15:18:46Z
+BATCH 20261019-151846 pid=93016 base=main queue=1 (#2445) --overlap --skip-bad
+OVERLAP: main at 64b0ae6901b7 is not green (env-matrix, fast (3.14), validate-hacs) before admission; --overlap logs it and does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP #2445 ci: #2445 red at its head: env-matrix, validate-hacs
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T15:23:01Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b18/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b18 pid=8319 start=2026-10-20T22:39:47Z
+BATCH 20261020-223947 pid=8335 base=main queue=1 (#2517) --skip-bad
+BOT #2522 MERGED 3b941800cc975d9e4a8e585b851d423e8e2b64ca
+beat: waiting CI at 3b941800 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 3b941800 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 3b941800 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 3b941800 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at 3b941800 (poll 6, t+1205s, required: 14, concluded: 11/14)
+beat: waiting CI at 3b941800 (poll 7, t+1447s, required: 14, concluded: 12/14)
+beat: waiting CI at 3b941800 (poll 8, t+1690s, required: 14, concluded: 13/14)
+beat: waiting CI at 3b941800 (poll 9, t+1932s, required: 14, concluded: 13/14)
+beat: waiting CI at 3b941800 (poll 10, t+2174s, required: 14, concluded: 13/14)
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2517 serial: grader
+serial: #2517
+BOT #2523 MERGED 9fdc5846afe72a5edbd90a4c86cf92f74e62020c
+#2517 recarry START (branch handoff/r10-plan-opt)
+#2517 recarry: main merged, head d0969544; app_push: RECARRY: prepr SKIPPED: HEAD d0969544 is the clean merge of the live head e8b0c871 and origin/main's 9fdc5846, and the body is the live one
+beat: waiting CI at d0969544 (poll 2, t+241s, required: 14, concluded: 7/14)
+beat: waiting CI at d0969544 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 6, t+1204s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 7, t+1445s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 8, t+1686s, required: 14, concluded: 11/14)
+beat: waiting CI at d0969544 (poll 9, t+1927s, required: 14, concluded: 12/14)
+beat: waiting CI at d0969544 (poll 10, t+2167s, required: 14, concluded: 12/14)
+beat: waiting CI at d0969544 (poll 11, t+2408s, required: 14, concluded: 13/14)
+beat: waiting CI at d0969544 (poll 12, t+2649s, required: 14, concluded: 13/14)
+#2517 d0969544 ci red=[]
+#2517 approved (mandate)
+#2517 MERGED 6122f4be80d2b2670bdb522aa2decde68eb5bf4e
+#2517 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b18/wt/2517 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b18/wt/2517' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-21T00:10:39Z

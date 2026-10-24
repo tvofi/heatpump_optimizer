@@ -1,0 +1,2 @@
+===== daemonize pid=15182 2026-10-20T21:41:20Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh r10-replay-cap 38aec7bf0c4ad1a8d0e0d6c0dbfd2c6a04cf5e61 test(replay): the loop CPU ratio cap follows the measured ruler (R10-REPLAY-CAP) R10-REPLAY-LANE 2272
+open_pr: REFUSE: code sha 38aec7bf0c4ad1a8d0e0d6c0dbfd2c6a04cf5e61 does not resolve to a commit here, after fetching handoff/r10-replay-cap

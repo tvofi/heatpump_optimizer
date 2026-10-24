@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:QuarantiningStore.async_save GUARD_OFF 98d5e5ef",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if asyncio.current_task() not in self._readers:",
+  "reason": "Re-keyed from c44711b5, whose guard 012230171 rewrote from `is not self._reader` to `not in self._readers`: GUARD_OFF (`if False:`) on the new guard took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2 at 3eda7cf8b."
+}

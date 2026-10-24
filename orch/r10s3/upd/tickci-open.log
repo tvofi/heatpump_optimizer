@@ -1,0 +1,2 @@
+===== daemonize pid=19032 2026-10-19T06:08:31Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-tick-selftest-ci c13ed69e6d609d90e05cf3d018cd3bda349023d1 R10-TICK-SELFTEST-CI: run the orchestrator tick self-test in CI R10-TICK-SELFTEST-CI
+PR=2433 HEAD=45bb861b75728e7924944741b41a68c8fb5e9f5c AUTHOR=tvofi

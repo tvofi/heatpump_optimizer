@@ -1,0 +1,5 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b22-0724/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b22-0724 pid=98120 start=2026-10-21T07:24:58Z
+BATCH 20261021-072458 pid=98125 base=main queue=3 (#2519 #2526 #2540) --skip-bad
+BOT #2540 MERGED c77f89dc619c4f13704406e790d2199529105254
+beat: waiting CI at c77f89dc (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at c77f89dc (poll 3, t+482s, required: 14, concluded: 11/14)

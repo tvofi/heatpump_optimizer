@@ -1,0 +1,6 @@
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+CONFLICT (content): Merge conflict in tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/open_pr.sh
+Auto-merging tools/audit/seat/pr_args.sh
+Automatic merge failed; fix conflicts and then commit the result.
+update_pr: STOPPED: line 70 exited 1: $G merge -q --no-edit origin/main

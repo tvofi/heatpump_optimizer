@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps BOOLOP a5d8d969",
+  "killed_by": "tests/features.py",
+  "old": "            has_hum = humidity is not None and i < len(humidity)",
+  "reason": "R8-P3 round 2 (fix review): the capacity envelope's per-step humidity. `and` -> `or` evaluates `len(None)` on every call without a forecast, so tests/features.py dies with `TypeError: object of type 'NoneType' has no len()` at the #17 envelope checks (`_capacity_caps(np.array([-10.0, -10.0, 15.0]))`), measured in a git-less copy of ef45f9ce's production. A crash, not a counted FAIL line: the kill is the uncaught error on the only path every install without a humidity forecast takes."
+}

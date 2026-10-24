@@ -1,0 +1,10 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b9r/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b9r pid=69586 start=2026-10-19T07:20:41Z
+BATCH 20261019-072041 pid=69597 base=main queue=1 (#2368) --overlap --skip-bad
+OVERLAP: main at db3293dcb12f is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2368 recarry: fix/r10-pump-model-d2 is already checked out at /Users/timmalmstrom/hpo-orch/r10s3/train/b9/wt/2368; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T07:20:47Z

@@ -1,0 +1,2 @@
+===== daemonize pid=46128 2026-10-18T13:04:33Z argv: bash tools/audit/seat/open_pr.sh r10-roster-carry-policy 36b4a1cf4e33b7f343c99e41e49e14a2b050547a R10-ROSTER-CARRY-POLICY: roster carries count on the roster ref; landing triggers R10-ROSTER-CARRY-POLICY
+PR=2408 HEAD=e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65 AUTHOR=tvofi

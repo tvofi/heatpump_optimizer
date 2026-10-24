@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since RETURN_DEL c87bfc45",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.0, since.total_seconds() / 3600.0)",
+  "reason": "R8-I1b (#1532): hours_since's return. `pass` returns None for every known history. Measured at 8627feee on a detached worktree with this mutant alone: tests/features.py rc=0 failed=0 -> rc=1, among them `legionella hours_since reads true elapsed across the fold [published None h]`, then a TypeError traceback at `the premise: the cycle really is overdue`."
+}

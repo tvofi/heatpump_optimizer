@@ -1,0 +1,4 @@
+===== daemonize pid=5711 2026-10-20T18:38:47Z argv: bash tools/audit/seat/update_pr.sh fix/r10-roster-ops c89cdf732924d44d4a1312130b3e32a4fa7e01b7 /tmp/roster-ops-body.md 2496
+update_pr: REFUSE: code sha c89cdf732924d44d4a1312130b3e32a4fa7e01b7 is not an ancestor of origin/handoff/r10-roster-ops (9969e3ca80bd6255cd1231b1b4e53410a6fbeb88), and it is not the tip of handoff-body/r10-roster-ops (a38f30aceee4d38a8bc580ac6b8ddcb1250eb446)
+===== daemonize pid=1542 2026-10-20T22:11:14Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-roster-ops bash tools/audit/seat/update_pr.sh fix/r10-roster-ops - /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-roster-ops.md
+HEAD=716a34f28571ff1dc47369075dad51afa31b8a44

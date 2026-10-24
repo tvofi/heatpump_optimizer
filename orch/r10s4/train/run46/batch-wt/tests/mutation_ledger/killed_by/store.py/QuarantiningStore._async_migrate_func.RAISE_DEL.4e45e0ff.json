@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:QuarantiningStore._async_migrate_func RAISE_DEL 4e45e0ff",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        raise NotImplementedError",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: RAISE_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

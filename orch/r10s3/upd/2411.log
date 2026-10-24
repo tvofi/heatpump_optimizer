@@ -1,0 +1,4 @@
+===== daemonize pid=33378 2026-10-18T22:02:16Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-sav-baseline fe4e0a3b02049e1bb971f9c7808f58f531cce08f /Users/timmalmstrom/hpo-orch/r10s3/upd/2411-body.md 2255 2255 
+Auto-merging tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.observe_spot_and_settle_savings.CMP_BOUND.f0f29f9a.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.observe_spot_and_settle_savings.CMP_BOUND.f0f29f9a.json
+Automatic merge failed; fix conflicts and then commit the result.

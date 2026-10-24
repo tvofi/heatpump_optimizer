@@ -1,0 +1,25 @@
+open_pr: 10 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18244 + both deltas = 18225
+  max_class_loc: 8480 + both deltas = 8471
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/dst_checks.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   pr-body                ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all) -- no budget leaf raised over fd7e289d0...28e238127
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/coordinator.py:8968 BOOLOP; custom_components/heatpump_optimizer/coordinator.py:8968 CMP_BOUND*2; custom_components/heatpump_optimizer/coordinator.py:8968 RETURN_DEL
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/p1.log
+rc=1
+===== daemonize pid=2156 2026-10-24T00:37:25Z argv: bash tools/audit/seat/open_pr.sh r10-input-staleness 89ef33c7a47b6f485a284024fbf594d59b560126 inputs: stale power and mode readings expire per source (R10-INPUT-STALENESS) R10-INPUT-STALENESS
+open_pr: 1 open PRs; the cap gates dispatch, not opening
+Auto-merging tests/entities.py
+  REFUSE   ci predict             CI PREDICT: 5 predicted red(s) on pr-contract / pr-contract against 144fb4f90076 -- repair before the handoff; the lines above name each arm's repair
+  REFUSE   'Closes #2234' closes #2234; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/p1.log
+===== daemonize pid=19492 2026-10-24T01:33:35Z argv: bash tools/audit/seat/open_pr.sh r10-input-staleness 5d5b807e05b50e7d80bd17a61fbba37e2153ae96 inputs: stale power and mode readings expire per source (R10-INPUT-STALENESS) R10-INPUT-STALENESS 2234
+open_pr: 2 open PRs; the cap gates dispatch, not opening
+PR=2683 HEAD=07b83e9b28ab3a21e3a1ad8d9b38eea27ee707e0 AUTHOR=tvofi

@@ -1,0 +1,92 @@
+{
+  "box": "B9",
+  "missing": [],
+  "reports": {
+    "D4-s1": {
+      "dimension": "D4",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D4/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D4.M1",
+          "depth": "spot",
+          "evidence": "grid_complement.mjs reruns the lane's own gridStates/instrument/p9Grid over the 5 missing viewport x theme x language cells (175 cell-states, 0 violations) and a coarse-pointer arm at 44 px (lane never passes coarse=true); pipe_hit.mjs hit-tests the layout-editor pipes across 12 cells. Tab order, console errors, hover layout shift, reduced-motion-off and screenshots not done."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M1",
+          "what": "Keyboard tab order through every focusable, console-error sweep, layout shift on hover, the reduced-motion-off arm (CELLS=motion is defined but was not run), screenshots; also the run used Chromium 131 (rev 1148), not the lock's rev 1194"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D4-s1-01",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Layout-editor pipes (click to remove) are 1.25-5.75 px hit targets under every pointer",
+          "severity": "medium",
+          "claim": "In the setup page's layout_editing state, every drawn pipe's hit-tested band is 1.25-5.75 px, so 30/30 pipes under a fine pointer are below the card's 24 px floor and 30/30 under pointer:coarse are below its 44 px floor.",
+          "evidence": {
+            "command": "NODE_PATH=<pw>/node_modules HPO_CHROME=<chromium> HPO_PLANDATA=<tmp>/p.json node dev/audit/rounds/round10/D4/s1/pipe_hit.mjs",
+            "harness_path": "dev/audit/rounds/round10/D4/s1/pipe_hit.mjs",
+            "value": "pipes_under_44_coarse=30, pipes_under_24_fine=30, band_max=5.75 px of 60 pipes",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 B9, Chromium 131 headless shell rev 1148",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, other seats running; geometry counts are contention-immune",
+            "tolerance": "exact counts, widths +-0.5 px",
+            "load1": 40.04,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:.setup-svg.editing .setup-pipe (setup diagram pipe path rendering, data-edge)",
+          "perturbation": {
+            "change": "PIPE_STROKE=30: in-memory rewrite of the editing rule 'stroke-width: 3.5' to 30",
+            "expected_direction": "band_max rises (5.75 -> 52.75 px); under-24 falls 30 -> 14; under-44 falls 30 -> 23"
+          },
+          "metric_definition": "Per pipe, the width in CSS px of the band along the pipe's normal at its midpoint over which shadowRoot.elementFromPoint returns an element whose closest [data-edge] is that pipe; counted below 24 px (fine) or 44 px (coarse).",
+          "phenomenon_property": "Every click target drawn as an SVG stroke in the layout editor must hit-test at least the card's own floor (24 px; 44 px with a coarse pointer).",
+          "seam_rule": "grep -n 'class=\"setup-pipe' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js; the lane's instrument().targets() measures the bbox, so a straight pipe (bbox width <0.5 px) is filtered out and a curved one reads as 60x10.7",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+            "tests/card_browser.mjs"
+          ],
+          "proposed_fix_scope": "Give every editable pipe a transparent wide hit stroke carrying the same data-edge, sized from _targetMinPx(); extend the lane's target rule to hit-test stroked paths"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The 5 viewport x theme x language cells the lane does not run show no contrast, overflow, popup, small-target or listbox violations",
+          "command": "CELLS=complement node dev/audit/rounds/round10/D4/s1/grid_complement.mjs",
+          "value": "175 cell-states, 0 contrast, 0 overflow, 0 popups, 0 small, 0 options, 0 threw"
+        },
+        {
+          "claim": "The card's coarse 44 px floor holds for HTML targets; without the spacing exception only the pipe bbox is under 44",
+          "command": "CELLS=coarse node dev/audit/rounds/round10/D4/s1/grid_complement.mjs (COARSE_EXCEPTION=1 for the control)",
+          "value": "strict: 4 instances, 1 distinct (path.setup-pipe.layout-match 60.2x10.7); with the exception: 0"
+        },
+        {
+          "claim": "The 2 px shared ink of text '2' x '3' at 375 px is a harness gap, not a card defect",
+          "command": "CELLS=fine node dev/audit/rounds/round10/D4/s1/grid_complement.mjs",
+          "value": "4 instances, also in a cell the CI lane already runs; Liberation Sans is absent on macOS, so the text fell back to Arial"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D4/s1/pipe_hit.mjs",
+        "dev/audit/rounds/round10/D4/s1/grid_complement.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/card_browser.mjs",
+          "symbol": "p9Grid / instrument().measure",
+          "what": "p9Grid always calls measure(false), so the 44 px coarse floor is never applied in CI. The target rule uses getBoundingClientRect, which cannot see a stroked SVG path's real hit band. On the coarse floor it also keeps the 24 px spacing exception."
+        }
+      ]
+    }
+  }
+}

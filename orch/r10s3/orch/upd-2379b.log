@@ -1,0 +1,7 @@
+===== daemonize pid=5602 2026-10-18T13:51:46Z argv: bash tools/audit/seat/update_pr.sh fix/r10-sensor-payload - /Users/timmalmstrom/hpo-orch/r10s3/orch/b2379/BODY.md 2242
+error: could not lock config file .git/config: File exists
+error: unable to write upstream branch configuration
+hint: 
+hint: After fixing the error cause you may try to fix up
+hint: the remote tracking information by invoking:
+hint:   git branch --set-upstream-to=origin/refs/heads/fix/r10-sensor-payload

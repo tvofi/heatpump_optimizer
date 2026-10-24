@@ -1,0 +1,12 @@
+# Fixer, R10-FLOW-JIDOKA (size S, prepr.sh), topic r10-flow-jidoka. Cut from current origin/main (12032c43 or later). AUDIT-CLASS BARRIER owed.
+
+Read the group with jq from origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json (roster tip 6322452d4d10 or later). Read its brief and ALL its carries, in order: P-N (triage batch 7), then P-Q (triage batch 9), which is item (d).
+
+The class: a check pr-contract.yml runs on a PR body is missing from the pre-open `prepr.sh --body-check`, so a body that passes body_push/open_pr goes red at pr-contract after the open. Three instances in 24 h (P-N, P-F, P-Q; #2664 and #2666 opened today with a `## Forward-carry` of "none" plus prose and went red on carry_audit). At three instances defect-root-cause.md owes an audit-class BARRIER, not just a fix. The root-cause seat runs beside you (topic r10-rca-body-check-parity), never inside your PR.
+
+Owed in this PR:
+1. Each carry item. For P-Q: first establish from tools/audit/carry_audit.py whether "none" plus prose should read UNROUTED or whether the parse over-fires. If it over-fires, the fix goes in carry_audit.py (R10-FLY-CARRY-DISPOSITION owns that file; keep the hunk minimal and name the overlap), with a null control. Either way, `--body-check` calls `carry_audit.py check --body` and refuses on UNROUTED. Where a check needs a token or an out-of-tree O-brief, it says UNVERIFIED and never refuses.
+2. The barrier: a parity test. Each body check pr-contract.yml runs (policy_lint --pr-body, carry_audit, budget_raise_gate's justification check, the agreement lane, and any other you find by reading pr-contract.yml) is either run by `--body-check` or listed in the test with a reason. Adding a body check to pr-contract.yml without doing either must make the test red: show that with a fixture workflow.
+3. Failing fixtures first. An unrouted item refuses; routed and dismissed items pass; a body with no carry section passes. Mutants: drop the call; drop one entry from the parity list. Each must go red.
+Before returning, run `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` until it prints all ok at the final head, with no ADDED UNPINNED mutation sites (pin with `python3 tests/mutation_table.py --pin-killed`). Before body_push, also run `python3 -I tools/audit/carry_audit.py check --body BODY.md` and get 0 unrouted. Update tools/audit/seat/INSTRUMENTS.md for the behaviour change.
+Rules: PREPR_SKIP_CLOSURES=1; spare the GitHub API (stop on a 403); no Claude footers, Co-Authored-By or session links anywhere.

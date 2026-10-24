@@ -1,0 +1,61 @@
+===== daemonize pid=37087 2026-10-20T17:43:42Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/open-three.sh
+===== r10-sav-reasons 2026-10-20T17:43:42Z
+  ok       body path              not directly in a shared root
+  ok       merge-base             4e5801eb50644df94ccf18650afbb2cc99e854b4
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=0 label=prepr-37217 expires_at=2026-10-20T18:13:44.023147+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 4e5801eb5064
+  ok       pinned graders         
+  ok       self-test              303 passed, 0 failed
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 4e5801eb50644df94ccf18650afbb2cc99e854b4 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/boost.py:351 GUARD_OFF: if action.get("dhw_reason") != REASON_LEGIONELLA:
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:444 CMP_BOUND: if kwh <= 0.0:
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:444 GUARD_OFF: if kwh <= 0.0:
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:451 RETURN_DEL: return list(shares.items())
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/narrative.py:113 CMP_BOUND: if reasons and i < len(reasons) and reasons[i]
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 4e5801eb5064 (a data-file read is not seen)
+  WARN     unpinned sites         5 site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 4e5801eb5064
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             4:both
+             6:every
+             11:each
+             16:all
+             28:all
+             49:none
+             54:never
+             71:never
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             27 s
+             225 o
+             28 m
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-sav-reasons.md -- no budget leaf raised over 4e5801eb5...84eb9c1ab
+  ok       figures                FIGURES: 8 resolved, 0 not verified, 0 refused
+  ok       unpinned sites         `## Unpinned sites` disposes of all 5 site(s) step 6d listed
+  ok       push order             origin/handoff/r10-sav-reasons is at 84eb9c1ab -- local mirror, unfetched
+  skip     ancestry reds          no pushed commit carries any check run, so there is no red to answer and none confirmed absent
+
+PRE-PR: 84eb9c1abad0a4460f764f4cab916db0f66df48e 0000000000000000000000000000
+Everything up-to-date
+app_push: PUSHED 84eb9c1abad0a4460f764f4cab916db0f66df48e to tvofi/heatpump_optimizer:handoff/r10-sav-reasons as the App; pull request #2511 is open at 84eb9c1abad0a4460f764f4cab916db0f66df48e with the body read back: https://github.com/tvofi/heatpump_optimizer/pull/2511

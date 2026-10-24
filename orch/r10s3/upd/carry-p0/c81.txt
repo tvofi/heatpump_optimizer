@@ -1,0 +1,1 @@
+From PR r10-ci-layout-p0: U9's re-keyed `ci_ratchet.py` reader (PR 2) must keep R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged (review section 3, "After PR 2").

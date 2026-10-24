@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:setpoint_and_unit GUARD_OFF 18e62c8d",
+  "killed_by": "tests/structure.py",
+  "old": "    if raw is None or str(raw).lower() in _NO_SETPOINT:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 694120d5aa296b65c7d7be097f8684e7bc3b5f61: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

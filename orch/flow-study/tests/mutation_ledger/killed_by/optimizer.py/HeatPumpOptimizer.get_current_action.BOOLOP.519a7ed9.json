@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action BOOLOP 519a7ed9",
+  "killed_by": "tests/stress.py",
+  "old": "            if result.dhw_power_schedule and i < len(result.dhw_power_schedule)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: BOOLOP (`if result.dhw_power_schedule or i < len(result.dhw_power_schedule)`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,20 @@
+[
+ {
+  "pr": 1893,
+  "verdict": "a0de7d9c2cee4f85edc6b9383fa28f68f7339caa",
+  "verdict_comment": "5979703064",
+  "issues": []
+ },
+ {
+  "pr": 1894,
+  "verdict": "5dbd37263519e3359a7c07348a3601154e4a3f7a",
+  "verdict_comment": "5980136750",
+  "issues": []
+ },
+ {
+  "pr": 1895,
+  "verdict": "81cc117be09ca271f4f22fbbed23ed5157dc7359",
+  "verdict_comment": "5980303590",
+  "issues": []
+ }
+]

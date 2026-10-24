@@ -1,0 +1,33 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b31/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b31 pid=88620 start=2026-10-20T03:42:50Z
+BATCH 20261020-034250 pid=88650 base=main queue=1 (#2464) --overlap
+OVERLAP: main at bb5b21a88f82 is not green (fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2464 serial: budget, grader, workflow
+OVERLAP: recarrying #2464 up front, their pull_request runs fire together
+#2464 overlap: recarry start
+#2464 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p0 held fix/r10-ci-layout-p0, clean at origin/fix/r10-ci-layout-p0; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p0 switch fix/r10-ci-layout-p0)
+#2464 recarry START (branch fix/r10-ci-layout-p0)
+#2464 recarry: main merged, head ccac6aa3; app_push: RECARRY: prepr SKIPPED: HEAD ccac6aa3 is the clean merge of the live head 07db3512 and origin/main's bb5b21a8, and the body is the live one
+serial: #2464
+beat: waiting CI at ccac6aa3 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at ccac6aa3 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at ccac6aa3 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at ccac6aa3 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at ccac6aa3 (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 7, t+1445s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 8, t+1686s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 9, t+1927s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 10, t+2168s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 11, t+2409s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 12, t+2650s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 13, t+2892s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 14, t+3133s, required: 14, concluded: 12/14)
+beat: waiting CI at ccac6aa3 (poll 15, t+3374s, required: 14, concluded: 13/14)
+#2464 ccac6aa3 ci red=[]
+#2464 approved (mandate)
+#2464 MERGED dbe9d04a9229d8d565f499fccdd213a9ad35e191
+#2464 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b31/wt/2464 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b31/wt/2464' is not a working tree); remove it by hand
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-20T04:44:51Z

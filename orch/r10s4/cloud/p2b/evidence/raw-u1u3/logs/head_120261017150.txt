@@ -1,0 +1,80 @@
+﻿2026-10-23T05:39:28.6692960Z Current runner version: '2.338.0'
+2026-10-23T05:39:28.6730025Z ##[group]Runner Image Provisioner
+2026-10-23T05:39:28.6731421Z Hosted Compute Agent
+2026-10-23T05:39:28.6732351Z Version: 20261012.601
+2026-10-23T05:39:28.6733570Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-23T05:39:28.6734852Z Build Date: 2026-10-12T17:48:21Z
+2026-10-23T05:39:28.6736418Z Worker ID: {9634d8fd-2bc3-464d-9361-9572e2c76cd2}
+2026-10-23T05:39:28.6737677Z Region: eastus2
+2026-10-23T05:39:28.6738685Z Cloud: Azure
+2026-10-23T05:39:28.6739625Z ##[endgroup]
+2026-10-23T05:39:28.6741884Z ##[group]Operating System
+2026-10-23T05:39:28.6743103Z Ubuntu
+2026-10-23T05:39:28.6743935Z 24.04.5
+2026-10-23T05:39:28.6744804Z LTS
+2026-10-23T05:39:28.6745727Z ##[endgroup]
+2026-10-23T05:39:28.6746930Z ##[group]Runner Image
+2026-10-23T05:39:28.6748058Z Image: ubuntu-24.04
+2026-10-23T05:39:28.6749628Z Version: 20261012.334.1
+2026-10-23T05:39:28.6751767Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-23T05:39:28.6754551Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-23T05:39:28.6756553Z ##[endgroup]
+2026-10-23T05:39:28.6758758Z ##[group]GITHUB_TOKEN Permissions
+2026-10-23T05:39:28.6761597Z Contents: read
+2026-10-23T05:39:28.6762771Z Metadata: read
+2026-10-23T05:39:28.6763742Z SecurityEvents: write
+2026-10-23T05:39:28.6764765Z ##[endgroup]
+2026-10-23T05:39:28.6767969Z Secret source: Actions
+2026-10-23T05:39:28.6769583Z Cache mode: write
+2026-10-23T05:39:28.6771067Z Prepare workflow directory
+2026-10-23T05:39:28.7239436Z Prepare all required actions
+2026-10-23T05:39:28.7311075Z Getting action download info
+2026-10-23T05:39:28.9438510Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-23T05:39:29.0259437Z Download action repository 'github/codeql-action@b96794f015dfd88f77b49b1c93e0fa7110f94c63' (SHA:b96794f015dfd88f77b49b1c93e0fa7110f94c63)
+2026-10-23T05:39:29.4428781Z Complete job name: Analyze (javascript-typescript)
+2026-10-23T05:39:29.5120454Z ##[group]Run echo "codeql scope for javascript-typescript: ${WORD:-analyze (no decision)}"
+2026-10-23T05:39:29.5121679Z [36;1mecho "codeql scope for javascript-typescript: ${WORD:-analyze (no decision)}"[0m
+2026-10-23T05:39:29.5359221Z shell: /usr/bin/bash -e {0}
+2026-10-23T05:39:29.5360048Z env:
+2026-10-23T05:39:29.5360479Z   WORD: analyze
+2026-10-23T05:39:29.5360926Z ##[endgroup]
+2026-10-23T05:39:29.5516389Z codeql scope for javascript-typescript: analyze
+2026-10-23T05:39:29.5743625Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-23T05:39:29.5744468Z with:
+2026-10-23T05:39:29.5744914Z   persist-credentials: false
+2026-10-23T05:39:29.5745451Z   repository: tvofi/heatpump_optimizer
+2026-10-23T05:39:29.5749383Z   token: ***
+2026-10-23T05:39:29.5749832Z   ssh-strict: true
+2026-10-23T05:39:29.5750274Z   ssh-user: git
+2026-10-23T05:39:29.5750700Z   clean: true
+2026-10-23T05:39:29.5751163Z   sparse-checkout-cone-mode: true
+2026-10-23T05:39:29.5751682Z   fetch-depth: 1
+2026-10-23T05:39:29.5752115Z   fetch-tags: false
+2026-10-23T05:39:29.5752547Z   show-progress: true
+2026-10-23T05:39:29.5752992Z   lfs: false
+2026-10-23T05:39:29.5753395Z   submodules: false
+2026-10-23T05:39:29.5753831Z   set-safe-directory: true
+2026-10-23T05:39:29.5754334Z   allow-unsafe-pr-checkout: false
+2026-10-23T05:39:29.5754839Z ##[endgroup]
+2026-10-23T05:39:29.6850761Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-23T05:39:29.6853530Z ##[group]Getting Git version info
+2026-10-23T05:39:29.6855061Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-23T05:39:29.6857499Z [command]/usr/bin/git version
+2026-10-23T05:39:29.6858471Z git version 2.55.0
+2026-10-23T05:39:29.6895097Z ##[endgroup]
+2026-10-23T05:39:29.6910216Z Temporarily overriding HOME='/home/runner/work/_temp/8dacbd45-1a34-492b-a7ee-77577322e1f0' before making global git config changes
+2026-10-23T05:39:29.6913152Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-23T05:39:29.6915591Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-23T05:39:29.6964787Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-23T05:39:29.6970101Z ##[group]Initializing the repository
+2026-10-23T05:39:29.6974958Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-23T05:39:29.7090322Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-23T05:39:29.7091616Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-23T05:39:29.7092581Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-23T05:39:29.7093386Z hint: call:
+2026-10-23T05:39:29.7093795Z hint:
+2026-10-23T05:39:29.7094311Z hint: 	git config --global init.defaultBranch <name>
+2026-10-23T05:39:29.7094951Z hint:
+2026-10-23T05:39:29.7095534Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-23T05:39:29.7096757Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-23T05:39:29.7097528Z hint:

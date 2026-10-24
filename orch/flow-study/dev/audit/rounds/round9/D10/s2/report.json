@@ -1,0 +1,194 @@
+{
+ "dimension": "D10",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D10/s2/REPORT.md",
+ "exposure": "No tools/audit/round3..round8 file read. Earlier-round finding ids seen incidentally in custom_components/heatpump_optimizer/quality_scale.yaml comments, tests/coverage_budgets.json reason, tools/audit/bugclasses.json instances and code comments; none cited. README.md and docs/**/*.md read for the docs-* rules.",
+ "coverage": [
+  {
+   "step": "D10.M1",
+   "depth": "deep",
+   "evidence": "Gold+Platinum axis: one executed check per rule for all 24 rules in tools/audit/round9/D10/s2/gold_platinum_rules.py (75 entities via real async_setup_entry, real diagnostics handler, AST censuses, docs lookups); climate preset gap in tools/audit/round9/D10/s2/climate_presets.py"
+  },
+  {
+   "step": "D10.M2",
+   "depth": "deep",
+   "evidence": "Tier table in tools/audit/round9/D10/s2/REPORT.md and draft tools/audit/round9/D10/s2/quality_scale.yaml (Gold/Platinum rows + test-coverage/strict-typing); two rows todo (entity-translations, icon-translations), no todo needs an HA release newer than the hacs.json floor 2025.2.0"
+  },
+  {
+   "step": "D10.M3",
+   "depth": "deep",
+   "evidence": "tools/audit/round9/D10/s2/coverage_modules.py --branch: 17 fast-stage scripts each under coverage, combined; min module 95.12 % (diagnostics.py), package 97.98 %, 0 modules <=95 %. tools/audit/round9/D10/s2/mypy_census.py: mypy --strict real stubs 0 errors; stub-on-path arm 355 package errors by category (stub artefacts)"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D10.M1",
+   "what": "docs-examples: Blueprints Exchange listing not fetchable (proxy 403 on community.home-assistant.io); only the in-tree half verified"
+  },
+  {
+   "step": "D10.M3",
+   "what": "coverage perturbation (--drop config_flow_steps) not executed; the M3 result is a non-finding"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D10-s2-01",
+   "scope": "D10-s2",
+   "step": "D10.M1",
+   "title": "Climate presets auto and economy are non-standard and have no translation or icon in any language",
+   "severity": "medium",
+   "claim": "The climate entity publishes preset_modes [auto, comfort, economy, boost]; auto and economy are not Home Assistant standard presets and the entity has no translation_key, so 2 of its 4 presets are untranslated in en and sv and have no icon.",
+   "mechanism": "HA's climate component translates/icons only PRESET_* (none, eco, away, boost, comfort, home, sleep, activity); a custom preset needs entity.climate.<translation_key>.state_attributes.preset_mode.state in strings/translations and icons.json, and HeatPumpOptimizerClimate (main-feature entity, _attr_name None) sets no translation_key and no entity.climate section exists.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py",
+    "harness_path": "tools/audit/round9/D10/s2/climate_presets.py",
+    "value": 2,
+    "unit": "presets untranslated (en; sv and icons also 2)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "4-CPU Linux cloud container (shared audit box B2), Python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running (load1 4.2-4.4); count is contention-immune",
+    "tolerance": "exact",
+    "load1": 4.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.climate:HeatPumpOptimizerClimate",
+   "perturbation": {
+    "change": "--perturb translate: in-memory translation_key plus preset_mode state/icon tables for auto and economy (also --perturb eco: rename economy to HA-standard eco -> 1)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of the climate entity's preset_modes that are neither HA-standard presets nor present in entity.climate.<translation_key>.state_attributes.preset_mode.state of translations/en.json.",
+   "phenomenon_property": "Every enumerated value the integration publishes into a climate state attribute HA translates (preset_mode, hvac/fan/swing modes) is either an HA-standard constant or translated in every shipped language and iconed under the entity's translation_key.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py --perturb translate",
+    "value": 0,
+    "note": "the same measurement with the translation tables present reads 0, so the count is the missing tables, not the harness"
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "run the command",
+    "read RESULT untranslated_presets_en / _sv / uniconed_presets"
+   ],
+   "proposed_fix_scope": "Give HeatPumpOptimizerClimate a translation_key (keeping _attr_name None) and add entity.climate.<key>.state_attributes.preset_mode.state for auto/economy (or all four) in strings.json, translations/en.json, translations/sv.json and icons.json; or map economy to HA's eco. Update quality_scale.yaml rows entity-translations/icon-translations accordingly.",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/icons.json",
+    "custom_components/heatpump_optimizer/quality_scale.yaml"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "devices: one service device shared by all 75 entities, no missing DeviceInfo fields",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "distinct_devices=1, missing_fields=0, entry_type_not_service=0"
+  },
+  {
+   "claim": "diagnostics: token and entry name redacted, coordinates coarsened to 1 dp, payload JSON-native",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py (perturb: --perturb diag -> leaks=1)",
+   "value": "leaks=0, not_json_native=0"
+  },
+  {
+   "claim": "discovery / discovery-update-info exempt: no discovery mechanism",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "mechanisms=0, iot_class cloud_polling"
+  },
+  {
+   "claim": "docs-data-update, docs-known-limitations, docs-supported-devices, docs-troubleshooting, docs-use-cases present in README",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "interval_mismatch=0, heading_missing=0 x4"
+  },
+  {
+   "claim": "docs-supported-functions: every entity name and service documented",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "entities_undocumented=0 of 74, services_undocumented=0 of 12"
+  },
+  {
+   "claim": "docs-examples in-tree half: 3 blueprints linked from README, every service and default entity id they name exists",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "blueprints=3, blueprint_dangling_refs=0, readme_links_blueprints=1"
+  },
+  {
+   "claim": "dynamic-devices / stale-devices exempt: no device-registry create/update/remove site",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "registry_create_or_remove_sites=0"
+  },
+  {
+   "claim": "entity-device-class: the 14 unit-bearing sensors without a device class each carry a recorded reason (HA's MONETARY/ENERGY state-class table, unit price, deltas)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "unit_without_device_class=14 (reasoned in sensor.py comments)"
+  },
+  {
+   "claim": "entity-translations for entities: every entity has a translation_key in strings/en/sv except the main-feature climate; every ENUM option translated",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "no_translation_key=0, key_missing_in_a_language=0, has_entity_name_false=0"
+  },
+  {
+   "claim": "exception-translations: every HA-exception raise site carries a key present in strings/en/sv with matching placeholders",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "raise_without_key=0, key_not_in_every_language=0, placeholder_mismatch=0"
+  },
+  {
+   "claim": "icon-translations for entities: every translated entity without a device class has an icons.json entry, no _attr_icon pins, no orphan icon keys",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py (perturb: --perturb icon -> 1)",
+   "value": "entities_without_icon=0, attr_icon_pins=0, icons_keys_without_entity=0"
+  },
+  {
+   "claim": "reconfiguration-flow present",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "flow_without_reconfigure=0"
+  },
+  {
+   "claim": "repair-issues: literal issue keys present in every language",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "literal_key_not_in_every_language=0"
+  },
+  {
+   "claim": "async-dependency / inject-websession: no sync HTTP, no own ClientSession, 3 shared-session sites",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/gold_platinum_rules.py",
+   "value": "sync_http_imports=0, own_client_sessions=0, shared_session_sites=3"
+  },
+  {
+   "claim": "strict-typing: py.typed shipped, 0 type ignores, 0 bare ConfigEntry annotations; mypy --strict with pinned homeassistant-stubs 2026.9.3 clean",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/mypy_census.py --arm real (perturb: --inject -> 2)",
+   "value": "real.package_errors=0"
+  },
+  {
+   "claim": "strict-typing stub arm (brief's literal instruction) counts the stub's own gaps, not the integration's",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/mypy_census.py --arm stub",
+   "value": "stub.package_errors=355 (no-untyped-call 181, attr-defined 129, ...); 0 against real stubs"
+  },
+  {
+   "claim": "test-coverage (Silver, M3): every module above 95 % statement coverage over the fast-stage gate scripts",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/coverage_modules.py --branch",
+   "value": "min module 95.12 % (diagnostics.py), package 97.98 %, modules_not_above_95=0; branch (informational) 93.87 %, 25 modules <=95 %"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D10/s2/gold_platinum_rules.py",
+  "tools/audit/round9/D10/s2/climate_presets.py",
+  "tools/audit/round9/D10/s2/coverage_modules.py",
+  "tools/audit/round9/D10/s2/mypy_census.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SolarIrradianceSensor.extra_state_attributes / open_meteo.OpenMeteoSolar.diagnostics",
+   "what": "Publishes latitude/longitude rounded to 5 decimals (~1 m) as recorded state attributes, while diagnostics.py coarsens the same coordinates to 1 dp as a privacy control."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/icons.json",
+   "symbol": "services section",
+   "what": "No service icons for the 12 services in services.yaml (hassfest requires them for core integrations only; not a quality-scale rule for a custom one)."
+  }
+ ]
+}

@@ -1,0 +1,3 @@
+# Fixer brief O9: dangling dev/audit/harnesses/README.md
+dev/audit/harnesses/README.md was deleted in 72826387f, but tools/audit/seat/INSTRUMENTS.md ("its README.md indexes them") and .github/CODEOWNERS still name it, and #2386 had nowhere to index d15_restart_gaps.py. Find why 72826387f removed it (git show), then either restore an index that lists every harness under dev/audit/harnesses/ (with a check that refuses an unindexed harness, so it cannot rot again) or remove every reference — whichever the history says is right. CODEOWNERS/.github are owner-reviewed: say so in the body.
+Identity: refs only (handoff/r10-harness-index + body_push.sh r10-harness-index). Part of #201.

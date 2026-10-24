@@ -1,0 +1,10 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b29/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b29 pid=73933 start=2026-10-20T02:04:21Z
+BATCH 20261020-020421 pid=73966 base=main queue=1 (#2465) --overlap
+OVERLAP: main at 52011c69ae04 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2465 serial: bot-head
+OVERLAP: recarrying  up front, their pull_request runs fire together
+serial: #2465
+TRAIN STOPPED recarry: [HOLDER] #2465 could not make a worktree at /Users/timmalmstrom/hpo-orch/r10s3/train/b29/wt/2465: branch fix/r10-setpoint-boost is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-setpoint-boost. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-setpoint-boost (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-setpoint-boost status)
+TRAIN_RC=1 end=2026-10-20T02:04:30Z

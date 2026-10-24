@@ -1,0 +1,18 @@
+CONFLICT RESOLUTION and round close for PR #2524 (group R10-UPDATE-PR-SIGNALS, branch fix/r10-pusher-reap), head f99ac55b4 (fetch the full sha from origin/fix/r10-pusher-reap). EXCEPTION to the generic base rule above: work on the PR branch. Check it out and `git merge origin/main`.
+The merge conflicts in tools/audit/seat/merge_train.py:
+- #2584 (R10-FLOW-MAIN-GATE, merged 49018a8b) put one CI-state classifier there for train, merge_pr and tick;
+- this PR makes the train's pushers asynchronous and reaps them on TERM/INT.
+Resolve it soundly. Keep #2584's classifier as the single definition, and re-apply this PR's pusher reap on top of it. No duplicated logic. No revert of either side: check #2584's self-test arms and this PR's arms both pass.
+Context. The last verdict (review/2524, `git fetch origin review/2524 && git show FETCH_HEAD:VERDICT.md`, at a01627177) blocked mutation-vacuous on cloud_relay.sh's production update launch. Commits 788a882d7 and af7eb2d9a, and the launch-mutant harness after them, are the fixer's answer. That round was never re-reviewed.
+After the merge, re-execute fixer.md steps 2-8:
+- the self-tests of cloud_relay, pr_args, train.sh, app_push, handoff_push and merge_train;
+- the launch-mutant harness: F-CR-ELSEFG and F-CR-ELSELEAD must now be killed, so quote their FAIL lines;
+- structure.py with no budget raise;
+- the scoped gate with PREPR_SKIP_CLOSURES=1.
+Body: this is past round 3, so re-cut it minimal per the three-round rule. Start from `gh pr view 2524 --json body` and keep only:
+- what the fix is;
+- `## Head`;
+- the controls that prove it;
+- `## Red checks` (every red in the branch history, from the check-runs API);
+- `## Forward-carry`.
+Push the code to refs/heads/handoff/r10-pusher-reap and the body with `body_push.sh r10-pusher-reap`. Spare the GitHub API. Time box 60 min.

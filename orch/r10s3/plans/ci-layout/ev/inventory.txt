@@ -1,0 +1,62 @@
+## arch-score.yml  name='Architecture score'  jobs=1  on=['merge_group', 'pull_request']
+  arch-score                   api_sites=  1 matrix=- if=''
+## budget-raise-gate-rerun.yml  name='Budget raise gate re-run'  jobs=1  on=['workflow_run']
+  rerun-stale-verdict          api_sites=  0 matrix=- if="github.event.workflow_run.event == 'pull_request_review' && github.event.workflow_run.conc"
+## budget-raise-gate.yml  name='Budget raise gate'  jobs=1  on=['merge_group', 'pull_request', 'pull_request_review']
+  budget-raise-gate            api_sites=  1 matrix=- if=''
+## codeql.yml  name='CodeQL'  jobs=3  on=['merge_group', 'pull_request', 'push', 'schedule', 'workflow_dispatch']
+  cancel-superseded            api_sites=  0 matrix=- if="github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' "
+  scope                        api_sites=  0 matrix=- if=''
+  analyze                      api_sites=  2 matrix=y if='${{ !cancelled() }}'
+## governance.yml  name='Governance'  jobs=7  on=['merge_group', 'pull_request', 'push', 'schedule', 'workflow_dispatch']
+  policy-docs                  api_sites=  0 matrix=- if=''
+  instrument-self-tests        api_sites=  0 matrix=- if=''
+  env-matrix                   api_sites=  0 matrix=- if=''
+  wave-script                  api_sites=  0 matrix=- if=''
+  record                       api_sites=  0 matrix=- if="github.event_name != 'pull_request' && github.event_name != 'merge_group'"
+  delivery-status              api_sites=  0 matrix=- if="github.event_name == 'pull_request'"
+  delivery-status-publish      api_sites=  0 matrix=- if="github.event_name == 'push' && github.ref == 'refs/heads/main'"
+## hassfest.yml  name='Hassfest'  jobs=1  on=['merge_group', 'pull_request', 'push', 'workflow_dispatch']
+  hassfest                     api_sites=  0 matrix=- if=''
+## merge-main.yml  name='Merge main into DIRTY pull requests'  jobs=1  on=['push', 'workflow_dispatch']
+  merge-main                   api_sites=  2 matrix=- if=''
+## pages.yml  name='Pages'  jobs=2  on=['push', 'workflow_dispatch']
+  pages-build                  api_sites=  1 matrix=- if=''
+  pages-deploy                 api_sites=  0 matrix=- if="needs.pages-build.outputs.enabled == 'true'"
+## pr-contract-rerun.yml  name='PR contract re-run'  jobs=1  on=['workflow_run']
+  rerun-stale-contract         api_sites=  0 matrix=- if='contains(fromJSON(\'["failure","timed_out","cancelled"]\'), github.event.workflow_run.conclu'
+## pr-contract.yml  name='PR contract'  jobs=1  on=['merge_group', 'pull_request']
+  pr-contract                  api_sites=  4 matrix=- if="github.event_name == 'pull_request' || github.event_name == 'merge_group'"
+## release.yml  name='Release'  jobs=1  on=['push', 'workflow_dispatch']
+  release                      api_sites=  0 matrix=- if=''
+## tests.yml  name='Tests'  jobs=27  on=['merge_group', 'pull_request', 'push', 'schedule', 'workflow_dispatch']
+  cancel-superseded            api_sites=  0 matrix=- if="github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' "
+  recheck-gate                 api_sites=  0 matrix=- if="github.event_name == 'workflow_dispatch'"
+  fast                         api_sites=  0 matrix=y if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  browser                      api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  briefs                       api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  typing                       api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  coverage                     api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  coverage-ratchet             api_sites=  0 matrix=- if="!cancelled() && needs.coverage.result != 'skipped' && (\n  github.event_name == 'push'\n  ||"
+  mutation                     api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'push'\n  || github.event_name == 'pull_request'\n "
+  mutation-pin-plan            api_sites=  0 matrix=- if="!cancelled() && github.event_name == 'pull_request' && needs.mutation.result == 'failure' "
+  mutation-pins                api_sites=  0 matrix=y if="!cancelled() && github.event_name == 'pull_request' && needs.mutation.result == 'failure' "
+  mutation-nightly             api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'schedule'\n  || (github.event_name == 'workflow_d"
+  mutation-ledger              api_sites=  0 matrix=- if="!cancelled() && github.ref == 'refs/heads/main' && (\n  github.event_name == 'schedule'\n  |"
+  mutation-ledger-push         api_sites=  1 matrix=- if="!cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || git"
+  slow                         api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'schedule'\n  || (github.event_name == 'workflow_d"
+  nightly-ha                   api_sites=  0 matrix=y if="!cancelled() && ( github.event_name == 'schedule' || github.event_name == 'workflow_dispat"
+  nightly-status               api_sites=  0 matrix=- if="github.event_name == 'pull_request'"
+  graders-head-copy            api_sites=  0 matrix=- if="${{ !cancelled() && github.event_name == 'pull_request' }}"
+  lane-proofs                  api_sites=  0 matrix=- if="!cancelled() && (\n  github.event_name == 'pull_request'\n  || (github.event_name == 'workfl"
+  closure-scope                api_sites=  0 matrix=- if="github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_"
+  closures                     api_sites=  2 matrix=- if='${{ !cancelled() }}'
+  composed-proof               api_sites=  0 matrix=- if="!cancelled() && (github.event_name == 'schedule'\n  || github.event_name == 'pull_request')"
+  ci-ratchet                   api_sites=  2 matrix=- if="!cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'"
+  closures-autofix             api_sites=  2 matrix=- if="!cancelled() && github.event_name == 'pull_request' && needs.closures.result == 'failure' "
+  claims-autofix               api_sites=  2 matrix=- if="!cancelled() && github.event_name == 'pull_request' && needs.fast.result == 'failure' && g"
+  mutation-autofix             api_sites=  2 matrix=- if="!cancelled() && github.event_name == 'pull_request' && needs.mutation.result == 'failure' "
+  record-autofix               api_sites=  4 matrix=- if="!cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'push'\n    || git"
+## validate.yml  name='Validate'  jobs=1  on=['merge_group', 'pull_request', 'push', 'workflow_dispatch']
+  validate-hacs                api_sites=  1 matrix=- if=''
+TOTAL jobs=48 jobs_with_api_sites=14

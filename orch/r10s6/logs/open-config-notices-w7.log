@@ -1,0 +1,13 @@
+===== daemonize pid=25555 2026-10-24T12:45:24Z argv: bash tools/audit/seat/open_pr.sh r10-config-notices 5b067738bd38010b0af9e54e78224b55234476e2 R10-CONFIG-NOTICES: config notices R10-CONFIG-NOTICES
+open_pr: 7 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18110
+  max_class_loc: 8457 + both deltas = 8350
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 2cdf7adca320 -- repair before the handoff; the lines above name each arm's repair
+  REFUSE   pr-body                ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-config-notices/body.md: `## Friction` line does not parse: "The patch's `setpoint_check` hunk did not apply to". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`. (1 error line(s) in all) -- no budget leaf raised over 2cdf7adca...6453542c7
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-config-notices/p1.log

@@ -1,0 +1,21 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run15/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run15 pid=64486 start=2026-10-24T01:48:34Z
+BATCH 20261024-014834 pid=64494 base=main queue=1 (#2681) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 2dd8a6c2: the record beat waits
+BOT #2684 pending at 3db69a90: AUTOMERGE PENDING #2684: pending: gate; not merged
+OVERLAP: main at 5c1980cbac23 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+#2681 admitted at 16d3ee72
+#2681 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2681 approved (app)
+OVERLAP: main at 5c1980cbac23 is still running (gate): a wait, not red; --overlap does not wait
+#2681 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 5c1980cbac23 is still running (gate): a wait, not red; --overlap does not wait
+#2681 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 5c1980cbac23 is still running (gate): a wait, not red; --overlap does not wait
+#2681 MERGED b14376b80c959acec8b68c298c901284466de33c
+#2681 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2681 main b14376b8 tree == proof abaeb4fd
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T01:50:49Z

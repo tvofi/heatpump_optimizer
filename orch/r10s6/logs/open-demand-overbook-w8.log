@@ -1,0 +1,12 @@
+===== daemonize pid=12710 2026-10-24T13:04:36Z argv: bash tools/audit/seat/open_pr.sh r10-demand-overbook d6ab12b4b7f0554f6fd18915ddc6b71b54acf1db Demand overbook: the planner books heat the house does not need (part of #2499) R10-DEMAND-OVERBOOK 2499
+open_pr: 7 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18207
+  max_class_loc: 8457 + both deltas = 8425
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   ancestry reds          RED UNANSWERED (tests / mutation): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-demand-overbook/body.md: check `tests / mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-demand-overbook/p2.log

@@ -1,0 +1,3 @@
+===== daemonize pid=63643 2026-10-24T14:20:03Z argv: bash tools/audit/seat/update_pr.sh triage/s6-batch5 - /Users/timmalmstrom/hpo-orch/r10s6/scratch/body-2735.md
+app_push: ROW-ONLY: prepr SKIPPED: HEAD 0f77f2ec is the live head d47d5e0f plus one commit adding only dev/programme/delivery/2735.md, one open row for #2735, and the body is the live one under one new `## Head` note
+HEAD=0f77f2ecd80e59c178c66e9f9fae6cab8d363561

@@ -1,0 +1,297 @@
+{
+ "_comment": [
+  "Round-10 roster issue drafts (Phase 3). One per roster group that holds no judge-filed issue: the owner-reported, study, instrument, arch and policy groups (tvofi's rule, 2026-10-15: every roster group has at least one issue). NOT filed by the planning seat; the orchestrator files each, then wires the number into the group with roster_edit.py wire-issue and drops the DRAFT token from pending_issues.",
+  "Owner items quote the owner's report as the orchestrator's plan recorded it, so CLAUDE.md's verify-before-filing is satisfied by the owner's own report. Study, instrument and arch items cite their verifying evidence.",
+  "Four class issues are being filed by another seat and appear in the roster as ISSUE:<class> tokens, not here: N-leaf-imports-solver, N-restore-race, N-order-coupling, N-solve-recompute."
+ ],
+ "roster": "dev/programme/rosters/wave-r10-groups.json",
+ "count": 22,
+ "drafts": [
+  {
+   "draft": "DRAFT:R10-TRUST-RELATIVE",
+   "group": "R10-TRUST-RELATIVE",
+   "kind": "study",
+   "title": "[R10-TRUST-RELATIVE] The learner trust region is fixed in multiplier units; make it relative to the current estimate",
+   "labels": [
+    "audit",
+    "round-10",
+    "study",
+    "sev:medium"
+   ],
+   "body": "From a round-10 study. The study's result, as recorded:\n\n>        - Reseeding only changes the learner's step size: the trust region is fixed in multiplier units, so the step grows with learned/prior.\n>        - Turning the trust region off gives ratios of exactly 1.0000.\n>        - **R10-TRUST-RELATIVE:** a relative trust region, `after` R10-RATIO-SITES.\n\n**Evidence.** STUDY R10-RESEED on study/r10-reseed @ 2c42ba4a0 (tools/audit/round10/study-reseed/): trust region off gives ratios of exactly 1.0000.\n\n**Roster group.** `R10-TRUST-RELATIVE` in `dev/programme/rosters/wave-r10-groups.json` (lane LR, wave 11, size M, after: R10-LEAF-IMPORTS). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-DEEPLINK",
+   "group": "R10-DEEPLINK",
+   "kind": "owner",
+   "title": "[R10-DEEPLINK] Card deep links: one shared helper for options-flow step, filtered entity table and single entity",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n>   **The deep-link class.** One mechanism is broken in three places: Advisor \"Open settings\" (R10-ADVISOR), Setup \"Configure\" (R10-UX-SETUP) and Health \"Show\" (item 4). It is fixed once, as a shared card helper that builds HA deep links (options-flow step, entity table filtered by entry, a single entity). The three call sites then use that helper, and one test enumerates every link-emitting button. The helper lands first, and the three groups run `after` it.\n\n**Evidence.** ARCH2-s5 patch C2 (handoff/audit-r10-arch2-s5 @ 3930b421a), verified low by the catch-up judge (33ffa7aa9).\n\n**Roster group.** `R10-DEEPLINK` in `dev/programme/rosters/wave-r10-groups.json` (lane UI, wave 1, size S, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-UX-SETUP",
+   "group": "R10-UX-SETUP",
+   "kind": "owner",
+   "title": "[R10-UX-SETUP] Setup tab redesign in the product's design identity (labels, not-configured rows, pipes, decimals, chips)",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **R10-UX-SETUP: Setup tab redesign.** The card's Setup tab is redesigned in the product's design identity: the same tokens, typography, chips and table styles as Plan, Savings, Advisor and Health.\n>   - Reviewer: opus, with Playwright screenshots in light and dark at phone and desktop widths (`tests/card_browser.mjs`).\n>   - Ordering: it runs `after` any D4 finding on the same tab, so D4 fixes fold into it rather than conflict.\n>   - Acceptance comes from tvofi's screenshot of the current tab (2026-10-14). The redesign must remove each of these:\n>     - **Visual identity.** The sketchy hand-drawn boxes and wobbly double borders do not match the flat, rounded tokens of the other tabs.\n>     - **Truncated labels.** Examples: \"Stove or flu…\", \"Hot water temperat…\", \"Lower floor tempe…\", \"Floor loop r…\", \"Buffer tank temper…\". Labels must fit or wrap at every width.\n>     - **\"not configured\" rows.** They render in the same bold weight as live values, which crowds out data. Fold them into one muted \"N optional inputs not set → Configure\" affordance per component, and deep-link it like the Advisor fix.\n>     - **Pipes.** They cross over boxes and labels: the wood-tank to hot-water coil lines, and the valve hourglass overlapping \"Valve outlet tempe…\". Route them clear of text.\n>     - **Decimals.** Precision is inconsistent: 19.30 °C next to 20.8 °C. Use one per-unit precision.\n>     - **Topology chips.** \"Edit layout\" and the DHW-tank and wood-tank chips are unstyled. Use the product's chip and button tokens.\n\n**Evidence.** Owner screenshot 2026-10-14. Folds ARCH2-s5 C1/C4 and the hot_water_pumps label (#2222).\n\n**Roster group.** `R10-UX-SETUP` in `dev/programme/rosters/wave-r10-groups.json` (lane UI, wave 2, size L, after: R10-DEEPLINK). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-SAV-BASELINE",
+   "group": "R10-SAV-BASELINE",
+   "kind": "owner",
+   "title": "[R10-SAV-BASELINE] Savings baseline is implausible, the partial month is inconsistent, and the headline and month table disagree",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **R10-SAVINGS: savings accounting is wrong.** From the screenshot, 2026-10-14:\n>   1. September shows 1435.11 SEK saved (81 %) against a plain-thermostat baseline. That is implausible, so the baseline model needs auditing.\n>   2. The October estimate is negative (-126.44, -97 %). Its baseline of 130.16 is below the actual 256.60, so the baseline and the partial-month extrapolation are inconsistent.\n>   5. The headline cost (355.73) and the month table's Actual (344.81) disagree for the same month. One source of truth is needed.\n\n**Evidence.** Owner screenshot 2026-10-14 (savings items 1, 2, 5). Null control owed: savings about 0 on a flat-price profile.\n\n**Roster group.** `R10-SAV-BASELINE` in `dev/programme/rosters/wave-r10-groups.json` (lane SV, wave 14, size L, after: R10-LOOP-CPU). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-SAV-REASONS",
+   "group": "R10-SAV-REASONS",
+   "kind": "owner",
+   "title": "[R10-SAV-REASONS] Savings reason attribution: idle time is the costliest category and boost costs carry no reason code",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **R10-SAVINGS: savings accounting is wrong.** From the screenshot, 2026-10-14:\n>   3. \"Not heating\" is the most expensive attribution category (137.58 SEK). Idle time cannot cost the most, so the reason attribution is mis-assigned.\n>   4. Boost modes have no reason code, and \"untagged\" costs 10.90 SEK. Every cost needs a reason code.\n\n**Evidence.** Owner screenshot 2026-10-14 (savings items 3, 4).\n\n**Roster group.** `R10-SAV-REASONS` in `dev/programme/rosters/wave-r10-groups.json` (lane SV, wave 15, size M, after: R10-SAV-BASELINE, R10-LEAF-IMPORTS). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-ADVISOR",
+   "group": "R10-ADVISOR",
+   "kind": "owner",
+   "title": "[R10-ADVISOR] Advisor: day-to-day swing, Open settings not deep-linked, and a self-contradicting -266 SEK 'costs more'",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n>   6. The Advisor tab's \"worth doing\" savings swing day to day. They should use a longer horizon, for example a 30-day rolling average.\n>   7. The Advisor tab's \"Open settings\" buttons do not deep-link to the specific config-flow step or option.\n>   8. The Advisor screenshot from 2026-10-14 shows \"A degree cooler is cheaper ≈ 140 SEK/month\", but its subline reads \"A degree warmer costs -266 SEK/month more\".\n>      - A negative cost in a \"costs more\" sentence contradicts itself.\n>      - The ±1 °C deltas are also non-monotonic: cooler saves 140, while warmer comes out 266 cheaper.\n>      - The what-if delta is computed from noisy single solves, and its sign is not checked before it is rendered.\n>      - The fix has three parts: a convexity/monotonicity check across −1/0/+1 °C, the same horizon as item 6, and copy that cannot render a negative \"more\".\n\n**Evidence.** Owner screenshots 2026-10-14 (savings items 6, 7, 8).\n\n**Roster group.** `R10-ADVISOR` in `dev/programme/rosters/wave-r10-groups.json` (lane UI, wave 16, size M, after: R10-UX-SETUP, R10-SAV-REASONS). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-SCORES",
+   "group": "R10-SCORES",
+   "kind": "owner",
+   "title": "[R10-SCORES] Plan scores read 0 for no evidence, the house score misreads a two-zone house, and scores contradict other tabs",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **R10-SCORES: the plan scores (tvofi, 2026-10-14).** Read from `coordinator._scores_view` and `_close_score_day` at main 554e2ecfa:\n>   1. **The heat-pump score reads 0 with too little COP data.** `machine` is `None` when no COP baseline has `COP_BASELINE_MIN_SAMPLES`, so the 0 comes from the sensor or card turning \"no evidence\" into 0. It must render \"–\" / N/A with a reason. Every score shares one rule: None means no evidence, and it is never 0.\n>   2. **The house score reads 0 on an averagely insulated house with new windows.** It is not a diff against the initial setpoint. It is the time constant τ = room_thermal_mass / (heat_loss_coefficient × learned `house_heat_loss_scale`), mapped from 20–100 h to 0–100 and clipped. Three causes are suspected:\n>      - **(a)** The learned scale has drifted ×2.6 in autumn (see the R10-RESEED drift lead: solar and other confounds), which drives τ under 20 h.\n>      - **(b)** For two zones, τ ignores the lower-floor learned ratio and zone masses.\n>      - **(c)** The 20/80 h band is an absolute, uncalibrated heuristic, and the configured thermal mass may be the default.\n> \n>      Measure τ on tvofi's bundle stores, and fix the envelope grade to use whole-house UA (both zones) and its confidence. Show \"–\" while the heat-loss learner is still converging or drifting. Once fixed, the house-heat-loss result must agree with the Health tab's figure.\n>   3. **One message everywhere.** The scores must not contradict the Savings, Advisor and Health insights: the same evidence, the same thresholds and the same \"not enough data\" state. Use one view model, and add a consistency test that walks every card surface for each score input.\n> \n>   Ordering: `after` R10-RATIO-SITES and R10-SAV-BASELINE (shared inputs), and before the card groups. The card rendering joins R10-UX-HEALTH.\n\n**Evidence.** Owner report 2026-10-14, read from the coordinator's score view at main 554e2ecfa. Folds ARCH2-s5 C3.\n\n**Roster group.** `R10-SCORES` in `dev/programme/rosters/wave-r10-groups.json` (lane UI, wave 17, size L, after: R10-ADVISOR, R10-RATIO-SITES). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-ARCHSCORE-COVERAGE",
+   "group": "R10-ARCHSCORE-COVERAGE",
+   "kind": "arch",
+   "title": "[R10-ARCHSCORE-COVERAGE] archscore coverage: layering, card script, dict-literal clones, hub aliases, ARCH-s3 holes, shape census, event-callback writes",
+   "labels": [
+    "audit",
+    "round-10",
+    "arch",
+    "sev:low"
+   ],
+   "body": "Architecture-seat leads, verified by the D7 panel and the judges, as recorded:\n\n> ### R10-ARCHSCORE-COVERAGE (tvofi 2026-10-15): fold the arch-seat leads into archscore\n> One group on `tools/audit/archscore/`. Every new counter gets a calibration case (planted good and planted bad) in the score's expected.json and a red-team case. The `structure.py` ratchet is not touched.\n> 1. **Layering and import closure** (ARCH2-s4): a metric for the persistence layer's import-time closure and for cross-module private imports (17 today), plus pure-module purity (no HA imports).\n> 2. **Card coverage** (ARCH2-s5): extend the vector to `www/*.js`, at least duplicated spellings, dead definitions and the card's own clone census, so the largest UI surface is priced.\n> 3. **Dict-literal clones** (ARCH2-s5): the census sees duplicated specs inside one dict or list literal (the 44 wizard selector specs read NULL).\n> 4. **Hub alias through readers and rebinds** (ARCH2-s1, D7-s1-83): `Engine._derive_aliases` follows zero-argument readers returning a hub and attribute rebinds of a hub.\n> 5. **ARCH-s3's three holes**: the census misses the away keys; C1 reads `Any` spellings as typed; C6 accepts an invented family.\n> 6. **Shape census** (ARCH-s2 and ARCH2-s3): an optional counter for N-implementations-of-one-rule. Calibrate first, and weight it only if calibration shows it is not gameable.\n> - Ordering: before the D7 M7/M8 policy fold, so the folded D7 brief can cite the new counters. A weight change re-records expected.json, and the reason goes in the commit.\n> - Issue: filed per the one-issue-per-group rule, citing each seat's evidence.\n>   - archscore lead: event-callback hub writes are invisible. Added to R10-ARCHSCORE-COVERAGE as item 7.\n\n**Evidence.** ARCH-s3 (e0a2e91bd), ARCH2-s1 (2c30ada11), ARCH2-s2 (fabaf4664), ARCH2-s4 (b202335e2), ARCH2-s5 (3930b421a); judged in JUDGE.json (d23205d13) and CATCHUP-JUDGE.json (33ffa7aa9). Partly covers #2235 and #2228.\n\n**Roster group.** `R10-ARCHSCORE-COVERAGE` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 1, size L, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-LEARNER-ETA",
+   "group": "R10-LEARNER-ETA",
+   "kind": "study",
+   "title": "[R10-LEARNER-ETA] Learner progress payload and Health hints instead of day-count ETAs while a learner settles",
+   "labels": [
+    "audit",
+    "round-10",
+    "study",
+    "sev:medium"
+   ],
+   "body": "From a round-10 study. The study's result, as recorded:\n\n>   - **R10-LEARNER-ETA**: a payload field plus Health-tab hints such as \"≈N days\", \"waiting for colder/sunnier weather\" and \"COP: N days until modelable\", rendered with the R10-UX-HEALTH group and R10-SCORES' \"–\" states.\n> - Q3: no honest ETA exists while a learner is settling; count ETAs are 13–37 days early. Instead show progress, phase and waiting_for, with a day count only for counting gates.\n> - Groups (Phase 3): G-ID-2 (vent detector) → G-ID-1 (night-only folds) ; G-ID-3 (re-anchor on meter add, L1, after R10-RATIO-SITES) ; G-ID-4 = R10-LEARNER-ETA (progress payload + Health copy, joins R10-UX-HEALTH) ; R10-COP-GATE becomes: an honest \"COP not measurable here\" state plus L3 (draw-follows check), not a gate loosening.\n\n**Evidence.** STUDY R10-IDENT Q3 on study/r10-identifiability @ 4f2d513c9 (dev/audit/rounds/round10/study-ident/eta_rolling.py): count ETAs are 13-37 days early.\n\n**Roster group.** `R10-LEARNER-ETA` in `dev/programme/rosters/wave-r10-groups.json` (lane LR, wave 22, size M, after: R10-ARCH-SHAPES). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-HEAT-METER",
+   "group": "R10-HEAT-METER",
+   "kind": "owner",
+   "title": "[R10-HEAT-METER] Add a delivered-heat energy input; measured COP and the house learner's delivered heat, split by mode",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> ### R10-HEAT-METER (tvofi asked 2026-10-15; added as a group)\n> - Main has no delivered-heat energy input. The only heat-output path is CONF_FLOW_METER_ENTITY (mass flow × supply–return ΔT, `flow_meter.read_heat_output_kw`), and it is used ONLY when there is no power and no frequency signal. So an install with a power meter never measures heat.\n> - tvofi has a delivered-heat entity (kWh, cumulative). The group:\n>   - adds an optional `heat_energy_entity` (total_increasing kWh);\n>   - reads Δheat over each interval;\n>   - makes measured COP = Δheat/Δelectric the COP sample whenever both meters exist. That replaces \"modelled COP × asked/drawn\" and removes the draw-follows-plan assumption (study Q2/L3).\n>   - Δheat also gives the house learner a true delivered-heat input (fixes the L1 delivery shortfall at the root).\n> - Guards: counter resets and rollover; interval alignment between the two meters (their update cadences differ); a defrost or DHW share split (DHW heat must not feed the space learner; DHW intervals get their own COP bin); a minimum Δ so quantisation does not dominate.\n> - Tests: synthetic plant with a known COP gives an exact fold; null control with heat = COP×elec reproduces the model; a planted reset is refused.\n> - Ordering: before R10-COP-GATE, which then only handles installs without a heat meter, and with G-ID-3. Config-flow/strings changes join R10-UX-SETUP's deep-link work.\n> 2. R10-HEAT-METER: no entity is added yet. The meter will count heating AND DHW, so the group must split delivered heat and electric power into DHW and space using the heat pump mode entity, per interval, by the time share in each mode. The tests owe a mixed-mode interval, and the mode entity must be required when the heat meter is configured, with a refusal if it is missing. Same split for electric power.\n\n**Evidence.** Owner request 2026-10-15 and the owner's answer the same day (heating plus hot water; split by the mode entity; mode entity required).\n\n**Roster group.** `R10-HEAT-METER` in `dev/programme/rosters/wave-r10-groups.json` (lane LR, wave 23, size XL, after: R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-COP-GATE",
+   "group": "R10-COP-GATE",
+   "kind": "study",
+   "title": "[R10-COP-GATE] An honest 'COP not measurable here' state and a draw-follows-plan check for installs without a heat meter",
+   "labels": [
+    "audit",
+    "round-10",
+    "study",
+    "sev:medium"
+   ],
+   "body": "From a round-10 study. The study's result, as recorded:\n\n>   - **R10-COP-GATE**, if the gate or the sample definition is wrong;\n> - Q2: no bin of the COP gate reaches 20 within 120 days, because 59 of 138 rows fall under the duty floor. The sample definition assumes the draw follows the plan (owner slope 0.37), so COP is not observable without a heat meter.\n> - Groups (Phase 3): G-ID-2 (vent detector) → G-ID-1 (night-only folds) ; G-ID-3 (re-anchor on meter add, L1, after R10-RATIO-SITES) ; G-ID-4 = R10-LEARNER-ETA (progress payload + Health copy, joins R10-UX-HEALTH) ; R10-COP-GATE becomes: an honest \"COP not measurable here\" state plus L3 (draw-follows check), not a gate loosening.\n\n**Evidence.** STUDY R10-IDENT Q2 (owner_rows.py at 4f2d513c9): no COP bin reaches 20 within 120 days; 59 of 138 rows under the duty floor.\n\n**Roster group.** `R10-COP-GATE` in `dev/programme/rosters/wave-r10-groups.json` (lane LR, wave 24, size M, after: R10-HEAT-METER, R10-SENSOR-PAYLOAD). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-UX-HEALTH",
+   "group": "R10-UX-HEALTH",
+   "kind": "owner",
+   "title": "[R10-UX-HEALTH] Health tab: one label source, responsive list, sticky-header clip, Show link, learner state, direct diagnostics download",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **R10-UX-HEALTH: Health tab input list.** From tvofi's screenshot of 2026-10-14:\n>   1. **Mixed casing.** \"Lower floor\", \"Heat pump power\", \"Hot-water tank\" and \"Buffer tank\" sit next to \"wood tank top\", \"heat pump supply temp\", \"heat pump mode\" and \"heat pump defrost\". The lowercase rows look like the user's own entity friendly names passed through raw, while the others are the integration's role labels. Every row shows the integration's translated role label, with the entity name as secondary text if it is shown at all. The rule is a single label source, and a check fails any input row whose label does not come from `strings.json`.\n>   2. **Half-width list.** The list fills only the left half on a wide screen, and the right half is empty. Use a responsive grid of 2 columns, or the full width.\n>   3. **Clipping under the sticky header.** The first row (\"Outdoor temperature\") is clipped under the header when scrolled.\n> \n>   4. **\"Show\" opens the wrong page.** The checklist row \"Some insight sensors are off by default\" opens only the integration's front page. It must land on exactly the disabled entities: HA's entity table, filtered to this config entry with disabled entities shown.\n>   5. **Contradictory efficiency row.** It says \"Not enough running history to watch yet\" next to a confident \"Normal (COP scale 1.00)\". When the learner lacks history, the value must read as not-yet-learned rather than \"Normal\".\n>   6. **Internal-gains peak at 03:00.** The card says \"add up to 0.4 kW around 03:00\", which is physically odd for people and cooking. This goes as a lead to the D2 estimator seat (M5) and the D15 live-bundle seat. It becomes a fix only if a finder measures it as a learner artefact.\n> \n>   7. **\"Download diagnostics\" downloads nothing.** The button only explains how to find the menu. It should download the file directly, through HA's authenticated diagnostics endpoint for this config entry, and fall back to the integration page if the fetch is refused.\n\n**Evidence.** Owner screenshot 2026-10-14. Item 6 (internal gains at 03:00) is a lead, not owed; item 8 (RESEED) was a study that returned NO-GO.\n\n**Roster group.** `R10-UX-HEALTH` in `dev/programme/rosters/wave-r10-groups.json` (lane UI, wave 25, size L, after: R10-SCORES, R10-COP-GATE, R10-HEAT-METER). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-TICK-ORCH",
+   "group": "R10-TICK-ORCH",
+   "kind": "instrument",
+   "title": "[R10-TICK-ORCH] orchestrator_tick: ABSENT for a pending context, a dead default roster ref, a SyntaxWarning; state_docs defaults to round 9",
+   "labels": [
+    "audit",
+    "round-10",
+    "instrument",
+    "sev:medium"
+   ],
+   "body": "Instrument defect found while running round 10, as recorded:\n\n> **R10-TICK: `orchestrator_tick.py`.**\n> - **(a) \"ABSENT\" for a context that is only pending.** It reports a required context ABSENT when the job is merely waiting on its `needs:`. `closures` waits on `coverage` (`tests.yml:2335`), and a seat measured this at main 97750ec79 and #2207/#2208/#2209. It should read job status before saying absent.\n> - **(b) Dead default roster ref.** The default roster ref is `origin/handoff/audit-r9-fixplan`, which no longer exists. It should default to `dev/programme/rosters/` on main, choosing the newest wave roster.\n> - **(d) `state_docs.py` defaults to round 9.** It writes `handoff/round9/state/*` to `handoff/audit-r9-plan`. Pass `--state-ref handoff/audit-r10-plan --roster-file dev/programme/rosters/wave-r10-groups.json` once the round-10 roster exists, and fix the defaults to follow the newest roster.\n> - **(c) SyntaxWarning.** `\"\\+\"` at `:1421` warns under 3.14.\n\n**Evidence.** (a) measured by a seat at main 97750ec79 and on #2207/#2208/#2209; (b)-(d) read from the tool at main.\n\n**Roster group.** `R10-TICK-ORCH` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 1, size S, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-TICK-DRIVERS",
+   "group": "R10-TICK-DRIVERS",
+   "kind": "instrument",
+   "title": "[R10-TICK-DRIVERS] Round drivers trust large agent replies and a hand-kept schema; land the scratch-clone patches in-tree",
+   "labels": [
+    "audit",
+    "round-10",
+    "instrument",
+    "sev:medium"
+   ],
+   "body": "Instrument defect found while running round 10, as recorded:\n\n> - R10-TICK (e), an instrument fix owed in-tree: `audit-find.js`'s intake gather returned all 45 reports from one agent, and the reply was cut off. The first round-10 intake read every seat as missing. It was patched in the lane-B scratch clone to gather per box in parallel; that patch must land on main via a fixer (tools live in the repo).\n> - R10-TICK (g): audit-find.js's finder reportSchema lacks finding.schema.json's enums and types (expected_direction enum, numeric load1/thread_factor, cpu_or_wall). 35 of 44 round-10 box findings were rejected at intake on form alone and normalised mechanically (NORMALISE.md on handoff/audit-r10-register). Fix: derive the finder reportSchema from finding.schema.json, so the constraint reaches the finder.\n> - R10-TICK (h): audit-verify.js register read, where the agent returned findings as a JSON string. Patched in the laneD scratch clone to parse a string; the patch must land in-tree (the same class as (e): workflow scripts trusting large agent replies).\n> - R10-TICK (i): fold_ledger.py must also write audit-find.js CLASS_GUESS (third reader of the class enum).\n\n**Evidence.** (e) the first round-10 intake read every seat as missing; (g) 35 of 44 box findings rejected on form (NORMALISE.md on handoff/audit-r10-register @ d23205d13); (h) patched in the laneD scratch clone; (i) third reader of the class enum.\n\n**Roster group.** `R10-TICK-DRIVERS` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 1, size M, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-TICK-TRAIN",
+   "group": "R10-TICK-TRAIN",
+   "kind": "instrument",
+   "title": "[R10-TICK-TRAIN] merge_train --approval-carry returned no carry for #2209 at its recarried head",
+   "labels": [
+    "audit",
+    "round-10",
+    "instrument",
+    "sev:low"
+   ],
+   "body": "Instrument defect found while running round 10, as recorded:\n\n> - R10-TICK (f): merge_train --approval-carry returned no carry for #2209 at the recarried head 8876da3b (owner approval at h0 8a8e66e7 citing mandate 6175172275, delta main-only). #2209 was merged by gh --match-head-commit instead. Trace _carry_owner_approval and add a self-test for the case.\n\n**Evidence.** #2209 was merged by gh --match-head-commit instead; trace and self-test owed.\n\n**Roster group.** `R10-TICK-TRAIN` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 1, size S, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-PREPR-CAP",
+   "group": "R10-PREPR-CAP",
+   "kind": "instrument",
+   "title": "[R10-PREPR-CAP] The prepr cap of 4 is advisory; 10 concurrent prepr runs drove load1 to 168 on 8 cores",
+   "labels": [
+    "audit",
+    "round-10",
+    "instrument",
+    "sev:medium"
+   ],
+   "body": "Instrument defect found while running round 10, as recorded:\n\n> **Lead for D13/D11: R10-PREPR-CAP.**\n> - What happened: the prepr cap of 4 is only advisory. At 22:57 the tick read 10 prepr runs, each spawning a nested chain of `--self-test` runs, and load1 reached 168 on 8 cores.\n> - Why it went over: each seat starts prepr independently, and nothing enforces the cap, unlike the gate lease, which does.\n> - What to measure: the cost of the nested self-test chain per prepr run, and whether prepr should take a lease (`gate_lock.py` has 4 heavy slots).\n> \n> This is the orchestrator's own instrument, so it gets a fixer seat with an independent reviewer.\n\n**Evidence.** Orchestrator tick at 22:57 on 2026-10-14. Measure the nested self-test cost first.\n\n**Roster group.** `R10-PREPR-CAP` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 1, size S, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-D15-GRADER",
+   "group": "R10-D15-GRADER",
+   "kind": "instrument",
+   "title": "[R10-D15-GRADER] D15 graders: key the bundle pins on the brief existing; give M1 a restart-gap threshold",
+   "labels": [
+    "audit",
+    "round-10",
+    "instrument",
+    "sev:low"
+   ],
+   "body": "Instrument defect found while running round 10, as recorded:\n\n> - From the #2214/#2209 reviews (D15 instrument follow-ups, one small group R10-D15-GRADER after #2209 lands):\n>   - (a) re-key the three bundle pins on D15's brief existing, not on the `BUNDLE_DIMS` declaration. Today an empty `BUNDLE_DIMS` passes 180/0.\n>   - (b) give D15.md M1 a gap threshold for restart detection.\n\n**Evidence.** Review follow-ups on #2214 and #2209.\n\n**Roster group.** `R10-D15-GRADER` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 2, size S, after: R10-TICK-DRIVERS). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-BRIEFS-FOLD",
+   "group": "R10-BRIEFS-FOLD",
+   "kind": "policy",
+   "title": "[R10-BRIEFS-FOLD] Fold arch-score into D7 (M7/M8) and land the round's owed dimension-brief edits",
+   "labels": [
+    "audit",
+    "round-10",
+    "policy",
+    "sev:medium"
+   ],
+   "body": "Policy work the owner decided, as recorded:\n\n> - **Decided by tvofi (2026-10-14): fold this into D7 permanently, after the judge rules.** Once Phase 2 has judged the ARCH-s1/s2/s3 findings, dispatch a policy fixer to:\n>   - edit `dev/governance/dimensions/D7.md` to add M7 (arch-score opportunities, all counters on, behaviour gate, architectural argument, with \"review trigger, never a target\") and M8 (a duplicated-shape census: enumerate the implementations by seam rule, an agreement test, one owner);\n>   - write both steps from what the judge confirmed and voided;\n>   - re-cut D7's three seats in `scopes.json` and `rotation.json` across M1–M8;\n>   - update `check-wave-script` and `check_scopes` as needed.\n> \n>   It merges under the mandate. If the arch seats return dry or mostly void, record that \"a one-time run was enough\" and leave D7 unchanged.\n> - The D7 M7/M8 policy fold records the 150 % bar as the guideline.\n> - Owed brief edits (finding-propagation, go with recommended = adopt): D1 step 3 checks the published/booked value, not only the plan; D2 step 5 tests learners under error in the other covariate; confirm the 35 evidence-only N-move-stale-path seams are by-design under D2 (ledger count overstated). Land with the D7 M7/M8 policy fold PR.\n> - Catch-up study rows: ID-01 verify medium; ID-02 verify medium (production freeze latches 0.98, unmetered installs, shortfall >55%); D-1 verify low (30.4% low vs truth; wood forecast only); D-2 REFUTE (instrument; leftover: published heat_loss_kw_per_c on (U+L) basis reads 22% low = label hygiene) → R10-RATIO-SITES shrinks to D-1 + label; D-3 verify medium. Sysid-stage brief lead: experiment aborts \"drifted beyond excursion\" at scale 1.3x & r>=1.2 (fails safe).\n> - CATCHUP-JUDGE (33ffa7aa9 on handoff/audit-r10-catchup-verify): 39 verified, 5 weakened, 3 refuted (D-2, L4, D9-s1-02), 3 merged. Maps onto #2219/2222/2223/2228/2232/2235/2236/2238/2239/2241/2242/2243. Proposed new classes: N-leaf-imports-solver, N-restore-race, N-order-coupling, + N-solve-recompute issue. Reconcile with JUDGE.json: D2-s3-73 off #2239; D2-s3-72 high→medium; D2-s1-71 medium→low; D7-s3-54 bug→hygiene; D7-s2-61 → weakened P1; D7-s2-56 → bug. Fixer notes: D7-arch2-11 also needs a range bound (a 100 kW reading); re-measure D7-s1-82's ΔS after the census is extended.\n\n**Evidence.** Owner decision 2026-10-14; owed edits from the Phase-2 RCAs (d23205d13) and the catch-up judge's residuals (33ffa7aa9).\n\n**Roster group.** `R10-BRIEFS-FOLD` in `dev/programme/rosters/wave-r10-groups.json` (lane IN, wave 3, size M, after: R10-ARCHSCORE-COVERAGE, R10-D15-GRADER). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-REPLAY-LOOPNORM",
+   "group": "R10-REPLAY-LOOPNORM",
+   "kind": "owner",
+   "title": "[R10-REPLAY-LOOPNORM] Normalise the replay loop CPU ratio by a pure-Python reference workload",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:low"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> 4. loop_cpu_ratio normalisation: owner deferred to me. Recommendation and decision: normalise loop work by a pure-Python reference workload, not the BLAS solve. The loop measure is interpreter-bound, and ref_ms is BLAS-bound, hence the −0.94 correlation. Per-class budgets would fork the cap set and break on any new runner class. → group R10-REPLAY-LOOPNORM: add a pure-Python reference timing to the replay harness, re-derive loop_cpu_ratio from the nightly series, and re-centre with no raise. Fallback if the spread does not narrow: report back before any raise.\n\n**Evidence.** Owner deferred the choice to the orchestrator, who took the recommended option; spread correlates -0.94 with the BLAS reference.\n\n**Roster group.** `R10-REPLAY-LOOPNORM` in `dev/programme/rosters/wave-r10-groups.json` (lane RP, wave 1, size S, after: none). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-DIAG-REPLAY",
+   "group": "R10-DIAG-REPLAY",
+   "kind": "owner",
+   "title": "[R10-DIAG-REPLAY] Download diagnostics: fill the bundle's replay half through the export's allowlist and sanitiser",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> - **Gap that goes to the fix phase:** the diagnostics download's `hpo-debug/1` bundle has `\"replay\": None` (`debugger.py:478-494`). It is not wired to `export.py`.\n> - **Fix-phase group R10-DIAG-REPLAY: wire the export into Download diagnostics (tvofi, 2026-10-14).**\n>   - The bundle's `replay` half is filled at download time with an `hpo-replay/1` document, through the same allowlist and sanitiser as `tools/replay/export.py`.\n>   - The sanitiser, allowlist and `violations()` move into the integration package as one shared module. `tools/replay/export.py` imports it, so there is one copy and no drift.\n>   - The state history is read through HA's recorder history API (`recorder.history` in the recorder executor), not raw SQLite. The pre-study refused raw SQLite (refusal 5), and the history API is the HA-native surface.\n>   - The window is capped (default 7 days) and the bundle stays within the debugger's 8 MiB inline cap (`debugger.capped`). Tibber price-entity auto-selection is shared with export.py.\n>   - Tests:\n>     - `tests/replay.py --check`, i.e. `export.violations`, runs on a generated download.\n>     - A planted-credential null control.\n>     - The nightly `LEAK_PROBES`.\n>     - `nightly_ha.py` A10 coordinate rule.\n>   - Ordering: `after` the export-tibber PR and the D15 brief, and before the D15 finder box.\n> - Forward-carry for R10-DIAG-REPLAY's brief, from #2209: add a per-row version stamp to the diagnostics cycle rows. That removes the need for gap-based version attribution, as in the worked case v6.7.17 → v7.0.0 at the 12054 s gap.\n\n**Evidence.** Owner decision 2026-10-14; the gap is the bundle's replay field set to None in the debugger.\n\n**Roster group.** `R10-DIAG-REPLAY` in `dev/programme/rosters/wave-r10-groups.json` (lane RP, wave 11, size L, after: R10-REPLAY-LOOPNORM, R10-LEAF-IMPORTS). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-REPLAY-LANE",
+   "group": "R10-REPLAY-LANE",
+   "kind": "owner",
+   "title": "[R10-REPLAY-LANE] Land the replay lane: a real recorded day as a fixture, gated nightly",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:medium"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> ### Fix-phase scope added by tvofi (2026-10-14): the replay lane\n> - `tests/replay.py` and `tools/replay/export.py` are already on main. The only fixture is `tests/replay/synthetic-dhw-only.json`, and no real recorded day exists.\n> - One roster group lands the lane fully:\n>   - a real day from tvofi's install, through `export.py`'s allowlist into `tests/replay/<day>.json`;\n>   - the fix for #2205, where CPU doubles on synthetic-dhw-only, which also unblocks #2202;\n>   - the lane gated nightly as 0012 move 2 states.\n> - D14-s3 (nightly-replay) re-runs on the real day once it has landed.\n\n**Evidence.** Owner scope 2026-10-14. #2205 is closed (RCA dev/audit/rca/R10-RCA-2205.md, re-centre #2217).\n\n**Roster group.** `R10-REPLAY-LANE` in `dev/programme/rosters/wave-r10-groups.json` (lane RP, wave 12, size M, after: R10-DIAG-REPLAY). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  },
+  {
+   "draft": "DRAFT:R10-REPLAY-SCOPED",
+   "group": "R10-REPLAY-SCOPED",
+   "kind": "owner",
+   "title": "[R10-REPLAY-SCOPED] Run the timed replay on a PR only when its diff reaches the replay cost files",
+   "labels": [
+    "audit",
+    "round-10",
+    "owner",
+    "sev:low"
+   ],
+   "body": "Owner-reported (tvofi). The owner's report, as the orchestrator's plan recorded it:\n\n> 3. Per-PR timed replay: \"Hard no, only when relevant.\" → R10-REPLAY-SCOPED: run the timed replay lane on a PR only when its diff reaches the replay cost files (the COST_FILES set, optimizer.py, tests/replay.py), selected by the closure mechanism. Nightly stays the full run. A blanket per-PR lane is refused permanently.\n\n**Evidence.** Owner answer 2026-10-15: \"Hard no, only when relevant.\"\n\n**Roster group.** `R10-REPLAY-SCOPED` in `dev/programme/rosters/wave-r10-groups.json` (lane RP, wave 13, size S, after: R10-REPLAY-LANE). The group's brief carries the fix shape, the null control and the forward-carried constraints.\n\n**Closing.** The group's pull request names this issue with a closing keyword in prose; the orchestrator verifies it closed after the merge."
+  }
+ ]
+}

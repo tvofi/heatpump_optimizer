@@ -1,0 +1,6 @@
+open_pr: OVER-CAP: 12 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (799 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+PR=2554 HEAD=b96aab8b85f167f25ac72ba840ef10095f655229 AUTHOR=tvofi

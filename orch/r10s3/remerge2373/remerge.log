@@ -1,0 +1,9 @@
+===== daemonize pid=48850 2026-10-18T19:21:53Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/remerge_main.sh 2373 /Users/timmalmstrom/hpo-orch/r10s3/remerge2373/wt fix/r10-archscore-coverage-p4 /Users/timmalmstrom/hpo-orch/r10s3/remerge2373/body.md
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (119 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (325 entries)
+  re-run the gate that owns this file before pushing
+app_push: RECARRY: prepr SKIPPED: HEAD df737f0c is the clean merge of the live head e14a378c and origin/main's 07a09406, and the body is the live one
+app_push: REFUSE: worktree HEAD (df737f0c45babe1ea9d8a7090a496e7515c89d03) is not the committed tip of 'fix/r10-archscore-coverage-p4' (e14a378c12e5d292c1f564bc9100ecb0de39bd76); commit or check out first
+RESULT pr=2373 head=e14a378c12e5d292c1f564bc9100ecb0de39bd76

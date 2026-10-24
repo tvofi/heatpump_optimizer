@@ -1,0 +1,1 @@
+After R10-LIVESTATE, FlowBias sets its heat output through observe_temps' keyword argument, so observe_water writes no field and read_heat_output_kw's caller changes. Re-read flow_meter.py and flow_lift.py at your merge base before citing that call site. Source: design/r10-livestate note, item ls-03 (design review design-verdict/r10-livestate 5af5526b5 confirmed it needed).

@@ -1,0 +1,11 @@
+# r10 s6 merge queue (orchestrator writes; merge seat reads). Mandate 6329234399.
+2026-10-24T07:50Z HOLD all trains: main is RED (tests / ci-ratchet, repo-wide artifacts list returns 0 bytes). Report main's push CI each pass. A hotfix PR (topic r10-ci-ratchet-artifacts) will arrive as a `direct` line with an orchestrator ruling.
+2026-10-24T07:50Z PARKED #2683 (R10-INPUT-STALENESS) verdict merge 07b83e9b2 (comment 6379079217); head now 8d965647d. When main is green: check carry with tools/audit/app_approve.sh --carry 07b83e9b2 <head>; if carried, train it with --approval-carry (critical-path predecessor of R10-HEAT-METER, front of queue). If not carried, report `review owed #2683`.
+2026-10-24T07:50Z #2687 record/autofix: --bot-prs sweep when main is green.
+2026-10-24T08:08Z #2683 verdict merge 8d965647d (6381802091) — critical-path; train when main is green
+2026-10-24T08:13Z #2688 (triage s6 batch1, ruling file) verdict merge b451bde0c (posted 08:12:19Z by the relay). Train when main is green, after #2683.
+2026-10-24T11:17:25Z #2693 (triage s6 batch3) verdict merge 228d5e48d at current head (probe/rev-2693-7216a12d a10ad889b). Train now: batch, --overlap; include #2699 record via --bot-prs.
+2026-10-24T12:14:11Z #2688 verdict merge 1fbc924ab (review/2688 tip 1c758952a, posted). #2689 verdict merge 583219fa8 (review/2689 tip 048dba84c, posted). One batch, --overlap, --pre-flight. Include record #2702 via --bot-prs.
+2026-10-24T13:33:40Z #2691 verdict merge 3b5eea2062c8a444f5f921fc30a2fe4dd18150bd (probe/rev-2691-e7e89c0f, posted). Single or batch, --overlap, --pre-flight.
+2026-10-24T13:51:03Z #2696 verdict merge 96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0 (probe/rev-2696-60371e12; confirm posted before merging). Batch, --overlap, --pre-flight; include record #2713 via --bot-prs.
+1792852839 #2714 verdict merge dba7f86b1da529a59bc9b15b6f3641bcfc2c8891 (verdict/2714 3d30ed71bfce6a5f3dc880ab33e874d9b8d7f182, posted). #2708 verdict merge ae77c4150ee0245f5546c73fd9c3f35691e9a3c6 (verdict/2708 0e71024d4771a5c5de2ab22f698912f7bd3de076, posted). One batch, --overlap, --pre-flight, --skip-bad; include record #2713 via --bot-prs.

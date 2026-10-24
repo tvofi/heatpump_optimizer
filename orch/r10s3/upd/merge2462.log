@@ -1,0 +1,2 @@
+===== daemonize pid=23317 2026-10-19T22:50:26Z argv: bash tools/audit/seat/merge_pr.sh 2462 103b2097a38f972d1cb048c9ffbedcf6b1ba6d61 /Users/timmalmstrom/hpo-orch/r10s3/ev/2462r3 owner --mandate 6175172275
+DRAFT: #2462 is a draft; pass --ready to mark it ready, or ready it first

@@ -1,0 +1,3 @@
+===== daemonize pid=24478 2026-10-24T12:38:21Z argv: bash tools/audit/seat/open_pr.sh r10-rca-gate-lease-flake fab4a07c15ae167d221d8708f5cc75a1c2f4938f rca-gate-lease-flake: fix(gate_lock): create and renew an owner file whole, so a waiter neve rca-gate-lease-flake
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+PR=2706 HEAD=ea459c0b5f6b4d753394935dfb49e5386480fd40 AUTHOR=tvofi

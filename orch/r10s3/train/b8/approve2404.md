@@ -1,0 +1,3 @@
+Agent approval for code-owned `.claude/rules/finding-propagation.md`, `.cursor/rules/finding-propagation.mdc`, `.github/CODEOWNERS`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/workflows/governance.yml`, `.github/workflows/pr-contract.yml`, `dev/governance/rules/finding-propagation.md`, `tests/layout.json`, given by the orchestrator under 6175172275, at head 7e6870d9dcefd76d19351b046cf964888165afc2.
+
+Basis: `Fix review: merge 519bb4db971b5d49736fcacdd57d57bff8f6c630` (comment ?), carried to 7e6870d9dcefd76d19351b046cf964888165afc2 by `app_approve.sh --carry` (automatic main merges only). CI at 7e6870d9dcefd76d19351b046cf964888165afc2 is green apart from `nightly-status`, which grade main.

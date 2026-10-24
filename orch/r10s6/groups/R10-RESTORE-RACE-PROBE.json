@@ -1,0 +1,45 @@
+{
+ "lane": "AR",
+ "kind": "arch",
+ "class": "N-restore-race",
+ "severity": "low",
+ "size": "S",
+ "issues": [
+  2248,
+  2674
+ ],
+ "fixes": [
+  2674
+ ],
+ "findings": [],
+ "wave": 5,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "mandated approval under 6329234399",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "group": "R10-RESTORE-RACE-PROBE",
+ "after": [],
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "tests/features.py"
+ ],
+ "carry": [
+  "From #2675 (body, item f61f187d), routed by routing audit 1 (2026-10-24): its destination #2674 is done and did not implement it (#2674 open; dev/programme/carries/carry-2674.json on main only, absent from the roster branch (`git ls-tree origin/handoff/audit-r10-roster dev/programme/carries/`); no live group lists #2674 or #2248). The seven per-cycle writers that may run inside the first refresh before their store loads resolve (item ls-r2): **unprobed leads, not findings**. Filed as #2674 (`Part of #2248`), with item ls-r1's probe recipe and its null as the precondition, carried in `dev/programme/carries/carry-2674.json` (no live roster group covers #2674)."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-restore-race-probe"
+ },
+ "brief": "#2674 (part of #2248): R10-LIVESTATE (#2675, merged 94bec97) closed the restore and await races it reproduced and left seven per-cycle writers that may run inside the first refresh before their store loads resolve as unprobed leads, filed as #2674 with item ls-r1's probe recipe and its null as the precondition (dev/programme/carries/carry-2674.json on main; the roster branch lacks the file). Probe each of the seven with that recipe first: a writer whose probe does not move under its own perturbation is recorded as not a finding, never fixed. Fix any reproduced one at the store-load seam LIVESTATE established (fence the first refresh behind the load, do not add a second fence). Closes #2674; the orchestrator closes #2248 by hand when this merges and no instance remains."
+}

@@ -1,0 +1,32 @@
+## governance: 10 PR runs; run wall median 190 s, p90 230 s
+  delivery-status                          executed 10/10  red 8  median 17 s  p90 20.0 s
+  delivery-status-publish                  executed 0/10  red 0  median - s  p90 - s
+  env-matrix                               executed 10/10  red 0  median 180 s  p90 193.0 s
+  instrument-self-tests                    executed 10/10  red 1  median 161 s  p90 188.0 s
+  policy-docs                              executed 10/10  red 0  median 76 s  p90 102.0 s
+  record                                   executed 0/10  red 0  median - s  p90 - s
+  wave-script                              executed 10/10  red 7  median 21 s  p90 28.0 s
+
+## codeql: 10 PR runs; run wall median 1306 s, p90 1664 s
+  Analyze (${{ matrix.language }})         executed 1/1  red 0  median - s  p90 - s
+  Analyze (actions)                        executed 9/9  red 0  median 44 s  p90 52.0 s
+  Analyze (javascript-typescript)          executed 9/9  red 0  median 72 s  p90 81.0 s
+  Analyze (python)                         executed 9/9  red 0  median 1242 s  p90 1597.0 s
+  cancel-superseded                        executed 8/10  red 0  median 9 s  p90 13.0 s
+  scope                                    executed 10/10  red 0  median 16 s  p90 17.0 s
+
+## hassfest: 10 PR runs; run wall median 31 s, p90 50 s
+  hassfest                                 executed 10/10  red 0  median 26 s  p90 31.0 s
+
+## validate: 10 PR runs; run wall median 52 s, p90 59 s
+  validate-hacs                            executed 10/10  red 0  median 49 s  p90 54.0 s
+
+## pr-contract: 10 PR runs; run wall median 32 s, p90 36 s
+  pr-contract                              executed 10/10  red 7  median 28 s  p90 32.0 s
+
+## arch-score: 10 PR runs; run wall median 66 s, p90 68 s
+  arch-score                               executed 10/10  red 0  median 62 s  p90 65.0 s
+
+## budget-raise-gate: 10 PR runs; run wall median 19 s, p90 21 s
+  budget-raise-gate                        executed 10/10  red 0  median 16 s  p90 16.0 s
+

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost RETURN_DEL b3001ec9",
+  "killed_by": "tests/doc_claims.py",
+  "old": "    return row_cost, terms",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2eef524d55376a06a5a807a4f2bf67e9e6d19dc4: RETURN_DEL (`pass`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=1."
+}

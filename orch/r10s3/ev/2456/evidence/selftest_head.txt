@@ -1,0 +1,5 @@
+  ok   register dry run: the copy is removed after the run
+  ok   register dry run: the default runner's working directory is the copy, not the checkout
+  ok   register dry run: a generator that fails refuses, as the real stamp does
+  ok   register dry run: main calls it before returning from --dry-run
+RESULT stamp_self_test=pass

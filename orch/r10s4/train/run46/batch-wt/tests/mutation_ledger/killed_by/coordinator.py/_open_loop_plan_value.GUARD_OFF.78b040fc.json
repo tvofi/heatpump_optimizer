@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_open_loop_plan_value GUARD_OFF 78b040fc",
+  "killed_by": "tests/features.py",
+  "old": "    if now_s < starts[0]:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fab176199f8ff94a169eb085dd6681b34fdb65c4: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,34 @@
+TRAIN pid=7294 queue=1 (#2631)
+TRAIN HOLD refs/heads/train-hold 383fe184: the record beat waits
+TRAIN HOLD refs/heads/train-hold 8a103164: the record beat waits
+TRAIN HOLD refs/heads/train-hold 1418e666: the record beat waits
+#2631 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-briefs-fold/wt held fix/r10-briefs-fold, clean at origin/fix/r10-briefs-fold; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-briefs-fold/wt switch fix/r10-briefs-fold)
+#2631 recarry START (branch fix/r10-briefs-fold)
+#2631 recarry: main merged, head 53ec5bbb; app_push: RECARRY: prepr SKIPPED: HEAD 53ec5bbb is the clean merge of the live head 8b33d021 and origin/main's e45fc34f, and the body is the live one
+TRAIN HOLD refs/heads/train-hold 65cfda57: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 2, t+242s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold da2d2028: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 3, t+485s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 475fa83b: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 4, t+727s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 51c5a079: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 5, t+969s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold fed8dbad: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 6, t+1211s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 0eb8da45: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 7, t+1453s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 5ed81754: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 8, t+1695s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold a6a1927b: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 9, t+1938s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 42338692: the record beat waits
+beat: waiting CI at 53ec5bbb (poll 10, t+2180s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 5fc5700b: the record beat waits
+#2631 53ec5bbb ci red=[]
+#2631 policy head lands under mandate 6329234399 (scope all, from 2026-10-21T23:45Z until 2026-11-04T18:14Z)
+#2631 approved (mandate)
+#2631 MERGED b24cfe517bd95d30911c43184cf62e2ac781aa19
+#2631 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run22/wt/2631 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run22/wt/2631' is not a working tree); remove it by hand
+TRAIN HOLD released
+TRAIN DONE

@@ -1,0 +1,2 @@
+===== daemonize pid=77475 2026-10-18T03:40:57Z argv: bash tools/audit/seat/open_pr.sh r10-store 766b5eb46eb21892f8d87a3853269a679ff5e4f9 R10-STORE: fields declare their clock lead, and the store owns its rules R10-STORE 2224
+PR=2375 HEAD=8508252635106cb2748c15339c6d722c391bfddc AUTHOR=tvofi

@@ -1,0 +1,17 @@
+RESULT own_specs_tested=7 count
+RESULT own_specs_rejected=7 count
+RESULT own_dotted_ok=7 count
+RESULT own_tokens_seen=14 count
+RESULT own_tokens_containing_comma=0 count
+RESULT own_unit_comma_rate=0.45 SEK/kWh
+RESULT own_fragment1_rate=0 SEK/kWh
+Invalid grid fee rules (Rule '40' has no '= rate' part); pricing with no ToU fees
+RESULT own_schedule_rules_after_reject=0 count
+RESULT own_schedule_fee_after_reject_jan=0 SEK/kWh
+RESULT own_schedule_fee_after_reject_jul=0 SEK/kWh
+RESULT own_perturbed_specs_rejected=0 count
+RESULT own_perturbed_fee_jan=0.4 SEK/kWh
+RESULT thread_factor=0.9978469781 ratio
+RESULT load1=4.868652344 load
+RESULT concurrent_processes=3 count
+RESULT swapins=486726197 count

@@ -1,0 +1,81 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117778707421,
+      "run_id": 39162550013,
+      "workflow_name": "Hassfest",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550013",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbChz3Q",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778707421",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550013/job/117778707421",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:28Z",
+      "started_at": "2026-10-18T20:16:31Z",
+      "completed_at": "2026-10-18T20:17:01Z",
+      "name": "hassfest",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:32Z",
+          "completed_at": "2026-10-18T20:16:32Z"
+        },
+        {
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:32Z",
+          "completed_at": "2026-10-18T20:16:35Z"
+        },
+        {
+          "name": "Warm the hassfest image cache",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:35Z",
+          "completed_at": "2026-10-18T20:16:53Z"
+        },
+        {
+          "name": "Run Hassfest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:16:53Z",
+          "completed_at": "2026-10-18T20:16:59Z"
+        },
+        {
+          "name": "Post Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:16:59Z",
+          "completed_at": "2026-10-18T20:16:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:16:59Z",
+          "completed_at": "2026-10-18T20:16:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778707421",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126844,
+      "runner_name": "GitHub Actions 1000126844",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

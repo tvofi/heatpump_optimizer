@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:compose CLAMP_DROP a72ff06c",
+  "killed_by": "tests/manual_plan.py",
+  "old": "            caps = own if caps_extra is None else np.minimum(caps_extra, own)",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. CLAMP_DROP (`caps = own if caps_extra is None else (caps_extra)`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"a silent cap is the elementwise minimum with the caller's extra cap\" (caps stayed at the extra 4.0)."
+}

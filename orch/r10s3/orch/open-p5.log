@@ -1,0 +1,10 @@
+===== daemonize pid=76626 2026-10-18T11:23:36Z argv: bash tools/audit/seat/open_pr.sh r10-archscore-coverage-p5 8befb858369d5cf94bf7b8433ecfef998a72515e R10-ARCHSCORE-COVERAGE p5: hub roots through package helpers, subset record merge R10-ARCHSCORE-COVERAGE
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (121 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (326 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+  REFUSE   'Closes #2235' closes #2235; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

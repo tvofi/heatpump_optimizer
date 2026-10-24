@@ -1,0 +1,2 @@
+open_pr: OVER-CAP: 9 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+PR=2544 HEAD=d4ab722b919b0b07917122bfe0479247bf3b989a AUTHOR=tvofi

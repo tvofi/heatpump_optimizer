@@ -1,0 +1,4 @@
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closure.py
+Auto-merging tests/closures.json
+HEAD=07bf50a64c0eb732cd926816ea8d05aea5828de6

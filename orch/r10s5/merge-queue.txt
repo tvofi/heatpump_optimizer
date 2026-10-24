@@ -1,0 +1,21 @@
+2665 29b08d042f6e0e125079e95a6d907a724d8e73d9 6369953970 -
+2666 0dda6260a8261233bb435442e52c219f3117a747 6369924148 -
+2669 763702294959c3324049058bc6658ca9dfce8ec5 6371069225 -
+2664 5d5e49e6f29e90dd33dffebe3a07319c4965132f 6371261134 -
+2670 ffe44c221c888ba3cb24141577b25732ac2024d6 6372641454 -
+2668 9ef0633bcd6f31482a3ccf0f8da901431e5c6e01 6373636763 -
+2672 4547d59da65e6548c76b1d6291e078d8823ea174 6375006406 -
+NOTE #2673: do NOT train #2673 -- the CI coordinator's step-12 ruleset window (ruleset_cutover.py) merges it inside the window. Ignore any merge-queue line for 2673.
+2653 fafcf2d320e59da456c0beb1f56666f5ed5a457a record-autofix (record_row.py --automerge-check exit 0 at 22:17Z; no review seat) -- PRIORITY: step-12 queue-drained precondition
+2653 20307f5fc43e7b7f1c733e2c9950a1756f822255 record-autofix (supersedes the fafcf2d3 line; automerge-check OK at this head per record seat 22:18Z; 20 rows incl. all 8 overdue) -- PRIORITY step-12 drain
+2671 5c640992a0c816a726086e34e7f2f1e536b44b34 6376165890 - PRIORITY step-12 drain
+2676 ba4f9f2d8b3ef0f3de53340ced187d7e2210bcca record-autofix (#2653's own row; bot-opened 22:31Z) -- PRIORITY step-12 drain
+2679 273203c6b5fd01d282b786185c4c674ed9a42ab3 record-autofix (rows #2671 #2673 #2676)
+2678 6ee3e4d4f83b362001647b2d433d56c96cd20843 dependabot setuptools bump (tests/ pip group) -- bot PR, --bot-prs
+2026-10-24T01:12Z merge #2680 (record chain for #2679; gate green x3, pr-contract skipped) -- if --bot-prs sweep has not taken it
+2681 16d3ee72ad7de8ed0ec2a14b40d5bda23e500310 6378359494 -
+2675 2845e5459331f79adbc39b72cd052cf55703f1aa 6378528903 - PRIORITY critical path R10-LIVESTATE
+direct 2675   # 2026-10-24T02:15Z ORCH (mandate 6329234399): PRIORITY critical path. Verdict merge 2845e545 (comment 6378528903). run16 park is a pre-flight false refusal: queue_pre_flight.py loads carry files from the train checkout (main), and carry-2674.json is added BY #2675 itself; CI pr-contract (carry_audit at the merge ref) is green at 2845e545 and the reviewer verified the file. Use merge_pr.sh; read the merge back as usual.
+2683 07b83e9b28ab3a21e3a1ad8d9b38eea27ee707e0 6379079217 -
+2026-10-24T03:14Z ORCH: main red = GitHub artifact API 500/502 during ci-ratchet (external; tests/ci_ratchet.py backoff 2s doubling is present, same-second log stamps are buffered output). Re-ran failed job of 40053884407 (15f0b592) at 2026-10-24T03:14Z. When it is green, un-park #2683 (verdict 6379079217) and run the train.
+2026-10-24T03:30Z ORCH: main red is persistent (GitHub artifacts list endpoint broken for this repo, reproduced locally). Hotfix fixer dispatched (branch fix/r10-ci-ratchet-artifacts). Keep #2683 parked; when the hotfix PR is verdicted, it merges first: a hotfix for main red lands onto red main per orchestrator.md section 11's main-red exception -- confirm with that section before running.

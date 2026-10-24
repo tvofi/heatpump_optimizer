@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planner_draws CMP_BOUND 56f3545d",
+  "old": "            idx = i if i <= last else last",
+  "reason": "Equivalent (CMP_BOUND, `<=` -> `<`): the min idiom `idx = i if i <= last else last` over two ints; the arms differ only at i == last, where both are the same index, so `_dhw_planner_draws` reads the same `wt[idx]`. Found by the #1861 fix review's scan (rv_equiv.py, the max/min idiom), in optimizer.py before #1858 moved it here unchanged. Measured by tools/audit/round9/F10/f10_6/equiv_probe.py (`PYTHONPATH=tests/hastub python3 tools/audit/round9/F10/f10_6/equiv_probe.py`): head vs the operator's own mutant over 16 draw/wood-temperature length pairs, 11 of them reaching i == last inside the function, 0 differing; the tie-only control (`idx = i if i < last else (last - 1 if i == last and last > 0 else last)`) differs on 6 of the 11 tied cases and 0 untied -- the other 5 have last == 0, where that control cannot move. The tie counter and both tie-only controls are the #1861 fix review's (rv_equiv_probe.py, round 2).",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+===== daemonize pid=23317 2026-10-18T15:56:50Z argv: bash tools/audit/seat/update_pr.sh fix/r10-readme-minimal-setup 9ef452f5d8def3b7e4de3fc692d5b5a33b0a7994 /Users/timmalmstrom/hpo-orch/r10s3/body-2393.md
+branch fix/r10-readme-minimal-setup checked out elsewhere: /Users/timmalmstrom/.local/state/hpo/pr/r10-readme-minimal-setup/wt                     9ef452f5d [fix/r10-readme-minimal-setup]
+===== daemonize pid=66360 2026-10-18T16:07:14Z argv: bash tools/audit/seat/update_pr.sh fix/r10-readme-minimal-setup 9ef452f5d8def3b7e4de3fc692d5b5a33b0a7994 /Users/timmalmstrom/hpo-orch/r10s3/body-2393.md
+branch fix/r10-readme-minimal-setup checked out elsewhere: /Users/timmalmstrom/.local/state/hpo/pr/r10-readme-minimal-setup/wt                     9ef452f5d [fix/r10-readme-minimal-setup]
+===== daemonize pid=76446 2026-10-18T16:22:41Z argv: bash tools/audit/seat/update_pr.sh fix/r10-readme-minimal-setup 9ef452f5d8def3b7e4de3fc692d5b5a33b0a7994 /Users/timmalmstrom/hpo-orch/r10s3/body-2393.md
+HEAD=c75b52e2d651ea8d20c4b8ce3993d25b0297a122

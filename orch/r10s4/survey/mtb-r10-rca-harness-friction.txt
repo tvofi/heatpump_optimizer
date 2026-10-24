@@ -1,0 +1,14 @@
+LEDGER-MERGE: refused dev/audit/config/bugclasses.json: a side is not in its writer's own JSON format
+de70702e23fde7e5c4cccc46b79d5d436aade5aa
+100644 32fa710710fe52e8ac6aa8acb9a0ee5053c81ae7 1	dev/audit/config/bugclasses.json
+100644 3ddebf0e8a77022341b95a0884ed9e1f989153fc 2	dev/audit/config/bugclasses.json
+100644 9402719c18b5ecf8d4ee3b8a49cba643105cec90 3	dev/audit/config/bugclasses.json
+100644 aee018893177c86021d3a1dd092370d1d574e9d6 1	dev/governance/roles/orchestrator.md
+100644 69486892631b96de257c83ee2530bad5a20ed671 2	dev/governance/roles/orchestrator.md
+100644 41acbc43d046ad670aa02f9e28eeae08b0e851c5 3	dev/governance/roles/orchestrator.md
+
+Auto-merging dev/audit/config/bugclasses.json
+CONFLICT (content): Merge conflict in dev/audit/config/bugclasses.json
+Auto-merging dev/governance/roles/fix-review.md
+Auto-merging dev/governance/roles/orchestrator.md
+CONFLICT (content): Merge conflict in dev/governance/roles/orchestrator.md

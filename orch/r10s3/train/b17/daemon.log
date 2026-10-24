@@ -1,0 +1,1 @@
+===== daemonize pid=32484 2026-10-20T21:32:22Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/b17/queue.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/b17 --min-runs 1 --skip-bad --mandate 6175172275 --bot-prs

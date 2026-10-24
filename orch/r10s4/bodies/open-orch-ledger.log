@@ -1,0 +1,7 @@
+===== daemonize pid=51025 2026-10-23T11:39:05Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh r10-orch-ledger 6062f975e0b5a68e7adf3ef795d9ca5ec4f8ad21 R10-ORCH-LEDGER: one obligations ledger for relay and tick R10-ORCH-LEDGER
+open_pr: REFUSE: open-PR cap: 8 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)
+===== daemonize pid=49228 2026-10-23T11:51:40Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) r10-orch-ledger 6062f975e0b5a68e7adf3ef795d9ca5ec4f8ad21 R10-ORCH-LEDGER: one obligations ledger for relay and tick R10-ORCH-LEDGER
+open_pr: OVER-CAP: 8 open >= 6, overridden: wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20)
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-orch-ledger/p1.log

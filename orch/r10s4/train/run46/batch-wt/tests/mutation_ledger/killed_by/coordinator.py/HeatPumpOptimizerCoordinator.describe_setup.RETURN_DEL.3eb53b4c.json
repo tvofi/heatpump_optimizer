@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.describe_setup RETURN_DEL 3eb53b4c",
+  "killed_by": "tests/env_drift.py",
+  "old": "        return topology.describe_setup(getattr(self, \"_ctx\", self)._config, self.hass.config.language)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
+}

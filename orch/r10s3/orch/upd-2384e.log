@@ -1,0 +1,2 @@
+===== daemonize pid=16727 2026-10-18T14:44:45Z argv: bash tools/audit/seat/update_pr.sh fix/audit-r10-roster 47313f3a98f4173ccb6f8ec80d859a85ba4eadff /Users/timmalmstrom/hpo-orch/r10s3/orch/body-2384-scrub.md
+HEAD=faf04b0ef3d83d21e2388e000e442da78c97637a

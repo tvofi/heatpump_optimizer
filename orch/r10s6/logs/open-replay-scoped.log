@@ -1,0 +1,5 @@
+===== daemonize pid=48070 2026-10-24T08:46:53Z argv: bash tools/audit/seat/open_pr.sh r10-replay-scoped 799830bb54ecf6556f988e674150306968f471b9 Replay scoped: part of #2273 replay-scoped
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+  REFUSE   ancestry reds          RED UNANSWERED (tests / fast (3.14)): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/p2.log

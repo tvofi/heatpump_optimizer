@@ -1,0 +1,7 @@
+verdict waits: 21 events, 29160 s over 22 heads = 1325 s of polling per head (measured, design)
+peak code heads per hour: [10, 9, 11] -> median 10 (measured)
+interval_s  prelude_calls/head  prelude_calls/h@peak  sweep_worst_calls/head  sweep_worst/h@peak  total_worst/h  share_of_1000/h
+         5                 265                  2651                     240                2400           5051            5.05
+        10                 133                  1325                     120                1200           2525            2.53
+        30                  44                   442                      40                 400            842            0.84
+        60                  22                   221                      20                 200            421            0.42

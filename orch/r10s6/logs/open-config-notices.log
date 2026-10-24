@@ -1,0 +1,7 @@
+===== daemonize pid=5673 2026-10-24T09:38:17Z argv: bash tools/audit/seat/open_pr.sh r10-config-notices 5b067738bd38010b0af9e54e78224b55234476e2 R10 config notices config-notices
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 50af6174f53c -- repair before the handoff; the lines above name each arm's repair
+  REFUSE   pr-body                ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-config-notices/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all) -- no budget leaf raised over 50af6174f...5b067738b
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/coordinator.py:7295 CMP_BOUND; custom_components/heatpump_optimizer/coordinator.py:7298 CMP_BOUND; custom_components/heatpump_optimizer/issues.py:54 GUARD_OFF; custom_components/heatpump_optimizer/setpoint_check.py:57 GUARD_OFF; custom_components/heatpump_optimizer/setpoint_check.py:61 GUARD_OFF
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-config-notices/p1.log

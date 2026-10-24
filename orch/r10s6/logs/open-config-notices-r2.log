@@ -1,0 +1,13 @@
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18110
+  max_class_loc: 8457 + both deltas = 8350
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   self-test              351 passed, 1 failed
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 8d0ce23a0d3b -- repair before the handoff; the lines above name each arm's repair
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/coordinator.py:7293 CMP_BOUND; custom_components/heatpump_optimizer/coordinator.py:7296 CMP_BOUND
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-config-notices/p1.log

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded CLAMP_DROP 2609ebb9",
+  "killed_by": "tests/features.py",
+  "old": "    value = min(value, high) if high is not None else value",
+  "reason": "pump-duty arbiter revision; `value = min(value, high) if high is not None else value` -> `value = (value) if high is not None else value` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

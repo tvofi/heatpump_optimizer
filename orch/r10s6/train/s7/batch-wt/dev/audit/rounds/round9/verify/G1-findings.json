@@ -1,0 +1,1471 @@
+{
+ "group": "G1",
+ "dims": [
+  "D1",
+  "D0",
+  "D3",
+  "D13"
+ ],
+ "units": [
+  {
+   "dim": "D1",
+   "tag": "D1-1",
+   "ids": [
+    "D1-s1-01",
+    "D1-s1-02",
+    "D1-s1-03",
+    "D1-s1-04",
+    "D1-s2-01",
+    "D1-s2-02",
+    "D1-s2-03",
+    "D1-s2-04",
+    "D1-s2-05",
+    "D1-s3-01",
+    "D1-s3-02",
+    "D1-s3-03",
+    "D1-s3-04",
+    "D1-s3-05",
+    "D1-s3-06"
+   ]
+  },
+  {
+   "dim": "D1",
+   "tag": "D1-2",
+   "ids": [
+    "D1-s4-01",
+    "D1-s4-02",
+    "D1-s4-03",
+    "D1-s5-01",
+    "D1-s5-02",
+    "D1-s5-03",
+    "D1-s5-04"
+   ]
+  },
+  {
+   "dim": "D0",
+   "tag": "D0",
+   "ids": [
+    "D0-s1-01",
+    "D0-s2-01",
+    "D0-s2-02"
+   ]
+  },
+  {
+   "dim": "D3",
+   "tag": "D3",
+   "ids": [
+    "D3-s1-01"
+   ]
+  },
+  {
+   "dim": "D13",
+   "tag": "D13",
+   "ids": [
+    "D13-s1-01",
+    "D13-s1-02",
+    "D13-s1-03"
+   ]
+  }
+ ],
+ "findings": [
+  {
+   "id": "D0-s1-01",
+   "scope": "D0-s1",
+   "step": "D0.M2",
+   "title": "The two-zone 0.20x deep anchor is built only in _optimize_space_only; the DHW path's _solve_space never gets it",
+   "severity": "low",
+   "claim": "The DHW path, which every default install runs, builds its own cold-start seed set in HeatPumpOptimizer._solve_space, and that set does not include the two-zone 0.20x baseline-energy anchor. Adding that anchor lowers the shipped objective on two-zone DHW-on winter cells by up to 0.2507 % (0.3396 objective units per day). The paired flat-price cells show 0.0000 %.",
+   "mechanism": "_optimize_space_only seeds from the baseline thermostat: its power, plus bang-bang anchors at 1.0x and 0.35x of its energy, plus 0.20x for two-zone houses. _solve_space seeds instead from init_base: an init_base-shaped guess, bang-bang at init_base energy, headroom*0.5, and bang-bang at 0.35x init_base energy. So the DHW path has no baseline-power seed, keys its anchors on a different energy, and never gets the 0.20x under-heat anchor that round 7 found the price-driven two-zone optimum needs.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s1/seeds_ab.py --perturb deep_anchor_dhw --jobs 3",
+    "harness_path": "tools/audit/round9/D0/s1/seeds_ab.py",
+    "value": 0.2507,
+    "unit": "% of the shipped objective (drop_rel_max over 40 DHW-on cells)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1: 4 vCPU Linux, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared box with up to two other compute seats, load1 3.26. The number is an objective value, so it is contention-immune.",
+    "tolerance": "\u00b10.05 pp (the basin choice is BLAS-build dependent)",
+    "load1": 3.26,
+    "thread_factor": 1.735
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (the cold-start call from HeatPumpOptimizer._solve_space; read back through HeatPumpOptimizer.optimize(...).objective_value)",
+   "perturbation": {
+    "change": "Production edit: in HeatPumpOptimizer._solve_space's `if warm_start is None:` block, append np.minimum(_price_ranked_start(prices, baseline_energy * _DEEP_LOW_ENERGY_START_FRACTION, p_max, dt), headroom) for two-zone houses, with baseline_energy taken from _compute_baseline_power before the space solve. Better: one shared seed helper used by both solve paths. The harness's arm B then duplicates an existing seed.",
+    "expected_direction": "to_zero",
+    "observed_value": "In the harness's in-memory arm: 135.443194 -> 135.103629 (two|dhw|winter_narrow|winter_cold), 58.215499 -> 58.136299 (two|dhw|winter_narrow|winter_mild), 129.340129 -> 129.283828 (two|dhw|winter_extreme|winter_cold). All 20 single-zone cells show drop 0.0000 exactly (built-in no-op control)."
+   },
+   "metric_definition": "Per cell: (objective_value shipped by production - objective_value shipped with the 0.20x baseline-energy anchor added to _solve_space's cold-start candidates) / |shipped|.",
+   "phenomenon_property": "Every cold-start _multi_start_minimize call for a given topology should get the same structural seed set, keyed on the same baseline energy, whichever solve path (space-only or DHW) makes the call.",
+   "seam_rule": "grep -n \"_multi_start_minimize(\\|_price_ranked_start(\\|_LOW_ENERGY_START_FRACTION\\|_DEEP_LOW_ENERGY_START_FRACTION\" custom_components/heatpump_optimizer/optimizer.py",
+   "stop_rule_class": "bug",
+   "class_guess": "P4",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/optimality.py"
+   ],
+   "proposed_fix_scope": "Build the cold-start structural seeds once, in a helper keyed on the baseline thermostat energy (baseline power, 1.0x, 0.35x, and 0.20x for two-zone). Call it from both _optimize_space_only and _solve_space; this means computing _compute_baseline_power before the DHW path's space solve. Add a DHW-on two-zone winter cell to tests/optimality.py's _CERT_CELLS so the DHW path is certified at all; today every certificate cell is DHW-off.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s1/seeds_ab.py --perturb deep_anchor_dhw --flat --jobs 3",
+    "value": "Flat prices, 10 cells: the paired winter_cold and winter_mild two-zone DHW cells are 0.0000 % (107.886615 -> 107.886615; 47.054120 -> 47.054120). One flat cell moves (two-zone shoulder weather, 0.2342 %) while its winter-price twin does not.",
+    "note": "On the cells that carry the gap it is price-driven. The wider arm (--perturb space_seeds_dhw, which also adds the baseline-power seed and the 1.0x/0.35x baseline anchors) gives max 0.2751 %, mean 0.0398 % at winter prices, but survives flat prices (mean 0.0718 %, 6 of 10 cells). That wider part is a comfort/energy basin gap, not price optimality, and is recorded only as context for the fix scope."
+   },
+   "leave_one_out": {
+    "cells": 20,
+    "min": 0,
+    "max": 0.2507,
+    "drop_most_favourable": 0.0094
+   },
+   "reproduction_steps": [
+    "From /home/claude/audit-r9-D0-s1: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s1/seeds_ab.py --perturb deep_anchor_dhw",
+    "Read the three moving CELL lines (two|dhw|winter_narrow|winter_cold, two|dhw|winter_narrow|winter_mild, two|dhw|winter_extreme|winter_cold) and RESULT drop_rel_max",
+    "Control: add --dhw off (40/40 cells drop exactly 0) and --flat (the paired winter-weather cells stay at 0)",
+    "Race context: race.py --cells two:dhw:winter_extreme:winter_cold gives a gap of 0.2616 % whose best seed is anchor 0.0; anchor 0.2 lands within 0.0003 units of it"
+   ],
+   "seat": "D0-s1"
+  },
+  {
+   "id": "D0-s2-01",
+   "scope": "D0-s2",
+   "step": "D0.M2",
+   "title": "L-BFGS-B ftol=1e-6 stops the solve and its in-loop restart short of their own fixed point",
+   "severity": "low",
+   "claim": "On two|dhw|summer_typical|winter_cold at 48 h, production's own L-BFGS-B restarted from the shipped plan at ftol=1e-12 lowers the recorded objective by 0.6507 % (55.3274 to 54.9674) at equal comfort.",
+   "mechanism": "Every main run stops on RELATIVE REDUCTION OF F <= FACTR*EPSMCH after 8-36 iterations on 192 variables; _lbfgsb_restart then stops after 1 iteration on the same test, so the in-loop polish adopts nothing.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48",
+    "harness_path": "tools/audit/round9/D0/s2/polish.py",
+    "value": 0.6507,
+    "unit": "% of shipped objective",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2: 4-CPU Linux container, python3.14 venv, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "up to two other seats' finders running (load1 3-6); the value is an objective ratio and is contention-immune",
+    "tolerance": "+-0.05 pp on this box; BLAS-dependent across boxes",
+    "load1": 5.23,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (captured) and _scoped_minimize (hooked)",
+   "perturbation": {
+    "change": "polish.py --perturb ftol_tight: production's ftol passed to _scoped_minimize rewritten from 1e-6 to 1e-12 in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "0.0000 % (shipped objective 54.7889)"
+   },
+   "metric_definition": "(f_prod - f_polish)/|f_prod| on the first seam call's recorded objective; f_polish is production's L-BFGS-B from the shipped x at ftol 1e-12, gtol 1e-10",
+   "phenomenon_property": "The shipped plan is a fixed point of production's own L-BFGS-B (same objective, bounds and jac) to within a relative 1e-4.",
+   "seam_rule": "tools/audit/round9/D0/s2/polish.py --horizon 24 --weather winter_cold,winter_mild,summer_cool,shoulder ; tools/audit/round9/D0/s2/polish.py --horizon 48",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices flat",
+    "value": "0.0231 % max (0.048)",
+    "note": "At flat prices the residue is at most 0.0231 % (48 h) and 0.0070 % (24 h, race.py)."
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0.0,
+    "max": 0.6507,
+    "drop_most_favourable": 0.0005
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices summer_typical --weather winter_cold --tz 1 --dhw 1",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices summer_typical --weather winter_cold --tz 1 --dhw 1 --perturb ftol_tight",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 24 --prices shoulder --weather winter_cold,summer_cool --tz 0 --dhw 0"
+   ],
+   "proposed_fix_scope": "optimizer.py _multi_start_minimize / _lbfgsb_restart stop rule (ftol) or a gradient-norm-based stop; weigh against the recorded #1293 refusal (tests/optimality.py claim for one|shoulder|winter_cold).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P4",
+   "seat": "D0-s2"
+  },
+  {
+   "id": "D0-s2-02",
+   "scope": "D0-s2",
+   "step": "D0.M2",
+   "title": "Multi-start seed set misses lower basins on shoulder prices, above the flat-price null",
+   "severity": "low",
+   "claim": "On the 24 h shoulder-price grid (16 cells, excluding summer_warm), the production seed set's plan is beaten by the recorded candidates plus an Emax-fraction bang-bang ladder by up to 1.2012 % (mean 0.3909 %, 8 of 16 cells over 0.1 %) at equal comfort, against a flat-price null of at most 0.3247 % (mean 0.0918 %).",
+   "mechanism": "The objective landscape is rugged: on one|nodhw|shoulder|shoulder, single seeds refine to between -3.5 % and +1.2 % of the shipped objective. Production's four or five energy-anchored starts all descend into a ~7.2 kWh basin, while an 8.5 kWh basin is reached only from seeds unrelated to the baseline energy (for example 0.8*Emax). The 1.25-2.0x baseline anchors do not reach it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --horizon 24",
+    "harness_path": "tools/audit/round9/D0/s2/race.py",
+    "value": 1.2012,
+    "unit": "% of shipped objective (max over shoulder cells)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2: 4-CPU Linux container, python3.14 venv, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "other seats' finders running (load1 3-6); the value is an objective ratio and is contention-immune",
+    "tolerance": "+-0.05 pp on this box; the basin choice is BLAS-dependent across boxes",
+    "load1": 4.42,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize",
+   "perturbation": {
+    "change": "race.py --perturb add_emax_ladder: the 13 Emax-fraction bang-bang seeds are appended to the candidates production hands its own seam (in memory)",
+    "expected_direction": "down",
+    "observed_value": "shoulder mean 0.3909 % -> 0.0503 %; 15/16 cells 0.0000 %; the remaining cell (0.80 %) is D0-s2-01's polish residue"
+   },
+   "metric_definition": "(f_prod - min(f_ladder, f_ladder_polish))/|f_prod| on the first seam call's recorded objective, with the recorded candidates plus 13 bang-bang seeds at fractions of the bounds' max energy",
+   "phenomenon_property": "No start set reachable by a cheap structural seed family (bang-bang at any energy fraction) finds a lower objective than the shipped plan by more than the flat-price null.",
+   "seam_rule": "tools/audit/round9/D0/s2/race.py --horizon 24 --cells shoulder,flat",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --horizon 24 --cells flat",
+    "value": "max 0.3247 %, mean 0.0918 %, max absolute 0.185",
+    "note": "A basin gap exists at flat prices too (comfort/terminal trade); the shoulder excess over the matched flat cell is the price-optimality part, up to 1.17 pp on one|dhw|shoulder|shoulder."
+   },
+   "leave_one_out": {
+    "cells": 16,
+    "min": 0.0,
+    "max": 1.2012,
+    "drop_most_favourable": 0.3369
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells shoulder,flat --weather winter_cold,winter_mild,summer_cool,shoulder --first-only",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells shoulder --weather winter_cold,winter_mild,summer_cool,shoulder --first-only --perturb add_emax_ladder",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/seedwin.py --cell one,nodhw,shoulder,shoulder"
+   ],
+   "proposed_fix_scope": "optimizer.py seed construction in _optimize_space_only/_solve_space: more diverse structural starts, weighed against the #1294 cost refusal; the baseline-multiple anchors alone do not close it (anchor.py).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P4",
+   "seat": "D0-s2"
+  },
+  {
+   "id": "D1-s1-01",
+   "scope": "D1-s1",
+   "step": "D1.M2",
+   "title": "A tz-naive persisted timestamp raises on every cycle at three sibling loader seams (snapshots, curve, comfort)",
+   "severity": "medium",
+   "claim": "With the stored timestamp written tz-naive, SnapshotRing.due, CurveLearner._step_down and ComfortLearner._decay raise TypeError on every call after load (21/21 heartbeats, 19/21 curve days, 21/21 comfort calls), and the #42 ring takes 0 snapshots instead of 3.",
+   "mechanism": "The loaders parse with datetime.fromisoformat and keep a naive value; consumers subtract it from an aware now. drift.Cusum.load (naive->UTC) and AccuracyTracker.from_dict lead_pending (drop naive) already guard the same leaf class; these three siblings do not. The heartbeat call site swallows at DEBUG, so the snapshot insurance, bias alarm and rollback stop permanently and silently; with comfort learning on, climate set_temperature raises after the write, and _record_quiet_comfort_period raises inside async_run_optimization's except-Exception (read, not reproduced end-to-end).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py",
+    "harness_path": "tools/audit/round9/D1/s1/naive_ts.py",
+    "value": "snapshot_raises=21 snapshot_taken=0 curve_raises=19 comfort_override_raises=21 comfort_quiet_raises=21 sibling_raises=0",
+    "unit": "count of raising consumer calls over 21 simulated days",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.18,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.due; heatpump_optimizer.curve_learning:CurveLearner.from_dict/_step_down; heatpump_optimizer.comfort_learning:ComfortLearner.from_dict/_decay (driven via coordinator _async_load_snapshots/_async_load_thermal_learning/_async_load_accuracy, _async_watch_learning_drift, record_setpoint_override, _record_quiet_comfort_period)",
+   "perturbation": {
+    "change": "--fix: each seam module's datetime.fromisoformat treats a naive stored time as UTC (the drift.Cusum.load rule, one line per loader)",
+    "expected_direction": "to_zero",
+    "observed_value": "all raises=0, snapshot_taken=3"
+   },
+   "metric_definition": "Per seam, count of consumer calls (one per simulated day, 21 days, aware clock) raising after the store was loaded with that seam's timestamp leaf tz-naive.",
+   "phenomenon_property": "No persisted timestamp reaches arithmetic against an aware clock without being normalised to aware at load.",
+   "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{snapshots,curve_learning,comfort_learning,accuracy,drift,wear,ledger,dhw_learning}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --aware",
+    "value": "all raises=0, snapshot_taken=3",
+    "note": "same payload with an aware timestamp"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --aware",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --fix",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/fuzz.py (comfort 7, curve 1, snapshots.due 1 signatures; --fix-ts -> 0)"
+   ],
+   "proposed_fix_scope": "In SnapshotRing.due (or from_dict), CurveLearner.from_dict and ComfortLearner.from_dict, normalise a naive parsed time to UTC as drift.Cusum.load does (or drop it as accuracy lead_pending does); one line each.",
+   "files": [
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/curve_learning.py",
+    "custom_components/heatpump_optimizer/comfort_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "seat": "D1-s1"
+  },
+  {
+   "id": "D1-s1-02",
+   "scope": "D1-s1",
+   "step": "D1.M2",
+   "title": "A non-numeric snapshot temperature_bias makes best_restore raise and suppresses the accuracy_drift issue for good",
+   "severity": "medium",
+   "claim": "For 4/4 JSON-legal non-numeric bias leaves (\"0.3\", \"garbage\", [0.3], {\"v\":0.3}) the restore_learned_snapshot service raises and 10 out-of-band days end with no accuracy_drift repair issue; 0/4 with a numeric leaf.",
+   "mechanism": "SnapshotRing.from_dict only checks each snapshot is a dict; best_restore calls np.isfinite(bias), which raises TypeError on str/list/dict (QuarantiningStore passes finite numeric strings through). On the alarm day the heartbeat raises before _create_issue; the latch is already set so observe_bias never reports a change again.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py",
+    "harness_path": "tools/audit/round9/D1/s1/snap_restore.py",
+    "value": "service_raises=4 missing_issue=4",
+    "unit": "count of 4 bias-leaf variants",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.best_restore (via coordinator async_restore_learned_snapshot and _async_watch_learning_drift after _async_load_snapshots)",
+   "perturbation": {
+    "change": "--fix: best_restore's isfinite reads float(bias) under a (TypeError, ValueError, OverflowError) guard, skipping the snapshot",
+    "expected_direction": "to_zero",
+    "observed_value": "service_raises=0 missing_issue=0"
+   },
+   "metric_definition": "Of 4 non-numeric bias-leaf variants loaded via the real store: count where the restore service raises; count where 10 out-of-band days raise no accuracy_drift issue.",
+   "phenomenon_property": "Every snapshot leaf read by best_restore/due/observe_bias is type-validated at load or read under a guard, so no stored snapshot can make the #42 path raise.",
+   "seam_rule": "grep -n \"snap.get\\|snapshots\\[-1\\]\\[\" custom_components/heatpump_optimizer/snapshots.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --control",
+    "value": "service_raises=0 missing_issue=0",
+    "note": "bias leaf is the number 0.3"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --control",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --fix"
+   ],
+   "proposed_fix_scope": "snapshots.py: coerce bias with a guarded float() in best_restore (skip on failure), or validate accuracy.temperature_bias in from_dict.",
+   "files": [
+    "custom_components/heatpump_optimizer/snapshots.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "seat": "D1-s1"
+  },
+  {
+   "id": "D1-s1-03",
+   "scope": "D1-s1",
+   "step": "D1.M6",
+   "title": "One out-of-range DHW thermometer sample is booked as a physically impossible draw and inflates the published p90",
+   "severity": "medium",
+   "claim": "A single -127 C sample on day 4 folds a 42.218 kWh draw occurrence (control 1.073) and raises the published window p90 from 1.073 to 25.760 kWh; 1e6 folds 231757 kWh.",
+   "mechanism": "async_learn_dynamics feeds the raw drop into async_fold_draw_stats (intensity*dt*thermal mass) with no plausibility bound; the occurrence stays in the 40-occurrence reservoir, and p90 is published as dhw_draw_stats.p90_kwh and, with DHW quantile targets on, becomes the plan's readiness energy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "harness_path": "tools/audit/round9/D1/s1/dhw_glitch.py",
+    "value": "glitch-127_window_p90_kwh=25.760 (control 1.073); max_event 42.218 vs 1.073",
+    "unit": "kWh",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.dhw_learning:DhwProfileLearner.async_learn_dynamics / async_fold_draw_stats (read back via draw_stats.quantile)",
+   "perturbation": {
+    "change": "--guard: samples outside [0,100] C skipped at async_learn_dynamics entry",
+    "expected_direction": "down",
+    "observed_value": "-127 and 1e6 rows return to 1.073 kWh (85 C in-range spike unchanged: 8.747/5.677)"
+   },
+   "metric_definition": "After DAY+1 simulated days of 5-min ticks with one glitch sample on DAY, the largest folded occurrence and the window p90 (DrawStats.quantile 0.9), kWh.",
+   "phenomenon_property": "Energy attributed to a tick or occurrence never exceeds what the tank can physically deliver (thermal mass x usable delta), whatever the thermometer reports.",
+   "seam_rule": "grep -n \"temp_drop\\|energy_kwh\" custom_components/heatpump_optimizer/dhw_learning.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "value": "control_max_event_kwh=1.073 control_window_p90_kwh=1.073",
+    "note": "same series without the glitch sample (printed in the same run); --day 13 shows p90 unmoved once a window has >=11 occurrences"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 13",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4 --guard"
+   ],
+   "proposed_fix_scope": "dhw_learning.py: cap the per-tick attributed drop/energy by the tank's physical capacity (or reject a tick whose |dT/dt| exceeds a physical bound) before async_learn_usage/async_fold_draw_stats.",
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s1"
+  },
+  {
+   "id": "D1-s1-04",
+   "scope": "D1-s1",
+   "step": "D1.M3",
+   "title": "A timestamp stored while the clock ran ahead is trusted verbatim and stretches stale timeouts by the clock error",
+   "severity": "low",
+   "claim": "After a clock that ran 30 days ahead is corrected, the open-window latch release, the weekly snapshot and the curve step first act on days 33/37/31 instead of 4/8/2 (365 days ahead: 369/373/366).",
+   "mechanism": "Cusum.release_if_starved, SnapshotRing.due and CurveLearner._step_down compare now with a persisted time and never question one in the future; the vent latch it pins freezes every learner.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30",
+    "harness_path": "tools/audit/round9/D1/s1/clock_jump.py",
+    "value": "cusum_release_day=33 snapshot_due_day=37 curve_step_day=31",
+    "unit": "day index of first action",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.drift:Cusum.load/release_if_starved; heatpump_optimizer.snapshots:SnapshotRing.due; heatpump_optimizer.curve_learning:CurveLearner._step_down",
+   "perturbation": {
+    "change": "--clamp: a stored time later than now is clamped to now at load",
+    "expected_direction": "down",
+    "observed_value": "4/8/2"
+   },
+   "metric_definition": "Per seam, first day index (1-day ticks, Europe/Stockholm across DST) at which the production call acts, for a stored stamp A days ahead of the corrected clock.",
+   "phenomenon_property": "A persisted timestamp later than now is clamped or treated as unknown, so no timeout outlives its design by the clock error.",
+   "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{drift,snapshots,curve_learning,comfort_learning}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 0",
+    "value": "4/8/2",
+    "note": "no clock error: the designed timeouts"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 0",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 365",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30 --clamp"
+   ],
+   "proposed_fix_scope": "Clamp a loaded future timestamp to now (or treat as None) in Cusum.load, SnapshotRing.due and CurveLearner._step_down.",
+   "files": [
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/curve_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s1"
+  },
+  {
+   "id": "D1-s2-01",
+   "scope": "D1-s2",
+   "step": "D1.M6",
+   "severity": "high",
+   "title": "A malformed weather-forecast response wedges every later cycle until restart",
+   "claim": "One weather.get_forecasts response whose forecast holds a non-dict row or is not a list makes every later _async_update_data raise UpdateFailed, even after the weather entity returns a healthy forecast again.",
+   "mechanism": "_fetch_weather_forecast stores result[entity]['forecast'] into self._weather_forecast (via _forecast_in_model_units, which returns it untouched for a degC/m-s/mm entity) before validating row types; the solar loop then raises AttributeError, which the fetch's except marks as a failed fetch but leaves the stored forecast in place. On the next cycle _update_current_state -> _current_humidity iterates self._weather_forecast with entry.get BEFORE the fetch that would replace it, so the cycle aborts and the fetch is never reached again.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/parsers.py --n 200 --seed 9",
+    "harness_path": "tools/audit/round9/D1/s2/parsers.py",
+    "value": 35,
+    "unit": "payloads of 200 whose second cycle (healthy forecast restored) still raises",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "shared B4 during fan-out; counts are contention-immune",
+    "tolerance": "exact for seed 9",
+    "load1": 1.98,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_weather_forecast (driven via _async_update_data; wedge raised in _current_humidity)",
+   "perturbation": {
+    "change": "--perturb row_filter: _forecast_in_model_units wrapped in memory to keep only dict rows of a list ([] for a non-list) where the forecast is stored",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 200 seeded hostile get_forecasts payloads, count whose second full cycle, with a healthy forecast served again, still raises.",
+   "phenomenon_property": "A weather forecast the coordinator stores can never make a later cycle fail: whatever a get_forecasts response holds, the stored forecast is a list of dict rows (or the previous/empty forecast), and a healthy response always recovers the next cycle.",
+   "seam_rule": "grep -n 'self._weather_forecast' custom_components/heatpump_optimizer/coordinator.py (11 readers/writers); harness: tools/audit/round9/D1/s2/parsers.py --n 200",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/parsers.py --n 200 --perturb row_filter",
+    "value": 0,
+    "note": "same payloads with rows validated at storage: 0 cycles raise"
+   },
+   "reproduction_steps": [
+    "Register a weather.get_forecasts handler returning {'weather.home': {'forecast': ['x'] + <48 healthy rows>}}",
+    "Run coordinator._async_update_data(): UpdateFailed ('str' object has no attribute 'get')",
+    "Serve a healthy forecast and run it again twice: both still raise in _update_current_state -> _current_humidity"
+   ],
+   "proposed_fix_scope": "coordinator._fetch_weather_forecast: validate forecast is a list and keep only Mapping rows before assigning self._weather_forecast (and treat an empty result as a failed fetch); optionally make _current_humidity/_forecast_arrays tolerate a non-dict row.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s2"
+  },
+  {
+   "id": "D1-s2-02",
+   "scope": "D1-s2",
+   "step": "D1.M6",
+   "severity": "medium",
+   "title": "Finite-but-absurd weather forecast values reach the solve unbounded: failed plans and a runaway solve",
+   "claim": "A single get_forecasts row with temperature -1e308 makes the plan fail while the cycle reports success, and a single row with wind_speed >= 1e12 makes the real process-worker solve run past a 60 s cap (healthy 3.45 s); clipping the rows where they are stored removes both.",
+   "mechanism": "No physical-range bound sits between the forecast rows and _forecast_arrays; the arrays go straight to _await_optimize. Wind feeds thermal_model._stability_substeps, whose substep count grows with the wind-driven heat loss, so an absurd wind makes the per-step loop effectively unbounded; an absurd temperature leaves the optimizer no usable start.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/solve_poison.py --cap 60",
+    "harness_path": "tools/audit/round9/D1/s2/solve_poison.py",
+    "value": 1,
+    "unit": "cases of 6 capped at 60 s (wind_1e308_one_row); wind 1e12 and 1e20 also capped in --only runs",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "shared B4 during fan-out; capped flag is load-robust, wall seconds provisional",
+    "tolerance": "exact (capped flag); wall numbers provisional",
+    "load1": 1.33,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._forecast_arrays (fed by _fetch_weather_forecast/_forecast_in_model_units; solve via _await_optimize)",
+   "perturbation": {
+    "change": "--perturb clip: _forecast_in_model_units wrapped in memory to clip temperature to [-60,60] degC, wind to [0,60] m/s, rain to [0,200] mm",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Per poisoned-forecast case, whether one real cycle's solve is still running at the 60 s cap, and its plan status; count of capped cases.",
+   "phenomenon_property": "Every forecast series handed to the solve is finite and inside a physical range, whatever the weather entity returns.",
+   "seam_rule": "tools/audit/round9/D1/s2/parsers.py --n 200 (weather.poisoned_series counts the series the solve receives out of range: 8 of 200)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/solve_poison.py --cap 60",
+    "value": "healthy.wall_s=3.45 status=optimal",
+    "note": "healthy forecast in the same session; wind 500 and 1e6 finish in 1.8 s / 0.9 s"
+   },
+   "reproduction_steps": [
+    "Serve a 48-row healthy forecast with row 2 wind_speed=1e12",
+    "Run _async_update_data with the real process worker",
+    "The solve does not return within 60 s; with --perturb clip it returns optimal in ~3 s"
+   ],
+   "proposed_fix_scope": "coordinator: bound temperature/wind/precipitation/irradiance rows to physical ranges (or drop the row) where the forecast is stored; lead to D1-s4 for the unbounded substep count in thermal_model._stability_substeps.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s2"
+  },
+  {
+   "id": "D1-s2-03",
+   "scope": "D1-s2",
+   "step": "D1.M2",
+   "severity": "medium",
+   "title": "A sample count past 2**64 in the thermal-learning store fails every cycle, across restarts",
+   "claim": "A JSON number >= 2**64 (e.g. 1e20 or 1e308, both accepted by Home Assistant's orjson Store) at cop_baseline[*][1] or capacity_envelope[*][1] makes every cycle raise TypeError in _learning_view.",
+   "mechanism": "_async_load_thermal_learning / _load_t4b_learners coerce the count with int(entry[1]) and no bound; the resulting Python int exceeds int64 and _learning_view's np.isfinite(entry[1]) raises inside _build_data_dict every cycle. orjson refuses the >64-bit int on re-save, so the corrupt store is never overwritten.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/store_fuzz.py --sweep-huge",
+    "harness_path": "tools/audit/round9/D1/s2/store_fuzz.py",
+    "value": 6,
+    "unit": "leaf-values of 58 (thermal_learning) whose second cycle still raises; 0 in the other 6 stores",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "shared B4 during fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.82,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_load_thermal_learning (and _learning_view)",
+   "perturbation": {
+    "change": "--perturb learning_view_float: np.isfinite as seen by the coordinator evaluates float(x) for an int beyond int64 (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of (numeric store leaf, huge value in {1e20,1e308}) pairs, loaded through orjson and the real loader, whose second update cycle still raises.",
+   "phenomenon_property": "No value a Home Assistant Store can hand a loader can make a later cycle fail; integer counts from a store are bounded to a range numpy accepts (or the entry is dropped) at load.",
+   "seam_rule": "tools/audit/round9/D1/s2/store_fuzz.py --sweep-huge (every numeric leaf of every coordinator store)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/store_fuzz.py --n 200 --seed 9",
+    "value": "0 cycle raises in 1400 mutants",
+    "note": "ordinary corruption (type swaps, NaN strings, truncation, missing keys) is absorbed"
+   },
+   "reproduction_steps": [
+    "Write the thermal_learning store with cop_baseline['4'][1] = 1e20",
+    "Load via _async_load_thermal_learning, run _async_update_data twice",
+    "Both raise UpdateFailed (ufunc 'isfinite' not supported)"
+   ],
+   "proposed_fix_scope": "coordinator._async_load_thermal_learning/_load_t4b_learners: reject counts that are not finite or exceed a sane bound (e.g. 2**31) when parsing cop_baseline and capacity_envelope entries.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "seat": "D1-s2"
+  },
+  {
+   "id": "D1-s2-04",
+   "scope": "D1-s2",
+   "step": "D1.M5",
+   "severity": "medium",
+   "title": "Five cycle-path guards swallow a persistent failure at DEBUG, including pump and frequency actuation",
+   "claim": "A persistent exception in any of _command_frequency, _async_drive_pumps, _async_watch_learning_drift, _maybe_run_fuse_advisor or _maybe_refresh_price_tile produces zero WARNING-or-above records and zero repair issues over three cycles, while every cycle reports last_update_success=True.",
+   "mechanism": "The callers fence each callee with `except Exception as err: _LOGGER.debug(...)`, every cycle, with no once-per-cause escalation or repair issue; at default log level the failure is invisible, so a programming error silently stops frequency and pump actuation.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/guards.py",
+    "harness_path": "tools/audit/round9/D1/s2/guards.py",
+    "value": 5,
+    "unit": "silent sites of 5 (reached 3/3 cycles each)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "shared B4 during fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.01,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (guards around _command_frequency, _async_drive_pumps, _async_watch_learning_drift) and async_run_optimization (guards around _maybe_run_fuse_advisor, _maybe_refresh_price_tile)",
+   "perturbation": {
+    "change": "--perturb debug_to_warning: the coordinator logger's debug routed to warning in memory (a guard that logs visibly)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Per guarded callee raising a persistent TypeError, count of WARNING+ log records naming it plus repair issues over 3 cycles; silent_sites = reached sites with 0.",
+   "phenomenon_property": "A swallowed failure that repeats is visible to the user: at least one WARNING (or a repair issue) per distinct cause, while the cycle still completes.",
+   "seam_rule": "grep -n -A2 'except Exception' custom_components/heatpump_optimizer/coordinator.py | grep _LOGGER.debug (24 guards); harness tools/audit/round9/D1/s2/guards.py drives the 5 on the cycle path",
+   "reproduction_steps": [
+    "Patch HeatPumpOptimizerCoordinator._async_drive_pumps to raise TypeError",
+    "Run async_refresh three times",
+    "last_update_success stays True; only DEBUG 'Pump scheduling skipped' records exist"
+   ],
+   "proposed_fix_scope": "coordinator: log the first occurrence of each distinct swallowed cause at WARNING (DEBUG on repeats), as _note_worker_fallback already does; consider a repair issue for the actuation sites.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s2"
+  },
+  {
+   "id": "D1-s2-05",
+   "scope": "D1-s2",
+   "step": "D1.M1",
+   "severity": "medium",
+   "title": "Home Assistant stop waits out an in-flight solve before reaping the solve worker",
+   "claim": "The EVENT_HOMEASSISTANT_STOP listener from async_register_worker_shutdown, fired 0.1 s into a real solve, returns only when the solve does (0.93 of the solve's duration), against 0.008 s with no solve in flight.",
+   "mechanism": "_shutdown_process_pool takes the module-global _PROCESS_LOCK, which _run_in_process holds for the whole transport round trip (pickle.dump .. pickle.load, i.e. the entire solve). The reap therefore queues behind the solve instead of terminating the child; on a Pi (30-70 s solves, or the D1-s2-02 runaway) that is how long a restart stalls.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "harness_path": "tools/audit/round9/D1/s2/worker_stop.py",
+    "value": 0.928,
+    "unit": "stop latency / solve duration (median of 5; min 0.843, max 1.017)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared B4 during fan-out, 0 concurrent stress.py; ratio metric, absolutes provisional",
+    "tolerance": "\u00b10.1",
+    "load1": 2.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:async_register_worker_shutdown (listener -> _shutdown_process_pool, contending with _run_in_process)",
+   "perturbation": {
+    "change": "--perturb unlocked_reap: coordinator._PROCESS_LOCK rebound to a fresh Lock for the stop call only (a reap that does not queue behind the transport lock)",
+    "expected_direction": "down",
+    "observed_value": 0.01
+   },
+   "metric_definition": "Wall time for the stop listener to return when fired 0.1 s into a real coordinator solve, divided by that solve's own duration measured in the same session.",
+   "phenomenon_property": "Reaping the solve worker at stop never waits for a solve in flight: the stop reap completes in bounded time independent of solve duration.",
+   "seam_rule": "grep -n '_PROCESS_LOCK' custom_components/heatpump_optimizer/coordinator.py (3 sites: definition, _shutdown_process_pool, _run_in_process)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "value": "stop_latency_idle_s=0.008",
+    "note": "same listener, same session, no solve in flight"
+   },
+   "reproduction_steps": [
+    "Set up an entry on a real loop with a ThreadPoolExecutor",
+    "Start async_run_optimization, wait 0.1 s",
+    "Await the registered EVENT_HOMEASSISTANT_STOP listener: it returns when the solve finishes"
+   ],
+   "proposed_fix_scope": "coordinator._shutdown_process_pool: grab the worker handle without waiting on the transport lock (or kill the child first so the in-flight pickle.load fails fast), keeping the lock only for the handle swap.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s2"
+  },
+  {
+   "id": "D1-s3-01",
+   "scope": "D1-s3",
+   "step": "D1.M6",
+   "title": "A tz-less return_time (card datetime-local) or a naive stored datetime wedges every cycle with TypeError",
+   "severity": "high",
+   "claim": "A set_away return_time without an offset (the card's <input type=datetime-local> value, and services.yaml's own example) makes away.expire_override compare naive with aware; every later solve then returns solve_failed (2 of 2), and _resolve_away raises on 6 of 6 cycles, until away is switched off.",
+   "mechanism": "away._parse_return_time returns datetime.fromisoformat(value) unnormalised. async_set_away stores the naive ISO string before expire_override raises, so every coordinator._resolve_away inside async_run_optimization raises and is fenced into 'solve_failed' with an ERROR traceback. The same unnormalised parse sits in legionella async_load (dt_util.parse_datetime, consumed by async_track's now - previous), in pump_arbiter._load (datetime.fromisoformat, consumed by hold()'s now - at, which escapes _apply_action as UpdateFailed) and in boost._parse_until (restore raises once). manual_plan._coerce_awareness is the sibling seam that guards it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/away_naive_return.py",
+    "harness_path": "tools/audit/round9/D1/s3/away_naive_return.py",
+    "value": 6,
+    "unit": "failed cycles of 6 (plus solves_failed=2 of 2; service_raised=1)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats sharing box B5; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.11,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.away:_parse_return_time / away:expire_override (driven through coordinator.async_set_away, _resolve_away, async_run_optimization)",
+   "perturbation": {
+    "change": "away._parse_return_time returns dt_util.as_local(d) when d is naive (--perturb); null control: the same instant with an explicit offset (--aware-input)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 failed cycles, 0 solves failed, service_raised 0 in both arms"
+   },
+   "metric_definition": "Of 6 consecutive cycles after set_away(active, tz-less return_time), cycles in which _resolve_away raises; plus async_run_optimization calls returning solve_failed (of 2).",
+   "phenomenon_property": "Every ISO datetime entering from outside the process (service input or persisted store) is normalised to an aware instant before it is compared or subtracted with dt_util.now(); no such value can make a per-cycle path raise.",
+   "seam_rule": "rg -n \"fromisoformat|parse_datetime\\(\" custom_components/heatpump_optimizer/{away,boost,pump_arbiter,legionella,manual_plan}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/away_naive_return.py --aware-input",
+    "value": 0,
+    "note": "The same return instant with +02:00: 0 failed cycles, 0 failed solves. Store seams: tools/audit/round9/D1/s3/store_fuzz.py gives repeat_fail away=13, legionella=10, pump_duty=25 (17 naive_dt) of 200; --perturb gives 0; --naive-clock (the stub's default) hides the naive_dt failures."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/away_naive_return.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/store_fuzz.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/boost.py"
+   ],
+   "proposed_fix_scope": "Normalise at each parse seam (away._parse_return_time, boost._parse_until, pump_arbiter._load, legionella.async_load) with dt_util.as_local for a naive result, or share manual_plan._coerce_awareness; one shared helper.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s3-02",
+   "scope": "D1-s3",
+   "step": "D1.M1",
+   "title": "Pump-duty arbiter re-registers its timer and state listener on an unloaded coordinator and keeps writing the pump",
+   "severity": "high",
+   "claim": "A pump state change dispatched just before unload leaves 2 live arbiter registrations on the torn-down coordinator after async_shutdown, and the leaked 1-minute tick writes the pump (2 writes) after the unload.",
+   "mechanism": "pump_arbiter._changed queues hass.async_create_task(apply(coord)). async_shutdown -> pump_arbiter.release -> release_listeners empties held.unsubs. The queued apply then runs; it never checks coord._entry_released, and _listen sees empty unsubs, so it registers async_track_time_interval(_tick, 1 min) and async_track_state_change_event again. Nothing unsubscribes them, so the dead instance commands the pump every minute alongside the reloaded one, or after the integration is disabled.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/arbiter_unload.py",
+    "harness_path": "tools/audit/round9/D1/s3/arbiter_unload.py",
+    "value": 2,
+    "unit": "live registrations after unload (writes_after_unload=2)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats sharing box B5; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.11,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:apply / pump_arbiter:_listen (driven via HeatPumpOptimizerCoordinator.async_shutdown on a real asyncio loop)",
+   "perturbation": {
+    "change": "mock.patch pump_arbiter.apply to return when coord._entry_released (--perturb); null: no pump state event before the unload (--null)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 registrations, 0 writes in both arms"
+   },
+   "metric_definition": "Arbiter timers plus state listeners whose callback closure holds the coordinator, counted after async_shutdown returned and all tasks drained; plus pump service calls made after the unload.",
+   "phenomenon_property": "After async_shutdown returns, no arbiter registration references the coordinator and no arbiter path can write the pump; apply() declines once the entry is released.",
+   "seam_rule": "rg -n \"async_track_time_interval|async_track_state_change_event|async_create_task\" custom_components/heatpump_optimizer/{pump_arbiter,legionella,disinfection,boost,away}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/arbiter_unload.py --null",
+    "value": 0,
+    "note": "The same lifecycle without an event queued before the unload: 0 live and 0 writes."
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "proposed_fix_scope": "pump_arbiter.apply (and _tick/_changed) return early when coord._entry_released; release() marks held as released so _listen refuses to re-arm.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s3-03",
+   "scope": "D1-s3",
+   "step": "D1.M2",
+   "title": "pump_arbiter._load installs non-numeric set-point values that raise TypeError on every apply",
+   "severity": "medium",
+   "claim": "8 of 200 seeded pump_duty store mutants (a string, list or dict set-point) make pump_arbiter.apply raise on every cycle, on both the aware and the naive clock, because _load type-checks nothing in pair[0].",
+   "mechanism": "_load accepts held.written[slot] = (pair[0], fromisoformat(pair[1])). hold() -> _differs computes abs(observed - value) with a str/list/dict value and raises TypeError before _write can overwrite the record, so the corrupt record persists. The raise escapes coordinator._apply_action, so the whole update fails. Separately, 34 of 200 mutants make the loader itself raise KeyError/AttributeError once ('written' not a dict, pair a dict).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/store_fuzz.py --naive-clock",
+    "harness_path": "tools/audit/round9/D1/s3/store_fuzz.py",
+    "value": 8,
+    "unit": "mutants of 200 failing every cycle (pump_duty, excluding naive-datetime mutants)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats sharing box B5; deterministic seeded count",
+    "tolerance": "exact (seed 9, n 200)",
+    "load1": 1.11,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_load / pump_arbiter:apply",
+   "perturbation": {
+    "change": "--perturb: after _load, drop any set-point slot whose value is not a real number and any mode slot that is not a str",
+    "expected_direction": "to_zero",
+    "observed_value": "pump_duty_repeat_fail=0"
+   },
+   "metric_definition": "Seeded mutants of the healthy pump_duty payload (after the real loader) whose second pump_arbiter.apply call still raises.",
+   "phenomenon_property": "A persisted pump_duty record whose values are not the type the arbiter writes is dropped at load with one log line; no stored value can make apply() raise.",
+   "seam_rule": "rg -n \"held.written\\[\" custom_components/heatpump_optimizer/pump_arbiter.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/store_fuzz.py",
+    "value": 0,
+    "note": "The healthy payload: pump_duty_healthy_repeat=0."
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "proposed_fix_scope": "Validate each (value, at) pair in pump_arbiter._load (type per slot, aware stamp), catch KeyError/AttributeError, and log once.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s3-04",
+   "scope": "D1-s3",
+   "step": "D1.M4",
+   "title": "Climate entity publishes the away setback as the user's target while the solve is in the executor",
+   "severity": "medium",
+   "claim": "With away active, a state write during the solve's executor await (the peak guard's async_update_listeners) publishes climate target_temperature 16.0 C against the configured 21.0 C, a 5.00 C deviation; after the solve it is 0.",
+   "mechanism": "away.apply_setback writes the setback into the live ctx._opt_config.target_temp before _await_optimize, and restore_setback undoes it only after the await. HeatPumpOptimizerClimate.target_temperature ('the comfort target the user asked for') reads coordinator.target_temperature, which is that live field, so any loop-side state write in the window publishes the setback to the state machine and the recorder.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/climate_midsolve.py",
+    "harness_path": "tools/audit/round9/D1/s3/climate_midsolve.py",
+    "value": 5,
+    "unit": "degC max |published - configured| mid-solve",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "n/a",
+    "contention_note": "other finder seats sharing box B5; value metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.18,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.climate:HeatPumpOptimizerClimate.target_temperature (window opened by away:apply_setback, write issued by coordinator._async_peak_guard_transition at coordinator._await_optimize)",
+   "perturbation": {
+    "change": "--perturb: the property reads ctx._config[CONF_TARGET_TEMP] instead of the live solve config; --null: away override off",
+    "expected_direction": "to_zero",
+    "observed_value": "0.00 C in both arms"
+   },
+   "metric_definition": "Maximum |climate.target_temperature - configured target| over the listener state writes made while the solve is awaited.",
+   "phenomenon_property": "A published entity value never reflects the solve-scoped envelope (setback, economy/open-window floor) that apply_setback/lower_floor write into the live config; readers see the configured value throughout the solve.",
+   "seam_rule": "rg -n \"_opt_config\\.|target_temperature\" custom_components/heatpump_optimizer/{climate,sensor,binary_sensor,entity}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/climate_midsolve.py --null",
+    "value": 0,
+    "note": "Away off: the mid-solve write publishes 21.0."
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/away.py"
+   ],
+   "proposed_fix_scope": "Apply the away envelope to the solve's deep-copied opt_config (after _solve_snapshot) instead of the live one, or have climate.target_temperature read the configured target.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s3-05",
+   "scope": "D1-s3",
+   "step": "D1.M3",
+   "title": "Boost 'two-hour maximum' is an absolute instant: a clock step back or a far-future store extends it without bound",
+   "severity": "medium",
+   "claim": "A space boost (nameplate power, comfort ceiling, full displace) stays live 2+J hours after the wall clock steps back J hours (J=24 gives 26.0 h), and a restored until in 2099 never expires (72.0 h at the harness cap).",
+   "mechanism": "BoostState.expire/active compare the stored until with now only, and boost.restore accepts any parsed until > now; nothing bounds until - now by BOOST_HOURS.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/boost_unbounded.py",
+    "harness_path": "tools/audit/round9/D1/s3/boost_unbounded.py",
+    "value": 26,
+    "unit": "hours live after a 24 h backward clock step (jump1=3.0, jump6=8.0, restore_2099=72.0 cap)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "n/a",
+    "contention_note": "frozen simulated clock; contention-immune",
+    "tolerance": "exact (15-min sampling)",
+    "load1": 1.18,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.boost:BoostState.expire / boost:apply / boost:restore",
+   "perturbation": {
+    "change": "--perturb: BoostState.expire also drops an end more than BOOST_HOURS after now",
+    "expected_direction": "down",
+    "observed_value": "jump0=2.0, jump1/6/24=0.0, restore_2099=0.0"
+   },
+   "metric_definition": "Hours, sampled every 15 min to a 72 h cap, for which boost.apply still sets action['boost_space'] after the clock step or restore.",
+   "phenomenon_property": "A boost channel is never live more than BOOST_HOURS after any instant at which it is read, whatever the clock does or the store holds.",
+   "seam_rule": "rg -n \"until\" custom_components/heatpump_optimizer/boost.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/boost_unbounded.py",
+    "value": 2,
+    "note": "jump0 arm, no clock step: 2.0 h as designed."
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 2,
+    "max": 72,
+    "drop_most_favourable": 26
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/boost.py"
+   ],
+   "proposed_fix_scope": "Clamp until to now + BOOST_HOURS in BoostState.expire/active and in restore.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s3-06",
+   "scope": "D1-s3",
+   "step": "D1.M2",
+   "title": "FrequencyMap.from_dict admits an unbounded ratio or out-of-range decile that pins recommend() at hz_min for days",
+   "severity": "medium",
+   "claim": "10 of 200 seeded frequency-map store mutants (a huge ratio, or a negative decile key with a large ratio) leave the compressor recommendation for a 3 kW target at hz_min, delivering under 50 %, even after 96 truthful folds.",
+   "mechanism": "from_dict refuses non-finite or non-positive ratios and negative counts, but accepts any int key and any finite ratio. recommend() walks buckets ascending; a phantom bucket predicting ratio*mid >= target at or below hz_min answers first, and _command_frequency clips it to hz_min. observe() only decays the ratio with EWMA alpha 0.1, so a 1e308 ratio needs thousands of folds.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/freq_map_store.py",
+    "harness_path": "tools/audit/round9/D1/s3/freq_map_store.py",
+    "value": 10,
+    "unit": "mutants of 200 still under-delivering after 96 folds",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B5, linux cloud container, python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "deterministic seeded count; contention-immune",
+    "tolerance": "exact (seed 9, n 200)",
+    "load1": 1.18,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.freq_control:FrequencyMap.from_dict / FrequencyMap.recommend / FrequencyMap.observe",
+   "perturbation": {
+    "change": "--perturb: from_dict also drops keys outside [0, FREQ_DECILES) and ratios above 1.0 kW/Hz",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Mutants whose clipped recommend(3 kW) after 96 folds of truthful plant kW (0.04 kW/Hz) gives plant power below 50 % of the target.",
+   "phenomenon_property": "A loaded frequency map contains only deciles in [0, FREQ_DECILES) with physically plausible kW/Hz ratios; no stored bucket can pin the recommendation outside what the healthy map would answer.",
+   "seam_rule": "rg -n \"def from_dict\" custom_components/heatpump_optimizer/freq_control.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/freq_map_store.py",
+    "value": 0,
+    "note": "The healthy map recommends 80.0 Hz; healthy_stuck=0."
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "files": [
+    "custom_components/heatpump_optimizer/freq_control.py"
+   ],
+   "proposed_fix_scope": "Bound the key to range(FREQ_DECILES) and the ratio to a plausible ceiling in FrequencyMap.from_dict.",
+   "seat": "D1-s3"
+  },
+  {
+   "id": "D1-s4-01",
+   "scope": "D1-s4",
+   "step": "D1.M2",
+   "title": "DefrostDerate.from_dict admits non-finite/out-of-range duty; the bucket pins at DERATE_MIN and never recovers",
+   "severity": "medium",
+   "claim": "A stored defrost duty cell that is non-finite (the strings \"nan\"/\"inf\" pass float()) or outside [0, 1] is loaded unchanged, silently, and pins that bucket's derate at DERATE_MIN=0.55 for the life of the process: 200 healthy zero-duty folds leave it at 0.5500 where a healthy bucket reaches 1.0000.",
+   "mechanism": "_grid_of(\"duty\", float) only casts; the factors grid beside it is re-clamped to [DERATE_MIN, DERATE_MAX] on load but duty is not. derate_from_duty maps NaN/huge duty to the 0.55 floor, and observe_duty's EWMA (0.9*current + 0.1*duty) keeps NaN/inf forever and needs thousands of folds to bring 1e300 below the 0.30 cap. No log line is emitted.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "harness_path": "tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": 53,
+    "unit": "mutants of 250 (duty-targeted) still holding an unreachable duty cell after 24 healthy folds per bucket; 42 pinned at 0.55, 53 silent",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 6.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.from_dict",
+   "perturbation": {
+    "change": "--perturb: from_dict wrapped to sanitise duty on load (non-finite -> 0.0, clip to [0, 1]) -- the one-line fix shape _grid_of('duty', ...) with a bounded cast",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 250 seeded mutants of a healthy DefrostDerate payload, count whose loaded duty grid still holds a non-finite or out-of-[0,1] cell after 24 healthy zero-duty folds per bucket.",
+   "phenomenon_property": "Every grid DefrostDerate.from_dict restores is bounded on load to the range its own learner can produce (duty in [0,1] and finite, counts >= 0), so no stored value can put a bucket where observe/observe_duty cannot move it back.",
+   "seam_rule": "grep -n '_grid_of(\"' custom_components/heatpump_optimizer/defrost.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": "sibling_factors_stuck=0; healthy_null_control_stuck=0",
+    "note": "the same 250 mutation draws aimed at the re-clamped factors grid leave nothing stuck; the healthy payload loads clean"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py  # duty_targeted_stuck=53, nan_bucket_factor_after_200_zero_folds=0.5500",
+    "... store_fuzz.py --perturb  # every stuck count 0, nan bucket 1.0000"
+   ],
+   "proposed_fix_scope": "defrost.py DefrostDerate.from_dict: cast duty cells through a finite, [0,1]-clamped cast (as factors already are); optionally counts through max(0, int).",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "seat": "D1-s4"
+  },
+  {
+   "id": "D1-s4-02",
+   "scope": "D1-s4",
+   "step": "D1.M5",
+   "title": "A failed solve is returned as a plan with status 'failed (...)', so the coordinator counts it a success",
+   "severity": "medium",
+   "claim": "When every L-BFGS-B start raises (or a single non-finite horizon input makes every start score non-finite), HeatPumpOptimizer's guards return a normal OptimizationResult whose status is 'failed (...)'; async_run_optimization publishes it as the plan, resets _solve_failures to 0 and never raises the solve_failures repair issue -- 0 failures and 0 issues after 3 such cycles, against 3 and 1 when the same fault is raised outside the guard.",
+   "mechanism": "The try/except in _optimize_space_only (optimizer.py ~4025) and _solve_space (~3496) log ERROR and fall back to the initial heuristic power with status f'failed ({e})'. The coordinator decides 'the solve failed' by exception only, so it adopts the fallback, logs 'Optimization complete', and clears the failure streak and notice. One fact (did the solve fail) decided by two predicates.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "harness_path": "tools/audit/round9/D1/s4/solve_guard.py",
+    "value": 0,
+    "unit": "coordinator _solve_failures after 3 consecutive cycles whose every L-BFGS-B run raised (both coord_minimal and coord_dhw); 3 of 3 failed plans published; 0 repair issues",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 6.34,
+    "thread_factor": 1.002
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_space_only (guard fed through optimizer:_scoped_minimize), observed at coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+   "perturbation": {
+    "change": "--perturb: HeatPumpOptimizer.optimize raises when its own status starts 'failed' (the one-line fix shape at the guard)",
+    "expected_direction": "up",
+    "observed_value": "solve_failures 0 -> 3, issues 0 -> 1, failed_plans_published 3 -> 0; non-finite grid returned_failed_plan 9 -> 0"
+   },
+   "metric_definition": "After 3 consecutive cycles with every L-BFGS-B run raising, the coordinator's own _solve_failures counter and count of solve_failures repair issues.",
+   "phenomenon_property": "Every path by which optimize() fails to solve surfaces to the caller as a failure (an exception or an explicit flag the coordinator's failure accounting reads), never as a plan it will adopt.",
+   "seam_rule": "grep -n 'f\"failed (' custom_components/heatpump_optimizer/optimizer.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "value": "null_control.solve_failures=3, solve_failures_issues=1 (both configs)",
+    "note": "the same RuntimeError raised from _forecast_arrays, outside the optimizer's guard, is counted and noticed as designed"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+    "... solve_guard.py --perturb"
+   ],
+   "proposed_fix_scope": "optimizer.py: the two f'failed ({e})' guards either re-raise or mark the result so the coordinator's failure branch (coordinator.py async_run_optimization) treats it as a failed solve; which side owns it is the fixer's call (the coordinator side is D1-s2's cell).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D1-s4"
+  },
+  {
+   "id": "D1-s4-03",
+   "scope": "D1-s4",
+   "step": "D1.M2",
+   "title": "One unreadable cell in a v2 defrost store voids all 12 measured buckets and is labelled a pre-v5.3.0 upgrade",
+   "severity": "low",
+   "claim": "A version-2 DefrostDerate payload with a single malformed duty or duty_counts cell loads with every bucket's measured duty discarded and migrated=True, logging 'a pre-v5.3.0 store was upgraded' -- 226 of 250 one-bad-cell payloads, 2712 measured buckets discarded.",
+   "mechanism": "_grid_of returns None for the whole grid on one failed cast, and the else-branch sets migrated from the presence of factors without looking at version, so a corrupt v2 store is reported as a v1 upgrade (published in diagnostics) instead of a quarantined bucket.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "harness_path": "tools/audit/round9/D1/s4/store_fuzz.py",
+    "value": 226,
+    "unit": "v2 payloads of 250 flagged migrated after one bad cell",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 (4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three compute-heavy finders sharing B6; count metric, contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 6.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.from_dict",
+   "perturbation": {
+    "change": "--perturb-label: a payload whose version is 2 is never marked migrated",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 250 v2 payloads with one malformed duty/duty_counts cell, count loaded with migrated=True (the pre-v5.3.0 upgrade label and log line).",
+   "phenomenon_property": "A corrupt cell in a current-version store is quarantined at its bucket and reported as corruption, never as a schema upgrade.",
+   "seam_rule": "grep -n 'migrated' custom_components/heatpump_optimizer/defrost.py",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/store_fuzz.py",
+    "... store_fuzz.py --perturb-label"
+   ],
+   "proposed_fix_scope": "defrost.py from_dict: per-cell cast with a per-bucket reset, and set migrated only for a payload without version 2.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "seat": "D1-s4"
+  },
+  {
+   "id": "D1-s5-01",
+   "scope": "D1-s5",
+   "step": "D1.M3",
+   "title": "inputs.age_of ignores last_reported and accepts future stamps, diverging from InputReader's freshness rule",
+   "severity": "medium",
+   "claim": "A live sensor that re-reports an unchanged value is delivered as None (stale) by both age_of consumers once last_updated exceeds the limit, and a stamp ahead of the clock is delivered as fresh; InputReader judges the same State objects the opposite way in 13 of 18 cells.",
+   "mechanism": "age_of (inputs.py) reads last_updated/last_changed only and returns a negative timedelta for a future stamp, which callers compare as `age > limit` and so treat as fresh. InputReader._age_minutes prefers last_reported and returns None for a future stamp (#775). The fix was made in the reader and never ported to its sibling.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/age_of_divergence.py",
+    "harness_path": "tools/audit/round9/D1/s5/age_of_divergence.py",
+    "value": "reported_divergent=7/12; future_divergent=6/6; control_divergent=0/12",
+    "unit": "cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; shared fan-out box, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.09,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.inputs:age_of (via coordinator:_dhw_inlet_c and HeatPumpOptimizerCoordinator._indoor_humidity_value)",
+   "perturbation": {
+    "change": "age_of prefers last_reported and returns None for a negative age (the reader's rule); the harness applies it in memory with --perturb by patching coordinator.age_of",
+    "expected_direction": "to_zero",
+    "observed_value": "reported_divergent=0, future_divergent=0, control_divergent=0"
+   },
+   "metric_definition": "Cells where the value delivered through age_of (None vs a number) disagrees with InputReader._age_minutes' verdict on the identical State at the same instant and limit.",
+   "phenomenon_property": "Every freshness decision on a Home Assistant state must use the same stamp precedence (last_reported first) and the same future-stamp refusal as InputReader._age_minutes.",
+   "seam_rule": "grep -n \"age_of(\\|last_updated\\|last_changed\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/age_of_divergence.py",
+    "value": "control_divergent=0/12",
+    "note": "last_reported == last_updated (a sensor whose value changes on every write): both rules agree"
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "inputs.age_of: use the reader's stamp precedence and refuse a negative age (or delegate to one shared helper); add a test with last_reported != last_updated and a future stamp for both consumers.",
+   "seat": "D1-s5"
+  },
+  {
+   "id": "D1-s5-02",
+   "scope": "D1-s5",
+   "step": "D1.M2",
+   "title": "Learner-store loaders check finiteness but not the domain their own update path enforces (price shape, peak tracker)",
+   "severity": "medium",
+   "claim": "Out of 300 seeded store mutants, 11 price-model and 8 peak-tracker mutants load silently (no WARNING) and make the next cycle deliver values no honest learner can produce: unpublished-step prices of 0 or more than 1000x the known mean, and a negative peak threshold or billed peak. 9 and 2 of them are still invalid one cycle later.",
+   "mechanism": "PriceShapeModel.from_dict rejects only non-finite bins, but observe_day/observe_day_quarters clip bins to [SHAPE_MIN,SHAPE_MAX] and [QUARTER_FACTOR_MIN,QUARTER_FACTOR_MAX] and renormalise, so a finite 0, negative or 1e300 bin loads and prices the tail through extend_price_series (max(0, negative) = 0). PeakTracker._stored_peaks drops non-finite peaks but keeps negative ones, which observe() never records; threshold_kw/billed_peak_kw then go negative, and coordinator.py:6992 publishes that.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python -W ignore tools/audit/round9/D1/s5/store_domain_fuzz.py --n 300 --seed 9",
+    "harness_path": "tools/audit/round9/D1/s5/store_domain_fuzz.py",
+    "value": "price_model_silent_invalid=11 (next_still_invalid=9); peak_tracker_silent_invalid=8 (next_still_invalid=2); crash=0",
+    "unit": "mutants of 300 per store",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "seeded counts; contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 1.21,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:PriceShapeModel.from_dict (+ extend_price_series); custom_components.heatpump_optimizer.tariff:PeakTracker.from_dict (+ threshold_kw, billed_peak_kw)",
+   "perturbation": {
+    "change": "--perturb wraps both loaders with the update path's domain gate, in memory: shape bins clipped to [SHAPE_MIN,SHAPE_MAX] and renormalised, quarter factors clipped, negative day counts set to 0, non-finite residual_var set to 0, negative peaks dropped, an out-of-domain open window reset",
+    "expected_direction": "to_zero",
+    "observed_value": "price_model_silent_invalid=0, peak_tracker_silent_invalid=0"
+   },
+   "metric_definition": "Mutants whose loaded state makes the next cycle deliver a tail price <=0, non-finite or >1000x the known mean, non-finite sigma, or a negative/NaN threshold or billed peak, with no WARNING logged.",
+   "phenomenon_property": "A persisted learner state must be loaded into the domain its own update path can produce (the same clip and sign gates), or be reset with one log line; checking finiteness alone is not enough.",
+   "seam_rule": "grep -n \"def from_dict\\|def apply_payload\\|def _stored_peaks\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python -W ignore tools/audit/round9/D1/s5/store_domain_fuzz.py",
+    "value": "price_model_control_invalid=0, peak_tracker_control_invalid=0",
+    "note": "the unmutated healthy payload delivers no invalid value"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 8,
+    "max": 13,
+    "drop_most_favourable": 8
+   },
+   "reproduction_steps": [
+    "seeds 1,2,3,4,5,9 give price_model 8,10,8,9,13,11 and peak_tracker 2,5,3,0,5,8 (the leave_one_out block is the price_model arm)"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/tariff.py"
+   ],
+   "proposed_fix_scope": "PriceShapeModel.from_dict: apply observe_*'s clip ranges and renormalisation, clamp days/quarter_days to >=0, and drop non-finite residual_var, with one WARNING on repair. _stored_peaks: drop negative peaks like non-finite ones. Validate _window_samples/_window_factor ranges.",
+   "seat": "D1-s5"
+  },
+  {
+   "id": "D1-s5-03",
+   "scope": "D1-s5",
+   "step": "D1.M6",
+   "title": "One huge JSON integer drops a whole price fetch (entity and Tibber) or Open-Meteo refresh instead of one row",
+   "severity": "low",
+   "claim": "With 24 valid price rows plus one row whose value is 10**400, pull_prices (entity source) and prices_from_tibber_payload raise OverflowError and deliver 0 rows, and the Open-Meteo refresh keeps 0 of 72 good samples. Every other malformed value, including the string '1e999', drops only its own row.",
+   "mechanism": "price_model._raw_value and open_meteo._parse_block wrap float(raw) in except (TypeError, ValueError); float() of an int too large for a double raises OverflowError, which escapes the per-row drop. Price rows propagate to the coordinator's fetch-failed path, which fires again every cycle while the attribute persists. Open-Meteo rows reach the #1519 fence, which discards the whole series. The sibling tariff._stored_peaks already catches OverflowError ('a huge JSON int').",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/price_huge_int.py",
+    "harness_path": "tools/audit/round9/D1/s5/price_huge_int.py",
+    "value": "entity_huge_int_rows=0, tibber_huge_int_rows=0, open_meteo_huge_int_rows=0 (controls 24, 24, 72)",
+    "unit": "rows delivered",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; contention-immune",
+    "tolerance": "exact",
+    "load1": 1.04,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:_raw_value (via pull_prices, prices_from_tibber_payload); custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh)",
+   "perturbation": {
+    "change": "add OverflowError to the except tuple at both float() sites (--perturb patches _raw_value and open_meteo's float in memory)",
+    "expected_direction": "up",
+    "observed_value": "entity 24, tibber 24, open_meteo 72"
+   },
+   "metric_definition": "Rows delivered by the production parser for a payload of valid rows plus one huge-integer row; a raise counts as 0 rows.",
+   "phenomenon_property": "Every per-row numeric parse of external input must drop the row on any conversion failure, OverflowError included, and never fail the whole payload.",
+   "seam_rule": "grep -n -A3 \"float(raw\\|float(raw_v\\|float(total\" custom_components/heatpump_optimizer/price_model.py custom_components/heatpump_optimizer/open_meteo.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/price_huge_int.py",
+    "value": "entity_control_rows=24, tibber_control_rows=24, open_meteo_control_rows=72",
+    "note": "the hostile row as the string '1e999' (float -> inf) is dropped alone"
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/open_meteo.py"
+   ],
+   "proposed_fix_scope": "Catch OverflowError in price_model._raw_value and open_meteo._parse_block (and apply_price_adjustments), with a huge-int row in the parser tests.",
+   "seat": "D1-s5"
+  },
+  {
+   "id": "D1-s5-04",
+   "scope": "D1-s5",
+   "step": "D1.M6",
+   "title": "One off-grid timestamp collapses Open-Meteo's inferred resolution and erases the whole solar horizon",
+   "severity": "low",
+   "claim": "One extra hourly sample stamped 1 or 5 minutes off the grid makes OpenMeteoSolar.irradiance_for return None for 192 of 192 quarter-hour steps; 30 minutes off gives 94 of 192. The refresh reports success with no WARNING.",
+   "mechanism": "_parse_block sets resolution = min(positive gaps), so one stray sample shrinks every sample's averaging span to that gap. mean_over then covers less than 50% of each 15-min step and returns None. The humidity and snowfall series use the same parser.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "harness_path": "tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "value": "stray_1min_none_steps=192; stray_5min_none_steps=192; stray_30min_none_steps=94; healthy_none_steps=0",
+    "unit": "steps of 192",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; contention-immune",
+    "tolerance": "exact",
+    "load1": 1.13,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh and irradiance_for)",
+   "perturbation": {
+    "change": "take the median positive gap instead of the minimum in _parse_block (one-line edit; --perturb patches it in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 in every arm"
+   },
+   "metric_definition": "Quarter-hour steps of a 48 h horizon, inside the served coverage, for which irradiance_for delivers None after one refresh.",
+   "phenomenon_property": "A resolution inferred from external timestamps must be robust to a single irregular sample; one stray stamp must not change the coverage of every other sample.",
+   "seam_rule": "grep -n \"resolution = \\|min(gaps)\" custom_components/heatpump_optimizer/open_meteo.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "value": "healthy_none_steps=0",
+    "note": "the same payload without the stray sample"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 192,
+    "max": 192,
+    "drop_most_favourable": 192
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/open_meteo.py"
+   ],
+   "proposed_fix_scope": "Infer the resolution from the modal or median gap, or drop samples off the dominant grid, in _parse_block; test with one stray stamp.",
+   "seat": "D1-s5"
+  },
+  {
+   "id": "D3-s1-01",
+   "scope": "D3-s1",
+   "step": "D3.M2",
+   "title": "No closure script fails when _dhw_inlet_c's lower plausibility bound moves (-5.0 <= value -> -5.0 < value)",
+   "severity": "low",
+   "claim": "With coordinator.py:1371 mutated from `-5.0 <= value` to `-5.0 < value`, all 15 scripts of coordinator.py's measured closure pass, including env_drift --all against the baseline. Yet _dhw_inlet_c then returns None instead of -5.0 for a fresh -5.0 \u00b0C inlet reading.",
+   "mechanism": "The inlet checks in tests/features.py (near line 45296: 40.0 \u00b0C, stale and 'unknown' readings; near line 18850: a fresh 12.0 and a frozen probe) never probe below the window or at either bound. The coordinator goldens do not configure a live inlet probe at the boundary.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0043 ; PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/behaviour.py C0043",
+    "harness_path": "tools/audit/round9/D3/s1/prescreen.py",
+    "value": 0,
+    "unit": "scripts killing the mutant (of 15); behaviour_delta=1 at the seam",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1, 4 vCPU cloud container, Linux 6.18, CPython 3.14.0rc2, node 22",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box with up to 3 compute seats (load1 about 4). The counts are contention-immune.",
+    "tolerance": "exact",
+    "load1": 4.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c",
+   "perturbation": {
+    "change": "Apply mutant C0043 (coordinator.py:1371 `-5.0 <= value` -> `-5.0 < value`). behaviour.py C0043 compared with behaviour.py C0043 --null: behaviour_delta moves up from 0 to 1, while prescreen.py killed_by stays 0. Kill-count control: prescreen.py C0023 gives killed_by=1 (features.py), which shows the prescreen counter moves.",
+    "expected_direction": "up",
+    "observed_value": "behaviour_delta 0 -> 1; killed_by 0 (null) / 0 (C0043) / 1 (C0023 control)"
+   },
+   "metric_definition": "killed_by = number of scripts in coordinator.py's measured closure (minus stress/edge/backtest; env_drift --all for golden) that exit non-zero with the mutant applied",
+   "phenomenon_property": "The lower plausibility bound of the live DHW inlet probe (_dhw_inlet_c) is pinned by no check. The suite stays green when that bound moves, while the published inlet (dhw_inlet_current, and through it DHW draw power) changes at the bound.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/mutants.py --list | grep '\"func\": \"_dhw_inlet_c\"'  (seams C0041-C0045; each runs through tools/audit/round9/D3/s1/prescreen.py <CID>)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py null ; .../behaviour.py C0043 --null",
+    "value": "killed_by=0; behaviour_delta=0",
+    "note": "The unmutated tree passes all 15 scripts. Patching the unmutated source through the same path changes nothing."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/mutants.py   # shows C0043 in the seeded sample",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/behaviour.py C0043   # behaviour_delta=1 (-5.0 -> None)",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/prescreen.py C0043   # killed_by=0, about 11 min"
+   ],
+   "proposed_fix_scope": "tests only: extend the features.py inlet-refusal check (near line 45296) with arms at -5.0 (accepted), just below -5.0 (refused), 35.0 (accepted) and just above 35.0 (refused), and a far-below value such as -20 (refused). No production change.",
+   "files": [
+    "tests/features.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I1",
+   "provisional": false,
+   "seat": "D3-s1"
+  },
+  {
+   "id": "D13-s1-01",
+   "scope": "D13-s1",
+   "step": "D13.M1",
+   "title": "--stats API-mode enumerator silently drops 52 of 253 window merges whose /commits/<sha>/pulls answers []",
+   "severity": "medium",
+   "claim": "policy_lint.mjs --stats --since v6.6.0 at 1936d5ca reports 201 merged pull requests while main's first-parent history holds 253 `Merge pull request #N` merges, and prints no line naming the 52 it dropped.",
+   "mechanism": "fetchPullsBySha maps a sha only when /commits/<sha>/pulls returns rows; enumerateMerges (API mode) then skips every unmapped first-parent commit as a stamp. PRs #1098-#1165 return [] (their PR records 404), so their merges vanish from the population and from STATS COVERAGE's denominator without an unfetched/UNCHECKED marker.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/enum_gap.mjs",
+    "value": 201,
+    "unit": "merges enumerated (vs 253 subject merges; gap 52, gap_marked 0)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 6.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:enumerateMerges (via the --stats CLI, fetchPullsBySha over a stub curl replaying the live API)",
+   "perturbation": {
+    "change": "D13_PERTURB=drop:8cca77bcd64b8615338eb8986189ae92b871b05d (stub answers [] for one more merge) -> 200, gap 53, still unmarked; D13_PERTURB=restore (stub answers the 52 with their subject number) -> 253",
+    "expected_direction": "down",
+    "observed_value": "200 (drop); 253 (restore)"
+   },
+   "metric_definition": "N in the CLI line `STATS: N merged pull request(s)` against first-parent `Merge pull request #N` subjects in v6.6.0..origin/main; key = PR-number set the seam delivers.",
+   "phenomenon_property": "Every first-parent merge commit of a pull request in the window is in the --stats population, or is counted and printed as unfetched; none leaves the denominator silently.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs  (gap and gap_marked); every caller of enumerateMerges/mergedPRsFromWindow: grep -n 'mergedPRsFromWindow\\|enumerateMerges(' .claude/workflows/policy_lint.mjs",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "value": "restore arm: 253 = subject_merges, gap 0",
+    "note": "the gap is exactly the empty-row commits; stub replay reproduced the live CLI's 201 / 188-of-201 lines"
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "compare RESULT stats_window_merges with subject_merges"
+   ],
+   "proposed_fix_scope": "In API mode treat a first-parent commit whose subject is `Merge pull request #N` and whose /pulls rows are empty as merge #N with unfetchable data: count it, list it on the unfetched line; fetchWindow must record rather than abort on its 404.",
+   "files": [
+    ".claude/workflows/policy_lint.mjs"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I4",
+   "seat": "D13-s1"
+  },
+  {
+   "id": "D13-s1-02",
+   "scope": "D13-s1",
+   "step": "D13.M1",
+   "title": "22 re-verification rounds after a moved head caught 0 defects; 12 heads moved only by merges or ci: commits",
+   "severity": "high",
+   "claim": "Over v6.6.0..1936d5ca every one of the 22 parsable verdicts re-verifying a head that moved after a `merge` verdict was again `merge` (0 blocked), and 12 of those heads differed from the reviewed one only by merge commits or `ci:` bot commits.",
+   "mechanism": "An approving verdict binds an exact head, so any move -- including merging main to clear DIRTY or a bot re-record -- costs a full fix-review round; nothing distinguishes a move that changes the branch's diff from one that does not.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": 0,
+    "unit": "reverify rounds blocked (of 22; 11 merges-only, 1 ci-bot-only, 10 branch content)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 4.51,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:statsHistogram (rounds.reverify, 22) and policy_lint.mjs:waveVerdictRe",
+   "perturbation": {
+    "change": "D13_PERTURB=block_one_reverify: one reverify round's verdict re-worded `Fix review: blocked <same head> harness: perturbed` in memory",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "Among verdicts following a `merge` verdict on a different head (statsHistogram reverify), the count whose verdict is `blocked`; plus git first-parent classification of prev..head.",
+   "phenomenon_property": "A review round is spent only where it can catch something: a head move that leaves the branch's diff against its merge base unchanged does not cost a fix-review round.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (reverify_* RESULTs)",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": "repair rounds after a blocked verdict: 21 (where all catches happen); prod_repeat_entries 6",
+    "note": "the rework that does catch is the repair arm, not the reverify arm"
+   },
+   "proposed_fix_scope": "A mechanical diff-equivalence check (branch diff vs new merge base byte-identical to the reviewed diff, bot ci: commits excluded) that carries the verdict across a merges-only move; full fix review only when it fails. Policy change: owner approval needed.",
+   "files": [
+    "tools/audit/briefs/fix-review.md",
+    ".claude/workflows/web-fix-wave.js",
+    "tools/audit/app_approve.sh"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D13-s1"
+  },
+  {
+   "id": "D13-s1-03",
+   "scope": "D13-s1",
+   "step": "D13.M3",
+   "title": "Body-answer blocks (8) exceed every engineering block class (max 1); record-and-body 12 vs engineering 7",
+   "severity": "high",
+   "claim": "Of the window's 21 blocked verdicts, 8 block because the PR body did not answer a red check (root-cause-unanswered 6, untaught red-check 2) while no engineering class has more than 1, and the record-and-body bucket (12) exceeds engineering (7).",
+   "mechanism": "The root-cause trigger (a check went red on a branch commit and the body does not name it) is a mechanical predicate over the check-runs listing and the body, yet it is enforced only by the fix reviewer, so each miss costs a full review round.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": 8,
+    "unit": "body-answer blocked verdicts (max engineering class 1)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 4.51,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:waveVerdictRe and policy_lint.mjs:blockClasses (web-fix-wave.js VERDICT_RE / VERDICT_CLASSES)",
+   "perturbation": {
+    "change": "D13_PERTURB=rca_to_harness: one root-cause-unanswered verdict re-worded as `harness:` in memory",
+    "expected_direction": "down",
+    "observed_value": "m3_body_answer_blocks 7, record-and-body 11, engineering 8"
+   },
+   "metric_definition": "Blocked verdicts (wave VERDICT_RE, both endpoints) whose class word is root-cause-unanswered or red-check, vs the largest engineering-bucket class count.",
+   "phenomenon_property": "A block whose predicate is mechanical from the API (red check on a branch commit, unnamed in the body) is refused by a check before review, not discovered by a review round.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (m3 class rows; each class whose predicate needs only check runs + body)",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": "engineering bucket 7 across 7 distinct classes, each 1",
+    "note": "body-answer is the only class above 1 besides none"
+   },
+   "leave_one_out": {
+    "cells": 7,
+    "min": 1,
+    "max": 6,
+    "drop_most_favourable": 2
+   },
+   "proposed_fix_scope": "A pre-review check (pr-contract lane) that lists check runs concluded failure on the branch's commits and refuses a body that names none of them under the root-cause section; review keeps only the judgement of the answer.",
+   "files": [
+    ".claude/workflows/policy_lint.mjs",
+    ".github/workflows/pr-contract.yml",
+    ".claude/rules/defect-root-cause.md"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D13-s1"
+  }
+ ]
+}

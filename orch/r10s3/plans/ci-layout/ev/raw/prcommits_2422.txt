@@ -1,0 +1,30 @@
+fb46dfc7 1 tvofi test(seat): pr_args.sh self-test arms for open_pr/update_pr argument c
+0522a2d4 1 tvofi fix(seat): open_pr/update_pr refuse wrong arguments by name and report
+06e41c39 1 tvofi docs(seat): INSTRUMENTS entries for the argument checks, the stop repo
+c2366b1e 1 tvofi feat(seat): tick level lines MERGE-READY and BLOCKED-UNFIXED from the 
+a088da38 1 tvofi docs(seat): INSTRUMENTS entry for the tick's MERGE-READY and BLOCKED-U
+0670b9ce 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-openpr-silent
+ddb670d8 1 tvofi fix(seat): tick counts a queue entry unmerged only when its PR is OPEN
+a5cc7961 1 tvofi docs(seat): INSTRUMENTS entry for the tick's open-set queue rule
+d5207784 1 tvofi feat(seat): tick level line HANDOFF-AHEAD for a complete handoff its P
+05744ce7 1 tvofi Revert "feat(seat): tick level line HANDOFF-AHEAD for a complete hando
+b31e4a45 1 tvofi feat(seat): tick level line OWED for each relayed verdict cloud_relay 
+7fa628e6 1 tvofi feat(seat): tick_loop.sh, the tick's driver loop, runs cloud_relay.sh 
+ee93af58 1 tvofi refactor(seat): one reader of the approver allowlist, proof_watch.verd
+62d7e1e4 2 tvofi Merge remote-tracking branch 'origin/main' into r10-openpr-silent
+d4f47f04 1 tvofi fix(seat): tick reads both merge-subject templates; OWED handoffs see 
+3adda66d 1 tvofi test(seat): the tick's OWED-handoff arm refuses an exit that contradic
+5c729de5 1 tvofi feat(seat): tick --only CARRY runs the weekly and closure carry sweep
+3bf31b82 2 tvofi Merge remote-tracking branch 'origin/main' into r10-openpr-silent
+d41ec9d2 1 tvofi test(seat): the CARRY arm fails, not crashes, when the sweep is never 
+3fe49467 2 tvofi Merge remote-tracking branch 'origin/main' into r10-openpr-silent
+0b5c9b24 1 tvofi fix(seat): the tick's unrecorded-merge check counts a `<title> (#N)` m
+7635793e 2 tvofi Merge commit '0b5c9b2418a0b8307c28173c15faae194b6e6075' into fix/r10-o
+6ad3b1bb 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-openpr-silent-
+01e08685 1 tvofi record: the delivery row for #2422
+86a488dc 1 tvofi fix(seat): the tick's carry sweep reads O17's default roster ref
+9cc10cd0 1 tvofi test(seat): a raise inside the CARRY section fails a named check inste
+9863f753 2 tvofi Merge remote-tracking branch 'origin/main' into r10-openpr-silent
+299c7de4 2 tvofi Merge commit '9863f753f7be8dd8bcc860f016437a7de4e805bb' into fix/r10-o
+c12b0562 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-openpr-silent-
+0ed39ce9 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-openpr-silent-

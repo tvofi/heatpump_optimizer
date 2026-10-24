@@ -1,0 +1,6 @@
+===== daemonize pid=82040 2026-10-24T12:21:52Z argv: bash tools/audit/seat/open_pr.sh r10-policy-fixer-md 2788ce34971216471686e716aa1ed340e21e4ac5 policy(R10-POLICY-FIXER-MD): dispose #2378's recurring fixer.md friction R10-POLICY-FIXER-MD
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+  REFUSE   'Closes #2378' closes #2378; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-policy-fixer-md/p1.log

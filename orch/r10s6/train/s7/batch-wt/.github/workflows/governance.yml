@@ -1,0 +1,1601 @@
+# The governance gate: the policy corpus's own refusal.
+#
+# WHY A SEPARATE WORKFLOW. `tests.yml` is the code gate, scoped from measured
+# closures. The policy corpus is INERT by prefix in tests/closure.py -- nothing
+# under tests/ reads CLAUDE.md, `.cursor/rules/` or `tools/audit/briefs/` --
+# so a policy-only pull request selects zero scripts and its whole mechanical
+# signal is four green ticks that measured nothing. This job is never scoped,
+# the same precedent as tests.yml's `briefs` job, which lints the wave rosters
+# from the same INERT directory.
+#
+# It was its own file so that `pr-contract` could run on `pull_request:
+# [edited]` without re-running the forty-minute gate. `pr-contract` has its own
+# file now, `pr-contract.yml`, and that header says why this one lists no
+# `edited` (#1514).
+
+name: Governance
+
+# This file is a callee of ci.yml (DESIGN-P2 2.1, unit U4): `workflow_call` for
+# the umbrella's `governance` job, which passes no inputs and no secrets and
+# grants `contents: read`, `pull-requests: read` and `issues: write` (the most a
+# job here may hold; the floor below and each job's own block narrow it), and
+# the weekly schedule. The push, pull_request and merge_group triggers, the
+# dispatch (a dispatch is ci.yml's) and the workflow-level `concurrency` (the
+# umbrella's run group and its `cancel-superseded` own supersession) are gone.
+# Inside a called workflow `github.event_name` and `github.event` are the
+# caller's, so every job's `if:` and every `github.event.pull_request.*`
+# expression below reads the umbrella's event unchanged; the push guards on
+# `record` and `delivery-status-publish` are the same text they were.
+#
+# The umbrella's pull_request types carry no `edited`, which the header above
+# explained for this file's own list (#1514): a body edit starts nothing here.
+on:
+  workflow_call:
+    inputs:
+      # A dispatch carries no base SHA: without this, a restore falls back to
+      # github.sha and the head grades itself.
+      base:
+        type: string
+        default: ""
+  # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
+  # clock: a merge with no disposition is not detectable from any one pull
+  # request, so nothing on the `pull_request` path can ever find it, and a
+  # window that only advances on a push to main goes unmeasured in a quiet week.
+  # `policy-docs` runs on this trigger too, which is the same lint it already
+  # runs on every push to main and costs a runner-minute.
+  schedule:
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  policy-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # The citation resolvers ask git whether a path or symbol exists at a
+          # cited tag; a shallow checkout answers "no" for every one of them.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # THE CHECK IS NOT EXECUTED FROM THE CHANGE IT IS CHECKING (#1403, D11-02).
+      #
+      # The four steps below grade the corpus the pull request carries and were
+      # themselves taken from that pull request: `actions/checkout` with no
+      # `ref:` lands the branch's own commit, so a one-line `process.exit(0)` at
+      # the end of `policy_lint.mjs` made this job exit 0 over a corpus the same
+      # run printed as `TOTAL: 4 error(s)`. Stdout was byte-identical and the
+      # required `policy-docs` context stayed green, and the steps above could
+      # not see it: every arm of the mutation lane reads a return value in this
+      # process, and the entry-point arm that lane grew for this reads the exit
+      # status of the pull request's own copy of `main()`.
+      #
+      # So the check source is restored from the commit the pull request is
+      # based on. `github.sha` stands in where there is no pull request, and
+      # there it is the ref already checked out: on a push to main, on the
+      # schedule and on a dispatch this step is a no-op, which is why the count
+      # it prints may legitimately be 0 and is printed rather than asserted.
+      #
+      # WHAT IT RESTORES: every `.mjs` and `.py` program in `.claude/workflows/`
+      # and the vendored markdown parser one of them requires -- which is where a
+      # mutation would otherwise live, since `render_md.mjs` reads the corpus
+      # through it -- and the `tools/audit/` programs a required job executes.
+      # A pathspec rather than a list of names, so a check added to an existing
+      # program is covered without an edit here.
+      #
+      # WHAT IT DOES NOT RESTORE, deliberately: the corpus and the policy
+      # documents, which are what a pull request is for; `fixtures/`, which are
+      # graded inputs rather than graders -- the pinned checker carries what each
+      # fixture must produce, so restoring them from the base would put the
+      # expectation and the input on the same side of the line, and a pull
+      # request that weakens one is now refused by the base's own numbers;
+      # `policy_budgets.json`, `policy_known_bad.json`, `cfr_exclusions.json` and
+      # the `wave-*`/`carry-*` documents, the same argument one level out, since
+      # a grader's criteria are data; the `web-*.js` fragments, which the
+      # fragment step below byte-compares with `web-fragments.md` and which are
+      # therefore graded artifacts -- pinning them would compare the base's
+      # copies with the pull request's canonical text and redden every pull
+      # request that updates the fragment on purpose; and `.claude/hooks/`,
+      # which only the owner changes.
+      #
+      # IT RUNS FIRST, BEFORE ANY PROGRAM THE PULL REQUEST CARRIES (decision
+      # 0013). A step that runs the pull request's code can append to
+      # $GITHUB_ENV -- `BASH_ENV`, `NODE_OPTIONS` -- and so run inside every
+      # later step of this job, the restored graders included. So this job
+      # runs no unowned pull-request program at all: the self-tests moved to
+      # `instrument-self-tests` below, whose verdict grades nothing, and the one
+      # owned program it drives (the hooks, through `--hooks`) runs last. The
+      # same pathspecs pin `pr-contract`, `env-matrix`, `wave-script` and
+      # `briefs`; `codeowners_gap.py --check` reads them, and a pinned file
+      # needs no owner.
+      #
+      # The one shape it cannot pin: a file the base does not have, since there
+      # is nothing to restore it from. A program added BESIDE the program it
+      # extends rather than inside it is therefore the pull request's own, which
+      # is the reason the corpus checks are functions in `CORPUS_CHECK_NAMES`
+      # and not modules beside `policy_lint.mjs`.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+
+      - name: Refuse a Cursor rule that is not the generated form of its source
+        run: if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check; else node tools/policy/rules_sync.mjs --check; fi
+
+      # #1515: a file a workflow executes, or one such a file imports, that no
+      # CODEOWNERS pattern owns is a check a pull request can rewrite without
+      # the owner's review. The base's copy of the walk (restored above) reads
+      # the pull request's CODEOWNERS and workflows; every job's surface, not
+      # only the required ones, because a job becomes required in settings.
+      # `-I`: without it Python puts the script's own directory first on
+      # sys.path, and a `subprocess.py` the pull request adds beside it would
+      # run before the check.
+      - name: Refuse a check script no CODEOWNERS pattern owns
+        run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi
+
+      # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
+      # `gh api` -- the branch endpoint and the ruleset objects -- and reddens
+      # when the corpus's literals or its recorded fixture drift from it. With
+      # no token the fetch fails and the class skips, loudly, which is its
+      # designed failure mode; CI is where the live set is meant to be checked,
+      # so the token is mapped here and costs the two API calls, about a
+      # second.
+      - name: Lint the policy corpus
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs; else node tools/policy/policy_lint.mjs; fi
+
+      # A workflow script cannot import another, so the five web-*.js each carry
+      # their own copy of the shared prompt block and web-fragments.md said to
+      # keep them in sync by hand. The copy was not byte-identical in the commit
+      # that created it, and stayed that way.
+      - name: Refuse a prompt fragment that has drifted from its canonical text
+        run: if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs; else node tools/policy/fragments_sync.mjs; fi
+
+      - name: Report what the linter found
+        if: always()
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --report; else node tools/policy/policy_lint.mjs --report; fi|| true
+
+      # Last: the base's checker drives the hooks' own self-tests, which are the
+      # pull request's (owned) copies -- so nothing graded runs after them.
+      - name: Refuse a hook that is missing, unwired, or fails its own self-test
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks; else node tools/policy/policy_lint.mjs --hooks; fi
+
+      # Field coverage (class I3, round 9): every field of a governance check's
+      # input is read by that check or ignored with a reason, and every check
+      # the derived set names is registered. Scoped: on a pull request or a push
+      # it runs only when one of its inputs changed, since each arm is a
+      # function of those files and the ruleset's key set, and it always runs on
+      # the schedule and a dispatch; its inputs are named by directory, since a
+      # program named on a pinned job's run line must be run there (prepr.sh's
+      # pinned-grader reader). It runs only once the base carries it, so
+      # it is always the base's pinned copy, and after `--hooks`, because its
+      # hooks arm drives that check again. The census rows' inputs --
+      # tests/ci_budgets.json, tests/ci_ratchet.py, tools/audit/archscore/ and
+      # the card -- are inputs too: without them a pull request uncapping a
+      # census row was caught only by the schedule (R10-ARCHSCORE-COVERAGE).
+      # A program file is named by a glob or its directory, never its own
+      # name, for the pinned-grader reason above.
+      # So are the homes the reorganisation moved its inputs to (tests/
+      # layout.json: policy_lint.mjs, counts.mjs and fixtures/ to tools/policy/,
+      # policy_budgets.json to dev/governance/config/), and the seam map the
+      # census copies; `.claude/workflows` alone no longer holds any of them.
+      - name: Refuse a governance check input field no check reads
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
+            echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*' tests/seam_map.json tests/ci_budgets.json 'tests/ci_ratchet*' tools/audit/archscore custom_components/heatpump_optimizer/www tools/policy dev/governance/config; then
+            echo "field coverage: no input changed since $SINCE; skipped"
+          else
+            if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs; else node tools/policy/field_coverage.mjs; fi
+          fi
+
+  # THE INSTRUMENTS' OWN SELF-TESTS, run from the pull request's copies
+  # (decision 0013). They were steps of `policy-docs` and `pr-contract`, ahead
+  # of the restore; a step running the pull request's code can write
+  # $GITHUB_ENV and so reach every later step of its job, the graders
+  # included. Here they share a job with no grader. `HPO_JOB_GRADES: nothing`
+  # tells `codeowners_gap.py` so, and its `--check` refuses the marker on a
+  # job a required context names: a self-test grades the program the pull
+  # request carries, never the pull request. A red here is still a red check
+  # at the head, which `pr-contract` makes the body answer.
+  instrument-self-tests:
+    runs-on: ubuntu-latest
+    # 20, not 10: the seat self-tests below add about four minutes run
+    # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
+    # and update_pr.sh), beside the job's three.
+    timeout-minutes: 20
+    env:
+      HPO_JOB_GRADES: nothing
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # EVERY STEP HERE DRIVES A PROGRAM THE PULL REQUEST CARRIES. A
+      # self-test's verdict is about a program's own refusals, and the copy
+      # that must answer is the one the pull request carries -- a lane run from
+      # the base over the base's own program reports on neither, which is
+      # docs/decisions/0004's subject.
+      #
+      # Three corpus checks shipped measuring nothing, each with an acceptance
+      # its author believed pinned it. This lane empties one check at a time --
+      # the corpus enumeration and the record mode's, and for the `caps` rule
+      # the regex list it scans as well as the check itself -- and demands the
+      # acceptance refuse it, so a check that survives its own removal is named
+      # on the pull request that lands it rather than by the next adversarial
+      # reader.
+      - name: Refuse a corpus or record-mode check that survives its own deletion
+        run: if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs; else node tools/policy/policy_lint_mutants.mjs; fi
+
+      - name: Show the fragment check refusing its own perturbation
+        run: if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs --self-test; else node tools/policy/fragments_sync.mjs --self-test; fi
+
+      # The lane-skip decision's own pins (R9-CI-SKIP): the planted-defect arm
+      # above all -- a main delta that intersects a selected script's closure
+      # MUST land on RUN, and the two careless mutants (always-skip,
+      # always-run) each redden a pinned arm. The suite's copy runs only when
+      # a diff selects it; this is the copy that answers for the workflow's
+      # decision steps, on every pull request.
+      - name: Show the lane-skip decision refusing every unsafe skip
+        run: python3 tests/lane_skip.py self-test
+
+      # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
+      # synthetic registration, offline: `policy-docs` runs the base's copy,
+      # which cannot answer for a change to this one.
+      - name: Show field coverage refusing each shape it exists to refuse
+        run: if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
+
+      # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
+      # well-formed comment object (#541 comment 5625671141). The countermeasure
+      # is a program seats call instead of a bit seats remember, and its own
+      # refusals are the thing that must not rot: a fail-closed check that goes
+      # green when it cannot look converts an open defect into a closed one.
+      # This step drives all thirty-five named arms offline on every
+      # pull request -- the same argument as the fragment self-test above.
+      - name: Show the comment poster refusing every body it cannot vouch for
+        run: if test -f .claude/workflows/gh_comment.py; then python3 .claude/workflows/gh_comment.py self-test; else python3 tools/pr/gh_comment.py self-test; fi
+
+      # The `record` predicate was narrowed (#752) only because a sweep measured
+      # what each candidate would refuse, and that sweep stays in the tree so the
+      # next seat proposing a narrowing reads its numbers instead of re-deriving
+      # them. It lives under `tools/audit/`, which is INERT in tests/closure.py,
+      # so the gate never selects it -- the same position `prepr.sh` and
+      # `push.sh` are in, and the same answer: an explicit step in a job that is
+      # never scoped. #762's fix review is why this is here rather than nowhere.
+      # The instrument's own null control had been vacuous since it was written,
+      # and nothing in CI could have said so.
+      #
+      # ONLY `--self-test`, which is pure over its fixtures: no network, no `gh`,
+      # no repository state. The range sweep is deliberately NOT wired. It needs
+      # a bulk API listing, takes tens of seconds, and prints a table with no
+      # pass condition -- its figures slide with the window by design, so a job
+      # asserting any of them would be asserting the calendar. A check that
+      # cannot fail for a reason is the defect this step exists to catch.
+      - name: Show the record-predicate sweep refusing its own perturbations
+        run: if test -f tools/audit/record-predicate/sweep.mjs; then node tools/audit/record-predicate/sweep.mjs --self-test; else node tools/policy/record-predicate/sweep.mjs --self-test; fi
+
+      - name: Show the pre-PR self-check refusing its own fixtures
+        run: if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi
+
+      - name: Show the push script's decisions refusing their own fixtures
+        run: if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
+
+      # The App push-and-open: the #678 ordering (the body contract before
+      # anything reaches the remote), the committed-tip and dirty-tree gates, the
+      # clean-carry condition, and the bounded three-outcome read-back that tells
+      # a race from a refused push (R9-RC-RECARRY-READBACK), over stubbed gh,
+      # git, curl and openssl -- no network, no key. Its siblings push.sh and
+      # app_approve.sh are driven here; the arms that fix adds are otherwise run
+      # by no check on the pull request (the diff is INERT, MODE: SCOPED -- 0).
+      - name: Show the App push refusing its own fixtures
+        run: if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh --self-test; else bash tools/pr/app_push.sh --self-test; fi
+
+      # The App approval's refusals and token cleanup, over stubbed gh, curl
+      # and openssl: no network, no key.
+      - name: Show the App approval refusing its own fixtures
+        run: if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi
+
+      # The merge-main bot (R9-CI-2b): what it pushes and what it leaves for a
+      # human, over a scratch repository with a stand-in driver -- no network --
+      # and that its commit is the one pr-contract's AUTOFIX_BOT_COMMITS accepts.
+      - name: Show the merge-main bot refusing its own fixtures
+        run: python3 tools/pr/merge_main_bot.py --self-test
+
+      # The superseded-run canceller (R10-CI-CONCURRENCY): the recorded pair
+      # 39090494028/39091600343 it must select, and the runs it must never
+      # cancel (a same-SHA twin, the live head, a bot-sent caller, main, a
+      # stale head), over a stub gh.
+      - name: Show the superseded-run canceller refusing its own fixtures
+        run: python3 tools/pr/cancel_superseded.py --self-test
+
+      # The App verdict poster (decision 0013): its verdict grammar, head
+      # reads, identity read-back and token cleanup, over the same stubs.
+      - name: Show the App verdict poster refusing its own fixtures
+        run: if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh --self-test; else bash tools/pr/app_comment.sh --self-test; fi
+
+      # The verdict bus (round-9 process review item 9): the reviewer's
+      # verdict push and the orchestrator's ref watcher, over a local bare
+      # repository and a stub poster -- no network, no key.
+      - name: Show the verdict bus refusing its own fixtures
+        run: bash tools/audit/seat/bus.sh --self-test
+
+      # The budget-raise gate (0013 as amended): a raise and a routine edit
+      # per budget file, every tracked file's caps moved both ways, and the
+      # owner's approval -- current, stale, dismissed, the App's -- offline.
+      # The exit status alone is not trusted: a gate whose entry point always
+      # exits 0 would pass here, and it is pinned but not owned. The tally line
+      # must say 0 failed (#1583 review r2).
+      - name: Show the budget-raise gate refusing its own fixtures
+        run: |
+          set -o pipefail
+          if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
+          grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
+
+      # Which CodeQL legs a pull request may skip (O17): every skip arm against
+      # its analyze null control, and every non-pull_request event analyzing.
+      # The tally line must say 0 failed.
+      - name: Show the CodeQL leg scope refusing every unsafe skip
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/codeql_scope.py --self-test | tee "$RUNNER_TEMP/cqs-self-test.txt"
+          grep -Eq '^codeql_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cqs-self-test.txt"
+
+      # The merge fast path (round-9 process review item 2B): each refusal class
+      # against its null control, through the gate's own `closure.select`. The
+      # orchestrator runs it by hand before a merge; nothing else would notice
+      # a class that stopped refusing. The tally line must say 0 failed.
+      - name: Show the merge fast path refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
+          grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
+
+      # A tracked script, workflow or decision record that depends on a temp
+      # or machine path (2026-10-03: a temp cleanup took three seat scripts'
+      # state, a decision's source and the seat interpreter). Here and not in
+      # a grading job: audit instruments carry no owner (tvofi, 2026-10-03;
+      # decision 0013), so an unpinned copy may only run where it grades
+      # nothing, and a pin needs a base that already carries the file. A red
+      # here is still a red at the head, which `pr-contract` makes the body
+      # answer.
+      - name: Refuse a temp or machine path in a tracked script or decision
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/tmp_paths.py --self-test
+          python3 -I tools/audit/seat/tmp_paths.py --check
+
+      # A push whose ref name or commit message names the host (#2310: 70
+      # wip-sync refs carried the account name). The self-test drives the
+      # slug, the guard and wt_sync.sh end to end on a planted identity; the
+      # check refuses a tracked file with a push site the registry does not
+      # name, and a guarded entry that calls no guard. Here for tmp_paths.py's
+      # reason.
+      - name: Refuse a push that names the host, and an unregistered pusher
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/ref_privacy.py --self-test
+          python3 -I tools/audit/seat/ref_privacy.py --check
+
+      # The orchestrator sweep's renderer and its policy re-read predicate.
+      # The renderer's self-test renders the tracked template, so a step that
+      # cites an instrument the tree no longer has reddens here, not in the
+      # next session's sweep. Here for tmp_paths.py's reason.
+      - name: Render the sweep template, and the policy re-read predicate
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/sweep_render.py --self-test | tee "$RUNNER_TEMP/sr-self-test.txt"
+          grep -Eq '^sweep_render self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sr-self-test.txt"
+          python3 -I tools/audit/seat/policy_reread_check.py --self-test | tee "$RUNNER_TEMP/prc-self-test.txt"
+          grep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"
+
+      # The orchestrator tick, over stubbed gh/git/pgrep/bus: no network, no
+      # `gh`, no subprocess. It loads roster_lib.py and budget_raise_gate.py
+      # from the tree, so a symbol either drops reddens here: #2406 removed
+      # `roster_lib.DEFAULT_ROSTER_REF`, and a tick still reading it crashed
+      # with AttributeError, seen first in review on #2422. A crash prints no
+      # tally, so the grep refuses it. Here for tmp_paths.py's reason.
+      - name: Show the orchestrator tick deciding its own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
+          grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
+
+      # Every self-testing tool (R10-SEAT-SELFTESTS-CI, widened by #2444's
+      # forward-carry). The check refuses a file under tools/ whose text
+      # carries a `--self-test` entry point while no workflow run line,
+      # comments removed, names it with its self-test -- so the next tool
+      # added there without a step reddens this job on its own pull request,
+      # where the scoped gate (tools/ is INERT) would select nothing. Each
+      # step after it was measured offline under offline_spy.py: no socket,
+      # no gh/curl/wget/ssh/scp/nc call, no git call reaching a URL remote.
+      # The push and merge drivers (handoff_push, open_pr, update_pr,
+      # merge_pr) run their stubbed self-tests, never a push. The tally line
+      # must name 0 failures, as above; `!cancelled()` reports every step
+      # rather than the first red. queue_pre_flight.py has no step here: the
+      # carry check's step below runs it (#2404). Here for tmp_paths.py's
+      # reason.
+      - name: Refuse a self-testing seat instrument that no step runs
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/selftest_wiring.py --self-test | tee "$RUNNER_TEMP/sw-self-test.txt"
+          grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
+          python3 -I tools/audit/seat/selftest_wiring.py --check
+
+      - name: Show the review-strength enumerator deciding its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/review_strength.py --self-test | tee "$RUNNER_TEMP/review-strength-self-test.txt"
+          grep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"
+
+      # The flow study's other two instruments (R10-FLOW-TOOLKIT-MEASURE): the
+      # critical path over its recorded runs, its API stubbed; the flow
+      # enumerators over a throwaway repository. No network.
+      - name: Show the critical-path and flow instruments deciding their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_critpath.py --self-test | tee "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          grep -Eq '^ci_critpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          python3 -I tools/audit/seat/flow_metrics.py --self-test | tee "$RUNNER_TEMP/flow-metrics-self-test.txt"
+          grep -Eq '^flow_metrics self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/flow-metrics-self-test.txt"
+
+      # The body-only PATCH (R10-FLOW-BODY-PATCH): a moved head refuses before
+      # any write, a body the contract refuses is never sent, --dry-run prints
+      # the request, and a mutant of each of the head, contract and read-back
+      # arms is caught -- over stubbed gh, curl, openssl and node: no network.
+      - name: Show the body PATCH refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
+          grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+
+      # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
+      # wiring check above counts every tools/ file now, so each of these has
+      # a step here or it reddens that check; four that the carry's weaker
+      # substring rule called wired were named only in a comment, as a
+      # variable's value, or with a non-self-test flag (`--install`,
+      # `--report`, `--hooks`). One step: each is offline over its own
+      # fixtures or over this checkout, and a refusal names the program.
+      - name: Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/archscore/gate.py --self-test
+          python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/merge_throughput.py --self-test
+          bash tools/audit/worktree_gc.sh --self-test
+          python3 -I tools/coverage/partition.py --self-test
+          python3 -I tools/merge/ledger_merge.py --self-test
+          python3 -I tools/plan/replan.py --self-test
+          node tools/policy/policy_lint.mjs --self-test
+          python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
+          bash tools/pr/approve_held_runs.sh --self-test
+          python3 -I tools/pr/gate_priority.py --self-test
+          python3 -I tools/pr/head_note.py --self-test
+          python3 -I tools/release/stamp.py --self-test
+          python3 -I tools/policy/agreement_py.py --self-test
+          # The wave-script restore list is derived, never carried: every .py
+          # file the agreement reader loads must be restored from the base,
+          # or a head whose readers agree still reads divergent (#2423).
+          python3 -I tools/policy/agreement_py.py --restore
+
+      - name: Show the CI watcher refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/ci-watch.sh --self-test | tee "$RUNNER_TEMP/ci-watch-self-test.txt"
+          grep -Eq '^ci-watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-watch-self-test.txt"
+
+      - name: Show the cloud dispatcher refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/cloud_dispatch.py --self-test | tee "$RUNNER_TEMP/cloud-dispatch-self-test.txt"
+          grep -Eq '^cloud_dispatch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-dispatch-self-test.txt"
+
+      - name: Show the cloud relay refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
+          grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
+
+      # The obligations ledger (R10-ORCH-LEDGER) the relay and the tick write and
+      # read through: its stores, fold, level and exit codes over a throwaway
+      # origin and open_pr.sh's own attempt lines. No network.
+      - name: Show the obligations ledger refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
+          grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
+
+      - name: Show the detached launcher refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/daemonize.py --self-test | tee "$RUNNER_TEMP/daemonize-self-test.txt"
+          grep -Eq '^SELF-TEST PASS$' "$RUNNER_TEMP/daemonize-self-test.txt"
+
+      - name: Show the delivery-row writer refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/delivery_row.sh --self-test | tee "$RUNNER_TEMP/delivery-row-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/delivery-row-self-test.txt"
+
+      - name: Show the failure-log reader refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/failure_logs.sh --self-test | tee "$RUNNER_TEMP/failure-logs-self-test.txt"
+          grep -Eq '^passed=[1-9][0-9]* failed=0$' "$RUNNER_TEMP/failure-logs-self-test.txt"
+
+      - name: Show the features block refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
+          grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
+
+      - name: Show the handoff push and its row writer refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
+          grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
+
+      - name: Show the handover prompt refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/handover_prompt.py --self-test | tee "$RUNNER_TEMP/handover-prompt-self-test.txt"
+          grep -Eq '^handover_prompt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handover-prompt-self-test.txt"
+
+      - name: Show the PR merger refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/merge_pr.sh --self-test | tee "$RUNNER_TEMP/merge-pr-self-test.txt"
+          grep -Eq '^merge_pr self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/merge-pr-self-test.txt"
+
+      - name: Show the moved-path reader refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/moved_paths.py --self-test | tee "$RUNNER_TEMP/moved-paths-self-test.txt"
+          grep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"
+
+      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/open_pr.sh --self-test | tee "$RUNNER_TEMP/open-pr-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
+
+      - name: Show the plan table refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
+          grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
+
+      - name: Show the plan page refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"
+          grep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"
+
+      - name: Show the PR argument builder refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
+
+      - name: Show the dispatch cap refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
+          grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
+
+      - name: Show the proof watcher refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/proof_watch.py --self-test | tee "$RUNNER_TEMP/proof-watch-self-test.txt"
+          grep -Eq '^proof_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/proof-watch-self-test.txt"
+
+      - name: Show the ref pruner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
+          grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
+
+      - name: Show the programme pulse refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/pulse.py --self-test | tee "$RUNNER_TEMP/pulse-self-test.txt"
+          grep -Eq '^pulse self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pulse-self-test.txt"
+
+      - name: Show the record-row generator refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/record_row.py --self-test | tee "$RUNNER_TEMP/record-row-self-test.txt"
+          grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
+
+      - name: Show the resume renderer refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/resume_doc.py --self-test | tee "$RUNNER_TEMP/resume-doc-self-test.txt"
+          grep -Eq '^resume_doc self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/resume-doc-self-test.txt"
+
+      - name: Show the roster editor refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"
+          grep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"
+
+      # The mutation sweep costs one roster_edit self-test (~a minute) per
+      # plant, so CI runs only the preconditions every plant rests on: its
+      # anchor still occurs exactly once in the target's live text, and its
+      # mutant parses -- the rot that silently turns a plant into a no-op.
+      - name: Show the roster-ops mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+          grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
+      # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
+      # CI pins its plants' preconditions, never the sweep itself.
+      - name: Show the ledger mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+          grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+
+      - name: Show the roster library refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"
+          grep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"
+
+      - name: Show the roster-sync reconciler refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"
+          grep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"
+
+      - name: Show the twin-run reader refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/run_twins.py --self-test | tee "$RUNNER_TEMP/run-twins-self-test.txt"
+          grep -Eq '^run_twins self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/run-twins-self-test.txt"
+
+      - name: Show the seat venv recipe refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
+          grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
+
+      - name: Show the state-doc writer refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"
+          grep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"
+
+      - name: Show the tick loop refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
+          grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
+
+      - name: Show the heartbeat andon refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
+          grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
+
+      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/update_pr.sh --self-test | tee "$RUNNER_TEMP/update-pr-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+
+      - name: Show the offline spy refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/offline_spy.py --self-test | tee "$RUNNER_TEMP/offline-spy-self-test.txt"
+          grep -Eq '^offline_spy self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/offline-spy-self-test.txt"
+
+      # A throwaway git repository built without the shared helper
+      # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
+      # even a tiny repository, and it outlives the temporary directory. The
+      # helper turns auto-maintenance off; the check refuses a raw `git init`
+      # in a tracked script, and the self-test pins both layers and the shell
+      # twin. Here for tmp_paths.py's reason, one step up.
+      - name: Refuse a throwaway git repository built without the shared helper
+        run: |
+          set -euo pipefail
+          python3 -I tests/throwaway_git.py --self-test
+          python3 -I tests/throwaway_git.py --check
+
+      # The merge train (tools/audit/seat/merge_train.py, landed from the
+      # round-9 orchestrator's session scratch): each stop -- red or incomplete
+      # CI, no carry, main moved, a policy path or a renamed one, a refusal
+      # that is not app_approve's own code-owned line, a budget file, a failing
+      # git read, a recarry conflict, a preflight REFUSE -- over a stubbed
+      # command runner. The tally line must say 0 failed, as above.
+      - name: Show the merge train refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
+          grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
+
+      # The carry check (tools/audit/carry_audit.py; finding-propagation.md's
+      # `Carry:` marker): a planted unrouted finding refuses and its routed twin
+      # passes, an invented or done group, an unowned or closed issue, a missing
+      # O-brief and a bare `dismissed:` each refuse; and the train's pre-flight
+      # (queue_pre_flight.py), whose `findings` step reads a verdict's notes with
+      # it before a merge. Both tally lines must say 0 failed, as above.
+      - name: Show the carry check and the queue pre-flight refusing their own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/carry_audit.py --self-test | tee "$RUNNER_TEMP/ca-self-test.txt"
+          grep -Eq '^carry_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ca-self-test.txt"
+          python3 tools/audit/seat/queue_pre_flight.py --self-test | tee "$RUNNER_TEMP/qpf-self-test.txt"
+          grep -Eq '^queue_pre_flight self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/qpf-self-test.txt"
+
+      # The train launcher (tools/audit/seat/train.sh): missing arguments, a
+      # live pidfile on the state dir, and an unknown argument each refuse.
+      - name: Show the train launcher refusing its own fixtures
+        run: bash tools/audit/seat/train.sh --self-test
+
+      - name: Show the figure check refusing its own fixtures
+        if: always()
+        run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
+
+      - name: Show the figure census pinning its counting rule
+        if: always()
+        run: if test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi
+
+      # The pin rule's allowlist (#1589 review, round 3): every probe step --
+      # an install, `bash -c`, `sudo`, a `$GITHUB_PATH` shim, a github-script
+      # `require` and the rest -- must leave the grader not pinned, and every
+      # admitted step must leave it pinned.
+      - name: Show the pin rule refusing every probe and admitting its controls
+        if: always()
+        run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
+
+      # The umbrella engine (R10-CI-LAYOUT P2a): every tools/ci/ module and the two
+      # seat-side instruments that drive it, each over its own fixtures, offline.
+      - name: Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ghapi.py --self-test | tee "$RUNNER_TEMP/ghapi-self-test.txt"
+          grep -Eq '^ghapi self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ghapi-self-test.txt"
+
+      - name: Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/prelude.py --self-test | tee "$RUNNER_TEMP/prelude-self-test.txt"
+          grep -Eq '^prelude self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prelude-self-test.txt"
+
+      - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/gate.py --self-test | tee "$RUNNER_TEMP/gate-self-test.txt"
+          grep -Eq '^gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gate-self-test.txt"
+
+      - name: Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/sweep.py --self-test | tee "$RUNNER_TEMP/sweep-self-test.txt"
+          grep -Eq '^sweep self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-self-test.txt"
+
+      - name: Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/alert_list.py --self-test | tee "$RUNNER_TEMP/alert-list-self-test.txt"
+          grep -Eq '^alert_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/alert-list-self-test.txt"
+
+      - name: Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ruleset_cutover.py --self-test | tee "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+          grep -Eq '^ruleset_cutover self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+
+      - name: Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
+          grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
+
+      - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_probe.py --self-test | tee "$RUNNER_TEMP/ci-probe-self-test.txt"
+          grep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"
+
+      - name: Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/codescan_wait.py --self-test | tee "$RUNNER_TEMP/codescan-wait-self-test.txt"
+          grep -Eq '^codescan_wait self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/codescan-wait-self-test.txt"
+
+      - name: Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/ci_predict.py --self-test | tee "$RUNNER_TEMP/ci-predict-self-test.txt"
+          grep -Eq '^ci_predict self-test: 0 failed$' "$RUNNER_TEMP/ci-predict-self-test.txt"
+
+      - name: Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/local_alerts.py --self-test | tee "$RUNNER_TEMP/local-alerts-self-test.txt"
+          grep -Eq '^local_alerts self-test: 0 failed$' "$RUNNER_TEMP/local-alerts-self-test.txt"
+
+      # alert_list.py's rules, each deleted in turn: the self-test must refuse every
+      # mutant (the script takes no other mode; --self-test names the run).
+      - name: Show the alert lister's mutants each refused by its self-test
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          sh tools/ci/alert_list_mutants.sh --self-test | tee "$RUNNER_TEMP/alert-list-mutants.txt"
+          grep -Eq '^ALERT-LIST MUTANTS: every mutant refused$' "$RUNNER_TEMP/alert-list-mutants.txt"
+
+  # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
+  # repository were CORRECT and never RAN, because whether they run is decided
+  # by a fact about the clone -- shallow or not, origin/main present or not,
+  # HEAD equal to origin/main or not, the scanned population empty or not --
+  # and each run looked identical to one where they did. Two of the five were
+  # written by the very commits that landed the countermeasures for the
+  # previous class. See docs/decisions/0004.
+  #
+  # This job builds the environment shapes the repository declares it supports
+  # and requires each shape's declared outcome. It is the thing no author's
+  # single run can establish, so it is a separate job rather than another step
+  # above: `policy-docs` proves the checks are right, this proves they ran.
+  env-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # The matrix derives its baseline from origin/main and grafts a
+          # shallow shape from HEAD~1; both need real history.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # The matrix REFUSES when it cannot find a main ref, which is right --
+      # a baseline it had to guess at is the defect it exists to catch -- but
+      # `actions/checkout` gives no guarantee about remote-tracking refs, and a
+      # fail-closed matrix that cannot find its baseline is permanently red CI.
+      # Fetch it explicitly so the refusal only ever means what it says.
+      - name: Put origin/main where the matrix looks for it
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+      # Pinned as `policy-docs` is (decision 0013), and then COMMITTED: the
+      # matrix clones this checkout at the commit it is given, so a restore
+      # left in the working tree would never reach the shapes it builds. The
+      # commit is local to this runner and never pushed.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          # policy_lint_envmatrix.mjs is omitted. The base blob calls
+          # .claude/workflows/policy_lint.mjs, which is not a file, so restoring
+          # it makes this job run that blob. The pull request's copy is what
+          # calls tools/policy/policy_lint.mjs. It is owned, not pinned.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/agreement.mjs' \
+            'tools/policy/brief_lint.mjs' \
+            'tools/policy/check-wave-script.mjs' \
+            'tools/policy/counts.mjs' \
+            'tools/policy/field_coverage.mjs' \
+            'tools/policy/figure_census.mjs' \
+            'tools/policy/figure_lint.mjs' \
+            'tools/policy/fragments_sync.mjs' \
+            'tools/policy/friction_issues.mjs' \
+            'tools/policy/policy_lint.mjs' \
+            'tools/policy/policy_lint_mutants.mjs' \
+            'tools/policy/render_md.mjs' \
+            'tools/policy/rules_sync.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          # The base driver names '.claude/workflows/policy_lint.mjs'. A checkout
+          # that no longer has the program there fails every arm before it
+          # measures. This pull request's driver resolves the file the checkout
+          # has; the programs it runs stay the restored copies. Once the base
+          # driver resolves the file itself, the grep misses and the pin stands.
+          if ! test -f .claude/workflows/policy_lint.mjs \
+             && grep -F -q "'.claude/workflows/policy_lint.mjs'" tools/policy/policy_lint_envmatrix.mjs; then
+            git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+          fi
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+          # The base matrix still starts .claude/workflows/policy_lint.mjs.
+          # That module is gone (env-matrix job 112529653069: Cannot find
+          # module). The head's matrix names tools/policy/policy_lint.mjs.
+          # The programs it drives stay the base's; this driver is the head's.
+          git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+          git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
+
+      # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
+      # clone, and the required-contexts class needs credentials to look at the
+      # live ruleset -- a real pull-request run has them (the token is mapped on
+      # the policy-docs lint step), so the shape that models that run needs them
+      # too. Without it the fetch fails and the class skips, which the zero-skip
+      # row refuses: correctly, because that is not the environment a real run
+      # is in. First measured the other way -- this job's own run at 23cc6e0.
+      - name: Require each declared environment shape to produce its declared outcome
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: if test -f .claude/workflows/policy_lint_envmatrix.mjs; then node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; else node tools/policy/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; fi
+
+  wave-script:
+    # The control flow a wave resume rests on. `.claude/` is INERT in
+    # tests/closure.py -- and closure.py FAILS if an INERT path appears in a
+    # recorded closure -- so the gate structurally cannot select this. It ran by
+    # hand only, and the two defects it now pins (a stage vocabulary the rosters
+    # and the script did not share, a verdict class no script read) both shipped
+    # and stayed shipped. Never scoped, on the tests.yml `briefs` precedent.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Full history and tags: agreement.mjs's merge-subject corpus is every
+      # first-parent subject since v6.5.0, and a shallow clone hands it an
+      # empty window.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # Pinned as `policy-docs` is (decision 0013). The wave scripts this
+      # drives are the graded artifacts and stay the pull request's -- which
+      # is why `web-fix-wave.js`, `audit-find.js` and `audit-verify.js` keep
+      # an owner: the checker evaluates them in its own process.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          # The `tests/` and `tools/` entries this reader needs are DERIVED from
+          # its import closure, never carried:
+          # `python3 -I tools/policy/agreement_py.py --restore` names any
+          # closure file this list misses (the #2423 `divergent=2`), and the
+          # agreement lane below refuses to answer while one is missing.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tests/coverage_ratchet.py' \
+            'tests/delivery_status.py' \
+            'tests/entities.py' \
+            'tests/gate_lock.py' \
+            'tests/issue996_count.py' \
+            'tests/nightly_ha.py' \
+            'tests/replay.py' \
+            'tests/structure.py' \
+            'tests/throwaway_git.py' \
+            'tools/audit/round4/D11/d11lib.py' \
+            'tools/audit/round4/D11/governance_cost.py' \
+            'tools/audit/seat/gh_read.py' \
+            'tools/audit/seat/merge_train.py' \
+            'tools/audit/seat/queue_pre_flight.py' \
+            'tools/audit/seat/ref_privacy.py' \
+            'tools/audit/seat/tmp_paths.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'tools/release/stamp.py' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' \
+            'dev/audit/rounds/round4/D11/d11lib.py' \
+            'dev/audit/rounds/round4/D11/governance_cost.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+
+      - name: Drive the wave script's branching
+        run: if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs; else node tools/policy/check-wave-script.mjs; fi
+
+      # Class I4 (round 9): two readers of one governance concept must give one
+      # answer, and a regex grammar written in two governance files must be
+      # registered. The base's copy once the base carries the program (the
+      # restore above); the pull request that lands it skips the lane, below. The tests
+      # and audit scripts its Python readers load are restored from the base
+      # above too, so a pull request cannot change a reader it is graded by;
+      # the restored `agreement_py.py` refuses to answer while that list
+      # misses a file it loads (its restore precondition, #2423), so the list
+      # is derived and checked here rather than carried by hand.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # Skipped, with the reason printed, while the base does not carry the
+      # lane: its readers are restored from the base above, so a pull request
+      # that lands the lane would be graded by readers written before it, which
+      # is no verdict on either (the `field coverage` step's own rule).
+      - name: Refuse two readers of one concept that disagree
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
+            echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
+          else
+            if test -f .claude/workflows/agreement_py.py; then python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; else python3 -I tools/policy/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; fi
+            if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"; else node tools/policy/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"; fi
+          fi
+
+      - name: Show the agreement lane refusing each shape it exists to refuse
+        run: if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --self-test; else node tools/policy/agreement.mjs --self-test; fi
+
+      # Class R-register (round 9, #1759): every in-tree judge survivor sits in
+      # exactly one class, every class that met an adopted trigger carries a
+      # barrier or an rca document under dev/audit/rca, and the counts the
+      # ledger carries are the ones its instances derive. The checker is the
+      # pull request's own copy, not a pinned one: a pinned grader must be
+      # declared in field_coverage.mjs, which is itself pinned, so the pull
+      # request that adds one cannot pass (#1847). Its protection is ownership
+      # instead, as merge_fastpath.py's is: CODEOWNERS names it.
+      - name: Check the bug-class register against the rounds in the tree
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/fold_ledger.py --self-test
+          python3 -I tools/audit/fold_ledger.py check
+
+  # The loop around the corpus, rather than the corpus itself: is every merge
+  # dispositioned, what is costing seats time, and which rules have outlived
+  # their reason.
+  #
+  # NEVER ON `pull_request`, and not by omission -- the workflow's `on:` block
+  # carries that trigger for `policy-docs`, so this job states the exclusion
+  # itself. All three modes read `<ref>..origin/main`. On a pull_request event
+  # the checkout is a merge of the branch into main and the branch's own commits
+  # are not in main's history, so the window would describe a history the branch
+  # is not part of: the job would refuse merges it did not cause and miss the one
+  # under review, which does not exist as a merge yet.
+  #
+  # THE REFUSAL REDDENS (D11-04). The disposition check runs, refuses, prints
+  # its refusal -- and its exit code sets this job's conclusion. #958's split
+  # had suppressed that exit code to end the permanent main red: a merge is
+  # rowless for the whole batch interval the record protocol promises, so at
+  # `132bebc` this run went red refusing #1027's merge and the very next push
+  # (`2a480b6`, the beat writing its row) was green again. The round-5 audit
+  # found the suppression had gone too far -- the check could not set its own
+  # conclusion, so a window with an undispositioned merge concluded success and
+  # the violation was reported into green. The refusal is carried as well as
+  # gated now: the reporting step after it puts the verdict and the refusal on
+  # the run's summary page, where a seat reads them. This job is not a required
+  # context and must not become one -- requiring a refusal only the next beat
+  # can clear would block every unrelated merge, the `nightly-status` precedent
+  # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
+  # merge.
+  #
+  # `github.ref == 'refs/heads/main'` (U4 resume): called from ci.yml, a dispatch
+  # at a PR branch (autofix, merge-main) carries `governance` in its workset and
+  # would run `issues: write` over the branch's code and walk the whole window
+  # on the token bucket. Push, schedule and a dispatch at main still reach it.
+  record:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # ONE RECORD RUN PER BURST (dev/audit/rca/install-ratelimit.md, M2). Every
+    # run walks the whole `<last tag>..origin/main` window on the repository's
+    # GITHUB_TOKEN bucket, which the required checks of every open pull request
+    # read from too. A fixed group with `cancel-in-progress: false` keeps one run
+    # going and one pending, and a newer push replaces the pending one: the run
+    # that does start measures the newest head, whose window holds every
+    # superseded push's. Shared by the schedule and dispatch arms, which spend
+    # the same bucket. Not a required context, so nothing waits on the queue.
+    concurrency:
+      group: governance-record
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      # --stats reads pull-request bodies and review comments through the API.
+      pull-requests: read
+      # The friction-filing step below opens and edits the recurring-friction
+      # issues its histogram names (#959, option B). This is the owner's grant,
+      # not this file's judgement: #201 comment 5670207248 item 4 approves
+      # `issues: write` on this one job. It is declared on the job that uses it
+      # rather than the workflow floor precisely so no other lane inherits it:
+      # `policy-docs`, `env-matrix`, `wave-script` and `delivery-status` keep
+      # the read-only floor, `pr-contract` (its own file) keeps what it holds,
+      # and the set of overriding jobs is pinned in tests/entities.py as the
+      # blast radius.
+      issues: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # The window is `<last version tag>..origin/main`. A shallow checkout
+          # has neither the tag nor the history, and `git log` on one answers
+          # "no merges" -- which this job would otherwise report as "every merge
+          # is dispositioned", the exact zero-means-two-things confusion the
+          # --stats fetch guard exists to refuse.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # THE UNIT IS CALLS, NOT RUNS (dev/audit/rca/install-ratelimit.md, M0).
+      # The bucket's size, what is left of it and its reset, before the window
+      # walk and again after it, so a diagnosis reads "N calls of L" from this
+      # log instead of counting runs. `rate_limit` is not counted against the
+      # limit. A log line, never a gate: `|| true` keeps it from reddening the job.
+      - name: GITHUB_TOKEN rate limit before the window walk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT before: \(.resources.core)"' || true
+
+      - name: Choose the window
+        id: window
+        run: |
+          # --match 'v*': `git describe --tags --abbrev=0` on this repository
+          # returns `archive-rosters-2026-09`, a non-release tag that is newer
+          # than v6.3.18 and yields an empty window.
+          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          if [ -z "$SINCE" ]; then SINCE=$(git rev-list --max-parents=0 HEAD | tail -1); fi
+          echo "since=$SINCE" >> "$GITHUB_OUTPUT"
+          echo "window: $SINCE..origin/main"
+
+      # THE REFUSAL, kept whole. A merged pull request with no disposition in
+      # the plan of record or the living handover is a refusal: the
+      # Delivery-status table is what a resuming seat reads, and a merge
+      # missing from it is work no later session can find. The command is the
+      # one this step has always run; `pipefail` keeps the pipeline's exit code
+      # the check's own, and `tee` captures its output for the report below.
+      # THE STEP'S EXIT CODE REACHES THE JOB'S CONCLUSION (#1194, D11-04). No
+      # `continue-on-error`: a window carrying an undispositioned merge fails
+      # `record`, which is what the refusal is for. #958 had suppressed it to
+      # end the permanent main red; the round-5 audit found the suppression had
+      # turned a detector into a green tick -- the check reported a violation it
+      # could not act on. The report step below still runs (`always()`) and
+      # carries the verdict, and this job is not a required context, so a red
+      # here cannot block an unrelated merge.
+      - name: Every merged pull request has a disposition
+        id: refusal
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          if test -f .claude/workflows/policy_lint.mjs; then _pl=.claude/workflows/policy_lint.mjs; else _pl=tools/policy/policy_lint.mjs; fi
+          node "$_pl" --record \
+            --since "${{ steps.window.outputs.since }}" \
+            --window-cache "$RUNNER_TEMP/window.json" \
+            2>&1 | tee "$RUNNER_TEMP/record.txt"
+
+      # Reporting only, and deliberately unable to fail the job: a histogram and
+      # a sunset list are inputs to a judgement a seat makes, not a gate. Both
+      # print what they would open; since #959 (option B) the histogram's
+      # would-open verdicts are ACTED ON by the filing step below, but the
+      # printing itself stays informational -- a histogram that cannot be
+      # produced must never redden this lane, because the disposition check
+      # above already owns this job's deliberate failures. `tee` captures the
+      # histogram for that step without changing this step's exit behaviour.
+      - name: Friction and verdict histograms
+        id: histogram
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
+
+      # THE LANES THAT CAN REDDEN THIS JOB (#959, D11-04). The step below is one
+      # path in this job allowed to ACT, and it runs WITHOUT `|| true`: a filing
+      # mechanism that fails silently is a mechanism that stopped filing, and
+      # nobody would notice. Exactly which lanes can redden this job: THIS step,
+      # the disposition refusal above (its `continue-on-error` dropped, D11-04)
+      # and the checkout/setup steps can; the histogram and sunset steps never
+      # can (both `|| true`). The self-test beside it keeps the filer's own
+      # refusals from rotting the way an unexecuted enumerator's does -- driven
+      # offline, no network, the same pattern as `gh_comment.py self-test` in
+      # `policy-docs`.
+      #
+      # BOTH FILER STEPS CARRY `always()` (D11-01, #1467). The refusal above is
+      # red on the protocol's steady state -- a merge is rowless for the whole
+      # batch interval, cleared by the next beat -- and GitHub skips a step with
+      # no `if:` once an earlier step in the job has failed. So the trigger ran
+      # and the actor did not: the filer ran in the runs the refusal did not
+      # fail and in none of the runs it did, which is the pair
+      # `tools/audit/round7-fix/governance/skipped_step_seams.py` measures --
+      # these two steps returned as skipped, beside the two steps of this job
+      # that carry `always()` and are not. A filing lane whose trigger the
+      # histogram produces and whose actor never runs is #959 option B
+      # producing nothing, silently.
+      - name: Show the friction filer refusing its own fixtures
+        id: filer_selftest
+        if: always()
+        run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --self-test; else node tools/policy/friction_issues.mjs --self-test; fi
+
+      # The trigger text is the histogram's own line: this step parses the
+      # would-open verdicts out of the captured output and files one issue per
+      # friction key per window -- search before create, scoped to the exact
+      # title, update in place, never a duplicate. The verdict classifier,
+      # the threshold and the merge-is-not-rework exclusion stay in
+      # policy_lint.mjs; an excluded class prints `not opened:` and is not a
+      # trigger, so this step cannot fire on the passing grammar. A filed
+      # issue's body carries the histogram line, the window and the derivation
+      # command, and states that a seat -- never the bot -- disposes it.
+      - name: File the recurring-friction issues the histogram named
+        id: filer
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; else node tools/policy/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; fi
+
+      - name: Rules that have outlived their reason
+        id: sunset
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
+
+      - name: GITHUB_TOKEN rate limit after the window walk
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT after: \(.resources.core)"' || true
+
+      # THE REPORT, AND IT COMES LAST. It reports on the steps above it, so it
+      # has to be after them -- the ordering `tests/entities.py` pins for the
+      # autofix report steps, where a report that preempted its own subject
+      # threw away what it existed to report. It is `always()`, because the
+      # refusal above it is red on the protocol's steady state.
+      #
+      # The reported surface, on the `delivery-status` reporter shape: the
+      # verdict, the refusal itself, the steps that did not run, and a footer
+      # saying what the verdict does and does not gate. Written to the run's
+      # summary page, which is the first thing a seat opening this run reads,
+      # and echoed to this log so it is greppable without the UI. All arms
+      # report, the way `delivery_status.py` prints OK and not only OVERDUE.
+      #
+      # THE HEADLINE IS NOT THE EXIT CODE ALONE (D13-03, #1473). `--record`
+      # exits 0 when `/commits/<sha>/pulls` will not answer: the subject-mode
+      # fallback enumerates nothing, `enumSkipLine` prints its UNCHECKED marker
+      # into this step's captured output, and the run then reported the window
+      # it could not read CLEANER than a window it read and found a violation --
+      # 0 against 1. So `clean` now needs an explicit `success` AND an
+      # enumerated window; a marker present, or a refusal step that did not run
+      # at all, reads UNCHECKED. `enumSkipLine` covers a dead FETCH; the
+      # `refuse since-ref` arm is the sibling marker for a `--since` that names
+      # no revision, and it exits non-zero, so it arrives here as REFUSED.
+      - name: Report the refusal on the run summary
+        if: always()
+        env:
+          REFUSAL_OUTCOME: ${{ steps.refusal.outcome }}
+          WINDOW_OUTCOME: ${{ steps.window.outcome }}
+          HISTOGRAM_OUTCOME: ${{ steps.histogram.outcome }}
+          SELFTEST_OUTCOME: ${{ steps.filer_selftest.outcome }}
+          FILER_OUTCOME: ${{ steps.filer.outcome }}
+          SUNSET_OUTCOME: ${{ steps.sunset.outcome }}
+        run: |
+          RECORD_TXT="$RUNNER_TEMP/record.txt"
+          if [ "$REFUSAL_OUTCOME" = "failure" ]; then
+            VERDICT="REFUSED -- merged pull request(s) with no disposition"
+          elif [ "$REFUSAL_OUTCOME" != "success" ]; then
+            VERDICT="UNCHECKED -- the disposition check did not run (${REFUSAL_OUTCOME:-no outcome})"
+          elif grep -q 'merge-enumeration' "$RECORD_TXT"; then
+            VERDICT="UNCHECKED -- the window's merged pull requests could not be enumerated"
+          else
+            VERDICT="clean -- every merged pull request in the window has a disposition"
+          fi
+          # EVERY STEP THAT DID NOT SUCCEED, BY NAME, over the run's own record
+          # of them. This is the half of D11-01 that outlives the `always()`
+          # above: a step added to this job that the refusal's failure can skip
+          # says so on the summary instead of leaving the run looking complete.
+          DID_NOT_RUN=""
+          for s in \
+            "Choose the window=$WINDOW_OUTCOME" \
+            "Friction and verdict histograms=$HISTOGRAM_OUTCOME" \
+            "Show the friction filer refusing its own fixtures=$SELFTEST_OUTCOME" \
+            "File the recurring-friction issues the histogram named=$FILER_OUTCOME" \
+            "Rules that have outlived their reason=$SUNSET_OUTCOME"; do
+            case "$s" in
+              *"=success") ;;
+              *) DID_NOT_RUN="${DID_NOT_RUN}${DID_NOT_RUN:+, }${s%%=*} (${s##*=})" ;;
+            esac
+          done
+          {
+            echo "### record: $VERDICT"
+            echo
+            echo "steps this job did not run: ${DID_NOT_RUN:-none}"
+            echo
+            echo '```text'
+            cat "$RECORD_TXT" 2>/dev/null \
+              || echo "(the disposition check produced no output)"
+            echo '```'
+            echo
+            echo "REFUSED fails this job (D11-04): a rowless merge is the batch interval"
+            echo "the record protocol promises, cleared by the next \`record:\` beat writing"
+            echo "the row. The job is not a required context and must not become one."
+          } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
+
+  # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
+  # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
+  # pointed at `record` instead of the nightly, because #533 and this are the
+  # same shape: a conclusion that lands on a commit nobody re-reads.
+  #
+  # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
+  # and the job above says why. The defect, when this job shipped, was that
+  # `record` -- then one of the required contexts the `main-protect` ruleset's
+  # endpoint returned, and since dropped from them by #884 -- reported
+  # `skipped` on the only event a seat reads it at: every other required
+  # context `success` and `record` alone `skipped` at #734's head `b63470b`.
+  # The live set is the required checks that endpoint returns, never a count
+  # from here. So the disposition rule is enforced only after a
+  # merge and the red lands on whoever pushes next: seven red-`main` events in
+  # the five days to 2026-09-10, the last of them #734 merging with no row nine
+  # hours after #708 landed the protocol saying the row precedes the merge.
+  # This does not prevent that merge. It converts "`main` is red and nobody
+  # looks" into "every open pull request says so". Root cause on #541 comment
+  # 5622000848; its home for the record is #678, where (c) is already recorded
+  # for the identical cause on a different surface.
+  #
+  # It must NOT be added to `main-protect`'s required contexts. That is a
+  # ruleset change and a separate owner decision, and requiring it would make
+  # one lane's unfixed red refuse every unrelated merge in the repository -- for
+  # a condition the pull request's author did not cause and usually cannot fix.
+  # The report says so on every run, green as well as red.
+  #
+  # Pull requests only. A lane reporting on `main`'s own state must not be able
+  # to turn `main` red: that would put the reporter inside the thing it reports
+  # on, and one unfixed row would redden every subsequent push.
+  # The delivery ledger, which replaced `record-status`'s predicate. See
+  # `tests/delivery_status.py` for the measurement that motivated it: `record`
+  # concluded `failure` on 28 of main's last 40 commits, in six streaks each
+  # ended by a `record:` leftover-row commit, because it asked whether every
+  # merge has a row RIGHT NOW while the protocol promises a row SOON, in a
+  # batch. This asks what the protocol actually promises.
+  #
+  # On a pull request it reports and does not gate: `--check` is passed so a
+  # genuinely stalled batch is red, and pending merges are printed by name,
+  # which is the part a seat can act on and which a tick never was.
+  #
+  # `--since` is deliberately not passed: the window is the last release tag,
+  # and a fixed one would report the same closed window for ever.
+  # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
+  # taking no `--run`.
+  delivery-status:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # The window is `<last tag>..origin/main`, so the tags and main's
+          # history both have to be here. A shallow clone would silently
+          # report an empty window, which is the vacuous green this check
+          # names as its own failure mode.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # No `pip install`, the same reason `record-status` had none: a reporter
+      # whose job is to notice that something went dark must not be breakable
+      # by the dependency set, and it costs seconds beside a forty-minute gate.
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Nothing before it in this job runs the pull request's code: after
+      # anything that did, the job would be the pull request's (it could
+      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+      # a lint that refuses the forms known to break it. The pull
+      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
+      # not required.
+      - name: Report what is pending and what is overdue a row
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/delivery_status.py' \
+            'tests/layout.py'
+          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
+          git fetch --no-tags --quiet origin main
+          python -I -S tests/delivery_status.py --check
+
+  # #201's region, regenerated on every push to main. The ledger itself needs
+  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
+  # builds it from git alone, so any clone answers
+  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+  # the same content in a delimited region so the issue's own text survives.
+  #
+  # THE LANE WRITES NOTHING THAT LANDS ON MAIN, and that is its fixed point.
+  # The ledger lists every merge in the window with `commits_after`, so it
+  # moves on EVERY push to main. #1011's Option 2 landed it through a
+  # `ci/delivery-ledger` PR, and merging that PR was itself a push to main
+  # that moved the ledger again: nine of the eleven ledger PRs were opened
+  # 14-22 s after the previous one merged, each a merge with no row, main
+  # churn, and an open PR that decision 0009 step 6's quiet moment never got
+  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
+  # this repository, so one push yields at most one edit and nothing else.
+  # The JSON goes to the job summary; `tests/entities.py` pins that no step
+  # pushes, opens a PR or holds SEAT_AUTHOR_TOKEN.
+  delivery-status-publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # `issues: write` edits #201's region; `contents: read` restates the
+    # workflow floor a job-level block replaces, for the checkout.
+    permissions:
+      contents: read
+      issues: write
+    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
+    # two runs' read-modify-write of #201's body must not interleave. Each run
+    # regenerates wholesale from its own push, so the newer supersedes the
+    # older outright and cancel-in-progress loses nothing.
+    concurrency:
+      group: delivery-status-publish
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Regenerate the ledger and put it in #201's region
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
+          { echo '```json'; cat "$RUNNER_TEMP/ledger.json"; echo '```'; } \
+            >> "$GITHUB_STEP_SUMMARY"
+          python tests/delivery_status.py \
+            --from "$RUNNER_TEMP/ledger.json" --markdown > "$RUNNER_TEMP/region.md"
+          python - <<'PY'
+          import os, pathlib, subprocess, sys
+          sys.path.insert(0, "tests")
+          import delivery_status as ds
+          body = subprocess.run(
+              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
+              capture_output=True, text=True, check=True).stdout.rstrip("\n")
+          region = pathlib.Path(os.environ["RUNNER_TEMP"], "region.md").read_text()
+          updated = ds.splice(body, region.rstrip("\n"))
+          if updated == body:
+              print("#201's region is already current")
+          else:
+              pathlib.Path(os.environ["RUNNER_TEMP"], "body.md").write_text(updated)
+              subprocess.run(
+                  ["gh", "issue", "edit", "201", "--body-file",
+                   os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
+              print("#201's region updated")
+          PY

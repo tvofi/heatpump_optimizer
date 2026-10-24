@@ -1,0 +1,1 @@
+Closed by the orchestrator: P2b arm B probe concluded. Its evidence is recorded by the CI-layout P2 coordinator (session s4/s5, evidence under the coordinator's arm-B files; OWED 16:46Z). The P2b re-cut is `handoff/r10-ci-layout-p2b-v2` at `2efb2cc2f`, which supersedes #2662. Branch refs are kept until after the ruleset cut-over, then deleted.

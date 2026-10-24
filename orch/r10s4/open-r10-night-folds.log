@@ -1,0 +1,12 @@
+open_pr: OVER-CAP: 20 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'head_note'
+open_pr: STOPPED: line 54 exited 1: PYTHONPATH="$PRT" python3 - $D/body.md $H $N $C  <<'E'
+import sys; from head_note import prefix
+p,H,N,C=sys.argv[1:5]; s=open(p).read()
+s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
+open(p,'w').write(s)
+E
+
+rc=1

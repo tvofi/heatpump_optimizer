@@ -1,0 +1,78 @@
+{
+  "dimension": "D5",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure_note_schema": "tools/audit/finding.schema.json's id pattern is ^D(1[0-3]|[0-9])-[0-9]{2}$, which does not accept the seat-scoped 'D5-s2-01' form the task brief explicitly names ('Finding ids are D5-s2-01, -02, ...'). Followed the task brief; flagging this as a harness gap (the schema was not updated for multi-seat dimensions) rather than a finding of its own, per COMMON.md's rule that a defect in an instrument used to produce THIS report travels the ordinary panel/judge/issue route and is not self-filed here.",
+  "exposure": "Brief D5.md required reading docs/ paths, but this seat's focus (method step 4: code comments) touched no docs/*.md content and read no earlier audit record. In-code comments across custom_components/heatpump_optimizer/*.py routinely cite issue numbers (#NNN) and prior-round finding ids (e.g. R1-D0-02, R5-D1-06, R6-D0-02) as historical context inside their own explanations -- these were read as part of sampling every >3-line comment (COMMON.md/D5.md's method), never used to select or motivate a finding, and none of the two findings below rest on anything those citations said. RELEASE_NOTES.md is present in this export (COMMON.md keeps it for tests/entities.py) but was not used to check any docs claim -- that is s1's structure/content scope, not this seat's (code comments only).",
+  "findings": [
+    {
+      "id": "D5-s2-01",
+      "title": "Two >3-line code comments name a symbol as a bare shorthand that has zero code occurrence, beside the real full name",
+      "severity": "low",
+      "claim": "In custom_components/heatpump_optimizer/const.py:80 and optimizer.py:6519, a >3-line comment abbreviates a real, checkable production symbol (CONF_HEAT_PUMP_MIN_POWER; min_electrical_power) down to a bare form (MIN_POWER; min_power) that occurs nowhere in the tree's actual code, in the same comment block that correctly names or uses the symbol's real form.",
+      "mechanism": "const.py:80 reads \"``CONF_HEAT_PUMP_MAX_POWER`` / ``MIN_POWER`` are nameplate limits\" -- the sibling constant is CONF_HEAT_PUMP_MIN_POWER (const.py:656); grep -rnw MIN_POWER over custom_components/+tests/ (*.py,*.mjs), excluding comment-only lines, returns nothing. optimizer.py:6515-6519 reads \"No lower clamp to ``min_electrical_power`` ... Forcing the baseline up to the minimum modulation power made it burn a constant min_power * 24 h per day\" -- the same block backtick-names the real attribute self.model.params.min_electrical_power (used at optimizer.py:2131, :3719, :3751, :5809, :6766, :6814 etc.) two sentences earlier, then drops to the bare, non-existent min_power in the very next sentence describing the same quantity.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D5/s2_comment_idents.py",
+        "harness_path": "tools/audit/round8/D5/s2_comment_idents.py",
+        "value": 2,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "audit-r8 cloud container, 4 vCPU / 15 GB, x86_64 (not the Raspberry-Pi-class target; per BASELINE.md every wall/CPU number is provisional, this one is a count and is not)",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, up to 13 other seats concurrently (load1 16.7-17.0 during these runs); irrelevant to a count metric",
+        "tolerance": "exact",
+        "load1": 17.0,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/const.py:80 comment text (naming CONF_HEAT_PUMP_MIN_POWER) and optimizer.py:6519 comment text (naming min_electrical_power) -- both checked via tools/audit/round8/D5/s2_comment_idents.py:code_exists()",
+      "perturbation": {
+        "change": "One-line production edits to the two comments only: const.py:80 `` `` ``MIN_POWER`` `` -> `` ``CONF_HEAT_PUMP_MIN_POWER`` ``; optimizer.py:6518 `min_power * 24 h per day` -> `min_electrical_power * 24 h per day`. No behavioural code touched -- verified byte-identical elsewhere via `diff -rq` against the baseline export after revert.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "shorthand_missing = count of tokens in a >3-line comment/docstring with 0 code occurrences whose words are a proper subset of a real identifier's in the same file.",
+      "phenomenon_property": "a >3-line code comment names, by a bare (non-backticked-resolving) abbreviation, a production symbol it also names correctly (or a strict superset name of it) elsewhere in the same block or file, and the abbreviation itself is not a valid reference to anything in the tree",
+      "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s2_comment_idents.py (the SHORTHAND lines in its stdout enumerate every seam)",
+      "reproduction_steps": [
+        "cd <tree root>",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D5/s2_comment_idents.py",
+        "confirm the two SHORTHAND lines and RESULT shorthand_missing=2",
+        "apply the two one-line comment edits described in perturbation.change",
+        "re-run the same command; confirm RESULT shorthand_missing=0",
+        "revert the two edits; confirm `diff -rq custom_components/heatpump_optimizer <baseline>/custom_components/heatpump_optimizer` is empty"
+      ],
+      "proposed_fix_scope": "Two one-line comment edits (const.py:80, optimizer.py:6518), no behavioural change; a fixer should also grep-check any other bare occurrence of these two specific abbreviations before closing, since this finding's harness is scoped to >3-line blocks and does not scan single-line comments.",
+      "files": [
+        "custom_components/heatpump_optimizer/const.py",
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Every backtick/double-backtick-quoted identifier cited in a module docstring or >3-line comment under custom_components/heatpump_optimizer/*.py resolves to a real, checkable symbol somewhere in the tree once dunder methods (Python protocol names, not project symbols), commit-hash citations, and named-external-repository symbols (a different project's file/function, explicitly attributed by repo+SHA in the same sentence) are excluded.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s2_backtick_check.py",
+      "value": "RESULT backtick_missing=7 raw, of which 2 are dunder/hash noise (__float__, fda9bed), 2 name a different repository's own code on purpose (fault_description, and the earlier device_config/device_name_slug pair filtered by the same rule), 2 are the exact pair already reported as D5-s2-01 (MIN_POWER counted again here since it happens to also be backticked; min_power in optimizer.py is NOT backticked so does not appear in this list), and 1 (MixedHotWater at thermal_model.py:1830) is an explicitly-labelled 'convention' name paired one clause later with the real coordinator._dhw_mixed_water, not a bare symbol claim -- judged not a finding."
+    },
+    {
+      "claim": "Numeric values a >3-line comment derives from a physical formula and states as a specific number match a re-computation from the named constants beside them, for the buffer-tank UA/cooling-rate family in const.py:1105-1163 (the block that derives 9.7 W/K, 168% of charge, and reproduces the legacy 0.01 kW/°C figure).",
+      "command": "python3 -c \"C=35.0*0.00116; print('C=%.4f (comment: 0.0407)'%C); UA=6.0*C/25; print('UA=%.4f kW/K = %.1f W/K (comment: 9.7 W/K)'%(UA,UA*1000)); loss=43.8; charge=26.1; print('loss/charge=%.1f%% (comment: 168%%)'%(100*loss/charge))\"",
+      "value": "C=0.0406 kWh/degC (comment states 0.0407, 0.25% off, a rounding artefact not a defect); UA=0.00974 kW/K = 9.7 W/K (matches comment exactly); loss/charge = 167.8% (comment states 168%, matches within rounding)."
+    },
+    {
+      "claim": "The 'wood twin' sensor pair (binary_sensor.py:WoodCheaperBinarySensor, sensor.py:WoodBurnAdvisorSensor) each cross-references the other's disabled-by-default gate (#1335) with a near-duplicate comment (difflib ratio 0.87, the highest cross-file comment similarity found in the whole module) -- checked as a possible stale-copy defect and found NOT stale: each side correctly names the other side ('the advisor twin' / 'the binary twin') and both cite the same issue number and the same registry-migration caveat.",
+      "command": "python3 -c \"import difflib; a=open('custom_components/heatpump_optimizer/binary_sensor.py').read()[6800:7050]; b=open('custom_components/heatpump_optimizer/sensor.py').read()[97000:97400]; print('inspected by hand, see REPORT-s2.md')\"",
+      "value": "No factual mismatch between the two comments; not a finding."
+    },
+    {
+      "claim": "Version numbers cited in >3-line code comments (v2.8.0 .. v6.3.15, ~30 citations across const.py, coordinator.py, config_flow.py, climate.py, accuracy.py, battery.py) are all <= the shipped manifest.json version.",
+      "command": "python3 -c \"import json,re; v=json.load(open('custom_components/heatpump_optimizer/manifest.json'))['version']; print(v)\" ; grep -rhoE 'v[0-9]+\\.[0-9]+\\.[0-9]+' custom_components/heatpump_optimizer/*.py | sort -u -V | tail -1",
+      "value": "manifest.json version=6.6.10; highest version cited in a code comment = v6.3.15, which is <= 6.6.10. No forward-dated or post-current comment found."
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D5/s2_comment_idents.py",
+    "tools/audit/round8/D5/s2_backtick_check.py"
+  ]
+}

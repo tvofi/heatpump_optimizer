@@ -1,0 +1,11 @@
+REVIEW round 2 of #2612 (R10-SOLVER) at head c8dea4651d20089a860e6d8f1e11be2216885905. Read dev/governance/roles/fix-review.md; review from a detached worktree at that head with the finder's harness. PREPR_SKIP_CLOSURES=1. Spare the GitHub API.
+Round 1 verdict: BLOCKED at ref probe/rev-2612-b73e3ccc (carry-unrouted, plus findings O1 bounds guard unpinned, O2 FD step spelled in several places).
+The orchestrator ordered O2 folded into `_lbfgsb_run` and O1 pinned. Verify:
+1. O2: the finite-difference step is spelled once, in `_lbfgsb_run`; no remaining duplicates.
+2. O1: the bounds guard is pinned by a test; apply mutants A and J from the round-1 verdict yourself and show each is killed.
+3. The body routes every carry: carry_audit check --body reports 0 unrouted 0 bad.
+4. Golden fixtures and the flat-price null control stay byte-identical (three-dot diff against the merge-base, not two-dot).
+5. Closes #2240 is kept by orchestrator decision; do not block on it.
+6. Read the `mutation` check on the head. If it is red only on killed-unpinned mutants that mutation-autofix will pin, say so (not a block). A surviving mutant is a block.
+7. Structure ratchet passes with no budget raise.
+Time box 60 min.

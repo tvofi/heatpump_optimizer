@@ -1,0 +1,5 @@
+===== daemonize pid=71050 2026-10-20T22:44:00Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this PR is the fix that makes that true r10-wip-cap 80fe9ac08ef9e8b9f90baf814d79a38d56d4041a ci: the soft cap gates group dispatch, not opening (R10-OPENPR-SILENT) R10-OPENPR-SILENT
+open_pr: OVER-CAP: 7 open >= 6, overridden: owner 2026-10-20: the cap gates group dispatch, not opening; this PR is the fix that makes that true
+  REFUSE   ancestry reds          RED UNANSWERED (env-matrix nightly-status policy-docs):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-wip-cap/body.md: check `env-matrix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-wip-cap/p2.log

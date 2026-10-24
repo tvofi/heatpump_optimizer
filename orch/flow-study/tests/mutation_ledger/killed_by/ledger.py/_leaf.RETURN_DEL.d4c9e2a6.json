@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:_leaf RETURN_DEL d4c9e2a6",
+  "killed_by": "tests/features.py",
+  "old": "    return value",
+  "reason": "R8-P1 (#1518): removing the return makes every amount None, and the #1518 check's healthy month raises TypeError in line(); tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

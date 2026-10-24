@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_valve_drive GUARD_OFF 5017bb6e",
+  "old": "    if not is_throttling(model.params.mixing_valve_mode):",
+  "reason": "R8-P5c: as `if False:` every plant takes the valve route, electrical power q / compute_cop(outdoor) into simulate_step, which multiplies by the same compute_cop(outdoor) on an unvalved plant (no flow temperature is passed there, on one zone or two), so the step receives q to one rounding. Measured in a detached worktree at 1853d8d8: `s1_sysid_twozone.py` and `v1_sysid_twozone.py` (round-8 D7 export) print the same CELL and RESULT lines as the unmutated head; only a throttling plant tells the routes apart, and it takes the valve route either way.",
+  "verdict": "equivalent"
+}

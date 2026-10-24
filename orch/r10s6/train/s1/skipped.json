@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2683,
+    "phase": "pre-flight",
+    "reason": "recarry: fix/r10-input-staleness is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/wt; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree"
+  }
+]

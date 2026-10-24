@@ -1,0 +1,7 @@
+===== daemonize pid=90258 2026-10-19T04:44:34Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-vent-detector-pr 4c19994fcfa3e7a46dec1d9fbe528fca10414e21 /Users/timmalmstrom/hpo-seats/r10s3/rc2391/body/BODY.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (778 entries)
+  re-run the gate that owns this file before pushing
+  REFUSE   'Closes #2241' closes #2241; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

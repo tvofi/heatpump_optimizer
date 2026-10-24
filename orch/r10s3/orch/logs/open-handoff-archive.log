@@ -1,0 +1,4 @@
+===== daemonize pid=74465 2026-10-20T13:43:23Z argv: bash tools/audit/seat/open_pr.sh r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9 chore(archive): move handoff/round9 into the archive tree (R10-HANDOFF-ARCHIVE) R10-HANDOFF-ARCHIVE
+open_pr: open-PR cap: 4 open < 6
+Auto-merging tests/features.py
+PR=2488 HEAD=916431aefd47a8953cb5b84a990c993a77c371e3 AUTHOR=tvofi

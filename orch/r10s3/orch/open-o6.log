@@ -1,0 +1,8 @@
+===== daemonize pid=32282 2026-10-18T10:49:44Z argv: bash tools/audit/seat/open_pr.sh r10-ci-concurrency a5849788bb9a67461fc74ee3231215a2c295b74e R10-CI-CONCURRENCY: cancel superseded gate runs R10-CI-CONCURRENCY
+fatal: a branch named 'fix/r10-ci-concurrency-pr' already exists
+===== daemonize pid=66791 2026-10-18T10:52:38Z argv: bash tools/audit/seat/open_pr.sh r10-ci-concurrency a5849788bb9a67461fc74ee3231215a2c295b74e R10-CI-CONCURRENCY: cancel superseded gate runs R10-CI-CONCURRENCY
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+  REFUSE   ancestry reds          RED UNANSWERED (arch-score env-matrix nightly-status validate-hacs):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-concurrency/body.md: check `arch-score` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,26 @@
+{
+ "arith": {
+  "212121_on_026aa8": 2.783,
+  "ffffff_on_026aa8": 5.786
+ },
+ "premise": {
+  "dark_block_assignments_of_text_primary_color": 0,
+  "base_assignment": "#ffffff",
+  "fetched_bytes": 17557,
+  "dark_rules_source": "darkColorVariables only"
+ },
+ "rendered": {
+  "bgA": [
+   2,
+   106,
+   168
+  ],
+  "bgB": [
+   2,
+   106,
+   168
+  ],
+  "rr_computed": 2.7830916948607825,
+  "rr_white": 5.785720870850945
+ }
+}

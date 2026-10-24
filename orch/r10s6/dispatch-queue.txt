@@ -1,0 +1,7 @@
+1792851320 OPEN r10-codeql-dependabot b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e once handoff-body/r10-codeql-dependabot moves off 84823c306 (body re-take fixer fired)
+1792851320 ROW #2734 triage/s6-batch4 and #2735 triage/s6-batch5: update_pr refuses, branches checked out in triage seat worktrees wt and wt5; needs the triage seat to detach them
+1792851320 OPEN r10-config-notices 5b067738b once its repair fixer (claim 13:38Z) pushes a new handoff
+1792851320 HOLD r10-flow-autotrain b3dceb5ca until #2710 (roster batch) merges
+1792851320 REVIEW #2697 after update_pr to f6568a429 lands; #2712 after mutation-autofix concludes; #2710 after final head; ci-layout-p2b-v2 after open_pr row
+1792851356 WATCH app_push pid 32823 (policy PR D11 mechanise-first, log /Users/timmalmstrom/hpo-seats/r10s6/mech/apppush.log): on PR open -> detach /Users/timmalmstrom/hpo-seats/r10s6/mech/wt if clean+pushed, add the delivery row, dispatch a policy-flagged reviewer, send me fire-owed-pool; on REFUSE -> send me the line
+1792852597 RULE (tvofi 2026-10-24): render M/L/XL, critical-path and repeat-blocked repair groups as LOCAL fixer briefs (report local-owed <topic> <brief path>), not pool lines; S/XS and mechanical stay cloud. The orchestrator starts the local seat.

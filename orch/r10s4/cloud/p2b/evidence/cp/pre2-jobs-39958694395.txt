@@ -1,0 +1,14 @@
+cancel-superseded              dur   0.1 end+  1.5 success
+nightly-status                 dur   0.2 end+  1.5 success
+briefs                         dur   0.5 end+  1.8 success
+mutation                       dur   0.5 end+  1.8 success
+closure-scope                  dur   0.6 end+  1.9 success
+typing                         dur   1.0 end+  3.0 success
+browser                        dur   3.7 end+  5.7 success
+coverage                       dur  15.2 end+ 17.2 success
+graders-head-copy              dur   0.3 end+ 18.2 success
+coverage-ratchet               dur   0.2 end+ 20.4 success
+fast (3.14)                    dur  21.4 end+ 23.4 success
+arch-instrument                dur  31.3 end+ 33.3 success
+lane-proofs                    dur   0.1 end+ 35.1 success
+closures                       dur  33.6 end+ 35.6 success

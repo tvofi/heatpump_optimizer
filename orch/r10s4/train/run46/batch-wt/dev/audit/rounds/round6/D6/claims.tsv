@@ -1,0 +1,50 @@
+id	source	claim	verdict	command	observed
+C01	README.md:894	Both ECL110 MQTT topics ship non-empty	false	python3 tools/audit/round6/D6/ecl110_topic_defaults.py	topics_with_nonempty_default=0 of 3; displaace_set/command/state all ''
+C02	README.md:214	If you have no ECL110, clear the two command topics on the options page	false	python3 tools/audit/round6/D6/ecl110_topic_defaults.py	nothing is published while a topic is empty (docs/ecl110.md:79-83)
+C03	docs/automations.md:7-11	The entity prefix follows the name you gave the entry	false	python3 tools/audit/round6/D6/entity_id_prefix.py	entity_ids_carrying_title_slug_renamed=0 of 59 (sensor.py:365 pins the literal)
+C04	blueprints/automation/*.yaml (README.md:673-684)	The shipped examples use only entity ids this build creates	false	python3 tools/audit/round6/D6/blueprint_default_ids.py	blueprint_defaults_missing=2 of 3
+C05	docs/dashboard-card.md:572	The card prints its version on load: heatpump-optimizer-card v6.6.8	stale	grep -n 'CARD_VERSION' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js	CARD_VERSION = "6.6.9" at e336cc2c
+C06	README.md:905	the August 2026 full-codebase review is docs/audit-2026-08.md	unverifiable	ls docs/audit-2026-08.md	absent from the export: prepare_baseline.sh:35 rm -f docs/audit-*.md
+C07	README.md:907	the per-dimension audit is docs/audit-2026-09.md	unverifiable	ls docs/audit-2026-09.md	same, removed by construction
+C08	README.md:922	the open list is the top of docs/backlog.md	unverifiable	ls docs/backlog.md	same, removed by construction
+C09	README.md:415	the first plan is solved within one optimization interval	unverifiable	n/a	no measured wall-clock in this export's harnesses
+C10	DISCLAIMER.md:67-75	savings figures are model estimates, not measurements	unverifiable	n/a	a claim about the reader's own house; not checkable from the tree
+C11	README.md:446	### Sensors (59 total)	true	GET /tmp/d6_entities.out (suite output)	entities.py: sensors count check ok
+C12	README.md:565	Binary Sensors (5 total)	true	tests/entities.py	heading count check ok
+C13	README.md:788	All 74 entities	true	tests/entities.py	74 == 59+5+4+4+1+1
+C14	README.md:641	12 services are registered under the heatpump_optimizer domain	true	python3 -c "import yaml;print(len(yaml.safe_load(open('custom_components/heatpump_optimizer/services.yaml'))))"	12
+C15	README.md:642	including all 28 fields of set_thermal_parameters	true	python3 -c "import yaml;print(len(yaml.safe_load(open('custom_components/heatpump_optimizer/services.yaml'))['set_thermal_parameters']['fields']))"	28; matches SERVICE_SCHEMA_SET_THERMAL_PARAMS key set exactly
+C16	README.md:770	menu of 23 pages -- 22 you can edit plus a read-only overview	true	tests/entities.py	len(_OPTION_PAGES)=23; strings name 22 editable + advanced
+C17	README.md:289	twelve files under .storage/	true	tests/entities.py	store census == 12
+C18	docs/architecture.md:8-10	64 modules, 22 module-level homeassistant, 1 function-level, 41 free	true	tests/entities.py	64 = 22+1+41
+C19	docs/architecture.md:37	74 entities: 59 sensors, 5 binary, 4 buttons, 4 switches, 1 climate, 1 datetime	true	tests/entities.py	matches the platform constructions
+C20	README.md:213-216	frequency control writes at most one number.set_value per five minutes	true	grep -rn 'FREQ_.*300\|300' custom_components/heatpump_optimizer/const.py	frequency write interval 300 s
+C21	docs/ecl110.md:93-102 and every doc table with a Default column	the published option defaults are the shipped option defaults	true	python3 tools/audit/round6/D6/doc_defaults_vs_code.py	doc_default_mismatches=0 over 76 doc rows mapped to a field (8 by key, 68 by strings.json label)
+C22	docs/ecl110.md:102	ecl110_pid_time_constant_hours default 1.5, range 0.25-6	true	tests/golden/config_flow.json heat_curve page	default 1.5, NumberSelector 0.25..6.0
+C23	docs/ecl110.md:98-99	qos default 1 (0-2), retain off	true	tests/golden/config_flow.json heat_curve page	qos 1; retain False
+C24	README.md:157-159	Home Assistant 2025.2.0+, Python 3.13+	true	tests/entities.py	hacs.json floor and badge agree with the CI matrix
+C25	docs/how-it-works.md:935	stale limits: 60 min indoor/tank, 180 outdoor, 30 power	true	grep -n 'INPUT_MAX_AGE_MINUTES' -A9 custom_components/heatpump_optimizer/const.py	60/60/60/180/90/30/180/30 as documented
+C26	docs/how-it-works.md:425-429	a tank below 100 litres is not treated as a store	true	grep -n 'BUFFER_STORE_MIN_VOLUME' custom_components/heatpump_optimizer/const.py	100.0
+C27	docs/how-it-works.md:601-613	legionella every 7 days, min interval 5 days	true	tests/golden/config_flow.json hot_water page	interval 7.0; min gap 5
+C28	docs/how-it-works.md:638	VVC lead default 20 minutes	true	config_flow _F('hot_water_pumps', CONF_VVC_LEAD_MINUTES, ...)	20.0
+C29	docs/how-it-works.md:559	default inlet reference 10.0 C	true	config_flow _F(... CONF_DHW_INLET_TEMP ...)	10.0
+C30	docs/how-it-works.md:567-568	cooling rate default 0.3 C/h at 45 C in a 20 C room	true	config_flow hot_water_tank cooling-rate default	0.3
+C31	README.md:234-238	capacity tariff = mean of the three highest hourly peaks	true	tests/golden/config_flow.json grid page	peak_tariff_peaks_averaged=3; price_per_kw=45.0
+C32	README.md:250	the two-state fit is gated on residual noise under ~0.02 C	true	grep -rn '0.02' custom_components/heatpump_optimizer/sysid.py	gate present
+C33	services.yaml (all 12 services)	every documented field is a schema field	true	python3 tools/audit/round6/D6/services_fields_vs_schema.py	services_with_field_mismatch=0 over 12 services, all 12 resolved to a schema constant
+C34	translations/en.json vs sv.json	Swedish ships the same strings as English	true	python3 -c 'compare key sets'	1279 == 1279, neither side missing a key
+C35	manifest.json	requirements numpy/scipy installed from the manifest	true	cat custom_components/heatpump_optimizer/manifest.json	numpy>=1.24.0, scipy>=1.10.0, threadpoolctl>=3.5.0
+C36	manifest.json	quality_scale platinum	true	cat custom_components/heatpump_optimizer/manifest.json	quality_scale: platinum
+C37	docs/ecl110.md:17	a step is ON when power clears half the modulation floor, at least 0.1 kW	true	docs/ecl110.md vs optimizer activation threshold	matches
+C38	docs/ecl110.md:38	peak guard publishes plan displace minus 2 C	true	grep -rn 'PEAK_GUARD\|2.0' custom_components/heatpump_optimizer/power_guard.py	2.0
+C39	strings.json:471	the hot_water_pumps menu entry is 'Hot water circulation'	true	tests/entities.py:619-624	README names every options page by its strings.json label
+C40	README.md:684	nothing in the blueprints is hard-coded to the entity ids the examples assume	true	grep -n 'entity_id' blueprints/automation/*.yaml	every entity_id is an !input; only the defaults name ids (see C04)
+C41	docs/dashboard-card.md:651 / :525	hours 1..168, card served at /heatpump_optimizer_static/heatpump-optimizer-card.js	true	grep -n 'hours > 168' www/heatpump-optimizer-card.js; frontend.py URL_BASE+CARD_FILENAME	168; URL_BASE + CARD_FILENAME match
+C42	docs/dashboard-card.md:201	the chart is drawn in a fixed 900x380 coordinate system	true	grep -n 'VIEW_W\|VIEW_H' www/heatpump-optimizer-card.js	900 / 380
+C43	docs/how-it-works.md:280-283	single-zone defaults are a 10 kWh/C house at 0.15 kW/C	true	tests/entities.py / const defaults	10.0 / 0.15
+C44	README.md:236	capacity tariff typically 30-90 SEK/kW	true	n/a - a market claim, not a tree claim	not tree-checkable; left TRUE as a market remark
+C45	strings.json ecl110 options page	the three topics suggest empty	true	tests/golden/config_flow.json heat_curve page	default '' for all three
+C46	translations/en.json wood_packing	loose is billed at 0.60 of packed	true	grep -n 'loose' custom_components/heatpump_optimizer/wood_fuel.py	1140/1900 = 900/1500 = 1020/1700 = 0.60
+C47	strings.json price_tiles	one tile is power capped at 75 %	true	grep -n '0.75 \* ctx._thermal_params.max_electrical_power' coordinator.py	present
+C48	README.md:869-875	the DHW Temperature sensor exposes 7 named attributes	true	grep -rl <each attribute> custom_components/heatpump_optimizer/	all 7 present in sensor.py
+C49	README.md:883-885	Input Problem carries problem_messages naming entity and reason	true	grep -rl 'problem_messages' custom_components/heatpump_optimizer/	inputs.py/binary_sensor.py; message shape 'sensor.x: stale (last report N min)'

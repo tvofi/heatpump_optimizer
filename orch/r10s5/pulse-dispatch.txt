@@ -1,0 +1,17 @@
+1792784796 update #2671
+1792784796 dispatch reviewer #2671
+1792785234 open PR triage s5 batch2
+1792790035 note #2673 update owned by orchestrator
+1792790093 open PR r10-livestate
+1792790557 confirm #2672
+1792790944 open PR r10-livestate (title+group)
+1792791600 update #2671
+1792793448 confirm #2673 (no merge-queue)
+1792793878 HOLD new PRs until WINDOW-CLOSED
+1792795186 update #2675
+1792795273 confirm #2671
+1792796163 open PR input-staleness after window
+1792796908 confirm #2673 r2
+1792797683 update #2675 1a2fe17b
+1792801738 update #2675 5c2fa6de
+1792802125 hold lifted; open input-staleness

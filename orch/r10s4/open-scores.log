@@ -1,0 +1,4 @@
+open_pr: --over-cap is advisory: handoff ready for an in-progress group; its review is owed, not new work (the cap gates dispatch, not opening)
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-scores/wt' already exists
+open_pr: STOPPED: line 41 exited 128: git worktree add -q -b $BR $WT $C

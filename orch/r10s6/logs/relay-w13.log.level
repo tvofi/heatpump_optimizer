@@ -1,0 +1,42 @@
+OWED 2026-10-24T13:51:44Z handoff-update refs/heads/handoff/r10-merge-subject-harden f6568a42961232dc0f4fcdc32cb9c187a3602635
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2 226a294e837bd62a1d151e0b4e18551a033c10dd ct=1792678003
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2b-v2 1965cbfe4f348fd775b5d80a99eb6b89cc79db69 ct=1792848876
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-codeql-dependabot 84823c3066632bca60e4b3a32ededd31f3ac84a1 ct=1792848988
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-config-notices 83606c760cb8a21d78ce3dc42da5aff9534aed99 ct=1792845907
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-flow-autotrain 2125adcf9b3d243156c482bbfb3890cadadb90cf ct=1792844768
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-mutant-skip 275bfc6760321335d859e13b779a501d4f9ebbce ct=1792841514
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-mutation-anchor 1b0af9e5dc6bd5c95224f9466e30b4967733bfd9 ct=1792846738
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-sav-comfort 3d9bf517a30f3a9c279486b0d82493f3adeb3104 ct=1792849670
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff-body/r10-thermal-power-option ac37b3bc65ddf9b1be2ef31796a9c6bc47bfdb41 ct=1792839576
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch-s1 dbabc395f951544bd36d7946cd359ee976b9be83 ct=1792025835
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch2-s1 2c30ada1139e147beba7ab93bfc3153a6d222986 ct=1792047651
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch2-s2 fabaf4664c90ffa717376836dc150602d698a715 ct=1792051208
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch2-s3 1d1974df4ae950a5d71d0ad525a75070012fe165 ct=1792048078
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch2-s4 b202335e247f3984536ccee03563f054b7234c93 ct=1792049904
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch2-s5 3930b421a2a9f952bef38a3885fa391ebfc4a021 ct=1792047009
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-arch3-s6 532d8d09d64d6dd973c7c0fc77bf517740e7a40f ct=1792053633
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-catchup-verify 33ffa7aa938cc959d3445a8143837ed0cfb3858a ct=1792062723
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-d6-web 39909e462ea0dc17d46ff418184dc64aca0aa91d ct=1792094808
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B1 6173f78eeb3a27640c7c1e792823692e6366c49e ct=1792025386
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B10 493866e4579a3c5ca43b46fed2a3bf5b989e7ed4 ct=1792007158
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B11 2d97f5526243e6fe633270fdee389d0a6710d2c1 ct=1792031997
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B2 b09079eaad884e1c335e9772e600d998065a3d3f ct=1792025391
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B3 8d0c331a02bddfabf66c445e00413e11531c2d12 ct=1792029127
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B4 e3450569a9d02d9ac2ad04891741cd210c5d10c6 ct=1792009332
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B5 7e8a4d4a1085fde271f8f1e602be86aa05f9be53 ct=1792014859
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B6 3cf8ba520e3535ad4d26bc72d797c2de64f8cd42 ct=1792015699
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B7 eb3c7e481b71892c287c948fa2ce302b7e8fd9ae ct=1792020312
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/audit-r10-find-B8 ee9b898e1b42529144d6b77eb17186af591620e6 ct=1792005309
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2b-v2 a928a9dc2ebac79359cb649b6a43104b1632c3f5 ct=1792848053
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-codeql-dependabot b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e ct=1792848002
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-config-notices 5b067738bd38010b0af9e54e78224b55234476e2 ct=1792832458
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-flow-autotrain b3dceb5cafc873698ab7e0967bfd624ff749b1ec ct=1792836007
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-mutant-skip a7e41d646087efadd230b22634808f52da83fb38 ct=1792840915
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-mutation-anchor a55a0f47ecf5e805dc86bf8b9eb157755271efa8 ct=1792846143
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-sav-comfort 8e18704ef91760363046ac816547d98685d6639d ct=1792849548
+OWED 2026-10-24T13:51:52Z handoff-no-pr refs/heads/handoff/r10-thermal-power-option 7882a1427e82f4f349da5ddec8a917fcf96fbd94 ct=1792844982
+OWED 2026-10-24T13:52:24Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+OWED 2026-10-24T13:52:25Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+OWED 2026-10-24T13:52:25Z probe-ref refs/heads/probe/plan-port-src 7bc6113308c1c3fa639bdc3361981a64903da6cc
+OWED 2026-10-24T13:53:49Z confirm-owed refs/heads/review/2609 db41f858144d482277013396837a5798a006e510 tries=2/3: BUS refused 2609 74cb07ce7818bf734dc894f5dbbe5ff3c250a8b6: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2609 is closed; a verdict posts only on an open one
+OWED 2026-10-24T13:53:50Z confirm-owed refs/heads/review/2695 176332a22c00c5fa73795ee3e74375d48a20fc83 tries=3/3, not retried; bus.sh confirm 2695 176332a22c00c5fa73795ee3e74375d48a20fc83 by hand, or dispose: BUS refused 2695 37e52ca3b69ba9695098d36716b41947a8fce42f: the poster refused (/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2695 is closed; a verdict posts only on an open one

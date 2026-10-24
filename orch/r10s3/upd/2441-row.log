@@ -1,0 +1,3 @@
+===== daemonize pid=68229 2026-10-19T07:54:26Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/later-2441.sh
+  REFUSE   ancestry reds          RED UNANSWERED (CodeQL):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/upd/b2441.md: check `CodeQL` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

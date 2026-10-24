@@ -1,0 +1,3 @@
+===== daemonize pid=1397 2026-10-18T04:51:43Z argv: bash tools/audit/seat/update_pr.sh fix/audit-r10-roster 72b97a4a557b1260bc18364c8acfcb076d2c881d /Users/timmalmstrom/hpo-seats/r10s3/roster-pr/BODY.md
+Auto-merging dev/programme/rosters/wave-r10-groups.json
+HEAD=364def1d34285596cf7fd3508dfa7f77c723b1b3

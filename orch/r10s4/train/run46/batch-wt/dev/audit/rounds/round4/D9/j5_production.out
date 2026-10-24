@@ -1,0 +1,24 @@
+RESULT route=production enum
+RESULT load1=5.33789 1
+RESULT py=3.11.5 semver
+-- idle (null, no solve)
+RESULT idle.starvation_share=0.0354081 1
+RESULT idle.longest_gil_hold_ms=12.2724 ms
+RESULT idle.gap_p50_ms=1.36058 ms
+RESULT idle.gap_p99_ms=3.88205 ms
+RESULT idle.wall_s=2.00391 s
+RESULT idle.ticks_per_second=684.163 1/s
+-- two_zone_dhw
+RESULT two_zone_dhw.starvation_share=0.0247027 1
+RESULT two_zone_dhw.longest_gil_hold_ms=21.9796 ms
+RESULT two_zone_dhw.gap_p50_ms=1.37787 ms
+RESULT two_zone_dhw.gap_p99_ms=2.92715 ms
+RESULT two_zone_dhw.wall_s=3.32461 s
+RESULT two_zone_dhw.ticks_per_second=647.295 1/s
+-- dhw_cap_zero_range (D9-01, 0.8*p_max)
+RESULT dhw_cap_zero_range.starvation_share=0.002045 1
+RESULT dhw_cap_zero_range.longest_gil_hold_ms=5.20104 ms
+RESULT dhw_cap_zero_range.gap_p50_ms=1.37388 ms
+RESULT dhw_cap_zero_range.gap_p99_ms=2.35132 ms
+RESULT dhw_cap_zero_range.wall_s=2.5433 s
+RESULT dhw_cap_zero_range.ticks_per_second=706.169 1/s

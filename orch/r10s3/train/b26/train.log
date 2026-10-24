@@ -1,0 +1,7 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b26/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b26 pid=17977 start=2026-10-19T23:34:16Z
+BATCH 20261019-233416 pid=17985 base=main queue=1 (#2463) --overlap
+OVERLAP: main at d1db05dfcf2a is not green (closures, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+TRAIN STOPPED ci: the head commit at a3f7c328 could not be read: Get "https://api.github.com/repos/tvofi/heatpump_optimizer/commits/a3f7c328d826430776c61b036551a21c3c08bfe2": net/http: TLS handshake timeout
+TRAIN_RC=1 end=2026-10-19T23:34:32Z

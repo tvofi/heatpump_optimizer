@@ -1,0 +1,1 @@
+2026-10-24T01:44Z ORCH->tick: #2675 gate red at 2845e545 is run 40048233274's gate deferring ('run(s) [40048234627] still being judged; their gate decides'); 40048234627 is waiting on tests/mutation, everything else green; pr-contract green after rerun. Not a fixer item -- re-judge when 40048234627's gate concludes.

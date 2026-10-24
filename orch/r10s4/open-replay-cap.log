@@ -1,0 +1,3 @@
+open_pr: OVER-CAP: 9 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+app_push: REFUSE: worktree HEAD (41fd99b00faedf011638f398d7367b4227bc5389) is not the committed tip of 'fix/r10-replay-cap' (daac94b439baf15b1ce8ea6c39bc73731eb076c6); commit or check out first
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-replay-cap/p2.log

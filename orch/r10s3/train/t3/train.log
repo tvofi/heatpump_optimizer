@@ -1,0 +1,13 @@
+===== daemonize pid=79778 2026-10-18T10:43:29Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/t3/queue.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/t3 --mandate 6175172275 --bot-prs --pre-flight --free-holders
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t3/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t3 pid=79778 start=2026-10-18T10:43:29Z
+BATCH 20261018-104329 pid=79788 base=main queue=3 (#2375 #2386 #2379)
+BOT #2388 MERGED d79dd49529d7535c6990680aa62936f66d6f2abe
+beat: waiting CI at d79dd495 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at d79dd495 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at d79dd495 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at d79dd495 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at d79dd495 (poll 6, t+1206s, required: 14, concluded: 11/14)
+beat: waiting CI at d79dd495 (poll 7, t+1448s, required: 14, concluded: 11/14)
+beat: waiting CI at d79dd495 (poll 8, t+1690s, required: 14, concluded: 12/14)
+tools/audit/seat/train.sh: line 251: 79788 Terminated: 15          python3 -u tools/audit/seat/merge_train.py batch "$queue" --repo "$repo" --state-dir "$state" --min-runs "$minruns" ${ignores[@]+"${ignores[@]}"} ${skipbad:+--skip-bad} ${overlap:+--overlap} ${mandate:+--mandate "$mandate"} ${opts[@]+"${opts[@]}"}
+TRAIN_RC=143 end=2026-10-18T11:15:45Z

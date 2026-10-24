@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe CLAMP_DROP 06202a0e",
+  "killed_by": "tests/features.py",
+  "old": "        target = min(max(float(delivered_ratio), DERATE_MIN), DERATE_MAX)",
+  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: CLAMP_DROP (`target = (max(float(delivered_ratio), DERATE_MIN))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

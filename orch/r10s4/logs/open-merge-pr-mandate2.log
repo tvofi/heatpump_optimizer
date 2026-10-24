@@ -1,0 +1,5 @@
+===== daemonize pid=39795 2026-10-21T20:34:37Z argv: bash tools/audit/seat/open_pr.sh r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0 R10-MERGE-PR-MANDATE: merge_pr.sh owner mode reads the code-owned scope from the gate; owner hand-off pinned R10-MERGE-PR-MANDATE 2497
+open_pr: 20 open PRs; the cap gates dispatch, not opening
+  REFUSE   pr-body                  ERROR   [pr-body] --paths-file /tmp/prepr-paths.40075 is empty. A pull request changes at least one file; an empty list means the derivation failed. -- no budget leaf raised over 500668757...f40b5b42a
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-merge-pr-mandate/p1.log

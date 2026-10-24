@@ -1,0 +1,2 @@
+===== daemonize pid=90508 2026-10-20T23:30:22Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this repairs a main-red on every push r10-ci-ratchet-red 8457652c11887558f2ef918de5cff646683967c1 ci(ratchet): the window fetch refuses rather than reading empty (R10-CI-RATCHET-RED) R10-CI-RATCHET-RED
+open_pr: REFUSE: code sha 8457652c11887558f2ef918de5cff646683967c1 does not resolve to a commit here, after fetching handoff/r10-ci-ratchet-red

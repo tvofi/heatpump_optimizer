@@ -1,0 +1,23 @@
+===== daemonize pid=31744 2026-10-23T22:40:53Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 213585e67bcb35f531c2b35f2b02cde95e07bcd6 /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.96bdf8d8d.md
+update_pr: REFUSE: worktree /Users/timmalmstrom/.local/state/hpo/pr/r10-livestate/wt holds commits of fix/r10-livestate-pr that origin/fix/r10-livestate-pr lacks (unpushed work, e.g. a PR's row): not detaching it
+===== daemonize pid=33051 2026-10-23T22:41:40Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 213585e67bcb35f531c2b35f2b02cde95e07bcd6 /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.96bdf8d8d.md
+  REFUSE   ancestry reds          RED UNANSWERED (delivery-status fast (3.14) typing): ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.96bdf8d8d.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-livestate-pr.log
+===== daemonize pid=33085 2026-10-23T23:23:45Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 1a2fe17bd938e34e9726be239fb56032317f8f7b /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.5087071db.md
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 34294) holds fix/r10-livestate-pr's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-livestate-pr; nothing was changed, run again when it ends
+===== daemonize pid=44186 2026-10-23T23:25:06Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 1a2fe17bd938e34e9726be239fb56032317f8f7b /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.5087071db.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (843 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+HEAD=a9e26e070f9fffcb9015cebb402c0ee4b95e2537
+===== daemonize pid=90147 2026-10-24T00:30:29Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 5c2fa6de5d6ab626e3200964b2b0d49a0f8f3e66 /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.bf6f4c3e3.md
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 75208) holds fix/r10-livestate-pr's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-livestate-pr; nothing was changed, run again when it ends
+===== daemonize pid=38742 2026-10-24T00:56:33Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 474d303a40e82c32450ede1e638d01492131088d /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.f5e62112b.md
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 77510) holds fix/r10-livestate-pr's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-livestate-pr; nothing was changed, run again when it ends
+===== daemonize pid=44227 2026-10-24T00:58:29Z argv: bash tools/audit/seat/update_pr.sh fix/r10-livestate-pr 474d303a40e82c32450ede1e638d01492131088d /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2675.f5e62112b.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (843 entries)
+  re-run the gate that owns this file before pushing
+HEAD=2845e5459331f79adbc39b72cd052cf55703f1aa

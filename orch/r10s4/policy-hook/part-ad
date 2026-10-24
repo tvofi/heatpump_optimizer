@@ -1,0 +1,480 @@
+s no veto on new functionality or the better fix (#398). **The ask and the PR body list every
+payment you considered and why each was not taken**, measured where possible,
+never a bare assertion; the reviewer judges them (`fix-review.md` step 14).
+
+## Before you hand off: carry what you found forward
+
+Your PR does not merge until any finding that **changes how a later stage must
+work** is in that stage's own brief — `finding-propagation.md` states the test,
+what to write and where it goes, and a comment on this PR discharges none of it.
+Name the destination in your PR body — which brief, contract, carry file or
+roster received it — so the reviewer checks the destination rather than takes
+your word.
+
+## Before you hand off: answer any check your branch turned red
+
+`defect-root-cause.md`'s second trigger fires on your own PR: name each check
+that went red in the body and answer it there — the cheaper detector and its
+standing cost, or the finding that none exists. `UNDER-SCOPED` and `INHERITED
+CLAIMS` are answered by naming them (`ci-autofix.md`). You are naming the
+trigger, not analysing it; the analysis is `root-cause.md`'s seat.
+
+## Past three rounds, re-cut rather than repair
+
+The owner's rule. At the **fourth** round, replace the body instead of repairing
+it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
+fire, and only figures re-taken in that pass. Round history is deleted, not
+restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
+tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
+so the orchestrator splits the branch or closes it.
+
+===== dev/governance/roles/fix-review.md =====
+# The fix reviewer's contract
+
+You review one fix PR adversarially, in a fresh context, from a worktree at
+the PR's head SHA. You are not checking that the code looks right (four fixes
+here looked right and were wrong); you are checking that the numbers are real.
+**That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
+Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233's defect), never the owner's approving review, which code-owned paths still need.
+A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
+
+1. Re-run the mutation proof: delete the production line(s) the PR names,
+   run the closure, confirm the named checks fail, restore. If nothing fails,
+   the test is vacuous and the PR is blocked.
+2. Measure with the **finder's** harness, not the fixer's: at the baseline
+   SHA and at the PR head, printing your own `RESULT` lines. A fixer who
+   measures with a harness they wrote is measuring themselves. One flat by
+   design (`fixer.md` step 3): confirm it flat, not regressed, at both ends,
+   and run the companion yourself at both ends.
+3. Re-run the null control and the both-ends check where the PR claims one.
+4. Compare the claim files with the actual drift: run `env_drift.py --all`
+   (and `card_drift.mjs` for card changes) against the merge base; every
+   moved fixture is claimed and every claim moved.
+5. Check `VERSION`, the manifest version and the notes heading are untouched.
+6. Attack the fix at other configurations the finding's harness accepts:
+   the other topologies, the other price profiles, the zero-evidence install.
+   **And open the class: a harness's configurations are its parameters, not its
+   population.** Run the enumeration rule the body names and compare its output with
+   the diff: a seam it returns that is neither in the diff nor dispositioned in the body
+   is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
+   seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
+   returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
+7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
+8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
+   under the PR's stated rule before trusting its count; if you cannot, or
+   if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
+9. **When the finding has no committed harness, that is itself a finding**
+   (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
+   disclose it as their own, not the finder's -- so do you, if you built one;
+   one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
+   Read the judge ruling first: #290's brief prescribes a refused harness.
+   A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
+
+10. **Check the forward-carry before you return `merge`.** The PR body names
+    where a finding changing a later stage was written; open it (a roster
+    carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
+    its control as a precondition (`finding-propagation.md`). One only
+    in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+11. **A red check owes an answer** (`defect-root-cause.md`'s second
+    trigger). Read the PR's own checks — `get_check_runs`, or
+    the commit's own `check-runs` API — not the body's account, and never a
+    listing that shows one run per check. For each gate check that went red,
+    the body names it and answers: the cheaper detector with its standing cost,
+    or the finding that none exists. Both pass; silence is
+    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`, posted
+    only once the head's workflows all concluded and a `pr-contract` run started after
+    the last to conclude red, else the push-time run, checked the body (tvofi,
+    2026-10-08); while it refuses, wait or hand back unverdicted, saying so.
+    `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
+    **A red `nightly-status` or `delivery-status` is not this pull request's**
+    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
+    merged row turns `delivery-status` OVERDUE.
+
+    **The head's runs are not the range's** (#1144: a head naming nothing while
+    `record-status` sat one commit back). The body check prints `record`/`skip
+    red-history` for the range; `skip` means every earlier head UNCHECKED.
+
+    **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
+    lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
+    when its baseline is red, so a green conclusion means either no mutant
+    survived or none was evaluated, and only the run's own log separates them.
+    A diff that writes no production code line draws no mutant at all
+    (`changed_lines`). Where the answer turns on it, read the lane's log
+    rather than its conclusion.
+
+    **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
+    mutation table. Cheap checks (seconds: a lint, one
+    test, claims) and your targeted mutants stay yours.
+
+12. **Re-read the head before you post.** Name the SHA you measured in the
+    verdict, and check it is still the head when you post it; if it moved, say
+    which of your numbers survive and which you re-took.
+
+    The handoff makes the head yours from then on, so one that moved under you
+    is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+    instead is yours to offer and is never owed — a violation the reviewer
+    absorbs silently costs the seat that committed it nothing, which is how it recurs.
+
+    **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
+    section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
+    main merge returns as its **resolution delta**, which alone you judge;
+    any other move is re-reviewed.
+
+13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
+    DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
+    (`claim-files.md`). Confirm before you block:
+
+    ```
+    git merge-tree --write-tree origin/main <head>
+    ```
+
+    A non-zero exit names the conflicting paths. A conflict on any path other
+    than the two claim files is yours to block on, because you cannot know the
+    merged result is correct.
+
+    **The driver's verdict is in that command's stderr; read it, never infer it
+    from the paths.** `merge-tree` invokes the driver once per conflicting claim
+    file if you installed it (`claim-files.md`). Key on the marker,
+    `MERGE-CLAIM: resolved <path>` or `MERGE-CLAIM: refused <path>`, not on the
+    wording after it, which several checks supply. A `resolved` line settles
+    that file, and a non-zero exit beside it is about another path. A `refused`
+    line is the orchestrator's to resolve by hand, not a defect in the authored
+    work — say which file refused and why.
+
+    Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
+    a `#` comment, and `merge_claim_defect` refuses when one is lost, so "only
+    comment notes conflict" waves a real refusal through.
+
+14. **Every number the diff moves is earned by the change, not the instrument**:
+    a structure, policy or mutation budget, the architecture score or its
+    `calibration/expected.json`, the mutation ledger, `tests/closures.json` or
+    `INERT`, a golden or claim file, any figure the body quotes. Remove the
+    mechanism the body names; a movement that survives is not earned:
+    `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
+    kind of move on the same instrument with nothing improved. If it reproduces
+    the movement, block only where the diff's change is that shape; under a sound
+    change it is an instrument finding, carried by `finding-propagation.md`.
+    Reviewers planting unasked caught junk splitting a clone read as score gain
+    (#1874), a `killed_by` its own lane refuted and an `entities.py` self-kill
+    (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
+    body lists and hunt one it missed: one that truly improves the code is
+    `metric-gamed` too.
+15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
+    from the architect note, is `blocked <sha> architecture-unsound: <how>`.
+
+Return a verdict with your RESULT lines, in the exact shape your dispatch
+prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
+line and routes on it, so one that does not parse is recorded blocked.
+
+**Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
+
+===== dev/governance/roles/root-cause.md =====
+# The root-cause seat's contract
+
+You run **in parallel with the fix, never as the fixer**. The fixer is invested
+in the fix; you are invested in why it was possible. Independence here is
+procedural, as it is for `fix-review.md`.
+
+Your product is not a narrative. It is: a named cause, a named process state, a
+cost test with numbers, and either a countermeasure or a recorded decision not
+to build one. All four, or the analysis is not finished.
+
+Read `.cursor/rules/defect-root-cause.mdc` first — it is the policy you execute.
+Long jobs follow `fixer.md`'s preamble: a background task that wakes you.
+
+## 1. Establish the cause, do not accept it
+
+Reproduce the defect yourself, at the SHA where it was found. A cause you were
+told is a hypothesis. Two traps this repository has produced repeatedly:
+
+- The reported cause is a **symptom of a wider one**. #511 was filed as a
+  worker-path bug; the invariant written for it found a second broken object
+  nobody had named. Ask what else the same cause reaches.
+- The reported cause is **wrong in the direction that matters**. A collision was
+  read as "the test copied production"; production had copied the test. Check
+  which side moved, with `git log`, not with the error text.
+
+## 2. Name the process state, with evidence
+
+Exactly one of `defect-root-cause.md`'s four, (a)–(d).
+
+Quote the process — the brief line, the rule, the check — and show it was
+present or absent, obeyed or not. "Nobody checked X" is state (a) only if no
+check for X existed; if one existed in CI but in no local path, that is (c), and
+the countermeasure is different.
+
+An instance of an audit class that already carries a barrier is not state (a)
+because its shape was new: the barrier existed. Name why its unit did not reach
+the instance; the countermeasure changes the unit, not the arm count.
+
+**The most common error is recording (c) or (d) as (b)**, which produces a
+firmer instruction for something that was obeyed and wrong. If your proposed
+countermeasure is "tell the worker harder", suspect your state.
+
+## 3. Ask how far the class reaches
+
+A cause is worth a countermeasure in proportion to what else it can produce.
+Search for the same shape elsewhere and say what you found — that search is part
+of the deliverable, whether or not it finds anything.
+
+## 4. Run the cost test, with numbers
+
+    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
+
+For `P(recurrence)`, prefer a
+**measured** class frequency over a guess: the repository's own escape record is
+`RELEASE_NOTES.md` (every shipped fix is a bug that escaped) together with the
+closed `bug` issues. Where the programme has already classified a defect's
+class, use that frequency and cite where it was measured. Otherwise state your
+estimate and its basis.
+
+**Recommending nothing is legitimate** — plainly, with the number — except for an
+audit class `defect-root-cause.md` says owes a barrier: there, ask the owner. A
+countermeasure that fails the test and is built anyway is a defect of its own.
+
+## 5. If you propose a countermeasure
+
+- Say which process state it addresses. A countermeasure that does not map to
+  your own state finding is unmotivated.
+- **If it is a check, test, lane or hook, demonstrate it failing on the defect
+  and passing once fixed**, both runs in the report; `defect-root-cause.md`
+  names the shapes this repository has already produced.
+- Null-control it: show it does not fire on a healthy tree, and does not go
+  green by skipping.
+- It obeys the ratchet, and **policy changes only with the owner's approval**
+  (`CLAUDE.md`): draft, propose, say which state it addresses. Do not land
+  policy yourself.
+
+## 6. Record it
+
+Write the **Root cause** section `defect-root-cause.md` specifies onto the
+defect's own issue, with the reproduction and the class search added.
+
+Return: the state (a-d), the cost-test verdict, and the countermeasure or the
+recorded refusal. Be brief and precise. Never assert a number you did
+not measure.
+
+===== dev/governance/roles/judge.md =====
+# The judge's contract
+
+You run alone, serially, on the idle box, after the verifiers. You do not trust
+the finders or the verifiers; you re-measure. **Dedup first**, across
+dimensions: merge a finding into another only where that one's perturbation
+moves its harness too. Scripted re-runs of the headers' commands are your
+measurement; the verdicts are yours. Then, per survivor:
+
+1. Re-run the harness command from its header. Record `reproduced` or
+   `not reproduced (got X)` against the tolerance, quoting your real `load1`
+   and `thread_factor`; re-take at `thread_factor > 1.05`, never gate on `load1`.
+2. Run the finding's perturbation. If the number does not move in the stated
+   direction, the harness is **void**: the finding is `unreproduced` whatever
+   the votes said.
+3. Compare the metric definitions the finder and the verifiers wrote. Where
+   they measured different things, mark the votes `not comparable` and decide
+   on your own measurement.
+4. For aggregates, re-run leave-one-out and drop the most favourable cell.
+5. For cost, gain or time claims, re-run the null control.
+6. Assign `stop_rule_class` (`bug` or `hygiene`) from what the number shows,
+   not what the finder wrote, and a class. Reuse before minting: a class is a
+   mechanism, never a site, so take the nearest `bugclasses.json` id unless the
+   mechanism differs. A new id names its `nearest` and `differs`, or
+   `fold_ledger.py` refuses it; two sharing a nearest count as one.
+7. Write the verdict line for the register: `verified` / `weakened(sev)` /
+   `refuted` / `unreproduced`, your number, the verifiers' votes. `unreproduced`
+   is no kill and no pass: the round is not dry until it is re-measured or refuted.
+
+On a fix PR, only from round 3 or a disputed verdict; below it the fix reviewer
+is the check. Re-run the body's before/after, at its head SHA, before the merge.
+
+===== dev/governance/roles/verifier.md =====
+# The verifier's contract
+
+You are your dimension's one verifier. No vote kills: a `refute` with an
+executed number sends the finding to the common judge as `disputed`. You get
+each finding's report entry and harness, nothing else: not the register, nor
+another verifier's numbers. Refute-first: a finding is wrong until your
+executed number says otherwise. You carry all three **lenses**, each run in
+full on every finding: V1 reproduce (steps 1, 3, the perturbation), V2
+independent (steps 2, 4), V3 reach and class (real Home Assistant, severity,
+whether its `seam_rule` enumerates the phenomenon's seams, its class). Per
+finding:
+
+1. **Re-run the harness** exactly as its header says and record the number
+   you got, with `load1` and `thread_factor`. A mismatch outside the stated
+   tolerance is evidence, not a verdict; say what differed.
+2. **Measure it your own way, for every finding**, beside step 1: a number
+   from a harness you wrote yourself, with your own metric definition. If
+   yours differs from the finder's, write both definitions down; the judge
+   decides whether they are comparable.
+3. **Attack the method**, in this order: was the number taken under
+   contention (`COMMON.md`); was the wrong gate mode used (a mutant that passes the default 5-fixture
+   golden check but fails `env_drift.py --all` is not a suite gap — CI runs
+   `--all`); is the aggregate a grid artefact (drop cells, re-aggregate); is
+   the null control missing or failing (a gain at flat prices is not a gain);
+   is the path reachable in real Home Assistant or only through the test stub
+   (`FakeHass` serialises the executor and closes coroutines; real HA does
+   not); is the severity earned by consequence.
+4. **For any test-gap claim**, name the single-line production mutation that
+   the suite fails to notice and the *file* it lives in. If the only killing
+   mutation is in a test file, the test measures itself and the gap stands.
+5. **Vote** `verify`, `weaken` (with the severity you would give and why), or
+   `refute`, each with an executed number. A refute that rests on a timing
+   mismatch alone is recorded as `unresolved` until the judge re-takes the
+   number on the quiet box.
+
+An attached earlier-round refutation is one argument to attack, not a verdict.
+
+Return, per finding: your number, your method, the attacks you ran and their
+outcomes, your vote, and the one-line metric definition you measured under.
+
+===== tools/audit/seat/INSTRUMENTS.md =====
+# Instruments — the operator's guide to tools/audit/ and tools/audit/seat/
+
+This is a usage guide, not policy: it says what each instrument does, when a
+real lane reaches for it, and which refusal saves you. The obligations live in
+`CLAUDE.md` and `.claude/rules/`; nothing here adds one. Every `--self-test`
+runs offline.
+
+Directories here that are records, not instruments: `round3/`..`round9/`,
+`round5-fix/`, `round7-fix/`, `round8-fix/`, `handoff/`, `rca/`,
+`w5-partition/`, `w5-g5-195-coverage/`, `briefs/` (the seat contracts and
+dimension briefs), `archscore/`, `ci-version-edit/`, `ledger-layout/`,
+`record-predicate/` (sub-tools with their own READMEs), and the JSON/schema
+files (`bugclasses.json`, `scopes.json`, `rotation.json`,
+`finding.schema.json`), which the instruments read. `harnesses/` holds the
+re-runnable measurement harnesses a fixer or judge lands with a PR — its
+`README.md` indexes them; anything a later seat must rerun belongs there
+(fixer contract step 18), not in a session's scratch.
+
+## tools/audit/
+
+- `app_approve.sh` — approves a pull request as the `hpo-approver` App at one
+  exact head SHA, only on a `merge` verdict for that SHA from an allowlisted
+  account (`--carry` re-approves a carried verdict). When: landing a
+  non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
+  head SHA that is not the PR's current head, or a verdict whose SHA or
+  account does not match — the approval names one tree or it does nothing.
+- `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
+  and reads the posted comment back byte-identical. When: a reviewer seat
+  delivers a verdict. Refusal: a read-back that differs from what it meant to
+  post, or a stale head — "posted" is never taken from the send's exit code.
+- `app_push.sh` — pushes a branch and opens or re-bodies its pull request as
+  the `hpo-author` App, with the body's contract check before the push. When:
+  every handoff — pull requests are App-authored (decision 0011); `push.sh`
+  is the tvofi-identity predecessor and must not author PRs. Refusal: a body
+  failing the contract check never reaches the remote.
+- `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
+  heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
+  `##`, whitespace, `Head`), never the first substring `## Head`.
+  `app_push.sh --recarry`, `open_pr.sh`, `update_pr.sh` and `handoff_push.sh`
+  write every head note through it. When: any new writer of a `## Head`
+  note. Refusal: a body with no `## Head` heading exits 1, file untouched.
+- `approve_held_runs.sh` — approves the workflow runs GitHub holds
+  `action_required` on a branch. When: after the App pushes, the `pull_request`
+  workflows it created are held because the pusher is an App; a green gate
+  never starts until these are approved. Refusal: `--dry-run` lists what would
+  be approved; a branch with no held runs is a no-op, not an error to retry.
+- `check_scopes.py` — proves the finder scopes are disjoint and complete
+  within each dimension, from `scopes.json`. When: starting an audit round
+  (`audit-find` runs it in Prepare and refuses the round on failure) or
+  splitting one. Refusal: a cell owned twice, or owned by nobody — the
+  perturbed-scope `--self-test` is the null control.
+- `fold_ledger.py` — folds a round's JUDGE.json and sweeps into
+  `bugclasses.json`, and checks the register against the judges. When: after a
+  judge lands, and before quoting the bugclass register as current state;
+  `sync` after any hand edit of `finding.schema.json`, which rewrites
+  `audit-find.js`'s generated CLASS_GUESS and FINDING_REPORT (fold runs it).
+  Refusal: `check` refuses a register that drifted from its judges — re-quote
+  the register, not a memory of it.
+- `judge_batch.py` — re-runs every finding's harness, perturbation and null
+  control serially under the gate lease, one row per finding. When: a judge
+  grades a batch of findings and wants the mechanical half scripted. Refusal:
+  a perturbation that does not move the number in the stated direction prints
+  `void`; what it cannot run prints `by-hand`, never a pass.
+- `merge_fastpath.py` — classifies a changed file as workflow, claim, grader
+  or budget for `merge_train.py`'s batch routing: any such file sends a pull
+  request serial. Refusal: `--self-test` — `governance.yml` greps its
+  `checks, 0 failed` line.
+- `merge_throughput.py` — measures whether merges land inside the previous
+  merge's gate window often enough to justify a merge queue. When: someone
+  proposes a queue; the numbers decide before the mechanism is built.
+- `preflight.sh` — mechanical checks on anything the orchestrator publishes
+  (merge body, issue body, comment, brief): closing keywords and the claim
+  shapes. When: before posting any prose that GitHub or a later seat reads.
+  Refusal: a closing keyword in prose closes issues you did not mean to touch;
+  it refuses rather than warns.
+- `prepare_baseline.sh` — builds a round's audit baseline: a git-archive
+  export finders work in, one worktree per mutating finder, briefs copied in.
+  When: starting a round. Refusal: an archive run from a `git archive` copy
+  fails the `recorded_at` check on every mutant, baseline included — the M0
+  null run attributes that to the runner, not the findings.
+- `prepr.sh` — the pre-PR self-check on your own branch and body: head SHA
+  freshness, claim files byte-identical, the MODE line, carry destinations,
+  body headings, and the scoped-closure selection. When: always, before
+  handing a branch off. Refusal: each blocked reason names the artifact —
+  a branch that fails prepr locally would have burned a review round instead.
+- `push.sh` — pushes a branch and attaches a body that has already passed the
+  contract check, in that order (#678). When: tvofi-identity pushes only;
+  App-authored PRs go through `app_push.sh`. Refusal: the contract check runs
+  before the push, so the red `pr-contract` can never land on your review
+  head.
+- `worktree_gc.sh` — collects a merged PR's worktree, branch and seat
+  scratch. When: after merges, before the disk fills (9.5 GB of orphaned seat
+  directories once). Refusal: `--dry-run` prints the collection list; a
+  worktree with unpushed work is left alone.
+
+## tools/audit/seat/
+
+- `features_block.py` — runs one block of `tests/features.py`, from the line
+  holding a marker to the script's close, in the namespace features.py's
+  header builds. When: a mutation proof or a body figure that needs only the
+  block pinning the mutated line, on a seat where the whole script takes tens
+  of minutes. Refusal: a marker that is not in the script raises rather than
+  running an empty block.
+- `body_push.sh` — publishes a handoff's BODY.md on the orphan ref
+  `handoff-body/<topic>` (plus RESUME.md), parentless first commit,
+  fast-forwards after. When: every fixer handoff — the body must never enter
+  the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
+  head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
+  checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
+  before anything is pushed, with each arm's repair printed; a fetch that
+  half-failed leaves a parentless commit the push refuses as a
+  non-fast-forward — a rewrite is never forced through.
+- `autofix_statuses.sh` — re-derives what `mutation-autofix` and
+  `closures-autofix` answered on recent pull-request runs, from their job
+  logs, with the `closures` failure heading behind each closures skip. When:
+  judging whether the autofix chain repairs anything. Refusal: a log GitHub
+  no longer serves is counted beside the totals, never read as a status.
+- `bus.sh` — git refs as the programme's message bus: seats publish verdicts
+  on refs, the orchestrator watches. When: a reviewer seat with no other
+  channel, or an orchestrator collecting several lanes' verdicts at once.
+  `orphans` discharges a handoff by name only when that `fix/<t>` or
+  `fix/<t>-pr` head carries the tip; a named head behind it is
+  `repair=update`.
+- `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
+  states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
+  and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
+  `pull_request` runs are held `action_required`, so until one is approved the
+  governance family does not report at such a head and it sits unmergeable
+  looking green (R9-RC-AUTOFIX-GOVERNANCE).
+  When: a long fix wave where red-on-main or a fresh failure must interrupt
+  work. Refusal: state already seen prints nothing — the exit-1 report is the
+  alert, not the log; an unreadable ruleset alerts BLIND once rather than
+  silently skipping the ABSENT arm. `--self-test` grades every arm offline on
+  the recorded defect shape; `CI_WATCH_ONCE=1` runs a single cycle.
+- `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
+  CI-run pinning): it builds `venv-ci` and `venv-ha` under `/opt/hpo` and
+  writes the toolchain profile. When: tvofi pastes it into Project settings; a
+  seat cannot apply its own environment. A seat does not source that profile:
+  a non-interactive Bash call skips it, so the toolchain reaches a seat
+  through the environment's variables (see `cloud_dispatch.py`). Refusal: a
+  missing checkout warns and exits 0, so a session still starts, without pins.
+- `cloud_dispatch.py` — renders the whole cloud-runner trigger payload
+  (`job_config.ccr`: `environment_id`, `session_context` with `allowed_tools`,
+  `model` and `sources`, and one user-message event) for a `reviewer`,
+  `fixer` or `probe` seat from the PR, the 40-hex head, the bus nonce and an
+  optional brief file. The environment id, model and repository come from a
+  flag, an overlay JSON (`--overlay` / `$HPO_CLOUD_OVERLAY`) or `HPO_CLOUD_*`,
+  never from the tree. When: dispatching a seat to the cloud runner; 

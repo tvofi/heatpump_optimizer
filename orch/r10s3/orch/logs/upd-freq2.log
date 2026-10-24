@@ -1,0 +1,7 @@
+===== daemonize pid=40979 2026-10-21T07:01:04Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-freq-defrost bash tools/audit/seat/update_pr.sh fix/r10-freq-defrost fe9038fbe2bacaa43a6bb9c00ce57814be58ff02 /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-freq-defrost.md
+LEDGER-MERGE: resolved tests/structure_budgets.json
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+HEAD=3ce0b78f89d9cd4cc5f4783591adac37c4b42573

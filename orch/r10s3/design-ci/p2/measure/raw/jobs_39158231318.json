@@ -1,0 +1,811 @@
+{
+  "total_count": 7,
+  "jobs": [
+    {
+      "id": 117766052219,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2dZew",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766052219",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766052219",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:20:27Z",
+      "completed_at": "2026-10-18T19:20:48Z",
+      "name": "wave-script",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T19:20:28Z",
+          "completed_at": "2026-10-18T19:20:29Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T19:20:29Z",
+          "completed_at": "2026-10-18T19:20:40Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T19:20:40Z",
+          "completed_at": "2026-10-18T19:20:40Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T19:20:40Z",
+          "completed_at": "2026-10-18T19:20:40Z"
+        },
+        {
+          "name": "Drive the wave script's branching",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T19:20:40Z",
+          "completed_at": "2026-10-18T19:20:41Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T19:20:41Z",
+          "completed_at": "2026-10-18T19:20:41Z"
+        },
+        {
+          "name": "Refuse two readers of one concept that disagree",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 7,
+          "started_at": "2026-10-18T19:20:41Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Show the agreement lane refusing each shape it exists to refuse",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Check the bug-class register against the rounds in the tree",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T19:20:47Z",
+          "completed_at": "2026-10-18T19:20:47Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766052219",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126724,
+      "runner_name": "GitHub Actions 1000126724",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117766052487,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2dahw",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766052487",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766052487",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:20:57Z",
+      "completed_at": "2026-10-18T19:23:00Z",
+      "name": "instrument-self-tests",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T19:20:58Z",
+          "completed_at": "2026-10-18T19:20:58Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T19:20:58Z",
+          "completed_at": "2026-10-18T19:21:06Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T19:21:06Z",
+          "completed_at": "2026-10-18T19:21:06Z"
+        },
+        {
+          "name": "Refuse a corpus or record-mode check that survives its own deletion",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T19:21:06Z",
+          "completed_at": "2026-10-18T19:21:29Z"
+        },
+        {
+          "name": "Show the fragment check refusing its own perturbation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T19:21:29Z",
+          "completed_at": "2026-10-18T19:21:29Z"
+        },
+        {
+          "name": "Show the lane-skip decision refusing every unsafe skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T19:21:29Z",
+          "completed_at": "2026-10-18T19:21:29Z"
+        },
+        {
+          "name": "Show field coverage refusing each shape it exists to refuse",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T19:21:29Z",
+          "completed_at": "2026-10-18T19:21:31Z"
+        },
+        {
+          "name": "Show the comment poster refusing every body it cannot vouch for",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T19:21:31Z",
+          "completed_at": "2026-10-18T19:21:31Z"
+        },
+        {
+          "name": "Show the record-predicate sweep refusing its own perturbations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T19:21:31Z",
+          "completed_at": "2026-10-18T19:21:31Z"
+        },
+        {
+          "name": "Show the pre-PR self-check refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T19:21:31Z",
+          "completed_at": "2026-10-18T19:22:15Z"
+        },
+        {
+          "name": "Show the push script's decisions refusing their own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T19:22:15Z",
+          "completed_at": "2026-10-18T19:22:15Z"
+        },
+        {
+          "name": "Show the App push refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T19:22:15Z",
+          "completed_at": "2026-10-18T19:22:28Z"
+        },
+        {
+          "name": "Show the App approval refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T19:22:28Z",
+          "completed_at": "2026-10-18T19:22:36Z"
+        },
+        {
+          "name": "Show the merge-main bot refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T19:22:36Z",
+          "completed_at": "2026-10-18T19:22:37Z"
+        },
+        {
+          "name": "Show the superseded-run canceller refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T19:22:37Z",
+          "completed_at": "2026-10-18T19:22:37Z"
+        },
+        {
+          "name": "Show the App verdict poster refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T19:22:37Z",
+          "completed_at": "2026-10-18T19:22:39Z"
+        },
+        {
+          "name": "Show the verdict bus refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-18T19:22:39Z",
+          "completed_at": "2026-10-18T19:22:45Z"
+        },
+        {
+          "name": "Show the budget-raise gate refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T19:22:45Z",
+          "completed_at": "2026-10-18T19:22:47Z"
+        },
+        {
+          "name": "Show the contract re-run deciding its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T19:22:47Z",
+          "completed_at": "2026-10-18T19:22:47Z"
+        },
+        {
+          "name": "Show the CodeQL leg scope refusing every unsafe skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-18T19:22:47Z",
+          "completed_at": "2026-10-18T19:22:47Z"
+        },
+        {
+          "name": "Show the merge fast path refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T19:22:47Z",
+          "completed_at": "2026-10-18T19:22:47Z"
+        },
+        {
+          "name": "Refuse a temp or machine path in a tracked script or decision",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T19:22:47Z",
+          "completed_at": "2026-10-18T19:22:47Z"
+        },
+        {
+          "name": "Refuse a push that names the host, and an unregistered pusher",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T19:22:47Z",
+          "completed_at": "2026-10-18T19:22:48Z"
+        },
+        {
+          "name": "Render the sweep template, and the policy re-read predicate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-18T19:22:48Z",
+          "completed_at": "2026-10-18T19:22:48Z"
+        },
+        {
+          "name": "Refuse a throwaway git repository built without the shared helper",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-18T19:22:48Z",
+          "completed_at": "2026-10-18T19:22:48Z"
+        },
+        {
+          "name": "Show the merge train refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-18T19:22:48Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Show the train launcher refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Show the figure check refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Show the figure census pinning its counting rule",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Show the pin rule refusing every probe and admitting its controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 59,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 60,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:57Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 61,
+          "started_at": "2026-10-18T19:22:57Z",
+          "completed_at": "2026-10-18T19:22:58Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766052487",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126745,
+      "runner_name": "GitHub Actions 1000126745",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117766052499,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2dakw",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766052499",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766052499",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:20:57Z",
+      "completed_at": "2026-10-18T19:24:10Z",
+      "name": "env-matrix",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T19:20:58Z",
+          "completed_at": "2026-10-18T19:20:59Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T19:20:59Z",
+          "completed_at": "2026-10-18T19:21:11Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T19:21:11Z",
+          "completed_at": "2026-10-18T19:21:14Z"
+        },
+        {
+          "name": "Put origin/main where the matrix looks for it",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T19:21:14Z",
+          "completed_at": "2026-10-18T19:21:15Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T19:21:15Z",
+          "completed_at": "2026-10-18T19:21:15Z"
+        },
+        {
+          "name": "Require each declared environment shape to produce its declared outcome",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T19:21:15Z",
+          "completed_at": "2026-10-18T19:24:06Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T19:24:06Z",
+          "completed_at": "2026-10-18T19:24:06Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T19:24:06Z",
+          "completed_at": "2026-10-18T19:24:06Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T19:24:06Z",
+          "completed_at": "2026-10-18T19:24:06Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766052499",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126746,
+      "runner_name": "GitHub Actions 1000126746",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117766052522,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2daqg",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766052522",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766052522",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:21:23Z",
+      "completed_at": "2026-10-18T19:21:39Z",
+      "name": "delivery-status",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T19:21:24Z",
+          "completed_at": "2026-10-18T19:21:24Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T19:21:24Z",
+          "completed_at": "2026-10-18T19:21:34Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T19:21:34Z",
+          "completed_at": "2026-10-18T19:21:35Z"
+        },
+        {
+          "name": "Report what is pending and what is overdue a row",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 4,
+          "started_at": "2026-10-18T19:21:35Z",
+          "completed_at": "2026-10-18T19:21:37Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T19:21:37Z",
+          "completed_at": "2026-10-18T19:21:37Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T19:21:37Z",
+          "completed_at": "2026-10-18T19:21:37Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T19:21:37Z",
+          "completed_at": "2026-10-18T19:21:37Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766052522",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126759,
+      "runner_name": "GitHub Actions 1000126759",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117766052549,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2daxQ",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766052549",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766052549",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:21:21Z",
+      "completed_at": "2026-10-18T19:22:40Z",
+      "name": "policy-docs",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T19:21:22Z",
+          "completed_at": "2026-10-18T19:21:23Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T19:21:23Z",
+          "completed_at": "2026-10-18T19:21:33Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T19:21:33Z",
+          "completed_at": "2026-10-18T19:21:34Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T19:21:34Z",
+          "completed_at": "2026-10-18T19:21:34Z"
+        },
+        {
+          "name": "Refuse a Cursor rule that is not the generated form of its source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T19:21:34Z",
+          "completed_at": "2026-10-18T19:21:34Z"
+        },
+        {
+          "name": "Refuse a check script no CODEOWNERS pattern owns",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T19:21:34Z",
+          "completed_at": "2026-10-18T19:21:35Z"
+        },
+        {
+          "name": "Lint the policy corpus",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T19:21:35Z",
+          "completed_at": "2026-10-18T19:21:44Z"
+        },
+        {
+          "name": "Refuse a prompt fragment that has drifted from its canonical text",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T19:21:44Z",
+          "completed_at": "2026-10-18T19:21:44Z"
+        },
+        {
+          "name": "Report what the linter found",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T19:21:44Z",
+          "completed_at": "2026-10-18T19:21:52Z"
+        },
+        {
+          "name": "Refuse a hook that is missing, unwired, or fails its own self-test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T19:21:52Z",
+          "completed_at": "2026-10-18T19:21:53Z"
+        },
+        {
+          "name": "Refuse a governance check input field no check reads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T19:21:53Z",
+          "completed_at": "2026-10-18T19:22:38Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T19:22:38Z",
+          "completed_at": "2026-10-18T19:22:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T19:22:38Z",
+          "completed_at": "2026-10-18T19:22:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T19:22:38Z",
+          "completed_at": "2026-10-18T19:22:38Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766052549",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126758,
+      "runner_name": "GitHub Actions 1000126758",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117766053399,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2deFw",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766053399",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766053399",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:20:22Z",
+      "completed_at": "2026-10-18T19:20:21Z",
+      "name": "record",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766053399",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117766053759,
+      "run_id": 39158231318,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-rca-structure-blind",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39158231318",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAba2dffw",
+      "head_sha": "0e238c3042eb4f0b3c8071886e859c08463a6cca",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117766053759",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39158231318/job/117766053759",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T19:20:22Z",
+      "started_at": "2026-10-18T19:20:22Z",
+      "completed_at": "2026-10-18T19:20:21Z",
+      "name": "delivery-status-publish",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117766053759",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

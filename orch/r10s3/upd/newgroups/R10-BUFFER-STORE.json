@@ -1,0 +1,45 @@
+{
+ "lane": "IN",
+ "kind": "production",
+ "issues": [],
+ "fixes": [],
+ "severity": "high",
+ "size": "M",
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": "opus",
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": true,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "carry": [],
+ "architect_note": null,
+ "findings": [],
+ "wave": 2,
+ "resume": {
+  "stage": "queued",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "rca",
+  "note": null
+ },
+ "class": "production",
+ "group": "R10-BUFFER-STORE",
+ "hot_files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "after": [
+  "R10-SETPOINT-BOOST"
+ ],
+ "brief": "Found by R10-SETPOINT-BOOST's census: with a 750 L manual-valve buffer configured, the planner publishes the same plans as with no buffer, and the tank stays at its start temperature, so the buffer is never used as a heat store for cheap windows. This affects the owner's install type. Root-cause on synthetic installs, then make the buffer's storage credit drive pre-heating in cheap windows within the comfort band. Controls: flat-price null, buffer and no-buffer arms, mutation."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_bound_instants RETURN_DEL d4c9e2a6",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    return value",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against db878b29fa301d44231ccec55a85a80d610e9b1e: RETURN_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,2 @@
+===== daemonize pid=93283 2026-10-20T19:51:53Z argv: env HANDOFF_TOPIC=r10-plan-opt bash tools/audit/seat/update_pr.sh handoff/r10-plan-opt - /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-plan-opt.md
+branch handoff/r10-plan-opt checked out elsewhere: /Users/timmalmstrom/hpo-seats/r10s3/plan-opt/wt                                        b8558f0d0 [handoff/r10-plan-opt]

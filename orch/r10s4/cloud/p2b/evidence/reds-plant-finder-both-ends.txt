@@ -1,0 +1,14 @@
+== before
+RESULT reds-at-head PASS :: null: the window (fast green, three base-pinned red, gate red) :: reds: ['gate', 'governance / env-matrix', 'governance / policy-doc
+RESULT reds-at-head PASS :: plant: the whole tests unit skipped (caller check skipped, no tests / * at all) :: reds: ['gate', 'governance / env-matrix', 'govern
+RESULT reds-at-head PASS :: plant: tests / closures skipped :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script']
+RESULT reds-at-head PASS :: plant: only the three base-pinned and gate exist (every other unit absent) :: reds: ['gate', 'governance / env-matrix', 'governance 
+RESULT reds-at-head PASS :: plant: codeql / Analyze (python) neutral :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave
+RESULT reds-at-head FAIL :: control: tests / closures cancelled :: reds besides the base-pinned: ['tests / closures']
+== after
+RESULT reds-at-head FAIL :: null: the window (fast green, three base-pinned red, gate red) :: owed by REQUIRED['pr-cc'] and absent: ['tests / arch-instrument', 
+RESULT reds-at-head FAIL :: plant: the whole tests unit skipped (caller check skipped, no tests / * at all) :: owed by REQUIRED['pr-cc'] and absent: ['tests / f
+RESULT reds-at-head FAIL :: plant: tests / closures skipped :: owed by REQUIRED['pr-cc'] and absent: ['tests / arch-instrument', 'tests / browser', 'tests / bri
+RESULT reds-at-head FAIL :: plant: only the three base-pinned and gate exist (every other unit absent) :: owed by REQUIRED['pr-cc'] and absent: ['tests / fast (
+RESULT reds-at-head FAIL :: plant: codeql / Analyze (python) neutral :: owed by REQUIRED['pr-cc'] and absent: ['tests / fast (3.14)', 'tests / arch-instrument',
+RESULT reds-at-head FAIL :: control: tests / closures cancelled :: owed by REQUIRED['pr-cc'] and absent: ['tests / fast (3.14)', 'tests / arch-instrument', 'tes

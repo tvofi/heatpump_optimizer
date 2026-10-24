@@ -1,0 +1,2208 @@
+diff --git a/custom_components/heatpump_optimizer/climate.py b/custom_components/heatpump_optimizer/climate.py
+index 7839d6eca..8a55778ac 100644
+--- a/custom_components/heatpump_optimizer/climate.py
++++ b/custom_components/heatpump_optimizer/climate.py
+@@ -32,6 +32,7 @@ from .const import (
+ )
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+ from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
++from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
+ from .entry_config import EntryConfig
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -135,13 +136,13 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+         """Return the current indoor temperature, or None if nothing measured it."""
+         if not self.coordinator.data:
+             return None
+-        measured = self._measured("upper_floor_temperature")
+-        if isinstance(measured, (int, float)) and not isinstance(measured, bool):
++        measured = payload_number(self._measured("upper_floor_temperature"))
++        if measured is not None:
+             return float(measured)
+         flags = self.coordinator.data.get("reading_ok") or {}
+         if flags.get("upper_floor_temperature"):
+-            indoor = self.coordinator.data.get("indoor_temperature")
+-            if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):
++            indoor = payload_number(self.coordinator.data.get("indoor_temperature"))
++            if indoor is not None:
+                 return float(indoor)
+         return None
+ 
+@@ -212,21 +213,6 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+         flags = data.get("reading_ok") or {}
+         return data.get(key) if flags.get(key) else None
+ 
+-    @property
+-    def _effective_outdoor(self) -> float | None:
+-        """The outdoor thermometer, else the forecast step the plan uses.
+-
+-        Mirrors ``sensor._effective_outdoor``; kept as its own tiny property
+-        rather than imported so the climate platform does not depend on the
+-        sensor platform. The rule is the one that matters: without a
+-        thermometer this attribute used to publish the 5.0 constructor
+-        default beside a plan solved at the forecast's −5 °C.
+-        """
+-        data = self._data()
+-        if (data.get("reading_ok") or {}).get("outdoor_temperature"):
+-            return data.get("outdoor_temperature")
+-        return data.get("outdoor_forecast_temperature")
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         """Return extra state attributes including two-zone info."""
+@@ -253,7 +239,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+             attrs["ecl110_command_topic"] = self.coordinator.data.get(
+                 "ecl110_command_topic"
+             )
+-            attrs["outdoor_temperature"] = self._effective_outdoor
++            attrs["outdoor_temperature"] = effective_outdoor(self._data())[0]
+ 
+             # Two-zone attributes
+             attrs["two_zone_enabled"] = self.coordinator.data.get(
+@@ -276,10 +262,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+             )
+ 
+             # Zone setpoints from current action
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            attrs.update(zone_setpoint_attributes(action))
+ 
+             # DHW status
+             attrs["dhw_enabled"] = self.coordinator.data.get("dhw_enabled", False)
+diff --git a/custom_components/heatpump_optimizer/entity.py b/custom_components/heatpump_optimizer/entity.py
+index 996573582..5fdb53132 100644
+--- a/custom_components/heatpump_optimizer/entity.py
++++ b/custom_components/heatpump_optimizer/entity.py
+@@ -50,14 +50,98 @@ def commanded_power_kw(action: Any) -> float | None:
+     reports what the step asks of a pump it has already declared off. Only an
+     explicit False gates -- an action that carries no ``heat_pump_on`` at all
+     is a caller's partial dict, not a declaration, and publishes its ask.
++
++    A part that is not a number (``payload_number``: a bool or text) leaves
++    the ask unknown, ``None``; a missing DHW part is no DHW draw.
+     """
+     action = action or {}
+-    space = action.get("power")
+-    if space is None:
++    space = payload_number(action.get("power"))
++    raw_dhw = action.get("dhw_power")
++    dhw = 0.0 if raw_dhw is None else payload_number(raw_dhw)
++    if space is None or dhw is None:
+         return None
+     if action.get("heat_pump_on") is False:
+         return 0.0
+-    return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
++    return round(float(space) + float(dhw), 2)
++
++
++def effective_outdoor(data: Any) -> tuple[float | None, str | None]:
++    """The best outdoor temperature available, and where it came from.
++
++    Three answers, in the order a user would want them:
++
++    * the outdoor thermometer, while it reads;
++    * otherwise the **forecast's current step** -- the number the plan beside
++      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
++      constructor default is never overwritten without a thermometer, so an
++      install with a -5 °C forecast published "5.0 °C outdoors" with a
++      `TEMPERATURE` device class and long-term statistics behind it, and the
++      Estimated COP that reads it followed (3.32 against a real 2.62);
++    * ``None`` when there is neither, which is the one branch where the
++      default also reaches the optimizer's horizon.
++
++    Both readers -- the Outdoor Temperature and Estimated COP sensors, and
++    the climate entity's ``outdoor_temperature`` attribute -- take it here;
++    the climate entity kept its own copy, unguarded, which answered ``None``
++    where a thermometer flagged OK published no number and the sensor fell
++    back to the forecast.
++
++    Deliberately not an availability gate: an outdoor temperature the
++    integration is planning against is a real answer, and unavailability
++    would hide it. What changes is that the number is the forecast's rather
++    than a dataclass's, and the sensor says which.
++    """
++    data = data or {}
++    if (data.get("reading_ok") or {}).get("outdoor_temperature"):
++        value = payload_number(data.get("outdoor_temperature"))
++        if value is not None:
++            return float(value), "outdoor_temp_entity"
++    forecast = payload_number(data.get("outdoor_forecast_temperature"))
++    if forecast is not None:
++        return float(forecast), "weather_forecast"
++    return None, None
++
++
++def zone_setpoint_attributes(action: Any) -> dict[str, Any]:
++    """The current plan step's two-zone setpoints, under their published names.
++
++    The plan step names them ``upper_setpoint`` / ``lower_setpoint``; the
++    climate entity, Current Setpoint and Heat Pump Action publish them as
++    ``upper_floor_setpoint`` / ``lower_floor_setpoint``, and only when the
++    step carries them (a single-zone plan publishes neither). The renaming
++    was written three times (D7-s2-54); it lives here so they cannot drift.
++    """
++    action = action or {}
++    return {
++        published: action[planned]
++        for planned, published in (
++            ("upper_setpoint", "upper_floor_setpoint"),
++            ("lower_setpoint", "lower_floor_setpoint"),
++        )
++        if planned in action
++    }
++
++
++def payload_number(
++    value: Any, types: tuple[type[int | float], ...] = (int, float)
++) -> int | float | None:
++    """A payload value as the number a state publishes, or ``None``.
++
++    The value itself when it is one of ``types``; ``None`` for anything else.
++    A bool is not a number (the round-10 bool policy): ``True`` is an ``int``
++    to Python, and published as a temperature of 1 it is a reading nothing
++    made. Text is not a number either: a numeric string is its producer's bug,
++    which no entity parses on the producer's behalf. Each sensor's own guard
++    had drifted from this four ways (D7-s2-60), so every entity that publishes
++    a payload number reads it here. A numpy scalar is read as the Python
++    value it holds, the order ``_finite`` takes for the same reason: a
++    ``numpy.bool_`` is then a bool, and a ``numpy.int64`` an ``int``.
++    """
++    if isinstance(value, np.generic):
++        value = value.item()
++    if isinstance(value, bool) or not isinstance(value, types):
++        return None
++    return value
+ 
+ 
+ def _finite(value: Any) -> Any:
+@@ -135,14 +219,25 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
+     )
+ 
+     def __init_subclass__(cls, **kwargs: Any) -> None:
+-        """Wrap every subclass's published properties in the finite scrub."""
++        """Wrap every subclass's published properties in the finite scrub.
++
++        The property scrubbed is the one Home Assistant reads: resolved
++        through the MRO, so a mixin whose runtime base is ``object`` (the
++        sensor platform's) is scrubbed on each entity that inherits it, where
++        keying on the class's own ``__dict__`` let its value through (D7-s2-51).
++        Only Home Assistant's own defaults are left as they are: they read
++        the ``_attr_*`` the integration set, and belong to its state machinery.
++        """
+         super().__init_subclass__(**kwargs)
+         for name in HeatPumpOptimizerEntity._PUBLISHED:
+-            prop = cls.__dict__.get(name)
++            prop = getattr(cls, name, None)
+             if not isinstance(prop, property) or prop.fget is None:
+                 continue
+             if getattr(prop.fget, "_finite_scrubbed", False):
+                 continue
++            owner = next(k for k in cls.__mro__ if name in vars(k))
++            if owner.__module__.partition(".")[0] == "homeassistant":
++                continue
+ 
+             def scrubbed(
+                 self: HeatPumpOptimizerEntity,
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index d83c04ef8..904e70eb3 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -48,6 +48,7 @@ from .coordinator import (
+ from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
+ from .entity import DHWEntityMixin as _DHWEntityMixin
+ from .entity import HeatPumpOptimizerEntity, commanded_power_kw
++from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
+ from .entry_config import EntryConfig
+ from .payload import Payload
+ from .mixing_valve import is_throttling
+@@ -77,11 +78,8 @@ def _as_str(value: Any, default: str | None = None) -> str | None:
+ 
+ 
+ def _as_float(value: Any) -> float | None:
+-    return (
+-        float(value)
+-        if isinstance(value, (int, float)) and not isinstance(value, bool)
+-        else None
+-    )
++    number = payload_number(value)
++    return None if number is None else float(number)
+ 
+ 
+ def _as_datetime(value: Any) -> datetime | None:
+@@ -156,37 +154,6 @@ def _reading_ok(coordinator: Any, key: str) -> bool:
+     return bool(flags.get(key))
+ 
+ 
+-def _effective_outdoor(coordinator: Any) -> tuple[float | None, str | None]:
+-    """The best outdoor temperature available, and where it came from.
+-
+-    Three answers, in the order a user would want them:
+-
+-    * the outdoor thermometer, while it reads;
+-    * otherwise the **forecast's current step** -- the number the plan beside
+-      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
+-      constructor default is never overwritten without a thermometer, so an
+-      install with a -5 °C forecast published "5.0 °C outdoors" with a
+-      `TEMPERATURE` device class and long-term statistics behind it, and the
+-      Estimated COP that reads it followed (3.32 against a real 2.62);
+-    * ``None`` when there is neither, which is the one branch where the
+-      default also reaches the optimizer's horizon.
+-
+-    Deliberately not an availability gate: an outdoor temperature the
+-    integration is planning against is a real answer, and unavailability
+-    would hide it. What changes is that the number is the forecast's rather
+-    than a dataclass's, and the sensor says which.
+-    """
+-    data = getattr(coordinator, "data", None) or {}
+-    if _reading_ok(coordinator, "outdoor_temperature"):
+-        value = data.get("outdoor_temperature")
+-        if value is not None:
+-            return float(value), "outdoor_temp_entity"
+-    forecast = data.get("outdoor_forecast_temperature")
+-    if forecast is not None:
+-        return float(forecast), "weather_forecast"
+-    return None, None
+-
+-
+ class _MeasuredStoreMixin(_SensorMixinBase):
+     """A thermal-battery entity, gated on at least one store being sensed.
+ 
+@@ -373,6 +340,39 @@ class _MeasuredTemperatureMixin(_SensorMixinBase):
+         )
+ 
+ 
++class _PayloadNumberMixin(_SensorMixinBase):
++    """A sensor whose state is the number at one path of the coordinator payload.
++
++    Each of these sensors spelled the read as its own ``native_value`` -- the
++    key or the section walk, a guard, the rounding -- and the guards had
++    drifted four ways (D7-s2-52, D7-s2-53, D7-s2-60): ``True`` published as
++    1, as ``True`` or as ``None``, and a numeric string raised, passed raw or
++    read ``None``. The read is declared here once, on ``payload_number``'s
++    rule; a sensor names its path and, where it rounds, its decimals. A
++    missing or non-mapping section reads as empty.
++    """
++
++    #: Section keys, then the leaf key.
++    _payload_path: tuple[str, ...] = ()
++    #: Decimals the state is rounded to; ``None`` publishes the leaf as read.
++    _payload_digits: int | None = None
++    #: The number types the leaf may be: an integer count declares ``(int,)``.
++    _payload_types: tuple[type[int | float], ...] = (int, float)
++
++    def _payload_number(self) -> int | float | None:
++        node: Any = self._data()
++        for key in self._payload_path[:-1]:
++            node = _mapping(node.get(key))
++        return payload_number(node.get(self._payload_path[-1]), self._payload_types)
++
++    @property
++    def native_value(self) -> float | None:
++        value = self._payload_number()
++        if value is None or self._payload_digits is None:
++            return value
++        return round(value, self._payload_digits)
++
++
+ class _WaitsForEvidenceMixin(_SensorMixinBase):
+     """An entity whose source is configured but whose evidence has not arrived.
+ 
+@@ -460,7 +460,7 @@ class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
++class PredictedSavingsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     # No MONETARY device class here or on the other horizon-money sensors
+     # below: Home Assistant only accepts state class TOTAL for MONETARY, and
+     # these are rolling predictions re-published every solve — MEASUREMENT is
+@@ -470,17 +470,13 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("predicted_savings",)
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "predicted_savings", "plan_predicted_savings")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("predicted_savings")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         # Stable machine-readable marker for the dashboard card's headline
+@@ -513,8 +509,8 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+     def native_value(self) -> float | None:
+         for row in self._rows():
+             if isinstance(row, dict) and row.get("estimated"):
+-                val = row.get("savings_sek")
+-                return round(val, 2) if isinstance(val, (int, float)) else None
++                val = payload_number(row.get("savings_sek"))
++                return None if val is None else round(val, 2)
+         return None
+ 
+     @property
+@@ -531,21 +527,17 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
++class SavingsPercentageSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_native_unit_of_measurement = PERCENTAGE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_path = ("savings_percentage",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "savings_percentage", "plan_savings_percentage")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("savings_percentage")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -561,56 +553,44 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
+         }
+ 
+ 
+-class PredictedCostSensor(HeatPumpOptimizerSensorBase):
++class PredictedCostSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("predicted_cost",)
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "predicted_cost", "cost_predicted")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("predicted_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+-class BaselineCostSensor(HeatPumpOptimizerSensorBase):
++class BaselineCostSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("baseline_cost",)
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "baseline_cost", "cost_baseline")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("baseline_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+-class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
++class CurrentPriceSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+     # No device_class: this is a unit price, not a monetary total. Home
+     # Assistant only accepts state_class "total" for device_class "monetary",
+     # so declaring it here made HA reject the sensor's statistics.
+ 
++    _payload_path = ("current_price",)
++    _payload_digits = 4
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "current_price", "cost_current_electricity_price")
+         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("current_price")
+-            return round(val, 4) if val is not None else None
+-        return None
+-
+ 
+ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -631,13 +611,9 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+-            action = self.coordinator.data.get("current_action", {})
+-            attrs = {}
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+-            return attrs
++            return zone_setpoint_attributes(
++                self.coordinator.data.get("current_action", {})
++            )
+         return {}
+ 
+ 
+@@ -681,15 +657,15 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
+             # outdoor temperature", and without a thermometer the old
+             # `data.get(..., 5.0)` read the constructor default while the
+             # plan being priced beside it was solved at the forecast's −5 °C.
+-            outdoor_temp, _source = _effective_outdoor(self.coordinator)
++            outdoor_temp, _source = effective_outdoor(self._data())
+             if outdoor_temp is None:
+                 return None
+-            cop = self.coordinator.thermal_model.compute_cop(outdoor_temp)
+-            return round(cop, 2) if isinstance(cop, (int, float)) else None
++            cop = payload_number(self.coordinator.thermal_model.compute_cop(outdoor_temp))
++            return None if cop is None else round(cop, 2)
+         return None
+ 
+ 
+-class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
++class IndoorTempSensor(_PayloadNumberMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     """Indoor temperature — unavailable while the thermometer does not read.
+ 
+     The coordinator still writes ``ThermalState.room_temperature``'s 21.0 °C
+@@ -706,16 +682,12 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.TEMPERATURE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_path = ("indoor_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "indoor_temp", "indoor_temperature_optimizer")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("indoor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         """The thermometer this reading comes from (D4 side of the L1 lead).
+@@ -740,7 +712,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
+     @property
+     def native_value(self) -> float | None:
+         if self.coordinator.data:
+-            val, _source = _effective_outdoor(self.coordinator)
++            val, _source = effective_outdoor(self._data())
+             return round(val, 1) if val is not None else None
+         return None
+ 
+@@ -751,11 +723,11 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
+         like corroboration until one owns up. ``weather_forecast`` here means
+         there is no outdoor thermometer and this is the horizon's first step.
+         """
+-        _val, source = _effective_outdoor(self.coordinator)
++        _val, source = effective_outdoor(self._data())
+         return {"source": source}
+ 
+ 
+-class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
++class SolarIrradianceSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """Global horizontal irradiance the optimizer is currently planning with.
+ 
+     Publishing this makes an otherwise invisible input checkable: if the
+@@ -776,16 +748,12 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+     # update, and its history is of no interest once superseded.
+     _unrecorded_attributes = frozenset({"forecast"})
+ 
++    _payload_path = ("solar_radiation",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "solar_irradiance", "solar_irradiance")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("solar_radiation")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -806,7 +774,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+ 
+ 
+ class SlabTempSensor(
+-    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The modelled slab temperature, while there is something modelling it.
+ 
+@@ -826,16 +794,12 @@ class SlabTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
+ 
++    _payload_path = ("slab_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "slab_temp", "slab_temperature_estimated")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("slab_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.TIMESTAMP
+@@ -897,10 +861,7 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
+                 "heat_pump_on": action.get("heat_pump_on"),
+                 "ecl110_displace": action.get("displace_value"),
+             }
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            attrs.update(zone_setpoint_attributes(action))
+             if "solar_gain_kw" in action:
+                 attrs["solar_gain_kw"] = action["solar_gain_kw"]
+             return attrs
+@@ -984,7 +945,7 @@ class ScheduleStepsSensor(HeatPumpOptimizerSensorBase):
+ # ---------------------------------------------------------------------------
+ 
+ 
+-class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
++class UpperFloorTempSensor(_PayloadNumberMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     """The upper zone's temperature — which is the indoor thermometer.
+ 
+     There is no separate upper-floor input. The coordinator sets
+@@ -1022,18 +983,14 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
+     _attr_device_class = SensorDeviceClass.TEMPERATURE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_path = ("upper_floor_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "upper_floor_temp", "upper_floor_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("upper_floor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         # Stated, not implied: two entities carrying the same number look
+@@ -1042,7 +999,7 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
+ 
+ 
+ class LowerFloorTempSensor(
+-    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The lower zone's temperature, when a thermometer reports it.
+ 
+@@ -1063,21 +1020,17 @@ class LowerFloorTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_LOWER_FLOOR_TEMP_ENTITY,)
+ 
++    _payload_path = ("lower_floor_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "lower_floor_temp", "lower_floor_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("lower_floor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ class FloorReturnTempSensor(
+-    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The floor heating return temperature, straight from the sensor.
+ 
+@@ -1096,20 +1049,16 @@ class FloorReturnTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
+ 
++    _payload_path = ("floor_return_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "floor_return_temp", "floor_heating_return_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("floor_return_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+ 
+-
+-class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
++class SolarHeatGainSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """Sensor showing the current solar heat gain contribution in kW."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1117,18 +1066,14 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.POWER
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("solar_heat_gain",)
++    _payload_digits = 3
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "solar_heat_gain", "solar_heat_gain"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("solar_heat_gain")
+-            return round(val, 3) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -1142,7 +1087,7 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
+ 
+ 
+ class BufferTankTempSensor(
+-    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The buffer tank temperature, while a sensor is reporting it.
+ 
+@@ -1161,18 +1106,14 @@ class BufferTankTempSensor(
+     # (own docstring above): off by default without it (#1335), on with it.
+     _input_slots = (CONF_BUFFER_TANK_TEMP_ENTITY,)
+ 
++    _payload_path = ("buffer_tank_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "buffer_tank_temp", "buffer_tank_temperature_model"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("buffer_tank_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ # ---------------------------------------------------------------------------
+ # DHW (Domestic Hot Water) sensors
+@@ -1180,7 +1121,7 @@ class BufferTankTempSensor(
+ 
+ 
+ class DHWTemperatureSensor(
+-    _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The hot water tank temperature, while a thermometer reports it.
+ 
+@@ -1200,18 +1141,14 @@ class DHWTemperatureSensor(
+     # without it (#1335), on once it is configured (#1542).
+     _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
+ 
++    _payload_path = ("dhw_temperature",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_temperature", "dhw_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("dhw_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -1303,25 +1240,21 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
++class DHWHeatingCostSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     """Sensor showing the estimated DHW heating cost."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("dhw_heating_cost",)
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_heating_cost", "dhw_heating_cost"
+         )
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("dhw_heating_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+ # ---------------------------------------------------------------------------
+ # Predictive insight sensors
+@@ -1397,7 +1330,7 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
++class ECL110DisplaceSensor(_PayloadNumberMixin, _ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     """Current ECL110 displace command value."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1412,18 +1345,14 @@ class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     # with the machinery, not the headline (#177).
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+ 
++    _payload_path = ("ecl110_displace",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "ecl110_displace", "ecl110_displace")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("ecl110_displace")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+-class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
++class ECL110EffectiveDisplaceSensor(_PayloadNumberMixin, _ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     """Modeled effective displace after ECL110 PI/PID dynamics."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1433,6 +1362,9 @@ class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSens
+     _input_slots = ECL110_TOPIC_SLOTS
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+ 
++    _payload_path = ("ecl110_effective_displace",)
++    _payload_digits = 1
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator,
+@@ -1441,13 +1373,6 @@ class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSens
+             "ecl110_effective_displace",
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("ecl110_effective_displace")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -1704,7 +1629,7 @@ class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
+ # ---------------------------------------------------------------------------
+ 
+ 
+-class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
++class MeasuredPowerSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """The heat pump's actual electrical draw.
+ 
+     Deliberately named to contrast with "Recommended Power", which is what the
+@@ -1722,6 +1647,9 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
+     # as the frequency advisor. Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("measured_power",)
++    _payload_digits = 3
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "measured_power", "measured_power")
+ 
+@@ -1730,12 +1658,6 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
+         data = self._data()
+         return bool(super().available and data.get("measured_power_available"))
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = self._data()
+-        value = data.get("measured_power")
+-        return round(value, 3) if value is not None else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -1746,7 +1668,9 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
+         }
+ 
+ 
+-class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
++class ObservedCOPSensor(
++    _PayloadNumberMixin, _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
++):
+     """COP derived from measured electrical input, not from the nameplate curve.
+ 
+     Every plan is priced through COP, so an error here is an error in every
+@@ -1757,6 +1681,8 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("measured_cop",)
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
+ 
+@@ -1764,25 +1690,20 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+         model = getattr(self.coordinator, "thermal_model", None)
+         if model is None:
+             return None
+-        cop = model.compute_cop(data.get("outdoor_temperature", 5.0))
+-        return round(cop, 2) if isinstance(cop, (int, float)) else None
++        cop = payload_number(model.compute_cop(data.get("outdoor_temperature", 5.0)))
++        return None if cop is None else round(cop, 2)
+ 
+     @property
+     def _waiting_for(self) -> str | None:
+         data = self._data()
+         if not data.get("measured_power_available"):
+             return "measured_power_entity"
+-        if not isinstance(data.get("measured_cop"), (int, float)):
++        if self._payload_number() is None:
+             # A power entity is not a COP: the learner needs the pump to run,
+             # against a known outdoor temperature, for long enough to divide.
+             return "first_cop_sample"
+         return None
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = self._data()
+-        return data.get("measured_cop")
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -1806,7 +1727,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+ # ---------------------------------------------------------------------------
+ 
+ 
+-class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
++class _AccumulatingSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """Base for the TOTAL_INCREASING accumulators.
+ 
+     Every monetary sensor in the integration was ``MEASUREMENT``, so none of it
+@@ -1822,7 +1743,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
+ 
+     _attr_state_class = SensorStateClass.TOTAL_INCREASING
+     _attr_suggested_display_precision = 2
+-    _data_key: str = ""
++    _payload_digits = 3
+     #: The ledger line this channel books under, for the month attribute.
+     _ledger_line: str | None = None
+     # ``period`` and ``split_method`` are static documentation strings, byte-
+@@ -1832,12 +1753,6 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
+     # and exactly one (TotalCostSensor) keeps them in the recorder (#1462).
+     _unrecorded_attributes = frozenset({"period", "split_method"})
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = self._data()
+-        value = data.get(self._data_key)
+-        return round(value, 3) if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = {
+@@ -1875,7 +1790,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
+ class SpaceEnergySensor(_AccumulatingSensor):
+     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+     _attr_device_class = SensorDeviceClass.ENERGY
+-    _data_key = "space_energy_kwh"
++    _payload_path = ("space_energy_kwh",)
+     _ledger_line = "space"
+ 
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+@@ -1887,7 +1802,7 @@ class SpaceEnergySensor(_AccumulatingSensor):
+ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
+     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+     _attr_device_class = SensorDeviceClass.ENERGY
+-    _data_key = "dhw_energy_kwh"
++    _payload_path = ("dhw_energy_kwh",)
+     _ledger_line = "dhw"
+ 
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+@@ -1900,7 +1815,7 @@ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
+ class TotalEnergySensor(_AccumulatingSensor):
+     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+     _attr_device_class = SensorDeviceClass.ENERGY
+-    _data_key = "total_energy_kwh"
++    _payload_path = ("total_energy_kwh",)
+ 
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "total_energy", "total_energy")
+@@ -1924,7 +1839,7 @@ class _AccumulatingCostSensor(_AccumulatingSensor):
+ 
+ 
+ class SpaceCostSensor(_AccumulatingCostSensor):
+-    _data_key = "space_cost"
++    _payload_path = ("space_cost",)
+     _ledger_line = "space"
+ 
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+@@ -1932,7 +1847,7 @@ class SpaceCostSensor(_AccumulatingCostSensor):
+ 
+ 
+ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
+-    _data_key = "dhw_cost"
++    _payload_path = ("dhw_cost",)
+     _ledger_line = "dhw"
+ 
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+@@ -1941,7 +1856,7 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
+ 
+ 
+ class TotalCostSensor(_AccumulatingCostSensor):
+-    _data_key = "total_cost"
++    _payload_path = ("total_cost",)
+     # The one accumulator that keeps ``period``/``split_method`` in the
+     # recorder, so the lifetime explanation is written once per cycle rather
+     # than once per accumulating sensor (#1462). See _AccumulatingSensor.
+@@ -1982,7 +1897,7 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
+     @property
+     def _waiting_for(self) -> str | None:
+         accuracy = (self._data()).get("accuracy") or {}
+-        if not isinstance(accuracy.get("temperature_mae"), (int, float)):
++        if payload_number(accuracy.get("temperature_mae")) is None:
+             # The tracker scores an interval only once its prediction can be
+             # held against what the room actually did.
+             return "first_scored_interval"
+@@ -2134,7 +2049,7 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
+ # ---------------------------------------------------------------------------
+ 
+ 
+-class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
++class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """The peak level this month's capacity tariff is currently based on."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -2146,6 +2061,8 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
+     # (#1335). Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("billed_peak_kw",)
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
+ 
+@@ -2156,10 +2073,6 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
+             and (self._data()).get("peak_tariff_enabled")
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        return (self._data()).get("billed_peak_kw")
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -2357,7 +2270,9 @@ class _MixingValveGate(HeatPumpOptimizerSensorBase):
+         return bool(super().available and self.entity_registry_enabled_default)
+ 
+ 
+-class ValveTargetRecommendationSensor(_MixingValveGate, HeatPumpOptimizerSensorBase):
++class ValveTargetRecommendationSensor(
++    _PayloadNumberMixin, _MixingValveGate, HeatPumpOptimizerSensorBase
++):
+     """What to set a dumb mixing valve to, and why.
+ 
+     Item 29 asks the integration to *recommend* a setting for a valve it
+@@ -2372,17 +2287,14 @@ class ValveTargetRecommendationSensor(_MixingValveGate, HeatPumpOptimizerSensorB
+     _attr_suggested_display_precision = 1
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+ 
++    _payload_path = ("valve_target_recommendation", "target")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry,
+             "valve_target_recommendation", "valve_target_recommendation",
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        rec = (self._data()).get("valve_target_recommendation")
+-        return rec.get("target") if isinstance(rec, dict) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -2397,7 +2309,7 @@ class ValveTargetRecommendationSensor(_MixingValveGate, HeatPumpOptimizerSensorB
+         }
+ 
+ 
+-class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
++class ComfortWeightSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """The comfort weight actually in force, learned or configured.
+ 
+     An invisible self-adjusting objective would be alarming, so the learned
+@@ -2409,21 +2321,19 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+     _attr_suggested_display_precision = 2
+ 
++    _payload_path = ("comfort_weight",)
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "comfort_weight", "learning_comfort_weight")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        value = (self._data()).get("comfort_weight")
+-        return round(value, 2) if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         return dict((self._data()).get("comfort_learning", {}) or {})
+ 
+ 
+ class ContractComparisonSensor(
+-    _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+ ):
+     """This month's consumption settled under each contract type (#23).
+ 
+@@ -2442,6 +2352,8 @@ class ContractComparisonSensor(
+     # diagnostic most households never enable.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("contract_comparison", "load_profile_value_per_kwh")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "contract_comparison", "cost_contract_comparison"
+@@ -2453,18 +2365,12 @@ class ContractComparisonSensor(
+         data = (self._data()).get("contract_comparison") or {}
+         if not data:
+             return "contract_comparison_configuration"
+-        if not isinstance(data.get("load_profile_value_per_kwh"), (int, float)):
++        if self._payload_number() is None:
+             # The comparison is settled per metered month; a fresh install has
+             # the configuration but no month to settle yet.
+             return "settled_metered_month"
+         return None
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("contract_comparison") or {}
+-        value = data.get("load_profile_value_per_kwh")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict(
+@@ -2481,7 +2387,7 @@ class ContractComparisonSensor(
+         return attrs
+ 
+ 
+-class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
++class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """How many kW the house can draw right now without new cost (#5).
+ 
+     ``min(main fuse, capacity threshold) − current house draw``, clamped at
+@@ -2502,6 +2408,8 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+     # its Monthly Peak twin. Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("power_headroom", "headroom_kw")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "power_headroom", "cost_power_headroom"
+@@ -2512,12 +2420,6 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+         data = (self._data()).get("power_headroom") or {}
+         return bool(super().available and data.get("available"))
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("power_headroom") or {}
+-        value = data.get("headroom_kw")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = dict(
+@@ -2527,7 +2429,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+         return data
+ 
+ 
+-class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
++class DHWSetpointAdvisorSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     """The cheapest hot-water setpoint that still covers the heavy days (#9).
+ 
+     Read-only by design: it replays candidate setpoints against everything
+@@ -2554,6 +2456,8 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     # coordinator; the recorder gains nothing from writing it every cycle.
+     _unrecorded_attributes = frozenset({"candidates"})
+ 
++    _payload_path = ("dhw_advisor", "recommended_setpoint")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_setpoint_advisor", "dhw_setpoint_advisor"
+@@ -2566,19 +2470,13 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+             super().available and data.get("recommended_setpoint") is not None
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("dhw_advisor") or {}
+-        value = data.get("recommended_setpoint")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         return dict((self._data()).get("dhw_advisor", {}) or {})
+ 
+ 
+ class MixedHotWaterSensor(
+-    _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
++    _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The tank translated into shower terms (#28).
+ 
+@@ -2610,6 +2508,8 @@ class MixedHotWaterSensor(
+     # probe-keyed default as DHW Temperature above (#1335, #1542).
+     _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
+ 
++    _payload_path = ("dhw_mixed", "litres_40c")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
+         super().__init__(
+@@ -2622,12 +2522,6 @@ class MixedHotWaterSensor(
+             super().available and (self._data()).get("dhw_mixed")
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("dhw_mixed") or {}
+-        value = data.get("litres_40c")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         return dict((self._data()).get("dhw_mixed", {}) or {})
+@@ -2675,7 +2569,7 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
+         values = [
+             p90
+             for v in stats.values()
+-            if isinstance(p90 := v.get("p90_kwh"), (int, float))
++            if (p90 := payload_number(v.get("p90_kwh"))) is not None
+         ]
+         return max(values) if values else None
+ 
+@@ -2745,7 +2639,7 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
++class OptimizationScoreSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """Envelope, machine and operation graded 0–100 (#65).
+ 
+     State: the mean of whatever scores have evidence. Each sub-score
+@@ -2760,6 +2654,8 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+     # Primary, not Diagnostic: a headline stat; see PlanNarrativeSensor (#175).
+     _attr_suggested_display_precision = 1
+ 
++    _payload_path = ("insight", "scores", "overall")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "optimization_score", "plan_optimization_score"
+@@ -2772,14 +2668,6 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+         ) or {}
+         return bool(super().available and scores.get("overall") is not None)
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        scores = (
+-            ((self._data()).get("insight") or {}).get("scores")
+-        ) or {}
+-        value = scores.get("overall")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         insight = (self._data()).get("insight") or {}
+@@ -2799,7 +2687,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
++class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+     """Realised compressor starts, counted from the meter (#55).
+ 
+     State: lifetime starts. TOTAL_INCREASING, so long-term statistics and
+@@ -2816,6 +2704,9 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+     # dead (#1335). Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("insight", "compressor_starts", "lifetime")
++    _payload_types = (int,)
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "compressor_starts", "compressor_starts"
+@@ -2826,16 +2717,6 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+         data = (self._data()).get("measured_power_available")
+         return bool(super().available and data)
+ 
+-    @property
+-    def native_value(self) -> int | None:
+-        starts = (
+-            ((self._data()).get("insight") or {}).get(
+-                "compressor_starts"
+-            )
+-        ) or {}
+-        value = starts.get("lifetime")
+-        return value if isinstance(value, int) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         starts = (
+@@ -2846,7 +2727,9 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+         return dict(starts)
+ 
+ 
+-class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
++class FrequencyAdvisorSensor(
++    _PayloadNumberMixin, _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
++):
+     """What compressor frequency the plan's power asks for (T7 #61).
+ 
+     State: the recommended Hz for the current commanded power, from the
+@@ -2865,6 +2748,8 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+     # everyone else, so disabled rather than shipped dead.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("freq_control", "recommended_hz")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "frequency_advisor", "compressor_frequency_advisor"
+@@ -2876,17 +2761,11 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+         if view.get("mode") in (None, "unconfigured"):
+             # A compressor frequency number or sensor: either one configures it.
+             return "compressor_frequency_entity"
+-        if not isinstance(view.get("recommended_hz"), (int, float)):
++        if self._payload_number() is None:
+             # Observe mode with an entity but no learned kW-per-Hz map yet.
+             return "first_frequency_map_sample"
+         return None
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        view = (self._data()).get("freq_control") or {}
+-        value = view.get("recommended_hz")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict((self._data()).get("freq_control", {}) or {})
+@@ -2913,7 +2792,7 @@ def _numeric_samples(series: Any) -> list[float]:
+     ranks its row a silent 0.00. Dropped, the series ranks as its clean
+     twin (#1226).
+     """
+-    return [float(value) for value in series if isinstance(value, (int, float))]
++    return [value for value in map(_as_float, series) if value is not None]
+ 
+ 
+ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
+@@ -2925,8 +2804,8 @@ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> floa
+     survives it. Never the capacity tariff's per-kW price: a kWh priced with
+     that is off by a whole month (D8-01, #1226).
+     """
+-    rate = data.get("current_price")
+-    if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
++    rate = _as_float(data.get("current_price"))
++    if rate is None or rate <= 0.0:
+         rate = EntryConfig.from_mapping(config).contract_fixed_price
+     if rate <= 0.0:
+         rate = FALLBACK_ENERGY_PRICE_PER_KWH
+diff --git a/dev/programme/delivery/2379.md b/dev/programme/delivery/2379.md
+new file mode 100644
+index 000000000..ac03e91d5
+--- /dev/null
++++ b/dev/programme/delivery/2379.md
+@@ -0,0 +1 @@
++- [#2379](https://github.com/tvofi/heatpump_optimizer/pull/2379) — **open**, R10-SENSOR-PAYLOAD: one payload-number check, one mixin, finite scrub over the MRO (R10-SENSOR-PAYLOAD)
+diff --git a/tests/closures.json b/tests/closures.json
+index 06bffff40..899cfb9ca 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1387,6 +1387,7 @@
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
++   "tests/finite_boundary.py",
+    "tests/gate_lock.py",
+    "tests/golden.py",
+    "tests/golden/card_claimed_drift.txt",
+diff --git a/tests/entities.py b/tests/entities.py
+index d51381e35..c1a755aa2 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -3878,6 +3878,15 @@ def _p2_registry(sources):
+                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
+                      "selector's renderer walks the wrap back to a range",
+              }),
++        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
++        # published under one pair of names by zone_setpoint_attributes; the
++        # climate entity, Current Setpoint and Heat Pump Action each spelled
++        # the renaming before it.
++        dict(fact="zone_setpoint_names", finding="D7-s2-54",
++             match=_p2_match_node(
++                 (ast.Constant,), r"_floor_setpoint",
++                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
++             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
+     ]
+ 
+ 
+@@ -3897,6 +3906,16 @@ _P2_CENSUSES = {
+     # _loaded_entries's, consulted by every action before it can return.
+     "service_entries_resolved_first": (
+         "tests/features.py", "every action resolves its config entries before it returns"),
++    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
++    # payload_number's -- every number state driven with a bool and a text
++    # payload publishes neither, nor reads either as a number.
++    "payload_number_published": (
++        "tests/finite_boundary.py",
++        "every number state publishes None, never the bool or the text, from a "),
++    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
++    # runtime-object mixin's included.
++    "finite_scrub_resolves_mro": (
++        "tests/finite_boundary.py", "a package mixin with runtime base object"),
+ }
+ 
+ 
+@@ -4016,6 +4035,9 @@ _P2_PLANTS["peak_tie_rule"] = (
+ _P2_PLANTS["cyclic_range_wrap"] = (
+     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+ )
++_P2_PLANTS["zone_setpoint_names"] = (
++    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
++)
+ _P2_PLANTS["entity_write_domain"] = (
+     "\n\nasync def _p2_plant(hass):\n"
+     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+@@ -4574,6 +4596,17 @@ def _p6_arm_k(walks, declared=None):
+     for name, nodes in walks.items():
+         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
+             continue
++        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
++        # reads the path's first key off the payload: a declaration, not a
++        # ``.get`` call, so the walk below would not see it.
++        for n in nodes:
++            if isinstance(n, ast.Assign) and any(
++                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
++                    and isinstance(n.value, ast.Tuple) and n.value.elts \
++                    and (key := _p6_lit(n.value.elts[0])):
++                reads += 1
++                if key not in produced:
++                    seams.add(f"{name}:{n.lineno} {key}")
+         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+         accessors = {
+             fn.name for fn in fns
+@@ -4905,6 +4938,15 @@ R.check(
+     _p6_k_reads > 0 and not _p6_k,
+     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+ )
++# Null control for the declared-path read: a sensor naming a key no
++# producer writes in its ``_payload_path`` is a seam.
++_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
++    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
++R.check(
++    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
++    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
++    "the planted declaration was not read",
++)
+ R.check(
+     "every entity id a blueprint, the card or the package names is one a platform "
+     "builds (P6 B)",
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 4725a4e9f..e6d551536 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -592,19 +592,9 @@ def _kinds_arm() -> None:
+     )
+ 
+ 
+-def _publish_arm() -> None:
+-    """Every float the coordinator publishes set non-finite; every entity of
+-    every registered platform must still publish finite values in process.
+-
+-    The platform set is ``PLATFORM_LIST``, the list the integration forwards
+-    to Home Assistant, so a platform added there is swept without an edit
+-    here. ``reading_ok`` flags are all set, so the gated temperatures reach
+-    their entities, and the comfort target is poisoned too, because the
+-    thermostat's ``target_temperature`` reads it rather than the data dict.
+-    """
+-    import importlib
+-    import heatpump_optimizer as integration
+-
++def _publish_setup():
++    """A built coordinator, its healthy payload with every ``reading_ok`` flag
++    set, and its optimizer config: the input both publish sweeps start from."""
+     start = _dt.datetime(2026, 1, 15, 0, 0, tzinfo=_dt.timezone.utc)
+     coord = _build_coord()
+     coord._prices = [
+@@ -622,6 +612,23 @@ def _publish_arm() -> None:
+     healthy["reading_ok"] = {k: True for k in healthy.get("reading_ok") or {}}
+     coord.entry.runtime_data = coord
+     opt = getattr(coord, "_ctx", coord)._opt_config
++    return coord, healthy, opt
++
++
++def _publish_arm() -> None:
++    """Every float the coordinator publishes set non-finite; every entity of
++    every registered platform must still publish finite values in process.
++
++    The platform set is ``PLATFORM_LIST``, the list the integration forwards
++    to Home Assistant, so a platform added there is swept without an edit
++    here. ``reading_ok`` flags are all set, so the gated temperatures reach
++    their entities, and the comfort target is poisoned too, because the
++    thermostat's ``target_temperature`` reads it rather than the data dict.
++    """
++    import importlib
++    import heatpump_optimizer as integration
++
++    coord, healthy, opt = _publish_setup()
+     target = opt.target_temp
+     for platform in integration.PLATFORM_LIST:
+         module = importlib.import_module(f"heatpump_optimizer.{platform}")
+@@ -672,6 +679,253 @@ def _no_rewrap_check() -> None:
+     )
+ 
+ 
++def _scrub_mro_check() -> None:
++    """The scrub covers the property Home Assistant resolves (D7-s2-51).
++
++    Three placements of the same NaN-returning ``native_value``: on a mixin
++    whose runtime base is ``object`` (the sensor platform's ``_SensorMixinBase``)
++    that a package entity inherits; on an entity subclass defined outside the
++    package (this module -- the case a package-only rule exempted, #2238's
++    catch-up note); and on the entity class itself, the null control the
++    old ``__dict__`` rule already scrubbed. Home Assistant's own default is
++    the fourth arm: inherited, it is left unwrapped."""
++    from homeassistant.components.sensor import SensorEntity
++    from heatpump_optimizer import sensor
++
++    def nan(self):
++        return float("nan")
++
++    mixin = type("_NanMixin", (), {"native_value": property(nan),
++                                   "__module__": sensor.__name__})
++    probes = {
++        "a package mixin with runtime base object": type(
++            "_MixinProbe", (mixin, sensor.HeatPumpOptimizerSensorBase),
++            {"__module__": sensor.__name__}),
++        "an entity subclass defined outside the package": type(
++            "_OutsideProbe", (sensor.HeatPumpOptimizerSensorBase,),
++            {"native_value": property(nan)}),
++        "the entity class itself (null control)": type(
++            "_OwnProbe", (sensor.HeatPumpOptimizerSensorBase,),
++            {"native_value": property(nan), "__module__": sensor.__name__}),
++    }
++    for label, cls in probes.items():
++        value = cls.native_value.fget(object.__new__(cls))
++        R.check(f"a NaN native_value on {label} is published as None",
++                value is None, f"published {value!r}")
++    # The stub's SensorEntity declares no native_value (upstream's is a
++    # cached_property reading _attr_native_value), so the default is modelled
++    # by its owner's module: a property Home Assistant's package owns.
++    ha_default = type("_HaDefault", (), {
++        "native_value": property(nan), "__module__": "homeassistant.components.sensor"})
++    plain = type("_DefaultProbe", (sensor.HeatPumpOptimizerSensorBase, ha_default),
++                 {"__module__": sensor.__name__})
++    R.check(
++        "Home Assistant's own native_value default is not wrapped by the scrub",
++        "native_value" not in vars(plain)
++        and plain.native_value is vars(ha_default)["native_value"],
++        f"vars={sorted(n for n in vars(plain) if not n.startswith('__'))}",
++    )
++
++
++#: A bool is not a number (the round-10 mandate's bool policy) and a numeric
++#: string is text: either at a number state's source must publish None.
++_NOT_NUMBERS = (True, "21.5")
++#: The state properties Home Assistant reads as a number.
++_NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
++#: Payload sections the healthy payload does not build (no solve has run, no
++#: month has settled), seeded so the entities reading them publish a number
++#: and the census reaches them. A sensor declaring ``_payload_path`` is
++#: seeded from that declaration instead, so a new one needs no row here.
++_NUMBER_STATE_SEEDS = {
++    "savings_months": [{"estimated": True, "savings_sek": 12.345}],
++    "current_action": {"setpoint": 21.456, "power": 1.234, "dhw_power": 0.321,
++                       "heat_pump_on": True},
++    "accuracy": {"temperature_mae": 0.432},
++    "pv": {"forecast_surplus_kwh": 3.21},
++    "dhw_draw_stats": {"mon": {"p90_kwh": 4.567}},
++}
++#: Number states with no payload leaf to substitute, each with its reason.
++_NUMBER_STATE_COMPUTED = {
++    "PredictedIndoorTempSensor": "predicted_next_room_temp off the coordinator's "
++    "own model, not a payload leaf; read through _as_float",
++}
++
++
++def _numbers_replaced(value, probe):
++    """``value`` with every int and float leaf replaced by ``probe``."""
++    if isinstance(value, bool):
++        return value
++    if isinstance(value, (int, float, np.integer, np.floating)):
++        return probe
++    if isinstance(value, dict):
++        return {k: _numbers_replaced(v, probe) for k, v in value.items()}
++    if isinstance(value, list):
++        return [_numbers_replaced(v, probe) for v in value]
++    return value
++
++
++def _seeded(healthy: dict, entities: list) -> dict:
++    """``healthy`` with _NUMBER_STATE_SEEDS merged in, and every declared
++    ``_payload_path`` holding a number (an integer for an integer count)."""
++    data = {**healthy}
++    for key, seed in _NUMBER_STATE_SEEDS.items():
++        base = data.get(key)
++        data[key] = {**base, **seed} if isinstance(base, dict) and isinstance(seed, dict) else seed
++    for ent in entities:
++        path = getattr(type(ent), "_payload_path", ())
++        if not path:
++            continue
++        node = data
++        for key in path[:-1]:
++            node[key] = dict(node.get(key) or {})
++            node = node[key]
++        if node.get(path[-1]) is None:
++            node[path[-1]] = 7 if getattr(type(ent), "_payload_types", ()) == (int,) else 21.456
++    return data
++
++
++def _number_state_arm() -> None:
++    """Every entity whose state is a number publishes None, or the number it
++    published before, when every number in the payload is a bool or a numeric
++    string (D7-s2-60, #2242): never the bool, never the text, never the text
++    or the bool read as a number (``True`` as 1, ``'21.5'`` as 21.5), never a
++    raise. "The number it published before" is a state that does not read
++    the substituted leaf; a seeded value that happens to equal the probe's
++    reading (1) is the one coincidence this oracle cannot see, so no seed is 1.
++
++    The same input drives every sibling: the payload the publish sweep builds,
++    seeded where no solve has run, each int and float leaf replaced, on every
++    entity of every platform. Its preconditions are asserted, not assumed: a
++    sensor whose state class or unit says it publishes a number and whose
++    seeded state is still not one is refused, unless _NUMBER_STATE_COMPUTED
++    names why it has no leaf; an entry there that the census reaches is stale."""
++    coord, healthy, _opt = _publish_setup()
++    import importlib
++    import heatpump_optimizer as integration
++
++    def number(value) -> bool:
++        return isinstance(value, (int, float)) and not isinstance(value, bool)
++
++    states = reached = 0
++    bad: list[str] = []
++    unreached: set[str] = set()
++    for platform in integration.PLATFORM_LIST:
++        module = importlib.import_module(f"heatpump_optimizer.{platform}")
++        entities: list = []
++        coord.data = healthy
++        asyncio.run(module.async_setup_entry(coord.hass, coord.entry, entities.extend))
++        seeded = _seeded(healthy, entities)
++        coord.data = seeded
++        before = {id(e): _published(e) for e in entities}
++        for ent in entities:
++            numeric = (getattr(ent, "_attr_state_class", None) is not None
++                       or getattr(ent, "_attr_native_unit_of_measurement", None))
++            if numeric and "native_value" in before[id(ent)] \
++                    and not number(before[id(ent)]["native_value"]):
++                unreached.add(type(ent).__name__)
++        for probe in _NOT_NUMBERS:
++            coord.data = _numbers_replaced(seeded, probe)
++            for ent in entities:
++                after = _published(ent)
++                for name in _NUMBER_STATES:
++                    if not number(before[id(ent)].get(name)):
++                        continue
++                    states += probe is True
++                    got = after.get(name)
++                    if got is None:
++                        reached += 1
++                    elif not number(got) or got != before[id(ent)][name]:
++                        bad.append(f"{type(ent).__name__}.{name}: {probe!r} -> {got!r}")
++    coord.data = healthy
++    R.check(
++        "every number state publishes None, never the bool or the text, from a "
++        "bool or text payload (#2242)",
++        not bad and states > 0,
++        f"states={states} bad={sorted(bad)}",
++    )
++    R.check(
++        "the bool and text payloads reach a published number state (the arm is not vacuous)",
++        reached > 0,
++        "no number state went to None when every number became a bool or text",
++    )
++    R.check(
++        "every number-state sensor publishes a number on the seeded payload, or "
++        "is named computed, and no computed entry is reached (the census's reach)",
++        unreached == set(_NUMBER_STATE_COMPUTED),
++        f"unreached-unnamed={sorted(unreached - set(_NUMBER_STATE_COMPUTED))} "
++        f"stale={sorted(set(_NUMBER_STATE_COMPUTED) - unreached)}",
++    )
++    print(f"RESULT number_states={states} count")
++    print(f"RESULT number_state_escapes={len(bad)} count")
++    # The census substitutes every leaf at once, so a part of a composed
++    # number (the step's space and DHW ask) is masked by its sibling's guard:
++    # each part is pinned alone here, beside its healthy control.
++    from heatpump_optimizer.entity import commanded_power_kw
++    parts = {
++        "space True": ({"power": True, "dhw_power": 0.5}, None),
++        "space text": ({"power": "1.5", "dhw_power": 0.5}, None),
++        "dhw True": ({"power": 1.5, "dhw_power": True}, None),
++        "dhw text": ({"power": 1.5, "dhw_power": "0.5"}, None),
++        "healthy (control)": ({"power": 1.5, "dhw_power": 0.5}, 2.0),
++    }
++    wrong = {k: got for k, (action, want) in parts.items()
++             if (got := commanded_power_kw(action)) != want}
++    R.check(
++        "commanded_power_kw refuses a bool or text part on either channel, and "
++        "adds two numbers (#2242)",
++        not wrong, f"{wrong}",
++    )
++    _owner_pins()
++
++
++def _owner_pins() -> None:
++    """Sites of this group's owners that the census cannot single out, each
++    driven alone through the production symbol (#2379 round 1: they
++    survived every driver). Each row is (what, got, want)."""
++    import types as _types
++    from heatpump_optimizer import climate, sensor
++    from heatpump_optimizer.entity import payload_number, zone_setpoint_attributes
++
++    def climate_temp(data):
++        ent = object.__new__(climate.HeatPumpOptimizerClimate)
++        ent.coordinator = _types.SimpleNamespace(data=data, last_update_success=True)
++        return climate.HeatPumpOptimizerClimate.current_temperature.fget(ent)
++
++    def starts(lifetime):
++        ent = object.__new__(sensor.CompressorStartsSensor)
++        ent.coordinator = _types.SimpleNamespace(
++            data={"insight": {"compressor_starts": {"lifetime": lifetime}}},
++            last_update_success=True)
++        return sensor.CompressorStartsSensor.native_value.fget(ent)
++
++    ok = {"upper_floor_temperature": True}
++    rows = [
++        # The upper-floor thermometer wins over the payload's indoor copy.
++        ("climate current_temperature reads the measured upper floor first",
++         climate_temp({"reading_ok": ok, "upper_floor_temperature": 20.5,
++                       "indoor_temperature": 19.0}), 20.5),
++        ("climate current_temperature falls back to the indoor copy",
++         climate_temp({"reading_ok": ok, "upper_floor_temperature": True,
++                       "indoor_temperature": 19.0}), 19.0),
++        # A numpy integer is the int it holds; a numpy bool is still a bool.
++        ("payload_number reads numpy.int64(7) as 7", payload_number(np.int64(7)), 7),
++        ("payload_number refuses numpy.bool_(True)", payload_number(np.bool_(True)), None),
++        # A published zero price is not a price: the contract's is used.
++        ("_gap_energy_rate falls back to the contract price at a zero spot price",
++         sensor._gap_energy_rate({"current_price": 0.0}, {"contract_fixed_price": 0.8}), 0.8),
++        ("_gap_energy_rate keeps a positive spot price (control)",
++         sensor._gap_energy_rate({"current_price": 0.5}, {"contract_fixed_price": 0.8}), 0.5),
++        ("zone_setpoint_attributes keeps upper and lower apart",
++         zone_setpoint_attributes({"upper_setpoint": 21.0, "lower_setpoint": 19.0}),
++         {"upper_floor_setpoint": 21.0, "lower_floor_setpoint": 19.0}),
++        ("Compressor Starts publishes an integer count", starts(5), 5),
++        ("Compressor Starts refuses a float count", starts(5.0), None),
++    ]
++    for what, got, want in rows:
++        R.check(f"{what} (#2379)", got == want and type(got) is type(want),
++                f"got {got!r}, want {want!r}")
++
++
+ # ---------------------------------------------------------------------------
+ # Arm 4 -- the class sweep (round 9, class P1): every leaf kind, every store
+ # populated, every live object scanned
+@@ -2322,6 +2576,8 @@ def _main() -> int:
+     _kinds_arm()
+     _publish_arm()
+     _no_rewrap_check()
++    _scrub_mro_check()
++    _number_state_arm()
+     _i1_pins_arm()
+     _version_arm(by_name)
+     return R.close("FINITE BOUNDARY CHECKS")
+diff --git a/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.b5fc4b57.json b/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.b5fc4b57.json
+new file mode 100644
+index 000000000..4634a252e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.b5fc4b57.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.current_temperature GUARD_OFF b5fc4b57",
++  "killed_by": "tests/entities.py",
++  "old": "            if indoor is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.d1cf25b6.json b/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.d1cf25b6.json
+new file mode 100644
+index 000000000..cebc86c40
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.d1cf25b6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.current_temperature GUARD_OFF d1cf25b6",
++  "killed_by": "tests/finite_boundary.py",
++  "old": "        if measured is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity.__init_subclass__.GUARD_OFF.d0a9f78c.json b/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity.__init_subclass__.GUARD_OFF.d0a9f78c.json
+new file mode 100644
+index 000000000..f443be62a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/HeatPumpOptimizerEntity.__init_subclass__.GUARD_OFF.d0a9f78c.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:HeatPumpOptimizerEntity.__init_subclass__ GUARD_OFF d0a9f78c",
++  "killed_by": "tests/finite_boundary.py",
++  "old": "            if owner.__module__.partition(\".\")[0] == \"homeassistant\":",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.75347d36.json b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.75347d36.json
+deleted file mode 100644
+index b45261e63..000000000
+--- a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.75347d36.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw GUARD_OFF 75347d36",
+-  "killed_by": "tests/entities.py",
+-  "old": "    if space is None:",
+-  "reason": "#1499 review: commanded_power_kw's no-power guard. `if space is None:` -> `if False:` makes float(None) raise for an action with no power: tests/entities.py rc=0 -> rc=1 (`no sensor crashes before the first update`, MeasuredPowerSensor). Measured at f16d004e, 2026-09-24."
+-}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.b57c8865.json b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.b57c8865.json
+new file mode 100644
+index 000000000..82dfec495
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.GUARD_OFF.b57c8865.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw GUARD_OFF b57c8865",
++  "killed_by": "tests/entities.py",
++  "old": "    if space is None or dhw is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.b093be89.json b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.b093be89.json
+new file mode 100644
+index 000000000..625c7f651
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.b093be89.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw RETURN_DEL b093be89",
++  "killed_by": "tests/entities.py",
++  "old": "    return round(float(space) + float(dhw), 2)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.e75b38fb.json b/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.e75b38fb.json
+deleted file mode 100644
+index cb2ea745c..000000000
+--- a/tests/mutation_ledger/killed_by/entity.py/commanded_power_kw.RETURN_DEL.e75b38fb.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw RETURN_DEL e75b38fb",
+-  "killed_by": "tests/entities.py",
+-  "old": "    return round(float(space) + float(action.get(\"dhw_power\") or 0.0), 2)",
+-  "reason": "#1499 review: commanded_power_kw's space-plus-DHW return. Deleting it returns None for every action: tests/entities.py 0 -> 3 of 1741 FAILED (`measured power keeps the commanded value alongside`, `Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)`, `Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)`). Measured at f16d004e, 2026-09-24."
+-}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.41e49d12.json b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.41e49d12.json
+new file mode 100644
+index 000000000..50b853410
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.41e49d12.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF 41e49d12",
++  "killed_by": "tests/entities.py",
++  "old": "    if forecast is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.4ab30306.json b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.4ab30306.json
+new file mode 100644
+index 000000000..0a09d0172
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.4ab30306.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF 4ab30306",
++  "killed_by": "tests/entities.py",
++  "old": "        if value is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.e2abc943.json b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.e2abc943.json
+new file mode 100644
+index 000000000..83e13f321
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.GUARD_OFF.e2abc943.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF e2abc943",
++  "killed_by": "tests/entities.py",
++  "old": "    if (data.get(\"reading_ok\") or {}).get(\"outdoor_temperature\"):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.RETURN_DEL.4d3a4b53.json b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.RETURN_DEL.4d3a4b53.json
+new file mode 100644
+index 000000000..9bec43403
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/effective_outdoor.RETURN_DEL.4d3a4b53.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:effective_outdoor RETURN_DEL 4d3a4b53",
++  "killed_by": "tests/entities.py",
++  "old": "    return None, None",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.6821a53f.json b/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.6821a53f.json
+new file mode 100644
+index 000000000..2a2b44fe1
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.6821a53f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:payload_number GUARD_OFF 6821a53f",
++  "killed_by": "tests/finite_boundary.py",
++  "old": "    if isinstance(value, np.generic):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.965d2f8d.json b/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.965d2f8d.json
+new file mode 100644
+index 000000000..ae963e250
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.965d2f8d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:payload_number GUARD_OFF 965d2f8d",
++  "killed_by": "tests/entities.py",
++  "old": "    if isinstance(value, bool) or not isinstance(value, types):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entity.py/payload_number.RETURN_DEL.d4c9e2a6.json b/tests/mutation_ledger/killed_by/entity.py/payload_number.RETURN_DEL.d4c9e2a6.json
+new file mode 100644
+index 000000000..9fbcf690e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entity.py/payload_number.RETURN_DEL.d4c9e2a6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entity.py:payload_number RETURN_DEL d4c9e2a6",
++  "killed_by": "tests/entities.py",
++  "old": "    return value",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.GUARD_OFF.ce3645d2.json b/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.GUARD_OFF.ce3645d2.json
+deleted file mode 100644
+index 5f812efee..000000000
+--- a/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.GUARD_OFF.ce3645d2.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/sensor.py:BufferTankTempSensor.native_value GUARD_OFF ce3645d2",
+-  "killed_by": "tests/entities.py",
+-  "old": "        if self.coordinator.data:",
+-  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.RETURN_DEL.ab9d44f4.json b/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.RETURN_DEL.ab9d44f4.json
+deleted file mode 100644
+index c90e97e2b..000000000
+--- a/tests/mutation_ledger/killed_by/sensor.py/BufferTankTempSensor.native_value.RETURN_DEL.ab9d44f4.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/sensor.py:BufferTankTempSensor.native_value RETURN_DEL ab9d44f4",
+-  "killed_by": "tests/entities.py",
+-  "old": "            return round(val, 1) if val is not None else None",
+-  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/ContractComparisonSensor._waiting_for.GUARD_OFF.b4d976e7.json b/tests/mutation_ledger/killed_by/sensor.py/ContractComparisonSensor._waiting_for.GUARD_OFF.b4d976e7.json
+new file mode 100644
+index 000000000..79d0d5dbd
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/ContractComparisonSensor._waiting_for.GUARD_OFF.b4d976e7.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:ContractComparisonSensor._waiting_for GUARD_OFF b4d976e7",
++  "killed_by": "tests/entities.py",
++  "old": "        if self._payload_number() is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/CurrentCOPSensor.native_value.RETURN_DEL.f799cbb3.json b/tests/mutation_ledger/killed_by/sensor.py/CurrentCOPSensor.native_value.RETURN_DEL.f799cbb3.json
+new file mode 100644
+index 000000000..b86bd6138
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/CurrentCOPSensor.native_value.RETURN_DEL.f799cbb3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:CurrentCOPSensor.native_value RETURN_DEL f799cbb3",
++  "killed_by": "tests/entities.py",
++  "old": "            return None if cop is None else round(cop, 2)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/ECL110EffectiveDisplaceSensor.native_value.GUARD_OFF.ce3645d2.json b/tests/mutation_ledger/killed_by/sensor.py/ECL110EffectiveDisplaceSensor.native_value.GUARD_OFF.ce3645d2.json
+deleted file mode 100644
+index 734f46e1c..000000000
+--- a/tests/mutation_ledger/killed_by/sensor.py/ECL110EffectiveDisplaceSensor.native_value.GUARD_OFF.ce3645d2.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/sensor.py:ECL110EffectiveDisplaceSensor.native_value GUARD_OFF ce3645d2",
+-  "killed_by": "tests/env_drift.py",
+-  "old": "        if self.coordinator.data:",
+-  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
+-}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/FrequencyAdvisorSensor._waiting_for.GUARD_OFF.b4d976e7.json b/tests/mutation_ledger/killed_by/sensor.py/FrequencyAdvisorSensor._waiting_for.GUARD_OFF.b4d976e7.json
+new file mode 100644
+index 000000000..55fb5dd0f
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/FrequencyAdvisorSensor._waiting_for.GUARD_OFF.b4d976e7.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:FrequencyAdvisorSensor._waiting_for GUARD_OFF b4d976e7",
++  "killed_by": "tests/entities.py",
++  "old": "        if self._payload_number() is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/MonthlySavingsSensor.native_value.RETURN_DEL.f0d4f327.json b/tests/mutation_ledger/killed_by/sensor.py/MonthlySavingsSensor.native_value.RETURN_DEL.f0d4f327.json
+new file mode 100644
+index 000000000..2d22430fa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/MonthlySavingsSensor.native_value.RETURN_DEL.f0d4f327.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor.native_value RETURN_DEL f0d4f327",
++  "killed_by": "tests/entities.py",
++  "old": "                return None if val is None else round(val, 2)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._modelled_cop.RETURN_DEL.f5ca9d3b.json b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._modelled_cop.RETURN_DEL.f5ca9d3b.json
+new file mode 100644
+index 000000000..e913c0cab
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._modelled_cop.RETURN_DEL.f5ca9d3b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:ObservedCOPSensor._modelled_cop RETURN_DEL f5ca9d3b",
++  "killed_by": "tests/env_drift.py",
++  "old": "        return None if cop is None else round(cop, 2)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.b4d976e7.json b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.b4d976e7.json
+new file mode 100644
+index 000000000..b74f27353
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.b4d976e7.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:ObservedCOPSensor._waiting_for GUARD_OFF b4d976e7",
++  "killed_by": "tests/entities.py",
++  "old": "        if self._payload_number() is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/PredictionAccuracySensor._waiting_for.GUARD_OFF.97fb3c41.json b/tests/mutation_ledger/killed_by/sensor.py/PredictionAccuracySensor._waiting_for.GUARD_OFF.97fb3c41.json
+new file mode 100644
+index 000000000..51dbfa6b5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/PredictionAccuracySensor._waiting_for.GUARD_OFF.97fb3c41.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:PredictionAccuracySensor._waiting_for GUARD_OFF 97fb3c41",
++  "killed_by": "tests/entities.py",
++  "old": "        if payload_number(accuracy.get(\"temperature_mae\")) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/SlabTempSensor.native_value.RETURN_DEL.ab9d44f4.json b/tests/mutation_ledger/killed_by/sensor.py/SlabTempSensor.native_value.RETURN_DEL.ab9d44f4.json
+deleted file mode 100644
+index a41d1bc9c..000000000
+--- a/tests/mutation_ledger/killed_by/sensor.py/SlabTempSensor.native_value.RETURN_DEL.ab9d44f4.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/sensor.py:SlabTempSensor.native_value RETURN_DEL ab9d44f4",
+-  "killed_by": "tests/env_drift.py",
+-  "old": "            return round(val, 1) if val is not None else None",
+-  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
+-}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin._payload_number.RETURN_DEL.eb6ad944.json b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin._payload_number.RETURN_DEL.eb6ad944.json
+new file mode 100644
+index 000000000..273eaa2a7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin._payload_number.RETURN_DEL.eb6ad944.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_PayloadNumberMixin._payload_number RETURN_DEL eb6ad944",
++  "killed_by": "tests/entities.py",
++  "old": "        return payload_number(node.get(self._payload_path[-1]), self._payload_types)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.GUARD_OFF.a58846bd.json b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.GUARD_OFF.a58846bd.json
+new file mode 100644
+index 000000000..0773d3407
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.GUARD_OFF.a58846bd.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_PayloadNumberMixin.native_value GUARD_OFF a58846bd",
++  "killed_by": "tests/entities.py",
++  "old": "        if value is None or self._payload_digits is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.RETURN_DEL.91e639fa.json b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.RETURN_DEL.91e639fa.json
+new file mode 100644
+index 000000000..45ce7bd6c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_PayloadNumberMixin.native_value.RETURN_DEL.91e639fa.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_PayloadNumberMixin.native_value RETURN_DEL 91e639fa",
++  "killed_by": "tests/entities.py",
++  "old": "        return round(value, self._payload_digits)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_as_float.BOOLOP.992e85b6.json b/tests/mutation_ledger/killed_by/sensor.py/_as_float.BOOLOP.992e85b6.json
+deleted file mode 100644
+index 8de771743..000000000
+--- a/tests/mutation_ledger/killed_by/sensor.py/_as_float.BOOLOP.992e85b6.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/sensor.py:_as_float BOOLOP 992e85b6",
+-  "killed_by": "tests/entities.py",
+-  "old": "        if isinstance(value, (int, float)) and not isinstance(value, bool)",
+-  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: BOOLOP (`if isinstance(value, (int, float)) or not isinstance(value, bool)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_as_float.RETURN_DEL.0e9b6381.json b/tests/mutation_ledger/killed_by/sensor.py/_as_float.RETURN_DEL.0e9b6381.json
+new file mode 100644
+index 000000000..6d87f49c5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_as_float.RETURN_DEL.0e9b6381.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_as_float RETURN_DEL 0e9b6381",
++  "killed_by": "tests/entities.py",
++  "old": "    return None if number is None else float(number)",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=18."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.CMP_BOUND.6c88eaac.json b/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.CMP_BOUND.6c88eaac.json
+new file mode 100644
+index 000000000..1a794f181
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.CMP_BOUND.6c88eaac.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_gap_energy_rate CMP_BOUND 6c88eaac",
++  "killed_by": "tests/entities.py",
++  "old": "    if rate is None or rate <= 0.0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: CMP_BOUND (`if rate is None or rate < 0.0:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.GUARD_OFF.6c88eaac.json b/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.GUARD_OFF.6c88eaac.json
+new file mode 100644
+index 000000000..586cd6d14
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.GUARD_OFF.6c88eaac.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_gap_energy_rate GUARD_OFF 6c88eaac",
++  "killed_by": "tests/entities.py",
++  "old": "    if rate is None or rate <= 0.0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/_numeric_samples.RETURN_DEL.3ceccbb0.json b/tests/mutation_ledger/killed_by/sensor.py/_numeric_samples.RETURN_DEL.3ceccbb0.json
+new file mode 100644
+index 000000000..11eeb8db2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/_numeric_samples.RETURN_DEL.3ceccbb0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:_numeric_samples RETURN_DEL 3ceccbb0",
++  "killed_by": "tests/entities.py",
++  "old": "    return [value for value in map(_as_float, series) if value is not None]",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=10."
++}
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 94c815085..586d4dd51 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -6,7 +6,7 @@
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+- "duplication_copies": 33,
++ "duplication_copies": 17,
+  "functions_cc_over_15": 31,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+@@ -15,6 +15,6 @@
+  "max_method_loc": 373,
+  "methods_over_150": 17,
+  "methods_over_200": 9,
+- "recorded_at": "81b7aa9ff976413ec98592045930647c0e0bac73",
++ "recorded_at": "811df3cf3362ea0c626bcfdf8bf4a3cf2937c846",
+  "seam_cut_total": 752
+ }

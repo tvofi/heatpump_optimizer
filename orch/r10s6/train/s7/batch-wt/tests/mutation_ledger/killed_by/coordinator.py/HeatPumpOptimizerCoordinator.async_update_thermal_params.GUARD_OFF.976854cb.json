@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_update_thermal_params GUARD_OFF 976854cb",
+  "killed_by": "tests/features.py",
+  "old": "            if key in params:",
+  "reason": "R8-P5 (#1581, the edge payment) added this site. `if key in params:` -> `if False:`, applied by the table's own operator in a detached worktree at 53d94ced, turns tests/features.py red: 3 of 3197 FEATURE CHECKS FAILED (control at the same SHA: ALL 3197 FEATURE CHECKS PASSED). Failing: `the two hot-water flags are coerced with bool, in both directions`; `three hot-water numbers arrive as ints and are stored as floats`; `a service write during the production solve outlives the cycle (#1517)`."
+}

@@ -1,0 +1,73 @@
+Arm B -- the final combined null control (DESIGN-P2 section 10; plan 1011d6b2f EXECUTION.md section 4 step 10)
+Written 2026-10-23T16:45Z by the s5 ci-coord seat, which absorbed the s4 probe-runner (stopped 13:51Z on a usage limit).
+Sources: armB-events.txt (the probe-runner's own log, 11:12Z-13:42Z), the runs API read at 16:3xZ (commands below), and the s4 transcripts.
+Event-by-event detail is in armB-events.txt; this file is the per-arm reading and the summary table.
+
+PRs (all drafts, base main at the read; open_pr.sh as hpo-author):
+  #2656 B1, topic r10-ci-layout-p2-probe-B1, head bee87adda (github-actions[bot] "ci: merge main", 13:29:59Z)
+  #2657 B2, topic r10-ci-layout-p2-probe-B2, head 75011ea7e (github-actions[bot] "ci: merge main", committed 13:23:46Z, parents 7688574af 7108101d7)
+  #2654 twin, topic r10-ci-layout-p2-probe-Btwin, head 3936c2659 (BEFORE union)
+AFTER code at the re-cut: 4a83592e3 (#2662's code head at the time). BEFORE twin: 69a9279a5.
+
+== Summary table ==
+| step | PR | head | runs (event) | gate reading | verdict |
+|---|---|---|---|---|---|
+| 3a push + edit 1 s apart | #2656 | 13d33eba2 | code 39950642573, edit 39950644475, edit 39950655792 | first two defer ("still being judged; their gate decides"); last (job 120419782664) names tests / closures, governance x3, pr-contract | no run lost or cancelled: MET. Every name it FAILs on is a known red (below) |
+| 3b budget raise, review submit+dismiss | #2656 | -- | none | -- | REFUSED AT THE DOOR (both attempts; see 3b below). U8's live proof not taken |
+| 3c retarget main -> ci-probe/base -> main | #2656 | 13d33eba2 | code 39955976889 (12:47:19Z-13:19:54Z) | defers to the review run 39956202079 | MET: the retarget's code run decided |
+| 3d commit breaking briefs, then revert | #2657 | -- | none | -- | REFUSED AT THE DOOR by prepr "REFUSE brief_lint" (11:23:40Z); the door is the earlier detector, nothing reached the PR |
+| 3e review during 3c's code run, then a 2nd review | #2656 | 13d33eba2 | review 39956202079 (12:49:05Z-13:21:52Z); review #1 5628428871, review #2 5628902710 | job 120437030278 names tests / closures, governance x3, pr-contract (run 39955976889), budget-raise-gate (this run, on base ci-probe/base) | gate ordering MET; green unreachable at this head (known reds) |
+| 3f edit + review 1 s apart during a code run | #2657 | 7688574af | code 39955464442, edit 39955465803, edit 39955474379, review 39955519392 | three defer; last (job 120438788477) names ONLY tests / closures + governance policy-docs, wave-script, env-matrix | MET except tests / closures (P2b's own stale closure, fixed on p2b-v2 by 1c28e979d) |
+| 3g M-6 sequence (push, edit, review) | #2657 | d5b053e6f | code 39948860389, edit 39948860154, edit 39948872160, review 39949321500 | three defer; last (job 120413488009) names tests / closures, governance x3 (39948860389), pr-contract (39948872160, body Red checks did not name it) | deferral chain MET; pr-contract red was the probe body's, fixed in 3f |
+| 4 bot head, same-SHA pair | #2657 | 75011ea7e | pull_request 39960857817 (attempt 1 action_required 13:23:55Z, attempt 2 by hpo-runs[bot] 13:24:28Z-14:03:44Z); workflow_dispatch 39963221009 (ci-probe/b2, pr=2657 base=main, 13:40:52Z-14:20:03Z) | PR run gate (job 120457147247): "FAIL run(s) [39963221009] at this head are still being judged; their gate decides"; dispatch gate (job 120465203308): "FAIL tests / closures: failure (this run)" | ordering MET; FINDING F-B4 below: the decider read governance green on the head's own code |
+
+The "known reds" at every AFTER head before 75011ea7e:
+  governance / policy-docs, wave-script, env-matrix: base-pinned to main, whose checkers refuse the AFTER tree
+    (policy-docs job 120438602400 at 75011ea7e: "check source restored from 7108101d7...: 17 file(s) differ", "TOTAL: 37 error(s) across 50 policy file(s)").
+  tests / closures + closures-autofix: UNDER-SCOPED tests/harness_headers.py (u5 run_part.py, unitcheck.py), autofix "skip-classifier-disagrees".
+
+== Step 4 in detail (read 2026-10-23T16:3xZ) ==
+Commands: gh api repos/tvofi/heatpump_optimizer/actions/runs?head_sha=75011ea7e5deb517ef5ed72a323fe3f894e2a52d ;
+          .../actions/runs/<id>/jobs?filter=latest ; .../actions/jobs/<gate job>/logs ; .../actions/runs/39960857817/attempts/1
+Runs at 75011ea7e: exactly two CI runs (no third: main's merge-main.yml, not the AFTER tree's U10, fired the bot push, so no umbrella dispatch from the bot).
+  39960857817 pull_request, attempt 1 conclusion action_required (triggering github-actions[bot]), attempt 2 triggering hpo-runs[bot], completed failure.
+    non-green: governance / env-matrix, wave-script, policy-docs (base-pinned, PINNED 7108101d7), tests / closures, tests / closures-autofix, gate.
+  39963221009 workflow_dispatch on ci-probe/b2, triggering tvofi, completed failure.
+    non-green: tests / closures (job 120447386721), gate. governance / policy-docs, wave-script, env-matrix, instrument-self-tests: success.
+same_sha pair: both runs carry head_sha 75011ea7e; the older defers to the newer, the newer decides. The gate's ordering works.
+
+F-B4 (finding, measured): on the dispatch, governance's base restore pinned the HEAD, not the base.
+  policy-docs job 120446627407 (dispatch): "PINNED: 75011ea7e5de..." and "check source restored from 75011ea7e...: 0 file(s) differ from the pull request's copy" -> success.
+  policy-docs job 120438602400 (pull_request, same head): "PINNED: 7108101d7..." "17 file(s) differ" "TOTAL: 37 error(s)" -> failure.  <- the null control
+  Cause: governance.yml's PINNED is `github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha` (5 sites); on a
+  workflow_dispatch the first two are empty and github.sha is the head. governance.yml declares no workflow_call inputs and ci.yml passes it none,
+  unlike tests / arch-score / budget-raise-gate / pr-contract, which take pr/base/head from the prelude. tests.yml's `briefs` restore has the same
+  expression. Since the newest run at a head decides (gate.py defer rule), a dispatch with -f pr=N -f base=main at a PR head replaces
+  base-pinned governance verdicts with the head's own. DESIGN-P2 2.3 (tag archive/probe/design-ci-rev4): on dispatch pr/base come from inputs,
+  verified; every grader is base-restored. Fixed on p2b-v2 with a failing test first (see the coordinator's to-main lines).
+
+M-3(a) observation: the GITHUB_TOKEN push (merge-main bot, 75011ea7e) left its pull_request run action_required until hpo-runs approved it
+  (attempt 1 action_required 13:23:55Z, attempt 2 started 13:24:28Z). B1's bot head bee87adda likewise: run 39961726001 attempt 2 by hpo-runs[bot].
+  Plan section 5 rule: any held run in the window -> keep the approve steps.
+
+U10 observation: main's merge-main bot fired on both probe PRs (bee87adda on B1 13:29:59Z, 75011ea7e on B2 13:23:46Z commit time).
+
+carry 1 (same_sha_dup_heads): B1 and B2 heads were never identical (8b686356/9d901dce, d0ff8268/93966995, 07ed40fb/627af589, and later);
+  per-topic merge and row commits diverge them at open. Within one PR, step 4 produced the one deliberate same-SHA pair above.
+  The "after" figure belongs to the post-cut-over measurement (roster carry index 13).
+
+== 3b ==
+Attempt 1 (update_pr 13:29:04Z-13:40:20Z, code commit 30d6d75a4): refused, verbatim:
+  "REFUSE field coverage BLIND census structure.py dead_top_level_symbols: UNGATED, 1 -> 2 with one planted member and no refusal on dead_top_level_symbols;FIELD COVERAGE REFUSED"
+  "REFUSE push order origin/fix/r10-ci-layout-p2-probe-B1 and HEAD have diverged, 1 commit(s) there against 3 here: the push is refused as a non-fast-forward and the force-push past it is forbidden"
+  "app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted"
+Redo (13:42:17Z, code commit beb260478 pushed to handoff/r10-ci-layout-p2-probe-B1): update_pr rc=75,
+  "update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 13071) holds fix/r10-ci-layout-p2-probe-B1's worktree ...; nothing was changed".
+  pid 13071 was gone by 13:51:13Z; the probe-runner stopped at 13:51Z before re-running. Not retried (s4's order: any refusal ends 3b).
+  The redo commit was also unsound: beb260478's parents are 30d6d75a4 <- d5dd8ebf5 (the old local B1), not origin's bee87adda, so it repeats
+  attempt 1's non-fast-forward. #2656's head is still bee87adda.
+Reading: 3b = REFUSED AT THE DOOR. The live proof that budget-raise-gate fires on a raise under the umbrella is not taken; the
+  budget-raise-gate callee did run under ci.yml (B1 review run 39956202079: "budget-raise-gate / budget-raise-gate: failure (this run)" on base ci-probe/base).
+
+Cleanup owed (orchestrator's writes): close #2654, #2656, #2657 (ci_probe.py close), then delete their fix/, handoff/, handoff-body/ and
+wip-sync/ refs and ci-probe/b2.

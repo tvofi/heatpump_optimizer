@@ -1,0 +1,6 @@
+READBACK id=6378661469 live_len=4397 want_len=4397 live_sha=165991d6e8a4d625 want_sha=165991d6e8a4d625 identical=True
+app_approve: APPROVED review id=5636391180 state=APPROVED commit_id=2845e5459331f79adbc39b72cd052cf55703f1aa user=hpo-approver[bot]
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged 94bec976b345473d1124caa6a7df5b7b4071dc53
+worktree_gc: summary -- eligible 1, removed 1, kept 29

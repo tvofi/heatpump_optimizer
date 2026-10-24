@@ -1,0 +1,18 @@
+**Owner rulings, 2026-10-21 (third set): design seats adopted; decision 0012's moratorium void**
+
+R16. **Decision 0012's moratorium is void** as of today: no new policy file, lint class or rule is barred. R10-FLOW-DESIGN-POLICY records this in `dev/governance/decisions/` and points 0012 to it.
+
+R17. **Two new seats:** a designer/architect and a design reviewer. Every roster group of size L or XL gains a pipelined design step and a design-review step before its fixer:
+- the designer starts when the group's last predecessor dispatches;
+- the fixer dispatches only after `Design review: approve`;
+- the approved note is the group's architect note.
+
+A group that already has an approved design, pre-study or prototype needs none. Their contracts join the policy corpus through R10-FLOW-DESIGN-POLICY. Until it merges, the seats run on the drafts pinned in the Lean flow study's pack.
+
+R18. **Rationale:** fewer future architecture-dimension findings. In round 10, 49 of 123 findings came from that dimension. The study modelled the round's completion time as unchanged at mid settings, with a revalidation box of at most 1 h. Tokens rise by about 4%. Bugs introduced fall by about 6% overall, and design-class bugs by about a quarter.
+
+R19. **The corpus-cap raise** that the two contracts need is approved by this ruling. It still merges on the owner's approving review, with its Raise justification.
+
+Leaves #201 open.
+
+Posted verbatim from `dev/programme/flow-study/RULINGS-201-3.md` at pack commit ddacf9856acb612692d1e9c8a28f0433d16219b3, by the orchestrator (session s4) at the owner's instruction in chat, under mandate 6319294694.

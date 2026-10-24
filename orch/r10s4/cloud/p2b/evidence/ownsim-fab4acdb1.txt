@@ -1,0 +1,43 @@
+== [policy-docs] rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+== [policy-docs] codeowners_gap
+RESULT of_which_no_pr_job_runs=79 count
+RESULT uncovered_files=0 count
+rc=0
+== [policy-docs] policy_lint
+
+FIXTURE ok: 93 error(s) hold 261 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== [policy-docs] fragments_sync
+FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+rc=0
+== [policy-docs] hooks
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0
+== [policy-docs] field_coverage
+RESULT read=69 ignored=28 declared_none=34 blind=0 dead=0 refused=0 runs=159 seconds=136.3
+FIELD COVERAGE ok
+rc=0
+== [env-matrix] envmatrix
+
+16 declared outcome(s) held, 0 did not, across 6 environment shape(s)
+rc=0
+== [wave-script] check-wave-script
+
+209 passed, 0 failed
+rc=0
+== [wave-script] agreement
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.4
+AGREEMENT ok
+rc=0
+== [wave-script] agreement-selftest
+  ok   a disposition of no known kind is refused
+SELF-TEST 27 of 27 probes held
+rc=0
+== [wave-script] fold_ledger
+fold_ledger: 44 classes, 743 instances, 121 in-tree judge survivors (rounds [8, 10]), 117 rca entries
+fold_ledger: 0 violation(s)
+rc=0

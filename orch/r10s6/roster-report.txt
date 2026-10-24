@@ -1,0 +1,191 @@
+roster: set-resume R10-RATIO-ANCHOR stage pushed 4c54758d7
+roster: set-resume R10-RATIO-ANCHOR next_step pushed a8f06f173
+roster: set-resume R10-LEARNER-ETA stage pushed 82da57b60
+roster: set-resume R10-LEARNER-ETA next_step pushed 2005041b7
+roster: set-resume R10-THERMAL-POWER-OPTION stage pushed eb2af3d59
+roster: set-resume R10-THERMAL-POWER-OPTION next_step pushed 935b2639d (remote tip verified)
+roster: set-resume R10-SAV-COMFORT stage pushed e86b0c3d1
+roster: set-resume R10-SAV-COMFORT next_step pushed e823fc806
+roster: set-resume R10-REPLAY-SCOPED stage pushed ff19543c3
+roster: set-resume R10-REPLAY-SCOPED next_step pushed e193734dc
+roster: set-resume R10-MUTATION-ANCHOR stage pushed 83f08436d
+roster: set-resume R10-MUTATION-ANCHOR next_step refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 83f08436da34 is on no origin ref; an unpushed edit would be lost 
+roster: set-resume R10-MERGE-SUBJECT-HARDEN stage pushed 04c466bdb
+roster: set-resume R10-MERGE-SUBJECT-HARDEN next_step pushed b2c43f24f
+roster: set-resume R10-MUTANT-SKIP stage pushed ec29b703c
+roster: set-resume R10-MUTANT-SKIP next_step pushed 8e76121a7
+roster: set-resume R10-FLOW-AUTOTRAIN stage pushed 301a4adef
+roster: set-resume R10-FLOW-AUTOTRAIN next_step pushed afb3774d0
+roster: set-resume R10-POLICY-FIXER-MD stage pushed 9c7ee1826
+roster: set-resume R10-POLICY-FIXER-MD next_step pushed 973937fa0
+roster: set-resume R10-POLICY-GATE-SCOPING stage pushed 4aa84c90d
+roster: set-resume R10-POLICY-GATE-SCOPING next_step pushed 009ac0929
+roster: set-resume R10-MUTATION-ANCHOR next_step pushed 46df32237 (retry after transient push failure; remote tip verified)
+roster: set-resume R10-CONFIG-NOTICES stage pushed ff5e1c59b
+roster: set-resume R10-CONFIG-NOTICES next_step pushed 2f3b013df
+roster: append-carry R10-UX-HEALTH pushed 4bdb4c470 (remote tip verified; lint 0 errors; note: dev/audit/harnesses/r10_demand_overbook.py is not on origin/main, lint did not flag it)
+roster: PLACE-RESIDUALS refused (not a roster_edit.py op; it asks the seat to choose target groups, which the contract forbids; orchestrator to name group per residual (a)(b)(c) as append-carry lines)
+roster: append-carry R10-LEARNER-DEFAULT pushed 78c843bb0
+roster: append-carry R10-BUFFER-STORE pushed e11909cff
+roster: append-carry R10-BUFFER-STORE pushed 0b19947d0
+roster: append-group R10-ORCH-REVIEW-PACKET pushed 1c142a52c
+roster: append-group R10-POLICY-ROLE-PACK pushed 51a5d5c1b
+roster: append-carry R10-ORCH-BEATD pushed c8025b2c6
+roster: append-carry R10-ORCH-BEATD pushed fec556063
+roster: append-carry R10-ORCH-BEATD pushed 3a85ebacc
+roster: append-carry R10-ORCH-BEATD pushed 5c654d16e
+roster: append-carry R10-ORCH-PLANPAGE pushed 48cd86a43
+roster: append-carry R10-FLY-RELAY-REVIEW-FF pushed 8461fe909
+roster: append-carry R10-FLOW-AUTOTRAIN pushed ace17b2cf
+roster: append-carry R10-FLOW-ROSTER-FREEZE pushed c42301f6c
+roster: set-after R10-ROUND-PLAYBOOK pushed e17837c2e
+roster: append-carry R10-ROUND-PLAYBOOK pushed c05a123a5
+roster: append-carry R10-POLICY-FIXER-MD pushed 313643643
+roster: append-carry R10-POLICY-FIXER-MD pushed 3454d6cc3
+roster: set-after R10-ORCH-BEATD pushed d87f39550
+roster: append-carry R10-FLOW-MQ-PROBE pushed e063bec3a
+roster: set-after R10-FLY-CARRY-DOC-CONTEXT pushed e13fd8e4d
+roster: set-after R10-FLY-ROW-HEAD-CARRY pushed 9da3d69a3
+roster: set-after R10-TRAIN-OVERLAP-GRADE pushed 1ed93fe35
+roster: append-carry R10-FLY-CARRY-DOC-CONTEXT pushed 812ff48a1
+roster: append-carry R10-FLY-ROW-HEAD-CARRY pushed 5526d9fce
+roster: append-carry R10-TRAIN-OVERLAP-GRADE pushed 132b1b6d3
+roster: append-carry R10-FLOW-BODY-ONLY refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 132b1b6d34eb is on no origin ref; an unpushed edit would be lost
+roster: append-carry R10-FLOW-RECORD-PITCH pushed 13aea25b8
+roster: append-carry R10-FLOW-BODY-ONLY pushed c42d749ef
+roster: append-carry R10-FLOW-DESIGN-STAGES pushed 253e225ea
+roster: append-carry R10-FLOW-DESIGN-STAGES pushed 717f7e582
+roster: append-carry R10-FLOW-JIDOKA pushed 4921cbcc7
+roster: append-carry R10-UPDATE-PR-SIGNALS pushed 986ae5a1b
+roster: append-carry R10-FLOW-BOARD pushed f82a1f5ac
+roster: append-carry R10-FLOW-POSTMERGE pushed 452d4d285
+roster: append-carry R10-FLOW-AUTOTRAIN pushed 5a6e7eab6
+roster: append-carry R10-FLOW-BODY-ONLY pushed 5732a248d
+roster: append-carry R10-TRAIN-OVERLAP-GRADE refused rc=3 roster_edit: LINT GATE REFUSED the push | --lint-cwd /Users/timmalmstrom/hpo-seats/r10s6/orch-wt is at 9fd5eb10720c, not origin/main (0c36407610e3): the stale-worktree trap; lint from a fresh main checkout | the commit is local at e2743edcf8a3 in /Users/timmalmstrom/hpo-seats/r10s6/roster/wt (detached); nothing pushed
+roster: append-carry R10-ORCH-DISPATCH-REG refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD e2743edcf8a3 is on no origin ref; an unpushed edit would be lost
+roster: append-carry R10-TRAIN-OVERLAP-GRADE pushed df595b6d5
+roster: append-carry R10-ORCH-DISPATCH-REG pushed 7cad554c7
+roster: append-carry R10-FLY-CARRY-DISPOSITION pushed d5ab1498d
+roster: append-carry R10-POLICY-ROLE-PACK pushed aa84d185e
+roster: append-carry R10-PARAMS-OWNER pushed 335751f85
+roster: readback append-carry R10-POLICY-ROLE-PACK at aa84d185e: last carry (index 3 of 4) equals @carry-flow-autotrain-nudge-step3.md exactly, 796/796 chars
+roster: readback append-carry R10-PARAMS-OWNER at 335751f85: last carry (index 10 of 11) equals @carry-2674.md exactly, 196/196 chars
+roster: append-group R10-CLOSEOUT-CLEANUP pushed 7ec18bf3a
+roster: set-stage R10-STRUCTURE-ALIAS pushed 0dacf2c32
+roster: set-stage R10-FLY-CIPREDICT-LAYOUT pushed 42c541677
+roster: set-stage R10-FLY-CLOUD-SETUP-TOOLCHAIN pushed 83c55f5db
+roster: set-stage R10-FLY-YIELD-GUARD pushed 49c37750f
+roster: set-stage R10-FLY-ENVMATRIX-NOREMOTE refused rc=3 roster_edit: LINT GATE REFUSED the push | --lint-cwd /Users/timmalmstrom/hpo-seats/r10s6/orch-wt is at 145bfe197b9e, not origin/main (d0ae3ca9f480): the stale-worktree trap; lint from a fresh main checkout | the commit is local at 66f9b881f74b in /Users/timmalmstrom/hpo-seats/r10s6/roster/wt (detached); nothing pushed
+roster: set-after R10-ARCH-DOCS refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 66f9b881f74b is on no origin ref; an unpushed edit would be lost
+roster: set-after R10-ROUND-PLAYBOOK refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 66f9b881f74b is on no origin ref; an unpushed edit would be lost
+roster: set-stage R10-FLY-ENVMATRIX-NOREMOTE refused rc=3 roster_edit: LINT GATE REFUSED the push | --lint-cwd /Users/timmalmstrom/hpo-seats/r10s6/orch-wt is at d0ae3ca9f480, not origin/main (8d0ce23a0d3b): the stale-worktree trap; lint from a fresh main checkout | the commit is local at 85c97c33449d in /Users/timmalmstrom/hpo-seats/r10s6/roster/wt (detached); nothing pushed
+roster: set-after R10-ARCH-DOCS refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 85c97c33449d is on no origin ref; an unpushed edit would be lost
+roster: set-after R10-ROUND-PLAYBOOK refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 85c97c33449d is on no origin ref; an unpushed edit would be lost
+roster: set-stage R10-INPUT-STALENESS refused rc=2 roster_edit: REFUSED: /Users/timmalmstrom/hpo-seats/r10s6/roster/wt HEAD 85c97c33449d is on no origin ref; an unpushed edit would be lost
+roster: set-stage R10-FLY-ENVMATRIX-NOREMOTE pushed f7b08e2a6
+roster: set-after R10-ARCH-DOCS pushed 3b861bb34
+roster: set-after R10-ROUND-PLAYBOOK pushed 750001ea1
+roster: set-stage R10-INPUT-STALENESS pushed b24c50796
+roster: readback at b24c50796: 65 R10-FLY-ENVMATRIX-NOREMOTE stage=in-progress; 68 R10-INPUT-STALENESS stage=done; 66 R10-ARCH-DOCS after list equals queue (68 entries, order and content); 67 R10-ROUND-PLAYBOOK after list equals queue (15 entries); lint cwd was own lintclone fast-forwarded per op
+roster: append-carry R10-FLY-OPENPR-ATOMIC pushed 6954bcffe | readback: R10-FLY-OPENPR-ATOMIC 6954bcffe n_carry=4 exact-match-index= [3] last120= open_pr.sh second push (p2, the one-commit delivery-row push, line 71) passes --row-only like update_pr.sh:74, so the op len=448/448
+roster: append-carry R10-SAV-COMFORT pushed f65ecb011 | readback: R10-SAV-COMFORT f65ecb011 n_carry=2 exact-match-index= [1] last120= From the D15 production triage of the owner's 7.0.4 diagnostics bundle (2026-10-24; derived ratios only, the bundle stay len=1527/1527
+roster: append-carry R10-COP-GATE pushed 349bc0d19 | readback: R10-COP-GATE 349bc0d19 n_carry=3 exact-match-index= [2] last120= From the D15 production triage of the owner's 7.0.4 diagnostics bundle (2026-10-24; derived ratios only): "Learning: obs len=1469/1469
+roster: append-carry R10-DIAG-REPLAY pushed a0962c222 | readback: R10-DIAG-REPLAY a0962c222 n_carry=4 exact-match-index= [3] last120= D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused becaus len=505/505
+roster: handoff r10-roster-runq pushed e191a706c (roster_queue.py: runq+rb, self-test 12 checks, INSTRUMENTS entry, governance.yml step, closures INERT); body on handoff-body/r10-roster-runq 8950989c2; no PR opened
+roster: append-carry R10-SAV-COMFORT pushed 802dfd196 | readback: R10-SAV-COMFORT 802dfd196 n_carry=3 exact-match-index= [2] last120= Correction to the D15 triage carry on savings volume (2026-10-24; derived ratios only). The earlier text called the draw len=2528/2528
+roster: append-carry R10-COP-GATE pushed f1954284e | readback: R10-COP-GATE f1954284e n_carry=4 exact-match-index= [3] last120= Correction to the D15 triage carry on the observed-COP latch (2026-10-24; derived ratios only). Seam (1) of the earlier  len=1780/1780
+roster: append-carry R10-DEMAND-OVERBOOK pushed 0948d687d | readback: R10-DEMAND-OVERBOOK 0948d687d n_carry=1 exact-match-index= [0] last120= D15 production triage (2026-10-24, owner bundle, 7.0.4). Control defect: on a plan-idle step the pump arbiter writes no  len=963/963
+roster: append-carry R10-SAV-COMFORT pushed 33ae469a1 | readback: R10-SAV-COMFORT 33ae469a1 n_carry=4 exact-match-index= [3] last120= Owner specification for the savings baseline (tvofi, 2026-10-24, binding acceptance criterion). Actual consumption is ca len=784/784
+roster: append-carry R10-SAV-COMFORT pushed 0a9ceca3f | readback: R10-SAV-COMFORT 0a9ceca3f n_carry=5 exact-match-index= [4] last120= Correction to carry-d15-sav-volume-2 (D15 triage, 2026-10-24; derived ratios only). Withdrawn: "an idle row writes no mo len=2297/2297
+roster: drop-carry R10-DEMAND-OVERBOOK refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: argument --match: expected one argument
+roster: drop-carry R10-DEMAND-OVERBOOK pushed 76fdb35fa
+roster: append-group R10-IMMERSION-LATCH pushed 0049c5508 | readback: lane=IN kind=defect size=S fixer=sonnet reviewer=opus after=[] wave=2 files=coordinator.py brief len=2227 == carry-d15-immersion.md; count=1
+roster: set-after R10-ARCH-DOCS pushed 4e86ada48 | readback: after 68->69, last=R10-IMMERSION-LATCH present
+roster: drop-carry R10-DEMAND-OVERBOOK (--match pump_arbiter.py:700-707) pushed 76fdb35fa | readback: carry 1 entry (0948d687d) -> 0 entries; exactly one dropped
+roster: append-carry R10-FLOW-JIDOKA pushed a72ff1128 | readback: R10-FLOW-JIDOKA a72ff1128 n_carry=14 exact-match-index= [13] last120= RCA R10-RCA-BODY-CHECK-PARITY (handoff-body/r10-rca-body-check-parity 4fd3eef16, state (c), cost test: build). Two progr len=589/589
+roster: append-carry R10-CI-LAYOUT-P2 pushed d13e4ad00 | readback: R10-CI-LAYOUT-P2 d13e4ad00 n_carry=27 exact-match-index= [26] last120= Owner request (tvofi 2026-10-24): the ci.yml pull_request graph on GitHub renders as a tangle. It works correctly, but i len=1286/1286
+roster: append-group R10-DIAG-REDACT pushed 231350061 | readback: count=1 lane=RP size=S after=[]
+roster: append-carry R10-DIAG-REDACT pushed d977feff5 | readback: exact match (see roster_queue readback)
+roster: drop-carry R10-DIAG-REPLAY (--match 'D15 production triage (2026-10-24, owner bundle') pushed 853085ec8 | readback: 4 -> 3 carries, exactly one (idx 3) dropped
+roster: set-after R10-ARCH-DOCS pushed f596fd3c4 | readback: after 69->70, last=R10-DIAG-REDACT
+roster: append-carry R10-FLY-CARRY-DISPOSITION pushed a3df9a46a | readback: R10-FLY-CARRY-DISPOSITION a3df9a46a n_carry=7 exact-match-index= [6] last120= queue_pre_flight's findings arm stops refusing a PR that adds its own carry file: carry_audit.load_dests takes an option len=727/727
+roster: append-carry R10-ORCH-BEATD pushed 5ce1382fa | readback: R10-ORCH-BEATD 5ce1382fa n_carry=15 exact-match-index= [14] last120= Standing-seat wiring, item 1 (triage: dev/programme/triage/s6-batch2.md#P45, merged at d2dcfed15a0c9d0bb4934f4b29cd95dbe len=543/543
+roster: append-carry R10-ORCH-BEATD pushed f4eca8944 | readback: R10-ORCH-BEATD f4eca8944 n_carry=16 exact-match-index= [15] last120= Standing-seat wiring, item 2, narrowed (triage: dev/programme/triage/s6-batch2.md#P46, merged at d2dcfed15a0c9d0bb4934f4 len=639/639
+roster: append-carry R10-ORCH-BEATD pushed dd67511ca | readback: R10-ORCH-BEATD dd67511ca n_carry=17 exact-match-index= [16] last120= Standing-seat wiring, item 3, narrowed (triage: dev/programme/triage/s6-batch2.md#P51, merged at d2dcfed15a0c9d0bb4934f4 len=563/563
+roster: append-carry R10-FLOW-RECORD-PITCH pushed bbe44258e | readback: R10-FLOW-RECORD-PITCH bbe44258e n_carry=6 exact-match-index= [5] last120= Record chain (triage: dev/programme/triage/s6-batch2.md#P49, merged at d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44). Measur len=775/775
+15:08:27 relaunched app_push head ffec1a9bf
+roster: append-carry R10-ORCH-BEATD pushed d3c2a27c7 | readback: R10-ORCH-BEATD d3c2a27c7 n_carry=18 exact-match-index= [17] last120= Owner-gated tick line (triage: dev/programme/triage/s6-batch2.md#S6-U). In tools/audit/seat/orchestrator_tick.py (the "o len=870/870
+15:18:03 queue at 89 applied (w5 d3c2a27c7); app_push pid 94280 mine, head ffec1a9bf, update to d3c2a27c7 after PR
+roster: append-carry R10-FLY-CLOUD-SETUP-TOOLCHAIN pushed db3e513ec | readback: R10-FLY-CLOUD-SETUP-TOOLCHAIN db3e513ec n_carry=7 exact-match-index= [6] last120= Pool claims (triage: dev/programme/triage/s6-batch4.md#S6-V1 and #S6-V2). In cloud_dispatch's pool path: (1) when it app len=735/735
+15:32:44 update app_push head 19ab022ea
+15:51:24 ops: drop BEATD S6-U, replace CLOUD-SETUP carry w/ V7
+15:52:01 final update app_push head 2baeeac96
+16:03:11 ops3,4 applied 928ca213e; final update app_push head ce69a3f2e
+16:13:55 #2710 head ce69a3f2e body read back
+16:14:15 routing remediation started (rem.txt 117 lines, 64 ops)
+roster: append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ADVISOR-RESIDUE.json refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: append-group needs a value argument
+roster: append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-BRIEFS-FOLD-D0.json refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: append-group needs a value argument
+roster: append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-REPLAY-REAL-DAY.json refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: append-group needs a value argument
+roster: append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ARCHSCORE-SPELLINGS.json refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: append-group needs a value argument
+roster: append-carry R10-FLOW-JIDOKA pushed eccf4028c | readback: R10-FLOW-JIDOKA eccf4028c n_carry=15 exact-match-index= [14] last120= From #2639 (body, item 056ddbd0), routed by routing audit 1 (2026-10-24): its destination R10-FLY-GH-READ-RETRY is done  len=629/629
+roster: append-carry R10-FLOW-JIDOKA pushed 4a660219b | readback: R10-FLOW-JIDOKA 4a660219b n_carry=16 exact-match-index= [15] last120= From #2529 (body, item 8c6a3e6f), routed by routing audit 1 (2026-10-24): its destination R10-CI-LAYOUT is done and did  len=528/528
+roster: append-carry R10-FLY-CLOUD-SETUP-TOOLCHAIN pushed 1a773fa9a | readback: R10-FLY-CLOUD-SETUP-TOOLCHAIN 1a773fa9a n_carry=8 exact-match-index= [7] last120= From #2585 (body, item 6d4f5c52), routed by routing audit 1 (2026-10-24): its destination R10-RCA-FRICTION is done and d len=490/490
+roster: set-stage R10-FLY-GH-READ-RETRY pushed ac34c2e3b
+roster: append-carry R10-FLY-GH-READ-RETRY pushed 239bbf2e2 | readback: R10-FLY-GH-READ-RETRY 239bbf2e2 n_carry=5 exact-match-index= [4] last120= From #2639 (body, item bb2965c2), routed by routing audit 1 (2026-10-24): its destination R10-FLY-GH-READ-RETRY is done  len=600/600
+roster: append-carry R10-MERGE-SUBJECT-HARDEN pushed e4bf7cfb5 | readback: R10-MERGE-SUBJECT-HARDEN e4bf7cfb5 n_carry=4 exact-match-index= [3] last120= From #2622 (body, item f09dc4ca), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done len=774/774
+roster: append-carry R10-ORCH-BEATD pushed 1a36d6e1e | readback: R10-ORCH-BEATD 1a36d6e1e n_carry=18 exact-match-index= [17] last120= From #2582 (review 6330613458, item cdd7283c), routed by routing audit 1 (2026-10-24): its destination R10-FLOW-ANDON is len=899/899
+roster: append-carry R10-ORCH-DISPATCH-REG pushed 9ee2c02ec | readback: R10-ORCH-DISPATCH-REG 9ee2c02ec n_carry=7 exact-match-index= [6] last120= From #2577 (review 6327609732, item 8ab071b4), routed by routing audit 1 (2026-10-24): its destination R10-FLOW-MAIN-GAT len=870/870
+roster: append-carry R10-ORCH-DISPATCH-REG pushed 6eb0462f6 | readback: R10-ORCH-DISPATCH-REG 6eb0462f6 n_carry=8 exact-match-index= [7] last120= From #2577 (review 6331521421, item 9a2082ce), routed by routing audit 1 (2026-10-24): its destination R10-FLOW-MAIN-GAT len=1108/1108
+roster: append-carry R10-ORCH-LEDGER pushed 500eacff7 | readback: R10-ORCH-LEDGER 500eacff7 n_carry=9 exact-match-index= [8] last120= From #2557 (body, item 6bec0b0a), routed by routing audit 1 (2026-10-24): its destination R10-RCA-HANDOFF-SLIP is done a len=1147/1147
+roster: append-carry R10-ORCH-ROSTER-SCHEMA pushed 2ec4d6cb8 | readback: R10-ORCH-ROSTER-SCHEMA 2ec4d6cb8 n_carry=9 exact-match-index= [8] last120= From #2513 (body, item 1f866f06), routed by routing audit 1 (2026-10-24): its destination R10-ROSTER-OPS is done and did len=1014/1014
+roster: append-carry R10-ORCH-ROSTER-SCHEMA pushed 9be2cfefd | readback: R10-ORCH-ROSTER-SCHEMA 9be2cfefd n_carry=10 exact-match-index= [9] last120= From #2559 (review 6318238167, item 7f85b089), routed by routing audit 1 (2026-10-24): its destination R10-ROSTER-OPS is len=429/429
+roster: append-carry R10-RCA-FRICTION-RESIDUE pushed b7155aaa0 | readback: R10-RCA-FRICTION-RESIDUE b7155aaa0 n_carry=3 exact-match-index= [2] last120= From #2612 (body, item 631f8640), routed by routing audit 1 (2026-10-24): its destination R10-BRIEFS-FOLD is done and di len=411/411
+roster: append-carry R10-TRAIN-OVERLAP-GRADE pushed 01df620ee | readback: R10-TRAIN-OVERLAP-GRADE 01df620ee n_carry=7 exact-match-index= [6] last120= From #2595 (body, item 6fb50ac5), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done len=1020/1020
+roster: append-carry R10-UPDATE-PR-SIGNALS pushed bdc9de261 | readback: R10-UPDATE-PR-SIGNALS bdc9de261 n_carry=5 exact-match-index= [4] last120= From #2549 (review 6319952656, item 01ce8b81), routed by routing audit 1 (2026-10-24): it carried no Carry: marker and i len=565/565
+roster: wire-issue R10-FLOW-JIDOKA pushed 1f80d5140
+roster: wire-issue R10-FLY-CARRY-DISPOSITION pushed ae8c5b757
+roster: wire-issue R10-FLOW-ROSTER-FREEZE pushed 61ac2102f
+roster: wire-issue R10-FLOW-BODY-ONLY pushed 5d10a53af
+roster: wire-issue R10-FLY-ROW-HEAD-CARRY pushed 4a83daa14
+roster: wire-issue R10-FLY-CARRY-DOC-CONTEXT pushed b3fbad462
+roster: wire-issue R10-STRUCTURE-ALIAS pushed 6c00c9444
+roster: wire-issue R10-DIAG-REDACT pushed 208636f10
+roster: append-carry R10-FLOW-WIP pushed c36274232 | readback: R10-FLOW-WIP c36274232 n_carry=7 exact-match-index= [6] last120= Absorbed from R10-FLY-CAP-LINE by routing audit 1 (2026-10-24; same seam, orchestrator_tick.py's WIP line, orchestrator_ len=905/905
+roster: set-stage R10-FLY-CAP-LINE pushed 439b093a2
+roster: set-resume R10-FLY-CAP-LINE pushed 8fe56f088
+roster: wire-issue R10-FLOW-BOARD pushed 0bd855b57
+roster: wire-issue R10-FLOW-MQ-PROBE pushed 941d6258b
+roster: wire-issue R10-FLOW-POSTMERGE pushed 6021e54db
+roster: wire-issue R10-FLOW-RECORD-PITCH pushed c28be2f73
+roster: wire-issue R10-FLOW-WIP pushed 5bd472dc4
+roster: wire-issue R10-FLOW-AUTOTRAIN pushed 5b2ae7302
+roster: wire-issue R10-FLOW-TOOLKIT-MODEL pushed a8bd6ef40
+roster: wire-issue R10-FLOW-AUDIT-PLAN pushed 7b9dcbde3
+roster: wire-issue R10-ROUND-PLAYBOOK pushed 9a8cfbebe
+roster: wire-issue R10-ORCH-REVIEW-PACKET pushed 087ea355b
+roster: wire-issue R10-POLICY-ROLE-PACK pushed af0b91d0e
+roster: wire-issue R10-FLOW-DESIGN-STAGES pushed a3f130f6a
+roster: wire-issue R10-FLY-OPENPR-ATOMIC pushed a2466dfd8
+roster: wire-issue R10-FLY-RELAY-REVIEW-FF refused rc=2 roster_edit: REFUSED: git -C /Users/timmalmstrom/hpo-seats/r10s6/orch-wt fetch -q origin +refs/heads/*:refs/remotes/origin/* (in .) failed: error: cannot lock ref 'refs/remotes/origin/policy/r10-mechanise-first': is at fbbd3e61fe312f94b6c4c579b64236fcf9699248 but expected cf212c29e00b6e28a0dd568b0aea0b78c73618d3
+roster: wire-issue R10-FLY-ORPHANS-REWRITTEN pushed c97e56aec
+roster: wire-issue R10-FLY-DEPGRAPH-STALE pushed a1da32972
+roster: wire-issue R10-FLY-STAMP-CHECK-NOTES pushed 8b52c400c
+roster: wire-issue R10-FLY-MANDATE-REVOKE-GUARD pushed 3c4e877ee
+roster: wire-issue R10-TRAIN-OVERLAP-GRADE pushed e7fdc8f27
+roster: wire-issue R10-NIGHTLY-HB-RESPAWN pushed b695f64db
+roster: wire-issue R10-FLY-PRUNE-REFS pushed 7cc0fcef5
+roster: wire-issue R10-CLOSEOUT-CLEANUP pushed 51f253e24
+roster: wire-issue R10-IMMERSION-LATCH pushed 556d1cfd8
+roster: wire-issue R10-FLY-SUITE-ENV-FLAKES pushed 988f6d273
+roster: set-stage R10-FLY-SUITE-ENV-FLAKES pushed dfeb43779
+roster: wire-issue R10-FLY-GH-READ-RETRY pushed e4b60ab6a
+roster: wire-issue R10-FLY-NO-FOOTERS pushed 76487c694
+roster: set-stage R10-FLY-NO-FOOTERS pushed 79ee90a2f
+roster: wire-issue R10-PARAMS-OWNER pushed 2c92299d1
+roster: wire-issue R10-PARAMS-OWNER pushed 61e31cdd6
+roster: wire-issue R10-PARAMS-OWNER pushed 752650bd3
+roster: append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ROUTING-INVARIANTS.json refused rc=2                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry} |                       group [value] | roster_edit.py: error: append-group needs a value argument
+roster: wire-issue R10-ROUTING-INVARIANTS refused rc=2 roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster | roster_edit: REFUSED: no roster group 'R10-ROUTING-INVARIANTS' (known: 176 groups)
+roster: append-carry R10-ORCH-BEATD refused rc=2 roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster | roster_edit: REFUSED: triage gate: the triage ruling dev/programme/triage/s6-batch5.md is not on the roster branch or origin/main; nothing written
+16:45:45 remediation applied (56+5 pushed; refused: ROUTING-INVARIANTS x2 refuted, BEATD s6v4 HOLD); roster ed1183a13; final update app_push head 63179891
+16:58:33 ROUTING-INVARIANTS applied (cite+path scrubbed) roster 50c690758; final update app_push head 6fdf9bf5d

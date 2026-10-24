@@ -1,0 +1,5 @@
+===== daemonize pid=77147 2026-10-21T21:52:48Z argv: bash tools/audit/seat/update_pr.sh fix/r10-night-folds d717b51486bf78df2e18b7bd3bdaf34abc23cc9b /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2563.md 2223
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (802 entries)
+  re-run the gate that owns this file before pushing
+HEAD=d48018b80be11a2029e8492590a1a9e4b3a2eae9

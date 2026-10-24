@@ -1,0 +1,3 @@
+===== daemonize pid=9997 2026-10-18T16:46:54Z argv: bash tools/audit/seat/open_pr.sh r10-sweep-template 7990789797b40077be84249dc0c136421e3c2c42 tools: persistent sweep template, renderer and policy re-read check R10-SWEEP-TEMPLATE
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+PR=2416 HEAD=c5bc2f147b431d586e8a3996196a250ad981de50 AUTHOR=tvofi

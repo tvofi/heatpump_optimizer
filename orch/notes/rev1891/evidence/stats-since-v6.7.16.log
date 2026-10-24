@@ -1,0 +1,20 @@
+GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N from" subject after /commits/<sha>/pulls answered []
+STATS: 1 merged pull request(s) in v6.7.16..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed"] read from .claude/workflows/web-fix-wave.js
+STATS COVERAGE: 1 of 1 merged pull request(s) in the window carried a parsable verdict; the histogram's verdict denominator is 1, not the window's merge count
+STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 2; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
+STATS ROUNDS: over the 1 merged pull request(s) carrying a parsable verdict, first-verdict yield 0/1 = 0.000 (the first verdict was `merge`), one-round yield 0/1 = 0.000 (merged on that one verdict, no later parsable one). Of the 1 parsable verdict(s) after a pull request's first, by the verdict before each: 0 re-verified a head that moved after a `merge` (0 PR(s), the "head-moved" row), 1 repaired after a `blocked`, 0 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+
+verdict class (PRs / entries):
+     1 / 1     root-cause-unanswered
+     1 / 1     merge
+CENSUS	verdict class	1	1	root-cause-unanswered
+CENSUS	verdict class	1	1	merge
+
+friction rule id (PRs / entries):
+  (none in this window)
+
+CENSUS: 2 key(s)
+
+threshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.
+
+WOULD OPEN: 0 issue(s)

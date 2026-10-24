@@ -1,0 +1,1 @@
+From #2471 round 1 (blocked body-figures-stale): `open_pr.sh` opened the roster PR with the previous roster PR's (#2467) body, regenerating only the Head paragraph, so every group, stage and carry figure described another diff. A re-opened PR on a reused branch needs its body taken from the new diff, or the opener should refuse a body whose diff enumeration does not match.

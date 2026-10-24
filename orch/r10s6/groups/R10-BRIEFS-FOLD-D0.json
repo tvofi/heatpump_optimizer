@@ -1,0 +1,44 @@
+{
+ "lane": "IN",
+ "kind": "policy",
+ "class": "policy",
+ "severity": "low",
+ "size": "S",
+ "issues": [
+  2269
+ ],
+ "fixes": [
+  2269
+ ],
+ "findings": [],
+ "wave": 5,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "policy: dimension briefs (mandated approval under 6329234399)",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "group": "R10-BRIEFS-FOLD-D0",
+ "after": [],
+ "files": [
+  "dev/governance/dimensions/D0.md"
+ ],
+ "carry": [
+  "From #2612 (body, item eb752e24), routed by routing audit 1 (2026-10-24): its destination R10-BRIEFS-FOLD is done and did not implement it (`git grep '#1293' origin/main -- dev/governance/dimensions/D0.md` is empty). **D0 (price optimality) brief, the next round's D0 seats.** A stop-tolerance change is refused on money (#1293). That covers the narrower winner-only polish measured here too: non-flat +0.15 %, but the flat null -0.79 % and 1 of 6 cells worse. A D0 challenger that tightens the stop, on all runs or only on the winner, is a duplicate of #1293 unless it shows realised closed-loop money that does not fall on a flat price (the `r10_solver_winner_polish.py` shape, flat null included). Re-measure at your merge base. Destination: `dev/governance/dimensions/D0.md` (Traps), which is policy and not in that group's file list yet.",
+  "From #2612 (body, item 3dda57ce), routed by routing audit 1 (2026-10-24): its destination R10-BRIEFS-FOLD is done and did not implement it (`git grep _CERT_CELLS origin/main -- dev/governance/dimensions/` is empty; tests/optimality.py:655 still space-only). **D0/D14 detector (from sweep-P4, re-confirmed by `p4_seams.py` at head).** `_solve_space`'s DHW seed set is unguarded, because `tests/optimality.py`'s `_CERT_CELLS` holds space-only cells. The D0 brief should tell its detector seat to add DHW cells to `_CERT_CELLS` before reading a seed gap as closed."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-briefs-fold-d0"
+ },
+ "brief": "The D0 residue of #2269 that R10-BRIEFS-FOLD (#2631, merged b24cfe5) did not land, both carried from #2612 (R10-SOLVER): (1) a stop-tolerance change is refused on money (#1293), including the winner-only polish measured in #2612 (non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse), so a D0 challenger that tightens the stop is a duplicate of #1293 unless it shows realised closed-loop money that does not fall on a flat price, in the r10_solver_winner_polish.py shape with the flat null; (2) _solve_space's DHW seed set is unguarded because tests/optimality.py's _CERT_CELLS holds space-only cells, so the D0 detector seat adds DHW cells there before reading a seed gap as closed. Policy: D0.md sits under the policy caps at zero headroom, so pay each added line by a cut. Closes #2269."
+}

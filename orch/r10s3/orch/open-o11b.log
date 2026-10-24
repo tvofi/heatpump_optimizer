@@ -1,0 +1,4 @@
+===== daemonize pid=3353 2026-10-18T12:46:54Z argv: bash tools/audit/seat/open_pr.sh r10-carry-enforce 7167a97d9d54713ef415dc03fab04c9a75c0a53f O11: carry-forward made mechanical (carry_audit.py) R10-CARRY-ENFORCE
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-carry-enforce/wt' already exists
+===== daemonize pid=6074 2026-10-18T12:47:11Z argv: bash tools/audit/seat/open_pr.sh r10-carry-enforce 7167a97d9d54713ef415dc03fab04c9a75c0a53f O11: carry-forward made mechanical (carry_audit.py) R10-CARRY-ENFORCE
+PR=2404 HEAD=713182ca16c0bc2e0ab48d097d89d20c99b44254 AUTHOR=tvofi

@@ -1,0 +1,1 @@
+ROUND 2: the round-1 figure-uncited block is answered by this head (P63 re-taken with every instance cited, verdict still ACCEPT); verify that claim first, then review the ruling as a round-2 reviewer. The file is a ruling-only file under dev/programme/.

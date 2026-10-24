@@ -1,0 +1,3 @@
+===== daemonize pid=27123 2026-10-18T16:49:03Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ci-autofix-inert-route - /Users/timmalmstrom/hpo-orch/r10s3/orch/b2394-row/BODY.md
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+HEAD=9cd483708f1977ac2701b295555be4c67bf12cb8

@@ -1,0 +1,21 @@
+diff --git a/tools/audit/archscore/counters.py b/tools/audit/archscore/counters.py
+index 147a64820..064d1d163 100644
+--- a/tools/audit/archscore/counters.py
++++ b/tools/audit/archscore/counters.py
+@@ -210,9 +210,14 @@ def family_orphan_overrides(root: Path) -> int:
+     rows = F.load_rows(root)
+     ov = F.overrides(root)
+     fams: dict[str, set] = {}
+-    for _p, key, *_ in rows:
++    lead: dict[str, str] = {}
++    for _p, key, en, _sv in rows:
+         fams.setdefault(ov.get(key, key.split("_")[0]), set()).add(key)
+-    return sum(1 for k, v in ov.items() if v == k or len(fams.get(v, ())) < 2)
++        lead[key] = en.split()[0].casefold() if en.split() else ""
++    # An override also homes nowhere when its target is not the family the user reads: the first
++    # word of the entity's own English name. Two unrelated entities that sort adjacently declared
++    # one invented family passed the size test (ARCH-s3, round 10: ``family_pair_homing.py``).
++    return sum(1 for k, v in ov.items() if v == k or len(fams.get(v, ())) < 2 or lead.get(k) != v)
+ 
+ 
+ # ---------------------------------------------------------------- C7

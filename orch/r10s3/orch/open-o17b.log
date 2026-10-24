@@ -1,0 +1,2 @@
+===== daemonize pid=46099 2026-10-18T13:04:33Z argv: bash tools/audit/seat/open_pr.sh r10-roster-fastpath 6eb3ec5952278dc9b44ca79ba97c73b4855e4601 R10-ROSTER-FASTPATH: tools read the round roster ref; Level 0 lane skip for roster-only diffs R10-ROSTER-FASTPATH
+PR=2406 HEAD=a7d97f55b44182545c5b5b199dfd1151113123de AUTHOR=tvofi

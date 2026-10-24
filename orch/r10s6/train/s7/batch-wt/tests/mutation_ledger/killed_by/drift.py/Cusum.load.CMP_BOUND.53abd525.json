@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.load CMP_BOUND 53abd525",
+  "killed_by": "tests/features.py",
+  "old": "            and all(abs(v) <= REFERENCE_PRIOR_COV for v in cov)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cb93535d88a9fcf7ba5a8eb0ec66d8be116e672b: CMP_BOUND (`and all(abs(v) < REFERENCE_PRIOR_COV for v in cov)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

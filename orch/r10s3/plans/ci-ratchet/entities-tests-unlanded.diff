@@ -1,0 +1,98 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 9415c7998..c6e462e27 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -33126,6 +33126,93 @@ R.check(
+     f"rc={_cim_res.returncode}",
+ )
+ 
++# R10-CI-RATCHET-RED: main's ci-ratchet read script_runs_per_push 73 (budget
++# 68) from one push run, 39213675232 (efdc055a). Its coverage artifact held 40
++# rows for 20 scripts: 19 `reused` copies and a fresh `entities`, then the
++# floor re-validation (#2342) re-ran all 20, `entities` included. Two owners
++# close it: a `reused` row is a copy that executes nothing, so it is no script
++# run; and the re-validation re-measures only what it reused.
++_CIR_REUSE_ROWS = ("coverage\tb\treused\t0\t0\tpush\t8\n"
++                   "coverage\tc\treused\t0\t0\tpush\t8\n"
++                   "coverage\td\tscoped\t0\t5\tpush\t8\n")
++_CIR_REUSE_CLOS = {"w1-ci-metrics-closures.tsv":
++                   "closures\ttests/a.py\tfull\t0\t9\tpush\t8\n"}
++_CIR_REUSE = _cir_window({**_CIR_REUSE_CLOS,
++                          "w2-ci-metrics-coverage.tsv": _CIR_REUSE_ROWS})
++_CIR_REUSE_NULL = _cir_window({**_CIR_REUSE_CLOS, "w2-ci-metrics-coverage.tsv":
++                               _CIR_REUSE_ROWS.replace("reused", "scoped")})
++R.check(
++    "the CI ratchet counts no `reused` coverage row as a script run",
++    _CIR_REUSE == 2 and _CIR_REUSE_NULL == 4,
++    f"two reused copies beside two executions counted {_CIR_REUSE!r} (want "
++    f"2); the same rows executed {_CIR_REUSE_NULL!r} (want 4, the null "
++    "control)",
++)
++
++
++def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str]:
++    """coverage_tree.sh's reuse plan and floor re-validation under a stub
++    interpreter: the first script is reused, the rest measured, and the stub
++    grader reports a floor FAIL when asked to. Returns (non-reused metric
++    rows per script, executions per script, the stage's output)."""
++    with _tempfile.TemporaryDirectory() as td:
++        d = Path(td)
++        stub = d / "py"
++        stub.write_text(
++            "#!/bin/sh\n"
++            'case "$1" in\n'
++            "  -c) exit 0 ;;\n"
++            "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
++            'prev="$a"; done; exit 0 ;;\n'
++            "  tests/closure.py)\n"
++            '    [ "$2" = coverage-split ] || exit 0\n'
++            "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
++            "      if [ $n = 0 ]; then printf 'reuse\\t%s\\n' \"$s\"; "
++            "else printf 'measure\\t%s\\n' \"$s\"; fi; n=1; done; exit 0 ;;\n"
++            "  tests/coverage_ratchet.py)\n"
++            '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
++            "\n    exit 0 ;;\n"
++            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
++            "esac\n")
++        stub.chmod(0o755)
++        (d / "reuse").mkdir()
++        (d / "work").mkdir()
++        env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
++               "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
++               "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
++               "CTR_RAN": str(d / "ran"),
++               "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
++        res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
++                              env=env, capture_output=True, text=True,
++                              timeout=180)
++        runs: dict = {}
++        for row in ((d / "m.tsv").read_text().splitlines()
++                    if (d / "m.tsv").is_file() else []):
++            f = row.split("\t")
++            if f[2] != "reused":
++                runs[f[1]] = runs.get(f[1], 0) + 1
++        ran: dict = {}
++        for line in ((d / "ran").read_text().splitlines()
++                     if (d / "ran").is_file() else []):
++            name = Path(line).stem
++            ran[name] = ran.get(name, 0) + 1
++    return runs, ran, res.stdout[-400:] + res.stderr[-400:]
++
++
++_CRV_RUNS, _CRV_RAN, _CRV_OUT = _coverage_revalidation(floor_fails=True)
++_CRV_NULL_RUNS, _CRV_NULL_RAN, _ = _coverage_revalidation(floor_fails=False)
++R.check(
++    "the coverage floor re-validation re-measures only the scripts it reused",
++    len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
++    and set(_CRV_RAN.values()) == {1} and set(_CRV_RAN) == set(_CRV_RUNS)
++    and len(_CRV_NULL_RAN) == len(_CRV_RAN) - 1
++    and set(_CRV_NULL_RAN.values()) == {1},
++    f"under a floor FAIL: metric rows {_CRV_RUNS}, executions {_CRV_RAN} "
++    "(want every script once: the reused one re-measured, no fresh one "
++    f"twice); with the floor met: executions {_CRV_NULL_RAN} (want the "
++    f"reused one absent, the null control); output: {_CRV_OUT!r}",
++)
++
+ 
+ def _derive_join_arm() -> tuple[bool, str]:
+     """derive_closures.sh takes a slot STANDALONE and joins one it is in

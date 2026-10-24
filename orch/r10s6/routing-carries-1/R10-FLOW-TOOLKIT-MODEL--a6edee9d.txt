@@ -1,0 +1,1 @@
+From #2609 (body, item a6edee9d), routed by routing audit 1 (2026-10-24): its destination R10-PLAN-ARTIFACT is done and did not implement it (`git grep -iE 'plan.model' origin/main -- docs/architecture.md` is empty; the one plan model is TOOLKIT-MODEL's scope). 

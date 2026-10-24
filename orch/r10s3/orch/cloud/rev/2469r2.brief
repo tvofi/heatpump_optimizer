@@ -1,0 +1,20 @@
+Round 2 of R10-UPDATE-PR-LOCK, at head 2351c1c7. Round 1 at d2d361a4 was blocked claim-false on two counts:
+- a detached `git gc --auto` inherited lock fd 9 and held the branch lock, giving a false BUSY that named a dead pid;
+- pr-contract was red on an unrouted `## Forward-carry`.
+
+The fixer's changes:
+- The lock is now held by a single `python3 -I` holder process, which does not pass the lock fd to its children. The EXIT trap kills the holder, and the holder exits by itself if its parent dies. A BUSY on a dead pid says so.
+- There is a new self-test arm, in which a post-checkout hook leaves a detached `sleep` behind. It fails on round 1's code and passes at the head. The new mutant is `mut:unlock`.
+- `## Red checks` is re-taken from the check-runs API, and Forward-carry now reads `none`.
+- prepr gains step 7a2, a carry-audit check.
+- One residual (a SIGKILL of the shell pid alone) is routed as `Carry: dismissed: ...` because daemonize makes each run a session leader. Judge that dismissal.
+- Folded in from the orchestrator: `cloud_relay.sh` wrote the PR body to a `$TMPDIR`-root `cloud_body.*`, which prepr's body-path check refused every time. The relay's auto update therefore never succeeded, yet it still raced manual runs. The body now goes in a per-run directory under the relay's state dir, which is always removed. There is a new self-test arm that checks the body path against prepr's `shared_root` function. Self-tests: cloud_relay 74/0 and pr_args 51/0.
+- Relay-vs-manual probes in both orders: the second runner gets BUSY, and neither run loses its worktree.
+
+Verify each claim adversarially:
+- revert each fix and check that its arm fails;
+- check the mutants;
+- re-read CI at this head from the check-runs API;
+- check the merge with origin/main.
+
+Say that this is round 2.

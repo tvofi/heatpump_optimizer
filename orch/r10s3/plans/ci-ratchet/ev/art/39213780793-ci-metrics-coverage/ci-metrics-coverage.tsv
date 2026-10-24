@@ -1,0 +1,14 @@
+coverage	boost_drift_replay	full	0	732	pull_request	39213780793
+coverage	entities	full	0	801	pull_request	39213780793
+coverage	block_duty	full	0	1	pull_request	39213780793
+coverage	doc_claims	full	0	9	pull_request	39213780793
+coverage	wood_advisor	full	0	1	pull_request	39213780793
+coverage	config_flow_steps	full	0	46	pull_request	39213780793
+coverage	structure	full	0	38	pull_request	39213780793
+coverage	typing_ruler	full	0	0	pull_request	39213780793
+coverage	ha_contract	full	0	1	pull_request	39213780793
+coverage	manual_plan	full	0	13	pull_request	39213780793
+coverage	open_meteo	full	0	0	pull_request	39213780793
+coverage	solar_alignment	full	0	2	pull_request	39213780793
+coverage	guard_pins	full	0	1	pull_request	39213780793
+coverage	debug_collect	full	0	1	pull_request	39213780793

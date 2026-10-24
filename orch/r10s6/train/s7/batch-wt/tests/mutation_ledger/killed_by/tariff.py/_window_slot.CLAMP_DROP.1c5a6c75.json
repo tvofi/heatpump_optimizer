@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_slot CLAMP_DROP 1c5a6c75",
+  "killed_by": "tests/features.py",
+  "old": "    window = max(1, int(window_minutes))",
+  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: CLAMP_DROP (`window = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

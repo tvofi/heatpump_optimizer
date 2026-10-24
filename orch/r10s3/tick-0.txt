@@ -1,0 +1,95 @@
+/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-round-10-orchestration-eaa727/tools/audit/seat/orchestrator_tick.py:1440: SyntaxWarning: "\+" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\+"? A raw string is also an option.
+  code, o = self.git(["grep", "-oh", "#[0-9]\+", "origin/main", "--",
+BOARD measured from origin/main at 633f3748704e, 2026-10-17T20:44:19.162701+00:00
+== TRAIN ==
+   train not alive
+-> UNREADABLE: queue /Users/timmalmstrom/.local/state/hpo/merge_train/queue.json ([Errno 2] No such file or directory: '/Users/timmalmstrom/.local/state/hpo/merge_train/queue.json')
+   prepr slots: 0 running (cap 4)
+-> UNREADABLE: queue /Users/timmalmstrom/.local/state/hpo/merge_train/queue.json ([Errno 2] No such file or directory: '/Users/timmalmstrom/.local/state/hpo/merge_train/queue.json')
+   log tail: #2347 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2239,"state":"CLOSED"}]}}}}} | NOT released /Users/timmalmstrom/.local/state/hpo/merge_train/wt/2347 (rc=128: fatal: '/Users/timmalmstrom/.local/state/hpo/merge_train/wt/2347' is not a working tree); remove it by hand | SKIP REPORT: 0 skipped of 1 | TRAIN DONE | TRAIN_RC=0 end=2026-10-17T20:02:35Z
+-> UNREADABLE: queue /Users/timmalmstrom/.local/state/hpo/merge_train/queue.json ([Errno 2] No such file or directory: '/Users/timmalmstrom/.local/state/hpo/merge_train/queue.json')
+-> UNREADABLE: queue /Users/timmalmstrom/.local/state/hpo/merge_train/queue.json ([Errno 2] No such file or directory: '/Users/timmalmstrom/.local/state/hpo/merge_train/queue.json')
+== PRS ==
+   3 open pull request(s)
+   #2345 [fix/r10-deeplink-census-pr] RED:delivery-status,fast (3.14),pr-contract
+-> #2345: RED unanswered in ## Red checks: delivery-status, fast (3.14)
+-> #2345: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2345: 68 commits behind main (recarry due before it can merge)
+   #2351 [handoff/r10-n-log-flood] RED:delivery-status,fast (3.14)
+-> #2351: RED unanswered in ## Red checks: delivery-status
+-> #2351: mergeable state BLOCKED
+-> #2351: 102 commits behind main (recarry due before it can merge)
+   #2355 [record/autofix] GREEN
+== ETA ==
+== WORKERS ==
+== PLAN ==
+   roster origin/main:dev/programme/rosters/wave-r10-groups.json
+   56 open group(s) of 56
+   R10-FAHRENHEIT: in progress (stage done: merged #2285)
+   R10-FEEDS: blocked by R10-TARIFF (stage done: merged #2336)
+   R10-RATIO-SITES: blocked by R10-FEEDS (stage in-review: #2347 round 2)
+   R10-VENT-DETECTOR: blocked by R10-RATIO-SITES (stage not-started)
+   R10-NIGHT-FOLDS: blocked by R10-VENT-DETECTOR (stage not-started)
+   R10-RATIO-ANCHOR: blocked by R10-NIGHT-FOLDS (stage not-started)
+   R10-INPUT-STALENESS: blocked by R10-RATIO-ANCHOR (stage not-started)
+   R10-CURRENCY: blocked by R10-INPUT-STALENESS (stage not-started)
+   R10-STORE: blocked by R10-CURRENCY (stage not-started)
+   R10-TARIFF: blocked by R10-FAHRENHEIT (stage done: merged #2282)
+   R10-LEAF-IMPORTS: blocked by R10-STORE, R10-NIGHT-FOLDS, R10-TARIFF (stage not-started)
+   R10-TRUST-RELATIVE: blocked by R10-LEAF-IMPORTS (stage not-started)
+   R10-DEEPLINK: in progress (stage done: merged #2283)
+   R10-UX-SETUP: blocked by R10-DEEPLINK (stage in-review: #2346 round 2)
+   R10-FREQ-DEFROST: blocked by R10-TRUST-RELATIVE (stage not-started)
+   R10-LOOP-CPU: blocked by R10-FREQ-DEFROST (stage not-started)
+   R10-SAV-BASELINE: blocked by R10-LOOP-CPU (stage not-started)
+   R10-SAV-REASONS: blocked by R10-SAV-BASELINE, R10-LEAF-IMPORTS (stage not-started)
+   R10-ADVISOR: blocked by R10-UX-SETUP, R10-SAV-REASONS (stage not-started)
+   R10-SCORES: blocked by R10-ADVISOR, R10-RATIO-SITES (stage not-started)
+   R10-REGISTRY-LEAK: blocked by R10-FAHRENHEIT (stage done: merged #2329)
+   R10-PUMP-MODEL: blocked by R10-REGISTRY-LEAK (stage in-progress: fixer dispatched)
+   R10-LIVESTATE: blocked by R10-SCORES, R10-PUMP-MODEL (stage not-started)
+   R10-CONFIG-NOTICES: blocked by R10-LIVESTATE (stage not-started)
+   R10-SERVICES-GUARD: in progress (stage done (#2290 merged d8c13ac5b))
+   R10-ARCHSCORE-COVERAGE: in progress (stage in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r4; p4/p5 not started)
+   R10-PARAMS-OWNER: blocked by R10-CONFIG-NOTICES, R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD (stage not-started)
+   R10-SENSOR-PAYLOAD: blocked by R10-SCORES (stage not-started)
+   R10-ARCH-SHAPES: blocked by R10-PARAMS-OWNER, R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST (stage not-started)
+   R10-LEARNER-ETA: blocked by R10-ARCH-SHAPES (stage not-started)
+   R10-HEAT-METER: blocked by R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR (stage not-started)
+   R10-COP-GATE: blocked by R10-HEAT-METER, R10-SENSOR-PAYLOAD (stage not-started)
+   R10-UX-HEALTH: blocked by R10-SCORES, R10-COP-GATE, R10-HEAT-METER (stage not-started)
+   R10-CONFIGFLOW-PAGES: blocked by R10-HEAT-METER (stage not-started)
+   R10-SOLVER: blocked by R10-SAV-REASONS, R10-TARIFF (stage not-started)
+   R10-I1: in progress (stage done (#2284 merged 8747bbfc4; #2219 closed))
+   R10-PRE-EDIT-HOOK: in progress (stage done: merged #2323)
+   R10-POLICY-LINT-STATS: in progress (stage done: merged #2294)
+   R10-GATE-YIELD: in progress (stage done (#2275 merged 74cf47b9c; #2225 CLOSED))
+   R10-STALE-PATHS: in progress (stage done: merged #2289)
+   R10-STRUCTURE-BLIND: in progress (stage done: merged #2340)
+   R10-I5-DOCS: blocked by R10-I1, R10-STRUCTURE-BLIND, R10-REGISTRY-LEAK (stage not-started)
+   R10-TICK-ORCH: blocked by R10-REF-PRIVACY (stage b,d,j merged in #2281 (49a98d739); a,c open)
+   R10-TICK-DRIVERS: blocked by R10-REF-PRIVACY (stage not-started)
+   R10-TICK-TRAIN: in progress (stage done: merged #2305)
+   R10-PREPR-CAP: in progress (stage done: merged #2341)
+   R10-D15-GRADER: blocked by R10-TICK-DRIVERS (stage not-started)
+   R10-BRIEFS-FOLD: blocked by R10-ARCHSCORE-COVERAGE, R10-D15-GRADER (stage not-started)
+   R10-REPLAY-LOOPNORM: in progress (stage in-progress: fixer dispatched)
+   R10-DIAG-REPLAY: blocked by R10-REPLAY-LOOPNORM, R10-LEAF-IMPORTS (stage not-started)
+   R10-REPLAY-LANE: blocked by R10-DIAG-REPLAY (stage not-started)
+   R10-REPLAY-SCOPED: blocked by R10-REPLAY-LANE, R10-TICK-ORCH, R10-TRAIN-HOLD, R10-REF-PRIVACY (stage not-started)
+   R10-TRAIN-HOLD: blocked by R10-TICK-TRAIN, R10-TICK-ORCH (stage not-started)
+   R10-STALE-PATHS-2: blocked by R10-STALE-PATHS (stage done: merged #2344)
+   R10-REF-PRIVACY: in progress (stage in-progress: fixer dispatched)
+   R10-DEEPLINK-CENSUS: blocked by R10-DEEPLINK (stage in-review: #2345)
+== MAIN ==
+   required contexts (main-protect-checks): 14 read live
+   main 633f3748704e green (37 context(s) concluded green)
+   mandate: in force: mandate 6175172275 (scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z)
+   policy corpus at 92b1f961e202 (first tick: baseline recorded)
+-> checkout is 210 commit(s) behind origin/main (an ancestor checkout is not current)
+== STATE ==
+-> HANDOVER updated-for a77faf30d9e4 is 678 commit(s) behind origin/main
+-> run python3 tools/audit/seat/state_docs.py --push (the write stays in the per-merge beat; the tick only names it)
+-> record beat owed: state_docs.py --push + #201 comment for 633f3748704e, 8c6d940b05b1, 2230f28ecccd, 27381e01a7f5, 9951fe70967a, 6627485ee9d9, 182b5971ec78, 3a07c2eaa945, 032cda177794, 9804c7700fcf
+== REPLAN ==
+DISPATCH LIST: 14 finding(s)

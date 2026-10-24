@@ -1,0 +1,72 @@
+Arm B events log (probe-runner). Re-cut heads (after update_pr from main a6620c30, code 4a83592e3): B1 #2656 07ed40fb99ea4c5cbcb009f307da48f45f470b42; B2 #2657 627af589f1b15fd32811e8f96b7920c2cc1fd8e0; twin #2654 3936c2659c1225dcda9894e80a06b14c805747e0
+shared-SHA reading: B1 and B2 heads were never identical at any point: first-push heads 8b686356 (B1) vs 9d901dce (B2), then d0ff8268 vs 93966995, now 07ed40fb vs 627af589. open_pr/update_pr put a per-topic merge and row commit on each, so same_sha_dup_heads did not occur between B1 and B2 (carry 1).
+2026-10-23T11:12:24Z [B1 3a] code commit c758cb770a31668a352c51690dc89e364bf56f74 pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T11:13:05Z [B2 3d] code commit 89a4a44e7f776ff4979264f7e0be81faa335e05e pushed to handoff/r10-ci-layout-p2-probe-B2; update_pr starting
+2026-10-23T11:23:13Z [B1 3a] update_pr rc=1 ended (started 2026-10-23T11:12:24Z)
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on tests / fast (3.14) against a6620c30adcd -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B1.log
+2026-10-23T11:23:40Z [B2 3d] update_pr rc=1 ended (started 2026-10-23T11:13:05Z)
+  REFUSE   brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B2.log
+2026-10-23T11:24:08Z [B2 3d] REFUSED: update_pr.sh with the break commit 89a4a44e7 (adds a nonexistent path to dev/archive/carries/carry-1648.json; locally brief_lint reports "TOTAL: 1 error(s)", baseline 0) was refused by prepr: "REFUSE brief_lint" then "app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted". Nothing reached PR #2657; handoff/B2 neutralised by a fast-forward revert commit 4cf31cc50a048ab539437b7affa880563292d5ec. 3d cannot run through the App path (prepr catches the break). Not worked around.
+2026-10-23T11:24:08Z [B1 3a] first try refused: prepr "ci predict: 1 predicted red on tests / fast (3.14) ... UNCLASSIFIED .github/workflows/probe.yml" (probe.yml is INERT only on ci-probe/u0c, not on the AFTER tip). Retrying with a comment line in tests/closure.py (the twin's own change).
+2026-10-23T11:24:26Z [B1 3a] handoff push failed
+2026-10-23T11:25:18Z [B1 3a] code commit d4506f37e1b43d486167e6743d194b104357a84a pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T11:25:44Z [B2 3g] code commit d924db60352a3b7f01c9dd3347fb6c0a87dafc0b pushed to handoff/r10-ci-layout-p2-probe-B2; update_pr starting
+2026-10-23T11:25:45Z [B2 3g] update_pr rc=75 ended (started 2026-10-23T11:25:45Z)
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 93674) holds fix/r10-ci-layout-p2-probe-B2's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B2; nothing was changed, run again when it ends
+2026-10-23T11:36:00Z [B2 3g] code commit 14b8d768a98795726e456b3c7f8f51d8608b3f60 pushed to handoff/r10-ci-layout-p2-probe-B2; update_pr starting
+2026-10-23T11:36:38Z [B1 3a] update_pr rc=1 ended (started 2026-10-23T11:25:18Z)
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on tests / fast (3.14) against a6620c30adcd -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B1.log
+2026-10-23T11:44:00Z [B1 3a] code commit 74a32ad04e5d2e6187e93ba07b138f7cafa82785 pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T11:44:01Z [B1 3a] update_pr rc=75 ended (started 2026-10-23T11:44:00Z)
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 28818) holds fix/r10-ci-layout-p2-probe-B1's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B1; nothing was changed, run again when it ends
+2026-10-23T11:49:56Z [B2 3g] update_pr rc=0 ended (started 2026-10-23T11:36:00Z)
+2026-10-23T11:49:57Z [B2 3g] new head d5b053e6f6202d0a29aa91dd4c4ad1fc42981d85
+2026-10-23T11:49:57Z [B2 3g] body_patch start
+body_patch: OK: #2657 body patched and read back identical; head d5b053e6f6202d0a29aa91dd4c4ad1fc42981d85 unmoved
+2026-10-23T11:50:03Z [B2 3g] body_patch end
+2026-10-23T11:52:24Z [B1 3a] code commit d5dd8ebf5c81c9b0e63a12995e70f0cb814db388 pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T12:02:30Z [B2 3g] review 5627840133 COMMENTED on d5b053e6f6202d0a29aa91dd4c4ad1fc42981d85 submitted 2026-10-23T11:53:43Z (owner via main). Runs at head: code 39948860389 (created 11:50:00Z), edit 39948860154 (11:49:59Z), edit 39948872160 (11:50:05Z); events: push 11:49:56Z, body_patch 11:49:57-50:03Z, review 11:53:43Z -- all while the code run was in progress.
+2026-10-23T12:04:39Z [B1 3a] update_pr rc=0 ended (started 2026-10-23T11:52:24Z)
+2026-10-23T12:04:40Z [B1 3a] new head 13d33eba20c652e09b6d119a0043940ca01cebda
+2026-10-23T12:04:40Z [B1 3a] body_patch start
+body_patch: OK: #2656 body patched and read back identical; head 13d33eba20c652e09b6d119a0043940ca01cebda unmoved
+2026-10-23T12:04:46Z [B1 3a] body_patch end
+2026-10-23T12:05:56Z [B1 3a] push (update_pr) ended 12:04:39Z new head 13d33eba20c652e09b6d119a0043940ca01cebda; body_patch 12:04:40-12:04:46Z (1 s after push, head unmoved)
+2026-10-23T12:32:36Z [B2 3g] READ at d5b053e (all 4 CI runs completed failure; none cancelled, none lost): runs code 39948860389, edit 39948860154, edit 39948872160, review 39949321500.
+  gate attempts: the first three said 'FAIL run(s) [...] at this head are still being judged; their gate decides' (deferral chain), the last (review run, job 120413488009) named: tests / closures, governance / policy-docs, governance / wave-script, governance / env-matrix (run 39948860389), pr-contract / pr-contract (run 39948872160).
+  Adjusted reading (FAIL names only the 3 base-pinned, all else success/skipped): NOT met. Extras: tests / closures (job 120398407061: UNDER-SCOPED tests/harness_headers.py reads dev/audit/harnesses/r10_ci_layout_u5/run_part.py and unitcheck.py the committed closure does not list -- committed tests/closures.json stale; not runner variance), tests / closures-autofix (120411385621), pr-contract / pr-contract (body: '## Red checks does not name pr-contract / pr-contract' -- my body, fixable).
+2026-10-23T12:32:44Z [B2 3f] code commit 6b2dc140088e2ab3f2fd2c6b9245475461a78077 pushed to handoff/r10-ci-layout-p2-probe-B2; update_pr starting
+2026-10-23T12:43:18Z [B2 3f] update_pr rc=0 ended (started 2026-10-23T12:32:44Z)
+2026-10-23T12:43:19Z [B2 3f] new head 7688574af7a84c5e12ba60560e5e0b8c343d624b
+2026-10-23T12:43:19Z [B2 3f] body_patch start
+body_patch: OK: #2657 body patched and read back identical; head 7688574af7a84c5e12ba60560e5e0b8c343d624b unmoved
+2026-10-23T12:43:25Z [B2 3f] body_patch end
+2026-10-23T12:43:38Z [B2 3f] plain push (tests/closure.py comment) update_pr ended 12:43:18Z, new head 7688574af7a84c5e12ba60560e5e0b8c343d624b; body_patch 12:43:19-12:43:25Z; REVIEW-NOW relayed ~12:43:30Z
+2026-10-23T12:46:50Z [B2 3f] review 5628366928 COMMENTED on 7688574af7a84c5e12ba60560e5e0b8c343d624b submitted 12:43:44Z (19 s after the edit's end 12:43:25Z, 25 s after the push)
+2026-10-23T12:47:14Z [B1 3a] READ at 13d33eba (3 CI runs, all completed failure, none cancelled/lost): code 39950642573, edit 39950644475, edit 39950655792 (push 12:04:39Z, edit 12:04:40-46Z). Gates: first two 'FAIL run(s) [...] still being judged; their gate decides'; last (job 120419782664) names tests / closures, governance / policy-docs, wave-script, env-matrix (run 39950642573), pr-contract / pr-contract (this run). Extras beyond the 3 base-pinned: tests / closures (known P2b stale-closure defect), pr-contract (body), tests / closures-autofix.
+2026-10-23T12:47:28Z [B1 3c] retarget main->ci-probe/base at 12:47:14-17Z (head unmoved)
+2026-10-23T12:49:43Z [B1 3e] review #1 5628428871 COMMENTED on 13d33eba submitted 12:49:01Z (1 m 42 s after the retarget at 12:47:17Z; retarget code run 39955976889 created 12:47:19Z, in flight)
+2026-10-23T13:28:35Z [B1 3c/3e] READ: retarget code run 39955976889 (12:47:19Z-13:19:54Z) failure; review run 39956202079 (12:49:05Z-13:21:52Z) failure. Gates: code run gate 'FAIL run(s) [39956202079] still being judged; their gate decides'; review run gate (job 120437030278) names tests / closures, governance x3, pr-contract (run 39955976889) and budget-raise-gate / budget-raise-gate (this run: new on ci-probe/base). Review #2 requested 13:2x after review run 39956202079 gate decided.
+2026-10-23T13:28:38Z [B1 3c] retarget back ci-probe/base->main done
+2026-10-23T13:28:57Z [B1 3e] review #2 5628902710 COMMENTED on 13d33eba submitted 13:28:34Z; B1 retargeted back to main 13:28:35-38Z (after the review)
+2026-10-23T13:29:04Z [B1 3b] code commit 30d6d75a49133077f6cc005e2d566cce00ee0bff pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T13:40:20Z [B1 3b] update_pr rc=1 ended (started 2026-10-23T13:29:04Z)
+  REFUSE   field coverage          BLIND census structure.py dead_top_level_symbols: UNGATED, 1 -> 2 with one planted member and no refusal on dead_top_level_symbols;FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+  REFUSE   push order             origin/fix/r10-ci-layout-p2-probe-B1 and HEAD have diverged, 1 commit(s) there against 3 here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge origin/fix/r10-ci-layout-p2-probe-B1, then rewrite `## Head` at the merge commit
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B1.log
+2026-10-23T13:40:34Z [B1 3b] REFUSED at the door (update_pr 13:29:04Z-13:40:20Z), nothing pushed to #2656: 'REFUSE field coverage BLIND census structure.py dead_top_level_symbols: UNGATED, 1 -> 2 with one planted member and no refusal on dead_top_level_symbols;FIELD COVERAGE REFUSED' and 'REFUSE push order origin/fix/r10-ci-layout-p2-probe-B1 and HEAD have diverged, 1 commit(s) there against 3 here: the push is refused as a non-fast-forward and the force-push past it is forbidden'; 'app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted'.
+2026-10-23T13:41:24Z [B2 step 4] ci_probe push ci-probe/b2 = 75011ea7e5deb517ef5ed72a323fe3f894e2a52d (B2 #2657 head at that time; head is a github-actions[bot] 'ci: merge main' commit on top of 7108101d7 -- the merge-main bot fired on B2); dispatch ci.yml --ref ci-probe/b2 -f pr=2657 -f base=main at 13:40:52Z -> run 39963221009 'CI code pr=2657 base=main sha=75011ea7e...' head_sha 75011ea7e5deb517ef5ed72a323fe3f894e2a52d = the PR head's SHA (same-SHA pair), in progress.
+2026-10-23T13:42:10Z [B1 3b redo] one attempt: raise2 (revert structure leaf, ci_budgets script_runs_per_push 54->55) via update_pr, from origin head bee87adda
+2026-10-23T13:42:15Z [B2 3f] READ at 7688574 (4 CI runs all completed failure, none cancelled/lost): code 39955464442 (12:43:21Z-13:17:23Z), edit 39955465803, edit 39955474379, review 39955519392 (12:43:47Z-13:30:13Z). Gates: three deferral FAILs ('still being judged; their gate decides'); last (review run, job 120438788477) names ONLY tests / closures + governance / policy-docs, wave-script, env-matrix (run 39955464442). pr-contract not red this time (body now names it). So the 'base-pinned' reading holds except tests / closures (known P2b stale-closure defect, plus closures-autofix).
+2026-10-23T13:42:17Z [B1 3b2] code commit beb260478a59b8e7e5ae2b55d601e638f8e555e7 pushed to handoff/r10-ci-layout-p2-probe-B1; update_pr starting
+2026-10-23T13:42:17Z [B1 3b2] update_pr rc=75 ended (started 2026-10-23T13:42:17Z)
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 13071) holds fix/r10-ci-layout-p2-probe-B1's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p2-probe-B1; nothing was changed, run again when it ends
+2026-10-23T16:45Z [s5 ci-coord] [B2 step 4] READ at 75011ea7e: pull_request 39960857817 (attempt 1 action_required 13:23:55Z; attempt 2 hpo-runs[bot] 13:24:28Z-14:03:44Z, failure; gate job 120457147247 "FAIL run(s) [39963221009] at this head are still being judged; their gate decides") and workflow_dispatch 39963221009 (13:40:52Z-14:20:03Z, failure; gate job 120465203308 "FAIL tests / closures: failure (this run)"). Dispatch's governance x3 SUCCESS on PINNED=head (policy-docs job 120446627407 "restored from 75011ea7e...: 0 file(s) differ"); the PR run's governance x3 FAILURE on PINNED=7108101d7 (job 120438602400, "17 file(s) differ", "TOTAL: 37 error(s)"). Finding F-B4 in probe-runner-B.txt.
+2026-10-23T16:45Z [s5 ci-coord] [B1 3b] FINAL: refused at the door. Redo update_pr rc=75 BUSY (pid 13071), not retried; redo commit beb260478 is not on origin's bee87adda (parent chain 30d6d75a4 <- d5dd8ebf5), so it would repeat the non-fast-forward refusal. #2656 head bee87adda unchanged.

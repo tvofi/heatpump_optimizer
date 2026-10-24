@@ -1,0 +1,5 @@
+start 2026-10-23T06:01:11Z
+SWEEP run=39908579484 attempt=1 completed_at=2026-10-23T05:58:26Z started=1792735273 superseded=0 rc=2 :: FAIL usage: --run <id> (and GITHUB_REPOSITORY or --repo)
+SWEEP run=39908575096 attempt=1 completed_at=2026-10-23T05:57:30Z started=1792735274 superseded=0 rc=2 :: FAIL usage: --run <id> (and GITHUB_REPOSITORY or --repo)
+IDLE-EXIT: every run completed, no sweep alive, nothing new for the idle bound
+exit rc=0 2026-10-23T06:16:42Z

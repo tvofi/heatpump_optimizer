@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2620,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2620); first: review 6359101698 item 931a23da (unrouted): - **Plant of the diff's own kind (rule 14).** I wrapped the same two reads in a bare getter, `_cop_s"
+  }
+]

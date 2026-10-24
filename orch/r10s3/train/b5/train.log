@@ -1,0 +1,30 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b5/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b5 pid=1043 start=2026-10-19T03:31:07Z
+BATCH 20261019-033107 pid=1054 base=main queue=1 (#2399) --overlap --skip-bad
+OVERLAP: main at dd27e7c1b4c6 is not green (Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs, typing, validate-hacs) before admission; --overlap logs it and does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2399 serial: grader
+OVERLAP: recarrying #2399 up front, their pull_request runs fire together
+#2399 overlap: recarry start
+#2399 recarry START (branch fix/r10-diag-replay-pr)
+#2399 recarry: main merged, head 2bdc2a65; app_push: RECARRY: prepr SKIPPED: HEAD 2bdc2a65 is the clean merge of the live head 705a9b85 and origin/main's dd27e7c1, and the body is the live one
+serial: #2399
+beat: waiting CI at 2bdc2a65 (poll 2, t+241s, required: 14, concluded: 9/14)
+beat: waiting CI at 2bdc2a65 (poll 3, t+483s, required: 14, concluded: 10/14)
+beat: waiting CI at 2bdc2a65 (poll 4, t+723s, required: 14, concluded: 10/14)
+beat: waiting CI at 2bdc2a65 (poll 5, t+964s, required: 14, concluded: 10/14)
+beat: waiting CI at 2bdc2a65 (poll 6, t+1205s, required: 14, concluded: 10/14)
+beat: waiting CI at 2bdc2a65 (poll 7, t+1446s, required: 14, concluded: 11/14)
+beat: waiting CI at 2bdc2a65 (poll 8, t+1687s, required: 14, concluded: 13/14)
+beat: waiting CI at 2bdc2a65 (poll 9, t+1929s, required: 14, concluded: 13/14)
+beat: waiting CI at 2bdc2a65 (poll 10, t+2169s, required: 14, concluded: 13/14)
+beat: waiting CI at 2bdc2a65 (poll 11, t+2410s, required: 14, concluded: 13/14)
+#2399 2bdc2a65 ci red=[]
+#2399 approved (app)
+#2399 MERGED 0dac0bf8731a36ca10805fcd3fd5c196b77cb8fc
+#2399 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b5/wt/2399 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b5/wt/2399' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-19T04:17:55Z

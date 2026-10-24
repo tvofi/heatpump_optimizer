@@ -1,0 +1,7 @@
+===== daemonize pid=13924 2026-10-20T21:41:14Z argv: bash -c W=/Users/timmalmstrom/hpo-seats/r10s3/roster-r10; python3 tools/audit/seat/roster_edit.py set-stage R10-PREPR-CAP in-progress --worktree $W --push --message "roster: reopen R10-PREPR-CAP for the closures step" && python3 tools/audit/seat/roster_edit.py set-resume R10-PREPR-CAP --field note --value "Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane that needs a first-green head. The local re-record duplicated CI required closures context plus closures-autofix and cost 10-25 min per handoff; measured 108 ok, 0 FAIL, 12 skip across this box prepr logs. Same change makes closures_line reap its recorder on TERM: stopped preprs left derive_closures reparented to launchd for 20-38 min. Fixer on handoff/r10-prepr-closures." --worktree $W --push --message "roster: R10-PREPR-CAP note names the closures ruling and the recorder leak"
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 78371f875aa7b6fde8b1ce1aba6fb40513d60340
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 4cb2c3c17738d65d1c0450d7d033896d7900ecb1

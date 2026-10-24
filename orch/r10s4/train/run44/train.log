@@ -1,0 +1,61 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run44/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run44 pid=33172 start=2026-10-23T09:26:26Z
+BATCH 20261023-092626 pid=33177 base=main queue=3 (#2647 #2645 #2655) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold a196d010: the record beat waits
+PRE-FLIGHT: 3 of 3 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2647 serial: budget, claim, grader
+#2645 serial: workflow
+#2655 admitted at fb8351f6
+OVERLAP: recarrying #2647, #2645 up front, their pull_request runs fire together
+#2647 overlap: recarry start
+#2645 overlap: recarry start
+TRAIN HOLD refs/heads/train-hold a6866591: the record beat waits
+#2645 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-flow-toolkit-measure-pr held fix/r10-flow-toolkit-measure-pr, clean at origin/fix/r10-flow-toolkit-measure-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-flow-toolkit-measure-pr switch fix/r10-flow-toolkit-measure-pr)
+#2645 recarry START (branch fix/r10-flow-toolkit-measure-pr)
+#2645 recarry: main merged, head af453e43; app_push: RECARRY: prepr SKIPPED: HEAD af453e43 is the clean merge of the live head 42cb7d16 and origin/main's c6ef0668, and the body is the live one
+#2655 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2655 approved (app)
+#2655 MERGED bfd61aaf167f87ddb582437f8626c49f76e1a0fa
+#2655 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2655 main bfd61aaf tree == proof 17efa7e3
+OVERLAP: main at bfd61aaf167f is still running (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script): a wait, not red; --overlap does not wait
+serial: #2647, #2645
+TRAIN HOLD refs/heads/train-hold d3ef86e9: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 2, t+243s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold 6cadffe5: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 3, t+485s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold 1aceef6d: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 4, t+727s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold fe9cf06b: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 5, t+969s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold b3f88cb3: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 6, t+1212s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 56617cfe: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 7, t+1454s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 150a416f: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 8, t+1696s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold ce27e20c: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 9, t+1938s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold b0b1e338: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 10, t+2180s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold a51cd51a: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 11, t+2422s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold e2c2d541: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 12, t+2665s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold f5560b91: the record beat waits
+beat: waiting CI at 64b3cb5e (poll 13, t+2907s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 38a55b1f: the record beat waits
+#2647 64b3cb5e ci red=[]
+#2647 approved (app)
+#2647 MERGED 14405df59331481ac16662db64d8d8db9488026e
+#2647 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2645 af453e43 ci red=[]
+#2645 approved (mandate)
+#2645 MERGED a6620c30adcdf0d9529ee66977694bfa2a06d5c3
+#2645 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run44/wt/2645 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run44/wt/2645' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 3
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T10:23:10Z

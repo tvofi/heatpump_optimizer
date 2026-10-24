@@ -1,0 +1,7 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  seam_cut_total: 719 + both deltas = 716
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (800 entries)
+  re-run the gate that owns this file before pushing
+769a7145304decf0aa59d08c62b3d06376f17e06

@@ -1,0 +1,2 @@
+===== daemonize pid=93471 2026-10-19T12:21:02Z argv: bash tools/audit/seat/update_pr.sh fix/r10-prepr-unpinned-red dcf20edf0ac284ae6c011efeff17b65ab923ff98 /Users/timmalmstrom/hpo-orch/r10s3/upd/b2447-r2.md
+fatal: couldn't find remote ref fix/r10-prepr-unpinned-red

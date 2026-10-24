@@ -1,0 +1,2 @@
+RESULT mutant=REV_CAP4_history_captured_at_load_literal rc=0 fails=0
+restored

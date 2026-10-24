@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/wt/tests/entities.py", line 109, in <module>
+    from heatpump_optimizer import (
+    ...<6 lines>...
+    )
+  File "/Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/wt/custom_components/heatpump_optimizer/binary_sensor.py", line 32, in <module>
+    from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+  File "/Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/wt/custom_components/heatpump_optimizer/coordinator.py", line 38, in <module>
+    from homeassistant.components import mqtt
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/__init__.py", line 45, in <module>
+    from . import debug_info, discovery
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/debug_info.py", line 15, in <module>
+    from .models import DATA_MQTT, PublishPayloadType
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/models.py", line 12, in <module>
+    from paho.mqtt.client import MQTTMessage
+ModuleNotFoundError: No module named 'paho'

@@ -1,0 +1,208 @@
+2026-10-18T18:05:32Z POSTED 2379 BUS posted 2379 94ce92523bfa24d2f78b832f6a5cac02f2aa5a33 Fix review: merge f4e168719d12f071bbc7771944e9430147a223db
+2026-10-18T18:11:39Z OWED relay-refused 2416
+2026-10-18T18:13:49Z OWED relay-refused 2416
+2026-10-18T18:16:19Z POSTED 2416 BUS posted 2416 e3a79c586531de1e2704fdb0317200b3e6a5afcd Fix review: merge c5bc2f147b431d586e8a3996196a250ad981de50
+2026-10-18T18:20:24Z OWED relay-refused 2373
+2026-10-18T18:22:27Z OWED relay-refused 2373
+2026-10-18T18:22:52Z POSTED 2417 BUS posted 2417 46a895ea1e41ed21e6d99c6464d1f916ac68bc41 Fix review: blocked c83ae12acc074a16af424879b09b151d07726e52 carry-stale: R10-TICK-DRIVERS gains the co
+2026-10-18T18:25:21Z POSTED 2368 BUS posted 2368 f2f60753320ff8bade75478133afb658eb6a2c18 Fix review: blocked c3a25d2ae337d82a8401dcfc1ab0f0f7e34aa38b ci-red: fast (3.14) is red at this head on
+2026-10-18T18:25:26Z OWED relay-refused 2373
+2026-10-18T18:27:31Z OWED relay-refused 2373
+2026-10-18T18:30:10Z POSTED 2373 BUS posted 2373 16429191b1e35e9035692a296330d807a8068641 Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76
+2026-10-18T18:32:41Z POSTED 2406 BUS posted 2406 8d3c0846bc49af7ec2e4c939877dd7ca335d7fe1 Fix review: blocked d1becac2b30830c9fb20bda298056cc8577fb793 red-at-head: tests/entities.py fails 2 gra
+2026-10-18T18:45:44Z POSTED 2401 BUS posted 2401 ead6d16571baf6c9463061b2740d9c1ee36ac024 Fix review: merge 311e9de3e0c6d5bd0aa2139caf16b7707bf232f6
+2026-10-18T19:06:28Z POSTED 2399 BUS posted 2399 e228d2f98b466f21eb70b1a9c6fe341b3ecb1e25 Fix review: blocked acf14d8f2267718203d9dc1b313bc8c3e9f0bc8d carry-missing: not carried to R10-BRIEFS-F
+2026-10-18T19:19:16Z POSTED 2391 BUS posted 2391 d02e71d3e4314b818eff693cda4f0da874ae83b4 Fix review: blocked 3aba8f1eb2865de9d00edb9321185f387e4322f2 vacuous-test: zeroing the coordinator feed
+2026-10-18T19:19:56Z OWED confirm 2415 97e9847dce94b38caf110825017b1628283c8493
+2026-10-18T20:41:15Z POSTED 2390 BUS posted 2390 cb96d9ff72662db0bf3c4692167caf4939402c13 Fix review: merge aad55ffb4de4a12db5ac222160333bc4fda36050
+2026-10-18T20:56:37Z POSTED 2404 BUS posted 2404 74ba638c7954fd927b58c9c5966649601b722f81 Fix review: blocked 03f1681a3e684854b5b934020ec5d44612b2ffd2 root-cause-unanswered: wave-script went re
+2026-10-18T21:37:28Z POSTED 2399 BUS posted 2399 44d0cf351c14935598ffaf33bf8079fb37f4534c Fix review: merge 5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39
+2026-10-18T21:40:01Z POSTED 2408 BUS posted 2408 62efc32888c844976676f2c0bce86f46e4e50218 Fix review: merge 928a672753558ca6f88f45f806d9aa9b04440c36
+2026-10-18T21:42:38Z POSTED 2406 BUS posted 2406 ed98ce101e9444508d6a29b34763e527688490d5 Fix review: blocked 2d9f2000967579f577940a0eb4842d0a76867aec root-cause-unanswered: wave-script went re
+2026-10-18T21:45:09Z POSTED 2368 BUS posted 2368 77c7f88df6c84d58437bdc74b8c30bb1c652593b Fix review: merge 86258e159d6e18b41aa0edafc79c6b8921d5c4dc
+2026-10-18T22:39:47Z OWED confirm 2423 56b909f17858a6f4d36fb692bfb589f750f13cff
+2026-10-18T22:54:12Z REF-MOVED refs/heads/probe/design-ci-rev1 485ae940918142a41f03844c9c4b5c5ac066dbcd
+2026-10-18T23:10:16Z REF-MOVED refs/heads/handoff-body/r10-sav-baseline 5ba2f2c6cf6f4642589588cd49810634327e36c2
+2026-10-18T23:10:16Z REF-MOVED refs/heads/handoff/r10-sav-baseline f25c9b1b74585735f5517765067d1843c24f2500
+2026-10-18T23:10:16Z REF-MOVED refs/heads/probe/design-ci-review2 d63cbe4233552442ffdae13c192ec51eefdd01a8
+2026-10-18T23:20:19Z REF-MOVED refs/heads/handoff-body/r10-merge-subject-guard 597e489e41ae4df9b43524d5bff1474e517dcfd4
+2026-10-18T23:20:19Z REF-MOVED refs/heads/handoff/r10-merge-subject-guard 931fa7b7b0867d157067c75fd202fe5965d36a32
+2026-10-18T23:32:21Z POSTED 2424 BUS posted 2424 260b6c8c406a58888e52a16c6647585a7cd21a6b Fix review: blocked 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed ci-red: instrument-self-tests is red at th
+2026-10-18T23:36:23Z REF-MOVED refs/heads/probe/design-ci-rev2 d775cc6cf05aa1beebe84aaa2b670d9967c10069
+2026-10-18T23:44:25Z REF-MOVED refs/heads/handoff-body/r10-merge-subject-guard 7969407923c6688f9a604497585839f1e6ebdf03
+2026-10-18T23:44:25Z REF-MOVED refs/heads/handoff/r10-merge-subject-guard 240a8f5b454f5a16fbf7867136d65a225171c17a
+2026-10-18T23:54:45Z POSTED 2424 BUS posted 2424 ecf6a9138a7a4c434bf1e30027973c73492ac288 Fix review: merge 8baf5eac34e3e9fa3c447f47ec898a6e588efab3
+2026-10-19T00:02:30Z REF-MOVED refs/heads/probe/design-ci-review3 f731b201a7ce88c1f39e576080319cedb91394d9
+2026-10-19T00:26:37Z REF-MOVED refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+2026-10-19T00:26:37Z REF-MOVED refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+2026-10-19T00:38:40Z REF-MOVED refs/heads/probe/design-ci-rev3 8bd4e68fe2429c63390fa06a62cb2d3dce44bc9f
+2026-10-19T00:51:19Z POSTED 2420 BUS posted 2420 7af6027bdfd968dd714e6433789670938d2d676a Fix review: merge 328813ad5fb2055a07a4867c33f7cfc96d961168
+2026-10-19T00:52:44Z REF-MOVED refs/heads/probe/design-ci-review4 21c86c184dd34cf7f7ba4717db9cad8b46624fd4
+2026-10-19T01:05:56Z POSTED 2411 BUS posted 2411 2ba585146234ebe238a14891aa56b2ffb2b9801b Fix review: blocked b9f72cb10e8f12798f0111189dedc607d3393acd carry-missing: not carried to the mutation
+2026-10-19T01:12:51Z REF-MOVED refs/heads/probe/design-ci-rev4 1371a0a6ba74c3bbc7448abfd5f3320796d203ba
+2026-10-19T01:24:54Z REF-MOVED refs/heads/probe/design-ci-review5 afc00bfe0357850b4edfa5431ecdcd2b2b1c3866
+2026-10-19T01:43:00Z REF-MOVED refs/heads/handoff/r10-roster-fastpath 26b148e5b6f2114803da0c571c33c55d217232ce
+2026-10-19T01:44:52Z POSTED 2411 BUS posted 2411 f5d337191efe36a3e1c17c512bb482e20a61a65c Fix review: merge b9f72cb10e8f12798f0111189dedc607d3393acd
+2026-10-19T01:49:02Z REF-MOVED refs/heads/handoff-body/r10-carry-enforce 2e50a4ed88f804f74ee281c720102e04026b877a
+2026-10-19T01:49:02Z REF-MOVED refs/heads/handoff/r10-carry-enforce bd68cf756ab63a475d37d30fcdf60b35d85a6214
+2026-10-19T01:57:05Z REF-MOVED refs/heads/handoff-body/r10-roster-fastpath e8e675086bf71721833bd4a738c10108124fe5fe
+2026-10-19T02:07:28Z POSTED 2404 BUS posted 2404 896038d42bbd6d3c8597371165a2dbe1369f5a5c Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 carry-missing: not carried to R10-TICK-DRI
+2026-10-19T02:09:09Z REF-MOVED refs/heads/handoff-body/r10-cloud-shape 2b250833bd7a364e57044e42e962b8ba013ee803
+2026-10-19T02:09:09Z REF-MOVED refs/heads/handoff/r10-cloud-shape 758b6152be4c745c94a51ec06f205c5d32d38e31
+2026-10-19T02:15:10Z REF-MOVED refs/heads/handoff/r10-roster-carry-policy 0fd1f3e4f217ff1e20ddc491428747afdf2fdf44
+2026-10-19T02:19:12Z REF-MOVED refs/heads/handoff-body/r10-roster-carry-policy e0bbed4644d0abc0412e99136699042bbdf7b207
+2026-10-19T02:32:04Z POSTED 2419 BUS posted 2419 33c5f7fc6c39cd0cea556b93f3ddee6b2bf840db Fix review: merge cf687605d2678912b80d7e4c909b2471f32a680b
+2026-10-19T02:34:35Z POSTED 2406 BUS posted 2406 e678930e4af0a77463cc6639973345c35e314f11 Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: not carried to the post-mer
+2026-10-19T02:35:17Z REF-MOVED refs/heads/handoff-body/r10-train-raise-hold debfb143db5a50b78e0333bd4f1ccc0e71fdd31d
+2026-10-19T02:35:17Z REF-MOVED refs/heads/handoff/r10-train-raise-hold 86cecbf07a9266f23984cf67f912c7a61fce4152
+2026-10-19T02:37:17Z REF-MOVED refs/heads/handoff/r10-roster-fastpath 22803f99bd8be29012a668ef22140dd12ae3aa5e
+2026-10-19T02:49:21Z REF-MOVED refs/heads/handoff-body/r10-carry-enforce 5817b10b79442d7e4a376c60c0a54b7cf0e5d7d9
+2026-10-19T02:49:21Z REF-MOVED refs/heads/handoff-body/r10-roster-fastpath dfbffb2355d52a7744d1b207ba9cce93952df6eb
+2026-10-19T02:49:21Z REF-MOVED refs/heads/handoff/r10-carry-enforce b419463b18a2a7da70c77b23e912769e4af6afe8
+2026-10-19T02:53:08Z POSTED 2404 BUS posted 2404 cb4fffea46806747c40c6e1a55eed89f814d09d3 Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 root-cause-unanswered: pr-contract went re
+2026-10-19T02:53:32Z POSTED 2406 BUS posted 2406 f518511fab2259e01bb46f64501a06a51fe37cf2 Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: the body still names done R
+2026-10-19T03:00:03Z POSTED 2408 BUS posted 2408 b2ef875e3c4400073b2c0de2eb07f1b40e0db930 Fix review: merge 21e87f79c0baca0a1afce61703ad54d8d0467849
+2026-10-19T03:03:26Z REF-MOVED refs/heads/handoff-body/r10-openpr-silent acedfcb98dd069cd3c9e890bb56b5c048e13fd26
+2026-10-19T03:03:26Z REF-MOVED refs/heads/handoff/r10-openpr-silent d41ec9d271fb178de5140f11ca249691c9fa7183
+2026-10-19T03:05:26Z REF-MOVED refs/heads/handoff-body/r10-diag-replay c4ed3f9bdacb2996ac36cafdc87a9caba98d2c6a
+2026-10-19T03:05:26Z REF-MOVED refs/heads/handoff-body/r10-roster-fastpath add638d9f9eceece57f698241d9405acca87ee42
+2026-10-19T03:05:26Z REF-MOVED refs/heads/handoff/r10-diag-replay 705a9b851d314f860f3fa29e0e092231d5c878ad
+2026-10-19T03:06:25Z POSTED 2421 BUS posted 2421 24a7cd58d4b6a67c2218b08ceb2cf10a6fcbeb94 Fix review: blocked 1e6e79caa3b2a9f438e055cda1df52dd77eac930 harness: replay-fails-open: r10_train_rais
+2026-10-19T03:10:52Z POSTED 2406 BUS posted 2406 0951c4903036f08962e3f35c8cf76add177fbafc Fix review: merge 22803f99bd8be29012a668ef22140dd12ae3aa5e
+2026-10-19T03:13:21Z POSTED 2399 BUS posted 2399 39b24f9d2b95348cf27cfc97f511d5dad2b5ea60 Fix review: merge 705a9b851d314f860f3fa29e0e092231d5c878ad
+2026-10-19T03:17:30Z OWED relay-refused 2417
+2026-10-19T03:19:56Z OWED confirm 2417 dcb491be46afc63a391c732ff78eee20ebda71c1
+2026-10-19T03:33:34Z REF-MOVED refs/heads/handoff-body/r10-train-raise-hold 54f622bc49969f036b8677a8424b06f677376ef0
+2026-10-19T03:33:34Z REF-MOVED refs/heads/handoff/r10-openpr-silent 0b5c9b2418a0b8307c28173c15faae194b6e6075
+2026-10-19T03:33:34Z REF-MOVED refs/heads/handoff/r10-train-raise-hold 35c0b69fba7cb165d00bd3493c8a246815323e90
+2026-10-19T03:35:35Z REF-MOVED refs/heads/handoff-body/r10-openpr-silent 52629fc61e2a47a2ec3ca8f60029a13d2e5a495b
+2026-10-19T03:52:36Z POSTED 2422 BUS posted 2422 df9008ddda230a132aaf363f68962607be34a5d3 Fix review: blocked 01e08685f4e454e17dc16c467a5e5e3c7ad8be5f regression: the automatic merge of origin/
+2026-10-19T03:59:03Z POSTED 2421 BUS posted 2421 084895e628a4051a9eed50c2babff1c4fbb164df Fix review: merge e9c0092e27e91e4b1d23178fc75774e5798dcc22
+2026-10-19T04:43:58Z REF-MOVED refs/heads/handoff-body/r10-vent-detector 63c9e5ed33ff2a56bd7910c7891fa9d95bf1e045
+2026-10-19T04:43:58Z REF-MOVED refs/heads/handoff/r10-vent-detector 4c19994fcfa3e7a46dec1d9fbe528fca10414e21
+2026-10-19T05:08:06Z REF-MOVED refs/heads/handoff-body/r10-openpr-silent 4cd79274147b26f23152a61865aaaa85ed671692
+2026-10-19T05:08:06Z REF-MOVED refs/heads/handoff/r10-openpr-silent 9863f753f7be8dd8bcc860f016437a7de4e805bb
+2026-10-19T05:14:08Z REF-MOVED refs/heads/handoff-body/r10-carry-enforce 7b21ceb8e3e0f2fadc328b12c2a41d20825aebfb
+2026-10-19T05:14:08Z REF-MOVED refs/heads/handoff/r10-carry-enforce 74201dd56bec5ed4b98a09557c1569f0c4e6a13a
+2026-10-19T05:26:09Z POSTED 2422 BUS posted 2422 1341a48bdcbdd91cf49ff0f44bf5a204e7c364d3 Fix review: merge c12b0562da080854e16e52448b7cdb4f1f242883
+2026-10-19T05:32:14Z REF-MOVED refs/heads/handoff/r10-pump-model-d2 e85ef9fe6f5080dd12cf12da4800e69ea14ab080
+2026-10-19T05:34:14Z REF-MOVED refs/heads/handoff-body/r10-pump-model-d2 a4485802642fbe3ef7f721159784e8caa532d87a
+2026-10-19T05:48:18Z REF-MOVED refs/heads/handoff-body/r10-rca-structure-blind 26929432740775df28cb76daffab852a24e7544a
+2026-10-19T05:48:18Z REF-MOVED refs/heads/handoff/r10-rca-structure-blind 2a01f9ee2dd4d6093780d24b9cd75b92ff9d3cb9
+2026-10-19T05:56:20Z REF-MOVED refs/heads/handoff-body/r10-tick-selftest-ci d5491a2fa4b2fcaf4bf17d696822bccd12669f9d
+2026-10-19T05:56:20Z REF-MOVED refs/heads/handoff/r10-tick-selftest-ci c13ed69e6d609d90e05cf3d018cd3bda349023d1
+2026-10-19T05:56:43Z POSTED 2404 BUS posted 2404 cacbab1f763ce0521f25e8b2256c6c28fa6c6bae Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 root-cause-unanswered: pr-contract went re
+2026-10-19T05:59:08Z POSTED 2391 BUS posted 2391 a4d9e8ce22b332e8dc96e2e947c11348d5592422 Fix review: blocked 4c1352f05aa6797e06a7af5fdc456039756f2bcc architecture-unsound: departs from the R10
+2026-10-19T06:10:24Z REF-MOVED refs/heads/handoff-body/r10-carry-enforce d1abe9c6c9a6cbd2042fc6023214b9815f06b1ad
+2026-10-19T06:13:38Z POSTED 2404 BUS posted 2404 5fa0e0125c3db6c06297e36965235a3c5f05cbb8 Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 carry-unsound: Forward-carry item 1 routes
+2026-10-19T06:14:26Z REF-MOVED refs/heads/handoff-body/r10-carry-enforce 8c47b76495d6851d5f31c940b18f5efa1bd1b6a9
+2026-10-19T06:22:09Z POSTED 2391 BUS posted 2391 a6eac1c2f6cf11846d3e5a184f033f14168d2f8b Fix review: merge 4c1352f05aa6797e06a7af5fdc456039756f2bcc
+2026-10-19T06:22:34Z POSTED 2404 BUS posted 2404 687c90728f10b1023e562c6cec18a8663a7f43d0 Fix review: merge 519bb4db971b5d49736fcacdd57d57bff8f6c630
+2026-10-19T06:25:00Z POSTED 2368 BUS posted 2368 4985b06e225cdf5f9b076a389843d981706f4f93 Fix review: merge 91a3f77c9f968341a578d46277c0ff0e08c20dcc
+2026-10-19T06:33:29Z POSTED 2433 BUS posted 2433 41537fe7b08994a66dadea27f22a96b3b458d343 Fix review: merge 45bb861b75728e7924944741b41a68c8fb5e9f5c
+2026-10-19T06:35:56Z POSTED 2415 BUS posted 2415 3277284ca5dbd78e0480bc7789541f494db461de Fix review: merge bd8011e9231944317162ffbde7824ffcad89ff2e
+2026-10-19T06:56:41Z REF-MOVED refs/heads/handoff/r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85
+2026-10-19T06:58:42Z REF-MOVED refs/heads/handoff-body/r10-archscore-census 9f7046a8d75478fa67e8b642e8f26ed79d49aeb6
+2026-10-19T06:58:42Z REF-MOVED refs/heads/handoff/r10-archscore-census fbcf5c3e8f384fc240f8f15b28f68ccf5b3f441a
+2026-10-19T07:02:43Z REF-MOVED refs/heads/handoff-body/r10-recarry-head 8bea4d93a588771b8f39bf0eac3ed07840a28d2a
+2026-10-19T07:36:53Z REF-MOVED refs/heads/handoff-body/r10-trust-relative ac171a2418b435191a4daa31c8d241f8469e8f3d
+2026-10-19T07:36:53Z REF-MOVED refs/heads/handoff/r10-trust-relative 5337d23ea3f0685786467e7f5734d11e2c4be2b1
+2026-10-19T08:27:04Z POSTED 2442 BUS posted 2442 be89ac40cf2d754385efe3ea1046d0ee12112d94 Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af carry-missing: the body's ## Forward-carry
+2026-10-19T08:29:09Z REF-MOVED refs/heads/handoff-body/r10-recarry-head c7e891faea09dd2ab9b1298120369d1d271e3c6c
+2026-10-19T08:33:25Z POSTED 2442 BUS posted 2442 ae0e1884a1131355c7a65e010669d23dd6fbfe4a Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af body-head-unnamed: ## Head names bef08da49
+2026-10-19T08:41:12Z REF-MOVED refs/heads/handoff-body/r10-recarry-head dc1cd772e26671efe5127707b5601d48bcbe7b80
+2026-10-19T08:47:53Z POSTED 2435 BUS posted 2435 aeff759d1f9c7370abbefd403423f9faab99b565 Fix review: blocked 536080c084c3ea201db13860c29bcca577fac5db carry-missing: pr-contract (jobs 117965471
+2026-10-19T08:50:24Z POSTED 2442 BUS posted 2442 00e01228f0df1ff81b58c44041706e635301f109 Fix review: merge b9f201f90efbb39422319426a7839c036b7b46af
+2026-10-19T09:03:19Z REF-MOVED refs/heads/handoff-body/r10-pump-model-d2 a1e63ec286a0f707aeee0a7c2bf05115ea0e72ab
+2026-10-19T09:03:19Z REF-MOVED refs/heads/handoff-body/r10-trust-relative 4271897f5fc9b6e241224fe866d0b10f077ac9c4
+2026-10-19T09:43:32Z REF-MOVED refs/heads/handoff/r10-archscore-census 73261ce9b5c636ed8aa9ef19118a12e745af27bd
+2026-10-19T09:45:32Z REF-MOVED refs/heads/handoff-body/r10-archscore-census 9507886b8096a6e0f94ee05d487b4e35ac943dd3
+2026-10-19T09:55:22Z POSTED 2435 BUS posted 2435 af04c0f6f81a7cede40bcc7b25284e379eaaf822 Fix review: merge 536080c084c3ea201db13860c29bcca577fac5db
+2026-10-19T10:11:52Z POSTED 2441 BUS posted 2441 6200c79f1d77f63801686f7267319095deb22f08 Fix review: blocked 733ac35089522bac79c89fe7d28c4860d9f0c0a6 carry-missing: not carried to R10-BRIEFS-F
+2026-10-19T10:47:25Z REF-MOVED refs/heads/handoff/r10-archscore-census da6b4520059abb628c8582719df6ec867ae1eab4
+2026-10-19T10:49:26Z REF-MOVED refs/heads/handoff-body/r10-archscore-census 01d9d3c8203fc8f06cc4fbe5b1b5892fa6521655
+2026-10-19T10:49:26Z REF-MOVED refs/heads/handoff-body/r10-seat-selftests-ci 60945112b2bf6007b5ba83701314d6c5cd8be6bc
+2026-10-19T10:49:26Z REF-MOVED refs/heads/handoff/r10-seat-selftests-ci a997502dc8c5547b1dd720bc2d0e982bc6115f61
+2026-10-19T10:53:27Z REF-MOVED refs/heads/handoff-body/r10-archscore-census 18f80612ef33d6e557c7363038889530d69f1c24
+2026-10-19T11:27:40Z REF-MOVED refs/heads/handoff-body/r10-setpoint-power ed5236a185bc55139416c670d8e3ad0e12f62065
+2026-10-19T11:27:40Z REF-MOVED refs/heads/handoff/r10-setpoint-power 432c425568e54768a2d9db091aab73af74f51cbd
+2026-10-19T11:39:29Z POSTED 2441 BUS posted 2441 571fc335d5a47ce2366cdc131cdca68e37b8f359 Fix review: merge 83e212a1b4823c3e1d9144bde1424a4906302af3
+2026-10-19T11:51:48Z REF-MOVED refs/heads/handoff/r10-prepr-unpinned-red e6fc778ef4178a5bf3b544f04cf2a6378ac4993f
+2026-10-19T11:53:49Z REF-MOVED refs/heads/handoff-body/r10-prepr-unpinned-red 7523ddd01b0fbb44a7995fb4a439f34cf43ddb68
+2026-10-19T11:57:50Z REF-MOVED refs/heads/handoff-body/r10-dead-rate-limit 93eed4bcef2d3ddea232f51628ef830f482ebe34
+2026-10-19T11:57:50Z REF-MOVED refs/heads/handoff/r10-dead-rate-limit d85b8c246cafb2448ed2a2866f78404c3b31c6fc
+2026-10-19T12:21:58Z REF-MOVED refs/heads/handoff-body/r10-prepr-unpinned-red 3346ca1efcf1d0ea621e9bc6ecf8ea5117828d20
+2026-10-19T12:21:58Z REF-MOVED refs/heads/handoff/r10-prepr-unpinned-red dcf20edf0ac284ae6c011efeff17b65ab923ff98
+2026-10-19T12:32:02Z REF-MOVED refs/heads/handoff-body/r10-seat-selftests-ci 9bade37fc3279b1556ccf920b60260d44e52da60
+2026-10-19T12:32:02Z REF-MOVED refs/heads/handoff/r10-seat-selftests-ci c4a6597eb345f6eff4b303dbfc9dfc68d4cc8fff
+2026-10-19T12:32:31Z POSTED 2448 BUS posted 2448 88fcc86c514e621e7abd7df0c005add7c12231eb Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, ca
+2026-10-19T12:36:04Z REF-MOVED refs/heads/handoff-body/r10-dead-rate-limit 9437faeedcf6991a6261e8dc4e151958948bb61d
+2026-10-19T12:38:58Z POSTED 2448 BUS posted 2448 bda77215c5c6d5a092d9ded64484c2f504c98572 Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, ca
+2026-10-19T13:19:47Z POSTED 2448 BUS posted 2448 c41b2795cdd55a46441c636fb595c46206291b0c Fix review: merge 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1
+2026-10-19T13:22:11Z POSTED 2447 BUS posted 2447 9b1e46b78b42e1100e0798a02da5e7b6990bcf84 Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-POLICY-F
+2026-10-19T13:30:29Z POSTED 2444 BUS posted 2444 e9bbcd2caabcf15974eb0cf56fb97b7493195015 Fix review: blocked b891dfa048a9e52bb782dd058415e286cf8efaf5 mutation-survivor: selftest_wiring.py repo
+2026-10-19T13:34:54Z POSTED 2447 BUS posted 2447 c82f716a2d66fc40b8a25529c1c44302a84289b6 Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-CI-LAYOU
+2026-10-19T13:40:25Z REF-MOVED refs/heads/handoff-body/r10-deeplink-handlers 8b0de683db88b1525ddc94eee2371a80fe94e2fb
+2026-10-19T13:40:25Z REF-MOVED refs/heads/handoff/r10-deeplink-handlers 68a94415f0db23c72199b20ef71b1d5f63742c77
+2026-10-19T13:43:26Z POSTED 2447 BUS posted 2447 1c222ce8a8eab893f9f40298767fc26513f3861f Fix review: merge 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a
+2026-10-19T13:54:30Z REF-MOVED refs/heads/handoff-body/r10-setpoint-power c017ca27f10fb26781fcfd5f6136bd2bbd3ea806
+2026-10-19T13:54:30Z REF-MOVED refs/heads/handoff/r10-setpoint-power 53fc30d6c91d76ea04c6f8fc7259c1d6809b1b9c
+2026-10-19T14:10:35Z REF-MOVED refs/heads/handoff-body/r10-seat-selftests-ci 90e141ae02fc058af0cacfcc9393d2a9fb797c11
+2026-10-19T14:10:35Z REF-MOVED refs/heads/handoff/r10-seat-selftests-ci bc94fc2a3502489b99f0adac12637d5472132b02
+2026-10-19T14:40:11Z POSTED 2444 BUS posted 2444 7743e486b3d98df59902d7a61a86c5131b1f2921 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: not carried to R10-CI-LAYOU
+2026-10-19T14:48:34Z POSTED 2444 BUS posted 2444 a83edba40a8dda93bf1677bf7508333bae5ff749 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: the four #2444 carries at r
+2026-10-19T14:50:45Z OWED relay-refused 2452
+2026-10-19T14:52:51Z OWED relay-refused 2452
+2026-10-19T14:55:06Z POSTED 2452 BUS posted 2452 9b1d94037f8334957647560ebbae5549b1e905cd Fix review: blocked a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 harness: class-open location.pathname/sear
+2026-10-19T15:11:46Z POSTED 2444 BUS posted 2444 3e2d5afd1754b6b2646e50c37f5ced9cbf64e645 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a root-cause-unanswered: arch-score went red
+2026-10-19T15:18:12Z OWED relay-refused 2444
+2026-10-19T15:18:38Z POSTED 2445 BUS posted 2445 95c28f912c32b4d8488d5645ae8b906142e2cc92 Fix review: merge 40c4e1194dfd23371403f874e9a8a1abd45da162
+2026-10-19T15:21:03Z POSTED 2444 BUS posted 2444 5fbe8b55c065f463b82fa47fd45d0b9d2aaee035 Fix review: merge 8be64a110fa4e741889920c4eff2b6b4cb99cf3a
+2026-10-19T15:41:02Z REF-MOVED refs/heads/handoff-body/r10-follower-debounce ae54e51ee6dfdbc7a5a1df01a2f06b14636d1857
+2026-10-19T15:41:02Z REF-MOVED refs/heads/handoff/r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8
+2026-10-19T17:45:51Z REF-MOVED refs/heads/handoff/r10-stamp-claims 2a9ca2b23ee750177666f4e6fd6d33c49b80e0bd
+2026-10-19T17:47:52Z REF-MOVED refs/heads/handoff-body/r10-stamp-claims 595adbcfa0a926d23623297d0cf303af105a29cc
+2026-10-19T17:54:32Z POSTED 2455 BUS posted 2455 11a65e7395f477ddbce3ce5371becd9ee3580990 Fix review: blocked d1ad4de812df6c3a97bfeb84d37ec11c7ff0095d dispatch-mismatch: PR #2455 at this head i
+2026-10-19T18:30:07Z REF-MOVED refs/heads/handoff/r10-policy-instruments c3405516046ef301e9fc85bcc4b243f5709102a7
+2026-10-19T18:32:08Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments 4bfcd44a18e40d8fd527a21a6ecdc7b051469663
+2026-10-19T18:46:13Z REF-MOVED refs/heads/probe/cloud-seat-20261018 8b14bcecce3ca6aabc3d84ed3b1db62bd393c2d0
+2026-10-19T18:54:16Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments b86c2cf3390ea56fdc16af72d033bb48e51abbb3
+2026-10-19T20:12:49Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments a8b2e11b6049990c4048427ccc5d707409ee880f
+2026-10-19T20:30:56Z REF-MOVED refs/heads/handoff/r10-policy-instruments 03f2edd98721ff8e2af800c47e5926e8bf936ebf
+2026-10-19T20:39:03Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments 3085bd14eac7696befef989d794607efcfb12199
+2026-10-19T21:09:18Z REF-MOVED refs/heads/handoff/r10-savings-negative ca6220ad245567eca317b29662b493cbce49d93e
+2026-10-19T21:11:19Z REF-MOVED refs/heads/handoff-body/r10-savings-negative 9b39b8e057c8d225aac19350de8c0a96c8243280
+2026-10-19T21:11:19Z REF-MOVED refs/heads/handoff/r10-savings-negative 2d1758154b17eaf48699f036c13f0ddec1d21995
+2026-10-19T21:37:29Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments df2a005ab96020e10f15c3ceb7dbeeaf5ad6e119
+2026-10-19T21:47:32Z REF-MOVED refs/heads/handoff-body/r10-savings-negative 21edd8574465c0b70c92be17a589e5a7c09db2aa
+2026-10-19T21:53:34Z REF-MOVED refs/heads/handoff-body/r10-ci-layout-p0 c43c7a43f873120bfbfdf7d80310639f6b9638ce
+2026-10-19T21:53:34Z REF-MOVED refs/heads/handoff/r10-ci-layout-p0 385b3a0d375b68f53d016c8b53eea7956a906fee
+2026-10-19T21:55:35Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments 42540991eef90a6af266d6f72836d2883b41a0c0
+2026-10-19T21:55:35Z REF-MOVED refs/heads/handoff/r10-policy-instruments 26189a1fdf61777848fca426634bcc14b07a0f93
+2026-10-19T22:05:38Z REF-MOVED refs/heads/handoff-body/r10-deeplink-handlers f27923ca5224dd90094d104c82ec46b0d81ac40a
+2026-10-19T22:05:38Z REF-MOVED refs/heads/handoff/r10-deeplink-handlers 8b3ea42cbd45fcb30fefe03d2e74a79876f5c1c0
+2026-10-19T22:17:41Z REF-MOVED refs/heads/handoff-body/r10-setpoint-boost 1ff6d76ac484fe41363da09b35d1b9d5ddde8e1f
+2026-10-19T22:17:41Z REF-MOVED refs/heads/handoff/r10-setpoint-boost a3aee59452bb8ea15807fb405e41f565def4b32d
+2026-10-19T22:21:42Z REF-MOVED refs/heads/handoff-body/r10-policy-instruments 8be002bca79538f91644ef48ce6cf85186e419be
+2026-10-19T22:51:53Z REF-MOVED refs/heads/handoff/r10-setpoint-boost 890fba053bdf3b3c7611f6a860be528665278259
+2026-10-19T22:55:54Z REF-MOVED refs/heads/handoff-body/r10-setpoint-boost fda8a2da1cb4a8cbf5b998ed0f8613b0f5d2626a
+2026-10-20T00:00:15Z REF-MOVED refs/heads/handoff-body/r10-ci-layout-p0 ce444c280229561cf233f3d339ace1dd4252f2cb
+2026-10-20T00:00:15Z REF-MOVED refs/heads/handoff/r10-ci-layout-p0 b4d7bf9c748caa93b8baf2ce013961bb9d273d4f
+2026-10-20T00:02:16Z REF-MOVED refs/heads/handoff-body/r10-setpoint-boost fbb515ea497d0a5d34e6355e7d8fac22ef0c96ac
+2026-10-20T00:10:18Z REF-MOVED refs/heads/handoff/r10-setpoint-boost f7e98dbe17c1b6370c5783008aac9f1a502024e4
+2026-10-20T00:16:20Z REF-MOVED refs/heads/handoff-body/r10-setpoint-boost 15fc3838fbac4df07e71dcd7e9890b2763d9386a
+2026-10-20T00:26:23Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish 5678481c96fae253843d6748da2a6bf8ca21f411
+2026-10-20T00:26:23Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish 49577add8c4df47aa24124727fd2f6e250f3434f
+2026-10-20T01:14:37Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish f2df3051832033a968670e029b0de83debc0f978
+2026-10-20T01:14:37Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish 75a05f3baa16f13b0bb261f3ed2729f4f26f67cf
+2026-10-20T02:04:54Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish 507d1d76fca8c9dffefa0f2efdc92d4f89bfae6b
+2026-10-20T02:04:54Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish 28c7c454abd087e62365ec9239f4157dd68a0358
+2026-10-20T02:10:56Z REF-MOVED refs/heads/handoff-body/r10-ci-layout-p0 549bd67cdc8ce9c2a99ff61acb9680bb1366c200
+2026-10-20T02:10:56Z REF-MOVED refs/heads/handoff/r10-ci-layout-p0 dd3a44474543f52974667fb37861b346d607980d
+2026-10-20T03:17:15Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish a6172f86e7a634fd6f200e37666717a0168e8dff
+2026-10-20T03:17:15Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish a3af24fcf08562d07bd2aaa43cf8cf08eab00e4c
+2026-10-20T04:03:29Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish b172d186f8108209049be028259b3354eb54c187
+2026-10-20T04:03:29Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish c9dd299c9d14493d0055cc2e4de25b42f6b2d011
+2026-10-20T05:05:49Z REF-MOVED refs/heads/handoff-body/r10-rca-worktree-vanish 052b81be15d51bb0b1ee652389b24c1a7c1d94ad
+2026-10-20T05:05:49Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish 931e9a0f567584657ecaed2b61e61c857bdd2135
+2026-10-20T05:56:07Z REF-MOVED refs/heads/handoff/r10-rca-worktree-vanish d42eb15a7425c2ae17846a6631520ce81dac2038

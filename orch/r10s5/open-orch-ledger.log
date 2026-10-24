@@ -1,0 +1,7 @@
+open_pr: 10 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+  REFUSE   ancestry reds          RED UNANSWERED (delivery-status wave-script): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-orch-ledger/body.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/governance.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (2 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-orch-ledger/p2.log
+rc=1

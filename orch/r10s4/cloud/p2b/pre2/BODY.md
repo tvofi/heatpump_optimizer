@@ -1,0 +1,51 @@
+R10-CI-LAYOUT-P2b-pre2: the architecture-score pair gets its own job beside `fast`, on main. Part of #2495.
+
+**Why now.** #2662 (P2b, the cut-over) was blocked at e542446e7 because main's push gate would be red by construction after the ruleset PUT. That PUT makes `gate` required, `gate` owes `tests / ci-ratchet` on a push, and main's ci-ratchet is red today:
+- `GROW critical_path_minutes: 57.80833333333334 (budget 54.825)` in job 120380010176, the push Tests run 39938675967 at a6620c30a;
+- the newest 8 completed push Tests runs on main take 41.7, 57.5, 59.0, 57.8, 61.8, 47.5, 57.5 and 57.8 minutes, a median of 57.65.
+
+The path is `fast (3.14)`: 56.3 min of run 39938553722's 57.5, and 40.4 of run 39938675967's 41.7. Roster carry 3 measured `tests/arch_score.py` and `arch_score_head.py` at about 41 of those minutes. A budget raise is refused while this payment exists. The owner ruled (a): the payment lands on main first, main goes green on its own, and only then does the ruleset window open.
+
+**The change.** This ports P2b's unit U5b (1ae2cf9ff, approved with the design) into main's current `tests.yml`:
+- `tests/run.sh`: `RUN_PART=fast` skips the pair by name, so fast's accounting still sees both. `RUN_PART=arch` runs the pair alone. Unset runs everything, as before, which is what local runs, prepr and coverage's script list see.
+- `tests.yml`:
+  - `fast` sets `RUN_PART=fast`.
+  - A new job, `arch-instrument`, runs `RUN_PART=arch`. It needs `closure-scope` and stands down at the step level on fast's lane-skip decision.
+  - It takes fast's scope through copies of fast's two scope steps: the golden comparison ref, and auto on a pull request or full on a push.
+  - `lane-proofs` records fast's proof only when `arch-instrument` also passed.
+- No required context changes. The ruleset's 17 are unchanged and `arch-instrument` is not among them. `script_runs_per_push` stays at 54, because the closures plan still measures the pair and the coverage stage never ran it.
+
+U5b's other files belong to the umbrella and are not ported: `tools/ci/gate.py`, `tools/policy/fixtures/required-contexts.json` and the U5 harness files. P2b is re-cut over this PR afterwards.
+
+## Head
+
+b759eaadd, on main 4c31eb16e.
+
+## Mutation proof
+
+- 509ac38ad (the pin alone) is red on main's `tests.yml`: the pin "arch-instrument takes fast's scope by equal copies of fast's two steps, and each runs its own RUN_PART" reads `copies equal: []; RUN_PART: [None, None]`.
+- A mutant that changes only arch-instrument's copy of "Decide the gate scope" (full on a push becomes auto) fails the pin: `copies equal: ['Resolve the golden comparison ref']`.
+
+## Null control
+
+- On this tree the pin passes: both jobs exist, both copies are equal, and the RUN_PART values are fast and arch.
+- Unset `RUN_PART` runs the whole suite, as main does now, so prepr and local runs are unchanged.
+- The real-run null for the split is P2b's own CI. Across 10 new-layout code runs at P2b-tree heads (#2656, #2657, #2662 and the ci-probe/all dispatches), the `tests / *` wall from creation to the last `tests / *` completion, which is critical_path_minutes' own rule, has a median of 33.1 min:
+  - the values are 24.7, 30.4, 32.9, 32.9, 33.0, 33.1, 33.3, 33.5 and 34.1, plus one queue outlier of 69.1 (run 39927864661);
+  - in those runs `fast` takes 16–30 min and `arch-instrument` 19–32.
+
+## Figures
+
+- critical_path_minutes for this PR's own runs: filled from its first code run, as the `tests / *` wall by the ratchet's rule. The push figure comes from the first post-merge push run.
+
+## Red checks
+
+`none`
+
+## Forward-carry
+
+- After this merges, P2b (R10-CI-LAYOUT-P2b) re-cuts its U5b over it, and the ruleset window waits until main's newest completed push Tests run shows `tests / ci-ratchet` green. `ruleset_cutover.py --disable` reads that precondition. Carry: R10-CI-LAYOUT-P2
+
+## Friction
+
+`none`

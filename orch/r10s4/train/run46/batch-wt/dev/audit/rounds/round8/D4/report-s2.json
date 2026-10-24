@@ -1,0 +1,79 @@
+{
+  "dimension": "D4",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D4-s2-01",
+      "title": "One options-flow field label left in English on the Swedish locale",
+      "severity": "low",
+      "claim": "translations/sv.json's label for ecl110_mqtt_qos (Heat curve control page) is byte-identical to translations/en.json's, while every other field on the same page and section (e.g. the sibling ecl110_mqtt_retain -> 'Behall MQTT-meddelanden') is translated, so a sv-locale user sees one raw-English control label ('MQTT quality of service') inside an otherwise-Swedish page.",
+      "mechanism": "strings.json is the source of truth voluptuous schemas render against; translations/sv.json is a hand-maintained catalog keyed by the same JSON path. Nothing enforces that every non-brand, non-numeric, non-format-placeholder string in it actually differs from the English one, so a copy-paste or a missed line during translation survives silently -- HA's frontend renders whatever sv.json holds verbatim, with no fallback warning to the maintainer.",
+      "evidence": {
+        "command": "python3 tools/audit/round8/D4/s2_translation_gap.py",
+        "harness_path": "tools/audit/round8/D4/s2_translation_gap.py",
+        "value": 1,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "cloud 4-vCPU container (not the audit reference box); this is a deterministic text-file comparison, not a timing number, so machine variance does not apply to the value",
+        "cpu_or_wall": "count",
+        "contention_note": "irrelevant to this metric: pure JSON string comparison, no shared-resource contention possible",
+        "tolerance": "exact",
+        "load1": 18.38,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json and .../translations/sv.json -- the two catalogs Home Assistant's frontend loads verbatim for an en- and sv-locale browser",
+      "perturbation": {
+        "change": "python3 tools/audit/round8/D4/s2_translation_gap.py --perturb (in-memory: replaces sv.json's ecl110_mqtt_qos string with a translated placeholder before counting; no file on disk is modified)",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "untranslated_residual = # of (path,string) pairs where en.json==sv.json at that path, minus /exceptions/* and the 7-path reviewed ALLOWLIST of genuinely-identical content.",
+      "phenomenon_property": "a translations/sv.json string that is byte-identical to its translations/en.json sibling at the same JSON path, and is not in the reviewed ALLOWLIST of genuinely-identical content (tools/audit/round8/D4/s2_translation_gap.py:ALLOWLIST)",
+      "seam_rule": "python3 tools/audit/round8/D4/s2_translation_gap.py -- enumerates every such (path, string) pair under RESIDUAL; ALLOWLIST review is inline in the harness so a fixer or reviewer can re-derive which paths are in scope",
+      "null_control": {
+        "command": "python3 tools/audit/round8/D4/s2_translation_gap.py",
+        "value": 7,
+        "note": "the 7 ALLOWLIST paths are the identical-string shape of evidence and are deliberately not counted, each with its own reason (brand name / numeric range / loanword / already-Swedish) -- the residual is not an artifact of the identical-string test itself flagging untranslatable content, since those 7 correctly stay off the residual list at both baseline and perturbed runs"
+      },
+      "reproduction_steps": [
+        "cd <tree root>",
+        "python3 tools/audit/round8/D4/s2_translation_gap.py",
+        "confirm: RESULT untranslated_residual=1, naming /options/step/heat_curve/data/ecl110_mqtt_qos",
+        "python3 tools/audit/round8/D4/s2_translation_gap.py --perturb",
+        "confirm: RESULT untranslated_residual=0"
+      ],
+      "proposed_fix_scope": "translations/sv.json: change the single string at /options/step/heat_curve/data/ecl110_mqtt_qos to a Swedish label (e.g. 'MQTT-kvalitetsniva' or 'Tjanstekvalitet (QoS)', consistent with how the page's other technical MQTT terms are handled -- 'Retain MQTT messages' -> 'Behall MQTT-meddelanden' keeps 'MQTT' as the acronym but translates the surrounding words). One-line data change, no production Python touched, no schema or budget impact.",
+      "files": [
+        "custom_components/heatpump_optimizer/translations/sv.json"
+      ],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "strings.json, translations/en.json and translations/sv.json have exact key-set parity (no key present in one and missing from another), so no field or error string ever falls back to a raw key for lack of a translations entry at the top level.",
+      "command": "python3 -c \"import json; f=lambda p: set(); \" (ad hoc key-flattening comparison, see REPORT-s2.md Method for the inline script)",
+      "value": "1780/1780/1780 keys, 0 missing either direction, 0 orphans either direction"
+    },
+    {
+      "claim": "Every options-flow field a rendered page actually presents (schema-driven, section nesting and toggle-conditioned fields resolved via tests/config_flow_steps.py:rendered_keys) has a matching label entry in strings.json's options.step.<id>.data or options.step.<id>.sections.*.data -- no field renders as a raw snake_case key to the user across the 23 options pages that render as forms with no pre-seeded state required.",
+      "command": "python3 tools/audit/round8/D4/s2_label_coverage.py",
+      "value": "RESULT pages_checked=23 count; RESULT unlabeled_fields=0 count (moves to 1 under the harness's own --perturb, which deletes one label from strings.json in memory: confirms the harness is not vacuously passing)"
+    },
+    {
+      "claim": "The validation error strings this seat sampled (invalid_grid_fee_rules, grid_fee_rules_negative, grid_fee_rules_implausible, invalid_peak_months, invalid_peak_hours, freq_control_needs_number, flow_curve_needs_direct_plant, prefill_device_unreadable) each name the concrete field/format/action the user must change, not a bare 'invalid' or a raw exception message -- meeting the rubric's 'errors that say what to change' criterion by inspection.",
+      "command": "manual reading of strings.json's options.error map for those 8 keys (tools/audit/round8/D4/REPORT-s2.md Method table has the full text); no counter-example found among the 8 sampled",
+      "value": "8/8 sampled error strings name a concrete corrective action"
+    },
+    {
+      "claim": "Multi-field options pages group fields into named HA 'sections' (collapsible sub-panels) by theme rather than presenting them as one flat list, so a high raw field count (comfort=18, entities=15, hot_water_tank=14 fields rendered) is not evidence of a one-theme-per-page violation once the section structure is accounted for: comfort's 18 fields sit in 5 named sections (Comfort band / Day and night / Weekend / Holiday profile / Mold guard), entities' 15 in 3 (Account and weather / Room temperatures / Heat pump and tanks), hot_water_tank's 14 in 4 (Tank / Inlet water / Heat recovery / Disinfection).",
+      "command": "python3 - <<'EOF' (inline: walks flow.async_step_<id>(None) for every options menu page, counts tests/config_flow_steps.py:rendered_keys(result), cross-referenced against strings.json's options.step.<id>.sections map) -- full script in REPORT-s2.md",
+      "value": "comfort: 18 fields / 5 sections; entities: 15 fields / 3 sections; hot_water_tank: 14 fields / 4 sections"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D4/s2_translation_gap.py",
+    "tools/audit/round8/D4/s2_label_coverage.py"
+  ]
+}

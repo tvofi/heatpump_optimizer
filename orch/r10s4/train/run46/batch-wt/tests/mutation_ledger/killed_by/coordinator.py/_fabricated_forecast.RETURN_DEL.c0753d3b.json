@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_fabricated_forecast RETURN_DEL c0753d3b",
+  "killed_by": "tests/features.py",
+  "old": "    return [r if r[\"temperature\"] is not None else {**r, \"temperature\": 5.0} for r in rows]",
+  "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: object of type 'NoneType' has no len()`. Measured at 25497c4b, 2026-09-24."
+}

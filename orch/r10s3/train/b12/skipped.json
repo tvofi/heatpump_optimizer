@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2491,
+    "phase": "approve",
+    "reason": "app_approve.sh refused: app_approve: REFUSE: no 'Fix review:' verdict on #2491 from the approver App (hpo-approver[bot], id 330097732); an approval needs 'Fix review: merge a13131f839b521ad9e6998fd5384812a62507a71'"
+  }
+]

@@ -1,0 +1,3 @@
+===== daemonize pid=63608 2026-10-24T14:20:03Z argv: bash tools/audit/seat/update_pr.sh triage/s6-batch4 - /Users/timmalmstrom/hpo-orch/r10s6/scratch/body-2734.md
+app_push: ROW-ONLY: prepr RUNS: parent 1 f6a42ff9 is not the live pull-request head 58f2e751
+HEAD=35cb7e8cc9380d134c61675a4aedba692e938593

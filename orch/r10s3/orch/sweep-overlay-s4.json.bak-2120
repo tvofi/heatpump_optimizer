@@ -1,0 +1,21 @@
+{
+  "round": "10",
+  "repo": "tvofi/heatpump_optimizer",
+  "mandate": "6175172275",
+  "seat_root": "/Users/timmalmstrom/hpo-seats/r10s3",
+  "orch_scratch": "/Users/timmalmstrom/hpo-orch/r10s3/orch",
+  "orch_checkout": "/Users/timmalmstrom/hpo-seats/r10s3/orch-wt",
+  "seat_ledger": "/Users/timmalmstrom/hpo-orch/r10s3/orch/SEATS.md",
+  "local_seat_cap": 8,
+  "cloud_above_cap": "yes",
+  "plan_generator": "python3 /Users/timmalmstrom/hpo-orch/r10s3/plan/gen.py",
+  "plan_artifact": "/Users/timmalmstrom/hpo-orch/r10s3/plan/round-10-plan.html",
+  "state_mirror": "/Users/timmalmstrom/hpo-orch/r10s3/state",
+  "tick_alive": "/Users/timmalmstrom/hpo-orch/r10s3/orch/tick/alive",
+  "tick_log": "/Users/timmalmstrom/hpo-orch/r10s3/orch/tick/tick.txt",
+  "tick_brief": "/Users/timmalmstrom/hpo-orch/r10s3/orch/briefs/tick-watcher.md",
+  "tick_stale_min": 15,
+  "transcript": "/Users/timmalmstrom/.claude/projects/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-round-10-orchestrator-f39e64/7d62e977-f3f4-4b8b-9c9f-1dd8f78f1e70.jsonl",
+  "policy_stamp": "/Users/timmalmstrom/hpo-orch/r10s3/orch/policy-read-s4.stamp",
+  "disk_floor_gib": 6
+}

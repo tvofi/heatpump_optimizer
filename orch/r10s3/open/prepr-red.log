@@ -1,0 +1,3 @@
+===== daemonize pid=61122 2026-10-19T11:52:10Z argv: bash tools/audit/seat/open_pr.sh r10-prepr-unpinned-red e6fc778ef4178a5bf3b544f04cf2a6378ac4993f R10-PREPR-UNPINNED-RED: prepr owes a mutation answer for an unpinned site, and runs the raw-git check R10-PREPR-UNPINNED-RED
+  REFUSE   ancestry reds          RED UNANSWERED (instrument-self-tests nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-prepr-unpinned-red/body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

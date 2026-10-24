@@ -1,0 +1,12 @@
+BODY AND MAIN-MERGE round for PR #2528 (group R10-PREPR-CAP, branch fix/r10-prepr-closures), head 1723d8743619f397bcf9e04a219e1a581f4a736c. EXCEPTION to the generic base rule above: work on the PR branch. Check out 1723d8743619f397bcf9e04a219e1a581f4a736c and `git merge origin/main`. No code change is owed.
+Background. The last verdict (review/2528, `git fetch origin review/2528 && git show FETCH_HEAD:VERDICT.md`) blocked ci-red: the required pr-contract refused the body 3 times at 1723d874, because carry_audit read main's roster, where R10-FLOW-JIDOKA did not exist. It exists on main's roster now. Check this with `git show origin/main:dev/programme/rosters/wave-r10-groups.json | jq '.groups[]|select(.group=="R10-FLOW-JIDOKA")|.group'`.
+Do:
+1. Merge origin/main and resolve any conflict soundly. Run `python3 -I tools/audit/carry_audit.py check --body <body>` with no --roster-ref. It must give 0 unrouted and 0 bad.
+2. Re-run this PR's own self-tests and the scoped gate (PREPR_SKIP_CLOSURES=1). If the merge moves any figure, re-take it.
+3. Body: start from the PR's current body (`gh pr view 2528 --json body`). Change only these:
+   - `## Head`, naming your new head;
+   - `## Red checks`: name the pr-contract runs 119585492906, 119585669593 and 119587185157 at 1723d874, and answer them: BAD-DEST R10-FLOW-JIDOKA, absent from main's roster then, present now, and the carry check is green at this head with no --roster-ref; plus every other red in the branch history, read from the check-runs API;
+   - any figure the merge moved.
+   Keep it minimal (three-round rule).
+4. Push the code to refs/heads/handoff/r10-prepr-closures and the body with `body_push.sh r10-prepr-closures`.
+Spare the GitHub API. Time box 40 min.

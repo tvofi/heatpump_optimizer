@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2627,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2627); first: body item 14ee90da (bad): R10-FLOW-DISPATCH: R10-FLOW-DISPATCH is done (resume.stage done)"
+  }
+]

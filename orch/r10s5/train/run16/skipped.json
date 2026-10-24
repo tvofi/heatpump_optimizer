@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2675,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2675); first: body item f61f187d (bad): #2674: #2674 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2674.json"
+  }
+]

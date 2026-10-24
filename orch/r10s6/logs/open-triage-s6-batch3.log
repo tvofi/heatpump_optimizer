@@ -1,0 +1,3 @@
+===== daemonize pid=5674 2026-10-24T09:38:17Z argv: bash tools/audit/seat/open_pr.sh r10-triage-s6-batch3 6cab77593df6e32cf2e44b8b240e8a0050a130de Record proposal-triage rulings, s6 batch 3 triage-s6-batch3
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+PR=2693 HEAD=228d5e48d352f3a38b0a89437baa040f4d3021e9 AUTHOR=tvofi

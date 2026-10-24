@@ -1,0 +1,179 @@
+two|0|winter_typical|winter_cold              gap   0.3495%  viol 0.000/0.000  step0 0.000  cpu 5.9/39.8
+two|0|winter_typical|winter_mild              gap   0.1400%  viol 0.000/0.000  step0 0.000  cpu 8.5/38.9
+two|0|winter_typical|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|winter_typical|summer_cool              gap   0.1205%  viol 0.000/0.000  step0 0.000  cpu 5.0/23.7
+two|0|winter_typical|shoulder                 gap   0.0785%  viol 0.000/0.000  step0 0.000  cpu 5.5/25.5
+two|0|winter_extreme|winter_cold              gap   0.0084%  viol 0.000/0.005  step0 0.000  cpu 8.6/41.7
+two|0|winter_extreme|winter_mild              gap   0.1199%  viol 0.000/0.000  step0 1.807  cpu 6.9/34.4
+two|0|winter_extreme|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|winter_extreme|summer_cool              gap   0.0309%  viol 0.000/0.000  step0 0.000  cpu 7.3/31.8
+two|0|winter_extreme|shoulder                 gap   0.0818%  viol 0.000/0.000  step0 0.000  cpu 5.3/33.1
+two|0|winter_narrow|winter_cold               gap   0.3396%  viol 0.001/0.000  step0 0.001  cpu 8.9/59.1
+two|0|winter_narrow|winter_mild               gap   0.1228%  viol 0.000/0.000  step0 0.000  cpu 9.4/72.6
+two|0|winter_narrow|summer_warm               gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|winter_narrow|summer_cool               gap   0.1535%  viol 0.000/0.000  step0 0.000  cpu 5.5/27.2
+two|0|winter_narrow|shoulder                  gap   0.0103%  viol 0.000/0.000  step0 0.000  cpu 5.7/30.3
+two|0|winter_moderate|winter_cold             gap   0.3170%  viol 0.000/0.000  step0 0.000  cpu 8.4/62.1
+two|0|winter_moderate|winter_mild             gap   0.1303%  viol 0.000/0.000  step0 1.014  cpu 10.1/51.0
+two|0|winter_moderate|summer_warm             gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|winter_moderate|summer_cool             gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 7.4/33.9
+two|0|winter_moderate|shoulder                gap   0.0551%  viol 0.000/0.000  step0 0.000  cpu 5.8/32.1
+two|0|summer_typical|winter_cold              gap   0.0036%  viol 0.000/0.000  step0 0.406  cpu 5.5/32.9
+two|0|summer_typical|winter_mild              gap   0.0008%  viol 0.000/0.000  step0 0.000  cpu 3.6/25.6
+two|0|summer_typical|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.5
+two|0|summer_typical|summer_cool              gap   0.0027%  viol 0.000/0.000  step0 0.000  cpu 2.8/19.7
+two|0|summer_typical|shoulder                 gap   0.0016%  viol 0.000/0.000  step0 0.000  cpu 3.1/19.7
+two|0|summer_negative|winter_cold             gap   0.0313%  viol 0.000/0.000  step0 0.005  cpu 4.7/32.2
+two|0|summer_negative|winter_mild             gap   0.4635%  viol 0.000/0.000  step0 0.000  cpu 7.5/51.7
+two|0|summer_negative|summer_warm             gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|summer_negative|summer_cool             gap   0.0016%  viol 0.000/0.000  step0 0.000  cpu 3.6/24.0
+two|0|summer_negative|shoulder                gap   3.2761%  viol 0.000/0.000  step0 0.000  cpu 5.8/25.8
+two|0|shoulder|winter_cold                    gap   0.3301%  viol 0.000/0.000  step0 0.724  cpu 7.1/49.2
+two|0|shoulder|winter_mild                    gap   0.0408%  viol 0.000/0.000  step0 0.000  cpu 7.4/46.9
+two|0|shoulder|summer_warm                    gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|0|shoulder|summer_cool                    gap   0.2000%  viol 0.000/0.000  step0 0.000  cpu 7.3/34.0
+two|0|shoulder|shoulder                       gap   0.0482%  viol 0.000/0.000  step0 0.000  cpu 5.7/37.7
+two|0|flat|winter_cold                        gap   0.1434%  viol 0.000/0.000  step0 0.001  cpu 8.8/60.3
+two|0|flat|winter_mild                        gap   0.0089%  viol 0.000/0.000  step0 0.000  cpu 5.8/40.6
+two|0|flat|summer_warm                        gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.2/0.6
+two|0|flat|summer_cool                        gap   0.0300%  viol 0.000/0.000  step0 0.000  cpu 8.9/39.4
+two|0|flat|shoulder                           gap   0.0098%  viol 0.000/0.000  step0 0.000  cpu 8.0/29.2
+two|1|winter_typical|winter_mild              gap   0.3225%  viol 0.000/0.000  step0 0.000  cpu 6.0/38.4
+two|1|winter_typical|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|winter_typical|summer_cool              gap   0.0724%  viol 0.000/0.000  step0 0.000  cpu 4.1/22.6
+two|1|winter_typical|shoulder                 gap   0.0462%  viol 0.000/0.000  step0 0.000  cpu 3.9/24.8
+two|1|winter_extreme|winter_cold              gap   0.2841%  viol 0.044/0.020  step0 0.000  cpu 7.2/36.4
+two|1|winter_extreme|winter_mild              gap   0.3740%  viol 0.000/0.000  step0 0.319  cpu 6.4/37.8
+two|1|winter_extreme|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|winter_extreme|summer_cool              gap   0.0409%  viol 0.000/0.000  step0 0.000  cpu 4.2/29.4
+two|1|winter_extreme|shoulder                 gap   0.1816%  viol 0.000/0.000  step0 0.000  cpu 4.9/35.0
+two|1|winter_narrow|winter_cold               gap   0.3870%  viol 0.000/0.000  step0 0.003  cpu 8.8/56.9
+two|1|winter_narrow|winter_mild               gap   0.2915%  viol 0.000/0.000  step0 0.003  cpu 6.9/63.3
+two|1|winter_narrow|summer_warm               gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|winter_narrow|summer_cool               gap   0.1088%  viol 0.000/0.000  step0 0.000  cpu 5.0/23.1
+two|1|winter_narrow|shoulder                  gap   0.1471%  viol 0.000/0.000  step0 0.000  cpu 5.6/30.1
+two|1|winter_moderate|winter_cold             gap   0.4467%  viol 0.000/0.000  step0 0.000  cpu 6.8/45.9
+two|1|winter_moderate|winter_mild             gap   0.1183%  viol 0.000/0.000  step0 0.019  cpu 5.9/41.2
+two|1|winter_moderate|summer_warm             gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|winter_moderate|summer_cool             gap   0.1759%  viol 0.000/0.000  step0 0.000  cpu 5.5/30.9
+two|1|winter_moderate|shoulder                gap   0.0147%  viol 0.000/0.000  step0 0.000  cpu 5.2/27.2
+two|1|summer_typical|winter_cold              gap   0.1783%  viol 0.000/0.000  step0 1.070  cpu 5.5/59.3
+two|1|summer_typical|winter_mild              gap   0.0006%  viol 0.000/0.000  step0 0.000  cpu 2.4/23.1
+two|1|summer_typical|summer_warm              gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|summer_typical|summer_cool              gap   0.0003%  viol 0.000/0.000  step0 0.000  cpu 2.4/16.4
+two|1|summer_typical|shoulder                 gap   0.0003%  viol 0.000/0.000  step0 0.000  cpu 2.4/17.9
+two|1|summer_negative|winter_cold             gap   0.0698%  viol 0.000/0.000  step0 0.003  cpu 5.6/54.9
+two|1|summer_negative|winter_mild             gap   0.2745%  viol 0.000/0.000  step0 0.000  cpu 7.0/93.4
+two|1|summer_negative|summer_warm             gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|summer_negative|summer_cool             gap   0.0005%  viol 0.000/0.000  step0 0.000  cpu 3.0/23.1
+two|1|summer_negative|shoulder                gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 5.6/28.1
+two|1|shoulder|winter_cold                    gap   0.0772%  viol 0.000/0.000  step0 0.627  cpu 8.7/98.0
+two|1|shoulder|winter_mild                    gap   0.1065%  viol 0.000/0.000  step0 0.000  cpu 5.4/51.9
+two|1|shoulder|summer_warm                    gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|shoulder|summer_cool                    gap   0.2492%  viol 0.000/0.000  step0 0.000  cpu 5.4/36.3
+two|1|shoulder|shoulder                       gap   0.1383%  viol 0.000/0.000  step0 0.000  cpu 5.0/34.0
+two|1|flat|winter_cold                        gap   0.2964%  viol 0.000/0.000  step0 0.365  cpu 6.9/64.4
+two|1|flat|winter_mild                        gap   0.0560%  viol 0.000/0.000  step0 0.000  cpu 4.4/33.6
+two|1|flat|summer_warm                        gap   0.0000%  viol 0.000/0.000  step0 0.000  cpu 0.3/0.6
+two|1|flat|summer_cool                        gap   0.1349%  viol 0.000/0.000  step0 0.000  cpu 5.3/33.1
+two|1|flat|shoulder                           gap   0.2895%  viol 0.000/0.000  step0 0.000  cpu 5.0/34.1
+OUT /tmp/claude-0/-home-claude/ced07c89-e7e3-5e22-82ee-40bd38e4941a/scratchpad/race_two
+cells=80
+two|0|flat|shoulder                           gap   0.0098%  dE   0.140 SEK  bill    8.73  step0 0.000 kW  win bb0.75
+two|0|flat|summer_cool                        gap   0.0300%  dE   0.018 SEK  bill    2.83  step0 0.000 kW  win bb0.0
+two|0|flat|summer_warm                        gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|flat|winter_cold                        gap   0.1434%  dE  -0.128 SEK  bill   90.65  step0 0.001 kW  win bb1.5
+two|0|flat|winter_mild                        gap   0.0089%  dE   0.090 SEK  bill   35.12  step0 0.000 kW  win bb0.5
+two|0|shoulder|shoulder                       gap   0.0482%  dE   0.034 SEK  bill    5.36  step0 0.000 kW  win bb0.35
+two|0|shoulder|summer_cool                    gap   0.2000%  dE  -0.013 SEK  bill    2.14  step0 0.000 kW  win bb1.5
+two|0|shoulder|summer_warm                    gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|shoulder|winter_cold                    gap   0.3301%  dE  -0.023 SEK  bill   50.87  step0 0.724 kW  win bb0.2
+two|0|shoulder|winter_mild                    gap   0.0408%  dE  -0.055 SEK  bill   18.66  step0 0.000 kW  win bb0.1
+two|0|summer_negative|shoulder                gap   3.2761%  dE  -0.008 SEK  bill   -1.53  step0 0.000 kW  win bb0.0
+two|0|summer_negative|summer_cool             gap   0.0016%  dE   0.000 SEK  bill   -0.65  step0 0.000 kW  win bb1.0
+two|0|summer_negative|summer_warm             gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|summer_negative|winter_cold             gap   0.0313%  dE   0.110 SEK  bill   14.59  step0 0.005 kW  win bb0.2
+two|0|summer_negative|winter_mild             gap   0.4635%  dE  -0.002 SEK  bill   -0.27  step0 0.000 kW  win bb0.5
+two|0|summer_typical|shoulder                 gap   0.0016%  dE   0.000 SEK  bill    1.58  step0 0.000 kW  win warm
+two|0|summer_typical|summer_cool              gap   0.0027%  dE   0.002 SEK  bill    0.54  step0 0.000 kW  win bb0.2
+two|0|summer_typical|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|summer_typical|winter_cold              gap   0.0036%  dE  -0.076 SEK  bill   16.28  step0 0.406 kW  win bb0.35
+two|0|summer_typical|winter_mild              gap   0.0008%  dE  -0.001 SEK  bill    6.57  step0 0.000 kW  win bb1.5
+two|0|winter_extreme|shoulder                 gap   0.0818%  dE   0.006 SEK  bill    9.17  step0 0.000 kW  win bb0.5
+two|0|winter_extreme|summer_cool              gap   0.0309%  dE   0.009 SEK  bill    3.20  step0 0.000 kW  win bb1.5
+two|0|winter_extreme|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|winter_extreme|winter_cold              gap   0.0084%  dE   0.101 SEK  bill   94.47  step0 0.000 kW  win bb0.1  INFEASIBLE(colder)
+two|0|winter_extreme|winter_mild              gap   0.1199%  dE  -0.340 SEK  bill   31.14  step0 1.807 kW  win bb0.1  INFEASIBLE(colder)
+two|0|winter_moderate|shoulder                gap   0.0551%  dE  -0.137 SEK  bill    7.41  step0 0.000 kW  win bb0.2
+two|0|winter_moderate|summer_cool             gap   0.0000%  dE   0.000 SEK  bill    2.42  step0 0.000 kW  win prod
+two|0|winter_moderate|summer_warm             gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|winter_moderate|winter_cold             gap   0.3170%  dE  -1.369 SEK  bill   78.85  step0 0.000 kW  win bb0.5
+two|0|winter_moderate|winter_mild             gap   0.1303%  dE  -1.129 SEK  bill   28.44  step0 1.014 kW  win bb0.1
+two|0|winter_narrow|shoulder                  gap   0.0103%  dE   0.084 SEK  bill    9.27  step0 0.000 kW  win bb1.0
+two|0|winter_narrow|summer_cool               gap   0.1535%  dE   0.090 SEK  bill    3.64  step0 0.000 kW  win bb1.5
+two|0|winter_narrow|summer_warm               gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|winter_narrow|winter_cold               gap   0.3396%  dE   0.572 SEK  bill  111.60  step0 0.001 kW  win warm
+two|0|winter_narrow|winter_mild               gap   0.1228%  dE   0.162 SEK  bill   40.62  step0 0.000 kW  win bb0.75
+two|0|winter_typical|shoulder                 gap   0.0785%  dE  -0.065 SEK  bill    6.06  step0 0.000 kW  win bb0.1
+two|0|winter_typical|summer_cool              gap   0.1205%  dE   0.063 SEK  bill    2.23  step0 0.000 kW  win bb1.0
+two|0|winter_typical|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    0.00  step0 0.000 kW  win prod
+two|0|winter_typical|winter_cold              gap   0.3495%  dE   0.109 SEK  bill   57.98  step0 0.000 kW  win bb0.2
+two|0|winter_typical|winter_mild              gap   0.1400%  dE   0.020 SEK  bill   19.74  step0 0.000 kW  win bb0.75
+two|1|flat|shoulder                           gap   0.2895%  dE   0.826 SEK  bill   14.52  step0 0.000 kW  win bb0.75
+two|1|flat|summer_cool                        gap   0.1349%  dE   0.123 SEK  bill    7.62  step0 0.000 kW  win bb0.0
+two|1|flat|summer_warm                        gap   0.0000%  dE   0.000 SEK  bill    4.13  step0 0.000 kW  win prod
+two|1|flat|winter_cold                        gap   0.2964%  dE  -0.439 SEK  bill   98.56  step0 0.365 kW  win bb0.35  INFEASIBLE(colder)
+two|1|flat|winter_mild                        gap   0.0560%  dE   0.142 SEK  bill   40.94  step0 0.000 kW  win bb0.75
+two|1|shoulder|shoulder                       gap   0.1383%  dE   0.109 SEK  bill    8.87  step0 0.000 kW  win bb0.75
+two|1|shoulder|summer_cool                    gap   0.2492%  dE   0.033 SEK  bill    5.39  step0 0.000 kW  win bb0.5
+two|1|shoulder|summer_warm                    gap   0.0000%  dE   0.000 SEK  bill    2.99  step0 0.000 kW  win prod
+two|1|shoulder|winter_cold                    gap   0.0772%  dE   0.067 SEK  bill   56.73  step0 0.627 kW  win bb1.25,warm
+two|1|shoulder|winter_mild                    gap   0.1065%  dE  -0.131 SEK  bill   22.37  step0 0.000 kW  win bb0.1
+two|1|summer_negative|shoulder                gap   0.0000%  dE   0.000 SEK  bill   -0.64  step0 0.000 kW  win prod
+two|1|summer_negative|summer_cool             gap   0.0005%  dE  -0.000 SEK  bill    0.27  step0 0.000 kW  win bb0.1
+two|1|summer_negative|summer_warm             gap   0.0000%  dE   0.000 SEK  bill    0.88  step0 0.000 kW  win prod
+two|1|summer_negative|winter_cold             gap   0.0698%  dE   0.112 SEK  bill   16.93  step0 0.003 kW  win bb0.1,bb1.25
+two|1|summer_negative|winter_mild             gap   0.2745%  dE  -0.025 SEK  bill    1.39  step0 0.000 kW  win bb0.5,bb0.0
+two|1|summer_typical|shoulder                 gap   0.0003%  dE   0.001 SEK  bill    3.42  step0 0.000 kW  win bb0.0
+two|1|summer_typical|summer_cool              gap   0.0003%  dE  -0.000 SEK  bill    2.29  step0 0.000 kW  win bb1.5
+two|1|summer_typical|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    1.55  step0 0.000 kW  win prod
+two|1|summer_typical|winter_cold              gap   0.1783%  dE  -0.167 SEK  bill   19.44  step0 1.070 kW  win bb0.75,bb1.5
+two|1|summer_typical|winter_mild              gap   0.0006%  dE   0.002 SEK  bill    8.46  step0 0.000 kW  win warm
+two|1|winter_extreme|shoulder                 gap   0.1816%  dE  -0.081 SEK  bill   19.42  step0 0.000 kW  win bb0.5
+two|1|winter_extreme|summer_cool              gap   0.0409%  dE  -0.090 SEK  bill   12.89  step0 0.000 kW  win bb1.25
+two|1|winter_extreme|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    8.85  step0 0.000 kW  win prod
+two|1|winter_extreme|winter_cold              gap   0.2841%  dE   0.368 SEK  bill  112.69  step0 0.000 kW  win bb0.35
+two|1|winter_extreme|winter_mild              gap   0.3740%  dE  -0.703 SEK  bill   41.60  step0 0.319 kW  win bb0.5
+two|1|winter_moderate|shoulder                gap   0.0147%  dE   0.176 SEK  bill   13.27  step0 0.000 kW  win bb0.35
+two|1|winter_moderate|summer_cool             gap   0.1759%  dE   0.146 SEK  bill    7.88  step0 0.000 kW  win bb1.0
+two|1|winter_moderate|summer_warm             gap   0.0000%  dE   0.000 SEK  bill    4.51  step0 0.000 kW  win prod
+two|1|winter_moderate|winter_cold             gap   0.4467%  dE   0.683 SEK  bill   89.34  step0 0.000 kW  win bb0.2
+two|1|winter_moderate|winter_mild             gap   0.1183%  dE  -1.149 SEK  bill   34.93  step0 0.019 kW  win bb0.75
+two|1|winter_narrow|shoulder                  gap   0.1471%  dE   0.006 SEK  bill   16.24  step0 0.000 kW  win bb0.5
+two|1|winter_narrow|summer_cool               gap   0.1088%  dE   0.140 SEK  bill   10.00  step0 0.000 kW  win bb0.5
+two|1|winter_narrow|summer_warm               gap   0.0000%  dE   0.000 SEK  bill    5.44  step0 0.000 kW  win prod
+two|1|winter_narrow|winter_cold               gap   0.3870%  dE   0.820 SEK  bill  122.26  step0 0.003 kW  win warm  INFEASIBLE(colder)
+two|1|winter_narrow|winter_mild               gap   0.2915%  dE  -2.369 SEK  bill   45.60  step0 0.003 kW  win bb0.2
+two|1|winter_typical|shoulder                 gap   0.0462%  dE  -0.045 SEK  bill   11.75  step0 0.000 kW  win bb1.5
+two|1|winter_typical|summer_cool              gap   0.0724%  dE  -0.062 SEK  bill    7.48  step0 0.000 kW  win bb0.2
+two|1|winter_typical|summer_warm              gap   0.0000%  dE   0.000 SEK  bill    4.66  step0 0.000 kW  win prod
+two|1|winter_typical|winter_cold              gap   0.1976%  dE   0.197 SEK  bill   67.79  step0 0.000 kW  win warm
+two|1|winter_typical|winter_mild              gap   0.3225%  dE   0.091 SEK  bill   25.83  step0 0.000 kW  win bb1.25
+RESULT gap_mean_winter_typical=0.1327 %   (max 0.3495, cells 10, >0.1%: 5)
+RESULT gap_mean_winter_extreme=0.1242 %   (max 0.3740, cells 8, >0.1%: 3)
+RESULT gap_mean_winter_narrow=0.1304 %   (max 0.3396, cells 9, >0.1%: 6)
+RESULT gap_mean_winter_moderate=0.1258 %   (max 0.4467, cells 10, >0.1%: 5)
+RESULT gap_mean_summer_typical=0.0188 %   (max 0.1783, cells 10, >0.1%: 1)
+RESULT gap_mean_summer_negative=0.4117 %   (max 3.2761, cells 10, >0.1%: 3)
+RESULT gap_mean_shoulder=0.1190 %   (max 0.3301, cells 10, >0.1%: 5)
+RESULT gap_mean_flat=0.0747 %   (max 0.2895, cells 9, >0.1%: 3)
+RESULT gap_mean_priced=0.1530 %
+RESULT gap_max_priced=3.2761 %
+RESULT gap_mean_priced_drop_best=0.1056 %
+RESULT gap_mean_flat=0.0747 %
+RESULT gap_max_flat=0.2895 %
+RESULT cells_infeasible=4
+RESULT cells_gap_gt_0p1=31
+RESULT cells_gap_gt_0p1_step0_differs=4
+RESULT thread_factor=1.000
+RESULT load1=6.02

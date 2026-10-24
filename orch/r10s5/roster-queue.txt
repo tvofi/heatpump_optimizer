@@ -1,0 +1,42 @@
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/F2-ci-p2-precondition.txt
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/F3-ci-p2-b3-parity.txt
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/F4-ci-p2-arch-gap.txt
+wire-issue R10-MUTATION-ANCHOR 2660   # disposition: scheduled. #2660 is the governance cron's friction issue for verdict class mutation-vacuous (4 distinct PRs in v7.0.4..origin/main, threshold 3); R10-MUTATION-ANCHOR (#2493, not-started) owns mutation-anchor/vacuity. Check the op's exact argument form with roster_edit.py wire-issue --help.
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/F1-roster-schema-v2.txt   # replaces the refused triage/ops/F1 text
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/F4-ci-p2-arch-gap.txt   # retry: 16:53Z push failed on a transient GitHub error, origin unmoved
+append-carry R10-HEAT-METER @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/LS-03-heat-meter.txt
+append-carry R10-PARAMS-OWNER @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/LS-04-params-owner.txt
+append-carry R10-LIVESTATE @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/LS-brief-correction.txt
+# R10-LIVESTATE files: also add custom_components/heatpump_optimizer/price_tiles.py and custom_components/heatpump_optimizer/drift.py to the group's "files" list if roster_edit.py has an op for it (check edit-brief --help); if none, report "files op absent" and leave the carry above as the record.
+append-carry R10-PARAMS-OWNER @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/LS-r1-params-owner.txt
+set-resume R10-LIVESTATE stage=in-progress next_step='fixer dispatched 2026-10-23T17:28Z on design/r10-livestate f589cc0c3 (Design review: approve, design-verdict 0cdc67b42)'   # use roster_edit.py set-resume's exact field syntax
+# GATED on #2670 merging (s5-batch1.md on main): ops 1-3 from the s5 roster brief
+append-carry R10-FLY-RELAY-REVIEW-FF @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P14-R10-FLY-RELAY-REVIEW-FF.txt
+append-carry R10-FLOW-DESIGN-STAGES @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P21-R10-FLOW-DESIGN-STAGES.txt
+append-carry R10-ORCH-LEDGER @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P33-R10-ORCH-LEDGER.txt
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/NF-2668-ci-p2-trailer-commit.txt   # #2668 review blocked carry-missing; apply now
+append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-ORCH-DISPATCH-REG.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-ORCH-BEATD.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+append-carry R10-FLOW-POSTMERGE @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-FLOW-POSTMERGE.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+append-carry R10-FLY-ORPHANS-REWRITTEN @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-FLY-ORPHANS-REWRITTEN.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+append-carry R10-FLY-PRUNE-REFS @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-FLY-PRUNE-REFS.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+append-carry R10-FLY-CIPREDICT-LAYOUT @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/O2671-R10-FLY-CIPREDICT-LAYOUT.txt   # #2671 Forward-carry (body ref 24d547ace); apply now
+set-resume R10-FLY-RELAY-REVIEW-FF stage=carries-open next_step='#2664 merged 811cd01aa 2026-10-23T19:39Z; unbuilt carries owed before done: stale-checkout restart (P-B), P-E SEAT ENDED NO RETURN, http.postBuffer + ev/ size cap, and P14 (s5-batch1). Re-home or build, then done.'   # apply NOW, before the state beat's roster_sync flips it to done
+# GATED on the s5-batch2 triage PR merging (dev/programme/triage/s5-batch2.md on main)
+append-carry R10-TRAIN-OVERLAP-GRADE @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P34-R10-TRAIN-OVERLAP-GRADE.txt
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P35-R10-ORCH-ROSTER-SCHEMA.txt
+append-carry R10-FLY-CARRY-DISPOSITION @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/P40-R10-FLY-CARRY-DISPOSITION.txt
+set-resume R10-CI-LAYOUT-P2 stage=in-progress branch=handoff/r10-ci-layout-p2b-v2 next_step='P2b re-cut ca1bc2b0e being opened as a new PR (supersedes #2662); then review and the step-12 ruleset window. roster_sync set done at 20:08Z from #2638 (P2a), wrong: P2b unmerged.'   # apply NOW; if roster_sync flips it to done again, report ROSTER-REFLIP in to-main.txt
+set-resume R10-CI-LAYOUT-P2 pr=2673  # supersedes #2662 (closed); combine with the in-progress set-resume above
+set-files-add R10-LIVESTATE drift.py price_tiles.py manual_plan.py pump_arbiter.py services.py tests/dst_checks.py  # widening accepted at design; use the roster_edit op that adds files (report if none)
+route carries after #2672 merges: P34->R10-TRAIN-OVERLAP-GRADE, P35->R10-ORCH-ROSTER-SCHEMA, P40->R10-FLY-CARRY-DISPOSITION from dev/programme/triage/s5-batch2.md (roster_edit add-carry or equivalent; brief_lint after); #2672 MERGED f046076a -- apply now
+set-resume R10-LIVESTATE --field note --value 'files widening accepted at design (drift.py, price_tiles.py, manual_plan.py, pump_arbiter.py, services.py, tests/dst_checks.py); roster_edit has no files op -- see proposal L'
+append-carry R10-FLY-CIPREDICT-LAYOUT @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/RCA2671-R10-FLY-CIPREDICT-LAYOUT.txt   # #2671 RCA seat: corrects the O2671 carry (CI's restore, narrow key, cost); apply now
+append-carry R10-MERGE-SUBJECT-HARDEN @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/RCA2671-R10-MERGE-SUBJECT-HARDEN.txt   # #2671 RCA seat: agreement-lane deadlock for a new shared grammar; orchestrator confirm destination first
+after #2671 merges: set-resume R10-ORCH-LEDGER --field stage --value carries-open (verdict N1/N2 carried to it: N1 re-target #2664 harness plant cloud_relay-8 at the rewritten line; N2 a verdict obligation imported from the old log has no sha and can never close by read-back -- undisclosed in body); append both as carries (texts in review/2671 14f4bde43 VERDICT.md)
+set-resume R10-CI-LAYOUT-P2 --field stage --value carries-open; append carries: (a) ruleset_cutover --enable readback is rule-order-sensitive (refused falsely 2026-10-23T23:54Z; self-test echoes payload order) -- compare order-insensitively, fixture with GitHub's reordering; (b) delete the pre_cutover shape from tools/policy/fixtures/required-contexts.json (policy_lint reports it stale); (c) reds_at_head mutant fixture (passed first attempt + failed re-run in one suite must refuse); (d) carry 15: key the window on push runs at/after #2665's merge; (e) delete probe refs for #2654 #2656 #2657
+append-carry R10-MERGE-SUBJECT-HARDEN @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/RCA2671-R10-MERGE-SUBJECT-HARDEN.txt   # 2026-10-24T00:48Z ORCH CONFIRMED destination (group not-started, owns tools/policy/agreement.mjs); apply now, report tip SHA -- #2681 merge waits on it
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/CW-R10-CI-LAYOUT-P2.txt   # 01:30Z ORCH: measured codescan_wait first-run red
+append-carry R10-HEAT-METER @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/STALE-R10-HEAT-METER.txt   # #2683 r1 carry-missing
+append-carry R10-ARCH-SHAPES @/Users/timmalmstrom/hpo-orch/r10s5/roster-ops/STALE-R10-ARCH-SHAPES.txt   # #2683 r1 carry-missing
+set-resume R10-DEMAND-OVERBOOK --field stage --value in-progress   # 2026-10-24T02:32Z ORCH dispatched fixer (opus), branch handoff/r10-demand-overbook; stage 1 rca by synthetic replay

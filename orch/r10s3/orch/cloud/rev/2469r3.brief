@@ -1,0 +1,25 @@
+Round 3 of R10-UPDATE-PR-LOCK, at head 89f329f6 (code a3af24fc). This is the last round before the three-round rule.
+
+Round 2 at 2351c1c7 was blocked claim-false. The residual's dismissal relied on a group kill, but daemonize.py's documented stop is `kill <pid>`, and a TERM of a daemonized update_pr.sh freed the lock while its push ran on.
+
+The fixer's changes:
+- Every update_pr run leads its own process group, re-execing into a new group if it isn't a leader. The lock holder sits in a separate group.
+- The push runs in the background under `wait`, so signals arrive at once.
+- The TERM/INT/HUP trap has the holder TERM the run's group and keep the lock until the group is empty.
+- On SIGKILL, the holder sees its parent gone and does the same.
+- New pr_args self-test arms:
+  - TERM mid-push: an immediate second run is BUSY, and the run after the push takes the lock.
+  - SIGKILL mid-push: a run 3 s later is still BUSY.
+- Mutants that fail those arms: mut:stop, mut:drain and mut:pgrp. Your round-2 `while True` mutant also fails the SIGKILL arm.
+- pr_args 56/0 on four consecutive runs; cloud_relay 74/0. Round 2's update_pr.sh fails 2 of the new arms, and main's fails 4.
+- Your exact scenario, run offline with the real daemonize.py and `kill <pid>`: the next run gets BUSY until the push ends.
+- Disclosed behaviour change: a run started from a script now sits in its own process group, so a group kill aimed at the caller no longer reaches it.
+
+Verify adversarially:
+- revert each part of the fix and confirm its arm fails;
+- check the arms for flakiness;
+- judge the behaviour change;
+- re-read CI at this head from the check-runs API;
+- check the merge with origin/main.
+
+Say that this is round 3.

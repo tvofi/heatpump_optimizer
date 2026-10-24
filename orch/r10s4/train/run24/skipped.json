@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2632,
+    "phase": "pre-flight",
+    "reason": "recarry: fix/r10-loop-cpu is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-loop-cpu/wt; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree"
+  }
+]

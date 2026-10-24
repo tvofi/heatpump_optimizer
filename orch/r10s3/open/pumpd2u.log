@@ -1,0 +1,11 @@
+===== daemonize pid=29596 2026-10-18T08:38:05Z argv: bash tools/audit/seat/update_pr.sh fix/r10-pump-model-d2 26e097a129adf90d127cfdcae6d4cfd89d384de9 /Users/timmalmstrom/hpo-seats/r10s3/pump-model/body-d2-pr/BODY.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (770 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/closures.json
+Auto-merging tests/dst_checks.py
+CONFLICT (content): Merge conflict in tests/dst_checks.py
+Auto-merging tests/features.py
+Automatic merge failed; fix conflicts and then commit the result.

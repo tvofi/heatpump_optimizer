@@ -1,0 +1,141 @@
+# routing-ops-final: queue-line form (op args, @file for text). Roster seat adds --worktree DIR --push to every op. Not applied.
+# routing-ops-1-verified: routing-ops-1.txt less the ops routing-verify-1.md refutes (independent verifier, 2026-10-24).
+# EVERY roster_edit.py line below needs `--worktree DIR --push` (roster_edit.py:677 --worktree is required; without --push the next op refuses the unpushed worktree).
+# Ordering: run `set-stage R10-FLY-GH-READ-RETRY carries-open` before its append-carry, so a failed issue create cannot leave a done group with a pending carry.
+# routing-ops-1: roster_edit.py ops from routing-decisions-1.md (routing audit 1, 2026-10-24).
+# Run from a checkout of main at the repository root, against origin/handoff/audit-r10-roster as roster_edit.py
+# resolves it. Not applied. Carry text lives in the @files; new groups in groups/*.json.
+
+# --- 1. New groups whose issue already exists (invariants 1 and 3) ---
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ADVISOR-RESIDUE.json
+# REFUTED (duplicate owner: R10-PARAMS-OWNER carry 10 already schedules the #2674 probe seat; wire 2674/2248 to R10-PARAMS-OWNER instead): append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-RESTORE-RACE-PROBE.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-BRIEFS-FOLD-D0.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-REPLAY-REAL-DAY.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ARCHSCORE-SPELLINGS.json
+
+# --- 2. Re-home NOT IMPLEMENTED carries to live groups (invariant 1) ---
+append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--056ddbd0.txt
+append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--8c6a3e6f.txt
+# REFUTED (already implemented: governance.yml:467-469 runs selftest_wiring.py --check on every PR and push): append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--9728f4d0.txt
+# REFUTED (wrong seam: the governance.yml record job token (O-1/M3) is not RECORD-PITCH's; needs a record-job owner): append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--17086c62.txt
+# REFUTED (wrong seam: dev/audit/harnesses/record_api_calls.sh is owned by no live group; route with 17086c62): append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--6635e3d7.txt
+# REFUTED (carry file has no item text (#2609 item D2 dropped); the brief already states the one plan model): append-carry R10-FLOW-TOOLKIT-MODEL @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-TOOLKIT-MODEL--a6edee9d.txt
+# REFUTED (wrong seam: dev/governance/roles/nudge.md (policy) is not in FLOW-WIP files): append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--dbae61eb.txt
+append-carry R10-FLY-CLOUD-SETUP-TOOLCHAIN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-CLOUD-SETUP-TOOLCHAIN--6d4f5c52.txt
+set-stage R10-FLY-GH-READ-RETRY carries-open
+append-carry R10-FLY-GH-READ-RETRY @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-GH-READ-RETRY--bb2965c2.txt
+append-carry R10-MERGE-SUBJECT-HARDEN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-MERGE-SUBJECT-HARDEN--f09dc4ca.txt
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-BEATD--cdd7283c.txt
+append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--8ab071b4.txt
+append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--9a2082ce.txt
+append-carry R10-ORCH-LEDGER @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-LEDGER--6bec0b0a.txt
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--3b97e1aa.txt
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--7f85b089.txt
+append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--631f8640.txt
+# REFUTED (wrong seam: bash 3.2/5 environment friction is not one of the five keys; a HANDOVER trap, which the orchestrator writes): append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--76e30be3.txt
+append-carry R10-TRAIN-OVERLAP-GRADE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-TRAIN-OVERLAP-GRADE--6fb50ac5.txt
+append-carry R10-UPDATE-PR-SIGNALS @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-UPDATE-PR-SIGNALS--01ce8b81.txt
+
+# --- 3. Wire an existing open issue to a live group with none (invariant 2; also covers #2235 and #2271 for invariant 3) ---
+wire-issue R10-FLOW-JIDOKA 2428
+wire-issue R10-FLY-CARRY-DISPOSITION 2428
+wire-issue R10-FLOW-ROSTER-FREEZE 2389
+wire-issue R10-FLOW-BODY-ONLY 2389
+wire-issue R10-FLY-ROW-HEAD-CARRY 2389
+wire-issue R10-FLY-CARRY-DOC-CONTEXT 2389
+wire-issue R10-STRUCTURE-ALIAS 2235
+wire-issue R10-DIAG-REDACT 2271
+
+# --- 4. Absorb R10-FLY-CAP-LINE into R10-FLOW-WIP (same seam; avoids a one-line issue) ---
+append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--capline.txt
+set-stage R10-FLY-CAP-LINE done
+set-resume R10-FLY-CAP-LINE --field note 'absorbed into R10-FLOW-WIP by routing audit 1 (2026-10-24); brief and carry moved there'
+
+# --- 5. Not roster ops: DELIVERED issues to close by hand, each with a comment naming the PR (gh_comment.py, read back) ---
+# close #2250: delivered by #2612 (merged 008ad15); see routing-decisions-1.md section C
+# close #2252: delivered by #2435 (merged 05c39d3); see routing-decisions-1.md section C
+# REFUTED: item 2 (owner-bundle tau, band (c)) carried to R10-PARAMS-OWNER, which does not list #2258; suggested: wire-issue R10-PARAMS-OWNER 2258, keep open -- was: close #2258: delivered by #2647 (merged 14405df); see routing-decisions-1.md section C
+# REFUTED: the record comment on #2265 holds it open until O14 (tick-drivers-2) merges or its items are recorded dropped; neither is on record -- was: close #2265: delivered by #2390 (merged a96f4be); see routing-decisions-1.md section C
+# close #2298: delivered by #2521 (merged 92b5bf4); see routing-decisions-1.md section C
+# REFUTED: #2669 measured the family still at 7 on its window after the fix and says it does not close #2410; the friction is unresolved -- was: close #2410: delivered by #2669 (merged 5c9828f); see routing-decisions-1.md section C
+# close #2496: delivered by #2513 (merged 929275e); see routing-decisions-1.md section C
+# #2674's carry file is on main only: the roster branch lacks dev/programme/carries/carry-2674.json; sync the roster branch from main (roster_sync) before section 1's R10-RESTORE-RACE-PROBE append-group is reviewed.
+
+# --- 6. Ops that need an issue created first (invariant 2). Each section creates its issue, then wires it. ---
+
+# NEEDS ISSUE Lean flow study: mechanise the flow board, merge pitch, post-merge beat, caps and projection model
+wire-issue R10-FLOW-BOARD 2715
+wire-issue R10-FLOW-MQ-PROBE 2715
+wire-issue R10-FLOW-POSTMERGE 2715
+wire-issue R10-FLOW-RECORD-PITCH 2715
+wire-issue R10-FLOW-WIP 2715
+wire-issue R10-FLOW-AUTOTRAIN 2715
+wire-issue R10-FLOW-TOOLKIT-MODEL 2715
+
+# NEEDS ISSUE Round-11 readiness: the P3 plan workflow and the audit programme playbook
+wire-issue R10-FLOW-AUDIT-PLAN 2716
+wire-issue R10-ROUND-PLAYBOOK 2716
+
+# NEEDS ISSUE Seat context cost: a script-built review packet and a per-role policy pack
+wire-issue R10-ORCH-REVIEW-PACKET 2717
+wire-issue R10-POLICY-ROLE-PACK 2717
+
+# NEEDS ISSUE Mechanise the design and design-review stages in the roster, the bus and the tick
+wire-issue R10-FLOW-DESIGN-STAGES 2718
+
+# NEEDS ISSUE open_pr.sh can leave a pull request with no delivery row
+wire-issue R10-FLY-OPENPR-ATOMIC 2719
+
+# NEEDS ISSUE cloud_relay.sh: review/<N> pushes refused as non-fast-forward, and transient push failures, are never retried
+wire-issue R10-FLY-RELAY-REVIEW-FF 2720
+
+# NEEDS ISSUE bus.sh orphans reports landed-rewritten handoffs as stranded
+wire-issue R10-FLY-ORPHANS-REWRITTEN 2721
+
+# NEEDS ISSUE Dependabot alerts stay open on patched pins: the dependency graph stopped updating after 2026-10-03
+wire-issue R10-FLY-DEPGRAPH-STALE 2722
+
+# NEEDS ISSUE stamp.py cannot check release notes before the stamp
+wire-issue R10-FLY-STAMP-CHECK-NOTES 2723
+
+# NEEDS ISSUE gh_comment.py does not refuse an owner comment that pairs a revoke word with a mandate id
+wire-issue R10-FLY-MANDATE-REVOKE-GUARD 2724
+
+# NEEDS ISSUE merge_train.py batch --overlap merges onto a tree no CI checked
+wire-issue R10-TRAIN-OVERLAP-GRADE 2725
+
+# NEEDS ISSUE Nightly heartbeat lane: py-spy hangs per process, leaving the stable lane's false-red rate near 6.7 %
+wire-issue R10-NIGHTLY-HB-RESPAWN 2726
+
+# NEEDS ISSUE prune_refs.py spends one REST write per ref and would delete live session and design refs
+wire-issue R10-FLY-PRUNE-REFS 2727
+
+# NEEDS ISSUE Round-10 closeout: drive branches, worktrees and refs down before the closure stamp
+wire-issue R10-CLOSEOUT-CLEANUP 2728
+
+# NEEDS ISSUE Immersion energy booked on an install with no immersion element
+wire-issue R10-IMMERSION-LATCH 2729
+
+# NEEDS ISSUE Suite determinism: features.py under HASTUB_TZ and coverage_tree's descendant race
+wire-issue R10-FLY-SUITE-ENV-FLAKES 2730
+set-stage R10-FLY-SUITE-ENV-FLAKES carries-open
+
+# NEEDS ISSUE GitHub reads the retry barrier did not reach: pr-contract's body read and git transport
+wire-issue R10-FLY-GH-READ-RETRY 2731
+
+# NEEDS ISSUE field_coverage.mjs keeps attribution in both pending and ignore
+wire-issue R10-FLY-NO-FOOTERS 2732
+set-stage R10-FLY-NO-FOOTERS carries-open
+
+# REFUTED (block removed): R10-ROUTING-INVARIANTS design to be revised before its issue and group are created; see routing-verify-1.md section 5.
+
+# --- verifier additions (routing-verify-1.md) ---
+wire-issue R10-PARAMS-OWNER 2258
+wire-issue R10-PARAMS-OWNER 2674
+wire-issue R10-PARAMS-OWNER 2248
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ROUTING-INVARIANTS.json
+wire-issue R10-ROUTING-INVARIANTS 2733
+# #2258: keep open (owner-bundle tau and band (c) carried to R10-PARAMS-OWNER by the wire above).
+# #2265: keep open until a recorded O14 (tick-drivers-2: L03, L04, L05, P02, P55, P57, L12 b/c, --carry-sweep) disposition: merged, or items recorded dropped. Orchestrator decides; no close.
+# #2410: keep open; #2669 left the family at 7 members over threshold 3 and does not close it. Route disposition to R10-RCA-FRICTION-RESIDUE (or a live mutation group), not a close.
+# Refuted, do NOT apply: R10-RESTORE-RACE-PROBE append-group (above, commented); f61f187d routes to R10-PARAMS-OWNER via the wires above (carry text there already).

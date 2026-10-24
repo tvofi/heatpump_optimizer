@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:adoption_decision GUARD_OFF e9a1a8d4",
+  "killed_by": "tests/features.py",
+  "old": "    if not identifiable:",
+  "reason": "R8-P5 (#1523/#1525) added this site. `if not identifiable:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
+}

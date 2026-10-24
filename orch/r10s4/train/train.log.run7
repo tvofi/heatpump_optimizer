@@ -1,0 +1,23 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train pid=28187 start=2026-10-21T12:12:48Z
+BATCH 20261021-121248 pid=28206 base=main queue=5 (#2525 #2556 #2513 #2544 #2547) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 56bf88af: the record beat waits
+BOT #2562 MERGED 9e19b2c648199c98022f588ce62a398ccd4269c4
+OVERLAP: main at 9e19b2c64819 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script) before admission; --overlap logs it and does not wait
+PARK #2525 policy: policy paths changed (dev/governance/roles/orchestrator.md): no decisive review by tvofi (id 70032254) on this pull request
+PARK #2513 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2513); first: review 6314156311 item 3b97e1aa (unrouted): 1. Mutation proof re-run: 19/19 plants killed by FAIL lines; 8 plants of my own, 5 killed (2 by trac
+PARK #2544 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2544); first: review 6314170570 item aeeb9432 (unrouted): **CI on this head** (from the check-runs API, every run: ev/check_runs.tsv). Every gate check is gre
+PARK #2547 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2547); first: review 6315224098 item b579380b (unrouted): Forward-carry: the body's "none" holds for this PR's own findings. The roster carries one item INTO 
+PRE-FLIGHT: 1 of 5 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2556 admitted at 1beed40b
+#2556 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2556 approved (app)
+OVERLAP: main at 9e19b2c64819 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14)) right before #2556's merge; --overlap logs it and does not wait
+#2556 MERGED f58b14c19321af380613abeb479b9395d35df364
+#2556 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2556 main f58b14c1 tree == proof 571df3ea
+SKIP REPORT: 4 skipped of 5
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-21T12:14:59Z

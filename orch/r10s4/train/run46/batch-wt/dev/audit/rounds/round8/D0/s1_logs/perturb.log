@@ -1,0 +1,22 @@
+ftol literals edited: 2
+CELL winter_typical|winter_cold|dhw=0|tz=1 J=77.699680 cost=58.633 nfev=852 ftol_stops=1/8 step0=6.000 | ftol=+0.000e+00 cost=58.633 nfev=852
+RESULT prod_lbfgsb_runs=8 count
+RESULT runs_stopped_by_ftol=1 count
+RESULT ftol_gap_max=0.0000e+00 ratio
+CELL flat|winter_cold|dhw=0|tz=1 J=99.350160 cost=90.410 nfev=1296 ftol_stops=1/8 step0=5.797 | ftol=+0.000e+00 cost=90.410 nfev=1296
+RESULT prod_lbfgsb_runs=8 count
+RESULT runs_stopped_by_ftol=1 count
+RESULT ftol_gap_max=0.0000e+00 ratio
+CELL shoulder|winter_cold|dhw=0|tz=1 J=58.794098 cost=50.593 nfev=1143 ftol_stops=1/8 step0=1.292 | ftol=+0.000e+00 cost=50.593 nfev=1143
+RESULT prod_lbfgsb_runs=8 count
+RESULT runs_stopped_by_ftol=1 count
+RESULT ftol_gap_max=0.0000e+00 ratio
+CELL winter_narrow|winter_cold|dhw=0|tz=1 J=123.961646 cost=111.115 nfev=1662 ftol_stops=4/8 step0=5.949 | ftol=+0.000e+00 cost=111.115 nfev=1662
+RESULT prod_lbfgsb_runs=8 count
+RESULT runs_stopped_by_ftol=4 count
+RESULT ftol_gap_max=0.0000e+00 ratio
+CELL winter_extreme|winter_mild|dhw=0|tz=1 J=40.913607 cost=31.464 nfev=725 ftol_stops=4/8 step0=0.685 | ftol=+0.000e+00 cost=31.464 nfev=725
+RESULT prod_lbfgsb_runs=8 count
+RESULT runs_stopped_by_ftol=4 count
+RESULT ftol_gap_max=0.0000e+00 ratio
+RESTORED custom_components/heatpump_optimizer/optimizer.py

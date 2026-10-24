@@ -1,0 +1,3 @@
+  REFUSE   ancestry reds          RED UNANSWERED (nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/body-2557.dUfY/BODY.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/governance.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-orch-continuity.log

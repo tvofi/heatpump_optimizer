@@ -1,0 +1,12 @@
+{
+  "class": "N-confounded-learner",
+  "instances": 3,
+  "barriered": false,
+  "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-confounded-learner/enumerate.py",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_async_learn_house_heat_loss", "probe": "enumerate.py probe_house_ua: ua_scale 0.925 at aperture_err +0.30 (truth 1.000); sunny-gated 1.000", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_async_learn_lower_floor_loss", "probe": "enumerate.py probe_lower_floor: no irradiance gate in the method; lower_ratio 0.925 at aperture_err +0.30", "beyond_finding": true},
+    {"file": "custom_components/heatpump_optimizer/accuracy.py", "symbol": "heat_loss_refit", "probe": "enumerate.py probe_refit: real heat_loss_refit returns 0.937 at aperture_err +0.30 (truth 1.000)", "beyond_finding": true},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_fold_internal_gains", "probe": "enumerate.py probe_internal_gains: real _fold_internal_gains, hourly profile max rel deviation 0.820 at UA error +10 % (truth 0)", "beyond_finding": true}
+  ]
+}

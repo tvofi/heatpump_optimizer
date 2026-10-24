@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_service RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "RETURN_DEL (`pass`). The deleted line is the function's last statement, so the mutant falls off the end and returns the implicit None: the same value for the set-point slots, the only ones that reach it. The explicit return stays because mypy --strict refuses a missing return on a function typed `-> tuple[...] | None`.",
+  "verdict": "equivalent"
+}

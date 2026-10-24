@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_state_violations BOOLOP beb69c3f",
+  "killed_by": "tests/debug_collect.py",
+  "old": "            attrs = row[2] if isinstance(row, list) and len(row) > 2 else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 55dc8d9c2c59c2ab614cb7c5d4b0ae9807401b50: BOOLOP (`attrs = row[2] if isinstance(row, list) or len(row) > 2 else None`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

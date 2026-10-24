@@ -1,0 +1,2 @@
+===== daemonize pid=29415 2026-10-18T15:36:33Z argv: bash tools/audit/seat/open_pr.sh r10-rca-structure-blind ba9653fa067c003bc19cbeed5177e3b1fbf71e05 R10-RCA-STRUCTURE-BLIND: root-cause record for N-structure-blind (#2235) and its two countermeasures R10-RCA-STRUCTURE-BLIND
+PR=2415 HEAD=9951f224a9e652fb7323784e05d86b4b35f16e55 AUTHOR=tvofi

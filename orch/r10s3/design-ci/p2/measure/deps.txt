@@ -1,0 +1,89 @@
+# Part 1: every needs edge, and what it carries
+
+| workflow | X (need) | Y (dependent) | carries |
+|---|---|---|---|
+| codeql.yml | scope | analyze | outputs [matrix] |
+| pages.yml | pages-build | pages-deploy | outputs enabled |
+| tests.yml | recheck-gate | fast | outputs recheck |
+| tests.yml | closure-scope | fast | outputs fast_skip |
+| tests.yml | recheck-gate | browser | outputs recheck |
+| tests.yml | closure-scope | browser | outputs browser_skip |
+| tests.yml | recheck-gate | briefs | outputs recheck |
+| tests.yml | recheck-gate | typing | outputs recheck |
+| tests.yml | recheck-gate | coverage | outputs recheck |
+| tests.yml | closure-scope | coverage | outputs coverage_skip |
+| tests.yml | recheck-gate | coverage-ratchet | outputs recheck |
+| tests.yml | coverage | coverage-ratchet | result; artifact coverage-json |
+| tests.yml | recheck-gate | mutation | outputs recheck |
+| tests.yml | mutation | mutation-pin-plan | result; artifact mutation-table |
+| tests.yml | mutation | mutation-pins | result; artifact mutation-table |
+| tests.yml | mutation-pin-plan | mutation-pins | outputs count,shards |
+| tests.yml | recheck-gate | mutation-nightly | outputs recheck |
+| tests.yml | recheck-gate | mutation-ledger | outputs recheck |
+| tests.yml | mutation-ledger | mutation-ledger-push | result; artifact mutation-ledger |
+| tests.yml | recheck-gate | slow | outputs recheck |
+| tests.yml | closure-scope | nightly-ha | outputs nightly_ha |
+| tests.yml | coverage | graders-head-copy | result; artifact coverage-json |
+| tests.yml | closure-scope | lane-proofs | outputs browser_skip,coverage_skip,fast_skip,ls_base,ls_branch,ls_diff,state_browser,state_coverage,state_fast |
+| tests.yml | fast | lane-proofs | result |
+| tests.yml | coverage | lane-proofs | result |
+| tests.yml | browser | lane-proofs | result |
+| tests.yml | closure-scope | closures | outputs case,scripts |
+| tests.yml | coverage | closures | artifact composed-closures |
+| tests.yml | coverage | composed-proof | artifact composed-closures |
+| tests.yml | closures | composed-proof | artifact closure-recordings-tree-${{ env.TREE }},composed-closures |
+| tests.yml | fast | ci-ratchet | API read of the run (artifacts/jobs) |
+| tests.yml | coverage | ci-ratchet | API read of the run (artifacts/jobs) |
+| tests.yml | closures | ci-ratchet | API read of the run (artifacts/jobs) |
+| tests.yml | closures | closures-autofix | result; artifact closure-recordings |
+| tests.yml | fast | claims-autofix | result |
+| tests.yml | mutation | mutation-autofix | result |
+| tests.yml | mutation-pins | mutation-autofix | artifact mutation-pins* |
+
+# Part 2: measured cost of each edge
+
+## tests.yml: 30 pull_request runs replayed
+
+| X -> Y | binding in | run ends sooner without the edge: median s | max s |
+|---|---|---|---|
+| coverage -> closures | 29/30 | 323 | 1358 |
+| closure-scope -> coverage | 30/30 | 26 | 150 |
+| closures -> composed-proof | 27/30 | 18 | 1223 |
+| recheck-gate -> fast | 0/30 | 0 | 0 |
+| closure-scope -> fast | 30/30 | 0 | 27 |
+| recheck-gate -> browser | 0/30 | 0 | 0 |
+| closure-scope -> browser | 30/30 | 0 | 8 |
+| recheck-gate -> briefs | 0/30 | 0 | 0 |
+| recheck-gate -> typing | 0/30 | 0 | 0 |
+| recheck-gate -> coverage | 0/30 | 0 | 0 |
+| recheck-gate -> coverage-ratchet | 0/30 | 0 | 0 |
+| coverage -> coverage-ratchet | 30/30 | 0 | 0 |
+| recheck-gate -> mutation | 0/30 | 0 | 0 |
+| mutation -> mutation-pin-plan | 4/30 | 0 | 18 |
+| mutation -> mutation-pins | 0/30 | 0 | 0 |
+| mutation-pin-plan -> mutation-pins | 4/30 | 0 | 18 |
+| recheck-gate -> mutation-nightly | 0/30 | 0 | 0 |
+| recheck-gate -> mutation-ledger | 0/30 | 0 | 0 |
+| mutation-ledger -> mutation-ledger-push | 0/30 | 0 | 0 |
+| recheck-gate -> slow | 0/30 | 0 | 0 |
+| closure-scope -> nightly-ha | 5/30 | 0 | 0 |
+| coverage -> graders-head-copy | 30/30 | 0 | 0 |
+| closure-scope -> lane-proofs | 1/30 | 0 | 0 |
+| fast -> lane-proofs | 19/30 | 0 | 7 |
+| coverage -> lane-proofs | 9/30 | 0 | 0 |
+| browser -> lane-proofs | 1/30 | 0 | 1 |
+| closure-scope -> closures | 1/30 | 0 | 0 |
+| coverage -> composed-proof | 3/30 | 0 | 0 |
+| fast -> ci-ratchet | 3/30 | 0 | 0 |
+| coverage -> ci-ratchet | 1/30 | 0 | 0 |
+| closures -> ci-ratchet | 2/30 | 0 | 0 |
+| closures -> closures-autofix | 6/30 | 0 | 0 |
+| fast -> claims-autofix | 7/30 | 0 | 0 |
+| mutation -> mutation-autofix | 0/30 | 0 | 0 |
+| mutation-pins -> mutation-autofix | 4/30 | 0 | 106 |
+
+## codeql.yml: 10 pull_request runs replayed
+
+| X -> Y | binding in | run ends sooner without the edge: median s | max s |
+|---|---|---|---|
+| scope -> analyze | 10/10 | 20 | 90 |

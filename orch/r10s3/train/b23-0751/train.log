@@ -1,0 +1,33 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b23-0751/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b23-0751 pid=16231 start=2026-10-21T07:51:16Z
+BATCH 20261021-075116 pid=16246 base=main queue=2 (#2519 #2526) --overlap --skip-bad
+OVERLAP: main at df6ca4bc6858 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2526 policy: policy paths changed (.claude/rules/gate-scoping.md, dev/governance/rules/gate-scoping.md, tests/README.md): no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driven approval is the owner's only under a mandate in force
+PRE-FLIGHT: 1 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2519 serial: grader, workflow
+OVERLAP: recarrying #2519 up front, their pull_request runs fire together
+#2519 overlap: recarry start
+#2519 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-train-hold held fix/r10-train-hold, clean at origin/fix/r10-train-hold; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-train-hold switch fix/r10-train-hold)
+#2519 recarry START (branch fix/r10-train-hold)
+#2519 recarry: main merged, head dfba5276; app_push: RECARRY: prepr SKIPPED: HEAD dfba5276 is the clean merge of the live head fb6d355b and origin/main's df6ca4bc, and the body is the live one
+serial: #2519
+beat: waiting CI at dfba5276 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at dfba5276 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at dfba5276 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at dfba5276 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at dfba5276 (poll 6, t+1205s, required: 14, concluded: 12/14)
+beat: waiting CI at dfba5276 (poll 7, t+1446s, required: 14, concluded: 12/14)
+beat: waiting CI at dfba5276 (poll 8, t+1687s, required: 14, concluded: 12/14)
+beat: waiting CI at dfba5276 (poll 9, t+1928s, required: 14, concluded: 12/14)
+beat: waiting CI at dfba5276 (poll 10, t+2170s, required: 14, concluded: 13/14)
+beat: waiting CI at dfba5276 (poll 11, t+2412s, required: 14, concluded: 13/14)
+beat: waiting CI at dfba5276 (poll 12, t+2653s, required: 14, concluded: 13/14)
+#2519 dfba5276 ci red=[]
+#2519 approved (mandate)
+#2519 MERGED 059f81ca1a12342c882b2d41554c2bd2e559a8ec
+#2519 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2302,"state":"CLOSED"}]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b23-0751/wt/2519 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b23-0751/wt/2519' is not a working tree); remove it by hand
+SKIP REPORT: 1 skipped of 2
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-21T08:43:24Z

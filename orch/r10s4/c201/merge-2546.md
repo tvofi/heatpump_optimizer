@@ -1,0 +1,1 @@
+Merged #2546 (record/autofix, delivery rows only) at 755e3264 → main 9e2f6ed9, behind `record_row.py --automerge-check` (AUTOMERGE OK at that head). The only red was `nightly-status`, which grades main. No issues closed.

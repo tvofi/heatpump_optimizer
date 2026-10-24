@@ -1,0 +1,2 @@
+===== daemonize pid=72695 2026-10-18T23:19:51Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-merge-subject-guard 931fa7b7b0867d157067c75fd202fe5965d36a32 R10-MERGE-SUBJECT-GUARD: judge only main's first-parent merges, not a branch's sync merges R10-MERGE-SUBJECT-GUARD
+PR=2424 HEAD=63d4d2b2a16d8c04b982767a4c2c995f964ad7ed AUTHOR=tvofi

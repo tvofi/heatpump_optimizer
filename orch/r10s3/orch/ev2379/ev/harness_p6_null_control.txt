@@ -1,0 +1,2 @@
+RESULT seams=2 instance=0 guarded=2 not_applicable=0 RESULT modules=1 families=1 (_as_float) bool_str_vectors=1  <- clean
+RESULT seams=2 instance=1 guarded=1 not_applicable=0 RESULT modules=1 families=2 (_as_float,round_if_not_none) bool_str_vectors=2  <- reintro

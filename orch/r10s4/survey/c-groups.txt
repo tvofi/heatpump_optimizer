@@ -1,0 +1,59 @@
+Counter({'not-started': 33, 'in-progress': 16, 'queued': 3})
+--- in-progress/queued with resume detail
+R10-NIGHT-FOLDS	in-progress	branch=handoff/r10-night-folds	commit=	after-open=[]	note=''
+R10-FREQ-DEFROST	in-progress	branch=handoff/r10-freq-defrost	commit=	after-open=[]	note=''
+R10-SAV-REASONS	in-progress	branch=handoff/r10-sav-reasons	commit=	after-open=[]	note=''
+R10-I5-DOCS	in-progress	branch=handoff/r10-i5-docs	commit=7a7102eb	after-open=[]	note="Handoff handoff/r10-i5-docs at 7a7102eb is this group's work: 7 commits over 11 files, the doc-claims and clos"
+R10-PREPR-CAP	in-progress	branch=handoff/r10-prepr-cap	commit=e3f3b312	after-open=[]	note='Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane th'
+R10-REPLAY-LANE	in-progress	branch=handoff/r10-replay-lane	commit=	after-open=[]	note=''
+R10-TRAIN-HOLD	in-progress	branch=handoff/r10-train-hold	commit=	after-open=[]	note=''
+R10-DEEPLINK-HANDLERS	in-progress	branch=handoff/r10-deeplink-handlers	commit=	after-open=[]	note=''
+R10-RCA-FRICTION	in-progress	branch=handoff/r10-rca-harness-friction	commit=d1611efe	after-open=[]	note="Handoff handoff/r10-rca-harness-friction at d1611efe is this group's work: 9 commits over 10 files, the RCA re"
+R10-CI-LAYOUT	in-progress	branch=handoff/r10-ci-layout-g	commit=	after-open=[]	note=''
+R10-ROSTER-OPS	in-progress	branch=handoff/r10-roster-ops	commit=9969e3ca	after-open=[]	note='Handoff handoff/r10-roster-ops at 9969e3ca (1 commit, 361 lines: set-after and drop-carry ops plus a mutant dr'
+R10-CI-RATCHET-RED	in-progress	branch=handoff/r10-ci-ratchet-red	commit=	after-open=[]	note='Reopened 2026-10-20: ci-ratchet failed on every push to main from 4e5801eb (14:17Z) through e4d47457, twelve c'
+R10-MERGE-PR-MANDATE	in-progress	branch=handoff/r10-merge-pr-mandate	commit=6219325c	after-open=[]	note='Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its on'
+R10-DEMAND-OVERBOOK	queued	branch=None	commit=	after-open=[]	note=''
+R10-BUFFER-STORE	queued	branch=None	commit=	after-open=[]	note=''
+R10-COP-PARTLOAD	queued	branch=None	commit=	after-open=[]	note=''
+R10-UPDATE-PR-SIGNALS	in-progress	branch=None	commit=	after-open=[]	note='In progress 2026-10-20 with an added deliverable: a stopped pusher leaves its whole descendant tree running. S'
+R10-HANDOFF-ARCHIVE	in-progress	branch=fix/r10-handoff-archive	commit=5fd7fbdf	after-open=[]	note=''
+R10-DEPENDABOT-AIOHTTP	in-progress	branch=fix/r10-dependabot-aiohttp	commit=1a9b9096	after-open=[]	note=''
+--- ready-next (not-started/queued, no open after)
+R10-BRIEFS-FOLD	not-started	issues=[2222, 2269]	size=M	gated=True	wave=4
+R10-POLICY-GATE-SCOPING	not-started	issues=[2381]	size=S	gated=False	wave=1
+R10-SAV-COMFORT	not-started	issues=[2492]	size=M	gated=False	wave=16
+R10-MUTATION-ANCHOR	not-started	issues=[2493]	size=M	gated=False	wave=1
+R10-POLICY-LINT-FAMILY	not-started	issues=[2410]	size=S	gated=True	wave=2
+R10-MERGE-SUBJECT-HARDEN	not-started	issues=[2494]	size=S	gated=True	wave=2
+R10-DEMAND-OVERBOOK	queued	issues=[2499]	size=M	gated=True	wave=2
+R10-BUFFER-STORE	queued	issues=[2500]	size=M	gated=True	wave=2
+R10-COP-PARTLOAD	queued	issues=[2501]	size=M	gated=True	wave=2
+R10-THERMAL-POWER-OPTION	not-started	issues=[2507]	size=M	gated=False	wave=None
+R10-LEARNER-DEFAULT	not-started	issues=[2508]	size=S	gated=False	wave=None
+R10-MUTANT-SKIP	not-started	issues=[2509]	size=M	gated=False	wave=None
+--- not-started/queued blocked by open after
+R10-RATIO-ANCHOR	blocked-by=['R10-NIGHT-FOLDS']
+R10-INPUT-STALENESS	blocked-by=['R10-RATIO-ANCHOR']
+R10-CURRENCY	blocked-by=['R10-INPUT-STALENESS']
+R10-LOOP-CPU	blocked-by=['R10-FREQ-DEFROST']
+R10-ADVISOR	blocked-by=['R10-SAV-REASONS']
+R10-SCORES	blocked-by=['R10-ADVISOR']
+R10-LIVESTATE	blocked-by=['R10-SCORES']
+R10-CONFIG-NOTICES	blocked-by=['R10-LIVESTATE']
+R10-PARAMS-OWNER	blocked-by=['R10-CONFIG-NOTICES']
+R10-SENSOR-PAYLOAD	blocked-by=['R10-SCORES']
+R10-ARCH-SHAPES	blocked-by=['R10-PARAMS-OWNER', 'R10-SENSOR-PAYLOAD', 'R10-FREQ-DEFROST']
+R10-LEARNER-ETA	blocked-by=['R10-ARCH-SHAPES']
+R10-HEAT-METER	blocked-by=['R10-LEARNER-ETA', 'R10-INPUT-STALENESS', 'R10-RATIO-ANCHOR']
+R10-COP-GATE	blocked-by=['R10-HEAT-METER', 'R10-SENSOR-PAYLOAD']
+R10-UX-HEALTH	blocked-by=['R10-SCORES', 'R10-COP-GATE', 'R10-HEAT-METER']
+R10-CONFIGFLOW-PAGES	blocked-by=['R10-HEAT-METER']
+R10-SOLVER	blocked-by=['R10-SAV-REASONS']
+R10-REPLAY-SCOPED	blocked-by=['R10-REPLAY-LANE', 'R10-TRAIN-HOLD']
+R10-ARCH-DOCS	blocked-by=['R10-NIGHT-FOLDS', 'R10-RATIO-ANCHOR', 'R10-INPUT-STALENESS', 'R10-CURRENCY', 'R10-FREQ-DEFROST', 'R10-LOOP-CPU', 'R10-SAV-REASONS', 'R10-ADVISOR', 'R10-SCORES', 'R10-LIVESTATE', 'R10-CONFIG-NOTICES', 'R10-PARAMS-OWNER', 'R10-SENSOR-PAYLOAD', 'R10-ARCH-SHAPES', 'R10-LEARNER-ETA', 'R10-HEAT-METER', 'R10-COP-GATE', 'R10-UX-HEALTH', 'R10-CONFIGFLOW-PAGES', 'R10-SOLVER', 'R10-I5-DOCS', 'R10-BRIEFS-FOLD', 'R10-REPLAY-LANE', 'R10-REPLAY-SCOPED', 'R10-TRAIN-HOLD', 'R10-DEEPLINK-HANDLERS']
+R10-POLICY-FIXER-MD	blocked-by=['R10-RCA-FRICTION', 'R10-BRIEFS-FOLD']
+R10-RCA-HEADMOVED	blocked-by=['R10-RCA-FRICTION']
+R10-CEILING-PROBE	blocked-by=['R10-CI-LAYOUT', 'R10-NIGHT-FOLDS']
+R10-ORCH-MACHINERY	blocked-by=['R10-ROSTER-OPS', 'R10-CI-LAYOUT']
+R10-CARD-VOICE	blocked-by=['R10-DEEPLINK-HANDLERS']

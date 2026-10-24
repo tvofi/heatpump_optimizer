@@ -1,0 +1,2 @@
+===== daemonize pid=32293 2026-10-18T10:49:44Z argv: bash tools/audit/seat/open_pr.sh r10-readme-minimal-setup 38743da446494ffebbf96974bcaeecbe88de4854 README: minimal working setup and requirements R10-README-MINIMAL-SETUP
+PR=2393 HEAD=cb4e0195ba1db57f12fb345f5fe14f82bc175a7c AUTHOR=tvofi

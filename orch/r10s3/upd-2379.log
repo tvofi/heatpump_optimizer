@@ -1,0 +1,4 @@
+===== daemonize pid=31891 2026-10-18T15:24:08Z argv: bash tools/audit/seat/update_pr.sh fix/r10-sensor-payload 9e2cdca95148fe5f105a74647771b62a31b42daa /Users/timmalmstrom/hpo-orch/r10s3/body-2379.md 2242
+fatal: 'fix/r10-sensor-payload' is already checked out at '/Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-sensor-payload'
+===== daemonize pid=99761 2026-10-18T15:34:57Z argv: bash tools/audit/seat/update_pr.sh fix/r10-sensor-payload 9e2cdca95148fe5f105a74647771b62a31b42daa /Users/timmalmstrom/hpo-orch/r10s3/body-2379.md 2242
+HEAD=f4e168719d12f071bbc7771944e9430147a223db

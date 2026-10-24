@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:next_gchv_window CMP_BOUND 861d48ba",
+  "old": "                _gchv_at(day, end, tz) if start < end",
+  "reason": "CMP_BOUND (`if start <= end`) agrees on every window `_gchv_days` can yield: same-day start < end finishes today, wrapping start > end finishes tomorrow. start == end never appears (`_gchv_days('10:00-10:00')` is None).",
+  "verdict": "equivalent"
+}

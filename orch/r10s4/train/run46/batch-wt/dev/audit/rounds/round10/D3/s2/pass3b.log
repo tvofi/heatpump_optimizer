@@ -1,0 +1,15 @@
+M14 features.py 1
+RESULT screened=16 count
+RESULT survivors=5 count  M04 M07 M26 M30 M35
+RESULT thread_factor=1.000
+RESULT load1=87.97
+M26 features.py 0
+RESULT screened=16 count
+RESULT survivors=5 count  M04 M07 M26 M30 M35
+RESULT thread_factor=1.000
+RESULT load1=46.64
+M04 features.py 0
+RESULT screened=16 count
+RESULT survivors=5 count  M04 M07 M26 M30 M35
+RESULT thread_factor=1.000
+RESULT load1=46.86

@@ -1,0 +1,73 @@
+one|nodhw|summer_typical|winter_cold|h6          call0/1 f=8.60906 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 10.5->10.5 s0 6.00->6.00 hits=0/8
+one|dhw|summer_typical|winter_cold|h6            call0/1 f=8.60906 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 10.5->10.5 s0 6.00->6.00 hits=0/8
+two|nodhw|summer_typical|winter_cold|h6          call0/1 f=8.04591 gap=+0.0002% (+0.0000) pol=+0.0002% lad=+0.0002% arm=polish viol 0.0000->0.0000 kWh 10.9->10.9 s0 0.00->0.00 hits=0/10
+two|dhw|summer_typical|winter_cold|h6            call0/1 f=8.04591 gap=+0.0002% (+0.0000) pol=+0.0002% lad=+0.0002% arm=polish viol 0.0000->0.0000 kWh 10.9->10.9 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_typical|winter_mild|h6          call0/1 f=3.33482 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_typical|winter_mild|h6            call0/1 f=3.33482 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_typical|winter_mild|h6          call0/1 f=3.03259 gap=+0.0005% (+0.0000) pol=+0.0005% lad=+0.0005% arm=polish viol 0.0000->0.0000 kWh 3.8->3.8 s0 0.00->0.00 hits=0/10
+two|dhw|summer_typical|winter_mild|h6            call0/1 f=3.03258 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 3.8->3.8 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_typical|summer_cool|h6          call0/1 f=1.16922 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_typical|summer_cool|h6            call0/1 f=1.16922 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_typical|summer_cool|h6          call0/1 f=0.99265 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|summer_typical|summer_cool|h6            call0/1 f=0.99265 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_typical|shoulder|h6             call0/1 f=2.06225 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_typical|shoulder|h6               call0/1 f=2.06225 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_typical|shoulder|h6             call0/1 f=1.77853 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|summer_typical|shoulder|h6               call0/1 f=1.77853 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_negative|winter_cold|h6         call0/1 f=9.20442 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=ladder_polish viol 0.0000->0.0000 kWh 10.6->10.6 s0 6.00->6.00 hits=0/8
+one|dhw|summer_negative|winter_cold|h6           call0/1 f=9.20442 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=ladder_polish viol 0.0000->0.0000 kWh 10.6->10.6 s0 6.00->6.00 hits=0/8
+two|nodhw|summer_negative|winter_cold|h6         call0/1 f=8.60590 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=ladder_polish viol 0.0000->0.0000 kWh 10.7->10.7 s0 0.00->0.00 hits=0/10
+two|dhw|summer_negative|winter_cold|h6           call0/1 f=8.60590 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 10.7->10.7 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_negative|winter_mild|h6         call0/1 f=3.55622 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_negative|winter_mild|h6           call0/1 f=3.55622 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_negative|winter_mild|h6         call0/1 f=3.23680 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 3.7->3.7 s0 0.00->0.00 hits=0/10
+two|dhw|summer_negative|winter_mild|h6           call0/1 f=3.23680 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 3.7->3.7 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_negative|summer_cool|h6         call0/1 f=1.20930 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_negative|summer_cool|h6           call0/1 f=1.20930 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_negative|summer_cool|h6         call0/1 f=1.02981 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|summer_negative|summer_cool|h6           call0/1 f=1.02981 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_negative|shoulder|h6            call0/1 f=2.17828 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|summer_negative|shoulder|h6              call0/1 f=2.17828 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_negative|shoulder|h6            call0/1 f=1.88479 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|summer_negative|shoulder|h6              call0/1 f=1.88479 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|shoulder|winter_cold|h6                call0/1 f=12.27894 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 9.0->9.0 s0 0.00->0.00 hits=0/8
+one|dhw|shoulder|winter_cold|h6                  call0/1 f=12.27894 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 9.0->9.0 s0 0.00->0.00 hits=0/8
+two|nodhw|shoulder|winter_cold|h6                call0/1 f=11.39808 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 9.9->9.9 s0 0.00->0.00 hits=0/10
+two|dhw|shoulder|winter_cold|h6                  call0/1 f=11.39809 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 9.8->9.9 s0 0.00->0.00 hits=0/8
+one|nodhw|shoulder|winter_mild|h6                call0/1 f=4.66325 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|shoulder|winter_mild|h6                  call0/1 f=4.66325 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|shoulder|winter_mild|h6                call0/1 f=4.25632 gap=+0.0002% (+0.0000) pol=+0.0002% lad=+0.0002% arm=polish viol 0.0000->0.0000 kWh 3.1->3.1 s0 0.00->0.00 hits=0/10
+two|dhw|shoulder|winter_mild|h6                  call0/1 f=4.25631 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=polish viol 0.0000->0.0000 kWh 3.1->3.1 s0 0.00->0.00 hits=0/8
+one|nodhw|shoulder|summer_cool|h6                call0/1 f=1.40974 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|shoulder|summer_cool|h6                  call0/1 f=1.40974 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|shoulder|summer_cool|h6                call0/1 f=1.21560 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|shoulder|summer_cool|h6                  call0/1 f=1.21560 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|shoulder|shoulder|h6                   call0/1 f=2.75841 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|shoulder|shoulder|h6                     call0/1 f=2.75841 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|shoulder|shoulder|h6                   call0/1 f=2.41607 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|shoulder|shoulder|h6                     call0/1 f=2.41607 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|flat|winter_cold|h6                    call0/1 f=35.90303 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 15.0->15.0 s0 6.00->6.00 hits=0/8
+one|dhw|flat|winter_cold|h6                      call0/1 f=35.90303 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 15.0->15.0 s0 6.00->6.00 hits=0/8
+two|nodhw|flat|winter_cold|h6                    call0/1 f=33.49447 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 8.9->8.9 s0 6.00->6.00 hits=0/10
+two|dhw|flat|winter_cold|h6                      call0/1 f=33.49447 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 8.9->8.9 s0 6.00->6.00 hits=0/8
+one|nodhw|flat|winter_mild|h6                    call0/1 f=13.51946 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|flat|winter_mild|h6                      call0/1 f=13.51946 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|flat|winter_mild|h6                    call0/1 f=12.33560 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|flat|winter_mild|h6                      call0/1 f=12.33560 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|flat|summer_cool|h6                    call0/1 f=3.01321 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|flat|summer_cool|h6                      call0/1 f=3.01321 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|flat|summer_cool|h6                    call0/1 f=2.70192 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|flat|summer_cool|h6                      call0/1 f=2.70192 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|nodhw|flat|shoulder|h6                       call0/1 f=7.39947 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+one|dhw|flat|shoulder|h6                         call0/1 f=7.39947 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+two|nodhw|flat|shoulder|h6                       call0/1 f=6.66636 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/10
+two|dhw|flat|shoulder|h6                         call0/1 f=6.66636 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 0.0->0.0 s0 0.00->0.00 hits=0/8
+RESULT cells=64 count
+RESULT gap_max=0.0005 %
+RESULT gap_mean=0.0000 %
+RESULT cells_over_0p1pct=0 count
+RESULT gap_mean_drop_worst=0.0000 %
+RESULT rows_file=/tmp/claude-0/-home-claude/b0ec2fef-f6c2-53f1-b9f6-6866e66e9f0d/scratchpad/r/grid6.jsonl
+RESULT thread_factor=1.000
+RESULT load1=3.80
+RESULT swapins=0

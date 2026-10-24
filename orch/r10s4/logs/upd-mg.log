@@ -1,0 +1,2 @@
+===== daemonize pid=78752 2026-10-21T19:22:33Z argv: bash tools/audit/seat/update_pr.sh fix/r10-flow-main-gate b07e9e9d85b795e220715183d90b13a79d2cf107 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/r10-flow-main-gate.body.md
+HEAD=bf10abe62926bc8d93be779ae859a985e5365aa6

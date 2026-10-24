@@ -1,0 +1,3 @@
+Owner approval at head 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1, given by the orchestrator under tvofi's round-10 mandate (#201 comment 6175172275, scope all, valid to 2026-10-28), after the "Fix review: merge 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1" verdict (bus comment c41b2795).
+
+The only budget change in tests/structure_budgets.json is a ratchet-down: class_excess_loc 18302->18301 and max_class_loc 8544->8543, plus recorded_at. It is not a raise. tests/structure.py refuses main's values at this head ("2 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED"), so the re-record is required. The only red is nightly-status, which is main's (the 07:51Z nightly's record-autofix job got a 403).

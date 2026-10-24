@@ -1,0 +1,18 @@
+WARNING: stamping a main whose gate is not green: no completed Tests run for HEAD yet; 1 run(s) still in progress
+disposition gate: every merge in the window without a row is record-class -- its own diff touched only the record's own files (docs/delivery/*.md, .claude/workflows/carry-*.json, docs/plan-*.md), so it is the record being written and is self-disposing: #2459 (28ebd0b). The instrument said:
+DELIVERY STATUS OK — 179 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #2459 28ebd0b 0 commit(s) since — Record rows for #2456, #2458. Leaves #201 open.
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
+stamp plan:
+  - VERSION 7.0.0 -> 7.0.1
+  - manifest version -> 7.0.1
+  - CARD_VERSION 7.0.0 -> 7.0.1
+  - tests/golden/claimed_drift.txt: claims-for 7.0.0 -> 7.0.1, 41 claim(s) deleted
+  - tests/golden/claimed_drift.txt: 12 suspended may-drift entries restored verbatim (flat_prices, shoulder_two_zone, capacity_tariff_15min, cycling_cost, everything_on, narrow_band, shoulder, winter_two_zone_dhw, direct_flow_carnot, fuse_guard, precip_snow, tariff_plus_two_zone); 7 stale suspension note(s) dropped (valve_storage_smart_write, wood_two_tank, wood_two_tank_smart_write, wood_coil, valve_upper_direct_slab, winter_two_zone_no_dhw, valve_storage)
+  - tests/golden/card_claimed_drift.txt: claims-for 7.0.0 -> 7.0.1, 39 claim(s) deleted
+  - dev/audit/rounds/round4/D6: re-recorded from the stamped tree by claims.py
+  - commit 'v7.0.1: stamp set-point floor from the pump's inlet water and a relaxed solver start for installs that cannot duty-cycle' and tag v7.0.1 (pushed)
+claims self-check: claims hygiene: HEAD^1 ok
+RESULT stamped=v7.0.1 tag_pushed=true

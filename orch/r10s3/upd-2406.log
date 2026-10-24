@@ -1,0 +1,5 @@
+===== daemonize pid=832 2026-10-18T15:40:29Z argv: bash tools/audit/seat/update_pr.sh fix/r10-roster-fastpath dc6cda7a2003d095e2901fc396d8fa0838054818 /Users/timmalmstrom/hpo-orch/r10s3/body-2406.md
+HEAD=b965c4ab9a19b9470b88c5800580945b9507a388
+===== daemonize pid=62354 2026-10-18T16:29:20Z argv: bash tools/audit/seat/update_pr.sh fix/r10-roster-fastpath ddb2725f593bbab8c7c70dfb6161f23a1b890cee /Users/timmalmstrom/hpo-orch/r10s3/body-2406.md
+  REFUSE   ancestry reds          RED UNANSWERED (fast (3.14)):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/body-2406.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState.expire CMP_BOUND 2e90085b",
+  "killed_by": "tests/entities.py",
+  "old": "            if utc_elapsed_seconds(end, now) <= 0:",
+  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: CMP_BOUND (`if utc_elapsed_seconds(end, now) < 0:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

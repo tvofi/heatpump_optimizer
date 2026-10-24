@@ -1,0 +1,47 @@
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at d3d424525a2a5f2e6f53396fba6db14548dc3b12
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at e7f9cb32eca630690f70c96bbc6bea1daaa3e4a5
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+dropping R10-CI-LAYOUT carry[4]: 'Source: #2441 Forward-carry (owned workflow, tvofi review). `.github/workflows/g'
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at 3722401caa6a916d33732bccfb0a55deffea3563
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+dropping R10-PREPR-UNPINNED-RED carry[0]: 'Source: #2441 Friction. body_push.sh: unenforced: its predictor (`tools/pr/ci_pr'
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at d7df1dfd9109071aae4d4d3d40a579ad1ffce113
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+dropping R10-CI-LAYOUT carry[8]: 'Source: #2444 Forward-carry. The seven unwired self-tests outside `tools/audit/s'
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at f2b348c6efeec51246d2c32d3121d84be730144b
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+dropping R10-CI-LAYOUT carry[8]: "Source: #2444 Forward-carry. `merge_pr.sh`'s path after its gates, and the push "
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at 23f6c6004bab90697a34ccd6d099bcb1d7587360
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+dropping R10-CI-LAYOUT carry[8]: 'Source: #2444 Forward-carry. The field-coverage census copies all of `custom_com'
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at c680690838c0137269c8edcdf8a859b42904879b
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at efd92e0f6c30b86538e582d1e7088ca901800297
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at ebf5c9dee5c19e19d6f802f9a5db6c73578f3bdc
+roster: dev/programme/rosters/wave-r10-groups.json on roster-tmp-cilayout
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed roster-tmp-cilayout at 7c8909b237e4aba4be1d90cab8172ac8b3bc7601
+7c8909b23 roster_edit set-resume R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+ebf5c9dee roster_edit edit-brief R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+efd92e0f6 roster_edit edit-brief R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+c68069083 roster_edit append-carry R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+23f6c6004 roster_edit append-carry R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+f2b348c6e roster_edit append-carry R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+d7df1dfd9 roster_edit append-carry R10-PREPR-UNPINNED-RED (tools/audit/seat/roster_edit.py)
+3722401ca roster_edit append-carry R10-CI-LAYOUT (tools/audit/seat/roster_edit.py)
+e7f9cb32e roster_edit set-resume R10-CI-RATCHET-RED (tools/audit/seat/roster_edit.py)
+d3d424525 roster_edit set-stage R10-CI-RATCHET-RED (tools/audit/seat/roster_edit.py)
+501d5440e roster_edit append-group R10-POLICY-INSTRUMENTS (tools/audit/seat/roster_edit.py)
+fa5b6815c roster_edit set-stage R10-SEAT-SELFTESTS-CI (tools/audit/seat/roster_edit.py)

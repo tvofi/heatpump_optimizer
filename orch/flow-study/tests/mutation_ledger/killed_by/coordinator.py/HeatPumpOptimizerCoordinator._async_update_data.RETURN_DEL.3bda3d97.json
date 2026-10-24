@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_update_data RETURN_DEL 3bda3d97",
+  "killed_by": "tests/features.py",
+  "old": "            return await _with_sensor_advisor(self, self._build_data_dict())",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 830f84ad7a25453248a7709f4dfd13769b2d9684: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

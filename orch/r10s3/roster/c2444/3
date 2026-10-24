@@ -1,0 +1,1 @@
+Source: #2444 Forward-carry. The field-coverage census copies all of `custom_components/heatpump_optimizer/`, so its verdict depends on that tree too. Following the default, the pathspec leaves it out, because naming it would run the census on every production pull request. The cost question is routed rather than decided here. Carry: R10-CI-LAYOUT

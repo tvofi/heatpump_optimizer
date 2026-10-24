@@ -1,0 +1,38 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t2/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t2 pid=13006 start=2026-10-18T04:54:50Z
+BATCH 20261018-045451 pid=13018 base=main queue=1 (#2366)
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2366 serial: grader
+serial: #2366
+BOT #2372 not merged at 2bd22a53 (OPEN null)
+beat: waiting CI at 60308ef8 (poll 2, t+241s, required: 14, concluded: 13/14)
+tools/audit/seat/train.sh: line 251: 13018 Terminated: 15          python3 -u tools/audit/seat/merge_train.py batch "$queue" --repo "$repo" --state-dir "$state" --min-runs "$minruns" ${ignores[@]+"${ignores[@]}"} ${skipbad:+--skip-bad} ${overlap:+--overlap} ${mandate:+--mandate "$mandate"} ${opts[@]+"${opts[@]}"}
+TRAIN_RC=143 end=2026-10-18T05:00:03Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t2/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t2 pid=95520 start=2026-10-18T09:22:57Z
+BATCH 20261018-092257 pid=95528 base=main queue=3 (#2351 #2365 #2375)
+BOT #2387 pending at 4f25efad: AUTOMERGE PENDING #2387: pending: fast (3.14); not merged
+beat: waiting CI at 64b1f82a (poll 2, t+242s, required: 14, concluded: 11/14)
+beat: waiting CI at 64b1f82a (poll 3, t+483s, required: 14, concluded: 11/14)
+beat: waiting CI at 64b1f82a (poll 4, t+724s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 5, t+965s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 6, t+1206s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 7, t+1447s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 8, t+1688s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 9, t+1929s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 10, t+2170s, required: 14, concluded: 13/14)
+beat: waiting CI at 64b1f82a (poll 11, t+2411s, required: 14, concluded: 13/14)
+PARK #2351 policy: budget files changed (tests/structure_budgets.json): the owner's review does not sit at this head (no decisive review by tvofi (id 70032254) on this pull request); a raise is the owner's (0013)
+PARK #2375 recarry: fix/r10-store is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-store; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree
+PRE-FLIGHT: 1 of 3 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2365 serial: grader
+serial: #2365
+BOT #2387 MERGED f00e1d85b9036e90407520b0ff4c080b18d305bf
+#2365 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-pump-model held fix/r10-pump-model, clean at origin/fix/r10-pump-model; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-pump-model switch fix/r10-pump-model)
+#2365 recarry START (branch fix/r10-pump-model)
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t2/wt/2365 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t2/wt/2365' contains modified or untracked files, use --force to delete it); remove it by hand
+TRAIN STOPPED recarry: #2365 main does not merge without a resolution; that is a fixer's, and a re-review
+TRAIN_RC=1 end=2026-10-18T10:08:05Z

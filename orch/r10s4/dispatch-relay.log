@@ -1,0 +1,101 @@
+2026-10-21T10:51:00Z row-missing 2547 12dfce128643eeb6656daa1c4fabdedde45bece1
+2026-10-21T10:51:03Z row-missing 2548 7d659d6027ac92d0dfa64b97801e29a3704c5a37
+2026-10-21T10:51:06Z row-present 2549 09ad7e4f750bfee78b18221d68eae0580fef3d3a
+2026-10-21T10:51:08Z bus-dispatch 2549 rc=0 nonce=ce9a722a1ecbc50d6fb84a715cc84566
+2026-10-21T10:51:08Z cloud-dispatch 2549 rc=0 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2549.json
+fire-owed 2549 /Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2549.json
+2026-10-21T10:51:34Z relay 2513 rc=0 :: remote: 
+remote: Create a pull request for 'review/2513' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2513        
+remote: 
+remote: GitHub found 27 vulnerabilities on tvofi/heatpump_optimizer's default branch (3 critical, 12 high, 8 moderate, 4 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+review/2513 4122f4cbe765266e2f013ca140c786d75ac10424
+cloud_relay: POSTED #2513 4122f4cbe765266e2f013ca140c786d75ac10424
+cloud_relay: relayed refs/heads/probe/rev-2513-99034209 42ea3e9b7b67eb9047b682410b6453b3d71f9ef5; next: bus.sh confirm 2513 <review commit>
+VERDICT-OR-REFUSED 2513 rc=0 cloud_relay: POSTED #2513 4122f4cbe765266e2f013ca140c786d75ac10424 cloud_relay: relayed refs/heads/probe/rev-2513-99034209 42ea3e9b7b67eb9047b682410b6453b3d71f9ef5; next: bus.sh confirm 2513 <review commit> 
+2026-10-21T10:52:01Z relay 2529 rc=0 :: remote: 
+remote: Create a pull request for 'review/2529' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2529        
+remote: 
+remote: GitHub found 27 vulnerabilities on tvofi/heatpump_optimizer's default branch (3 critical, 12 high, 8 moderate, 4 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+review/2529 418110aa86fd352a0c01c3730ac10befe965e9f1
+cloud_relay: POSTED #2529 418110aa86fd352a0c01c3730ac10befe965e9f1
+cloud_relay: relayed refs/heads/probe/rev-2529-753fbd51 c8b7553de96f908fb9662d62c6050bedf628f8db; next: bus.sh confirm 2529 <review commit>
+VERDICT-OR-REFUSED 2529 rc=0 cloud_relay: POSTED #2529 418110aa86fd352a0c01c3730ac10befe965e9f1 cloud_relay: relayed refs/heads/probe/rev-2529-753fbd51 c8b7553de96f908fb9662d62c6050bedf628f8db; next: bus.sh confirm 2529 <review commit> 
+2026-10-21T10:52:26Z relay 2544 rc=0 :: remote: 
+remote: Create a pull request for 'review/2544' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2544        
+remote: 
+remote: GitHub found 27 vulnerabilities on tvofi/heatpump_optimizer's default branch (3 critical, 12 high, 8 moderate, 4 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+review/2544 83e9168e9fe41ba2f86e6615378c0b4c675b12cc
+cloud_relay: POSTED #2544 83e9168e9fe41ba2f86e6615378c0b4c675b12cc
+cloud_relay: relayed refs/heads/probe/rev-2544-9bb2f268 e18e09274d030057781575bafe518b78e8bc44fb; next: bus.sh confirm 2544 <review commit>
+VERDICT-OR-REFUSED 2544 rc=0 cloud_relay: POSTED #2544 83e9168e9fe41ba2f86e6615378c0b4c675b12cc cloud_relay: relayed refs/heads/probe/rev-2544-9bb2f268 e18e09274d030057781575bafe518b78e8bc44fb; next: bus.sh confirm 2544 <review commit> 
+2026-10-21T10:57:38Z row-present 2547 90bab078d19dd6aebba140fa360576b7780a560a
+2026-10-21T10:57:40Z bus-dispatch 2547 rc=0 nonce=43ea241b40ae10814cc74e8b5440c87c
+2026-10-21T10:57:40Z cloud-dispatch 2547 rc=0 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2547.json
+fire-owed 2547 /Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2547.json
+2026-10-21T10:57:43Z row-present 2548 daac94b439baf15b1ce8ea6c39bc73731eb076c6
+2026-10-21T10:57:45Z bus-dispatch 2548 rc=0 nonce=a750134988b08f27aa567c2e73c5fce0
+2026-10-21T10:57:46Z cloud-dispatch 2548 rc=0 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2548.json
+fire-owed 2548 /Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2548.json
+2026-10-21T11:28:26Z relay 2525 rc=0 :: remote: 
+remote: Create a pull request for 'review/2525' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2525        
+remote: 
+remote: GitHub found 27 vulnerabilities on tvofi/heatpump_optimizer's default branch (3 critical, 12 high, 8 moderate, 4 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+review/2525 15a99ce121ea6e84cdee7cefd8a3b990e812b33e
+cloud_relay: OWED #2525: bus.sh confirm failed; run it by hand
+cloud_relay: relayed refs/heads/probe/rev-2525-45db6e37 f4b9411a8ef77b8caa572135c4cab459408e55d6; next: bus.sh confirm 2525 <review commit>
+VERDICT-OR-REFUSED 2525 rc=0 cloud_relay: OWED #2525: bus.sh confirm failed; run it by hand cloud_relay: relayed refs/heads/probe/rev-2525-45db6e37 f4b9411a8ef77b8caa572135c4cab459408e55d6; next: bus.sh confirm 2525 <review commit> 
+2026-10-21T11:39:41Z bus-dispatch 2527 nonce=98e8d4b4e5cccc1c861f948340fa10bf
+2026-10-21T11:39:41Z cloud-dispatch 2527 rc=0 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2527.json
+2026-10-21T11:39:41Z fire-owed 2527 /Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2527.json (RemoteTrigger unavailable to seat)
+2026-10-21T11:39:55Z bus-dispatch 2556 nonce=8050f8455f4c5acf6630039ed48b434c
+2026-10-21T11:39:55Z cloud-dispatch 2556 rc=0 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2556.json
+2026-10-21T11:39:55Z fire-owed 2556 /Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2556.json (RemoteTrigger unavailable to seat)
+2026-10-21T11:40:31Z fired 2527 session=cse_01KzkfCvmfzynFBP1CoGEW3A (coordinator confirmed)
+2026-10-21T11:40:31Z fired 2556 session=cse_01FrNEycCpiT965XZQXCW1JB (coordinator confirmed)
+2026-10-21T11:43:20Z bus-dispatch 2555 nonce=c4e633e0f4796305913a4862e408cf14
+2026-10-21T11:43:20Z cloud-dispatch 2555 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2555.json
+2026-10-21T11:43:51Z fired 2555 session=cse_0189QEjNaqppBVixi8PZPSv3 (coordinator confirmed; coordinator corrected brief wording: code-owned verdict is not advisory, mandate 6175172275 approval on the verdict, review with full rigour)
+2026-10-21T11:44:31Z bus-dispatch 2560 nonce=60c0cd20873ffadd8b9124823443ac67
+2026-10-21T11:44:31Z cloud-dispatch 2560 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2560.json
+2026-10-21T11:45:00Z fired 2560 session=cse_01SmbejhZgNNfhxrN4cqAr2L (coordinator confirmed)
+2026-10-21T11:45:26Z bus-dispatch 2559 nonce=26fd5e9daaf3a772abf9ca012513e074
+2026-10-21T11:45:26Z cloud-dispatch 2559 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2559.json
+2026-10-21T11:45:36Z hold 2559 (coordinator: roster seat still landing carries; re-render at final head when told; payload kept)
+2026-10-21T11:51:07Z relay 2547 nonce=43ea241b rc=0
+2026-10-21T11:51:13Z relay 2547 nonce=43ea241b: refused, already relayed (ref 275223a4)
+2026-10-21T11:56:31Z relay 2560 nonce=60c0cd20 rc=2
+2026-10-21T11:56:36Z relay 2560 nonce=60c0cd20: refused, already relayed (ref d3d02c2b)
+2026-10-21T11:56:54Z rule check 2547: review/2547=49c21173; PR has "Fix review: merge 90bab078" comment (bus-nonce 43ea241b4): posted, no confirm run
+2026-10-21T11:56:54Z rule check 2560: review/2560=57ac5e4e; coordinator confirming by hand, seat did not run confirm
+2026-10-21T12:01:54Z bus-dispatch 2561 nonce=886cfba8620475ae99447f6d9eef5cb3
+2026-10-21T12:01:54Z cloud-dispatch 2561 json=/Users/timmalmstrom/hpo-orch/r10s4/cloud/rev2561.json
+2026-10-21T12:07:21Z relay 2527 98e8d4b4e5cccc1c861f948340fa10bf d0cdac2ef92e5689358063830526539b795aa52a nonce=2 rc=usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>: 
+2026-10-21T12:07:21Z relay 2556 8050f8455f4c5acf6630039ed48b434c 1beed40bfefac3265b2c2dd8551a0b51d47f9ade nonce=2 rc=usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>: 
+2026-10-21T12:07:21Z relay 2561 886cfba8620475ae99447f6d9eef5cb3 1019d18de448a9569c65a704410c331046cbe868 nonce=2 rc=usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>: 
+2026-10-21T12:08:03Z relay 2527 nonce=98e8d4b4e5cccc1c861f948340fa10bf rc=0: cloud_relay: relayed refs/heads/probe/rev-2527-98e8d4b4 98fc053a536786a9ce58864433af8b5b96346446; next: bus.sh confirm 2527 <review commit>
+2026-10-21T12:08:26Z relay 2556 nonce=8050f8455f4c5acf6630039ed48b434c rc=0: cloud_relay: relayed refs/heads/probe/rev-2556-8050f845 0ef3b20a2b2092d005741d1b83f43e7e92653169; next: bus.sh confirm 2556 <review commit>
+2026-10-21T12:08:52Z relay 2561 nonce=886cfba8620475ae99447f6d9eef5cb3 rc=0: cloud_relay: relayed refs/heads/probe/rev-2561-886cfba8 797eb552db3f4ae1f2b08c952e6e1a56c3262493; next: bus.sh confirm 2561 <review commit>
+2026-10-21T12:09:10Z rule check: 2527 review=1caf0aaa, 2556 review=5f8ae732, 2561 review=455a1458: each has a Fix review comment at the review sha; no confirm run
+2026-10-21T12:14:26Z pass: rows 2558 and 2557 still missing; probe refs all previously relayed (2527, 2547, 2549, 2556, 2560, 2561)
+2026-10-21T12:19:46Z relay 2555 nonce=c4e633e0 rc=2: cloud_relay: refused: refs/heads/probe/rev-2555-c4e633e0 at 7b66e6742c7ac9bf3ed65719960d7d978be1c0bd was already relayed
+2026-10-21T12:19:58Z verdict 2555: "Fix review: merge 50b73644" posted, review ref 740c3567 referenced in a comment; relay refused as already relayed; no confirm run
+2026-10-21T12:19:58Z pass: rows 2558 and 2557 still missing
+2026-10-21T12:25:12Z pass: rows 2558 and 2557 still missing; all probe refs previously relayed
+2026-10-21T12:30:33Z pass: 2558 head moved to 43b1307e, row still missing; 2557 row missing at 01d7ac8c; no new probe refs
+2026-10-21T12:35:47Z pass: 2558 (43b1307e) and 2557 (01d7ac8c) rows still missing; no new probe refs
+2026-10-21T12:41:01Z pass: 2558 (43b1307e) and 2557 (01d7ac8c) rows still missing; no new probe refs
+2026-10-21T12:46:14Z pass: 2558 (43b1307e) and 2557 (01d7ac8c) rows still missing; no new probe refs
+2026-10-21T12:51:26Z pass: 2558 and 2557 rows still missing. New probe refs/heads/probe/rev-2560-fa6eb2e9 does not match the ledger nonce 60c0cd20, so not relayed; reported to main
+2026-10-21T12:51:41Z STAND DOWN: coordinator says relay seat a50cf280 owns the queue; loop stopped. Last state: 2558 (43b1307e) and 2557 (01d7ac8c) rows missing, not dispatched. Held: 2559 (2534cd41, awaiting roster final head). 2560 second dispatch (fa6eb2e9, head 085a4caf) relayed by coordinator, not by this seat.

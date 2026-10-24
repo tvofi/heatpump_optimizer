@@ -1,0 +1,51 @@
+{
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "severity": "medium",
+ "size": "M",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "wave": 4,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "mandated approval under 6329234399",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "group": "R10-ORCH-REVIEW-PACKET",
+ "after": [
+  "R10-ORCH-DISPATCH-REG",
+  "R10-POLICY-FIXER-MD"
+ ],
+ "files": [
+  "tools/audit/seat/bus.sh",
+  "tools/audit/seat/review_packet.py",
+  "dev/governance/roles/fix-review.md",
+  "tools/audit/seat/INSTRUMENTS.md"
+ ],
+ "carry": [
+  "tvofi 2026-10-24 card 8 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): placed after R10-ORCH-DISPATCH-REG, because bus.sh dispatch renders the packet, and before R10-ORCH-BEATD. R10-POLICY-FIXER-MD is also an after-edge because it edits fix-review.md at zero headroom and this group edits the same file.",
+  "Card 5 (dispatch reviewers only once the gate has settled) was rejected by the owner: reviewers are still dispatched when the fixer pushes. The packet is therefore rendered at the frozen head while the gate may still be running. Its gate digest must say pending, green or red as of the render time with the check-run ids read, and the reviewer re-reads the live state before a verdict. Nothing in this group may depend on the gate having concluded.",
+  "Independence: the packet holds the finder's harness output at base and head, run by a tool; it never holds the fixer's harness. The reviewer still re-runs whatever it doubts. fix-review.md step text changes by cutting text elsewhere in the file."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-orch-review-packet",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "owner card 8, 2026-10-24"
+ },
+ "brief": "Reviewer reads a script-built review packet (owner ruling tvofi 2026-10-24, card 8). A fix reviewer spends much of its run gathering the same facts with gh reads, file reads, gate output and waits. Change: bus.sh dispatch renders, at the frozen head, a packet file (a new module beside bus.sh) holding: the three-dot diff against the merge base; a digest of the gate jobs as of the render time (see the carry on card 5); the carry_audit and figure_lint results at the head; the finder's harness output at the base and at the head (the finder's, never the fixer's); and the mutation-ledger diff. dispatch names the packet path in the reviewer's brief, and fix-review.md says to start from it. Measure first: what the reviewer's gather steps cost at the base, from the local transcripts of a sample of review seats (the token section of R10-FLOW-BOARD is the reader if landed); the saving claimed is the gather share the packet removes, with the packet's own size beside it. Controls: a packet at a head carries the harness output of that head, and at a moved head dispatch refuses to name a stale packet; the packet is byte-identical for the same head on a second render; a packet built from the fixer's harness fails the independence check; each rule has a mutant. A reviewer verdict still names its own evidence directory (app_approve needs an absolute Evidence path)."
+}

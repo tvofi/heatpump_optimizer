@@ -1,0 +1,2 @@
+===== daemonize pid=99400 2026-10-24T14:40:49Z argv: bash tools/audit/seat/open_pr.sh r10-mutation-anchor a55a0f47ecf5e805dc86bf8b9eb157755271efa8 R10-MUTATION-ANCHOR: entities.py reads a mutant of a pinned line as killed only when the pin anchors it R10-MUTATION-ANCHOR 2493
+open_pr: 18 open PRs; the cap gates dispatch, not opening

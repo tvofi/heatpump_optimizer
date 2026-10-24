@@ -1,0 +1,99 @@
+{
+  "dimension": "D8",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "findings": [
+    {
+      "id": "D8-s2-01",
+      "title": "Entity IDs not sorted alphabetically in async_setup_entry",
+      "severity": "high",
+      "claim": "Sensor entities are initialized in non-alphabetical order in async_setup_entry, violating the D8 brief requirement to sort every entity_id.",
+      "mechanism": "Entities appended to list in definition order rather than alphabetical by translation_key.",
+      "evidence": {
+        "command": "cd /home/claude/audit-r8/seats/D8-s2 && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D8/s2_ordering_finding.py",
+        "harness_path": "tools/audit/round8/D8/s2_ordering_finding.py",
+        "value": 57,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "Cloud Linux 4vCPU 15GB RAM",
+        "cpu_or_wall": "count",
+        "contention_note": "Shared 4vCPU box; count is immune to contention",
+        "tolerance": "exact",
+        "load1": 25.99,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "sensor:async_setup_entry",
+      "perturbation": {
+        "change": "Sort entities list alphabetically by translation_key parameter",
+        "expected_direction": "to_zero",
+        "observed_value": "57 violations → 0 violations when sorted"
+      },
+      "metric_definition": "Count of position mismatches between actual entity_id order and alphabetical sort order",
+      "phenomenon_property": "Entity initialization order clustering related sensors alphabetically by entity_id.",
+      "seam_rule": "grep -n 'async_setup_entry' custom_components/heatpump_optimizer/sensor.py; grep -n 'entities = \\[' custom_components/heatpump_optimizer/sensor.py",
+      "stop_rule_class": "hygiene",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "tools/audit/round8/D8/s2_ordering_finding.py"
+      ],
+      "proposed_fix_scope": "Reorder lines 232-315 in sensor.py (entities list in async_setup_entry) to initialize entities alphabetically by translation_key"
+    },
+    {
+      "id": "D8-s2-02",
+      "title": "DHW temperature disabled by default but used in card",
+      "severity": "medium",
+      "claim": "The dhw_temperature entity is disabled by default but is referenced in the card, causing fresh installs to lack this entity when card attempts to display it.",
+      "mechanism": "DHWTemperatureSensor has _attr_entity_registry_enabled_default = False, but card.mjs contains patterns matching dhw_temperature.",
+      "evidence": {
+        "command": "cd /home/claude/audit-r8/seats/D8-s2 && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D8/s2_enabled_analysis.py",
+        "harness_path": "tools/audit/round8/D8/s2_enabled_analysis.py",
+        "value": 1,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "Cloud Linux 4vCPU 15GB RAM",
+        "cpu_or_wall": "count",
+        "contention_note": "Static code analysis; immune to contention",
+        "tolerance": "exact",
+        "load1": 24.41,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "sensor:DHWTemperatureSensor._attr_entity_registry_enabled_default",
+      "perturbation": {
+        "change": "Set _attr_entity_registry_enabled_default = True for DHWTemperatureSensor class",
+        "expected_direction": "up",
+        "observed_value": "Entity becomes available to card on fresh installs when enabled"
+      },
+      "metric_definition": "Boolean: entity has dhw_temperature in translation_key AND _attr_entity_registry_enabled_default == False AND card references dhw_temperature",
+      "phenomenon_property": "Enabled-by-default status of card-referenced entities aligned with card initialization assumptions.",
+      "seam_rule": "grep 'dhw_temperature' tests/card.mjs; grep -A2 'class DHWTemperatureSensor' custom_components/heatpump_optimizer/sensor.py",
+      "stop_rule_class": "bug",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "tests/card.mjs",
+        "tools/audit/round8/D8/s2_enabled_analysis.py"
+      ],
+      "proposed_fix_scope": "Either enable dhw_temperature by default, or add card runtime check to handle missing DHW temperature entity gracefully"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "All entities present in strings.json with correct keys",
+      "command": "cd /home/claude/audit-r8/seats/D8-s2 && python3 -c \"import json; s=json.load(open('custom_components/heatpump_optimizer/strings.json')); print(len(s['entity']['sensor']))\"",
+      "value": "58 entities all present, 0 missing"
+    },
+    {
+      "claim": "No duplicate entity translation keys",
+      "command": "cd /home/claude/audit-r8/seats/D8-s2 && python3 -c \"import json; s=json.load(open('custom_components/heatpump_optimizer/strings.json')); keys=list(s['entity']['sensor'].keys()); print('unique' if len(keys)==len(set(keys)) else f'{len(keys)-len(set(keys))} duplicates')\"",
+      "value": "All 58 translation keys unique"
+    },
+    {
+      "claim": "42 entities enabled by default, 17 disabled",
+      "command": "cd /home/claude/audit-r8/seats/D8-s2 && grep -c '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py",
+      "value": "17 disabled (reasonable for optional features)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D8/s2_ordering_finding.py",
+    "tools/audit/round8/D8/s2_entity_analysis.py",
+    "tools/audit/round8/D8/s2_enabled_analysis.py"
+  ]
+}

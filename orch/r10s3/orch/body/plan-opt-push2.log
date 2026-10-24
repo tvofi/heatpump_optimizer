@@ -1,0 +1,58 @@
+===== daemonize pid=42792 2026-10-20T16:48:46Z argv: bash tools/pr/app_push.sh tvofi/heatpump_optimizer /Users/timmalmstrom/hpo-seats/r10s3/plan-opt/wt handoff/r10-plan-opt /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-plan-opt.md
+  ok       body path              not directly in a shared root
+  ok       merge-base             990e90af9bcd05f283295f90c128ef936e8ba025
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=0 label=prepr-42929 expires_at=2026-10-20T17:33:59.315940+00:00
+  ok       gate mode              MODE: FULL
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+  ok       register check         fold_ledger: 0 violation(s)
+  REFUSE   temp paths             tmp_paths: 2 refused, 0 stale allow entries at HEAD, ledger lines added since 990e90af9bcd
+  ok       pinned graders         
+  ok       self-test              303 passed, 0 failed
+  ok       wave-script            198 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 990e90af9bcd05f283295f90c128ef936e8ba025 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 990e90af9bcd (a data-file read is not seen)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  REFUSE   layout guard           placement: tools/plan/durations.json is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind -- place it where tests/layout.json says, or the fast job refuses it
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:both
+             7:every
+             15:each
+             19:all
+             19:every
+             27:all
+             32:none
+             36:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             10 p
+             28 h
+             28 h
+             44 b
+             51 g
+             44 b
+             19 c
+             11 i
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  REFUSE   pr-body                PR-BODY: 3 error(s) in /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-plan-opt.md -- no budget leaf raised over 990e90af9...f031946e7
+  ok       figures                FIGURES: 3 resolved, 0 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  ok       push order             origin/handoff/r10-plan-opt is at f031946e7 -- local mirror, unfetched
+  skip     ancestry reds          no pushed commit carries any check run, so there is no red to answer and none confirmed absent
+
+PRE-PR: f031946e7fe5a3a0430b29d251119c1c46735644 00000000000010100000000100100
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,1 @@
+build(deps): bump aiohttp, certifi, pillow and uv, re-locked (supersedes #2534)

@@ -1,0 +1,5 @@
+===== daemonize pid=62897 2026-10-23T12:07:01Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; the soft cap gates new dispatches only (2026-10-20) r10-input-staleness 7668a4d0974444c9806fe83ae0656b0b6bd1e50a R10-INPUT-STALENESS: hold on-change sources to liveness, not polling age R10-INPUT-STALENESS 2234
+open_pr: OVER-CAP: 8 open >= 6, overridden: wave fixer return; the soft cap gates new dispatches only (2026-10-20)
+  REFUSE   pr-body                ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all) -- no budget leaf raised over a6620c30a...7668a4d09
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/p1.log

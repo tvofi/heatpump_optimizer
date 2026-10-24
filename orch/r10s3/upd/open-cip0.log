@@ -1,0 +1,3 @@
+===== daemonize pid=28622 2026-10-19T21:52:41Z argv: bash tools/audit/seat/open_pr.sh r10-ci-layout-p0 385b3a0d375b68f53d016c8b53eea7956a906fee ci: layout PR 0 - dispatch-only ci.yml stub, reuse-free runs budget R10-CI-LAYOUT
+open_pr: open-PR cap: 2 open < 6
+PR=2464 HEAD=4d1730bd10c9f53cf83928051b7d43414fd9fe36 AUTHOR=tvofi

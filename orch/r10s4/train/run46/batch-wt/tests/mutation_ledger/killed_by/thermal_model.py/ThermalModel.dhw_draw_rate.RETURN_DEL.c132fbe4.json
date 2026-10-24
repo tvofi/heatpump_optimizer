@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_draw_rate RETURN_DEL c132fbe4",
+  "killed_by": "tests/features.py",
+  "old": "        return self.params.dhw_draw_power * pattern[hour_idx]",
+  "reason": "Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

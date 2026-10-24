@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2647,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2647); first: review 6360129434 item acaa22e8 (unrouted): - **The whole range.** Run against only origin/main, the guard refuses `co-author-trailer` on `ff6cf"
+  }
+]

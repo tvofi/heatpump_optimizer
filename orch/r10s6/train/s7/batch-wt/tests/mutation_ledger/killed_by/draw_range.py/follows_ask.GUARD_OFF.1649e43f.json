@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask GUARD_OFF 1649e43f",
+  "killed_by": "tests/features.py",
+  "old": "    if draw is None:",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `GUARD_OFF` (if False:) flips the condition of tests/features.py's R.check \"follows_ask: no evidence without the window, before MIN_SAMPLES, or on a flat ask; a proportional draw follows, a self-set one does not\" -- raises AttributeError: with the guard off `follows_ask(None)` reads `draw.config` on None. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

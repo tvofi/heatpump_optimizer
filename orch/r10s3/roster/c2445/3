@@ -1,0 +1,1 @@
+Source: #2445 Friction. fixer.md missing-instrument: a features check that compares a mapping against an imported constant pins nothing about the constant's value; only tests/mutation_table.py --pin-killed showed it. Owed in fixer.md: run the ledger's own mutant before claiming a kill.

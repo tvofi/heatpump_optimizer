@@ -1,0 +1,603 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index 8629b83b2..99806af1b 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ 
+ import hashlib
+ import logging
+-from collections.abc import Callable, Iterable, Mapping
++from collections.abc import Awaitable, Callable, Iterable, Mapping
+ from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
+ 
+ import aiohttp
+@@ -1884,6 +1884,52 @@ def _section_inner(value: Any) -> vol.Schema | None:
+     return inner if isinstance(inner, vol.Schema) else None
+ 
+ 
++#: A page's refusal: the submit (flattened, cleared rows nulled) and the stored
++#: config in, the per-field errors out (empty to save).
++_PageCheck = Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, str]]]
++#: What a page saves, from the accepted submit and the submit merged over the
++#: stored config (before any cleared row is nulled).
++_PageFinish = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
++
++
++def _warn_legionella_ceiling(submit: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
++    """Warned, never blocked -- see the setup flow's DHW step."""
++    warning = _dhw_legionella_warning(submit, merged)
++    if warning is not None:
++        _LOGGER.warning(
++            "Hot water: the anti-legionella cycle at %s °C is "
++            "above the %s °C charge limit, so the tank is taken "
++            "above that limit every %s days",
++            warning["legionella_temp"],
++            warning["setpoint"],
++            warning["interval_days"],
++        )
++    return submit
++
++
++def _peak_window_as_int(submit: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
++    cleaned = dict(submit)
++    window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
++    if window is not None:
++        try:
++            cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
++        except (TypeError, ValueError):
++            cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
++    return cleaned
++
++
++def _apply_dso_catalog(cleaned: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
++    applied = grid_fee.apply_catalog(cleaned.get(CONF_DSO_PRODUCT))
++    if applied:
++        cleaned.update(applied)
++    return cleaned
++
++
++def _fee_placeholders(hass: HomeAssistant) -> dict[str, str]:
++    currency = resolve_currency(hass)
++    return {"currency": currency, "fee_bound": f"{grid_fee.fee_bound(currency):g}"}
++
++
+ def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
+     """Lift ``section()`` payloads to option keys.
+ 
+@@ -3216,21 +3262,46 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         return await self.async_step_init()
+ 
+     async def _page(
+-        self, step_id: str, user_input: dict[str, Any] | None, *, clear: bool = False
++        self,
++        step_id: str,
++        user_input: dict[str, Any] | None,
++        *,
++        clear: bool = False,
++        check: _PageCheck | None = None,
++        finish: _PageFinish | None = None,
++        placeholders: Mapping[str, str] | None = None,
+     ) -> ConfigFlowResult:
+         """One registry page (#597): save the submit, or show the form.
+ 
+-        ``clear`` hands the submit to ``_clear_absent`` first, so a stored
+-        entity row the user emptied is nulled rather than kept. A page with
+-        no ``_STORED`` row passes ``clear=False``: there is nothing to null.
++        Every options page is this one sequence: lift the ``section()``
++        groups, null the stored entity rows the user emptied (``clear``),
++        refuse the submit with ``check``'s errors, shape what is saved with
++        ``finish``, and otherwise re-render the rejected form with what was
++        typed rather than with the stored values the user was changing.
++
++        ``clear`` hands the submit to ``_clear_absent``, judged over the
++        SUBMISSION merged onto the stored config, so a block the same submit
++        turns off still clears its own slots. A page with no ``_STORED`` row
++        passes ``clear=False``: there is nothing to null.
+         """
++        errors: dict[str, str] = {}
+         current = self._current
+         if user_input is not None:
+-            return await self._save_or_menu(
+-                _clear_absent(user_input, step_id, current) if clear else user_input
+-            )
++            flat = _flatten_section_input(user_input)
++            merged = {**current, **flat}
++            cleaned = _clear_absent(flat, step_id, merged) if clear else flat
++            if check is not None:
++                errors = await check(cleaned, current)
++            if not errors:
++                return await self._save_or_menu(
++                    finish(cleaned, merged) if finish is not None else cleaned
++                )
++            current = {**current, **cleaned}
+         return self.async_show_form(
+-            step_id=step_id, data_schema=_page_schema(step_id, current, self.hass)
++            step_id=step_id,
++            errors=errors,
++            description_placeholders=placeholders,
++            data_schema=_page_schema(step_id, current, self.hass),
+         )
+ 
+     async def _thermal_model_page(
+@@ -3404,68 +3475,53 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Change which Home Assistant entities the optimizer reads."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            source = user_input.get(
+-                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+-            )
+-            if source == PRICE_SOURCE_ENTITY:
+-                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
+-                    CONF_PRICE_ENTITY
+-                )
+-                if not entity:
+-                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+-            else:
+-                token = user_input.get(CONF_TIBBER_TOKEN) or current.get(
+-                    CONF_TIBBER_TOKEN
+-                )
+-                if not token:
+-                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+-                else:
+-                    submitted = user_input.get(CONF_TIBBER_TOKEN)
+-                    if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+-                        verdict = await validate_tibber_token(self.hass, submitted)
+-                        if verdict == "invalid_auth":
+-                            errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+-                        elif verdict != "ok":
+-                            errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+-            if not errors:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "entities", current)
+-                )
+-            current = {**current, **user_input}
++        return await self._page(
++            "entities", user_input, clear=True, check=self._entities_errors
++        )
+ 
+-        return self.async_show_form(
+-            step_id="entities",
+-            errors=errors,
+-            data_schema=_page_schema("entities", current, self.hass),
++    async def _entities_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """The price source must name its feed; a new Tibber token must work."""
++        errors: dict[str, str] = {}
++        source = submit.get(
++            CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+         )
++        if source == PRICE_SOURCE_ENTITY:
++            if not (submit.get(CONF_PRICE_ENTITY) or current.get(CONF_PRICE_ENTITY)):
++                errors[CONF_PRICE_ENTITY] = "price_entity_required"
++            return errors
++        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):
++            errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
++            return errors
++        submitted = submit.get(CONF_TIBBER_TOKEN)
++        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
++            verdict = await validate_tibber_token(self.hass, submitted)
++            if verdict == "invalid_auth":
++                errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
++            elif verdict != "ok":
++                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
++        return errors
+ 
+     async def async_step_entities_metering(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Solar, power and compressor frequency sensors."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            # Only a number entity can be written; a sensor alone observes.
+-            if user_input.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not user_input.get(CONF_COMPRESSOR_FREQ_ENTITY):
+-                errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
+-            else:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "entities_metering", current)
+-                )
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="entities_metering",
+-            errors=errors,
+-            data_schema=_page_schema("entities_metering", current, self.hass),
++        return await self._page(
++            "entities_metering", user_input, clear=True, check=self._metering_errors
+         )
+ 
++    async def _metering_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        """Only a number entity can be written; a sensor alone observes."""
++        errors: dict[str, str] = {}
++        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(
++            CONF_COMPRESSOR_FREQ_ENTITY
++        ):
++            errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
++        return errors
++
+     async def async_step_entities_pump(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+@@ -3476,92 +3532,66 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """How warm the house should be, and when."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            errors = _band_errors(user_input, current)
+-            if not errors:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "comfort", current)
+-                )
+-            # Re-render the rejected form with what was typed, not with the
+-            # stored values the user was in the middle of changing.
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="comfort",
+-            errors=errors,
+-            data_schema=_page_schema("comfort", current, self.hass),
+-        )
++        return await self._page("comfort", user_input, clear=True, check=self._comfort_errors)
++
++    async def _comfort_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        return _band_errors(submit, current)
+ 
+     async def async_step_hot_water(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """When hot water is needed and how hot it has to be."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+-            if window_problem is not None:
+-                errors[CONF_DHW_WINDOWS] = window_problem
+-            holiday_spec = user_input.get(CONF_HOLIDAY_DHW_WINDOWS, "")
+-            if holiday_spec:
+-                holiday_problem = dhw_spec_problem(holiday_spec)
+-                if holiday_problem is not None:
+-                    errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+-            # #1260: each revealed per-day field gets the ordinary verdicts
+-            # plus the selector refusal, on its own key.
+-            errors.update(_dhw_day_field_errors(user_input))
+-            if not errors and _dhw_min_too_close(user_input, current):
+-                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
+-            if not errors:
+-                # Warned, never blocked — see the setup flow's DHW step.
+-                warning = _dhw_legionella_warning(user_input, current)
+-                if warning is not None:
+-                    _LOGGER.warning(
+-                        "Hot water: the anti-legionella cycle at %s °C is "
+-                        "above the %s °C charge limit, so the tank is taken "
+-                        "above that limit every %s days",
+-                        warning["legionella_temp"],
+-                        warning["setpoint"],
+-                        warning["interval_days"],
+-                    )
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "hot_water", current)
+-                )
+-            current = {**current, **user_input}
+-
+-        return self.async_show_form(
+-            step_id="hot_water",
+-            errors=errors,
+-            description_placeholders=_WINDOW_PLACEHOLDERS,
+-            data_schema=_page_schema("hot_water", current, self.hass),
++        return await self._page(
++            "hot_water",
++            user_input,
++            clear=True,
++            check=self._hot_water_errors,
++            finish=_warn_legionella_ceiling,
++            placeholders=_WINDOW_PLACEHOLDERS,
+         )
+ 
++    async def _hot_water_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        window_problem = dhw_spec_problem(submit.get(CONF_DHW_WINDOWS, ""))
++        if window_problem is not None:
++            errors[CONF_DHW_WINDOWS] = window_problem
++        holiday_spec = submit.get(CONF_HOLIDAY_DHW_WINDOWS, "")
++        if holiday_spec:
++            holiday_problem = dhw_spec_problem(holiday_spec)
++            if holiday_problem is not None:
++                errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
++        # #1260: each revealed per-day field gets the ordinary verdicts
++        # plus the selector refusal, on its own key.
++        errors.update(_dhw_day_field_errors(submit))
++        if not errors and _dhw_min_too_close(submit, current):
++            errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
++        return errors
++
+     async def async_step_hot_water_tank(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Tank size, inlet water, advanced DHW learning and the pump's switch."""
++        return await self._page(
++            "hot_water_tank", user_input, clear=True, check=self._disinfection_errors
++        )
++
++    async def _disinfection_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """#1067: control writes the pump's disinfection switch, so it is refused
++        without one -- judged over what would be stored, so clearing the switch
++        under a stored control mode is refused too."""
+         errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            cleaned = _clear_absent(user_input, "hot_water_tank", current)
+-            merged = {**current, **cleaned}
+-            # #1067: control writes the pump's disinfection switch, so it is
+-            # refused without one -- judged over what would be stored, so
+-            # clearing the switch under a stored control mode is refused too.
+-            if merged.get(CONF_DHW_DISINFECTION_MODE) != FREQ_MODE_CONTROL or merged.get(
+-                CONF_DHW_DISINFECTION_SWITCH_ENTITY
+-            ):
+-                return await self._save_or_menu(cleaned)
++        merged = {**current, **submit}
++        if merged.get(CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_CONTROL and not merged.get(
++            CONF_DHW_DISINFECTION_SWITCH_ENTITY
++        ):
+             errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
+-            current = merged
+-        return self.async_show_form(
+-            step_id="hot_water_tank",
+-            errors=errors,
+-            data_schema=_page_schema("hot_water_tank", current, self.hass),
+-        )
++        return errors
+ 
+     async def async_step_hot_water_pumps(
+         self, user_input: dict[str, Any] | None = None
+@@ -3588,53 +3618,44 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         configured is caught as an error instead of being saved and
+         silently skipped every write cycle.
+         """
++        return await self._page(
++            "building",
++            user_input,
++            clear=True,
++            check=self._plumbing_errors,
++            finish=self._building_wood_flag,
++        )
++
++    async def _plumbing_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
+         errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            if (
+-                user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+-                == mixing_valve.WRITE_TARGET_FLOW
+-                and not ThermalParameters.from_config(
+-                    {**current, **user_input}
+-                ).two_zone_enabled
+-            ):
+-                errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
+-                    "flow_target_needs_two_zone"
+-                )
+-            elif user_input.get(CONF_FLOW_CURVE_COP_ENABLED) and (
+-                mixing_valve.is_throttling(
+-                    {**current, **user_input}.get(CONF_MIXING_VALVE_MODE)
+-                )
+-            ):
+-                # #1067: behind a throttling valve the tank temperature is
+-                # already the priced flow; the model refuses the curve lift
+-                # there too, so saving it would be a switch that does nothing.
+-                errors[CONF_FLOW_CURVE_COP_ENABLED] = (
+-                    "flow_curve_needs_direct_plant"
+-                )
+-            else:
+-                # The wood block's rows carry ``when=wood_furnace_on``, so one
+-                # predicate decides both what the page rendered and what its
+-                # save may clear. It is evaluated over the SUBMISSION merged
+-                # onto the stored config, not over the stored config alone:
+-                # turning the block off would otherwise still clear its slots.
+-                merged = {**current, **user_input}
+-                cleaned = _clear_absent(user_input, "building", merged)
+-                if wood_furnace_on(merged):
+-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = True
+-                elif CONF_WOOD_FURNACE_ENABLED in cleaned:
+-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(
+-                        cleaned[CONF_WOOD_FURNACE_ENABLED]
+-                    )
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
++        merged = {**current, **submit}
++        if (
++            submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
++            and not ThermalParameters.from_config(merged).two_zone_enabled
++        ):
++            errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
++        elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
++            merged.get(CONF_MIXING_VALVE_MODE)
++        ):
++            # #1067: behind a throttling valve the tank temperature is already
++            # the priced flow; the model refuses the curve lift there too, so
++            # saving it would be a switch that does nothing.
++            errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
++        return errors
+ 
+-        return self.async_show_form(
+-            step_id="building",
+-            errors=errors,
+-            data_schema=_page_schema("building", current, self.hass),
+-        )
++    @staticmethod
++    def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
++        """The wood block's rows carry ``when=wood_furnace_on``, so one predicate
++        decides both what the page rendered and what its save may clear, over
++        the submission merged onto the stored config."""
++        if wood_furnace_on(merged):
++            cleaned[CONF_WOOD_FURNACE_ENABLED] = True
++        elif CONF_WOOD_FURNACE_ENABLED in cleaned:
++            cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(cleaned[CONF_WOOD_FURNACE_ENABLED])
++        return cleaned
+ 
+     async def async_step_thermal_model(
+         self, user_input: dict[str, Any] | None = None
+@@ -3706,97 +3727,73 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Peak capacity tariff hours and pricing."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            if not _valid_months_spec(
+-                user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
+-            ):
+-                errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
+-            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, "")):
+-                errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
+-            if not errors:
+-                cleaned = dict(user_input)
+-                window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+-                if window is not None:
+-                    try:
+-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+-                    except (TypeError, ValueError):
+-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = (
+-                            DEFAULT_PEAK_TARIFF_WINDOW
+-                        )
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
+-
+-        return self.async_show_form(
+-            step_id="grid",
+-            errors=errors,
+-            description_placeholders={
+-                "currency": resolve_currency(self.hass),
+-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
+-            },
+-            data_schema=_page_schema("grid", current, self.hass),
++        return await self._page(
++            "grid",
++            user_input,
++            check=self._peak_tariff_errors,
++            finish=_peak_window_as_int,
++            placeholders=_fee_placeholders(self.hass),
+         )
+ 
++    async def _peak_tariff_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, "")):
++            errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
++        if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, "")):
++            errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
++        return errors
++
+     async def async_step_grid_connection(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Main fuse, peak guards and the pump's silent-mode window."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
++        return await self._page(
++            "grid_connection",
+             # A cleared text field is absent, and options merge over setup
+             # data, so an absent window would silently keep the old one.
+-            user_input = {CONF_SILENT_MODE_WINDOWS: "", **user_input}
+-            problem = dhw_spec_problem(user_input[CONF_SILENT_MODE_WINDOWS])
+-            if problem is None:
+-                return await self._save_or_menu(user_input)
++            None if user_input is None else {CONF_SILENT_MODE_WINDOWS: "", **user_input},
++            check=self._silent_window_errors,
++            placeholders=_WINDOW_PLACEHOLDERS,
++        )
++
++    async def _silent_window_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
++        if problem is not None:
+             errors[CONF_SILENT_MODE_WINDOWS] = (
+                 "silent_mode_window_too_short"
+                 if problem == DHW_ERROR_TOO_SHORT
+                 else problem
+             )
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="grid_connection",
+-            errors=errors,
+-            description_placeholders=_WINDOW_PLACEHOLDERS,
+-            data_schema=_page_schema("grid_connection", current, self.hass),
+-        )
++        return errors
+ 
+     async def async_step_grid_fees(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Transfer fees and contract shadow price."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            fee_problem = grid_fee.spec_problem(
+-                user_input.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+-            )
+-            if fee_problem is not None:
+-                errors[CONF_GRID_FEE_RULES] = fee_problem
+-            if not errors:
+-                cleaned = _clear_absent(user_input, "grid_fees", current)
+-                applied = grid_fee.apply_catalog(user_input.get(CONF_DSO_PRODUCT))
+-                if applied:
+-                    cleaned.update(applied)
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
+-            if not user_input.get(CONF_GRID_FEE_ENTITY):
+-                current.pop(CONF_GRID_FEE_ENTITY, None)
++        return await self._page(
++            "grid_fees",
++            user_input,
++            clear=True,
++            check=self._grid_fee_errors,
++            finish=_apply_dso_catalog,
++            placeholders=_fee_placeholders(self.hass),
++        )
+ 
+-        return self.async_show_form(
+-            step_id="grid_fees",
+-            errors=errors,
+-            description_placeholders={
+-                "currency": resolve_currency(self.hass),
+-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
+-            },
+-            data_schema=_page_schema("grid_fees", current, self.hass),
++    async def _grid_fee_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        fee_problem = grid_fee.spec_problem(
++            submit.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+         )
++        if fee_problem is not None:
++            errors[CONF_GRID_FEE_RULES] = fee_problem
++        return errors
+ 
+     async def async_step_solar_pv(
+         self, user_input: dict[str, Any] | None = None

@@ -1,0 +1,28 @@
+===== daemonize pid=50269 2026-10-23T20:05:58Z argv: bash tools/audit/seat/open_pr.sh r10-ci-layout-p2b-v2 2efb2cc2f151086c6fa6d30bd3d4dfcd5b1df7d3 ci: the CI umbrella and its readers, cut over to one required gate (R10-CI-LAYOUT-P2b) R10-CI-LAYOUT-P2b
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (31 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (852 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging .github/workflows/pr-contract.yml
+CONFLICT (content): Merge conflict in .github/workflows/pr-contract.yml
+Auto-merging dev/audit/harnesses/r10_seat_selftests_mutants.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/body_patch.sh
+Auto-merging tools/policy/agreement.mjs
+Auto-merging tools/policy/budget_raise_gate.py
+CONFLICT (content): Merge conflict in tools/policy/budget_raise_gate.py
+Auto-merging tools/policy/policy_lint.mjs
+Auto-merging tools/pr/prepr.sh
+Automatic merge failed; fix conflicts and then commit the result.
+open_pr: STOPPED: line 43 exited 1: git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+===== daemonize pid=35875 2026-10-23T20:20:53Z argv: bash tools/audit/seat/open_pr.sh r10-ci-layout-p2b-v2 ca1bc2b0ec3e02bb64ab524914161898f8da1953 ci: the CI umbrella and its readers, cut over to one required gate (R10-CI-LAYOUT-P2b) R10-CI-LAYOUT-P2
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b-v2/wt' already exists
+open_pr: STOPPED: line 41 exited 128: git worktree add -q -b $BR $WT $C
+===== daemonize pid=52056 2026-10-23T20:23:49Z argv: bash tools/audit/seat/open_pr.sh r10-ci-layout-p2b-v2 ca1bc2b0ec3e02bb64ab524914161898f8da1953 ci: the CI umbrella and its readers, cut over to one required gate (R10-CI-LAYOUT-P2b) R10-CI-LAYOUT-P2
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+  REFUSE   mutants                MUTANTS: the entry point exited 1 on the corpus as it stands. The null control above passed in-process, so this lane does not believe the tree is red; an entry that refuses a healthy corpus fails every arm below for free. First refusal: FIXTURE VACUOUS: window cache ["--record --window-cache did not take commit-to-PR map from the file","--stats --window-cache did not take commit-to-PR map and p
+  REFUSE   ancestry reds          RED UNANSWERED (governance / delivery-status governance / env-matrix governance / policy-docs governance / wave-script): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b-v2/body.md: check `governance / delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/ci.yml, .github/workflows/governance.yml, .github/workflows/tests.yml, docs/HANDOVER.md), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b-v2/p2.log

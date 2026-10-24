@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF 9afb8b62",
+  "killed_by": "tests/features.py",
+  "old": "    if ua <= 0.0:",
+  "reason": "stored_heat_survival's lossless-tank guard. `if ua <= 0.0:` -> `if False:` sends a UA-0 tank with no demand down the zero-demand branch, which returns 0.0 (every stored kWh leaks away) where a tank that loses nothing keeps 1.0: tests/features.py 0 -> 1 of 3126 FAILED (`a tank that loses nothing keeps its whole credit, even with no demand`). Added in #1499's round 2: this site was the changed-scope sample's one survivor, and a surviving optimizer.py mutant runs tests/stress.py and tests/env_drift.py, about 25 of CI's 90 minutes. Measured at 4b106fe6, 2026-09-24."
+}

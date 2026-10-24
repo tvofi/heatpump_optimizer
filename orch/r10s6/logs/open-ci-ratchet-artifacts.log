@@ -1,0 +1,3 @@
+===== daemonize pid=82953 2026-10-24T08:20:43Z argv: bash tools/audit/seat/open_pr.sh r10-ci-ratchet-artifacts 078fb5a71f52fdf64c23df78cf4181cc6a7bc6ef Fix main ci-ratchet: run-title keying and repo-wide artifacts listing ci-ratchet-artifacts
+open_pr: 3 open PRs; the cap gates dispatch, not opening
+PR=2690 HEAD=5104edf0c02974c76ca554a15055c6cb84d13d1a AUTHOR=tvofi

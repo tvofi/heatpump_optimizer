@@ -1,0 +1,3 @@
+===== daemonize pid=90604 2026-10-20T22:44:53Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this stops stopped pushers leaking entire process trees r10-pusher-reap 9719443b11887558f2ef918de5cff646683967c1 fix(seat): a stopped pusher reaps its whole descendant tree (R10-UPDATE-PR-SIGNALS) R10-UPDATE-PR-SIGNALS
+open_pr: OVER-CAP: 7 open >= 6, overridden: owner 2026-10-20: the cap gates group dispatch, not opening; this stops stopped pushers leaking entire process trees
+PR=2524 HEAD=50571afa92c3716999226049641eae2279d94938 AUTHOR=tvofi

@@ -1,0 +1,7 @@
+===== daemonize pid=75983 2026-10-20T02:10:55Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ci-layout-p0 dd3a44474543f52974667fb37861b346d607980d /Users/timmalmstrom/hpo-orch/r10s3/upd/b2464/body3.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (794 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Binary file /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p0.log matches
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-layout-p0.log

@@ -1,0 +1,5 @@
+===== daemonize pid=59603 2026-10-20T22:59:11Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-roster-ops bash tools/audit/seat/update_pr.sh fix/r10-roster-ops 4e2223a57d230c75fbb965dfac431fd4e03f05d8 /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-roster-ops.md
+Auto-merging dev/programme/delivery/2513.md
+CONFLICT (add/add): Merge conflict in dev/programme/delivery/2513.md
+Automatic merge failed; fix conflicts and then commit the result.
+update_pr: STOPPED: line 39 exited 1: $G merge -q --no-edit $C

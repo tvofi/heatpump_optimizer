@@ -1,0 +1,22 @@
+{
+  "round": "10",
+  "repo": "tvofi/heatpump_optimizer",
+  "mandate": "6329234399",
+  "seat_root": "/Users/timmalmstrom/hpo-seats/r10s6",
+  "orch_scratch": "/Users/timmalmstrom/hpo-orch/r10s6",
+  "orch_checkout": "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt",
+  "seat_ledger": "/Users/timmalmstrom/hpo-orch/r10s6/seat-ledger.md",
+  "local_seat_cap": "8 local; cloud seats unlimited",
+  "cloud_above_cap": "yes",
+  "plan_generator": "python3 tools/plan/replan.py --repo . --seats 7 --durations /Users/timmalmstrom/hpo-orch/r10s6/../r10s5/durations-xs.json --out /Users/timmalmstrom/hpo-orch/r10s6/plan.json && python3 tools/audit/seat/plan_page.py --plan /Users/timmalmstrom/hpo-orch/r10s6/plan.json --html /Users/timmalmstrom/hpo-orch/r10s6/plan.html --repo . --gh-repo tvofi/heatpump_optimizer",
+  "plan_artifact": "/Users/timmalmstrom/hpo-orch/r10s6/plan.html",
+  "state_mirror": "/Users/timmalmstrom/hpo-orch/state",
+  "tick_alive": "/Users/timmalmstrom/hpo-orch/r10s6/tick.alive",
+  "tick_log": "/Users/timmalmstrom/hpo-orch/r10s6/tick-owed.txt",
+  "tick_brief": "/Users/timmalmstrom/hpo-orch/r10s6/tick-brief.md",
+  "tick_stale_min": "15",
+  "transcript": "/Users/timmalmstrom/.claude/projects/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-orchestrator-e30fa3/59bcea68-160f-4ed5-8266-e558408abe7b.jsonl",
+  "policy_stamp": "/Users/timmalmstrom/hpo-orch/r10s6/policy-reread.stamp",
+  "disk_floor_gib": "6",
+  "seat_queues": "--seat-queue merge=/Users/timmalmstrom/hpo-orch/r10s6/merge-queue.txt --seat-queue roster=/Users/timmalmstrom/hpo-orch/r10s6/roster-queue.txt --seat-queue dispatch=/Users/timmalmstrom/hpo-orch/r10s6/dispatch-queue.txt"
+}

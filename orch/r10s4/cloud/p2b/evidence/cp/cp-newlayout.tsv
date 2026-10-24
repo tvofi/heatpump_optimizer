@@ -1,0 +1,12 @@
+run	head	wall_tests_min	fast	arch_instr	closures	coverage	longest_tests_job
+39950642573	13d33eba2	30.4	28.7	23.5	16.8	27.4	tests / graders-head-copy
+39949789023	e542446e7	33.3	18.2	29.6	32.3	16.1	tests / closures-autofix
+39948860389	d5b053e6f	33.1	29.1	24.7	32.1	26.4	tests / closures-autofix
+39944958458	4a83592e3	24.7	21.2	18.8	23.6	20.2	tests / closures-autofix
+39944059748	627af589f	32.9	29.4	23.8	31.4	26.4	tests / closures-autofix
+39944035662	07ed40fb9	33.5	30.0	31.3	32.0	26.8	tests / closures-autofix
+39927927793	93966995f	34.1	16.2	31.5	32.5	26.0	tests / closures-autofix
+39927864661	d0ff8268b	69.1	29.7	31.4	17.4	16.5	tests / closures-autofix
+39918505090	a0f525900	32.9	29.1	32.1	21.6	26.7	tests / arch-instrument
+39918497616	a0f525900	33.0	22.2	31.9	31.6	16.3	tests / lane-proofs
+median 33.06666666666666 n 10

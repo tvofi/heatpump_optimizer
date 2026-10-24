@@ -1,0 +1,57 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             2dadcdc8cbcc2da860e5043b54d0c899038da506
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=3 label=prepr-98445 expires_at=2026-10-20T17:01:09.983867+00:00
+  ok       gate mode              MODE: FULL
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 2dadcdc8cbcc
+  ok       pinned graders         
+  ok       self-test              303 passed, 0 failed
+  ok       wave-script            198 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 2dadcdc8cbcc2da860e5043b54d0c899038da506 ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 2dadcdc8cbcc (a data-file read is not seen)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 2dadcdc8cbcc
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  REFUSE   'Fixes #2302' closes #2302; not in the intended list
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             1:each
+             3:each
+             3:every
+             3:never
+             5:never
+             7:each
+             7:never
+             19:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             2295 a
+             2299 e
+             2284 a
+             5760 s
+             40 m
+             194 c
+             3 of 2362
+             194 c
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  REFUSE   preflight              
+  REFUSE   pr-body                PR-BODY: 1 error(s) in /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-train-hold.md -- no budget leaf raised over 2dadcdc8c...17197336f
+  ok       figures                FIGURES: 11 resolved, 0 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  ok       push order             origin/handoff/r10-train-hold is at 17197336f -- local mirror, unfetched
+  skip     ancestry reds          no pushed commit carries any check run, so there is no red to answer and none confirmed absent
+
+PRE-PR: 17197336f0128a60cb454b641f15b6192ec0d715 00000000000000000000000001100
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

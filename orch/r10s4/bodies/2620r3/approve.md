@@ -1,0 +1,1 @@
+Approved under mandate 6329234399 (scope all). The round-3 fix review at this head returned merge (probe/rev-2620-654004be, relayed to review/2620). seam_cut_total 708 to 707 is paid by a real move, not an alias, and no budget is raised. The four _cop_watch sites are pinned and killed by tests/features.py.

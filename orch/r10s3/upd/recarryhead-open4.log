@@ -1,0 +1,6 @@
+===== daemonize pid=7754 2026-10-19T07:50:12Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 R10-RECARRY-HEAD: recarry note lands under the Head heading, not a quote of it R10-RECARRY-HEAD
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (784 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+PR=2442 HEAD=b9f201f90efbb39422319426a7839c036b7b46af AUTHOR=tvofi

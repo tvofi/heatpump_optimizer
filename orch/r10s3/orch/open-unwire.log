@@ -1,0 +1,4 @@
+===== daemonize pid=77920 2026-10-18T12:04:12Z argv: bash tools/audit/seat/open_pr.sh r10-roster-unwire bc3b126420ced348ad8cdbf3dfcf2e1efad0754f R10-ROSTER-UNWIRE: roster_edit.py unwire-issue op R10-ROSTER-UNWIRE
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+ValueError: substring not found

@@ -1,0 +1,1 @@
+The handoff job keeps cloud_relay.sh's ledger calls unchanged; the tick job only reads the ledger (the tick writes no store, pinned). HPO_LEDGER_AGING is read by the tick from its environment: the beat's tick job must pass it through.

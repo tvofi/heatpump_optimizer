@@ -1,0 +1,7 @@
+===== daemonize pid=64433 2026-10-19T05:32:54Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-pump-model-d2 e85ef9fe6f5080dd12cf12da4800e69ea14ab080 /Users/timmalmstrom/hpo-orch/r10s3/upd/b2368/BODY.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (780 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Auto-merging tools/policy/budget_raise_gate.py
+HEAD=91a3f77c9f968341a578d46277c0ff0e08c20dcc

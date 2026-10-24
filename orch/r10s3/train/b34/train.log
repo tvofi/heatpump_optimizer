@@ -1,0 +1,33 @@
+===== daemonize pid=79755 2026-10-20T07:40:12Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/b34/q.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/b34 --mandate 6175172275 --overlap --free-holders --bot-prs
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b34/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b34 pid=79755 start=2026-10-20T07:40:12Z
+BATCH 20261020-074012 pid=79763 base=main queue=2 (#2469 #2479) --overlap
+OVERLAP: main at d59b90ec92ce is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2469 serial: grader
+#2479 admitted at 202cb887
+OVERLAP: recarrying #2469 up front, their pull_request runs fire together
+#2469 overlap: recarry start
+#2469 recarry START (branch fix/r10-rca-worktree-vanish)
+#2469 recarry: main merged, head cf69c836; app_push: RECARRY: prepr SKIPPED: HEAD cf69c836 is the clean merge of the live head 511bfe9e and origin/main's d59b90ec, and the body is the live one
+#2479 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2479 approved (app)
+OVERLAP: main at d59b90ec92ce is not green (Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14)) right before #2479's merge; --overlap logs it and does not wait
+#2479 MERGED 2c7ec6c0fd7ae40b958ef9cb11a8425b26591708
+#2479 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2479 main 2c7ec6c0 tree == proof b93ff962
+OVERLAP: main at 2c7ec6c0fd7a is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), mutation, policy-docs, typing, validate-hacs) after #2479's unproved merge: revert it first; --overlap logs it and does not wait
+serial: #2469
+beat: waiting CI at cf69c836 (poll 2, t+242s, required: 14, concluded: 12/14)
+beat: waiting CI at cf69c836 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at cf69c836 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at cf69c836 (poll 5, t+964s, required: 14, concluded: 13/14)
+beat: waiting CI at cf69c836 (poll 6, t+1205s, required: 14, concluded: 13/14)
+beat: waiting CI at cf69c836 (poll 7, t+1446s, required: 14, concluded: 13/14)
+#2469 cf69c836 ci red=[]
+#2469 approved (app)
+#2469 MERGED eef9165ee76bce9d2a2d438d8b4c60d8a4d8fc77
+#2469 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b34/wt/2469 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b34/wt/2469' is not a working tree); remove it by hand
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-20T08:11:55Z

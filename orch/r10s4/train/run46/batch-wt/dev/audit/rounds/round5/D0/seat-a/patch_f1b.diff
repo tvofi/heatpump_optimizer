@@ -1,0 +1,37 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c2a78f0..476ceb4 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -249,7 +249,7 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
+ # cheaper than when the two-solve cap was set, and the stress gate's
+ # per-scenario budgets (v6.2.16) police the runtime cost. The candidates
+ # number four, so this is the whole list.
+-_MULTI_START_SOLVES = 4
++_MULTI_START_SOLVES = 6  # AUDIT PERTURBATION D0-a
+ 
+ # The low-energy bang-bang seed (R1-D0-01): the historical candidates all
+ # anchored to the same TOTAL energy (the baseline's), and on
+@@ -3332,6 +3332,13 @@ class HeatPumpOptimizer:
+                     headroom,
+                 )
+             )
++            # AUDIT PERTURBATION D0-a: one extra structured seed (f=0.85)
++            starts.append(
++                np.minimum(
++                    _price_ranked_start(prices, energy * 0.85, p_max, dt),
++                    headroom,
++                )
++            )
+         try:
+             res = _multi_start_minimize(
+                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
+@@ -3853,6 +3860,9 @@ class HeatPumpOptimizer:
+         ]
+         if h.extra_starts:
+             starts = list(h.extra_starts) + starts
++        # AUDIT PERTURBATION D0-a: one extra structured seed (f=0.15)
++        starts.append(_price_ranked_start(
++            prices, baseline_energy * 0.15, p_max, dt))
+ 
+         try:
+             result = _multi_start_minimize(

@@ -1,0 +1,2 @@
+===== daemonize pid=2885 2026-10-18T17:39:03Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/cloud/relay_watch.sh
+relay_watch.sh: line 18: 24111 Terminated: 15          sleep 120

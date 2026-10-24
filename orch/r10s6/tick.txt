@@ -1,0 +1,271 @@
+BOARD measured from origin/main at e97f5749b441, 2026-10-24T14:44:55.092619+00:00
+== TRAIN ==
+   train alive: pid 3820 (1 process(es)); it holds every merge -- load nothing else
+   prepr slots: 3 running (cap 4)
+   no --queue given
+   no --train-log given: train state unread
+== PRS ==
+   20 open pull request(s)
+-> #2678: required contexts ABSENT at head: gate (settled? re-dispatch)
+   #2678 [dependabot/pip/tests/pip-58215dea25] RED:env-matrix,policy-docs,pr-contract
+-> #2678: RED unanswered in ## Red checks: env-matrix, policy-docs, pr-contract
+-> #2678: mergeable state BLOCKED
+-> #2678: no delivery row in its three-dot diff
+-> #2678: 200 commits behind main (recarry due before it can merge)
+   #2692 [fix/r10-replay-scoped] GREEN
+-> #2692: mergeable state BLOCKED
+-> #2692: 44 commits behind main (recarry due before it can merge)
+   #2697 [fix/r10-merge-subject-harden] GREEN
+-> #2697: mergeable state BLOCKED
+-> #2697: 77 commits behind main (recarry due before it can merge)
+-> #2698: NOT REVIEWABLE at 3383fb2a: required gate concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2698 [fix/r10-ratio-anchor] RUN:tests / mutation-pins (1)
+-> #2698: RED unanswered in ## Red checks: gate, pr-contract / pr-contract
+-> #2698: mergeable state BLOCKED
+-> #2698: 41 commits behind main (recarry due before it can merge)
+   #2700 [fix/r10-policy-gate-scoping-pr] GREEN
+-> #2700: mergeable state BLOCKED
+-> #2700: 54 commits behind main (recarry due before it can merge)
+   #2704 [fix/r10-policy-fixer-md] GREEN
+-> #2704: mergeable state BLOCKED
+-> #2704: 41 commits behind main (recarry due before it can merge)
+   #2706 [fix/r10-rca-gate-lease-flake] GREEN
+-> #2706: mergeable state BLOCKED
+-> #2706: 41 commits behind main (recarry due before it can merge)
+-> #2707: NOT REVIEWABLE at cd7dc09a: required gate concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2707 [fix/r10-fly-cipredict-layout] RUN:codeql / Analyze (python),tests / coverage-ratchet,tests / graders-head-copy,tests / lane-proofs
+-> #2707: RED unanswered in ## Red checks: gate, pr-contract / pr-contract
+-> #2707: mergeable state BLOCKED
+-> #2707: 41 commits behind main (recarry due before it can merge)
+   #2708: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2708 [fix/r10-fly-envmatrix-noremote] RUN:cancel-superseded,prelude,refresh
+-> #2708: mergeable state BLOCKED
+-> #2709: NOT REVIEWABLE at 49400254: required gate concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2709 [fix/r10-fly-cloud-setup-toolchain] RUN:codeql / Analyze (python),tests / closures,tests / coverage,tests / fast (3.14)
+-> #2709: RED unanswered in ## Red checks: gate, pr-contract / pr-contract
+-> #2709: mergeable state BLOCKED
+-> #2710: NOT REVIEWABLE at ce69a3f2: required gate concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2710 [fix/audit-r10-roster-pr5] RUN:pr-contract / pr-contract
+-> #2710: RED unanswered in ## Red checks: gate
+-> #2710: mergeable state BLOCKED
+-> #2710: no delivery row in its three-dot diff
+-> #2710: 41 commits behind main (recarry due before it can merge)
+   #2711: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2711 [fix/r10-structure-alias] RUN:prelude,tests / arch-instrument,tests / coverage-ratchet,tests / fast (3.14)
+-> #2711: mergeable state BLOCKED
+   #2712: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2712 [fix/r10-demand-overbook] RUN:prelude,tests / mutation-pins (1),tests / mutation-pins (2)
+-> #2712: RED unanswered in ## Red checks: tests / mutation
+-> #2712: mergeable state BLOCKED
+-> #2712: no delivery row in its three-dot diff
+-> #2713: NOT REVIEWABLE at f4210a5e: required gate concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2713 [record/autofix] RUN:arch-score / arch-score,budget-raise-gate / budget-raise-gate,prelude
+-> #2713: RED unanswered in ## Red checks: gate
+-> #2713: mergeable state BLOCKED
+   #2714: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2714 [fix/r10-roster-runq] RUN:arch-score / arch-score,budget-raise-gate / budget-raise-gate,refresh
+-> #2714: mergeable state BLOCKED
+   #2734: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2734 [triage/s6-batch4] RUN:governance / instrument-self-tests,prelude,tests / browser,tests / closures,tests / coverage,tests / typing
+-> #2734: mergeable state BLOCKED
+   #2735: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2735 [triage/s6-batch5] RUN:arch-score / arch-score,budget-raise-gate / budget-raise-gate,cancel-superseded,codeql / Analyze (actions),codeql / Analyze (javascript-typescript),governance / delivery-status,governance / env-matrix,governance / instrument-self-tests,governance / policy-docs,governance / wave-script,hassfest / hassfest,refresh,tests / briefs,tests / closure-scope,tests / mutation,tests / nightly-status
+-> #2735: mergeable state BLOCKED
+   #2736 [policy/r10-mechanise-first] RUN:gate
+-> #2736: RED unanswered in ## Red checks: pr-contract / pr-contract
+-> #2736: mergeable state BLOCKED
+   #2737: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2737 [fix/r10-ci-layout-p2b-v2] RUN:cancel-superseded,prelude,refresh
+-> #2737: mergeable state BLOCKED
+   #2738: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   #2738 [triage/s6-batch6] RUN:cancel-superseded,prelude,refresh
+-> #2738: mergeable state BLOCKED
+-> #2692: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2700: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2704: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2708: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2709: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2714: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2736: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2737: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> WIP: 21/6 (open PRs 18) (at the cap: do not dispatch a new group; opening and merging are always allowed)
+   coordinator.py PRs: 2/2 (#2698, #2712)
+-> BLOCKED-UNFIXED: #2698 3383fb2a
+-> BLOCKED-UNFIXED: #2704 859b74ba
+-> BLOCKED-UNFIXED: #2706 ea459c0b
+-> BLOCKED-UNFIXED: #2707 cd7dc09a
+-> BLOCKED-UNFIXED: #2711 5021b50d
+-> BLOCKED-UNFIXED: #2734 35cb7e8c
+-> REVIEW OWED: #2678 6ee3e4d4f83b
+-> REVIEW OWED: #2710 ce69a3f2eec7
+-> REVIEW OWED: #2713 f4210a5e188c
+-> REVIEW OWED: #2735 5a03e901be80
+-> OWED: OWED 2026-10-24T14:44:45Z handoff-update refs/heads/handoff/r10-merge-subject-harden f6568a42961232dc0f4fcdc32cb9c187a3602635
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2 226a294e837bd62a1d151e0b4e18551a033c10dd ct=1792678003
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-codeql-dependabot f069a1694aa18d58ef96c0dfc07bf45505714578 ct=1792851915 attempt=2026-10-24T14:40:25Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-config-notices 83606c760cb8a21d78ce3dc42da5aff9534aed99 ct=1792845907 attempt=2026-10-24T13:25:45Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-flow-autotrain 2125adcf9b3d243156c482bbfb3890cadadb90cf ct=1792844768 attempt=2026-10-24T12:24:59Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-fly-yield-guard c68b3ce9fabc7d1091482ab0eadf0db06785d9a5 ct=1792852582
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-mutant-skip 275bfc6760321335d859e13b779a501d4f9ebbce ct=1792841514 attempt=2026-10-24T13:18:23Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-mutation-anchor 1b0af9e5dc6bd5c95224f9466e30b4967733bfd9 ct=1792846738 attempt=2026-10-24T14:40:50Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-sav-comfort 3d9bf517a30f3a9c279486b0d82493f3adeb3104 ct=1792849670 attempt=2026-10-24T14:40:49Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff-body/r10-thermal-power-option ac37b3bc65ddf9b1be2ef31796a9c6bc47bfdb41 ct=1792839576 attempt=2026-10-24T13:18:25Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-codeql-dependabot b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e ct=1792848002 attempt=2026-10-24T14:40:25Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-config-notices 5b067738bd38010b0af9e54e78224b55234476e2 ct=1792832458 attempt=2026-10-24T13:25:45Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-flow-autotrain b3dceb5cafc873698ab7e0967bfd624ff749b1ec ct=1792836007 attempt=2026-10-24T12:24:59Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-fly-yield-guard a78d4589742cfa405ff350735e84009e4fa0f2c9 ct=1792848812
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-mutant-skip a7e41d646087efadd230b22634808f52da83fb38 ct=1792840915 attempt=2026-10-24T13:18:23Z,unopened
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-mutation-anchor a55a0f47ecf5e805dc86bf8b9eb157755271efa8 ct=1792846143 attempt=2026-10-24T14:40:50Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-sav-comfort 8e18704ef91760363046ac816547d98685d6639d ct=1792849548 attempt=2026-10-24T14:40:49Z,started
+-> OWED: OWED 2026-10-24T14:44:48Z handoff-no-pr refs/heads/handoff/r10-thermal-power-option 7882a1427e82f4f349da5ddec8a917fcf96fbd94 ct=1792844982 attempt=2026-10-24T13:18:25Z,unopened
+-> DISPATCH: R10-CI-LAYOUT-P2 refs/heads/handoff-body/r10-ci-layout-p2 226a294e837b no code ref (48.6h)
+-> DISPATCH: R10-CONFIG-NOTICES refs/heads/handoff/r10-config-notices 5b067738bd38 opener (5.7h; last attempt 2026-10-24T13:25:45Z,unopened)
+-> DISPATCH: R10-FLOW-AUTOTRAIN refs/heads/handoff/r10-flow-autotrain b3dceb5cafc8 opener (4.7h; last attempt 2026-10-24T12:24:59Z,unopened)
+-> OWNER FLAG: R10-CI-LAYOUT-P2 refs/heads/handoff-body/r10-ci-layout-p2 226a294e837b stranded 48.6h (threshold 12h)
+   obligations ledger: closed this pass read-back=6 subject-absent=35 superseded=31
+== ETA ==
+== WORKERS ==
+== PLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+   78 open group(s) of 180
+   R10-RATIO-ANCHOR: in progress (stage in-progress)
+   R10-CONFIG-NOTICES: in progress (stage in-progress)
+   R10-PARAMS-OWNER: blocked by R10-RATIO-ANCHOR (stage not-started)
+-> R10-ARCH-SHAPES: UNBLOCKED, not started -- start a fixer on handoff/r10-arch-shapes
+   R10-LEARNER-ETA: in progress (stage in-progress)
+   R10-HEAT-METER: blocked by R10-LEARNER-ETA, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION (stage not-started)
+   R10-COP-GATE: blocked by R10-HEAT-METER (stage not-started)
+   R10-UX-HEALTH: blocked by R10-COP-GATE, R10-HEAT-METER (stage not-started)
+   R10-CONFIGFLOW-PAGES: blocked by R10-HEAT-METER (stage not-started)
+   R10-REPLAY-SCOPED: in progress (stage in-progress)
+   R10-ARCH-DOCS: blocked by R10-RATIO-ANCHOR, R10-CONFIG-NOTICES, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-CONFIGFLOW-PAGES, R10-REPLAY-SCOPED, R10-POLICY-FIXER-MD, R10-POLICY-GATE-SCOPING, R10-RCA-HEADMOVED, R10-SAV-COMFORT, R10-MUTATION-ANCHOR, R10-MERGE-SUBJECT-HARDEN, R10-CEILING-PROBE, R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-PARTLOAD, R10-UPDATE-PR-SIGNALS, R10-CARD-VOICE, R10-THERMAL-POWER-OPTION, R10-LEARNER-DEFAULT, R10-MUTANT-SKIP, R10-CI-LAYOUT-P2, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-JIDOKA, R10-FLOW-MQ-PROBE, R10-FLOW-POSTMERGE, R10-FLOW-RECORD-PITCH, R10-FLOW-ROSTER-FREEZE, R10-FLOW-WIP, R10-FLOW-AUTOTRAIN, R10-FLOW-BODY-ONLY, R10-FLY-OPENPR-ATOMIC, R10-FLY-ROW-HEAD-CARRY, R10-FLOW-AUDIT-PLAN, R10-FLY-RELAY-REVIEW-FF, R10-FLY-CARRY-DISPOSITION, R10-FLY-ORPHANS-REWRITTEN, R10-FLY-CARRY-DOC-CONTEXT, R10-FLY-DEPGRAPH-STALE, R10-FLOW-TOOLKIT-MODEL, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-MANDATE-REVOKE-GUARD, R10-RCA-FRICTION-RESIDUE, R10-TRAIN-OVERLAP-GRADE, R10-NIGHTLY-HB-RESPAWN, R10-FLY-PRUNE-REFS, R10-ORCH-LEDGER, R10-ORCH-DISPATCH-REG, R10-ORCH-BEATD, R10-ORCH-PLANPAGE, R10-ORCH-ROSTER-SCHEMA, R10-FLY-WORKTREE-GC, R10-FLY-DAEMONIZE-ARGV, R10-FLY-CIPREDICT-LAYOUT, R10-FLY-CLOUD-SETUP-TOOLCHAIN, R10-FLY-YIELD-GUARD, R10-FLY-ENVMATRIX-NOREMOTE, R10-STRUCTURE-ALIAS, R10-ORCH-REVIEW-PACKET, R10-POLICY-ROLE-PACK, R10-IMMERSION-LATCH, R10-DIAG-REDACT, R10-ADVISOR-RESIDUE, R10-BRIEFS-FOLD-D0, R10-REPLAY-REAL-DAY, R10-ARCHSCORE-SPELLINGS (stage not-started)
+   R10-POLICY-FIXER-MD: in progress (stage in-progress)
+   R10-POLICY-GATE-SCOPING: in progress (stage in-progress)
+-> R10-RCA-HEADMOVED: UNBLOCKED, not started -- start a fixer on handoff/r10-rca-headmoved
+   R10-SAV-COMFORT: in progress (stage in-progress)
+   R10-MUTATION-ANCHOR: in progress (stage in-progress)
+   R10-MERGE-SUBJECT-HARDEN: in progress (stage in-progress)
+-> R10-CEILING-PROBE: UNBLOCKED, not started -- start a fixer on handoff/r10-ceiling-probe
+   R10-DEMAND-OVERBOOK: in progress (stage in-progress)
+   R10-BUFFER-STORE: in progress (stage queued)
+   R10-COP-PARTLOAD: in progress (stage queued)
+   R10-UPDATE-PR-SIGNALS: in progress (stage in-progress)
+   R10-ORCH-MACHINERY: in progress (stage absorbed)
+-> R10-CARD-VOICE: UNBLOCKED, not started -- start a fixer on handoff/r10-card-voice
+   R10-THERMAL-POWER-OPTION: in progress (stage in-progress)
+-> R10-LEARNER-DEFAULT: UNBLOCKED, not started -- start a fixer on handoff/r10-learner-default
+   R10-MUTANT-SKIP: in progress (stage in-progress)
+   R10-CI-LAYOUT-P2: in progress (stage carries-open)
+-> R10-FLOW-BOARD: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-board
+-> R10-FLOW-DESIGN-STAGES: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-design-stages
+   R10-FLOW-JIDOKA: in progress (stage in-progress)
+   R10-FLOW-MQ-PROBE: blocked by R10-CI-LAYOUT-P2 (stage not-started)
+-> R10-FLOW-POSTMERGE: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-postmerge
+   R10-FLOW-RECORD-PITCH: blocked by R10-CI-LAYOUT-P2, R10-FLOW-MQ-PROBE (stage not-started)
+-> R10-FLOW-ROSTER-FREEZE: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-roster-freeze
+-> R10-FLOW-WIP: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-wip
+   R10-FLOW-AUTOTRAIN: in progress (stage in-progress)
+   R10-FLOW-BODY-ONLY: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+   R10-FLY-OPENPR-ATOMIC: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+   R10-FLY-ROW-HEAD-CARRY: blocked by R10-CI-LAYOUT-P2, R10-FLY-OPENPR-ATOMIC, R10-FLOW-MQ-PROBE (stage not-started)
+-> R10-FLOW-AUDIT-PLAN: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-audit-plan
+   R10-FLY-RELAY-REVIEW-FF: blocked by R10-UPDATE-PR-SIGNALS (stage carries-open)
+   R10-FLY-CARRY-DISPOSITION: blocked by R10-FLY-ORPHANS-REWRITTEN (stage not-started)
+   R10-FLY-ORPHANS-REWRITTEN: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+   R10-FLY-CARRY-DOC-CONTEXT: blocked by R10-FLY-GH-READ-RETRY, R10-FLOW-MQ-PROBE (stage not-started)
+   R10-FLY-DEPGRAPH-STALE: in progress (stage in-progress)
+   R10-FLOW-TOOLKIT-MODEL: blocked by R10-ORCH-PLANPAGE (stage not-started)
+   R10-FLY-GH-READ-RETRY: blocked by R10-UPDATE-PR-SIGNALS (stage carries-open)
+   R10-ROUND-PLAYBOOK: blocked by R10-FLOW-AUDIT-PLAN, R10-ORCH-LEDGER, R10-ORCH-DISPATCH-REG, R10-ORCH-BEATD, R10-ORCH-PLANPAGE, R10-FLOW-AUTOTRAIN, R10-CI-LAYOUT-P2, R10-FLY-RELAY-REVIEW-FF, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-ARCH-DOCS (stage not-started)
+-> R10-FLY-STAMP-CHECK-NOTES: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-stamp-check-notes
+-> R10-FLY-MANDATE-REVOKE-GUARD: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-mandate-revoke-guard
+   R10-RCA-FRICTION-RESIDUE: in progress (stage queued)
+   R10-TRAIN-OVERLAP-GRADE: in progress (stage queued)
+   R10-NIGHTLY-HB-RESPAWN: in progress (stage queued)
+-> R10-FLY-PRUNE-REFS: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-prune-refs
+   R10-ORCH-LEDGER: in progress (stage carries-open)
+   R10-ORCH-DISPATCH-REG: blocked by R10-ORCH-LEDGER (stage not-started)
+   R10-ORCH-BEATD: blocked by R10-ORCH-DISPATCH-REG, R10-POLICY-FIXER-MD, R10-ORCH-REVIEW-PACKET (stage not-started)
+   R10-ORCH-PLANPAGE: blocked by R10-ORCH-BEATD (stage not-started)
+-> R10-ORCH-ROSTER-SCHEMA: UNBLOCKED, not started -- start a fixer on handoff/r10-orch-roster-schema
+-> R10-FLY-WORKTREE-GC: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-worktree-gc
+-> R10-FLY-DAEMONIZE-ARGV: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-daemonize-argv
+   R10-FLY-CIPREDICT-LAYOUT: in progress (stage in-progress)
+   R10-FLY-CLOUD-SETUP-TOOLCHAIN: in progress (stage in-progress)
+   R10-FLY-YIELD-GUARD: in progress (stage in-progress)
+   R10-FLY-ENVMATRIX-NOREMOTE: in progress (stage in-progress)
+   R10-FLY-SUITE-ENV-FLAKES: in progress (stage carries-open)
+   R10-FLY-NO-FOOTERS: in progress (stage carries-open)
+   R10-STRUCTURE-ALIAS: in progress (stage in-progress)
+   R10-ORCH-REVIEW-PACKET: blocked by R10-ORCH-DISPATCH-REG, R10-POLICY-FIXER-MD (stage not-started)
+   R10-POLICY-ROLE-PACK: blocked by R10-POLICY-FIXER-MD, R10-FLOW-DESIGN-STAGES (stage not-started)
+   R10-CLOSEOUT-CLEANUP: blocked by R10-FLY-PRUNE-REFS, R10-FLY-WORKTREE-GC, R10-ARCH-DOCS, R10-ROUND-PLAYBOOK (stage not-started)
+   R10-IMMERSION-LATCH: in progress (stage queued)
+-> R10-DIAG-REDACT: UNBLOCKED, not started -- start a fixer on handoff/r10-diag-redact
+-> R10-ADVISOR-RESIDUE: UNBLOCKED, not started -- start a fixer on handoff/r10-advisor-residue
+-> R10-BRIEFS-FOLD-D0: UNBLOCKED, not started -- start a fixer on handoff/r10-briefs-fold-d0
+   R10-REPLAY-REAL-DAY: blocked by R10-REPLAY-SCOPED, R10-DIAG-REDACT (stage not-started)
+-> R10-ARCHSCORE-SPELLINGS: UNBLOCKED, not started -- start a fixer on handoff/r10-archscore-spellings
+== MAIN ==
+   required contexts (main-protect-checks): 1 read live
+   main e97f5749b441: required contexts not started yet (WAITING on needs; a run is in flight): gate
+   main e97f5749b441 green (39 context(s) concluded green)
+   mandate: in force: mandate 6329234399 (scope all, from 2026-10-21T23:45Z until 2026-11-04T18:14Z)
+   policy corpus at b161681af924 (first tick: baseline recorded)
+-> checkout is 22 commit(s) behind origin/main (an ancestor checkout is not current)
+== STATE ==
+-> HANDOVER updated-for 0cc148b2f80f is 2049 commit(s) behind origin/main
+-> run python3 tools/audit/seat/state_docs.py --push (the write stays in the per-merge beat; the tick only names it)
+-> record beat owed: state_docs.py --push + #201 comment for e97f5749b441, bf9f8aa16709, 36db48e724e2, 9586fce08141, fa4dad4a75ee, d2dcfed15a0c, 2cdf7adca320, ac5788f26177, e8a08cf9efef, 026527b5ae8d
+== REPLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> group R10-RATIO-ANCHOR contested by PR #2698 (custom_components/heatpump_optimizer/store.py) -- order the group after the PR or merge it first
+-> group R10-CONFIG-NOTICES contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-PARAMS-OWNER contested by PR #2692 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-ARCH-SHAPES contested by PR #2692 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-LEARNER-ETA contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-HEAT-METER contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-COP-GATE contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-UX-HEALTH contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-CONFIGFLOW-PAGES contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-REPLAY-SCOPED contested by PR #2692 (tests/replay.py) -- order the group after the PR or merge it first
+-> group R10-POLICY-FIXER-MD contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-POLICY-GATE-SCOPING contested by PR #2700 (dev/governance/rules/gate-scoping.md) -- order the group after the PR or merge it first
+-> group R10-MUTATION-ANCHOR contested by PR #2692 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-MERGE-SUBJECT-HARDEN contested by PR #2697 (tools/policy/agreement.mjs) -- order the group after the PR or merge it first
+-> group R10-ORCH-MACHINERY contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-CARD-VOICE contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-CI-LAYOUT-P2 contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLOW-AUDIT-PLAN contested by PR #2711 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-TRAIN-OVERLAP-GRADE contested by PR #2737 (tools/audit/seat/merge_train.py) -- order the group after the PR or merge it first
+-> group R10-ORCH-LEDGER contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-ORCH-DISPATCH-REG contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-ORCH-BEATD contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-ORCH-PLANPAGE contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-ORCH-ROSTER-SCHEMA contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-WORKTREE-GC contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-DAEMONIZE-ARGV contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-CIPREDICT-LAYOUT contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-CLOUD-SETUP-TOOLCHAIN contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-YIELD-GUARD contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-ENVMATRIX-NOREMOTE contested by PR #2704 (dev/governance/roles/fixer.md) -- order the group after the PR or merge it first
+-> group R10-FLY-SUITE-ENV-FLAKES contested by PR #2692 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-STRUCTURE-ALIAS contested by PR #2711 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-POLICY-ROLE-PACK contested by PR #2709 (tools/audit/seat/INSTRUMENTS.md) -- order the group after the PR or merge it first
+-> group R10-IMMERSION-LATCH contested by PR #2698 (custom_components/heatpump_optimizer/coordinator.py) -- order the group after the PR or merge it first
+-> group R10-ADVISOR-RESIDUE contested by PR #2698 (tests/features.py) -- order the group after the PR or merge it first
+-> 42 group(s) blocked on owner disposition; oldest issue #2235 is 9d old -- surface them to the owner
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> disposition #2733: scheduled, deferred, or refused
+-> OWED handoff: audit-r10-roster ed1183a13dfc3fe5462b3b0e451a9a15261e6d47 0.0h uncovered=62 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-codeql-dependabot b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e 1.4h uncovered=11 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-config-notices 5b067738bd38010b0af9e54e78224b55234476e2 5.7h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-flow-autotrain b3dceb5cafc873698ab7e0967bfd624ff749b1ec 4.7h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-fly-yield-guard a78d4589742cfa405ff350735e84009e4fa0f2c9 1.2h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-subject-harden f6568a42961232dc0f4fcdc32cb9c187a3602635 2.1h uncovered=1 repair=update -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-mutant-skip a7e41d646087efadd230b22634808f52da83fb38 3.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-mutation-anchor a55a0f47ecf5e805dc86bf8b9eb157755271efa8 1.9h uncovered=13 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-sav-comfort 8e18704ef91760363046ac816547d98685d6639d 1.0h uncovered=15 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-thermal-power-option 7882a1427e82f4f349da5ddec8a917fcf96fbd94 2.2h uncovered=8 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+   orphans: 10 stranded, 0 superseded; skipped no-body=24 named=12 ancestor=2 young=0; origin main e97f574
+DISPATCH LIST: 159 finding(s)

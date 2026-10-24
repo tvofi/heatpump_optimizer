@@ -1,0 +1,8 @@
+===== daemonize pid=55317 2026-10-19T03:14:35Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-archscore-coverage-p4 - /Users/timmalmstrom/hpo-orch/r10s3/upd/2373-cur.md
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (119 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (325 entries)
+  re-run the gate that owns this file before pushing
+  REFUSE   pr-body                  ERROR   [pr-body] --paths-file /tmp/prepr-paths.55551 is empty. A pull request changes at least one file; an empty list means the derivation failed. -- no budget leaf raised over fa424fd91...de830bbc0
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

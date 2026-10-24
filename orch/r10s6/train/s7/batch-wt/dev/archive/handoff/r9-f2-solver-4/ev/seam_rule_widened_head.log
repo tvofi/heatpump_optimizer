@@ -1,0 +1,2 @@
+custom_components/heatpump_optimizer/coordinator.py:10010:            max(0.1, 0.5 * getattr(self, "_ctx", self)._thermal_params.min_electrical_power),
+custom_components/heatpump_optimizer/thermal_model.py:1161:    return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)

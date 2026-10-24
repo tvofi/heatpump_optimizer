@@ -1,0 +1,4 @@
+===== daemonize pid=51455 2026-10-18T09:41:59Z argv: bash tools/audit/seat/open_pr.sh r10-ci-concurrency bfee9706080889008ec3b4ed1a9bdc2bcbe5806f R10-CI-CONCURRENCY: cancel superseded bot-sent and dispatched runs from the live head R10-CI-CONCURRENCY
+  REFUSE   codeowners_gap         RESULT uncovered_files=1 count REFUSED: 1 file(s) a workflow executes or loads carry no CODEOWNERS owner; own each above, or restore it from the base before every PR-reachable job runs it, or the pull request can change the check it is graded by (#1515) 
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on closures against 64b1f82a3958 -- repair before the handoff; `--apply-inert` repairs them
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

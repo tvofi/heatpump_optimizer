@@ -1,0 +1,1 @@
+Source: #2452 Friction. Cost: tests/card.mjs went from 54.6 s to 3 min 11 s, and a full 137-plant deep-link sweep took about 3 h on 4 cores; the fresh-render-per-drive rule is what keeps the census honest and what prices it.

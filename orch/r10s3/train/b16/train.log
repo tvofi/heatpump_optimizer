@@ -1,0 +1,33 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b16/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b16 pid=29092 start=2026-10-19T13:20:06Z
+BATCH 20261019-132006 pid=29100 base=main queue=1 (#2448) --overlap --skip-bad
+OVERLAP: main at e8c67e1d3df1 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2448 policy: budget files changed (tests/structure_budgets.json): the owner's review does not sit at this head (no decisive review by tvofi (id 70032254) on this pull request); a raise is the owner's (0013)
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T13:20:17Z
+===== daemonize pid=91365 2026-10-20T19:51:30Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/b16/queue.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/b16 --checkout /Users/timmalmstrom/heatpump_optimizer --mandate 6175172275 --bot-prs --skip-bad
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b16/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b16 pid=91365 start=2026-10-20T19:51:30Z
+BATCH 20261020-195130 pid=91372 base=main queue=0 (empty) --skip-bad
+BOT #2515 MERGED e4d47457be15ebd993e11bd10d809ce269ff40ac
+beat: waiting CI at e4d47457 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 5, t+965s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 6, t+1206s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 7, t+1447s, required: 14, concluded: 11/14)
+beat: waiting CI at e4d47457 (poll 8, t+1688s, required: 14, concluded: 12/14)
+beat: waiting CI at e4d47457 (poll 9, t+1929s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 10, t+2170s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 11, t+2411s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 12, t+2653s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 13, t+2896s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 14, t+3140s, required: 14, concluded: 13/14)
+beat: waiting CI at e4d47457 (poll 15, t+3381s, required: 14, concluded: 13/14)
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 0 skipped of 0
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-20T20:52:20Z

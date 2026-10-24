@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:state_unit RETURN_DEL 59ab90b3",
+  "killed_by": "tests/features.py",
+  "old": "    return (getattr(state, \"attributes\", None) or {}).get(\"unit_of_measurement\")",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `the export-price entity is read in its unit`; `the grid-fee entity is read in its unit`. Measured at d6d79847, 2026-09-24."
+}

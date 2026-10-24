@@ -1,0 +1,3 @@
+app_push: RECARRY: prepr SKIPPED: HEAD b2e2b5d5 is the clean merge of the live head 72fbab2a and origin/main's bfd61aaf, and the body is the live one
+app_push: REFUSE: worktree HEAD (b2e2b5d579b192a34d0a394e72a75e796fa3c7fe) is not the committed tip of 'fix/r10-currency' (72fbab2a719ce14870aa3284a35d043ea1b9588d); commit or check out first
+RESULT pr=2620 head=72fbab2a719ce14870aa3284a35d043ea1b9588d

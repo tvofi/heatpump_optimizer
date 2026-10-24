@@ -1,0 +1,20 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run38/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run38 pid=19023 start=2026-10-23T07:14:27Z
+BATCH 20261023-071427 pid=19030 base=main queue=1 (#2652) --skip-bad
+TRAIN HOLD refs/heads/train-hold eeb056c9: the record beat waits
+TRAIN HOLD refs/heads/train-hold 8a69a98b: the record beat waits
+beat: waiting CI at 57b7b499 (poll 2, t+242s, required: 14, concluded: 6/14)
+TRAIN HOLD refs/heads/train-hold e2483c45: the record beat waits
+beat: waiting CI at 57b7b499 (poll 3, t+484s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold ca567653: the record beat waits
+beat: waiting CI at 57b7b499 (poll 4, t+726s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold eb937e37: the record beat waits
+beat: waiting CI at 57b7b499 (poll 5, t+968s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 0d4ecd96: the record beat waits
+beat: waiting CI at 57b7b499 (poll 6, t+1210s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 9cdc4aa1: the record beat waits
+beat: waiting CI at 57b7b499 (poll 7, t+1452s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold d93b4e0d: the record beat waits
+beat: waiting CI at 57b7b499 (poll 8, t+1694s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold f2d6b323: the record beat waits
+TRAIN HOLD released
+TRAIN_RC=143 end=2026-10-23T07:45:06Z

@@ -1,0 +1,91 @@
+SEAM A coordinator.py:1483 _sysid_step_off_loop awaits _await_off_loop then adopts
+SEAM A coordinator.py:5720 async_run_optimization awaits _await_optimize then adopts
+SEAM A coordinator.py:11148 async_simulate awaits _await_optimize then adopts
+SEAM B coordinator.py:4325 _thermal_params.cop_scale
+SEAM B coordinator.py:4748 _thermal_params.buffer_cooling_rate
+SEAM B coordinator.py:4754 _thermal_params.house_heat_loss_scale
+SEAM B coordinator.py:4760 _thermal_params.lower_floor_loss_ratio
+SEAM B coordinator.py:5997 _current_state.room_temperature
+SEAM B coordinator.py:5999 _current_state.upper_floor_temperature
+SEAM B coordinator.py:6004 _current_state.outdoor_temperature
+SEAM B coordinator.py:6011 _current_state.outdoor_temperature
+SEAM B coordinator.py:6017 _current_state.floor_return_temperature
+SEAM B coordinator.py:6040 _current_state.lower_floor_temperature
+SEAM B coordinator.py:6042 _current_state.lower_floor_temperature
+SEAM B coordinator.py:6053 _thermal_params.mixing_valve_target
+SEAM B coordinator.py:6074 _current_state.solar_radiation
+SEAM B coordinator.py:6081 _current_state.solar_radiation
+SEAM B coordinator.py:6090 _current_state.dhw_temperature
+SEAM B coordinator.py:6096 _current_state.dhw_temperature
+SEAM B coordinator.py:6101 _current_state.buffer_tank_temperature
+SEAM B coordinator.py:6125 _current_state.wood_tank_temperature
+SEAM B coordinator.py:6129 _current_state.wood_tank_temperature
+SEAM B coordinator.py:6178 _thermal_params.ambient_humidity
+SEAM B coordinator.py:6206 _current_state.dhw_hours_since_legionella
+SEAM B coordinator.py:6255 _current_state.slab_temperature
+SEAM B coordinator.py:6258 _current_state.slab_temperature
+SEAM B coordinator.py:6263 _current_state.lower_floor_temperature
+SEAM B coordinator.py:6277 _thermal_params.solar_aperture_scale
+SEAM B coordinator.py:6278 _thermal_params.internal_gains_profile
+SEAM B coordinator.py:6279 _thermal_params.dhw_inlet_current
+SEAM B coordinator.py:6280 _thermal_params.flow_curve_bias
+SEAM B coordinator.py:6281 _thermal_params.flow_curve_indoor_target
+SEAM B coordinator.py:9336 _thermal_params.defrost_derate
+SEAM B coordinator.py:10801 _opt_config.comfort_weight
+SEAM B dhw_learning.py:225 _thermal_params.dhw_cooling_rate
+SEAM B dhw_learning.py:257 _thermal_params.dhw_hourly_draw_pattern
+SEAM B dhw_learning.py:527 _thermal_params.dhw_hourly_draw_pattern
+SEAM B thermal_model.py:2331 _current_state.ecl110_displace_command
+SEAM B thermal_model.py:2332 _current_state.ecl110_effective_displace
+SEAM B thermal_model.py:3904 _current_state.slab_temperature
+SEAM B thermal_model.py:3905 _current_state.floor_return_temperature
+SEAM C away.py:349 _away_state .override_active
+SEAM C away.py:351 _away_state .override_return_iso
+SEAM C away.py:352 _away_state .migrated_helpers
+SEAM C coordinator.py:3638 _pump_commanded .[]
+SEAM C coordinator.py:5372 _current_action .[]
+SEAM C coordinator.py:5821 _accuracy.lead_pending .clear
+SEAM C coordinator.py:5822 _dhw_accuracy.lead_pending .clear
+SEAM C coordinator.py:5975 _background_tasks .clear
+SEAM C coordinator.py:6498 _solar_radiation_forecast .append
+SEAM C coordinator.py:7971 _store_digests .[]
+SEAM C coordinator.py:8236 _price_days_seen .add
+SEAM C coordinator.py:8248 _price_qdays_seen .add
+SEAM C coordinator.py:9616 _away_state .override_active
+SEAM C coordinator.py:9617 _away_state .override_return_iso
+SEAM C coordinator.py:9620 _away_state .override_active
+SEAM C coordinator.py:9623 _away_state .override_return_iso
+SEAM C coordinator.py:9630 _away_state .override_active
+SEAM C coordinator.py:9631 _away_state .override_return_iso
+SEAM C coordinator.py:10554 _price_tiles .clear
+SEAM C coordinator.py:10571 _price_tiles .[]
+SEAM C coordinator.py:10904 _sysid.config .enabled
+SEAM C flow_meter.py:71 _flow_bias .heat_output_kw
+SEAM D boost.py:231 adopt_plan stores _PLAN_BASES[coord]
+SEAM D boost.py:240 held_for stores _STATES[coord]
+SEAM D boost.py:498 bind_cold_lease global _cold_lease
+SEAM D coordinator.py:1313 _ensure_worker global _PROCESS_WORKER,_PROCESS_ATEXIT
+SEAM D coordinator.py:1356 _shutdown_process_pool global _PROCESS_WORKER
+SEAM D coordinator.py:1417 _run_in_process global _PROCESS_WORKER
+SEAM D coordinator.py:1534 _note_worker_fallback stores _WORKER_FALLBACK_CAUSES[entry_id]
+SEAM D coordinator.py:1557 _clear_worker_fallback mutates _WORKER_FALLBACK_CAUSES.pop
+SEAM D coordinator.py:563 _best_effort_cycle_step mutates _FENCED_CAUSES.add
+SEAM D debugger.py:519 async_setup_debugger stores _COLLECTORS[coordinator]
+SEAM D debugger.py:525 async_unload_debugger mutates _COLLECTORS.pop
+SEAM D early_cutoff.py:139 state_for mutates _STATES.setdefault
+SEAM D pump_arbiter.py:310 state_for stores _STATES[coord]
+SEAM D pump_arbiter.py:327 _wrapped setattr planned_draw_runs
+SEAM D pump_arbiter.py:353 step_duty setattr planned_draw_runs
+SEAM D store.py:618 async_load mutates _NEWER_ON_DISK.discard
+SEAM D store.py:623 async_load mutates _NEWER_ON_DISK.add
+SEAM D store.py:654 _async_migrate_func mutates _NEWER_ON_DISK.add
+POSITIVE D1-s1-02 family=A found=1
+POSITIVE D7-s1-51 family=B found=1
+POSITIVE D7-s1-52 family=C found=1
+POSITIVE D7-s1-53 family=C found=1
+POSITIVE D7-s3-54 family=D found=1
+RESULT family_A=3 count
+RESULT family_B=38 count
+RESULT family_C=22 count
+RESULT family_D=18 count
+RESULT seams_total=81 count

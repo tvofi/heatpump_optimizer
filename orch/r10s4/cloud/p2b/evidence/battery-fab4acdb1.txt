@@ -1,0 +1,86 @@
+== agreement
+AGREEMENT ok
+agreement_py restore: 14 closure file(s), 14 covered by the wave-script restore list, 0 missing
+rc=0
+== rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+== wiring
+selftest_wiring: 91 self-testing, 91 wired, 0 unwired
+rc=0
+== tools/ci/gate.py
+gate self-test: 28 checks, 0 failed
+rc=0
+== tools/ci/ruleset_cutover.py
+ruleset_cutover self-test: 70 checks, 0 failed
+rc=0
+== tools/ci/ghapi.py
+ghapi self-test: 19 checks, 0 failed
+rc=0
+== tools/ci/sweep.py
+sweep self-test: 21 checks, 0 failed
+rc=0
+== tools/ci/prelude.py
+prelude self-test: 27 checks, 0 failed
+rc=0
+== tools/audit/seat/merge_train.py
+merge_train self-test: 240 checks, 0 failed
+rc=0
+== tools/audit/seat/sweep_driver.py
+sweep_driver self-test: 20 checks, 0 failed
+rc=0
+== tools/audit/seat/ci_probe.py
+ci_probe self-test: 53 checks, 0 failed
+rc=0
+== tools/pr/merge_main_bot.py
+merge_main_bot self-test: 42 checks, 0 failed
+rc=0
+== codeowners
+RESULT pinned_by_base_restore=96 count
+RESULT of_which_no_pr_job_runs=79 count
+RESULT uncovered_files=0 count
+rc=0
+== policy_lint
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 261 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== acceptance
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 261 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== brief_lint
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+rc=0
+== tmp_paths
+owns the rest (`fix-review.md` step 9).
+
+rc=2
+== structure
+
+STRUCTURE RATCHET PASSED
+rc=0
+== closure_selftest
+
+ALL 112 closure shrink pins PASSED
+rc=0
+== layout
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: ok
+rc=0
+== field_coverage
+RESULT read=69 ignored=28 declared_none=34 blind=0 dead=0 refused=0 runs=159 seconds=120.7
+FIELD COVERAGE ok
+rc=0
+== prepr_selftest
+
+349 passed, 0 failed
+rc=0
+== entities
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+
+5 of 2417 ENTITY CHECKS FAILED
+rc=1

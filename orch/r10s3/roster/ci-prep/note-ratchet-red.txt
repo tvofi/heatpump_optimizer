@@ -1,0 +1,1 @@
+Folded into R10-CI-LAYOUT PR 0 (stub plus ci-ratchet payments a-c) by tvofi 2026-10-19; not dispatched separately. Diagnosis is carry 4 of R10-CI-LAYOUT. Stage done = skipped by the dispatch watcher and tick PLAN; reopen only if PR 0's ratchet half is split out and then it owns no separate group.

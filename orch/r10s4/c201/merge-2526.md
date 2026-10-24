@@ -1,0 +1,1 @@
+**Merged #2526** (ci(gate): critical-path groups take the lease queue first, group R10-PREPR-CAP) at verdicted head `baa75f58` as `573ac2ac`, under mandate 6175172275 (approval comment 6312722459). The only red was `nightly-status`, which grades main. The merge closed no issues; read back from the API. R10-PREPR-CAP stays in progress while #2528 is open. Leaves #201 open.

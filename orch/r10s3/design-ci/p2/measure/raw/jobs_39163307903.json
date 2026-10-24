@@ -1,0 +1,81 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117780977810,
+      "run_id": 39163307903,
+      "workflow_name": "Architecture score",
+      "head_branch": "fix/r10-tick-drivers",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163307903",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbEsYkg",
+      "head_sha": "aad55ffb4de4a12db5ac222160333bc4fda36050",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117780977810",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163307903/job/117780977810",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:26:28Z",
+      "started_at": "2026-10-18T20:26:31Z",
+      "completed_at": "2026-10-18T20:27:36Z",
+      "name": "arch-score",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:26:32Z",
+          "completed_at": "2026-10-18T20:26:33Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:26:33Z",
+          "completed_at": "2026-10-18T20:26:45Z"
+        },
+        {
+          "name": "Name the pull request and read its body",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:26:45Z",
+          "completed_at": "2026-10-18T20:26:46Z"
+        },
+        {
+          "name": "Score the change, and refuse an unexplained rise",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:26:46Z",
+          "completed_at": "2026-10-18T20:27:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:27:34Z",
+          "completed_at": "2026-10-18T20:27:34Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:27:34Z",
+          "completed_at": "2026-10-18T20:27:34Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117780977810",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126865,
+      "runner_name": "GitHub Actions 1000126865",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

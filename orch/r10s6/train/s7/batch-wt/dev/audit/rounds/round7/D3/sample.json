@@ -1,0 +1,405 @@
+{
+ "seed": 20260923,
+ "mutants": [
+  {
+   "kind": "BOOLOP",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 7743,
+   "old": "        return any(t is not None and float(t) < floor for t in temps)",
+   "new": "        return any(t is not None or float(t) < floor for t in temps)",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 5202,
+   "old": "            if (floor_temp := self._floor_return_temp) is not None:",
+   "new": "            if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "line": 1864,
+   "old": "        return attrs",
+   "new": "        pass",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8708,
+   "old": "        if not self._snapshot_ring.alarmed:",
+   "new": "        if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 528,
+   "old": "        if signature == self.ceiling_notice:",
+   "new": "        if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "BOOLOP",
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "line": 520,
+   "old": "    if end.time() == datetime.min.time() and end > start:",
+   "new": "    if end.time() == datetime.min.time() or end > start:",
+   "module_weight": 3,
+   "kind_weight": 2,
+   "weight": 6
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5783,
+   "old": "            if added <= 1e-9:",
+   "new": "            if False:",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 149,
+   "old": "        if total_weight < 0.5 * requested:",
+   "new": "        if False:",
+   "module_weight": 2,
+   "kind_weight": 3,
+   "weight": 6
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "line": 1197,
+   "old": "            return round(val, 1) if val is not None else None",
+   "new": "            pass",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/name_match.py",
+   "line": 351,
+   "old": "    return family(record.unit) == role.unit_family",
+   "new": "    pass",
+   "module_weight": 1,
+   "kind_weight": 2,
+   "weight": 2
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 522,
+   "old": "    return selector.NumberSelector(selector.NumberSelectorConfig(**config))",
+   "new": "    pass",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 3131,
+   "old": "                if f.size < n_steps:",
+   "new": "                if False:",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 6377,
+   "old": "            return min(value, cap) if cap is not None else value",
+   "new": "            return (value) if cap is not None else value",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 846,
+   "old": "    if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):",
+   "new": "    if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 5960,
+   "old": "            gust = max(0.0, _as_float(entry.get(\"wind_speed\"), 0.0) * wind_scale)",
+   "new": "            gust = (0.0)",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 116,
+   "old": "        return sorted(days)",
+   "new": "        pass",
+   "module_weight": 3,
+   "kind_weight": 2,
+   "weight": 6
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "line": 729,
+   "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
+   "new": "        if False:",
+   "module_weight": 3,
+   "kind_weight": 3,
+   "weight": 9
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 155,
+   "old": "    if not spec:",
+   "new": "    if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 531,
+   "old": "        if signature is None:",
+   "new": "        if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "line": 2547,
+   "old": "        if not isinstance(items, list):",
+   "new": "        if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "line": 165,
+   "old": "    if minutes == 24 * 60:",
+   "new": "    if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "line": 291,
+   "old": "    return max(0.0, min(1.0, fraction))",
+   "new": "    pass",
+   "module_weight": 3,
+   "kind_weight": 2,
+   "weight": 6
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 1309,
+   "old": "    t_in = min(t_in, dhw_setpoint)",
+   "new": "    t_in = (t_in)",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 4886,
+   "old": "            if legionella_step is not None:",
+   "new": "            if False:",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/pump_signals.py",
+   "line": 253,
+   "old": "        return self.mode.space_heat",
+   "new": "        pass",
+   "module_weight": 2,
+   "kind_weight": 2,
+   "weight": 4
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 506,
+   "old": "        if state is None:",
+   "new": "        if False:",
+   "module_weight": 3,
+   "kind_weight": 3,
+   "weight": 9
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2884,
+   "old": "        return HeatPumpOptimizerOptionsFlow(config_entry)",
+   "new": "        pass",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 160,
+   "old": "        if isinstance(profile, list) and len(profile) == 24:",
+   "new": "        if False:",
+   "module_weight": 3,
+   "kind_weight": 3,
+   "weight": 9
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 1031,
+   "old": "    return selector.LocationSelector(selector.LocationSelectorConfig(radius=False))",
+   "new": "    pass",
+   "module_weight": 4,
+   "kind_weight": 2,
+   "weight": 8
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "line": 110,
+   "old": "        if isinstance(months, dict):",
+   "new": "        if False:",
+   "module_weight": 2,
+   "kind_weight": 3,
+   "weight": 6
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/pump_schedule.py",
+   "line": 52,
+   "old": "    lead_h = max(0.0, float(lead_minutes)) / 60.0",
+   "new": "    lead_h = (0.0) / 60.0",
+   "module_weight": 2,
+   "kind_weight": 3,
+   "weight": 6
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "line": 354,
+   "old": "        if not math.isfinite(tracker._window_sum):",
+   "new": "        if False:",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "line": 139,
+   "old": "        return float(min(1.0, max(0.0, self.offpeak_factor)))",
+   "new": "        pass",
+   "module_weight": 5,
+   "kind_weight": 2,
+   "weight": 10
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 2869,
+   "old": "                                / max(dt, 1e-6)",
+   "new": "                                / (dt)",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/battery.py",
+   "line": 320,
+   "old": "    if params.dhw_enabled:",
+   "new": "    if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "line": 107,
+   "old": "    if not np.isfinite(outdoor_temp) or not np.isfinite(indoor_target):",
+   "new": "    if False:",
+   "module_weight": 4,
+   "kind_weight": 3,
+   "weight": 12
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "line": 410,
+   "old": "    if per_window <= 1:",
+   "new": "    if False:",
+   "module_weight": 5,
+   "kind_weight": 3,
+   "weight": 15
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 435,
+   "old": "        if start_delta < DHW_COOLING_MIN_DELTA or end_delta < DHW_COOLING_MIN_DELTA:",
+   "new": "        if False:",
+   "module_weight": 3,
+   "kind_weight": 3,
+   "weight": 9
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "line": 289,
+   "old": "    if preset.lower_emitter == EMITTER_RADIATORS:",
+   "new": "    if False:",
+   "module_weight": 3,
+   "kind_weight": 3,
+   "weight": 9
+  },
+  {
+   "kind": "BOOLOP",
+   "file": "custom_components/heatpump_optimizer/pump_signals.py",
+   "line": 329,
+   "old": "    started = booster is True and was is False",
+   "new": "    started = booster is True or was is False",
+   "module_weight": 2,
+   "kind_weight": 2,
+   "weight": 4
+  }
+ ]
+}

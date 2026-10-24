@@ -1,0 +1,73 @@
+M-4 read-only, head 06b077f884414cbd08b4cba7a913423dade8b110, PR #2649; generated 2026-10-23T06:30:00Z
+== runs (event_name, event, run_attempt)
+39911235897|CI review pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958|event=pull_request_review|CI review pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958
+39911128328|CI edit pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958|event=pull_request|CI edit pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958
+39911090487|CI edit pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958|event=pull_request|CI edit pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958
+39911090068|CI code pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958|event=pull_request|CI code pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958
+== jobs of 39911090068 (name|id|created|started|completed|conclusion|runner)
+prelude|120275432917|2026-10-23T06:26:57Z|2026-10-23T06:22:35Z|2026-10-23T06:22:57Z|success|GitHub Actions 1000159362
+gate|120275433500|2026-10-23T06:26:57Z|2026-10-23T06:27:00Z|2026-10-23T06:27:17Z|success|GitHub Actions 1000159415
+probe / probe|120275434518|2026-10-23T06:26:57Z|2026-10-23T06:22:59Z|2026-10-23T06:23:02Z|success|GitHub Actions 1000159383
+refresh|120275471908|2026-10-23T06:27:04Z|2026-10-23T06:22:34Z|2026-10-23T06:22:42Z|success|GitHub Actions 1000159361
+== jobs of 39911090487 (name|id|created|started|completed|conclusion|runner)
+gate|120275439235|2026-10-23T06:26:58Z|2026-10-23T06:27:01Z|2026-10-23T06:27:21Z|success|GitHub Actions 1000159416
+prelude|120275439420|2026-10-23T06:26:58Z|2026-10-23T06:22:35Z|2026-10-23T06:23:52Z|success|GitHub Actions 1000159373
+refresh|120275440035|2026-10-23T06:26:58Z|2026-10-23T06:22:35Z|2026-10-23T06:22:42Z|success|GitHub Actions 1000159372
+probe|120275440163|2026-10-23T06:26:58Z|2026-10-23T06:26:58Z|2026-10-23T06:26:58Z|skipped|null
+== jobs of 39911128328 (name|id|created|started|completed|conclusion|runner)
+gate|120275443781|2026-10-23T06:26:59Z|2026-10-23T06:27:02Z|2026-10-23T06:27:24Z|success|GitHub Actions 1000159417
+probe|120275444792|2026-10-23T06:26:59Z|2026-10-23T06:26:59Z|2026-10-23T06:26:59Z|skipped|null
+refresh|120275445614|2026-10-23T06:26:59Z|2026-10-23T06:22:57Z|2026-10-23T06:23:06Z|success|GitHub Actions 1000159382
+prelude|120275489849|2026-10-23T06:27:08Z|2026-10-23T06:22:57Z|2026-10-23T06:25:12Z|success|GitHub Actions 1000159380
+== jobs of 39911235897 (name|id|created|started|completed|conclusion|runner)
+refresh|120274483951|2026-10-23T06:23:59Z|2026-10-23T06:24:01Z|2026-10-23T06:24:10Z|success|GitHub Actions 1000159399
+prelude|120274484244|2026-10-23T06:23:59Z|2026-10-23T06:24:01Z|2026-10-23T06:26:19Z|success|GitHub Actions 1000159401
+gate|120275229505|2026-10-23T06:26:19Z|2026-10-23T06:26:22Z|2026-10-23T06:26:42Z|success|GitHub Actions 1000159414
+probe|120275230229|2026-10-23T06:26:20Z|2026-10-23T06:26:20Z|2026-10-23T06:26:19Z|skipped|null
+== check-runs at head whose name contains probe, gate or prelude
+prelude|completed|success|app=github-actions|started=2026-10-23T06:22:57Z|completed=2026-10-23T06:25:12Z
+refresh|completed|success|app=github-actions|started=2026-10-23T06:22:34Z|completed=2026-10-23T06:22:42Z
+refresh|completed|success|app=github-actions|started=2026-10-23T06:22:57Z|completed=2026-10-23T06:23:06Z
+probe|completed|skipped|app=github-actions|started=2026-10-23T06:26:59Z|completed=2026-10-23T06:26:59Z
+gate|completed|success|app=github-actions|started=2026-10-23T06:27:02Z|completed=2026-10-23T06:27:24Z
+probe|completed|skipped|app=github-actions|started=2026-10-23T06:26:58Z|completed=2026-10-23T06:26:58Z
+refresh|completed|success|app=github-actions|started=2026-10-23T06:22:35Z|completed=2026-10-23T06:22:42Z
+prelude|completed|success|app=github-actions|started=2026-10-23T06:22:35Z|completed=2026-10-23T06:23:52Z
+gate|completed|success|app=github-actions|started=2026-10-23T06:27:01Z|completed=2026-10-23T06:27:21Z
+probe / probe|completed|success|app=github-actions|started=2026-10-23T06:22:59Z|completed=2026-10-23T06:23:02Z
+gate|completed|success|app=github-actions|started=2026-10-23T06:27:00Z|completed=2026-10-23T06:27:17Z
+prelude|completed|success|app=github-actions|started=2026-10-23T06:22:35Z|completed=2026-10-23T06:22:57Z
+probe|completed|skipped|app=github-actions|started=2026-10-23T06:26:20Z|completed=2026-10-23T06:26:19Z
+gate|completed|success|app=github-actions|started=2026-10-23T06:26:22Z|completed=2026-10-23T06:26:42Z
+budget-raise-gate|completed|success|app=github-actions|started=2026-10-23T06:24:02Z|completed=2026-10-23T06:24:21Z
+prelude|completed|success|app=github-actions|started=2026-10-23T06:24:01Z|completed=2026-10-23T06:26:19Z
+refresh|completed|success|app=github-actions|started=2026-10-23T06:24:01Z|completed=2026-10-23T06:24:10Z
+budget-raise-gate|completed|success|app=github-actions|started=2026-10-23T06:22:57Z|completed=2026-10-23T06:23:16Z
+budget-raise-gate|completed|success|app=github-actions|started=2026-10-23T06:22:35Z|completed=2026-10-23T06:22:49Z
+budget-raise-gate|completed|success|app=github-actions|started=2026-10-23T06:22:34Z|completed=2026-10-23T06:22:54Z
+
+== READINGS (probe-runner)
+1. Names: a CALLED job is reported as "<caller> / <job>" = "probe / probe" (code run only, success).
+   A SKIPPED uses: caller writes a BARE "probe" check run (conclusion skipped): seen on the edit runs 39911090487, 39911128328 and review run 39911235897. Answers the M-4 question: yes, bare name.
+2. Events: the code and both edit runs have event=pull_request; the review run has event=pull_request_review. The called job "probe / probe" ran inside the pull_request code run. No callee run of its own appears in actions/runs (callee shows only as a job of the caller run); the callee's own event inherited is therefore the caller's (pull_request), but the API exposes no separate callee event_name to read.
+3. Queue latency (job created_at -> started_at): gate 3 s in every run (06:26:57->06:27:00, 06:26:58->06:27:01, 06:26:59->06:27:02, 06:26:19->06:26:22). The called probe job: started 06:22:59, completed 06:23:02 (3 s runtime). Note: jobs' created_at for gate/probe shows the time the job rows were (re)created (06:26:57-59 for runs started 06:22:31), later than started_at of prelude/refresh; the API field is not a trustworthy queue-time start for callers, only gate's created->started delta is meaningful.
+4. Caller cap and callee floor: NOT readable from run/job/check-run data; they are workflow-definition properties (ci.yml permissions / job limits). Not measured here; coordinator to read from the ci.yml at 65f112ec/f61793f80 if needed.
+5. check-run count at the head: 4 gate (3 CI runs + review run), 4 prelude, 5 refresh-ish duplicates by run, 4 budget-raise-gate; gate rows distinct per run, none cancelled.
+
+## Caller cap / callee floor (coordinator, code run 39911090068 at 06b077f)
+Token actually granted, from each job log's "GITHUB_TOKEN Permissions" group (evidence/m4-capfloor.txt):
+  gate (plain job, declares its own):       Actions read, Contents read, Metadata read, PullRequests read
+  probe / probe (callee):                    Contents read, Metadata read
+Declared: ci.yml caller job `probe:` permissions {contents: read}; probe.yml workflow-level {contents: read}, its job declares none.
+Reading: the callee did NOT receive gate's or the caller workflow's wider grants; its token equals the caller job's declaration.
+NOT DISCRIMINATING: caller and callee declare the same set, so this cannot tell "cap" (callee <= caller) from "floor" (callee's own).
+Owed: a perturbation on a separate probe ref (callee declaring pull-requests: read under a caller granting contents: read only;
+expected per GitHub docs: startup failure or the narrower grant), run after the M-6 --chain arm so #2649's runs are not perturbed.
+
+== PERMISSIONS (cap/floor), code run 39911090068; two job-log fetches (gh api --allow-escape-sequences .../actions/jobs/<id>/logs), "Set up job" block
+probe / probe (job 120275434518): GITHUB_TOKEN Permissions = Contents: read, Metadata: read.
+gate (job 120275433500):          GITHUB_TOKEN Permissions = Actions: read, Contents: read, Metadata: read, PullRequests: read.
+Declared at 06b077f: ci.yml top-level `permissions: {}`; caller job `probe:` (ci.yml l.112-120) `permissions: contents: read`; probe.yml top-level `permissions: contents: read` (job `probe` declares none of its own); ci.yml `gate` job declares contents/actions/pull-requests: read.
+Reading: CAP HOLDS: callee token (contents:read + implicit metadata:read) is no wider than the caller's declaration (contents:read). `gate` got exactly its declaration plus metadata:read. Metadata:read is implicit in every token.
+FLOOR: NOT discriminated by this run: the callee declares contents:read, equal to the caller cap, so the log cannot show what a narrower callee declaration keeps. A floor reading needs a callee declaring less than its caller (e.g. `permissions: {}`) -- not run; it would need a new probe commit.
+Skipped-caller finding kept: a skipped `uses:` caller writes a bare `probe` check run (skipped) on edit/review runs (see above).

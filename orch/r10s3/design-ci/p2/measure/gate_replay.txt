@@ -1,0 +1,39 @@
+head       RULESET  GATE     rows  reasons
+0e238c3042 FAIL     FAIL       80  pr-contract=failure; wave-script=failure
+0f145d4fae FAIL     FAIL       47  closures=cancelled; pr-contract=failure
+1450760447 pass     pass       49  
+311e9de3e0 pass     pass       46  
+319769bb4f pass     pass       49  
+3aba8f1eb2 pass     pass       78  
+4be8f4cfd0 pass     pass       43  
+6c0218b0d5 FAIL     FAIL       49  Analyze (javascript-typescript)=cancelled; browser=cancelled; closures=cancelled; env-matrix=cancelled; fast (3.14)=cancelled
+74d66b3554 FAIL     FAIL       76  mutation=failure
+7bda397d12 pass     pass       47  
+87c579404d pass     pass       48  
+8d4e8be01c pass     pass       49  
+aa82837c57 FAIL     FAIL       47  mutation=failure
+acf14d8f22 pass     pass       81  
+b0140e47bc FAIL     FAIL       46  pr-contract=failure; wave-script=failure
+b54a2f2e55 FAIL     FAIL       49  pr-contract=failure
+b931d0f44a pass     pass       47  
+c3a25d2ae3 FAIL     FAIL       48  budget-raise-gate=failure; fast (3.14)=failure
+c7bfbbe4f8 FAIL     FAIL       42  Analyze (actions)=ABSENT; Analyze (javascript-typescript)=ABSENT; Analyze (python)=ABSENT; briefs=cancelled; browser=cancelled; closure-scope=cancelle
+c83ae12acc pass     pass       43  
+d0afadd24e FAIL     FAIL       42  Analyze (actions)=ABSENT; Analyze (javascript-typescript)=ABSENT; Analyze (python)=ABSENT; briefs=cancelled; browser=cancelled; closure-scope=cancelle
+d1becac2b3 FAIL     FAIL       44  fast (3.14)=failure
+
+heads 22: agree 22, differ only where a required job was skipped 0
+
+## perturbations of one green head (each must print the expected verdicts)
+  ok  null: unchanged green head                                 ruleset pass gate pass  
+  ok  required job absent (closures)                             ruleset FAIL gate FAIL  closures=ABSENT
+  ok  required job pending (fast (3.14))                         ruleset FAIL gate FAIL  fast (3.14)=PENDING
+  ok  required job failed (mutation)                             ruleset FAIL gate FAIL  mutation=failure
+  ok  required job cancelled (typing)                            ruleset FAIL gate FAIL  typing=cancelled
+  ok  required job SKIPPED, no scope decision (fast (3.14))      ruleset pass gate FAIL  fast (3.14)=SKIPPED-UNDECLARED
+  ok  required job skipped BY the scope decision (browser)       ruleset pass gate pass  
+  ok  browser skipped, prelude declared no skip                  ruleset pass gate FAIL  browser=SKIPPED-UNDECLARED
+  ok  non-required red (delivery-status)                         ruleset pass gate pass  
+  ok  non-required red (nightly-status)                          ruleset pass gate pass  
+
+GATE-REPLAY rc 0

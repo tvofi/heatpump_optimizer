@@ -1,0 +1,4 @@
+Continue from handoff/r10-mutant-skip (tip a7e41d646087); do not restart from main. Merge origin/main first. The opener refused the push; repair the body, then re-run prepr to a pass and push handoff/ and handoff-body/ refs as the fixer contract says. Opener refusal, verbatim:
+PREDICT pr-contract / pr-contract CARRY UNROUTED item 915c850c: 'none: no stage that has not started changes what it must do because of this diff'
+REFUSE ci predict: CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against ac5788f26177 -- repair before the handoff.
+Fix: the Carry item 915c850c is a `none: ...` sentence the grammar reads as an unrouted carry. Write the carry section so a no-carry is the literal accepted form (see finding-propagation.md and the carry grammar in tools/pr), or route the item to a real stage via the roster. Read the parser before writing it.

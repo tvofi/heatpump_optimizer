@@ -1,0 +1,2 @@
+===== daemonize pid=33719 2026-10-19T11:57:04Z argv: bash tools/audit/seat/open_pr.sh r10-dead-rate-limit d85b8c246cafb2448ed2a2866f78404c3b31c6fc R10-DEAD-RATE-LIMIT: drop learner_newton_step's rate limit, which no reachable state binds R10-DEAD-RATE-LIMIT
+PR=2448 HEAD=4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 AUTHOR=tvofi

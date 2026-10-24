@@ -1,0 +1,4 @@
+RETURN-CANDIDATE 6f22b4a3 design-r10-scores
+RETURN-CANDIDATE df204533 design-verdict-r10-scores
+RETURN-CANDIDATE a4c998f1 r10-currency
+RETURN-CANDIDATE db85ba7c r10-nightly-absent-new

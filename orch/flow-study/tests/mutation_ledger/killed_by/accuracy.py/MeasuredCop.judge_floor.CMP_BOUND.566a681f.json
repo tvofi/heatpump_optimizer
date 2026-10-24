@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_floor CMP_BOUND 566a681f",
+  "killed_by": "tests/features.py",
+  "old": "        if min(asked_kw, drawn_kw) < params.flow_lift_power_floor_kw:",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` (if min(asked_kw, drawn_kw) <= params.flow_lift_power_floor_kw:) flips the condition of tests/features.py's R.check \"a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner once the meter shows the draw follows the ask\" -- the new check \"the duty floor is exclusive\" reads False: a draw equal to the floor is refused where the tree folds it. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

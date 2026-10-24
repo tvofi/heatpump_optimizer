@@ -1,0 +1,42 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run23/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run23 pid=47005 start=2026-10-23T00:36:23Z
+BATCH 20261023-003623 pid=47021 base=main queue=2 (#2635 #2627) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold bfe87d08: the record beat waits
+OVERLAP: main at b24cfe517bd9 is still running (Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs, typing, validate-hacs): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2635 admitted at 7a3e640d
+#2627 serial: grader
+OVERLAP: recarrying #2627 up front, their pull_request runs fire together
+#2627 overlap: recarry start
+TRAIN HOLD refs/heads/train-hold 22d6f0ac: the record beat waits
+#2627 recarry START (branch fix/r10-nightly-absent-new)
+#2627 recarry: main merged, head 2aea44a1; app_push: RECARRY: prepr SKIPPED: HEAD 2aea44a1 is the clean merge of the live head 48e8c29b and origin/main's b24cfe51, and the body is the live one
+#2635 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2635 approved (app)
+OVERLAP: main at b24cfe517bd9 is still running (Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs): a wait, not red; --overlap does not wait
+#2635 MERGED d6308d77c5d02b2001e58a5436715d0c45a4fa9e
+#2635 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2635 main d6308d77 tree == proof 5ff0041c
+OVERLAP: main at d6308d77c5d0 is still running (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script): a wait, not red; --overlap does not wait
+serial: #2627
+TRAIN HOLD refs/heads/train-hold 629ae81a: the record beat waits
+beat: waiting CI at 2aea44a1 (poll 2, t+243s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 2eb482b1: the record beat waits
+beat: waiting CI at 2aea44a1 (poll 3, t+485s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 6af28c6a: the record beat waits
+beat: waiting CI at 2aea44a1 (poll 4, t+728s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 9e4c9118: the record beat waits
+beat: waiting CI at 2aea44a1 (poll 5, t+971s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 4537c924: the record beat waits
+beat: waiting CI at 2aea44a1 (poll 6, t+1213s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 3e71c74a: the record beat waits
+#2627 2aea44a1 ci red=[]
+#2627 approved (mandate)
+#2627 MERGED e364a0d73b8537e94258d5d0da98542d53793c84
+#2627 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run23/wt/2627 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run23/wt/2627' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T01:03:42Z

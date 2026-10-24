@@ -1,0 +1,10 @@
+2026-10-23T07:51:59Z review 5625421758 COMMENTED on #2649 at 83de34568bab45dccdb3b0b9bcdb8552b6662a94, posted by main as tvofi (a COMMENT, approves nothing); relayed by the coordinator
+--- probe-runner events (UTC), PR #2649 head 83de34568bab45dccdb3b0b9bcdb8552b6662a94
+push (update_pr.sh, App path) landed 07:51:07Z -> code run 39920549053 (created 07:51:07Z); edit run 39920549988 (update_pr's own body PATCH, 07:51:08Z)
+explicit body edit (body_patch.sh, head unmoved) 07:51:24Z-07:51:30Z (17 s after the push; my seat worktree had been gc'd while waiting). Held action_required runs at head: 0.
+Both runs were queued at 07:51:2x, i.e. in flight at the edit and at the review (07:51:59Z).
+Prior: the push attempts at 07:32-07:40Z were refused by prepr (RED UNANSWERED closures/closures-autofix/fast/instrument-self-tests), answered in the body's Red checks; push at 07:51:07.
+--- M-6 --chain verdict (coordinator, read 2026-10-23 ~08:2xZ; file m6-chain-gate-suites-83de3456.tsv)
+At head 83de3456 every gate check suite's newest gate run is success, app 15368 (4 suites).
+The three deferred reds (runs 39920549053, 39920549988, 39920596470) were SKIPped by their own sweeps (not newest-covering);
+run 39920652005's sweep re-ran all three at ~08:02:5xZ and each attempt 2 ended success at 08:03:13-17Z. PASS.

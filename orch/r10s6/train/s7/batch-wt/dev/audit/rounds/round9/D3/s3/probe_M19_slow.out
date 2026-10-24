@@ -1,0 +1,8 @@
+tests/edge.py: base rc=0 failed=0; mutant rc=0 failed=0; checks=[]
+RESULT edge_py_killed=0
+tests/backtest.py: base rc=0 failed=0; mutant rc=0 failed=0; checks=[]
+RESULT backtest_py_killed=0
+RESULT kills=0 scripts
+RESULT load1=3.11
+RESULT thread_factor=1.00 (counts only; drivers run in subprocesses)
+RESULT swapins=0

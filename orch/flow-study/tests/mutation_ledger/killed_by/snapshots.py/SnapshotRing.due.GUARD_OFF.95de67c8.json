@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.due GUARD_OFF 95de67c8",
+  "killed_by": "tests/features.py",
+  "old": "        if not self.snapshots:",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

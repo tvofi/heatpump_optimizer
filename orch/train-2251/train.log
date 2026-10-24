@@ -1,0 +1,18 @@
+===== daemonize pid=72212 2026-10-15T13:37:08Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-2251/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=72212 queue=1 (#2251)
+TRAIN STOPPED #2251 recarry: [HOLDER] could not make a worktree at /Users/timmalmstrom/.local/state/hpo/merge_train/wt/2251: branch audit/r10-catchup-register is already checked out in another worktree at /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/wt. Free it: git worktree remove /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/wt (safe when its work is pushed; verify with git -C /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/wt status)
+===== daemonize pid=74378 2026-10-15T13:37:25Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-2251/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=74378 queue=1 (#2251)
+#2251 recarry START (branch audit/r10-catchup-register)
+#2251 recarry: main merged, head ae3fabb6; app_push: RECARRY: prepr SKIPPED: HEAD ae3fabb6 is the clean merge of the live head e1ac127d and origin/main's cfe24f8e, and the body is the live one
+beat: waiting CI at ae3fabb6 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at ae3fabb6 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at ae3fabb6 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at ae3fabb6 (poll 5, t+964s, required: 14, concluded: 12/14)
+beat: waiting CI at ae3fabb6 (poll 6, t+1206s, required: 14, concluded: 12/14)
+beat: waiting CI at ae3fabb6 (poll 7, t+1448s, required: 14, concluded: 12/14)
+#2251 ae3fabb6 ci red=[]
+#2251 approved (mandate)
+#2251 MERGED 803c4f404eb71997ff95a95d8e992a95479d9f98
+#2251 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+TRAIN DONE

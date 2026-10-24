@@ -1,0 +1,59 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run46/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run46 pid=61594 start=2026-10-23T11:06:01Z
+BATCH 20261023-110601 pid=61599 base=main queue=2 (#2659 #2661) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 2d5e0880: the record beat waits
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+TRAIN HOLD refs/heads/train-hold 4d2ae1cc: the record beat waits
+beat: waiting CI at 5c091c19 (poll 2, t+243s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 6405b01c: the record beat waits
+beat: waiting CI at 5c091c19 (poll 3, t+485s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold f242331f: the record beat waits
+beat: waiting CI at 5c091c19 (poll 4, t+727s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 02f19b59: the record beat waits
+beat: waiting CI at 5c091c19 (poll 5, t+970s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold dd0842c3: the record beat waits
+#2659 admitted at 5c091c19
+#2661 admitted at 6156d54c
+proof batch/20261023-110601-1 at b069a1f5: pushed, 5 workflows dispatched
+TRAIN HOLD refs/heads/train-hold c086d51c: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 2, t+242s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold 9fcbccdf: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 3, t+484s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 2264b9ad: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 4, t+726s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 0c975176: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 5, t+968s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold cf14371e: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 6, t+1210s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold ca1650d2: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 7, t+1453s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 55d45a3c: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 8, t+1695s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 262cf581: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 9, t+1937s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold d3fc8f7f: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 10, t+2179s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 40bbe910: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 11, t+2421s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold e9a4792a: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 12, t+2663s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 7df73281: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 13, t+2905s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 307c33ae: the record beat waits
+beat: waiting proof batch/20261023-110601-1 (poll 14, t+3147s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 68ec3ec2: the record beat waits
+proof batch/20261023-110601-1 b069a1f5 red=[]
+#2659 approved (mandate)
+#2659 MERGED 975fbb832bd784a786f37c7ca3c24c4f0cfefcc0
+#2659 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2659 main 975fbb83 tree == proof 0384c342
+#2661 approved (app)
+#2661 MERGED 4c31eb16e5756579e1c951ff560bd3d7a8e39c4c
+#2661 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2661 main 4c31eb16 tree == proof b069a1f5
+deleted batch/20261023-110601-1
+SKIP REPORT: 0 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T12:25:40Z

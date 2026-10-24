@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2620,
+    "phase": "pre-flight",
+    "reason": "recarry: fix/r10-currency is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-currency; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree"
+  }
+]

@@ -1,0 +1,3 @@
+===== daemonize pid=33046 2026-10-18T10:49:54Z argv: bash tools/audit/seat/open_pr.sh r10-ci-autofix-inert-route 4f25f6fdf4c4038759bb96fa8da0f1bf883c6bed R10-CI-AUTOFIX-INERT-ROUTE: route INERT repairs through the autofix R10-CI-AUTOFIX-INERT-ROUTE
+  REFUSE   ancestry reds          RED UNANSWERED (arch-score env-matrix nightly-status validate-hacs):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-autofix-inert-route/body.md: check `arch-score` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,1048 @@
+BOARD measured from origin/main at 5e0056dfc19f, 2026-10-21T15:56:08.875044+00:00
+== TRAIN ==
+   train alive: pid 70930 (1 process(es)); it holds every merge -- load nothing else
+-> prepr slots: 4 running (cap 4) -- do not start a fifth
+   no --queue given
+   no --train-log given: train state unread
+== PRS ==
+   22 open pull request(s)
+   #2521: required contexts not started yet (WAITING on needs; a run is in flight): Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, fast (3.14), typing
+   #2521 [fix/r10-i5-docs] RUN:arch-score,briefs,budget-raise-gate,cancel-superseded,closure-scope,delivery-status,env-matrix,hassfest,instrument-self-tests,mutation,nightly-status,policy-docs,pr-contract,scope,validate-hacs,wave-script
+-> #2521: mergeable state BLOCKED
+   #2524 [fix/r10-pusher-reap] RED:nightly-status,pr-contract
+-> #2524: RED unanswered in ## Red checks: nightly-status, pr-contract
+-> #2524: mergeable state BLOCKED
+-> #2524: 288 commits behind main (recarry due before it can merge)
+   #2527 [fix/r10-freq-defrost] RED:nightly-status
+-> #2527: mergeable state BLOCKED
+-> #2527: 233 commits behind main (recarry due before it can merge)
+   #2528: required contexts not started yet (WAITING on needs; a run is in flight): Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, fast (3.14), typing
+   #2528 [fix/r10-prepr-closures] RUN:arch-score,briefs,budget-raise-gate,cancel-superseded,closure-scope,delivery-status,env-matrix,hassfest,instrument-self-tests,mutation,nightly-status,policy-docs,pr-contract,scope,validate-hacs,wave-script
+-> #2528: mergeable state BLOCKED
+   #2529 [fix/r10-ci-layout-g] RED:nightly-status,pr-contract
+-> #2529: RED unanswered in ## Red checks: pr-contract
+-> #2529: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2529: 233 commits behind main (recarry due before it can merge)
+   #2531: required contexts not started yet (WAITING on needs; a run is in flight): closures
+   #2531 [fix/r10-ci-ratchet-red] RUN:Analyze (actions),Analyze (javascript-typescript),Analyze (python),browser,coverage,env-matrix,fast (3.14),instrument-self-tests,policy-docs,pr-contract,typing
+-> #2531: mergeable state BLOCKED
+   #2545 [fix/r10-rca-handoff-slip] RED:nightly-status,pr-contract
+-> #2545: mergeable state BLOCKED
+-> #2545: 262 commits behind main (recarry due before it can merge)
+   #2547 [fix/r10-tick-owed-level] RED:nightly-status
+-> #2547: RED unanswered in ## Red checks: nightly-status
+-> #2547: mergeable state BLOCKED
+-> #2547: 288 commits behind main (recarry due before it can merge)
+   #2548: required contexts not started yet (WAITING on needs; a run is in flight): Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, fast (3.14), typing
+   #2548 [fix/r10-replay-cap] RUN:arch-score,briefs,cancel-superseded,closure-scope,delivery-status,env-matrix,instrument-self-tests,mutation,nightly-status,policy-docs,pr-contract,scope,validate-hacs,wave-script
+-> #2548: mergeable state BLOCKED
+   #2554 [fix/r10-roster-sync] RED:closures,closures-autofix,nightly-status,pr-contract
+-> #2554: RED unanswered in ## Red checks: closures, closures-autofix, pr-contract
+-> #2554: mergeable state BLOCKED
+-> #2554: 278 commits behind main (recarry due before it can merge)
+   #2557 [fix/r10-rca-orch-continuity] RED:nightly-status,pr-contract
+-> #2557: RED unanswered in ## Red checks: nightly-status, pr-contract
+-> #2557: mergeable state BLOCKED
+-> #2557: no delivery row in its three-dot diff
+-> #2557: 275 commits behind main (recarry due before it can merge)
+   #2558 [fix/r10-plan-artifact] RED:nightly-status,pr-contract
+-> #2558: RED unanswered in ## Red checks: nightly-status, pr-contract
+-> #2558: mergeable state BLOCKED
+-> #2558: no delivery row in its three-dot diff
+-> #2558: 275 commits behind main (recarry due before it can merge)
+   #2560: required contexts not started yet (WAITING on needs; a run is in flight): closures
+   #2560 [fix/r10-openpr-row-push-pr] RUN:Analyze (actions),Analyze (javascript-typescript),Analyze (python),arch-score,briefs,browser,budget-raise-gate,closure-scope,coverage,delivery-status,env-matrix,fast (3.14),instrument-self-tests,mutation,nightly-status,policy-docs,pr-contract,typing,validate-hacs,wave-script
+-> #2560: mergeable state BLOCKED
+   #2561 [fix/r10-rca-harness-friction] RED:nightly-status,pr-contract
+-> #2561: RED unanswered in ## Red checks: nightly-status, pr-contract
+-> #2561: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2561: 275 commits behind main (recarry due before it can merge)
+   #2563: required contexts not started yet (WAITING on needs; a run is in flight): closures
+   #2563 [fix/r10-night-folds] RUN:Analyze (python),coverage,fast (3.14),mutation-autofix
+-> #2563: RED unanswered in ## Red checks: pr-contract
+-> #2563: mergeable state BLOCKED
+-> #2563: 207 commits behind main (recarry due before it can merge)
+   #2566 [fix/r10-handover-refresh] RED:nightly-status,pr-contract
+-> #2566: RED unanswered in ## Red checks: nightly-status, pr-contract
+-> #2566: mergeable state BLOCKED
+-> #2566: no delivery row in its three-dot diff
+-> #2566: 265 commits behind main (recarry due before it can merge)
+   #2567 [fix/r10-row-only-update] RUN:Analyze (python)
+-> #2567: mergeable state BLOCKED
+-> #2567: 225 commits behind main (recarry due before it can merge)
+   #2569 [fix/r10-roster-push-race-pr] RED:nightly-status
+-> #2569: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2569: 230 commits behind main (recarry due before it can merge)
+   #2570 [fix/r10-main-red-rerun-stale] RUN:budget-raise-gate
+-> #2570: mergeable state BLOCKED
+-> #2570: 230 commits behind main (recarry due before it can merge)
+   #2571 [fix/r10-verdict-item-barrier] RUN:closures
+-> #2571: mergeable state BLOCKED
+-> #2571: 225 commits behind main (recarry due before it can merge)
+   #2572 [fix/r10-advisor] RUN:closures,fast (3.14),mutation-pins (2),mutation-pins (3)
+-> #2572: RED unanswered in ## Red checks: nightly-status
+-> #2572: mergeable state BLOCKED
+   #2572: claims drift in tests/golden/card_claimed_drift.txt stamped for VERSION
+-> #2572: 225 commits behind main (recarry due before it can merge)
+   #2574 [record/autofix] RUN:Analyze (python),closures,env-matrix,fast (3.14),instrument-self-tests,wave-script
+-> #2574: mergeable state BLOCKED
+-> #2521: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2528: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2529: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2531: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2554: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2557: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2558: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2561: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2571: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> WIP: 17/6 (open PRs 19) (at the cap: do not dispatch a new group; opening and merging are always allowed)
+-> coordinator.py PRs: 3/2 (#2527, #2563, #2572)
+-> BLOCKED-UNFIXED: #2524 c071fa5f
+-> BLOCKED-UNFIXED: #2561 1019d18d
+-> BLOCKED-UNFIXED: #2567 54bf1821
+-> OWED: OWED reviewer-fire 2452 2a579f5794bef0d817a077ad1603859c070c9931 51e005f5d9892e9da7e85b6d98a58fb6 2026-10-20T13:06:40Z
+-> OWED: OWED reviewer-fire 2465 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687 bcefc4adbf3dab121d36b29c4eb05239 2026-10-20T11:00:32Z
+-> OWED: OWED reviewer-fire 2524 c071fa5f37abdac0da2284547b9282549eb4d607 e95226fbbae9e619a3c64987c1cf6de4 2026-10-21T10:57:54Z
+-> OWED: OWED reviewer-fire 2528 b18052f664039d36da73ef745a2a8423f82d2c46 e453f2a435cba5d743b443e320decb22 2026-10-21T12:52:34Z
+-> OWED: OWED reviewer-fire 2528 2545f3659b4cc2f11f84d3dcc7b0dda57efe2da7 f08cff42b88cb2330b7dfbc0b1f09035 2026-10-21T15:56:00Z
+-> OWED: OWED reviewer-fire 2545 6e12aeb5bd976a7520361dd05bf9300cb6c77a04 496da28b706aecb02848b0e88481f32f 2026-10-21T13:01:04Z
+-> OWED: OWED reviewer-fire 2563 56297e445e024470f5816c3a3bcedcefd01b1e12 048edf9cc9e8282fe1f84508f11b4f4d 2026-10-21T15:31:37Z
+-> OWED: OWED reviewer-fire 2571 cb48de247b39b47ffe9e010689f8ff4f971b7e32 47e1946b8ff54a08858a8dc43dab4a83 2026-10-21T15:23:28Z
+-> OWED: OWED 2026-10-21T07:51:03Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T07:51:03Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T07:56:48Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T07:56:48Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T08:02:48Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T08:02:48Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T08:09:34Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T08:09:34Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T08:17:53Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T08:17:53Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T09:31:55Z probe-ref refs/heads/probe/card-harmony-design 6aea0d10b8f2e618d64c684755db9aaa0c624588
+-> OWED: OWED 2026-10-21T09:31:55Z probe-ref refs/heads/probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40
+-> OWED: OWED 2026-10-21T07:51:00Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T07:51:00Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T07:51:00Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T07:51:00Z handoff-no-pr refs/heads/handoff-body/r10-earlycutoff-coverage d7830d26e79f2a81a0fc47c967c25b0334841c13
+-> OWED: OWED 2026-10-21T07:51:00Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/audit-r10-plan 1cb0f66849149fa8c08df61b808467301c8108da
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/audit-r10-roster 9c02a6acfa3813989e238a408eeb6345d18ede0f
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T07:51:01Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T07:51:02Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-earlycutoff-coverage d7830d26e79f2a81a0fc47c967c25b0334841c13
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T07:56:46Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/audit-r10-plan 6c3f07e2a12beed581fbb4dedcdcf78578e31e19
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/audit-r10-roster 9c02a6acfa3813989e238a408eeb6345d18ede0f
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T07:56:47Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T08:02:44Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T08:02:44Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T08:02:44Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T08:02:44Z handoff-no-pr refs/heads/handoff-body/r10-earlycutoff-coverage d7830d26e79f2a81a0fc47c967c25b0334841c13
+-> OWED: OWED 2026-10-21T08:02:44Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T08:02:45Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/audit-r10-plan 6c3f07e2a12beed581fbb4dedcdcf78578e31e19
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/audit-r10-roster e5284a76e77d4f7290166c3ff6cf1acb1c1a4bcb
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T08:02:46Z handoff-no-pr refs/heads/handoff/r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T08:02:47Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T08:09:29Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T08:09:29Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T08:09:29Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T08:09:29Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T08:09:30Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T08:09:31Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T08:09:31Z handoff-no-pr refs/heads/handoff/audit-r10-plan 9c230ca0f8da032d8596ac64bdfa2aadc628d5f2
+-> OWED: OWED 2026-10-21T08:09:31Z handoff-no-pr refs/heads/handoff/audit-r10-roster bc74edbcb87daa3ae96440dc2e9a1cef31c96a3c
+-> OWED: OWED 2026-10-21T08:09:31Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T08:09:32Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T08:09:33Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T08:09:33Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T08:09:33Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T08:09:33Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T08:09:33Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T08:17:48Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T08:17:49Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T08:17:50Z handoff-no-pr refs/heads/handoff/audit-r10-plan 1d3b8c191f85c610716103d126bd753694ee5d32
+-> OWED: OWED 2026-10-21T08:17:50Z handoff-no-pr refs/heads/handoff/audit-r10-roster 4fb97e6b116fb4aa4a19411ecc5de68bd88818df
+-> OWED: OWED 2026-10-21T08:17:50Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T08:17:51Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T08:17:52Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T08:17:52Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T08:17:52Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T08:17:52Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T08:17:52Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T09:31:50Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T09:31:50Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T09:31:50Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T09:31:50Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 90df761fcf3b2658431917929b3f145d6cdd37e8
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction a32fbfd140f4f91b0c24d7f6fc098eb8336059a6
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 89aac9b93baea6d62ceaea5bbb212a213d63a094
+-> OWED: OWED 2026-10-21T09:31:51Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T09:31:52Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T09:31:52Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T09:31:52Z handoff-no-pr refs/heads/handoff/audit-r10-plan 1d3b8c191f85c610716103d126bd753694ee5d32
+-> OWED: OWED 2026-10-21T09:31:52Z handoff-no-pr refs/heads/handoff/audit-r10-roster 4fb97e6b116fb4aa4a19411ecc5de68bd88818df
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T09:31:53Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T09:31:54Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T10:16:36Z handoff-no-pr refs/heads/handoff-body/r10-codeql-cap 6ceeb35c1d3fb4cc16a24233630d0af79d9e5deb
+-> OWED: OWED 2026-10-21T10:16:36Z handoff-no-pr refs/heads/handoff-body/r10-deeplink-handlers cd4ee933ef4af11f0c023182255b3e4cc05e0857
+-> OWED: OWED 2026-10-21T10:16:36Z handoff-no-pr refs/heads/handoff-body/r10-dependabot-aiohttp 9d6f4dfad2e7d921c1b4a206508dd5ed50e87242
+-> OWED: OWED 2026-10-21T10:16:36Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T10:16:36Z handoff-no-pr refs/heads/handoff-body/r10-handoff-archive 0a4e712d0555de54d57df03f51a3f88bbe2bb762
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-handover-refresh aa0f1950cb3c557803d40b05b13eff73aca15fd9
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate ef8aaeccec1156d046c8beee523c2bfb94bb6d79
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 9634d69cbd85b5fd64a82b8888eca4fc076975d4
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction 06d819b2bdde0ab86d14dcf7033d75d434152abf
+-> OWED: OWED 2026-10-21T10:16:37Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-replay-cap 9f6cec5978065c6cdc8b2d0b895f15d4617845a9
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 100402ed8fe92368da56f396aeceff4410eb0f58
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T10:16:38Z handoff-no-pr refs/heads/handoff-body/r10-tick-owed-level e4d91b810f4ac212d2e9935d4525af5a943780a2
+-> OWED: OWED 2026-10-21T10:16:39Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T10:16:39Z handoff-no-pr refs/heads/handoff/audit-r10-plan db23dbf0f6aab3227855549912319d975a27a019
+-> OWED: OWED 2026-10-21T10:16:39Z handoff-no-pr refs/heads/handoff/audit-r10-roster 2b6ef449b5f4c580fb705bdb66e2549e3fd52a85
+-> OWED: OWED 2026-10-21T10:16:40Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T10:16:40Z handoff-no-pr refs/heads/handoff/r10-deeplink-handlers dd74b93f458763e3ac22e9e478215f998f9e762e
+-> OWED: OWED 2026-10-21T10:16:40Z handoff-no-pr refs/heads/handoff/r10-dependabot-aiohttp d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
+-> OWED: OWED 2026-10-21T10:16:41Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T10:16:41Z handoff-no-pr refs/heads/handoff/r10-handoff-archive 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9
+-> OWED: OWED 2026-10-21T10:16:41Z handoff-no-pr refs/heads/handoff/r10-handover-refresh c2902d6cab0d205804b212303cced5335d4e5c95
+-> OWED: OWED 2026-10-21T10:16:41Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 03136417128b3cb349b22063f9f4cf018426aa74
+-> OWED: OWED 2026-10-21T10:16:41Z handoff-no-pr refs/heads/handoff/r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a
+-> OWED: OWED 2026-10-21T10:16:42Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction bbac16edff999adb26d89c8a89a8db8da379cf1f
+-> OWED: OWED 2026-10-21T10:16:42Z handoff-no-pr refs/heads/handoff/r10-rca-orch-continuity 49fb5245b06e8b146f7427d21340ce89a7622d4d
+-> OWED: OWED 2026-10-21T10:16:42Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T10:16:42Z handoff-no-pr refs/heads/handoff/r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce
+-> OWED: OWED 2026-10-21T10:16:42Z handoff-no-pr refs/heads/handoff/r10-roster-sync 66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3
+-> OWED: OWED 2026-10-21T10:16:43Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T10:16:43Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T10:16:43Z handoff-no-pr refs/heads/handoff/r10-tick-owed-level b38c6431af1ff171567882bf343b6d0ef05520fb
+-> OWED: OWED 2026-10-21T10:16:43Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T10:58:04Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T10:58:04Z handoff-no-pr refs/heads/handoff-body/r10-handover-refresh aa0f1950cb3c557803d40b05b13eff73aca15fd9
+-> OWED: OWED 2026-10-21T10:58:05Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T10:58:05Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 070c5cb4949c9df1cce7368c09cb884a337bd985
+-> OWED: OWED 2026-10-21T10:58:05Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T10:58:06Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction 06d819b2bdde0ab86d14dcf7033d75d434152abf
+-> OWED: OWED 2026-10-21T10:58:06Z handoff-no-pr refs/heads/handoff-body/r10-rca-orch-continuity e4f0e25ea9bbac32330f303e11bbb18db37c0994
+-> OWED: OWED 2026-10-21T10:58:06Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T10:58:06Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T10:58:07Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 100402ed8fe92368da56f396aeceff4410eb0f58
+-> OWED: OWED 2026-10-21T10:58:07Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T10:58:07Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T10:58:07Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T10:58:08Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T10:58:09Z handoff-no-pr refs/heads/handoff/audit-r10-plan c85505566c06768a38bb2b9fae4315ee2c4ee6eb
+-> OWED: OWED 2026-10-21T10:58:09Z handoff-no-pr refs/heads/handoff/audit-r10-roster 9080b3fcf25430108be285a884b64b3dccd11a77
+-> OWED: OWED 2026-10-21T10:58:09Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T10:58:10Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T10:58:10Z handoff-no-pr refs/heads/handoff/r10-handover-refresh c2902d6cab0d205804b212303cced5335d4e5c95
+-> OWED: OWED 2026-10-21T10:58:11Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T10:58:11Z handoff-no-pr refs/heads/handoff/r10-night-folds 79a542be2960de84b50906585b870c4ed16c6763
+-> OWED: OWED 2026-10-21T10:58:11Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction bbac16edff999adb26d89c8a89a8db8da379cf1f
+-> OWED: OWED 2026-10-21T10:58:11Z handoff-no-pr refs/heads/handoff/r10-rca-orch-continuity 33f6c201f4f0814f4570c7441f43b175528a8154
+-> OWED: OWED 2026-10-21T10:58:11Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T10:58:12Z handoff-no-pr refs/heads/handoff/r10-roster-sync 66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3
+-> OWED: OWED 2026-10-21T10:58:12Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T10:58:12Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T10:58:13Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T11:47:38Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-handover-refresh aa0f1950cb3c557803d40b05b13eff73aca15fd9
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 070c5cb4949c9df1cce7368c09cb884a337bd985
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-plan-artifact 89e272b4f4dd764da179057a395481a27ca52da6
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-rca-harness-friction 06d819b2bdde0ab86d14dcf7033d75d434152abf
+-> OWED: OWED 2026-10-21T11:47:39Z handoff-no-pr refs/heads/handoff-body/r10-rca-orch-continuity e4f0e25ea9bbac32330f303e11bbb18db37c0994
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-roster-sync 100402ed8fe92368da56f396aeceff4410eb0f58
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T11:47:40Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T11:47:41Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T11:47:41Z handoff-no-pr refs/heads/handoff/audit-r10-plan 05b213433f56d898004cf05fea6a4f60afb55224
+-> OWED: OWED 2026-10-21T11:47:41Z handoff-no-pr refs/heads/handoff/audit-r10-roster 103235aebc05ddc8d1123ee273cc2d4529dc88a4
+-> OWED: OWED 2026-10-21T11:47:42Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T11:47:42Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T11:47:42Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T11:47:42Z handoff-no-pr refs/heads/handoff/r10-handover-refresh c2902d6cab0d205804b212303cced5335d4e5c95
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-night-folds 79a542be2960de84b50906585b870c4ed16c6763
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-plan-artifact e8810a6e7dd0c42bae53a7af801c4dd98854adce
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-rca-harness-friction bbac16edff999adb26d89c8a89a8db8da379cf1f
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-rca-orch-continuity 33f6c201f4f0814f4570c7441f43b175528a8154
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T11:47:43Z handoff-no-pr refs/heads/handoff/r10-roster-sync 66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3
+-> OWED: OWED 2026-10-21T11:47:44Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T11:47:44Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T11:47:44Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-handover-refresh ba6d62d58c0aebbc8eababe1501ece16bc9cfd61
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-night-folds 070c5cb4949c9df1cce7368c09cb884a337bd985
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T11:56:10Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T11:56:11Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T11:56:11Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T11:56:11Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T11:56:11Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T11:56:11Z handoff-no-pr refs/heads/handoff/audit-r10-plan 5a264b783c4e8ae626595c8ec6c3d41b3e28f951
+-> OWED: OWED 2026-10-21T11:56:12Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T11:56:12Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T11:56:12Z handoff-no-pr refs/heads/handoff/r10-handover-refresh efb0532fb9608936eb3d971a05db146984d92745
+-> OWED: OWED 2026-10-21T11:56:12Z handoff-no-pr refs/heads/handoff/r10-night-folds 79a542be2960de84b50906585b870c4ed16c6763
+-> OWED: OWED 2026-10-21T11:56:13Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T11:56:13Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T11:56:13Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T11:56:13Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T12:52:41Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T12:52:41Z handoff-no-pr refs/heads/handoff-body/r10-handover-refresh ba6d62d58c0aebbc8eababe1501ece16bc9cfd61
+-> OWED: OWED 2026-10-21T12:52:41Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T12:52:41Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T12:52:41Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff/audit-r10-plan 22479f049a4c3a44c3341cdccab5b6cc3adc11f4
+-> OWED: OWED 2026-10-21T12:52:42Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T12:52:43Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T12:52:43Z handoff-no-pr refs/heads/handoff/r10-handover-refresh efb0532fb9608936eb3d971a05db146984d92745
+-> OWED: OWED 2026-10-21T12:52:43Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T12:52:43Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T12:52:44Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T12:52:44Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:01:15Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:01:15Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:01:15Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:01:15Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:01:15Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff/audit-r10-plan 06e71c5e29c3c669e4553e3a7642980a38cdbede
+-> OWED: OWED 2026-10-21T13:01:16Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:01:17Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:01:17Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:01:17Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 69f93a268f00908d97ece3b91a95df6aef88c2fe
+-> OWED: OWED 2026-10-21T13:01:17Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:01:18Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:01:18Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:01:18Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:01:18Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:11:29Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:11:29Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:11:29Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-roster-push-race abc08e344a49a962bba351517739409d4ffe6bac
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-row-only-update b2f83c79cd4520dce69529c8d0495b6c8fd9e2a1
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:11:30Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff/audit-r10-plan 810bf6f760b3b32d9593923b508d960cc4a2cf7a
+-> OWED: OWED 2026-10-21T13:11:31Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:11:32Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:11:32Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:11:32Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-roster-push-race 5091d7b865f7208580847ead995d65a7fe414cbe
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-row-only-update e6dba2408a5f101ee43917b9e64b245888ec664f
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:11:33Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:11:34Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:11:34Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T13:19:04Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:19:04Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:19:04Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-roster-push-race abc08e344a49a962bba351517739409d4ffe6bac
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:19:05Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff/audit-r10-plan 64971df73cedc1a5085c5483471e243f2766dc8f
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:19:06Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-roster-push-race 5091d7b865f7208580847ead995d65a7fe414cbe
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:19:07Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:19:08Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:19:08Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:19:08Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T13:26:38Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:26:38Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:26:38Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:26:38Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T13:26:38Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-roster-push-race abc08e344a49a962bba351517739409d4ffe6bac
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:26:39Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:26:40Z handoff-no-pr refs/heads/handoff/audit-r10-plan 64971df73cedc1a5085c5483471e243f2766dc8f
+-> OWED: OWED 2026-10-21T13:26:40Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:26:40Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:26:40Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-roster-push-race 5091d7b865f7208580847ead995d65a7fe414cbe
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:26:41Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:26:42Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:26:42Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T13:33:52Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:33:52Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-roster-push-race abc08e344a49a962bba351517739409d4ffe6bac
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:33:53Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/audit-r10-plan 64971df73cedc1a5085c5483471e243f2766dc8f
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:33:54Z handoff-no-pr refs/heads/handoff/r10-roster-push-race 5091d7b865f7208580847ead995d65a7fe414cbe
+-> OWED: OWED 2026-10-21T13:33:55Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:33:55Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:33:55Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:33:55Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:33:55Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:44:32Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-roster-push-race abc08e344a49a962bba351517739409d4ffe6bac
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff/audit-r10-plan 64971df73cedc1a5085c5483471e243f2766dc8f
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:44:33Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-roster-push-race 5091d7b865f7208580847ead995d65a7fe414cbe
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:44:34Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:44:35Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:44:35Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:44:35Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T13:51:43Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T13:51:43Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T13:51:44Z handoff-no-pr refs/heads/handoff-body/r10-main-red-rerun-stale a2b66241b5fe14646ed90a068552de769d692ca3
+-> OWED: OWED 2026-10-21T13:51:44Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T13:51:44Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T13:51:44Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T13:51:45Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/audit-r10-plan 64971df73cedc1a5085c5483471e243f2766dc8f
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/r10-main-red-rerun-stale 677c8f9dcb221047a0e943048187507596c98151
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T13:51:46Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T13:51:47Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T13:51:47Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T13:51:47Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T13:51:47Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T13:51:47Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:02:12Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:02:12Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:02:13Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier 4638692c3ee160b24f4173c38779e4cbda5f2f37
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:02:14Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:02:15Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:02:15Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:02:15Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T14:02:16Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:11:37Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-verdict-item-barrier b2a1f10d13c58d39cdb690108296a7daa1696cf3
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:11:38Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-verdict-item-barrier 821507dca0f1e238cb832d265946b4590504d6f2
+-> OWED: OWED 2026-10-21T14:11:39Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:19:06Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:19:06Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:19:06Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:19:06Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:19:06Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:19:07Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:19:08Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:19:08Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:19:08Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:19:09Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:19:09Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:19:09Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:19:10Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:19:10Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:19:10Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:19:10Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:25:58Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:25:59Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:26:00Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:26:00Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:26:00Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:32:33Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:32:33Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:32:33Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:32:33Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:32:33Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:32:34Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:32:35Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:39:36Z handoff-no-pr refs/heads/handoff-body/r10-advisor c3ad696acfa79f9bd7f611e695298078c280d252
+-> OWED: OWED 2026-10-21T14:39:37Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:39:37Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:39:37Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:39:37Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:39:37Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:39:38Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:39:39Z handoff-no-pr refs/heads/handoff/r10-advisor cd1c837cabe9536b27a7d36d193d5f4e24d23deb
+-> OWED: OWED 2026-10-21T14:39:39Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:39:39Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:39:39Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:39:39Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:39:40Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:39:40Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:39:40Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:39:40Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:46:37Z handoff-no-pr refs/heads/handoff-body/r10-advisor c3ad696acfa79f9bd7f611e695298078c280d252
+-> OWED: OWED 2026-10-21T14:46:37Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:46:37Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:46:38Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:46:38Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:46:38Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:46:38Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:46:38Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/audit-r10-plan 4e19c7262046b8f47ea104a9a5911cf4358c93b6
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/r10-advisor cd1c837cabe9536b27a7d36d193d5f4e24d23deb
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:46:39Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:46:40Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:46:40Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:46:40Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:46:40Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:46:40Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T14:53:45Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-pip-bump-2534 f3920f2538df4621b9ccd276a1d5b157dd14852b
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T14:53:46Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/audit-r10-plan a8e61e4afa0ded0163bbed496f98eb51b931062c
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T14:53:47Z handoff-no-pr refs/heads/handoff/r10-pip-bump-2534 a758413a432f83a222a736d42624fb1ce5f01cd5
+-> OWED: OWED 2026-10-21T14:53:48Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T14:53:48Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T14:53:48Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T14:53:48Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T14:53:48Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T15:02:48Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-pip-bump-2534 f3920f2538df4621b9ccd276a1d5b157dd14852b
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T15:02:49Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/audit-r10-plan a8e61e4afa0ded0163bbed496f98eb51b931062c
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T15:02:50Z handoff-no-pr refs/heads/handoff/r10-pip-bump-2534 a758413a432f83a222a736d42624fb1ce5f01cd5
+-> OWED: OWED 2026-10-21T15:02:51Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T15:02:51Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T15:02:51Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T15:02:51Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T15:02:51Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T15:10:09Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T15:10:10Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T15:10:10Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T15:10:10Z handoff-no-pr refs/heads/handoff-body/r10-pip-bump-2534 f3920f2538df4621b9ccd276a1d5b157dd14852b
+-> OWED: OWED 2026-10-21T15:10:10Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T15:10:10Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T15:10:11Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T15:10:12Z handoff-no-pr refs/heads/handoff/audit-r10-plan a8e61e4afa0ded0163bbed496f98eb51b931062c
+-> OWED: OWED 2026-10-21T15:10:12Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T15:10:12Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T15:10:12Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T15:10:12Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T15:10:13Z handoff-no-pr refs/heads/handoff/r10-pip-bump-2534 a758413a432f83a222a736d42624fb1ce5f01cd5
+-> OWED: OWED 2026-10-21T15:10:13Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T15:10:14Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T15:10:14Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T15:10:14Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T15:10:14Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T15:31:55Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-pip-bump-2534 f3920f2538df4621b9ccd276a1d5b157dd14852b
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T15:31:56Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/audit-r10-plan a8e61e4afa0ded0163bbed496f98eb51b931062c
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-ci-ratchet-window c4c5db7b5e32e7d6626e779dfb970fbf8a39e007
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-pip-bump-2534 a758413a432f83a222a736d42624fb1ce5f01cd5
+-> OWED: OWED 2026-10-21T15:31:57Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T15:31:58Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T15:31:58Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T15:31:58Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T15:31:58Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/audit-r10-roster 117323caa2a5c158a76611dc01939a1aa73a2b93
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-ratchet-window b63e1cb97fc55a5a317b5650fcb1c08cef654f3c
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-cloud-rev-head-ev 297dcdbc0876671c1f52cdf50fddfa865e3498d2
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-dispatch ff648aa4e8ae590e22ef891037816bac158f0c36
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-gate-priority 32b91ecfb7b3eb091ce234cbdccb86047de24706
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-merge-pr-mandate 894ea06c8090c190efa28548c876bd678c81be2e
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-pip-bump-2534 f3920f2538df4621b9ccd276a1d5b157dd14852b
+-> OWED: OWED 2026-10-21T15:56:04Z handoff-no-pr refs/heads/handoff-body/r10-plan-opt 65050d8a2a21232f4c33bd1f16263de0be8d4c8d
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-record-body 8fa400a1c72c0aa908ef049c74374f01a2de1d88
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-roster-ops 0a685dd6fdd8337a3c12d133257c0cb084c2b843
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-sav-reasons 76a7318e0e6d8e893563314fb36f4c838e53fc5c
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-setpoint-boost d02e418bf87adf553f10ac573a1a4d11127820a5
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-stamp 285bec0f8f5ca28a8cd216e53f396ec6b3afb618
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-train-hold a89377f507f57bbefe8621a18657fc5a3bf1d611
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff-body/r10-wip-cap 70f4b4996af27d18e03b954ec53ba4f0ca2f887b
+-> OWED: OWED 2026-10-21T15:56:05Z handoff-no-pr refs/heads/handoff/audit-r10-plan 9ce10a6abb2ed4aa3d9aae71de8d2c3fe348df8b
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/audit-r10-roster 2c76c3128bf6d4e0cf37488eb8d29af830df54a0
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-ci-ratchet-window d0c4989f683541b8c4c753c7b8294c3b81ab4d5f
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-cloud-rev-head-ev a90d2bc1490db396d6e432e9f9bee7144b46cb6f
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-flow-body-patch 18e7a7c61f2b07691d4d00f49d6a8658eb16d7d6
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-flow-dispatch d45f4b49bb5efb5580bdbb72af268f3709bc842b
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-merge-pr-mandate 2eb1f37801733d093efe92b0b1569803c44b64a0
+-> OWED: OWED 2026-10-21T15:56:06Z handoff-no-pr refs/heads/handoff/r10-pip-bump-2534 a758413a432f83a222a736d42624fb1ce5f01cd5
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-roster-ops cf0a823108a655216c5208314a0267581085a3c5
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-setpoint-boost 132a80b651471d2f77c63dd7987dee31e6bd2dc0
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-stamp fff6803561ddc14bdc3f10c69a734b80fde3b840
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T15:56:07Z handoff-no-pr refs/heads/handoff/r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-19T21:54:16Z handoff-update 2462 r10-policy-instruments 26189a1fdf61777848fca426634bcc14b07a0f93
+-> OWED: OWED 2026-10-19T22:07:48Z handoff-update 2452 r10-deeplink-handlers 8b3ea42cbd45fcb30fefe03d2e74a79876f5c1c0
+-> OWED: OWED 2026-10-19T22:53:52Z handoff-update 2465 r10-setpoint-boost 890fba053bdf3b3c7611f6a860be528665278259
+-> OWED: OWED 2026-10-20T00:04:16Z handoff-update 2464 r10-ci-layout-p0 b4d7bf9c748caa93b8baf2ce013961bb9d273d4f
+-> OWED: OWED 2026-10-20T00:11:09Z handoff-update 2465 r10-setpoint-boost f7e98dbe17c1b6370c5783008aac9f1a502024e4
+-> OWED: OWED 2026-10-20T01:19:26Z handoff-update 2469 r10-rca-worktree-vanish 75a05f3baa16f13b0bb261f3ed2729f4f26f67cf
+-> OWED: OWED 2026-10-20T01:32:15Z handoff-update 2471 audit-r10-roster 7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d
+-> OWED: OWED 2026-10-20T02:15:32Z handoff-update 2464 r10-ci-layout-p0 dd3a44474543f52974667fb37861b346d607980d
+-> OWED: OWED 2026-10-20T03:17:10Z handoff-update 2469 r10-rca-worktree-vanish a3af24fcf08562d07bd2aaa43cf8cf08eab00e4c
+-> OWED: OWED 2026-10-20T05:06:22Z handoff-update 2469 r10-rca-worktree-vanish 931e9a0f567584657ecaed2b61e61c857bdd2135
+-> OWED: OWED 2026-10-20T22:24:20Z handoff-update 2513 r10-roster-ops 4e2223a57d230c75fbb965dfac431fd4e03f05d8
+-> OWED: OWED 2026-10-21T00:10:28Z handoff-update 2519 r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED 2026-10-21T07:01:08Z handoff-update 2527 r10-freq-defrost fe9038fbe2bacaa43a6bb9c00ce57814be58ff02
+-> OWED: OWED 2026-10-21T09:00:58Z handoff-update 2529 r10-ci-layout-g 7dfec2f6bc4641ab1236e7bf15f58390804bd3f4
+-> OWED: OWED 2026-10-21T09:31:45Z handoff-update 2525 r10-wip-cap 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f
+-> OWED: OWED 2026-10-21T10:16:34Z handoff-update 2521 r10-i5-docs 9cf109e42791bd3707e2ceb26ed83c8b65dee47d
+-> OWED: OWED 2026-10-21T11:33:23Z handoff-update 2527 r10-freq-defrost fd9bcf6f1210e5fb52ec2c90f18f431e3fc5c652
+-> OWED: OWED 2026-10-21T12:06:18Z handoff-update 2559 audit-r10-roster 524e8fdadd4136468389e0e271b39d8812963c25
+-> OWED: OWED 2026-10-21T13:18:44Z handoff-update 2560 r10-openpr-row-push d901186ff4073a104b999ad8318875a422ebf8e3
+== ETA ==
+== WORKERS ==
+== PLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+   54 open group(s) of 108
+   R10-NIGHT-FOLDS: in progress (stage in-progress)
+-> R10-RATIO-ANCHOR: UNBLOCKED, not started -- start a fixer on handoff/r10-ratio-anchor
+-> R10-INPUT-STALENESS: UNBLOCKED, not started -- start a fixer on handoff/r10-input-staleness
+-> R10-CURRENCY: UNBLOCKED, not started -- start a fixer on handoff/r10-currency
+   R10-FREQ-DEFROST: in progress (stage in-progress)
+   R10-LOOP-CPU: blocked by R10-NIGHT-FOLDS (stage not-started)
+   R10-ADVISOR: in progress (stage in-progress)
+   R10-SCORES: blocked by R10-ADVISOR (stage not-started)
+   R10-LIVESTATE: blocked by R10-SCORES, R10-LOOP-CPU (stage not-started)
+-> R10-CONFIG-NOTICES: UNBLOCKED, not started -- start a fixer on handoff/r10-config-notices
+   R10-PARAMS-OWNER: blocked by R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR (stage not-started)
+   R10-SENSOR-PAYLOAD: blocked by R10-SCORES (stage not-started)
+   R10-ARCH-SHAPES: blocked by R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS (stage not-started)
+-> R10-LEARNER-ETA: UNBLOCKED, not started -- start a fixer on handoff/r10-learner-eta
+   R10-HEAT-METER: blocked by R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION (stage not-started)
+   R10-COP-GATE: blocked by R10-HEAT-METER, R10-SENSOR-PAYLOAD (stage not-started)
+   R10-UX-HEALTH: blocked by R10-SCORES, R10-COP-GATE, R10-HEAT-METER (stage not-started)
+   R10-CONFIGFLOW-PAGES: blocked by R10-HEAT-METER (stage not-started)
+-> R10-SOLVER: UNBLOCKED, not started -- start a fixer on handoff/r10-solver
+   R10-I5-DOCS: in progress (stage in-progress)
+   R10-PREPR-CAP: in progress (stage in-progress)
+-> R10-BRIEFS-FOLD: UNBLOCKED, not started -- start a fixer on handoff/r10-briefs-fold
+   R10-REPLAY-LANE: in progress (stage in-progress)
+   R10-REPLAY-SCOPED: blocked by R10-REPLAY-LANE (stage not-started)
+   R10-ARCH-DOCS: blocked by R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-INPUT-STALENESS, R10-CURRENCY, R10-FREQ-DEFROST, R10-LOOP-CPU, R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-CONFIG-NOTICES, R10-PARAMS-OWNER, R10-SENSOR-PAYLOAD, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-CONFIGFLOW-PAGES, R10-SOLVER, R10-I5-DOCS, R10-BRIEFS-FOLD, R10-REPLAY-LANE, R10-REPLAY-SCOPED (stage not-started)
+   R10-RCA-FRICTION: in progress (stage in-progress)
+   R10-POLICY-FIXER-MD: blocked by R10-RCA-FRICTION, R10-BRIEFS-FOLD (stage not-started)
+-> R10-POLICY-GATE-SCOPING: UNBLOCKED, not started -- start a fixer on handoff/r10-policy-gate-scoping
+   R10-RCA-HEADMOVED: blocked by R10-RCA-FRICTION (stage not-started)
+-> R10-SAV-COMFORT: UNBLOCKED, not started -- start a fixer on handoff/r10-sav-comfort
+-> R10-MUTATION-ANCHOR: UNBLOCKED, not started -- start a fixer on handoff/r10-mutation-anchor
+-> R10-POLICY-LINT-FAMILY: UNBLOCKED, not started -- start a fixer on handoff/r10-policy-lint-family
+-> R10-MERGE-SUBJECT-HARDEN: UNBLOCKED, not started -- start a fixer on handoff/r10-merge-subject-harden
+   R10-CI-LAYOUT: in progress (stage in-progress)
+   R10-CI-RATCHET-RED: in progress (stage in-progress)
+   R10-CEILING-PROBE: blocked by R10-CI-LAYOUT, R10-NIGHT-FOLDS (stage not-started)
+   R10-DEMAND-OVERBOOK: in progress (stage queued)
+   R10-BUFFER-STORE: in progress (stage queued)
+   R10-COP-PARTLOAD: in progress (stage queued)
+   R10-UPDATE-PR-SIGNALS: in progress (stage in-progress)
+   R10-ORCH-MACHINERY: blocked by R10-CI-LAYOUT (stage not-started)
+-> R10-CARD-VOICE: UNBLOCKED, not started -- start a fixer on handoff/r10-card-voice
+-> R10-THERMAL-POWER-OPTION: UNBLOCKED, not started -- start a fixer on handoff/r10-thermal-power-option
+-> R10-LEARNER-DEFAULT: UNBLOCKED, not started -- start a fixer on handoff/r10-learner-default
+-> R10-MUTANT-SKIP: UNBLOCKED, not started -- start a fixer on handoff/r10-mutant-skip
+   R10-TICK-OWED-LEVEL: in progress (stage in-progress)
+   R10-REPLAY-CAP: in progress (stage in-progress)
+   R10-RCA-HANDOFF-SLIP: in progress (stage in-progress)
+   R10-HANDOVER-REFRESH: in progress (stage in-progress)
+   R10-RCA-ORCH-CONTINUITY: in progress (stage in-progress)
+   R10-PLAN-ARTIFACT: in progress (stage in-progress)
+   R10-ROSTER-PUSH-RACE: in progress (stage in-progress)
+   R10-CI-LAYOUT-P1: blocked by R10-CI-LAYOUT (stage not-started)
+   R10-CI-LAYOUT-P2: blocked by R10-CI-LAYOUT-P1 (stage not-started)
+== MAIN ==
+   required contexts (main-protect-checks): 14 read live
+   main 5e0056dfc19f: required contexts not started yet (WAITING on needs; a run is in flight): closures
+   main 5e0056dfc19f green (31 context(s) concluded green)
+-> mandate: NOT in force: mandate 6319294694 was not yet in force at 2026-10-21T15:56:08.875044+00:00
+   policy corpus at 389cef8f28e5 (first tick: baseline recorded)
+-> checkout is 3 commit(s) behind origin/main (an ancestor checkout is not current)
+== STATE ==
+-> HANDOVER updated-for a77faf30d9e4 is 2386 commit(s) behind origin/main
+-> run python3 tools/audit/seat/state_docs.py --push (the write stays in the per-merge beat; the tick only names it)
+-> record beat owed: state_docs.py --push + #201 comment for 5e0056dfc19f, e9febe6224ea, 5226fd2d11b7, b6a38f858d61, 929275e8a3f7, e7c664856776, 5d433771aa88, 22615537a497, dbea71db76f1, 3688cf25977c
+== REPLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> group R10-NIGHT-FOLDS contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-RATIO-ANCHOR contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-INPUT-STALENESS contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-CURRENCY contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-FREQ-DEFROST contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-LOOP-CPU contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-ADVISOR contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-SCORES contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-LIVESTATE contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-CONFIG-NOTICES contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-PARAMS-OWNER contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-SENSOR-PAYLOAD contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-ARCH-SHAPES contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-LEARNER-ETA contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-HEAT-METER contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-COP-GATE contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-UX-HEALTH contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-CONFIGFLOW-PAGES contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-SOLVER contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-I5-DOCS contested by PR #2521 (custom_components/heatpump_optimizer/__init__.py, docs/configuration.md, docs/dashboard-card.md, docs/index.html, docs/setup.md, tests/doc_claims.py, tests/stress.py, tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-PREPR-CAP contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-BRIEFS-FOLD contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-REPLAY-LANE contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-REPLAY-SCOPED contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-ARCH-DOCS contested by PR #2521 (docs/index.html) -- order the group after the PR or merge it first
+-> group R10-RCA-FRICTION contested by PR #2529 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-POLICY-FIXER-MD contested by PR #2561 (dev/governance/roles/orchestrator.md) -- order the group after the PR or merge it first
+-> group R10-POLICY-GATE-SCOPING contested by PR #2528 (dev/governance/rules/gate-scoping.md) -- order the group after the PR or merge it first
+-> group R10-MUTATION-ANCHOR contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-POLICY-LINT-FAMILY contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-MERGE-SUBJECT-HARDEN contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-CI-LAYOUT contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-ORCH-MACHINERY contested by PR #2554 (tools/audit/seat/state_docs.py) -- order the group after the PR or merge it first
+-> group R10-REPLAY-CAP contested by PR #2548 (tests/replay.py) -- order the group after the PR or merge it first
+-> group R10-HANDOVER-REFRESH contested by PR #2527 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-PLAN-ARTIFACT contested by PR #2558 (tools/plan/replan.py) -- order the group after the PR or merge it first
+-> group R10-ROSTER-PUSH-RACE contested by PR #2554 (tools/audit/seat/roster_edit.py) -- order the group after the PR or merge it first
+-> group R10-CI-LAYOUT-P1 contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> group R10-CI-LAYOUT-P2 contested by PR #2521 (tests/structure.py) -- order the group after the PR or merge it first
+-> 21 group(s) blocked on owner disposition; oldest issue #2222 is 6d old -- surface them to the owner
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> OWED handoff: audit-r10-roster 726e98d64866ab07e69889f3e225d669880a9743 0.0h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 118.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-flow-body-patch 18e7a7c61f2b07691d4d00f49d6a8658eb16d7d6 0.3h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-flow-dispatch d45f4b49bb5efb5580bdbb72af268f3709bc842b 0.4h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-flow-yield-probe 7864970031c4c9a24b077a6ccd01fdf02ba192a0 0.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+   superseded handoff ref r10-pre-edit-hook 6d0df376aca755d3c6fd2a67be4d9623f92c555f 131.2h -- main carries its change: prune
+   orphans: 5 stranded, 1 superseded; skipped no-body=27 named=23 ancestor=99 young=0; origin main 5e0056d
+DISPATCH LIST: 957 finding(s)

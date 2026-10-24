@@ -1,0 +1,2 @@
+===== daemonize pid=95128 2026-10-24T14:40:25Z argv: bash tools/audit/seat/open_pr.sh r10-codeql-dependabot b64af1cf3fd8b6968cb5bacd4135aed7a0e59d7e CodeQL scope and a Dependabot contract that passes the gates codeql-dependabot
+open_pr: 18 open PRs; the cap gates dispatch, not opening

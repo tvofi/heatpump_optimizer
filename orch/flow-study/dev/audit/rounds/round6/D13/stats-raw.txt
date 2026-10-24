@@ -1,0 +1,64 @@
+STATS: 67 merged pull request(s) in v6.6.0..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","conflict","other"] read from .claude/workflows/web-fix-wave.js
+
+verdict class (PRs / entries):
+    63 / 73    merge   <- at or over threshold
+     1 / 1     claims
+CENSUS	verdict class	63	73	merge
+CENSUS	verdict class	1	1	claims
+
+friction rule id (PRs / entries):
+     8 / 9     tools/audit/briefs/fixer.md   <- at or over threshold
+     5 / 6     .claude/rules/claim-files.md   <- at or over threshold
+     4 / 5     .claude/rules/gate-scoping.md   <- at or over threshold
+     3 / 3     .claude/rules/finding-propagation.md   <- at or over threshold
+     3 / 3     .claude/rules/ratchet-budgets.md   <- at or over threshold
+     2 / 2     tests/env_drift.py
+     2 / 2     .claude/rules/defect-root-cause.md
+     2 / 2     tests/README.md
+     2 / 2     CLAUDE.md
+     1 / 1     .claude/rules/delivery-status-tracking.md
+     1 / 1     figure_lint
+     1 / 1     code-owners
+     1 / 1     brief_lint
+     1 / 1     fixer
+     1 / 1     tests/card_browser.mjs
+     1 / 1     tools/audit/briefs/COMMON.md
+     1 / 1     fixer-step-5
+     1 / 1     merge-prep
+     1 / 1     .claude/rules/ci-autofix.md
+     1 / 1     tools/release/stamp.py
+CENSUS	friction rule id	8	9	tools/audit/briefs/fixer.md
+CENSUS	friction rule id	5	6	.claude/rules/claim-files.md
+CENSUS	friction rule id	4	5	.claude/rules/gate-scoping.md
+CENSUS	friction rule id	3	3	.claude/rules/finding-propagation.md
+CENSUS	friction rule id	3	3	.claude/rules/ratchet-budgets.md
+CENSUS	friction rule id	2	2	tests/env_drift.py
+CENSUS	friction rule id	2	2	.claude/rules/defect-root-cause.md
+CENSUS	friction rule id	2	2	tests/README.md
+CENSUS	friction rule id	2	2	CLAUDE.md
+CENSUS	friction rule id	1	1	.claude/rules/delivery-status-tracking.md
+CENSUS	friction rule id	1	1	figure_lint
+CENSUS	friction rule id	1	1	code-owners
+CENSUS	friction rule id	1	1	brief_lint
+CENSUS	friction rule id	1	1	fixer
+CENSUS	friction rule id	1	1	tests/card_browser.mjs
+CENSUS	friction rule id	1	1	tools/audit/briefs/COMMON.md
+CENSUS	friction rule id	1	1	fixer-step-5
+CENSUS	friction rule id	1	1	merge-prep
+CENSUS	friction rule id	1	1	.claude/rules/ci-autofix.md
+CENSUS	friction rule id	1	1	tools/release/stamp.py
+
+CENSUS: 22 key(s)
+
+threshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.
+
+(window)
+  INFO    [stats] (window): not opened: verdict class "merge" at 63 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so it counts rework nowhere. Friction is rework.
+  INFO    [stats] (window): would open "[policy] recurring friction: tools/audit/briefs/fixer.md" -- friction rule id at 8 in this window, threshold 3. Counted as DISTINCT pull requests (9 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/claim-files.md" -- friction rule id at 5 in this window, threshold 3. Counted as DISTINCT pull requests (6 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/gate-scoping.md" -- friction rule id at 4 in this window, threshold 3. Counted as DISTINCT pull requests (5 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/finding-propagation.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/ratchet-budgets.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): verdict comment outside the grammar in .claude/workflows/web-fix-wave.js (blocked, merge): #1287: Fix review: blocked bc8365f43f020024a67218fb56106a25a7ad5ef5 class-c-l
+
+WOULD OPEN: 5 issue(s)

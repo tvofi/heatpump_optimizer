@@ -1,0 +1,3 @@
+===== daemonize pid=28004 2026-10-24T12:45:35Z argv: bash tools/audit/seat/open_pr.sh r10-fly-cloud-setup-toolchain eec03e0ee65ed73b8c9dc2ee113c455eda1a0e9b R10-FLY-CLOUD-SETUP-TOOLCHAIN: cloud-setup toolchain R10-FLY-CLOUD-SETUP-TOOLCHAIN
+open_pr: 7 open PRs; the cap gates dispatch, not opening
+PR=2709 HEAD=3580acc051e8b7f8ad5fba1ce8827891111f6ba9 AUTHOR=tvofi

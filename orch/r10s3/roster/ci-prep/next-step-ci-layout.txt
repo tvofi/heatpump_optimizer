@@ -1,0 +1,1 @@
+dispatch a fixer for PR 0 now (inert ci.yml stub plus the ci-ratchet payments a-c; tests/run.sh is code-owned); PR G only after #2444 (merged) and from fresh main; then PR 1; then PR 2 at a wave boundary

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_watch_learning_drift GUARD_OFF 5617232a",
+  "killed_by": "tests/features.py",
+  "old": "                if snap is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4dbe5aace7440d0a7d43a249892fc63da890338c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

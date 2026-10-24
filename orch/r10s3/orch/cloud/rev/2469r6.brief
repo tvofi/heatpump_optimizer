@@ -1,0 +1,16 @@
+Round 5 recheck of R10-UPDATE-PR-LOCK (the split PR), at head 42bee4bd. The head is code 931e9a0f merged with origin/main 6f25795b, plus the body commit.
+
+Round 5 at 67ee6adf was blocked ci-red on one thing only: pr-contract's carry_audit reported BAD-DEST x3, because R10-UPDATE-PR-SIGNALS was not yet on main. The round-5 verdict said the code verifies clean, with self-tests 8/8 in the container. That group is now on main via #2475 (1e30f876).
+
+Seat self-tests after the merge:
+- cloud_relay: 74/0
+- pr_args: 56/0
+- delivery_row: 5/0
+
+Delta-scoped review:
+- Confirm that pr-contract is green at this head (read the check-runs API), and that carry_audit routes 3/3 with 0 bad destinations.
+- Confirm that the merge of main introduced no change to the reviewed code. Diff 931e9a0f against this head, restricted to the files the PR touches.
+- Confirm that the body figures still hold.
+- Read CI on this head, and check that it merges with origin/main.
+
+Say that this is the round-5 recheck.

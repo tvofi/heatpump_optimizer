@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2645,
+    "phase": "pre-flight",
+    "reason": "findings: 8 finding item(s) with no valid `Carry:` (carry_audit.py pr 2645); first: review 6356993187 item dff95187 (unrouted): 1. **No round constant in code.** Grepping the three instruments for r10/R10/heatpump_optimizer/tvof"
+  }
+]

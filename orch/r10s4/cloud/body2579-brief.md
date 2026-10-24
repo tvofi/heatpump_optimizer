@@ -1,0 +1,7 @@
+Body-only repair of PR #2579 (topic r10-flow-yield-probe, branch fix/r10-flow-yield-probe). Code is final; change no code. Handoff code SHA aba00fbf2f367b134c73d7404c344dc673859c88 (the cloud fixer round that killed the 3 review_strength.py mutants). Body tip: refs/heads/handoff-body/r10-flow-yield-probe at 8ca90cdd0c9067485865598720b6f6a0e932b668; build on it and keep every figure true at the head its `## Head` section names.
+
+Failure: policy_lint refuses "`## Forward-carry` names no destination file. Write `none`, or the path of the brief, contract or roster the finding lands in." The offending line is "Carry: R10-ORCH-MACHINERY (item b8b28b28)". Read tools/policy/policy_lint.mjs (the Forward-carry check near line 6375, PATH_TOKEN_RE and resolvePathToken) for the form it accepts. Name the roster path dev/programme/rosters/wave-r10-groups.json (it exists on origin/main) in that section in the form the linter expects, and keep the Carry routing (R10-ORCH-MACHINERY, item b8b28b28) so carry_audit still routes it.
+
+Standing rule 19 applies to every observation. PREPR_SKIP_CLOSURES=1.
+Run the policy linter (node tools/policy/policy_lint.mjs; read its usage) and prepr's pr-body step on your body to 0 errors, and carry_audit --roster-ref origin/handoff/audit-r10-roster check --body to 0 unrouted.
+Return with bash tools/audit/seat/body_push.sh <topic> <body.md>. Push no code. If body_push.sh insists on a code push, report that instead.

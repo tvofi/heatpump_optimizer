@@ -1,0 +1,67 @@
+MUTANT {"op": "CMP_BOUND", "line": 1371, "func": "_dhw_inlet_c", "old": "<=", "new": "<", "weight": 6, "consequence_weight": 3, "note": "-5.0 <= value <= 35.0", "id": "C0043"}
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index d714bba6..43973904 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1368,7 +1368,7 @@ def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
+     if state is None or age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):
+         return None
+     value = temperature_c(state.state, state_unit(state))
+-    return value if value is not None and -5.0 <= value <= 35.0 else None
++    return value if value is not None and -5.0 < value <= 35.0 else None
+ 
+ 
+ def _unit_scale_of(state: Any, attribute: str, table: dict[Any, float]) -> float:
+
+CLOSURE tests/typing_ruler.py tests/solar_alignment.py tests/wood_advisor.py tests/plan_view.py tests/card.mjs tests/deployment_shape.py tests/structure.py tests/doc_claims.py tests/card_drift.mjs tests/manual_plan.py tests/config_flow_steps.py tests/finite_boundary.py tests/entities.py tests/features.py tests/env_drift.py
+SCRIPT tests/typing_ruler.py rc=0 wall=0.2s cpu=0.2s
+SCRIPT tests/solar_alignment.py rc=0 wall=0.9s cpu=0.9s
+SCRIPT tests/wood_advisor.py rc=0 wall=0.7s cpu=0.7s
+SCRIPT tests/plan_view.py rc=0 wall=1.0s cpu=1.0s
+SCRIPT tests/card.mjs rc=0 wall=9.7s cpu=11.6s
+SCRIPT tests/deployment_shape.py rc=0 wall=1.8s cpu=1.8s
+SCRIPT tests/structure.py rc=0 wall=2.2s cpu=2.2s
+SCRIPT tests/doc_claims.py rc=0 wall=2.2s cpu=2.2s
+SCRIPT tests/card_drift.mjs rc=0 wall=4.0s cpu=4.9s
+SCRIPT tests/manual_plan.py rc=0 wall=7.3s cpu=6.6s
+SCRIPT tests/config_flow_steps.py rc=0 wall=11.9s cpu=11.8s
+SCRIPT tests/finite_boundary.py rc=0 wall=10.8s cpu=10.8s
+SCRIPT tests/entities.py rc=0 wall=86.5s cpu=65.8s
+SCRIPT tests/features.py rc=0 wall=293.7s cpu=279.5s
+SCRIPT tests/env_drift.py rc=0 wall=218.8s cpu=213.7s
+RESULT wall_typing_ruler_py=0.2 s
+RESULT cpu_typing_ruler_py=0.2 s
+RESULT wall_solar_alignment_py=0.9 s
+RESULT cpu_solar_alignment_py=0.9 s
+RESULT wall_wood_advisor_py=0.7 s
+RESULT cpu_wood_advisor_py=0.7 s
+RESULT wall_plan_view_py=1.0 s
+RESULT cpu_plan_view_py=1.0 s
+RESULT wall_card_mjs=9.7 s
+RESULT cpu_card_mjs=11.6 s
+RESULT wall_deployment_shape_py=1.8 s
+RESULT cpu_deployment_shape_py=1.8 s
+RESULT wall_structure_py=2.2 s
+RESULT cpu_structure_py=2.2 s
+RESULT wall_doc_claims_py=2.2 s
+RESULT cpu_doc_claims_py=2.2 s
+RESULT wall_card_drift_mjs=4.0 s
+RESULT cpu_card_drift_mjs=4.9 s
+RESULT wall_manual_plan_py=7.3 s
+RESULT cpu_manual_plan_py=6.6 s
+RESULT wall_config_flow_steps_py=11.9 s
+RESULT cpu_config_flow_steps_py=11.8 s
+RESULT wall_finite_boundary_py=10.8 s
+RESULT cpu_finite_boundary_py=10.8 s
+RESULT wall_entities_py=86.5 s
+RESULT cpu_entities_py=65.8 s
+RESULT wall_features_py=293.7 s
+RESULT cpu_features_py=279.5 s
+RESULT wall_env_drift_py=218.8 s
+RESULT cpu_env_drift_py=213.7 s
+RESULT scripts_run=15 count
+RESULT killed_by=0 count
+KILLERS -
+RESULT thread_factor=1.000
+RESULT load1=4.16
+RESULT swapins=0

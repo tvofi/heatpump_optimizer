@@ -1,0 +1,6 @@
+#1892 c16d751e ci red=[]
+#1892 approved (app)
+#1892 MERGED b3372838b05fdc058a7a3e81472ed1965d6e622f
+#1892 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+TRAIN STOPPED #1893 recarry: the main merge pushed nothing: app_push: REFUSE: the body did not pass tools/audit/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run
+RESULT pr=1893 head=a0de7d9c2cee4f85edc6b9383fa28f68f7339caa

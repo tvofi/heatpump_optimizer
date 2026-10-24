@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:InputReader._utcnow GUARD_OFF 6e200222",
+  "killed_by": "tests/features.py",
+  "old": "        if callable(self._now):",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=50."
+}

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Main-session only (SessionStart never fires for subagents): inject the orchestrator's
+# binding policy verbatim from origin/main, so it survives compaction.
+W=/Users/timmalmstrom/hpo-seats/r10s3/orch-wt
+git -C "$W" fetch -q origin main 2>/dev/null
+R=$(git -C "$W" rev-parse origin/main)
+echo "BINDING POLICY CORPUS (verbatim, origin/main ${R:0:10}, injected by the orchestrator SessionStart hook; CLAUDE.md is loaded separately)."
+for f in .claude/skills/steward/SKILL.md .github/PULL_REQUEST_TEMPLATE.md \
+  $(git -C "$W" ls-tree --name-only origin/main dev/governance/rules/ | grep '\.md$') \
+  dev/governance/roles/orchestrator.md dev/governance/roles/fixer.md dev/governance/roles/fix-review.md \
+  dev/governance/roles/root-cause.md dev/governance/roles/judge.md dev/governance/roles/verifier.md \
+  tools/audit/seat/INSTRUMENTS.md tools/audit/seat/sweep_template.md; do
+  printf '\n===== %s =====\n' "$f"; git -C "$W" show "origin/main:$f"
+done

@@ -1,0 +1,4 @@
+===== daemonize pid=10992 2026-10-24T09:39:31Z argv: bash tools/audit/seat/open_pr.sh r10-rca-ci-ratchet-run-name f5b2f4624994807939b717533dc6d8f0a0b3fb6d Root-cause record: ci-ratchet red on main from d5dc3e26a rca-ci-ratchet-run-name
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-rca-ci-ratchet-run-name/wt' already exists
+open_pr: STOPPED: line 46 exited 128: git worktree add -q -b $BR $WT $C

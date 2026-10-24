@@ -1,0 +1,6 @@
+===== daemonize pid=8230 2026-10-23T13:43:45Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) r10-policy-lint-family 4963b53d09797e42155668214a182d8b7cd7fdaa R10-POLICY-LINT-FAMILY: the raise-justification barrier and policy_lint fixes R10-POLICY-LINT-FAMILY
+open_pr: --over-cap is advisory: wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) (the cap gates dispatch, not opening)
+open_pr: 10 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+PR=2669 HEAD=48dbc2c8137298d4085a5ee6b946811de3b15608 AUTHOR=tvofi

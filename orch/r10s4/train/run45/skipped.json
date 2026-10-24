@@ -1,0 +1,8 @@
+[
+  {
+    "pr": 2620,
+    "phase": "recarry",
+    "reason": "#2620 could not make a worktree at /Users/timmalmstrom/hpo-orch/r10s4/train/run45/wt/2620: branch fix/r10-currency is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-currency. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-currency (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-currency status) -- not freed: it has uncommitted or untracked files",
+    "class": "HOLDER"
+  }
+]

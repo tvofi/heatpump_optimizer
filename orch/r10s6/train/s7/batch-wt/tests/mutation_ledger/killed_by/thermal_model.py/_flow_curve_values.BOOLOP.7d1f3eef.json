@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_flow_curve_values BOOLOP 7d1f3eef",
+  "killed_by": "tests/features.py",
+  "old": "        \"flow_curve_cop\": enabled and not cop_flow_carnot,",
+  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: BOOLOP (`\"flow_curve_cop\": enabled or not cop_flow_carnot,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

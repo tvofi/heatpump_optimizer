@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:handle_set_thermal_params GUARD_OFF f27d318e",
+  "killed_by": "tests/features.py",
+  "old": "            if float(minimum) > ceiling:",
+  "reason": "R8-I1b (#1533): set_thermal_parameters' deadband refusal. `if False:` accepts a minimum with no deadband. Measured at 8627feee on a detached worktree with this and the apply_schedule twin off: tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the two naming this handler being `set_thermal_parameters with a deadband-less hot water minimum raises a translatable error` and `set_thermal_parameters accepts a hot water minimum exactly at the deadband ceiling and refuses one 0.01 past it (#1533)`."
+}

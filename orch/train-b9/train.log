@@ -1,0 +1,12 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b9/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b9 pid=59804 start=2026-10-15T22:59:38Z
+BATCH 20261015-225938 pid=59808 base=main queue=1 (#2293) --overlap --skip-bad
+OVERLAP: main at 8087e8576d99 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), mutation, typing) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2293 admitted at 54cb8531
+#2293 serial: conflict onto 8087e857
+serial: #2293
+SKIP #2293 recarry: [HOLDER] #2293 could not make a worktree at /Users/timmalmstrom/hpo-orch/train-b9/wt/2293: branch fix/r10-archscore-coverage is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage status)
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-15T22:59:52Z

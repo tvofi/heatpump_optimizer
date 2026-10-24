@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_command_cells BOOLOP 6111075f",
+  "killed_by": "tests/entities.py",
+  "old": "    return (written, ceiling) if np.isfinite(written) and np.isfinite(ceiling) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 52011c69ae04f8a725c82040669b7c158290f834: BOOLOP (`return (written, ceiling) if np.isfinite(written) or np.isfinite(ceiling) else None`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

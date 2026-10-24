@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF c25991f9",
+  "killed_by": "tests/features.py",
+  "old": "    if inp.mode not in (MODE_AUTO, MODE_ECONOMY):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cfa2cb07b1474ed3b405787d3b41978e9be61d2f: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: 4 of 3698 feature checks fail, against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):` into `    if inp.mode not in (MODE_AUTO, MODE_ECONOMY):`."
+}

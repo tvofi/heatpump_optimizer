@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_forced_off_with GUARD_OFF 314a11aa",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if forced_off is None:",
+  "reason": "Recorded by hand against 3b02be37 plus this commit's tests/manual_plan.py test_off_window_over_pins, in a detached copy with the mutant applied: GUARD_OFF (`if False:`) makes `None | mask` raise TypeError; tests/manual_plan.py names \"an Off mask shorter than the horizon is padded off-free to its length\" FAIL, then the next off-window solve aborts the script (rc 1; one FAIL line plus the uncaught exception against a green baseline of 0). tests/features.py aborts on the same TypeError at its first off-window solve, which this Mac's red features baseline (failed=2: R9-F2.1 P3 plus its logged traceback) scores below its own count, so the local drive read it as a survivor. The comment-only null control (a comment prepended to dhw_planner.py) left all 88 checks passing."
+}

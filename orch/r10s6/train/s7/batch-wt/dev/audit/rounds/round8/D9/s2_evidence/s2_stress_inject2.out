@@ -1,0 +1,14 @@
+log: /home/claude/audit-r8/tmp/D9-s2/stress_inject2.log
+   FAIL every scenario's solve costs what it should, in CPU, for this machine  [shoulder/tariff+pv+cycle used 52794 ms of CPU = 1678x the 31.5 ms reference measured beside it (budget 1630x)]
+   FAIL no scenario's solver work grew on an unchanged plan  [flat/1z/dhw took 904 solver evaluations against the baseline's 452 = 2.00x, over the 1.80x factor, on an unchanged plan (objective 91.01186627); flat/1z/space to
+   FAIL no scenario's simulate work grew on an unchanged plan (#1229)  [flat/1z/dhw stepped the simulation 4234264 step-equivalents against the baseline's 2117132 = 2.00x, over the 1.80x factor, on an unchanged plan (object
+   FAIL the sweep as a whole costs what it has always cost, relative to this machine  [386.5 s of solver CPU vs 1.8 s of reference CPU = 210.62x, over the 134.32x budget]
+   4 of 83 STRESS CHECKS FAILED
+RESULT inject_factor=2
+RESULT injected_processes=1 count
+RESULT stress_rc=1
+RESULT stress_fail_lines=5 count
+RESULT wall_s=2902 s (provisional)
+RESULT load1=7.04
+RESULT thread_factor=1.00 (driver does no timed work; see stress.py's own line)
+RESULT swapins=0

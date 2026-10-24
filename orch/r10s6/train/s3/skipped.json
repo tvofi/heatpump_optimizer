@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2683,
+    "phase": "pre-flight",
+    "reason": "findings: 4 finding item(s) with no valid `Carry:` (carry_audit.py pr 2683); first: review 6379079217 item 57e267d2 (unrouted): The live PR body is the same text as handoff-body ref `39cb37f13`. Both forward-carry items name the"
+  }
+]

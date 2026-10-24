@@ -1,0 +1,4 @@
+===== daemonize pid=951 2026-10-19T00:20:37Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-roster-fastpath - /Users/timmalmstrom/hpo-orch/r10s3/upd/2406-cur.md
+Auto-merging tools/policy/policy_lint.mjs
+  REFUSE   ancestry reds          RED UNANSWERED (closures delivery-status fast (3.14) nightly-ha (stable) wave-script):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/upd/2406-cur.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/tests.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

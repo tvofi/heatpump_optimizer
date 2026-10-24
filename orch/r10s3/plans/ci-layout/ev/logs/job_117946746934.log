@@ -1,0 +1,176 @@
+rerun-stale-contract	UNKNOWN STEP	﻿2026-10-19T07:46:17.9635650Z Current runner version: '2.337.0'
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9672187Z ##[group]Runner Image Provisioner
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9673701Z Hosted Compute Agent
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9674798Z Version: 20261012.601
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9676181Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9677556Z Build Date: 2026-10-12T17:48:21Z
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9678774Z Worker ID: {715a439d-26d1-41bb-b67d-3df230aa3b74}
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9680026Z Region: eastus
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9681103Z Cloud: Azure
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9681993Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9684804Z ##[group]Operating System
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9686259Z Ubuntu
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9687159Z 24.04.5
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9688118Z LTS
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9688997Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9689861Z ##[group]Runner Image
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9690903Z Image: ubuntu-24.04
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9691923Z Version: 20261012.334.1
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9694145Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9697160Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9698864Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9700932Z ##[group]GITHUB_TOKEN Permissions
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9704096Z Actions: write
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9705077Z Contents: read
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9706400Z Metadata: read
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9707294Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9710670Z Secret source: Actions
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9712190Z Cache mode: read
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:17.9713858Z Prepare workflow directory
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.0206648Z Prepare all required actions
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.0278625Z Getting action download info
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.2209771Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.4211897Z Complete job name: rerun-stale-contract
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5036583Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5037761Z with:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5038263Z   ref: c3530277373ddf87652858f9ecb0ee1cf36f4347
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5038893Z   persist-credentials: false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5039463Z   repository: tvofi/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5043280Z   token: ***
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5043744Z   ssh-strict: true
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5044202Z   ssh-user: git
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5044632Z   clean: true
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5045097Z   sparse-checkout-cone-mode: true
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5045934Z   fetch-depth: 1
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5046384Z   fetch-tags: false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5046853Z   show-progress: true
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5047321Z   lfs: false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5047745Z   submodules: false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5048212Z   set-safe-directory: true
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5048732Z   allow-unsafe-pr-checkout: false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.5049548Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6158832Z Syncing repository: tvofi/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6161438Z ##[group]Getting Git version info
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6162767Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6164587Z [command]/usr/bin/git version
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6255955Z git version 2.55.0
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6284193Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6303356Z Temporarily overriding HOME='/home/runner/work/_temp/c861e952-5b46-4e21-b650-20b4b568b746' before making global git config changes
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6306049Z Adding repository directory to the temporary git global config as a safe directory
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6309603Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6369097Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6376019Z ##[group]Initializing the repository
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6380809Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6514893Z hint: Using 'master' as the name for the initial branch. This default branch name
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6518219Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6519989Z hint: to use in all of your new repositories, which will suppress this warning,
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6521515Z hint: call:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6522321Z hint:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6523252Z hint: 	git config --global init.defaultBranch <name>
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6524306Z hint:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6524937Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6526525Z hint: 'development'. The just-created branch can be renamed via this command:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6527855Z hint:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6528486Z hint: 	git branch -m <name>
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6529039Z hint:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6530117Z hint: Disable this message with "git config set advice.defaultBranchName false"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6531615Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6533583Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6586648Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6587498Z ##[group]Disabling automatic garbage collection
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6591937Z [command]/usr/bin/git config --local gc.auto 0
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6627257Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6628079Z ##[group]Setting up auth
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6635975Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.6671462Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7104955Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7143104Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7374190Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7413230Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7648019Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7692721Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7694241Z ##[group]Fetching the repository
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:18.7704411Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin c3530277373ddf87652858f9ecb0ee1cf36f4347
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3869105Z From https://github.com/tvofi/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3870732Z  * branch            c3530277373ddf87652858f9ecb0ee1cf36f4347 -> FETCH_HEAD
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3874715Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3876379Z ##[group]Determining the checkout info
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3878136Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3884132Z [command]/usr/bin/git sparse-checkout disable
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3943316Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3982152Z ##[group]Checking out the ref
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.3985895Z [command]/usr/bin/git checkout --progress --force c3530277373ddf87652858f9ecb0ee1cf36f4347
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9720203Z Note: switching to 'c3530277373ddf87652858f9ecb0ee1cf36f4347'.
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9721854Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9722255Z You are in 'detached HEAD' state. You can look around, make experimental
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9723180Z changes and commit them, and you can discard any commits you make in this
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9724031Z state without impacting any branches by switching back to a branch.
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9724383Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9724691Z If you want to create a new branch to retain commits you create, you may
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9725224Z do so (now or later) by using -c with the switch command. Example:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9726210Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9726377Z   git switch -c <new-branch-name>
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9726594Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9726738Z Or undo this operation with:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9726941Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9727049Z   git switch -
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9727272Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9727537Z Turn off this advice by setting config variable advice.detachedHead to false
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9727877Z 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9728135Z HEAD is now at c353027 Merge pull request #2433 from tvofi/fix/r10-tick-selftest-ci
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9751192Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9798614Z [command]/usr/bin/git log -1 --format=%H
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9827550Z c3530277373ddf87652858f9ecb0ee1cf36f4347
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9837104Z ##[group]Removing auth
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9840858Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:20.9875068Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0109536Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0140465Z http.https://github.com/.extraheader
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0148696Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0185904Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0420472Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0454558Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0691517Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0922521Z ##[group]Run set -euo pipefail
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0923033Z ^[[36;1mset -euo pipefail^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0923487Z ^[[36;1m# Each program at its path before and after the reorganisation (R9-RO-2):^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0924078Z ^[[36;1m# the diff lists what PINNED holds of them, skipping the half it lacks,^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0924633Z ^[[36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0925206Z ^[[36;1mgit diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0926045Z ^[[36;1m  '.claude/workflows/*.py' \^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0926373Z ^[[36;1m  'tools/policy/*.py' \^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0926712Z ^[[36;1m  'tools/pr/*.py' > "$RUNNER_TEMP/pinned.list"^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0927090Z ^[[36;1mtest -s "$RUNNER_TEMP/pinned.list"^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0927637Z ^[[36;1mgit checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.0928379Z ^[[36;1mtest -f .claude/workflows/contract_rerun.py || test -f tools/pr/contract_rerun.py^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.1222580Z shell: /usr/bin/bash -e {0}
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.1223046Z env:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.1223421Z   PINNED: c3530277373ddf87652858f9ecb0ee1cf36f4347
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.1223865Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.1412748Z Updated 0 paths from 5f3444c
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.4981700Z ##[group]Run set -euo pipefail
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.4982049Z ^[[36;1mset -euo pipefail^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.4982901Z ^[[36;1mif test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"; else python3 -I tools/pr/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"; fi^[[0m
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5048116Z shell: /usr/bin/bash -e {0}
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5048390Z env:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5050876Z   GH_TOKEN: ***
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5051098Z   RUN_ID: 39218089103
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5051331Z   REPO: tvofi/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:21.5051586Z ##[endgroup]
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:42.9999977Z WAIT: contract run 39218093178 at 3797a7c9d287 is in_progress
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.0001211Z RERUN: contract run 39218093178 started 2026-10-19T07:45:52Z, before the red run 39218089103 finished 2026-10-19T07:46:12Z
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.0002728Z REFUSED: gh api repos/tvofi/heatpump_optimizer/actions/runs/39218093178/rerun exited 1: gh: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID 
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.0064764Z ##[error]Process completed with exit code 1.
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.0286207Z Post job cleanup.
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1165766Z [command]/usr/bin/git version
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1212782Z git version 2.55.0
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1257964Z Temporarily overriding HOME='/home/runner/work/_temp/8bf9a65a-dbcd-45e2-9034-ece37091aea4' before making global git config changes
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1259333Z Adding repository directory to the temporary git global config as a safe directory
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1264729Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1309019Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1349100Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1636084Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1682164Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.1963257Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.2010386Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+rerun-stale-contract	UNKNOWN STEP	2026-10-19T07:46:43.2519798Z Cleaning up orphan processes

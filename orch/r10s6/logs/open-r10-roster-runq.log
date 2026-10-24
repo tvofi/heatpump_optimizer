@@ -1,0 +1,6 @@
+===== daemonize pid=52752 2026-10-24T11:50:13Z argv: bash tools/audit/seat/open_pr.sh r10-roster-runq e191a706c44a636c6252946014c20d7b4a6abbe1 Roster queue runner and carry read-back into tools roster-runq
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against e8a08cf9efef -- repair before the handoff; the lines above name each arm's repair
+  REFUSE   throwaway git          REFUSE tools/audit/seat/roster_queue.py:157: _git("init", "-q", cwd=repo) -- build it with tests/throwaway_git.py (throwaway_git_init / throwaway_git_clone, or the .sh twin), or governance.yml refuses it
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-runq/p1.log

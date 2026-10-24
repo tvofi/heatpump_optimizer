@@ -1,0 +1,72 @@
+CELL tz=0 winter_typical   winter_cold  tail_kwh=6.000 end_room=16.895 tail_breach=0.2324 energy_cost=30.754
+CELL tz=0 winter_typical   winter_mild  tail_kwh=6.000 end_room=19.475 tail_breach=0.0000 energy_cost=23.860
+CELL tz=0 winter_typical   shoulder     tail_kwh=3.066 end_room=20.853 tail_breach=0.0000 energy_cost=11.186
+CELL tz=0 winter_typical   summer_cool  tail_kwh=1.537 end_room=20.673 tail_breach=0.0000 energy_cost=7.035
+CELL tz=0 winter_extreme   winter_cold  tail_kwh=12.000 end_room=17.119 tail_breach=0.0000 energy_cost=54.537
+CELL tz=0 winter_extreme   winter_mild  tail_kwh=7.051 end_room=19.560 tail_breach=0.0000 energy_cost=37.515
+CELL tz=0 winter_extreme   shoulder     tail_kwh=3.849 end_room=20.782 tail_breach=0.0000 energy_cost=18.269
+CELL tz=0 winter_extreme   summer_cool  tail_kwh=1.611 end_room=20.687 tail_breach=0.0000 energy_cost=12.477
+CELL tz=0 winter_narrow    winter_cold  tail_kwh=12.000 end_room=17.751 tail_breach=0.0000 energy_cost=81.580
+CELL tz=0 winter_narrow    winter_mild  tail_kwh=9.885 end_room=18.053 tail_breach=0.0000 energy_cost=35.929
+CELL tz=0 winter_narrow    shoulder     tail_kwh=4.569 end_room=20.131 tail_breach=0.0000 energy_cost=13.979
+CELL tz=0 winter_narrow    summer_cool  tail_kwh=1.950 end_room=20.584 tail_breach=0.0000 energy_cost=9.199
+CELL tz=0 winter_moderate  winter_cold  tail_kwh=12.000 end_room=17.119 tail_breach=0.0000 energy_cost=47.925
+CELL tz=0 winter_moderate  winter_mild  tail_kwh=8.448 end_room=18.937 tail_breach=0.0000 energy_cost=29.901
+CELL tz=0 winter_moderate  shoulder     tail_kwh=4.671 end_room=20.059 tail_breach=0.0000 energy_cost=10.613
+CELL tz=0 winter_moderate  summer_cool  tail_kwh=1.947 end_room=20.583 tail_breach=0.0000 energy_cost=7.308
+CELL tz=0 summer_typical   winter_cold  tail_kwh=0.000 end_room=19.317 tail_breach=0.0000 energy_cost=14.986
+CELL tz=0 summer_typical   winter_mild  tail_kwh=0.000 end_room=21.000 tail_breach=0.0000 energy_cost=7.564
+CELL tz=0 summer_typical   shoulder     tail_kwh=0.000 end_room=20.962 tail_breach=0.0000 energy_cost=2.904
+CELL tz=0 summer_typical   summer_cool  tail_kwh=0.000 end_room=20.970 tail_breach=0.0000 energy_cost=2.153
+CELL tz=0 summer_negative  winter_cold  tail_kwh=5.592 end_room=20.534 tail_breach=0.0000 energy_cost=13.225
+CELL tz=0 summer_negative  winter_mild  tail_kwh=1.950 end_room=20.869 tail_breach=0.0000 energy_cost=0.893
+CELL tz=0 summer_negative  shoulder     tail_kwh=0.000 end_room=22.231 tail_breach=0.0000 energy_cost=-0.677
+CELL tz=0 summer_negative  summer_cool  tail_kwh=0.000 end_room=21.537 tail_breach=0.0000 energy_cost=0.334
+CELL tz=0 shoulder         winter_cold  tail_kwh=8.691 end_room=19.249 tail_breach=0.0000 energy_cost=45.237
+CELL tz=0 shoulder         winter_mild  tail_kwh=2.166 end_room=20.273 tail_breach=0.0000 energy_cost=18.673
+CELL tz=0 shoulder         shoulder     tail_kwh=2.276 end_room=21.000 tail_breach=0.0000 energy_cost=8.194
+CELL tz=0 shoulder         summer_cool  tail_kwh=0.774 end_room=21.000 tail_breach=0.0000 energy_cost=4.885
+CELL tz=0 flat             winter_cold  tail_kwh=4.106 end_room=19.061 tail_breach=0.0000 energy_cost=73.431
+CELL tz=0 flat             winter_mild  tail_kwh=2.060 end_room=19.502 tail_breach=0.0000 energy_cost=34.839
+CELL tz=0 flat             shoulder     tail_kwh=2.048 end_room=20.569 tail_breach=0.0000 energy_cost=12.364
+CELL tz=0 flat             summer_cool  tail_kwh=1.462 end_room=20.635 tail_breach=0.0000 energy_cost=7.122
+CELL tz=1 winter_typical   winter_cold  tail_kwh=6.000 end_room=18.189 tail_breach=0.0000 energy_cost=69.753
+CELL tz=1 winter_typical   winter_mild  tail_kwh=5.284 end_room=18.573 tail_breach=0.0000 energy_cost=25.095
+CELL tz=1 winter_typical   shoulder     tail_kwh=3.779 end_room=20.638 tail_breach=0.0000 energy_cost=11.982
+CELL tz=1 winter_typical   summer_cool  tail_kwh=2.121 end_room=20.689 tail_breach=0.0000 energy_cost=7.483
+CELL tz=1 winter_extreme   winter_cold  tail_kwh=9.841 end_room=18.635 tail_breach=0.0000 energy_cost=111.788
+CELL tz=1 winter_extreme   winter_mild  tail_kwh=2.585 end_room=17.878 tail_breach=0.0000 energy_cost=34.063
+CELL tz=1 winter_extreme   shoulder     tail_kwh=4.611 end_room=20.600 tail_breach=0.0000 energy_cost=19.431
+CELL tz=1 winter_extreme   summer_cool  tail_kwh=2.153 end_room=20.670 tail_breach=0.0000 energy_cost=13.051
+CELL tz=1 winter_narrow    winter_cold  tail_kwh=10.524 end_room=19.564 tail_breach=0.0000 energy_cost=122.874
+CELL tz=1 winter_narrow    winter_mild  tail_kwh=7.650 end_room=19.289 tail_breach=0.0000 energy_cost=47.640
+CELL tz=1 winter_narrow    shoulder     tail_kwh=5.853 end_room=20.369 tail_breach=0.0000 energy_cost=16.236
+CELL tz=1 winter_narrow    summer_cool  tail_kwh=2.362 end_room=20.587 tail_breach=0.0000 energy_cost=9.796
+CELL tz=1 winter_moderate  winter_cold  tail_kwh=11.460 end_room=18.745 tail_breach=0.0000 energy_cost=90.902
+CELL tz=1 winter_moderate  winter_mild  tail_kwh=2.344 end_room=17.875 tail_breach=0.0000 energy_cost=28.958
+CELL tz=1 winter_moderate  shoulder     tail_kwh=5.113 end_room=20.395 tail_breach=0.0000 energy_cost=13.077
+CELL tz=1 winter_moderate  summer_cool  tail_kwh=2.405 end_room=20.602 tail_breach=0.0000 energy_cost=7.789
+CELL tz=1 summer_typical   winter_cold  tail_kwh=0.000 end_room=17.612 tail_breach=0.0000 energy_cost=19.133
+CELL tz=1 summer_typical   winter_mild  tail_kwh=0.000 end_room=19.676 tail_breach=0.0000 energy_cost=8.462
+CELL tz=1 summer_typical   shoulder     tail_kwh=0.000 end_room=20.298 tail_breach=0.0000 energy_cost=3.415
+CELL tz=1 summer_typical   summer_cool  tail_kwh=0.000 end_room=20.591 tail_breach=0.0000 energy_cost=2.285
+CELL tz=1 summer_negative  winter_cold  tail_kwh=4.529 end_room=19.945 tail_breach=0.0000 energy_cost=16.891
+CELL tz=1 summer_negative  winter_mild  tail_kwh=0.720 end_room=19.917 tail_breach=0.0000 energy_cost=1.417
+CELL tz=1 summer_negative  shoulder     tail_kwh=0.000 end_room=21.218 tail_breach=0.0000 energy_cost=-0.629
+CELL tz=1 summer_negative  summer_cool  tail_kwh=0.000 end_room=21.173 tail_breach=0.0000 energy_cost=0.274
+CELL tz=1 shoulder         winter_cold  tail_kwh=8.572 end_room=19.674 tail_breach=0.0000 energy_cost=57.623
+CELL tz=1 shoulder         winter_mild  tail_kwh=1.879 end_room=19.777 tail_breach=0.0000 energy_cost=22.492
+CELL tz=1 shoulder         shoulder     tail_kwh=2.685 end_room=20.812 tail_breach=0.0000 energy_cost=8.854
+CELL tz=1 shoulder         summer_cool  tail_kwh=1.213 end_room=20.861 tail_breach=0.0000 energy_cost=5.360
+CELL tz=1 flat             winter_cold  tail_kwh=7.251 end_room=19.755 tail_breach=0.0000 energy_cost=98.727
+CELL tz=1 flat             winter_mild  tail_kwh=2.704 end_room=19.725 tail_breach=0.0000 energy_cost=40.871
+CELL tz=1 flat             shoulder     tail_kwh=2.695 end_room=20.723 tail_breach=0.0000 energy_cost=14.229
+CELL tz=1 flat             summer_cool  tail_kwh=2.470 end_room=20.628 tail_breach=0.0000 energy_cost=7.616
+RESULT cells=64
+RESULT mean_tail_kwh=3.8518 kWh
+RESULT mean_end_room=19.9008 C
+RESULT cells_tail_breach=1
+RESULT mean_energy_cost=25.2365 SEK
+RESULT thread_factor=1.000
+RESULT load1=35.80
+RESULT swapins=na

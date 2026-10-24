@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_excess GUARD_OFF 85b13431",
+  "old": "    if bill.price_per_kw <= 0 or not np.isfinite(bill.threshold_kw):",
+  "reason": "R10-TARIFF (#2282): The same guard with its body unreachable. A price of 0 charges 0.0 * top_sum = 0.0 either way. An infinite threshold makes every excess max(0, w - inf) = 0, which `if not np.any(excess > 0)` turns into None. A NaN threshold gives NaN excesses, and `nan > 0` is False, so None again. A negative price is unreachable: the options form bounds CONF_PEAK_TARIFF_PRICE to _number(0, 500, 1), and the optimizer's price is that price over k >= 1. Equivalent. Unpinned at base under the pre-record text. Survival measured by CI's mutation-pins run 38796525102 at f09549085: no driver killed it.",
+  "verdict": "equivalent"
+}

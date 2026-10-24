@@ -1,0 +1,388 @@
+# worktree /Users/timmalmstrom/hpo-seats/r10s3/ci-layout-g/exp/wt  branch (detached)  head 6f3bd6fa537c939c464e02bddd414bac8d1a360a
+M  tests/layout.py
+M  tools/audit/seat/handoff_push.sh
+M  tools/audit/seat/merge_pr.sh
+ M tools/audit/seat/merge_train.py
+M  tools/policy/field_coverage.mjs
+M  tools/policy/record-predicate/row_files_replay.py
+M  tools/pr/prepr.sh
+diff --git a/tests/layout.py b/tests/layout.py
+index 51bf6cf62..303e2bf0a 100644
+--- a/tests/layout.py
++++ b/tests/layout.py
+@@ -310,16 +310,24 @@ def exempt(old: str, new: str | None, line: str) -> bool:
+ GUARD_EXEMPT = ("dev/governance/config/", "dev/audit/rca/", ".claude/rules/", ".cursor/rules/")
+ 
+ 
+-def landed(files: list[str], retired: list[dict]) -> list[dict]:
++def landed(files: list[str], retired: list[dict],
++           ref_namespaces: tuple[str, ...] | list[str] = ()) -> list[dict]:
+     """The landed entries, and every directory their moves emptied: the map
+     retires a directory's files one by one, and a citation of the directory
+-    (a `git diff -- <dir>`, a glob) then reads nothing, silently."""
++    (a `git diff -- <dir>`, a glob) then reads nothing, silently.
++
++    A `ref_namespaces` prefix (the manifest's) names git REFS, not a tracked
++    directory: `handoff/<topic>` is a branch, so the parent a move empties is
++    not a path a line can cite, and manufacturing it as a moved path would
++    sweep every branch name the seat tools spell. Only manufactured ancestors
++    are skipped -- an explicit entry whose `old` is under the prefix, and the
++    moved tree itself, are still swept."""
+     have = {p[:i + 1] for p in files for i, c in enumerate(p) if c == "/"} | set(files)
+     out = [r for r in retired if r["old"] not in have]
+     known = {r["old"] for r in retired}
+     while True:
+         dirs = {o.rstrip("/").rpartition("/")[0] + "/" for o in (r["old"] for r in out)}
+-        dirs = sorted(d for d in dirs - have - known if d != "/")
++        dirs = sorted(d for d in dirs - have - known if d != "/" and not any(d.startswith(ns) for ns in ref_namespaces))
+         if not dirs:
+             return out
+         for d in dirs:
+@@ -400,10 +408,11 @@ def guard(root: Path, manifest: dict, base: str, rev: str | None = None) -> list
+     """The guard's findings for the index at `root` (or commit `rev`) against
+     commit `base`."""
+     retired, cats = manifest["retired"], compiled(manifest)
++    refs = manifest.get("ref_namespaces", ())
+     skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
+     files = tracked(root) if rev is None else listing(root, rev)
+     then = listing(root, base)
+-    now, before = landed(files, retired), landed(then, retired)
++    now, before = landed(files, retired, refs), landed(then, retired, refs)
+     fresh = [r for r in now if r not in before]
+     planned = [r for r in retired if r not in now]
+     diff = git(root, "diff", *(["--cached", base] if rev is None else [base, rev]),
+@@ -462,7 +471,7 @@ def stale(root: Path, manifest: dict) -> list[str]:
+     """Every live line in the index citing a landed path: what the guard
+     keeps from growing, listed whole (historical and exempt text skipped)."""
+     files = tracked(root)
+-    now = landed(files, manifest["retired"])
++    now = landed(files, manifest["retired"], manifest.get("ref_namespaces", ()))
+     skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
+     text = blobs(root, [f":{p}" for p in files if not p.startswith(skip)])
+     return [f"{k[1:]}: {o} | {line.strip()[:120]}" for k, t in text.items() if t for o, line in stale_lines(t, now)]
+@@ -477,13 +486,15 @@ def guard_self_test() -> int:
+                         {"name": "twin", "globs": ["docs/twin.md"], "why": "t"},
+                         {"name": "rules", "globs": [".claude/rules/*.md", ".cursor/rules/*.mdc"], "why": "t"}],
+          "historical": ["arch/"],
++         "ref_namespaces": ["ns/"],
+          "retired": [{"old": "old/gone.sh", "new": "tools/gone.sh", "since": "1"},
+                      {"old": "old/briefs/a.md", "new": "docs/a.md", "since": "1"},
+                      {"old": "gone.txt", "new": None, "since": "1"},
+                      {"old": "old/dir/", "new": "tools/dir/", "since": None},
++                     {"old": "ns/sub/", "new": "tools/sub/", "since": "1"},
+                      {"old": "old/wip.sh", "new": "tools/wip.sh", "since": None}]}
+     base = {"docs/a.md": "intro\n", "docs/b.md": "run old/gone.sh here\n", "tools/gone.sh": "",
+-            "old/dir/x.sh": "", "old/wip.sh": "", "docs/c.md": "see old/wip.sh\n"}
++            "old/dir/x.sh": "", "old/wip.sh": "", "ns/sub/x.sh": "", "docs/c.md": "see old/wip.sh\n"}
+     cites = "run old/gone.sh now\n"
+     cases = [
+         ("null: the base tree unchanged", {}, (), {}),
+@@ -520,6 +531,15 @@ def guard_self_test() -> int:
+         ("a file re-added at a landed path", {"old/gone.sh": ""}, (), {"placement": 1, "new-reference": 0}),
+         ("a move landed, a citation left", {"tools/wip.sh": ""}, ("old/wip.sh",), {"unswept": 1}),
+         ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
++        # A moved tree whose parent is also a git ref namespace (`handoff/`):
++        # the parent is a branch prefix, not a directory, so its spelling is
++        # not a citation of the emptied directory and must not be swept.
++        ("a ref namespace's name is not a citation of its emptied parent",
++         {"tools/sub/x.sh": "", "docs/e.md": "git branch --list 'ns/*'\n"}, ("ns/sub/x.sh",), {}),
++        # ...but the moved tree itself is still swept under that parent.
++        ("a citation of the moved tree under a ref namespace is still swept",
++         {"tools/sub/x.sh": "", "docs/e.md": "see ns/sub/x.sh\n"}, ("ns/sub/x.sh",),
++         {"new-reference": 1, "unswept": 1}),
+     ]
+     failed = 0
+     from throwaway_git import throwaway_git_init
+diff --git a/tools/audit/seat/handoff_push.sh b/tools/audit/seat/handoff_push.sh
+index 2eac55f2f..5adf76e04 100644
+--- a/tools/audit/seat/handoff_push.sh
++++ b/tools/audit/seat/handoff_push.sh
+@@ -5,88 +5,12 @@
+ # row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
+ # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
+ # dev/programme/HANDOVER.md names it.
+-# --self-test runs delivery_row.sh's self-test and this script's own offline
+-# one: the three push calls are driven over a scratch origin with a stub
+-# app_push, so a push line replaced by `true` reddens it (#2444).
+ set -uo pipefail
+ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+ # The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
+ # writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
+ . "$(dirname -- "$0")/delivery_row.sh"
+-
+-# The three push calls' own fixtures (#2444's fourth forward-carry). A scratch
+-# origin carries handoff/g (open) and handoff/h (update, with fix/h on origin);
+-# the clone holds this script, the row writer and head_note.py, and its
+-# tools/pr/app_push.sh is a stub that records every call. The open path must
+-# push twice -- the pull request, then its row -- and the update path once.
+-# This self-test copies THIS file into the clone, so the mutant proof is a
+-# push line replaced by `true` in the real file: the null control then finds
+-# a call missing and the step exits 1.
+-handoff_push_self_test() (
+-  local src t f=0 n=0 o m code base body i
+-  src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+-  t=$(mktemp -d) || { echo "handoff_push self-test: no temporary directory"; return 1; }
+-  . "$src/../../../tests/throwaway_git.sh" && throwaway_git_env
+-  ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
+-  o=$t/o; m=$t/m
+-  { throwaway_git_init "$o" -q -b main \
+-    && printf 'a\n' > "$o/a" && git -C "$o" add a && git -C "$o" commit -q -m base \
+-    && base=$(git -C "$o" rev-parse HEAD) \
+-    && printf 'b\n' > "$o/b" && git -C "$o" add b && git -C "$o" commit -q -m code \
+-    && code=$(git -C "$o" rev-parse HEAD) \
+-    && git -C "$o" branch handoff/g "$code" && git -C "$o" branch handoff/h "$code" \
+-    && git -C "$o" branch fix/h "$base" \
+-    && printf '## Head\n\nthe body\n' > "$t/body.md" \
+-    && body=$(git -C "$o" commit-tree "$(printf '100644 blob %s\tBODY.md\n' \
+-         "$(git -C "$o" hash-object -w "$t/body.md")" | git -C "$o" mktree)" -m "body") \
+-    && git -C "$o" update-ref refs/heads/handoff-body/g "$body" \
+-    && git -C "$o" update-ref refs/heads/handoff-body/h "$body" \
+-    && throwaway_git_clone -q "$o" "$m" \
+-    && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
+-    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$m/tools/audit/seat/" \
+-    && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
+-    && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
+-    && chmod +x "$m/tools/pr/app_push.sh" \
+-    && printf '#!/bin/bash\ncase "$*" in\n  "pr view "*"--json number --jq .number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr view "*"--json number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr edit "*|"pr ready "*) exit 0 ;;\n  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;\nesac\n' > "$t/bin/gh" \
+-    && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
+-  # run <open|update>: a fresh state and worktree root per case; the clone's
+-  # copy of this file is the program under test.
+-  run() {
+-    i=$((i + 1))
+-    local wr=$t/wt$i st=$t/st$i topic=g exists=$t/no-pr w
+-    [ "$1" = update ] && { topic=h; exists=$t/pr-exists; }
+-    rm -rf "$wr" "$st"; mkdir -p "$wr" "$st" "$m/tools/audit/seat"
+-    for w in $(git -C "$m" worktree list --porcelain | awk '/^worktree /{print $2}' | grep -vxF "$m"); do
+-      git -C "$m" worktree remove --force "$w" 2>/dev/null
+-    done
+-    git -C "$m" branch -D "fix/$topic" >/dev/null 2>&1
+-    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$m/tools/audit/seat/"
+-    [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
+-    [ "$exists" = "$t/pr-exists" ] && : > "$exists"
+-    : > "$t/push"
+-    HPO_STATE_DIR=$st HPO_WT_ROOT=$wr PATH="$t/bin:$PATH" PUSH_LOG=$t/push \
+-      PR_EXISTS=$exists bash "$m/tools/audit/seat/handoff_push.sh" "$topic" "$code" "a title" \
+-      > "$t/out" 2>&1
+-    echo $? > "$t/rc"
+-  }
+-  run open
+-  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 2 ] \
+-    && grep -q 'RESULT pr=42 head=' "$t/out"
+-  ck "null control: the open path pushes the pull request, then its row" $?
+-  run update
+-  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
+-    && grep -q 'RESULT pr=42' "$t/out"
+-  ck "null control: the update path pushes its head once" $?
+-  rm -rf "$t"
+-  echo "handoff_push self-test: $n checks, $f failed"
+-  [ "$f" = 0 ]
+-)
+-
+-if [ "${1:-}" = --self-test ]; then
+-  bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
+-  handoff_push_self_test; h=$?
+-  [ "$r" = 0 ] && [ "$h" = 0 ]; exit $?
+-fi
++[ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test
+ TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
+ # The main checkout is the one this script's checkout shares its object store with; a PR's
+ # worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
+@@ -94,15 +18,6 @@ R=tvofi/heatpump_optimizer; M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --pa
+ BR=${BRNAME:-fix/$TOPIC}; WT=${HPO_WT_ROOT:-$(dirname "$M")}/${BRNAME:-fix/$TOPIC}; WT=${WT/fix\//fix-}
+ B=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bodies/$TOPIC-body.md; mkdir -p "$(dirname "$B")"
+ cd $M
+-# The App push, resolved once (the three calls were two lines each before
+-# #2444's seam): the live pusher, behind the pre-move location a checkout may
+-# still carry (tests/layout.json maps that path to this one).
+-if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+-push_app() { # <tail count>: the push, filtered to its REFUSE/PUSHED lines
+-  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} \
+-    bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 \
+-    | grep -E 'REFUSE|PUSHED' | tail -"$1" | cut -c1-200
+-}
+ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
+ T="origin/handoff/$TOPIC"
+ git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
+@@ -156,7 +71,8 @@ how="then adds one commit containing only its own row" if A else "which carried
+ s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head, %s `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,how,N))
+ open(p,'w').write(s)
+ E3
+-  push_app 2  # mut:push-update
++  if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
++  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2 | cut -c1-200
+   gh pr edit $N --title "$TITLE" >/dev/null
+   echo "RESULT pr=$N head=$H (update)"; exit 0
+ fi
+@@ -174,8 +90,8 @@ s=prefix(s,"`%s` merges origin/main `%s` into the authored head `%s`, with no ha
+ open(p,'w').write(s)
+ E2
+ fi
+-out=$(push_app 2)  # mut:push-open
+-echo "$out" | cut -c1-200
++if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
++out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2); echo "$out" | cut -c1-200
+ N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
+ gh pr edit $N --title "$TITLE" >/dev/null
+ [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
+@@ -188,5 +104,6 @@ p,H,C,N=sys.argv[1:5]; s=open(p).read()
+ s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
+ open(p,'w').write(s)
+ E
+-push_app 1  # mut:push-row
++if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
++PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -1 | cut -c1-200
+ echo "RESULT pr=$N head=$H"
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index de8fe5173..0f4a1fffc 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -121,59 +121,6 @@ P
+   else fail=$((fail + 1)); echo "  FAIL the owner body declares an agent and cites exactly the mandate given"; fi
+   if grep -q "2026-09-2[45]" "$SELF"; then fail=$((fail + 1)); echo "  FAIL no mandate date is written into this script"
+   else pass=$((pass + 1)); echo "  ok   no mandate date is written into this script"; fi
+-  # The merge call after the gates (#2444's fourth unpinned line). A scratch
+-  # clone, a fake gh answering the whole flow, the stub programs the script
+-  # prefers under tools/audit/, and a `sleep` that does not sleep. The null
+-  # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
+-  # a merge line replaced by `exit 0` records none, which reddens this step.
+-  local mo mm msha
+-  . "$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/tests/throwaway_git.sh" && throwaway_git_env
+-  mo=$T/mo; mm=$T/mm; msha=$(printf 'd%.0s' {1..40})
+-  mkdir -p "$T/ev" "$T/bin2" "$T/state2"
+-  printf '# verdict\n' > "$T/ev/VERDICT.md"
+-  throwaway_git_init "$mo" -q -b main && printf 'a\n' > "$mo/a" \
+-    && git -C "$mo" add a && git -C "$mo" commit -q -m base \
+-    && throwaway_git_clone -q "$mo" "$mm"
+-  mkdir -p "$mm/tools/audit/seat"
+-  cp "$SELF" "$mm/tools/audit/seat/merge_pr.sh"
+-  for p in app_comment.sh app_approve.sh preflight.sh worktree_gc.sh; do
+-    printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
+-  done
+-  printf 'import sys\nprint(sys.argv[2] if len(sys.argv) > 2 else "")\n' \
+-    > "$mm/tools/audit/seat/ref_privacy.py"
+-  printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"
+-  cat > "$T/bin2/gh" <<'G'
+-#!/bin/bash
+-echo "$*" >> "$FAKE_LOG2"
+-case "$*" in
+-  *headRefOid*) echo "$FAKE_SHA" ;;
+-  *isDraft*) echo false ;;
+-  *mergeStateStatus*) echo CLEAN ;;
+-  *mergeCommit*) echo deadbeef ;;
+-  *title*) echo "a title" ;;
+-  *length*) echo 0 ;;
+-  *check-runs*) echo "" ;;
+-  "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
+-  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
+-esac
+-G
+-  chmod +x "$T/bin2/gh"
+-  flow() { # <merge fails 0|1>: the whole script, offline
+-    : > "$T/gh2.log"
+-    HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
+-      FAKE_MERGE_FAIL=$1 bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+-      > "$T/flow.out" 2>&1
+-    echo $? > "$T/flow.rc"
+-  }
+-  flow 0
+-  [ "$(cat "$T/flow.rc")" = 0 ] \
+-    && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
+-  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: the merge records the reviewed head"
+-  else fail=$((fail + 1)); echo "  FAIL null control: the merge records the reviewed head ($(tail -1 "$T/flow.out"))"; fi
+-  flow 1
+-  [ "$(cat "$T/flow.rc")" != 0 ]
+-  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a refused merge fails the script (the line's own exit)"
+-  else fail=$((fail + 1)); echo "  FAIL a refused merge fails the script"; fi
+   rm -rf "$T"
+   echo "merge_pr self-test: $((pass + fail)) checks, $fail failed"
+   [ "$fail" = 0 ]
+@@ -219,7 +166,7 @@ sleep 10
+ for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
+ [ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
+ gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/preflight.sh "$@" 2>&1; fi| tail -1
+-gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
++gh pr merge $PR --merge --match-head-commit $S || exit 1
+ sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
+ for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
+ bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index c44f70b53..00f027afd 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -858,6 +858,7 @@ class Train:
+         return o
+ 
+     def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
++        return [], False, "planted"
+         """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
+         budget raise, shared by `approve` and queue_pre_flight.py.
+ 
+diff --git a/tools/policy/field_coverage.mjs b/tools/policy/field_coverage.mjs
+index 594e855f9..c45f1d3c6 100644
+--- a/tools/policy/field_coverage.mjs
++++ b/tools/policy/field_coverage.mjs
+@@ -343,7 +343,6 @@ const DECLARED = {
+   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
+   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
+   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
+-  'pinned tools/policy/agreement_restore.py': { none: 'reads the wave-script restore list in governance.yml and the agreement reader\'s imports; both are code, and its own self-test plants the missing-pathspec and wildcard arms' },
+   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
+ }
+ 
+diff --git a/tools/policy/record-predicate/row_files_replay.py b/tools/policy/record-predicate/row_files_replay.py
+index 326de75eb..44f05e63b 100644
+--- a/tools/policy/record-predicate/row_files_replay.py
++++ b/tools/policy/record-predicate/row_files_replay.py
+@@ -151,24 +151,15 @@ def main():
+ 
+ 
+ def self_test() -> int:
+-    """A historical commit still has the old path. A reader of only the new
++    """The historical commit still has the old path. A reader of only the new
+     path misses it; plan_path returns the old one. When HEAD has the move,
+-    plan_path returns the new one.
+-
+-    The historical commit is derived, never carried: the newest commit on the
+-    main history that touched the old path is its deletion (`bc0f17ddb`, the
+-    lift), so its parent still carries it. Reading origin/main itself for that
+-    arm was true only until the lift merged, and has been red since."""
+-    tip = out("rev-parse", "origin/main") or out("rev-parse", "HEAD")
++    plan_path returns the new one."""
++    tip = out("rev-parse", "origin/main")
+     new, old = PLAN_PATHS
+-    deleted = out("log", "-1", "--format=%H", tip, "--", old)
+-    hist = out("rev-parse", f"{deleted}~1") if deleted else ""
+-    if (not hist or git("cat-file", "-e", f"{hist}:{new}").returncode == 0
+-            or git("cat-file", "-e", f"{hist}:{old}").returncode != 0
+-            or plan_path(hist) != old):
+-        print(f"FAIL: no commit on {tip[:7]}'s history still resolves at the old plan path")
++    if git("cat-file", "-e", f"{tip}:{new}").returncode == 0 or plan_path(tip) != old:
++        print("FAIL: origin/main must resolve at the old plan path")
+         return 1
+-    print(f"ok: plan_path({hist[:7]})={plan_path(hist)}; a new-path-only read misses it")
++    print(f"ok: plan_path(origin/main)={plan_path(tip)}; a new-path-only read misses it")
+     head = out("rev-parse", "HEAD")
+     if git("cat-file", "-e", f"{head}:{new}").returncode == 0:
+         if plan_path(head) != new:
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 1696b1fea..1be7ebdcf 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -2631,8 +2631,7 @@ fi
+ 
+ # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
+ # base once the base carries it: the Python readers first, under -I, then the
+-# derived restore list the job must hold, then the lane over the readers'
+-# answers. Needs full history for its merge-subject corpus.
++# lane over their answers. Needs full history for its merge-subject corpus.
+ # NO CLOSURE SKIP HERE, deliberately: agreement_py.py reads the branch's OWN
+ # merge-subject history (`git log --first-parent` since the tag through HEAD),
+ # so every branch that adds a commit provably reaches it and no file table can
+@@ -2642,7 +2641,6 @@ if test -f .claude/workflows/agreement_py.py; then
+ else
+   python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
+ fi \
+-  && python3 -I tools/policy/agreement_restore.py --check >>/tmp/prepr-ag.$$ 2>&1 \
+   && if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; else node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; fi
+ step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
+ rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json

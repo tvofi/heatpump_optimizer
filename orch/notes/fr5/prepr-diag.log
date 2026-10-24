@@ -1,0 +1,51 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             283eb22f07ea4c7b6eaaa0331b91e3dec37e7a5c
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 233 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD
+  ok       pinned graders         
+  REFUSE   self-test              173 passed, 2 failed
+  FAIL 6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm) (got 1, wanted 0)   FAIL and the recorder received that interpreter as $PYTHON (got 1, wanted 0) 
+  ok       wave-script            170 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 283eb22f07ea4c7b6eaaa0331b91e3dec37e7a5c ok
+  skip     closures               the diff reaches no selectable script's closure
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:none
+             5:each
+             9:never
+             9:never
+             10:every
+             11:all
+             19:all
+             19:never
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             12 s
+             111 f
+             174 p
+             172 p
+             170 p
+             148 p
+             13 f
+             175 p
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/notes/fr5/BODY.md
+  ok       figures                FIGURES: 6 resolved, 3 not verified, 0 refused
+  ok       push order             origin/fix/r9-fr-5 is at 81cc117be -- local mirror, unfetched
+  skip     ancestry reds          no pushed commit carries any check run, so there is no red to answer and none confirmed absent
+
+PRE-PR: 81cc117be09ca271f4f22fbbed23ed5157dc7359 0000000000000000200000000

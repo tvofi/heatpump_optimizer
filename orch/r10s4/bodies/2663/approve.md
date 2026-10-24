@@ -1,0 +1,1 @@
+Approved under mandate 6329234399 at head a487ee67b5c310276f5652c4180033893b9ce217. The fix review is `merge` (comment 6365187504, nonce 4d4fea90). CI on this head: 27 success, 13 skipped, 1 neutral, 0 failed. This is a roster-batch PR: the roster and its delivery row only.

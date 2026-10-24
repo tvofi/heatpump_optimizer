@@ -1,0 +1,1 @@
+From PR r10-ci-layout-p0: R10-STAMP: `stamp.py` rule 2 needs a green Tests push run at HEAD, and `ci-ratchet` is part of that run. The stamp can run once the B4 window above reads green, which is before PR 1 (review B7). It must not wait for the first push run after this merge alone.

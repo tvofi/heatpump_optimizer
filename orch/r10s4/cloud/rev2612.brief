@@ -1,0 +1,8 @@
+REVIEW, round 1, ADVERSARIAL, of PR #2612 (group R10-SOLVER, Closes #2240, Part of #2250) at head 47b6768c731a0f1e5519592216fb29fe02c8226d. Production group (custom_components/heatpump_optimizer/optimizer.py), fixture group. Read the group's brief, architect_note and carries with jq from `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json` (`.groups[] | select(.group=="R10-SOLVER")`), and check that every carried precondition is met. Follow dev/governance/roles/fix-review.md. PREPR_SKIP_CLOSURES=1.
+Required:
+1. The fix is architecturally sound: every L-BFGS-B run takes its value from the gradient's batch, with one definition and no duplicated objective logic. Report archscore dS (tools/audit/archscore/) at the merge base and at the head. structure.py passes with no budget raise.
+2. The failing test comes first. Revert the fix and check that the test fails, then mutate the fused objective yourself (at least five one-line mutants). Any survivor is a finding.
+3. Null control: on a flat-price run the fused objective must be value-neutral. Re-run it yourself and quote the numbers.
+4. Golden fixtures: drift is claimed only per claim-files.md (direction declared, claims-for equal to VERSION), never re-recorded. Check the claim files three-dot against the merge base.
+5. Re-take every figure in the body at this head. `## Red checks` names every red in the branch history (check-runs API). `git merge-tree --write-tree origin/main <head>` is clean. `carry_audit.py check --body` gives 0 unrouted and 0 bad.
+Spare the GitHub API. Time box 60 min.

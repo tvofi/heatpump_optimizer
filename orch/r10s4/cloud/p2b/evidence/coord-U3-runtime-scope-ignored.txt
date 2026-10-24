@@ -1,0 +1,6 @@
+  LOST   step  Analyze (javascript-typescript) | Say what scope decided for this leg
+  LOST   step  Analyze (python) | Say what scope decided for this leg
+  GAINED step  Analyze (actions) | Say what the prelude decided for this leg
+  GAINED step  Analyze (javascript-typescript) | Say what the prelude decided for this leg
+  GAINED step  Analyze (python) | Say what the prelude decided for this leg
+  RUNTIME steps 12->12 perms 3->3 rc 1

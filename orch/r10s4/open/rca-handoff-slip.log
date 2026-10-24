@@ -1,0 +1,4 @@
+===== daemonize pid=18252 2026-10-21T08:18:55Z argv: bash tools/audit/seat/open_pr.sh --over-cap tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864 rca: the orphaned-handoff class (R10-RCA-HANDOFF-SLIP) R10-RCA-HANDOFF-SLIP
+open_pr: OVER-CAP: 10 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-rca-handoff-slip/wt' already exists
+open_pr: STOPPED: line 34 exited 128: git worktree add -q -b $BR $WT $C

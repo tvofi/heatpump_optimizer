@@ -1,0 +1,4 @@
+===== daemonize pid=50827 2026-10-24T08:13:17Z argv: bash tools/audit/seat/open_pr.sh r10-triage-s6-batch2 1dc67949505875052d731dfc297a71f816871630 Record proposal-triage rulings, s6 batch 2 (P45-P51) triage-s6-batch2
+open_pr: 2 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-triage-s6-batch2/wt' already exists
+open_pr: STOPPED: line 46 exited 128: git worktree add -q -b $BR $WT $C

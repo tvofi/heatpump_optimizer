@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2628,
+    "phase": "pre-flight",
+    "reason": "policy: policy paths changed (dev/governance/roles/nudge.md, dev/governance/roles/orchestrator.md): no decisive review by tvofi (id 70032254) on this pull request"
+  }
+]

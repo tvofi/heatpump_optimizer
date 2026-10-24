@@ -1,0 +1,215 @@
+# r10 s6 roster queue (orchestrator writes; roster seat reads). One roster_edit.py op per line.
+2026-10-24T07:50Z set-resume R10-RATIO-ANCHOR --field stage --value in-progress ; then --field next_step --value "cloud fixer dispatched 2026-10-24T07:46Z (routine trig_015cv7mtRNX1YSu7Mwo3Yrav); return handoff-body/r10-ratio-anchor"
+2026-10-24T07:50Z set-resume R10-LEARNER-ETA --field stage --value in-progress ; then --field next_step --value "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_01HtYTAbefmKwnintURpriMz); return handoff-body/r10-learner-eta"
+2026-10-24T07:50Z set-resume R10-THERMAL-POWER-OPTION --field stage --value in-progress ; then --field next_step --value "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_0137yKHgnrnwkvENYhwNibrQ); return handoff-body/r10-thermal-power-option"
+2026-10-24T07:53Z set-resume R10-SAV-COMFORT --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-REPLAY-SCOPED --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-MUTATION-ANCHOR --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-MERGE-SUBJECT-HARDEN --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-MUTANT-SKIP --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-FLOW-AUTOTRAIN --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-POLICY-FIXER-MD --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T07:53Z set-resume R10-POLICY-GATE-SCOPING --field stage --value in-progress ; then --field next_step --value "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+2026-10-24T08:02Z set-resume R10-CONFIG-NOTICES --field stage --value in-progress ; then --field next_step --value "cloud fixer dispatched 2026-10-24T08:01Z (routine trig_01YbjZdtATQr9W6ewLZAnW2V); return handoff-body/r10-config-notices"
+append-carry R10-UX-HEALTH "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobservable, not as a trusted learned scale. Harness dev/audit/harnesses/r10_demand_overbook.py."
+PLACE-RESIDUALS from r10-demand-overbook body a7a683d1: (a) the idle-0.3 kW learner accepts 0 samples in 10 days (tracking gate); (b) the DP reference shows the plan books about 38-40% more kWh than the DP optimum on its own model; (c) the dhw_temp_trajectory seed. For each, find the owning roster group by seam (learner and tracking gate; optimizer and DP price optimality; DHW) and append-carry it there, citing the body SHA. Report which group each went to.
+append-carry R10-LEARNER-DEFAULT "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/harnesses/r10_demand_overbook.py (lands with R10-DEMAND-OVERBOOK) and fix in the learner's admission seam."
+append-carry R10-BUFFER-STORE "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py."
+append-carry R10-BUFFER-STORE "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
+# plan-fold 2026-10-24 (owner cards 1-4,6-9 + recs a-f; card 5 rejected). Tested sequentially with roster_edit.apply_op on origin/handoff/audit-r10-roster, brief_lint TOTAL 0. Order matters: append-group lines first.
+append-group R10-ORCH-REVIEW-PACKET /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ORCH-REVIEW-PACKET.json
+append-group R10-POLICY-ROLE-PACK /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-POLICY-ROLE-PACK.json
+append-carry R10-ORCH-BEATD "tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): retire the standing tick seat into the beat, and codify the retirement in this group's contract edit (dev/governance/roles/standing-tick.md and the standing-seats paragraph of dev/governance/roles/orchestrator.md section 5, which reverses the 2026-10-23 ruling for the tick seat only; proposal triage stays an LLM seat). tick_loop.sh already writes the level lines and the tick-owed rows the seat only relays, so the beat's tick job writes a digest file and the orchestrator reads that digest. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance for the tick: the digest job runs under beatd and shows in beatd status; for one full tick cycle the digest is compared with the seat's report on the same cycle, with a seeded owed item as the null control that must appear in both; only then is the seat stopped. The two policy files sit at zero headroom: pay each added line by cutting text. Policy, so the owner's approving review at merge."
+append-carry R10-ORCH-BEATD "tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)), folded into this group's contract edit: once this group lands the orchestrator reads only the ledger and the plan page for state, and no longer re-reads the digest sources, the seats' scratch or the bus. orchestrator.md names the ledger digest now and the plan page once R10-ORCH-PLANPAGE lands; R10-ORCH-PLANPAGE carries the one-line follow-up. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
+append-carry R10-ORCH-BEATD "tvofi 2026-10-24 card 2, amended twice (owner; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): the same orchestrator.md edit adds one paragraph on context rotation, with caps by role: about 150 k tokens for mechanical, standing and relay seats, reviewers, and S and M fixers; about 300 k for L and XL fixers, designers, pre-studies, root-cause and plan seats; about 500 k for the orchestrator, which rotates through the handover document (tools/audit/seat/state_docs.py plus the resume, with handover_prompt.py and resume_doc.py) at a ledger-clean point. Rotation means a fresh context between stages, never a mid-task cut and never mid-merge. The text pays for itself by cutting text elsewhere in that file (zero headroom)."
+append-carry R10-ORCH-BEATD "tvofi 2026-10-24 card 3 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): the beat owns the event-driven waits. Re-host tools/audit/seat/ci-watch.sh and tools/audit/seat/proof_watch.py as beat jobs; both keep the 60 s API floor inside the script, and the beat wakes the waiting party once on exit. Re-hosting changes who starts the watcher, not the scripts' own contracts. R10-POLICY-FIXER-MD lands first (after-edge) because it carries the seat-side rule."
+append-carry R10-ORCH-PLANPAGE "tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): R10-ORCH-BEATD folds into orchestrator.md that the orchestrator reads only the ledger and the plan page. When this group lands, make that sentence true of the plan page (the page is the single state view) and edit the one line in orchestrator.md that names the ledger digest alone. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
+append-carry R10-FLY-RELAY-REVIEW-FF "tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): when this group lands, the relay half of the dispatch/relay seat retires: the beat's handoff job (the cloud_relay.sh arms) is the relay, and its outcome lines go to the digest the orchestrator reads. Edit dev/governance/roles/standing-dispatch.md in this group or in R10-ORCH-BEATD's contract edit, whichever merges later, not both. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance: a review/<N> push refused as non-fast-forward is re-applied by the job with no agent turn (this group's own fixture), and the seat is stopped only after one full cycle in which the job's log and the seat's report agree."
+append-carry R10-FLOW-AUTOTRAIN "tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): when this group lands, the standing merge seat retires: the queue builder and the train run as a daemon or beat job (train.sh and merge_train.py), their per-pitch outcome goes to the digest, and no pitch is assembled in the orchestrator's turn. Edit dev/governance/roles/standing-merge.md in this group or in R10-ORCH-BEATD's contract edit, whichever merges later, not both. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance: one real pitch is built and merged by the job, with the merge seat watching and agreeing; only then is the seat stopped."
+append-carry R10-FLOW-ROSTER-FREEZE "tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): when this group lands, the standing roster seat retires: a daemon or beat job reads the orchestrator's roster queue file, runs each roster_edit.py op with --lint-cwd at a fresh origin/main and --push, and writes one 'roster: <op> <group> pushed <sha>' or 'refused <reason>' line per op into the digest; a refusal is never retried past the lint gate. Edit dev/governance/roles/standing-roster.md in this group or in R10-ORCH-BEATD's contract edit, whichever merges later, not both. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance: the job lands a seeded no-op-safe op on a scratch roster branch and refuses a seeded lint failure, with the seat running beside it for one cycle; only then is the seat stopped."
+set-after R10-ROUND-PLAYBOOK R10-FLOW-ARCH-PLANNER,R10-FLOW-AUDIT-PLAN,R10-ORCH-LEDGER,R10-ORCH-DISPATCH-REG,R10-ORCH-BEATD,R10-ORCH-PLANPAGE,R10-HANDOVER-REFRESH,R10-FLOW-AUTOTRAIN,R10-FLOW-MAIN-GATE,R10-FLOW-DISPATCH,R10-CI-LAYOUT-P2,R10-FLY-RELAY-REVIEW-FF,R10-FLOW-ROSTER-FREEZE,R10-FLOW-BODY-ONLY
+append-carry R10-ROUND-PLAYBOOK "tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing set after the retirements is the triage seat plus the beat jobs; name each retired seat's job and its digest file. (2) Context rotation (card 2, amended twice by tvofi 2026-10-24): caps by role, about 150 k tokens for mechanical, standing and relay seats, reviewers, and S and M fixers; about 300 k for L and XL fixers, designers, pre-studies, root-cause and plan seats; about 500 k for the orchestrator, which rotates through the handover document (state_docs.py plus the resume). Rotation is a fresh context between stages (rca, fix, handoff), never a mid-task cut. (3) Blocked verdicts by class (card 6): mechanical classes (carry-*, body or figure staleness, red-check answer, row-format, head-moved, conflict) go to a script where one exists, else to a fresh sonnet or haiku seat on a short brief; judgement classes (harness, mutation-*, class-open, defect, claim-refuted) still resume the fixer. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
+append-carry R10-POLICY-FIXER-MD "tvofi 2026-10-24 card 3 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): amend the poll-every-5-minutes rule for seats in fixer.md and fix-review.md. A seat that waits starts one background watcher (tools/audit/seat/ci-watch.sh or tools/audit/seat/proof_watch.py, which keep the 60 s API floor inside the script) and is woken once by its exit; it does not sleep and poll in its own turns. A fixer does not wait on CI after the handoff. This group lands before R10-ORCH-BEATD (after-edge set for it). Both files sit at zero headroom: every added line is paid by cutting text. Policy, so the owner's approving review at merge."
+append-carry R10-POLICY-FIXER-MD "tvofi 2026-10-24 card 2, amended twice (owner; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): a fixer rotates to a fresh context between stages (rca, fix, handoff) through refs, never mid-task. The cap is about 150 k tokens for an S or M fixer and about 300 k for an L or XL fixer; reviewers are about 150 k. The orchestrator's own cap (about 500 k, through the handover document) is in orchestrator.md, not here. Say it in one sentence in fixer.md and one in fix-review.md, paid by cutting text."
+set-after R10-ORCH-BEATD R10-ORCH-DISPATCH-REG,R10-POLICY-FIXER-MD,R10-ORCH-REVIEW-PACKET
+append-carry R10-FLOW-MQ-PROBE "tvofi 2026-10-24 card 4 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this probe runs right after R10-CI-LAYOUT-P2 closes, before the groups that build head-carry and absorb machinery, and its report ends with an explicit adopt-or-decline recommendation for each held group: R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY, R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE and part (a) of R10-FLOW-BODY-ONLY. The orchestrator takes the owner's decision on that report and closes each group the queue makes moot, so this group's merge is not the release of the held groups; the roster edit that closes or releases them is. The after-edges on those groups hold them until this group is done."
+set-after R10-FLY-CARRY-DOC-CONTEXT R10-FLY-GH-READ-RETRY,R10-FLOW-MQ-PROBE
+set-after R10-FLY-ROW-HEAD-CARRY R10-CI-LAYOUT-P2,R10-FLY-OPENPR-ATOMIC,R10-FLOW-MQ-PROBE
+set-after R10-TRAIN-OVERLAP-GRADE R10-FLOW-MQ-PROBE
+append-carry R10-FLY-CARRY-DOC-CONTEXT "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, heads no longer absorb main and this carry condition is moot, so close this group as not needed rather than build it."
+append-carry R10-FLY-ROW-HEAD-CARRY "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, a delivery-row-only head move no longer stales a verdict and this arm is moot, so close this group as not needed rather than build it."
+append-carry R10-TRAIN-OVERLAP-GRADE "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, a queue commit is tested at its merged result and the overlap grade is moot, so close this group as not needed. If the owner declines the queue, this group is released at once: it is the barrier for a recurring red main and must not wait past the decision."
+append-carry R10-FLOW-BODY-ONLY "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them."
+append-carry R10-FLOW-RECORD-PITCH "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): confirmed held behind R10-FLOW-MQ-PROBE by this group's after-edge; the carry that says to close this group if the queue is adopted stands."
+append-carry R10-FLOW-BODY-ONLY "tvofi 2026-10-24 card 7 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)), after parts (b) and (c) give body-only transport: every figure a pull request body states comes from a generated block. tools/audit/seat/features_block.py and the figure lint render the block at the head; body_push.sh and the pr-contract refresh it on each synchronize; a hand-typed figure fails the body check, so a stale figure is structurally impossible. Touches the pull request template and checkPrBody (the template and contract are one file), so the owner's review at merge. Controls: a body with a hand-typed figure fails; a head that moves re-renders the block with no agent turn; each rule has a mutant. The generated block must tolerate the body-only path (no push), so render in the body-only job, not only on synchronize."
+append-carry R10-FLOW-DESIGN-STAGES "tvofi 2026-10-24 card 9 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): cloud_dispatch.py and the Agent dispatch take the model from a roster-plus-role table and refuse a mismatch with a one-line reason (the pool routine ran opus where sonnet was rendered). Table: haiku for ferry and repair steps; sonnet for S and XS instrument fixes and their reviews; opus for core-model and learner fixes and for L and XL adversarial review. Enforce the table; leave its values at the current route-by-judgement ruling. Controls: a dispatch whose model differs from the table is refused; a matching one passes; each has a mutant."
+append-carry R10-FLOW-DESIGN-STAGES "tvofi 2026-10-24 card 1 recommendation (c) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): build the cloud-payload stub first, ahead of the design-stage steps. The stub work is the narrowed accepted triage entries already carried in this group (the render-a-stub-that-pins-the-pushed-commit entries); land it as the first commit or as its own sub-pull-request so a payload that shrinks the dispatch tokens is not held behind the design-stage machinery."
+append-carry R10-FLOW-JIDOKA "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/pr/prepr.sh. Default prints the MODE line, one line per step (name and ok or FAILED with the failing check name) and the last lines of any failing step, and writes the full output to a log whose path is printed; a verbose flag or environment variable restores the full stream. Keep every line a reader keys on: the MODE: SCOPED or MODE: FULL line, each failing check name, and the final summary. Control: a seeded red step shows its name and tail in quiet mode; the quiet and verbose runs agree on the exit code; each rule has a mutant. Share the flag convention with R10-UPDATE-PR-SIGNALS so the instruments do not diverge."
+append-carry R10-UPDATE-PR-SIGNALS "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant."
+append-carry R10-FLOW-BOARD "tvofi 2026-10-24 recommendation (e) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): land the token measurement in the tree as a flow-board section in tools/audit/merge_throughput.py, not as a loose script. Unit: IE = input + 1.25 x cache write + 0.1 x cache read + 5 x output tokens, read from the local session transcripts. Print IE per day, per role and per merged content pull request, with the window and the number of transcripts read beside each figure, and say what it does not cover (cloud seats). The pre-study's baseline is one comparison point, to be re-taken by the new section at its own base, never copied. Control: a fixture transcript set with known token counts reproduces its IE; a transcript set with a seat removed lowers the day figure by that seat's IE. Land the pre-study's reader as an in-tree module (decision 0013: tools live in the repo)."
+append-carry R10-FLOW-POSTMERGE "tvofi 2026-10-24 recommendation (f) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): dispatch this group ahead of the non-critical S fly-ins. After-merge bookkeeping is the work a retired merge seat's job must do, so it is on the path of the card 1 retirement. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
+append-carry R10-FLOW-AUTOTRAIN "tvofi 2026-10-24 recommendation (f) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this group is pulled ahead of the non-critical S fly-ins for dispatch and review capacity; it is already in progress."
+# orchestrator rulings on plan-fold escalations, 09:45Z, mandate 6329234399
+set-after R10-TRAIN-OVERLAP-GRADE
+append-carry R10-TRAIN-OVERLAP-GRADE "Orchestrator ruling 2026-10-24 under mandate 6329234399: this is the barrier for a recurring red main, so it is not held behind R10-FLOW-MQ-PROBE. Its after-edge is restored to none. If the merge queue is adopted later, retire the barrier then."
+append-carry R10-ORCH-DISPATCH-REG "Orchestrator ruling 2026-10-24 (tvofi card 1): the dispatch half of standing-dispatch.md (open_pr and update_pr, bus dispatch, pool briefs and verdict confirm) becomes a beat job owned by this group's registry. It never moves into the orchestrator's turns. The standing dispatch seat stays until that job has run beside it for one full cycle."
+append-carry R10-FLY-CARRY-DISPOSITION @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-parse-2683.md
+append-carry R10-POLICY-ROLE-PACK @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-flow-autotrain-nudge-step3.md
+append-carry R10-PARAMS-OWNER @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-2674.md
+# roster-planning seat 2026-10-24: stage reconcile (fired 10:20Z), ARCH-DOCS and PLAYBOOK to closeout, new closeout group; linted locally, TOTAL: 0 error(s)
+append-group R10-CLOSEOUT-CLEANUP /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-CLOSEOUT-CLEANUP.json
+set-stage R10-STRUCTURE-ALIAS in-progress
+set-stage R10-FLY-CIPREDICT-LAYOUT in-progress
+set-stage R10-FLY-CLOUD-SETUP-TOOLCHAIN in-progress
+set-stage R10-FLY-YIELD-GUARD in-progress
+set-stage R10-FLY-ENVMATRIX-NOREMOTE in-progress
+set-after R10-ARCH-DOCS R10-RATIO-ANCHOR,R10-INPUT-STALENESS,R10-CONFIG-NOTICES,R10-PARAMS-OWNER,R10-ARCH-SHAPES,R10-LEARNER-ETA,R10-HEAT-METER,R10-COP-GATE,R10-UX-HEALTH,R10-CONFIGFLOW-PAGES,R10-REPLAY-SCOPED,R10-POLICY-FIXER-MD,R10-POLICY-GATE-SCOPING,R10-RCA-HEADMOVED,R10-SAV-COMFORT,R10-MUTATION-ANCHOR,R10-MERGE-SUBJECT-HARDEN,R10-CEILING-PROBE,R10-DEMAND-OVERBOOK,R10-BUFFER-STORE,R10-COP-PARTLOAD,R10-UPDATE-PR-SIGNALS,R10-CARD-VOICE,R10-THERMAL-POWER-OPTION,R10-LEARNER-DEFAULT,R10-MUTANT-SKIP,R10-CI-LAYOUT-P2,R10-FLOW-BOARD,R10-FLOW-DESIGN-STAGES,R10-FLOW-JIDOKA,R10-FLOW-MQ-PROBE,R10-FLOW-POSTMERGE,R10-FLOW-RECORD-PITCH,R10-FLOW-ROSTER-FREEZE,R10-FLOW-WIP,R10-FLOW-AUTOTRAIN,R10-FLOW-BODY-ONLY,R10-FLY-OPENPR-ATOMIC,R10-FLY-ROW-HEAD-CARRY,R10-FLOW-AUDIT-PLAN,R10-FLY-RELAY-REVIEW-FF,R10-FLY-CAP-LINE,R10-FLY-CARRY-DISPOSITION,R10-FLY-ORPHANS-REWRITTEN,R10-FLY-CARRY-DOC-CONTEXT,R10-FLY-DEPGRAPH-STALE,R10-FLOW-TOOLKIT-MODEL,R10-FLY-STAMP-CHECK-NOTES,R10-FLY-MANDATE-REVOKE-GUARD,R10-RCA-FRICTION-RESIDUE,R10-TRAIN-OVERLAP-GRADE,R10-NIGHTLY-HB-RESPAWN,R10-FLY-PRUNE-REFS,R10-ORCH-LEDGER,R10-ORCH-DISPATCH-REG,R10-ORCH-BEATD,R10-ORCH-PLANPAGE,R10-ORCH-ROSTER-SCHEMA,R10-FLY-WORKTREE-GC,R10-FLY-DAEMONIZE-ARGV,R10-FLY-CIPREDICT-LAYOUT,R10-FLY-CLOUD-SETUP-TOOLCHAIN,R10-FLY-YIELD-GUARD,R10-FLY-ENVMATRIX-NOREMOTE,R10-STRUCTURE-ALIAS,R10-ORCH-REVIEW-PACKET,R10-POLICY-ROLE-PACK,R10-ARCH-DOCS-FIRST
+set-after R10-ROUND-PLAYBOOK R10-FLOW-ARCH-PLANNER,R10-FLOW-AUDIT-PLAN,R10-ORCH-LEDGER,R10-ORCH-DISPATCH-REG,R10-ORCH-BEATD,R10-ORCH-PLANPAGE,R10-HANDOVER-REFRESH,R10-FLOW-AUTOTRAIN,R10-FLOW-MAIN-GATE,R10-FLOW-DISPATCH,R10-CI-LAYOUT-P2,R10-FLY-RELAY-REVIEW-FF,R10-FLOW-ROSTER-FREEZE,R10-FLOW-BODY-ONLY,R10-ARCH-DOCS
+set-stage R10-INPUT-STALENESS done
+append-carry R10-FLY-OPENPR-ATOMIC @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p53.md
+append-carry R10-SAV-COMFORT @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-sav-volume.md
+append-carry R10-COP-GATE @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-cop-latch.md
+append-carry R10-DIAG-REPLAY @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-diag-redact.md
+append-carry R10-SAV-COMFORT @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-sav-volume-2.md
+append-carry R10-COP-GATE @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-cop-latch-2.md
+append-carry R10-DEMAND-OVERBOOK @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-dhw-mode-held.md
+append-carry R10-SAV-COMFORT @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-owner-baseline-spec.md
+append-carry R10-SAV-COMFORT @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-dhw-switch-3.md
+drop-carry R10-DEMAND-OVERBOOK --match pump_arbiter.py:700-707
+append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-rca-body-check-parity.md
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-ci-graph-tidy.md
+append-group R10-DIAG-REDACT /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-DIAG-REDACT.json
+append-carry R10-DIAG-REDACT @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-d15-diag-redact.md
+drop-carry R10-DIAG-REPLAY --match D15 production triage (2026-10-24, owner bundle
+append-carry R10-FLY-CARRY-DISPOSITION @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p43.md
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p45.md
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p46.md
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p51.md
+append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-p49.md
+set-stage R10-HANDOFF-PREPR-BOUNCE done --at-sha 36db48e724e20b718f4a47262e8fd6b440a8bdc7  # merged #2691; check carries pending first (routing invariant 1)
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-s6v9.md
+# HOLD until triage batch-4 PR merges (carries cite dev/programme/triage/s6-batch4.md#P55/P61/P62) and #2710 review has started:
+append-group R10-FLY-POOL-INSTRUMENT @/Users/timmalmstrom/hpo-orch/r10s6/carries/brief-pool-instrument.md  # triage P55/P60
+append-group R10-FLY-RECORD-BEAT @/Users/timmalmstrom/hpo-orch/r10s6/carries/brief-record-beat.md  # triage P61
+append-carry R10-CI-LAYOUT-P2 @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-s6v9.md  # triage P62 (V9)
+append-group R10-RCA-CODESCAN-WAIT (root-cause seat for V9; brief from the RCA dispatch)  # rca owed
+# routing remediation (verified; issues #2715-#2733 filed): apply after ops 1-4 and the final #2710 update; every op needs --worktree DIR --push
+# routing-ops-final: queue-line form (op args, @file for text). Roster seat adds --worktree DIR --push to every op. Not applied.
+# routing-ops-1-verified: routing-ops-1.txt less the ops routing-verify-1.md refutes (independent verifier, 2026-10-24).
+# EVERY roster_edit.py line below needs `--worktree DIR --push` (roster_edit.py:677 --worktree is required; without --push the next op refuses the unpushed worktree).
+# Ordering: run `set-stage R10-FLY-GH-READ-RETRY carries-open` before its append-carry, so a failed issue create cannot leave a done group with a pending carry.
+# routing-ops-1: roster_edit.py ops from routing-decisions-1.md (routing audit 1, 2026-10-24).
+# Run from a checkout of main at the repository root, against origin/handoff/audit-r10-roster as roster_edit.py
+# resolves it. Not applied. Carry text lives in the @files; new groups in groups/*.json.
+# --- 1. New groups whose issue already exists (invariants 1 and 3) ---
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ADVISOR-RESIDUE.json
+# REFUTED (duplicate owner: R10-PARAMS-OWNER carry 10 already schedules the #2674 probe seat; wire 2674/2248 to R10-PARAMS-OWNER instead): append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-RESTORE-RACE-PROBE.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-BRIEFS-FOLD-D0.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-REPLAY-REAL-DAY.json
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ARCHSCORE-SPELLINGS.json
+# --- 2. Re-home NOT IMPLEMENTED carries to live groups (invariant 1) ---
+append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--056ddbd0.txt
+append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--8c6a3e6f.txt
+# REFUTED (already implemented: governance.yml:467-469 runs selftest_wiring.py --check on every PR and push): append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--9728f4d0.txt
+# REFUTED (wrong seam: the governance.yml record job token (O-1/M3) is not RECORD-PITCH's; needs a record-job owner): append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--17086c62.txt
+# REFUTED (wrong seam: dev/audit/harnesses/record_api_calls.sh is owned by no live group; route with 17086c62): append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--6635e3d7.txt
+# REFUTED (carry file has no item text (#2609 item D2 dropped); the brief already states the one plan model): append-carry R10-FLOW-TOOLKIT-MODEL @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-TOOLKIT-MODEL--a6edee9d.txt
+# REFUTED (wrong seam: dev/governance/roles/nudge.md (policy) is not in FLOW-WIP files): append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--dbae61eb.txt
+append-carry R10-FLY-CLOUD-SETUP-TOOLCHAIN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-CLOUD-SETUP-TOOLCHAIN--6d4f5c52.txt
+set-stage R10-FLY-GH-READ-RETRY carries-open
+append-carry R10-FLY-GH-READ-RETRY @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-GH-READ-RETRY--bb2965c2.txt
+append-carry R10-MERGE-SUBJECT-HARDEN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-MERGE-SUBJECT-HARDEN--f09dc4ca.txt
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-BEATD--cdd7283c.txt
+append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--8ab071b4.txt
+append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--9a2082ce.txt
+append-carry R10-ORCH-LEDGER @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-LEDGER--6bec0b0a.txt
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--3b97e1aa.txt
+append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--7f85b089.txt
+append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--631f8640.txt
+# REFUTED (wrong seam: bash 3.2/5 environment friction is not one of the five keys; a HANDOVER trap, which the orchestrator writes): append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--76e30be3.txt
+append-carry R10-TRAIN-OVERLAP-GRADE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-TRAIN-OVERLAP-GRADE--6fb50ac5.txt
+append-carry R10-UPDATE-PR-SIGNALS @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-UPDATE-PR-SIGNALS--01ce8b81.txt
+# --- 3. Wire an existing open issue to a live group with none (invariant 2; also covers #2235 and #2271 for invariant 3) ---
+wire-issue R10-FLOW-JIDOKA 2428
+wire-issue R10-FLY-CARRY-DISPOSITION 2428
+wire-issue R10-FLOW-ROSTER-FREEZE 2389
+wire-issue R10-FLOW-BODY-ONLY 2389
+wire-issue R10-FLY-ROW-HEAD-CARRY 2389
+wire-issue R10-FLY-CARRY-DOC-CONTEXT 2389
+wire-issue R10-STRUCTURE-ALIAS 2235
+wire-issue R10-DIAG-REDACT 2271
+# --- 4. Absorb R10-FLY-CAP-LINE into R10-FLOW-WIP (same seam; avoids a one-line issue) ---
+append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--capline.txt
+set-stage R10-FLY-CAP-LINE done
+set-resume R10-FLY-CAP-LINE --field note 'absorbed into R10-FLOW-WIP by routing audit 1 (2026-10-24); brief and carry moved there'
+# --- 5. Not roster ops: DELIVERED issues to close by hand, each with a comment naming the PR (gh_comment.py, read back) ---
+# close #2250: delivered by #2612 (merged 008ad15); see routing-decisions-1.md section C
+# close #2252: delivered by #2435 (merged 05c39d3); see routing-decisions-1.md section C
+# REFUTED: item 2 (owner-bundle tau, band (c)) carried to R10-PARAMS-OWNER, which does not list #2258; suggested: wire-issue R10-PARAMS-OWNER 2258, keep open -- was: close #2258: delivered by #2647 (merged 14405df); see routing-decisions-1.md section C
+# REFUTED: the record comment on #2265 holds it open until O14 (tick-drivers-2) merges or its items are recorded dropped; neither is on record -- was: close #2265: delivered by #2390 (merged a96f4be); see routing-decisions-1.md section C
+# close #2298: delivered by #2521 (merged 92b5bf4); see routing-decisions-1.md section C
+# REFUTED: #2669 measured the family still at 7 on its window after the fix and says it does not close #2410; the friction is unresolved -- was: close #2410: delivered by #2669 (merged 5c9828f); see routing-decisions-1.md section C
+# close #2496: delivered by #2513 (merged 929275e); see routing-decisions-1.md section C
+# #2674's carry file is on main only: the roster branch lacks dev/programme/carries/carry-2674.json; sync the roster branch from main (roster_sync) before section 1's R10-RESTORE-RACE-PROBE append-group is reviewed.
+# --- 6. Ops that need an issue created first (invariant 2). Each section creates its issue, then wires it. ---
+# NEEDS ISSUE Lean flow study: mechanise the flow board, merge pitch, post-merge beat, caps and projection model
+wire-issue R10-FLOW-BOARD 2715
+wire-issue R10-FLOW-MQ-PROBE 2715
+wire-issue R10-FLOW-POSTMERGE 2715
+wire-issue R10-FLOW-RECORD-PITCH 2715
+wire-issue R10-FLOW-WIP 2715
+wire-issue R10-FLOW-AUTOTRAIN 2715
+wire-issue R10-FLOW-TOOLKIT-MODEL 2715
+# NEEDS ISSUE Round-11 readiness: the P3 plan workflow and the audit programme playbook
+wire-issue R10-FLOW-AUDIT-PLAN 2716
+wire-issue R10-ROUND-PLAYBOOK 2716
+# NEEDS ISSUE Seat context cost: a script-built review packet and a per-role policy pack
+wire-issue R10-ORCH-REVIEW-PACKET 2717
+wire-issue R10-POLICY-ROLE-PACK 2717
+# NEEDS ISSUE Mechanise the design and design-review stages in the roster, the bus and the tick
+wire-issue R10-FLOW-DESIGN-STAGES 2718
+# NEEDS ISSUE open_pr.sh can leave a pull request with no delivery row
+wire-issue R10-FLY-OPENPR-ATOMIC 2719
+# NEEDS ISSUE cloud_relay.sh: review/<N> pushes refused as non-fast-forward, and transient push failures, are never retried
+wire-issue R10-FLY-RELAY-REVIEW-FF 2720
+# NEEDS ISSUE bus.sh orphans reports landed-rewritten handoffs as stranded
+wire-issue R10-FLY-ORPHANS-REWRITTEN 2721
+# NEEDS ISSUE Dependabot alerts stay open on patched pins: the dependency graph stopped updating after 2026-10-03
+wire-issue R10-FLY-DEPGRAPH-STALE 2722
+# NEEDS ISSUE stamp.py cannot check release notes before the stamp
+wire-issue R10-FLY-STAMP-CHECK-NOTES 2723
+# NEEDS ISSUE gh_comment.py does not refuse an owner comment that pairs a revoke word with a mandate id
+wire-issue R10-FLY-MANDATE-REVOKE-GUARD 2724
+# NEEDS ISSUE merge_train.py batch --overlap merges onto a tree no CI checked
+wire-issue R10-TRAIN-OVERLAP-GRADE 2725
+# NEEDS ISSUE Nightly heartbeat lane: py-spy hangs per process, leaving the stable lane's false-red rate near 6.7 %
+wire-issue R10-NIGHTLY-HB-RESPAWN 2726
+# NEEDS ISSUE prune_refs.py spends one REST write per ref and would delete live session and design refs
+wire-issue R10-FLY-PRUNE-REFS 2727
+# NEEDS ISSUE Round-10 closeout: drive branches, worktrees and refs down before the closure stamp
+wire-issue R10-CLOSEOUT-CLEANUP 2728
+# NEEDS ISSUE Immersion energy booked on an install with no immersion element
+wire-issue R10-IMMERSION-LATCH 2729
+# NEEDS ISSUE Suite determinism: features.py under HASTUB_TZ and coverage_tree's descendant race
+wire-issue R10-FLY-SUITE-ENV-FLAKES 2730
+set-stage R10-FLY-SUITE-ENV-FLAKES carries-open
+# NEEDS ISSUE GitHub reads the retry barrier did not reach: pr-contract's body read and git transport
+wire-issue R10-FLY-GH-READ-RETRY 2731
+# NEEDS ISSUE field_coverage.mjs keeps attribution in both pending and ignore
+wire-issue R10-FLY-NO-FOOTERS 2732
+set-stage R10-FLY-NO-FOOTERS carries-open
+# REFUTED (block removed): R10-ROUTING-INVARIANTS design to be revised before its issue and group are created; see routing-verify-1.md section 5.
+# --- verifier additions (routing-verify-1.md) ---
+wire-issue R10-PARAMS-OWNER 2258
+wire-issue R10-PARAMS-OWNER 2674
+wire-issue R10-PARAMS-OWNER 2248
+append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ROUTING-INVARIANTS.json
+wire-issue R10-ROUTING-INVARIANTS 2733
+# #2258: keep open (owner-bundle tau and band (c) carried to R10-PARAMS-OWNER by the wire above).
+# #2265: keep open until a recorded O14 (tick-drivers-2: L03, L04, L05, P02, P55, P57, L12 b/c, --carry-sweep) disposition: merged, or items recorded dropped. Orchestrator decides; no close.
+# #2410: keep open; #2669 left the family at 7 members over threshold 3 and does not close it. Route disposition to R10-RCA-FRICTION-RESIDUE (or a live mutation group), not a close.
+# Refuted, do NOT apply: R10-RESTORE-RACE-PROBE append-group (above, commented); f61f187d routes to R10-PARAMS-OWNER via the wires above (carry text there already).
+append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-s6v4.md
+1792851194 HOLD until #2735 merges: append-carry R10-ORCH-BEATD @carries/carry-triage-s6v4.md (triage: dev/programme/triage/s6-batch5.md#P63)
+append-carry R10-FLY-OPENPR-ATOMIC @/Users/timmalmstrom/hpo-orch/r10s6/carries/carry-triage-s6v10.md
+1792851378 HOLD until #2738 merges: append-carry R10-FLY-OPENPR-ATOMIC @carries/carry-triage-s6v10.md (triage: dev/programme/triage/s6-batch6.md#P64)

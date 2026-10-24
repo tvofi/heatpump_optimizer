@@ -1,0 +1,10 @@
+DESIGN REVIEW (fire when BOTH probe/design-ci-layout and probe/design-ci-umbrella have returned): an independent opus seat, not either designer, reviews the combined CI design adversarially against the tree at origin/main.
+- Re-derive the job inventory and the readers of each check name independently (own greps); report every reader either design missed.
+- Verify the required-check plan against ruleset 23698884.
+- Check the gate's absent/skipped semantics. Name a scenario where the gate goes green while a required job never ran; if none exists, show why.
+- Rule on each workflow's scoping.
+- Check the unit partition: independence, dependencies, and whether each unit's null control actually detects a dropped step (plant one).
+- Rule on whether phase 1 is subsumed (one PR) or not (two PRs).
+- Check permissions and secrets, App-held runs, bot loop guards, the rerun workflows and pr-contract's `edited` trigger.
+Verdict: `Design review: approve` or `Design review: revise <items>`, with evidence. A revise goes back to the designers before any fixer is dispatched. Return on probe/design-ci-review. Read-only.
+ FOLLOW-UP CHECK (orchestrator 2026-10-18, add on any revise round or as a fixer acceptance criterion): under the design's review-as-ci.yml-event variant, a pull_request_review event must re-evaluate only budget-raise-gate and gate, never the full test graph; prove it with a run's jobs list.

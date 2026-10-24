@@ -1,0 +1,8 @@
+===== daemonize pid=70545 2026-10-18T10:18:21Z argv: bash tools/audit/seat/update_pr.sh fix/r10-archscore-coverage-p4 69c36cee56f102716bb1ba73412d7838d232610c /Users/timmalmstrom/hpo-orch/r10s3/orch/body-2373.md 2259 2235
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (119 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (325 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+HEAD=e14a378c12e5d292c1f564bc9100ecb0de39bd76

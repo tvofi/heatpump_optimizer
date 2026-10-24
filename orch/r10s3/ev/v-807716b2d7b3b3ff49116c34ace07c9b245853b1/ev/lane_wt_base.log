@@ -1,0 +1,8 @@
+RESULT mutant=NULL_no_plant rc=0 fails=0
+RESULT mutant=OWN1_meta_refresh_in_keydown rc=0 fails=0
+RESULT mutant=OWN2_location_pathname_built_in_keydown rc=0 fails=0
+RESULT mutant=LT2_parent_location_pathname_built rc=0 fails=0
+RESULT mutant=TM1_history_back_in_timeout rc=1 fails=1
+    FAIL  no navigation token in the card's code outside navigateTo
+      10821: setTimeout(() => { try { globalThis.history.back(); } catch
+restored

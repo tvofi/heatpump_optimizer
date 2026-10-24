@@ -1,0 +1,9 @@
+probe-runner Arm A (U0 events on a draft PR), PR #2649 (closed), ref ci-probe/u0c
+Opening: open_pr.sh topic r10-ci-layout-p2-probe-A. Attempt 1 at 65f112ec5 refused by prepr: codeowners_gap uncovered_files=5; ci predict UNCLASSIFIED .github/workflows/probe.yml. Coordinator fixed on tip f61793f80 (INERT + CODEOWNERS /tools/ci/). Attempt 2 opened #2649 (first head dd3d6306c); its row push refused "RED UNANSWERED (gate)"; later "(... instrument-self-tests)", answered in body Red checks. Row finally landed with push 06b077f88.
+Item 1 (gate PASS on the CI code run): code run 39911090068 gate PASS ("Judge this head"); sha= token in the run name is 0b08394979ba... (the PR merge commit at run time); not compared to refs/pull/2649/merge by me.
+Item 2 M-3(a): action_required runs at the head after App push, before approval: 0 (06b077f and 83de345 both 0).
+Item 3 edit 1 s after push: see m6-events.txt (nochain) and m6-events-chain.txt (chain): two or three runs CI code + CI edit all completed success; none cancelled.
+Item 6 M-4: see m4.txt (names, bare skipped probe check, permissions cap holds, floor undetermined).
+Items 4 (M-5b) and 5 (M-7): run by the coordinator; readings and run ids in evidence/m57.txt (M-7 PASS: gate not listed before its needs finish; M-5b PASS: newer run 39925217756 success, nothing cancelled; the re-run attempt's own FAIL was an HTTP 502).
+Conclusion: all recorded gates PASS; expected PASS; match.
+Commands: gh api repos/tvofi/heatpump_optimizer/actions/runs?head_sha=<H>; .../actions/runs/<id>/jobs?filter=latest; .../pulls/2649/reviews; open_pr.sh / update_pr.sh / body_patch.sh as logged under ~/hpo-seats/r10s4/probe-runner-state/.

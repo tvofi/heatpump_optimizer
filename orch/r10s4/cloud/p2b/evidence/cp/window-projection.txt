@@ -1,0 +1,10 @@
+pre-merge window (newest 8 completed main push Tests runs, min): [41.7, 57.5, 59.0, 57.8, 61.8, 47.5, 57.5, 57.8]
+median now: 57.65 budget 54.825
+post-merge push run #1 medians 0 new run(s) at 34.300000000000004 + 8 old: 57.65 -> GREW
+post-merge push run #2 medians 1 new run(s) at 34.300000000000004 + 7 old: 57.50 -> GREW
+post-merge push run #3 medians 2 new run(s) at 34.300000000000004 + 6 old: 52.50 -> ok
+post-merge push run #4 medians 3 new run(s) at 34.300000000000004 + 5 old: 49.60 -> ok
+post-merge push run #5 medians 4 new run(s) at 34.300000000000004 + 4 old: 38.00 -> ok
+post-merge push run #6 medians 5 new run(s) at 34.300000000000004 + 3 old: 34.30 -> ok
+worst case, every old run 61.8: k=3 median 61.80
+worst case, every old run 61.8: k=4 median 48.05

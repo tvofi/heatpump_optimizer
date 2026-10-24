@@ -1,0 +1,118 @@
+"""Pump set-point consistency: configured disinfection/min vs live entity (#408).
+
+Consistency only — not an optimality advisory. The scoping judge refused
+Fix-to-argmin: the argmin moves 50→65 °C under a price roll and the cost
+surface's deterministic non-convexities (4.2080 SEK/day) exceed the median
+gain (2.72). Space set-point is never recommended.
+"""
+from __future__ import annotations
+
+import logging
+from typing import Any, Callable
+
+from .const import MIXING_VALVE_WRITE_EPSILON
+from .entry_config import EntryConfig
+from .issues import set_issue
+from .inputs import read_setpoint, setpoint_and_unit, temperature_from_c
+from .quiet_windows import silent_unenforceable
+
+_LOGGER = logging.getLogger(__name__)
+
+ISSUE_DHW = "dhw_setpoint_below_disinfection"
+ISSUE_SPACE = "space_setpoint_unreadable"
+#: #1910 (SW-1): silent rows configured with no control that can hold
+#: them. A warning, not a fix -- the remedy is an assignment only the
+#: setup diagram (or SW-4's Modbus schedule) can make.
+ISSUE_QUIET = "quiet_silent_not_enforced"
+
+
+def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
+    """Read optional set-point entities and raise or clear the two issues.
+
+    Stateless and idempotent: no coordinator attribute. A second call with
+    the same inputs leaves ``hass.issues`` at one entry per issue id.
+    Never raises into the caller — a balky entity must not break a solve.
+    ``gated`` is the pump-duty arbiter's own hot-water gate (wired by the
+    coordinator, which owns both sides of the seam, #1739): a reading that
+    is the arbiter's own write is a step decision, not a mis-set point.
+    """
+    try:
+        _evaluate(coord, gated)
+    except Exception as err:  # noqa: BLE001 - never break a solve
+        _LOGGER.debug("Set-point consistency check skipped: %s", err)
+
+
+def _evaluate(coord: Any, gated: Callable[[float], bool] | None) -> None:
+    hass = coord.hass
+    config = coord.effective_config
+    params = coord.thermal_params
+    _dhw(hass, config, params, gated)
+    _space(hass, config)
+    _quiet(hass, config)
+
+
+def _quiet(hass: Any, config: dict[str, Any]) -> None:
+    """#1910: one warning when silent rows cannot be enforced.
+
+    tvofi's chosen fallback (2026-09-30): normal operation with a warning.
+    The plan is not capped for silent rows the optimizer cannot hold --
+    planning for silence the pump will not deliver would buy the wrong
+    hours. A switch is decided from the entity ID's domain alone, so one
+    that has not reported yet (state ``unknown``) does not raise it:
+    unknown is not off. A GCHV night-mode schedule that is only partly
+    holdable (two windows, or days that differ) raises it too (#1913).
+    """
+    entity_id = EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity
+    set_issue(
+        hass,
+        ISSUE_QUIET,
+        silent_unenforceable(config, hass.states.get),
+        placeholders={"entity": entity_id or ""},
+    )
+
+
+def _dhw_floor(params: Any) -> float:
+    floor = float(params.dhw_min_temp)
+    if params.dhw_legionella_enabled:
+        floor = max(floor, float(params.dhw_legionella_temp))
+    return floor
+
+
+def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
+    entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity
+    pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
+    floor = _dhw_floor(params)
+    # The pump-duty arbiter's own space-only gate is a step decision, not
+    # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
+    active = (
+        bool(entity_id)
+        and pump is not None
+        and pump < floor - MIXING_VALVE_WRITE_EPSILON
+        and not (gated and gated(pump))
+    )
+    # ``target`` is degC for the notice's text; ``value`` is what Fix writes,
+    # in the entity's own unit (#1513).
+    value = round(temperature_from_c(floor, unit), 1)
+    data = {"entity_id": entity_id, "target": floor, "value": value} if active else None
+    placeholders = {
+        "pump": f"{pump:.1f}" if pump is not None else "",
+        "target": f"{floor:.0f}",
+        "entity": entity_id or "",
+    }
+    set_issue(
+        hass, ISSUE_DHW, active, fixable=True, placeholders=placeholders, data=data
+    )
+
+
+def _space(hass: Any, config: dict[str, Any]) -> None:
+    entity_id = EntryConfig.from_mapping(config).space_setpoint_entity
+    if not entity_id:
+        set_issue(hass, ISSUE_SPACE, False)
+        return
+    readable = read_setpoint(hass, entity_id) is not None
+    set_issue(
+        hass,
+        ISSUE_SPACE,
+        not readable,
+        placeholders={"entity": entity_id},
+    )

@@ -1,0 +1,3 @@
+rerun env-matrix
+env-matrix success
+rerun pr-contract

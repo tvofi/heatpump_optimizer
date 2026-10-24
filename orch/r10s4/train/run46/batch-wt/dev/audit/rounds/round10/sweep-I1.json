@@ -1,0 +1,281 @@
+{
+ "class": "I1",
+ "instances": 17,
+ "barriered": false,
+ "enumerator": "python dev/audit/rounds/round10/D14/sweep-I1/enumerate_i1.py  (+ --fixture for null/perturbation; dynamic arm: bash dev/audit/rounds/round10/D14/sweep-I1/run_trace.sh)",
+ "seams": 34,
+ "guarded": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4060,
+   "symbol": "HeatPumpOptimizerCoordinator._build_plan_views.series",
+   "guard": "exercised False by the gate (run.trace F=1); pinning by a check not proven"
+  }
+ ],
+ "not_applicable": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9410,
+   "symbol": "HeatPumpOptimizerCoordinator._async_watch_learning_drift",
+   "reason": "KEEP-shape match is a once-per-alarm rollback latch, not a keep-prior-else-fabricate fallback (enumerator false positive)"
+  }
+ ],
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2288,
+   "symbol": "_apply_result_payload",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:2288 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2293,
+   "symbol": "_apply_result_payload",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:2293 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3974,
+   "symbol": "HeatPumpOptimizerCoordinator._plan_slots.close",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:3974 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3984,
+   "symbol": "HeatPumpOptimizerCoordinator._plan_slots.close",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:3984 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4110,
+   "symbol": "HeatPumpOptimizerCoordinator._build_plan_views.reason_at",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:4110 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6522,
+   "symbol": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+   "family": "KEEP",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/forecast_keep.py --mutant (prior_kept 1->0; D3-s1-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9040,
+   "symbol": "HeatPumpOptimizerCoordinator._capacity_caps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/coordinator.py:9040 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 67,
+   "symbol": "_dhw_windows_at",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/dhw_planner.py:67 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "line": 306,
+   "symbol": "MonthlyLedger.from_dict",
+   "family": "DROP",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s2/quarantine_warn.py --mutate (loaders_correct 2->0; D3-s2-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/narrative.py",
+   "line": 112,
+   "symbol": "group_by_reason",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/narrative.py:112 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1182,
+   "symbol": "classify_space_steps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:1182 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1188,
+   "symbol": "classify_space_steps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:1188 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1241,
+   "symbol": "classify_dhw_steps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:1241 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1244,
+   "symbol": "classify_dhw_steps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:1244 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 4015,
+   "symbol": "HeatPumpOptimizer._safety_release_steps",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:4015 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5055,
+   "symbol": "HeatPumpOptimizer._compute_baseline_power",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5055 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5074,
+   "symbol": "HeatPumpOptimizer._compute_baseline_power",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5074 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5473,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5473 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5483,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5483 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5488,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5488 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5526,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5526 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5531,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5531 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5541,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5541 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5547,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5547 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5549,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5549 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5553,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5553 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5557,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5557 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5561,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5561 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5563,
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "family": "LEN",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py (live_guards 12; D3-s1-02); python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/optimizer.py:5563 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 357,
+   "symbol": "step_duty",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/pump_arbiter.py:357 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 358,
+   "symbol": "step_duty",
+   "family": "LEN",
+   "probe": "python dev/audit/rounds/round10/D14/sweep-I1/probe_unexercised.py custom_components/heatpump_optimizer/pump_arbiter.py:358 (exit 1: guard never False in 13 gate scripts)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "line": 239,
+   "symbol": "SnapshotRing.from_dict",
+   "family": "DROP",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s2/quarantine_warn.py --mutate (loaders_correct 2->0; D3-s2-01)",
+   "beyond_finding": false
+  }
+ ]
+}

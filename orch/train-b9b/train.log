@@ -1,0 +1,21 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b9b/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b9b pid=20542 start=2026-10-15T23:41:43Z
+BATCH 20261015-234143 pid=20588 base=main queue=1 (#2293) --overlap --skip-bad
+OVERLAP: main at 12cf1764df8b is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), typing) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+beat: waiting CI at 49fc5640 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 49fc5640 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at 49fc5640 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at 49fc5640 (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at 49fc5640 (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 49fc5640 (poll 7, t+1445s, required: 14, concluded: 13/14)
+#2293 admitted at 49fc5640
+#2293 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2293 approved (mandate)
+OVERLAP: main at 12cf1764df8b is not green (fast (3.14)) right before #2293's merge; --overlap logs it and does not wait
+#2293 MERGED acfeaf8b4eba86d458a706cb3f5165635a1945bf
+#2293 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2228,"state":"CLOSED"}]}}}}}
+#2293 main acfeaf8b tree == proof ed707fb5
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-16T00:11:25Z

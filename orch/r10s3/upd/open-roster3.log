@@ -1,0 +1,3 @@
+===== daemonize pid=23858 2026-10-20T01:21:26Z argv: bash tools/audit/seat/open_pr.sh audit-r10-roster f4d751e49e9e3b245aef078d091965f5544ef109 roster(r10): UPDATE-PR-LOCK group, SAVINGS done, CEILING-PROBE carries from #2465 R10-ROSTER
+open_pr: open-PR cap: 4 open < 6
+PR=2471 HEAD=84326c5ca1ec93168480f5a0e091bebeef753349 AUTHOR=tvofi

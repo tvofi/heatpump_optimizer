@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2647,
+    "phase": "pre-flight",
+    "reason": "approve: 1 budget raise(s), first tests/structure_budgets.json: seam_cut_total: 708 -> 714 (a cap went up): a raise is the owner's (0013): a mandated approval is on this head, but `## Raise justification` lacks an `Architecture score: dS` line from score.py"
+  }
+]

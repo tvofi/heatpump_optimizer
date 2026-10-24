@@ -1,0 +1,4 @@
+===== daemonize pid=89940 2026-10-18T00:18:03Z argv: bash tools/audit/seat/update_pr.sh fix/r10-deeplink-census-pr c6ef1959a6927f40d1d9e0058ade122c838960a6 /Users/timmalmstrom/hpo-orch/r10s3/open/census/BODY.md 2317
+Auto-merging dev/programme/rosters/wave-r10-groups.json
+  REFUSE   ancestry reds          RED UNANSWERED (coverage-ratchet delivery-status fast (3.14) wave-script):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/open/census/BODY.md: check `coverage-ratchet` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

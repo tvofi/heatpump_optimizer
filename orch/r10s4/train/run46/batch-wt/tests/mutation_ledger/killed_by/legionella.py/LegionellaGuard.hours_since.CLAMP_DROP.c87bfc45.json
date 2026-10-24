@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since CLAMP_DROP c87bfc45",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.0, since.total_seconds() / 3600.0)",
+  "reason": "R8-I1b (#1532): hours_since's clamp. `max(0.0, x)` -> `(0.0)` reads every elapsed age as 0 h. Measured at 8627feee on a detached worktree with this mutant alone: tests/features.py rc=0 failed=0 -> rc=1, among them `legionella hours_since reads true elapsed across the fold [published 0.0 h]` (tests/dst_checks.py, driven by features.py) and `the premise: the cycle really is overdue [due in 168.0 h]`, then a traceback in the mode-block section. Pre-existing checks kill it; the #1532 future-timestamp check pins the other direction, the finder's clamp removal, which no operator here generates."
+}

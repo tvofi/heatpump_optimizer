@@ -1,0 +1,49 @@
+{
+ "group": "R10-FLOW-JIDOKA",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/pr/prepr.sh",
+  "tools/policy/fixtures/policy-rot/prepr"
+ ],
+ "hot_files": [
+  "tools/pr/prepr.sh"
+ ],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-PREPR-CAP"
+ ],
+ "carry": [
+  "Owner ruling owed first: whether running an existing checker earlier counts as a new lint class under decision 0012 (it is undefined there).",
+  "Pre-study: the Lean flow pre-study, section K2."
+ ],
+ "architect_note": "",
+ "brief": "Error-proofing before handoff (Lean study K2). Of 133 blocked fix reviews in round 10, 25 were carry-missing: a finding with no destination, a fact tools/audit/carry_audit.py checks offline with its check subcommand and --body, and which pr-contract.yml already runs after the push. Add one prepr step that runs that same check on the body the fixer hands off, so the refusal lands before review instead of after it. Run the existing checker; add no new rule (decision 0012). Also report why the red-check answer arm of prepr (reds_line, gated before its call site) did not fire on the round's root-cause-unanswered and ci-red blocks, and fix the gate if it is a defect. Controls: a fixture body with an unrouted Forward-carry item is refused at the new step and passes once routed; the prepr self-test count rises by exactly the new arms; the step's mutant (step deleted) fails the self-test.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-jidoka",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

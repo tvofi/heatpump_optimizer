@@ -1,0 +1,441 @@
+{
+  "total_count": 5,
+  "jobs": [
+    {
+      "id": 117778707580,
+      "run_id": 39162550001,
+      "workflow_name": "CodeQL",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550001",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbCh0fA",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778707580",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550001/job/117778707580",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:28Z",
+      "started_at": "2026-10-18T20:16:31Z",
+      "completed_at": "2026-10-18T20:16:38Z",
+      "name": "cancel-superseded",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:32Z",
+          "completed_at": "2026-10-18T20:16:32Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:32Z",
+          "completed_at": "2026-10-18T20:16:35Z"
+        },
+        {
+          "name": "Cancel this branch's runs at superseded heads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:35Z",
+          "completed_at": "2026-10-18T20:16:37Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:16:37Z",
+          "completed_at": "2026-10-18T20:16:37Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:16:37Z",
+          "completed_at": "2026-10-18T20:16:37Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778707580",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126837,
+      "runner_name": "GitHub Actions 1000126837",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117778707752,
+      "run_id": 39162550001,
+      "workflow_name": "CodeQL",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550001",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbCh1KA",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778707752",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550001/job/117778707752",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:28Z",
+      "started_at": "2026-10-18T20:16:31Z",
+      "completed_at": "2026-10-18T20:16:47Z",
+      "name": "scope",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:32Z",
+          "completed_at": "2026-10-18T20:16:33Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:33Z",
+          "completed_at": "2026-10-18T20:16:44Z"
+        },
+        {
+          "name": "Run set -euo pipefail",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:44Z",
+          "completed_at": "2026-10-18T20:16:44Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:16:44Z",
+          "completed_at": "2026-10-18T20:16:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:16:44Z",
+          "completed_at": "2026-10-18T20:16:44Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778707752",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126838,
+      "runner_name": "GitHub Actions 1000126838",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117778780475,
+      "run_id": 39162550001,
+      "workflow_name": "CodeQL",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550001",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbCmROw",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778780475",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550001/job/117778780475",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:47Z",
+      "started_at": "2026-10-18T20:16:50Z",
+      "completed_at": "2026-10-18T20:18:06Z",
+      "name": "Analyze (javascript-typescript)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:51Z",
+          "completed_at": "2026-10-18T20:16:52Z"
+        },
+        {
+          "name": "Say what scope decided for this leg",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:52Z",
+          "completed_at": "2026-10-18T20:16:52Z"
+        },
+        {
+          "name": "Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:52Z",
+          "completed_at": "2026-10-18T20:16:55Z"
+        },
+        {
+          "name": "Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:16:55Z",
+          "completed_at": "2026-10-18T20:17:09Z"
+        },
+        {
+          "name": "Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:17:09Z",
+          "completed_at": "2026-10-18T20:18:02Z"
+        },
+        {
+          "name": "Post Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:18:02Z",
+          "completed_at": "2026-10-18T20:18:03Z"
+        },
+        {
+          "name": "Post Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:18:03Z",
+          "completed_at": "2026-10-18T20:18:04Z"
+        },
+        {
+          "name": "Post Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:18:04Z",
+          "completed_at": "2026-10-18T20:18:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:18:04Z",
+          "completed_at": "2026-10-18T20:18:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778780475",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126853,
+      "runner_name": "GitHub Actions 1000126853",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117778780550,
+      "run_id": 39162550001,
+      "workflow_name": "CodeQL",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550001",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbCmRhg",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778780550",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550001/job/117778780550",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:47Z",
+      "started_at": "2026-10-18T20:16:52Z",
+      "completed_at": "2026-10-18T20:17:41Z",
+      "name": "Analyze (actions)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:52Z",
+          "completed_at": "2026-10-18T20:16:54Z"
+        },
+        {
+          "name": "Say what scope decided for this leg",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:54Z",
+          "completed_at": "2026-10-18T20:16:54Z"
+        },
+        {
+          "name": "Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:54Z",
+          "completed_at": "2026-10-18T20:16:56Z"
+        },
+        {
+          "name": "Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:16:56Z",
+          "completed_at": "2026-10-18T20:17:09Z"
+        },
+        {
+          "name": "Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:17:09Z",
+          "completed_at": "2026-10-18T20:17:37Z"
+        },
+        {
+          "name": "Post Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:17:37Z",
+          "completed_at": "2026-10-18T20:17:37Z"
+        },
+        {
+          "name": "Post Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:17:37Z",
+          "completed_at": "2026-10-18T20:17:38Z"
+        },
+        {
+          "name": "Post Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:17:38Z",
+          "completed_at": "2026-10-18T20:17:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:17:38Z",
+          "completed_at": "2026-10-18T20:17:38Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778780550",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126854,
+      "runner_name": "GitHub Actions 1000126854",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117778780557,
+      "run_id": 39162550001,
+      "workflow_name": "CodeQL",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550001",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbCmRjQ",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117778780557",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550001/job/117778780557",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:16:47Z",
+      "started_at": "2026-10-18T20:16:51Z",
+      "completed_at": "2026-10-18T20:43:28Z",
+      "name": "Analyze (python)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:16:52Z",
+          "completed_at": "2026-10-18T20:16:53Z"
+        },
+        {
+          "name": "Say what scope decided for this leg",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:16:53Z",
+          "completed_at": "2026-10-18T20:16:53Z"
+        },
+        {
+          "name": "Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:16:53Z",
+          "completed_at": "2026-10-18T20:16:56Z"
+        },
+        {
+          "name": "Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:16:56Z",
+          "completed_at": "2026-10-18T20:17:11Z"
+        },
+        {
+          "name": "Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:17:11Z",
+          "completed_at": "2026-10-18T20:43:24Z"
+        },
+        {
+          "name": "Post Perform CodeQL Analysis",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:43:24Z",
+          "completed_at": "2026-10-18T20:43:24Z"
+        },
+        {
+          "name": "Post Initialize CodeQL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:43:24Z",
+          "completed_at": "2026-10-18T20:43:25Z"
+        },
+        {
+          "name": "Post Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:43:25Z",
+          "completed_at": "2026-10-18T20:43:26Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:43:26Z",
+          "completed_at": "2026-10-18T20:43:26Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117778780557",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126855,
+      "runner_name": "GitHub Actions 1000126855",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

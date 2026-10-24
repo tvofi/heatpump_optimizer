@@ -1,0 +1,13 @@
+===== daemonize pid=52728 2026-10-24T11:50:13Z argv: bash tools/audit/seat/open_pr.sh r10-thermal-power-option 1e04be57142ea615b82aaaf618d0ff2fbed6e5b5 Optional heat pump thermal power meter thermal-power-option 1955
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18202
+  max_class_loc: 8457 + both deltas = 8442
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/const.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/const.py
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+Automatic merge failed; fix conflicts and then commit the result.
+open_pr: STOPPED: line 48 exited 1: git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main

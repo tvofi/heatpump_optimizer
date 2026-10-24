@@ -1,0 +1,2 @@
+===== daemonize pid=65528 2026-10-21T18:35:40Z argv: bash tools/audit/seat/update_pr.sh fix/r10-flow-andon a50dee030fe8164b5da015e441b2b7ac21323b02 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/andon.md
+update_pr: REFUSE: worktree /Users/timmalmstrom/.local/state/hpo/pr/r10-flow-andon/wt holds commits of fix/r10-flow-andon that origin/fix/r10-flow-andon lacks (unpushed work, e.g. a PR's row): not detaching it

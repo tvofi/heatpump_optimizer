@@ -1,0 +1,41 @@
+== dev/audit/harnesses/r10_ci_layout_p1/unitcheck.sh
+head:    STATIC rows 174->236 lost 5 gained 61 changed 25 (mapped 6) misplaced 0 rc 1
+plant:   STATIC rows 174->235 lost 5 gained 60 changed 25 (mapped 6) misplaced 0 rc 1  (5 LOST row(s))
+== dev/audit/harnesses/r10_ci_layout_p2_u1u2u7/unitcheck.sh
+hassfest.yml:   STATIC rows 7->7 lost 0 gained 0 changed 1 (mapped 1) misplaced 0 rc 0
+validate.yml:   STATIC rows 6->6 lost 0 gained 0 changed 1 (mapped 1) misplaced 0 rc 0
+arch-score.yml:   STATIC rows 7->7 lost 0 gained 0 changed 3 (mapped 3) misplaced 0 rc 0
+plant, an unmapped step added (want rc 1):   STATIC rows 7->8 lost 0 gained 1 changed 1 (mapped 1) misplaced 0 rc 1
+== dev/audit/harnesses/r10_ci_layout_u0c/unitcheck.sh
+ci.yml head:          STATIC rows 2->39 lost 0 gained 0 changed 1 (mapped 1) misplaced 0 rc 0
+gate-sweep.yml head:   STATIC rows 2->6 lost 0 gained 0 changed 2 (mapped 2) misplaced 0 rc 0
+plant, an unmapped job added (want rc 1):   STATIC rows 2->42 lost 0 gained 3 changed 1 (mapped 1) misplaced 0 rc 1
+plant, gate's checkout deleted (blind, reads rc 0):   STATIC rows 2->38 lost 0 gained 0 changed 1 (mapped 1) misplaced 0 rc 0
+plant, a caller's with: changed (blind, reads rc 0):   STATIC rows 2->39 lost 0 gained 0 changed 1 (mapped 1) misplaced 0 rc 0
+== dev/audit/harnesses/r10_ci_layout_u10/unitcheck.sh
+merge-main.yml head:          STATIC rows 10->10 lost 0 gained 0 changed 3 (mapped 3) misplaced 0 rc 0
+plant, no map (want rc 1):    STATIC rows 10->10 lost 0 gained 0 changed 3 (mapped 0) misplaced 0 rc 1
+pr-contract-rerun.yml: absent
+== dev/audit/harnesses/r10_ci_layout_u11/unitcheck.sh
+kernel-points.yml head:              STATIC rows 8->9 lost 0 gained 0 changed 2 (mapped 2) misplaced 0 rc 0
+plant, no map (want rc 1):    STATIC rows 8->9 lost 0 gained 1 changed 2 (mapped 0) misplaced 0 rc 1
+== dev/audit/harnesses/r10_ci_layout_u3/unitcheck.sh
+codeql.yml head:              STATIC rows 8->9 lost 0 gained 0 changed 6 (mapped 6) misplaced 0 rc 0
+plant, no map (want rc 1):    STATIC rows 16->9 lost 9 gained 2 changed 5 (mapped 0) misplaced 0 rc 1
+== dev/audit/harnesses/r10_ci_layout_u4/unitcheck.sh
+governance.yml head:                    STATIC rows 132->134 lost 1 gained 0 changed 2 (mapped 2) misplaced 0 rc 1
+plant, no map (want rc 1):              STATIC rows 132->134 lost 1 gained 3 changed 2 (mapped 0) misplaced 0 rc 1
+input control, caller as it is:       undeclared=[] rc 0
+plant, caller passes `pr`:            undeclared=['pr'] rc 1
+plant, instrument-self-tests edited (want rc 1):   STATIC rows 132->134 lost 1 gained 0 changed 3 (mapped 2) misplaced 0 rc 1
+== dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh
+head, under the map (want rc 0):       STATIC rows 16->17 lost 0 gained 0 changed 10 (mapped 10) misplaced 0 rc 0
+head, no map (want rc 1):              STATIC rows 16->17 lost 1 gained 2 changed 9 (mapped 0) misplaced 0 rc 1
+plant, the wait step deleted (blind, rc 0):          STATIC rows 16->16 lost 0 gained 0 changed 10 (mapped 10) misplaced 0 rc 0
+plant, the gate exclusion deleted (blind, rc 0):    STATIC rows 16->17 lost 0 gained 0 changed 10 (mapped 10) misplaced 0 rc 0
+plant, an unmapped step added (want rc 1):         STATIC rows 16->18 lost 0 gained 1 changed 10 (mapped 10) misplaced 0 rc 1
+== dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh
+budget-raise-gate.yml head:             STATIC rows 7->7 lost 0 gained 0 changed 3 (mapped 3) misplaced 0 rc 0
+plant, no map (want rc 1):              STATIC rows 8->7 lost 1 gained 0 changed 3 (mapped 0) misplaced 0 rc 1
+input control, callee as it is:       undeclared=[] rc 0
+plant, `head` declaration deleted:    undeclared=['head'] rc 1

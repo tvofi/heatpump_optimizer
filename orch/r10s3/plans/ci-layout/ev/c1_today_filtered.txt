@@ -1,0 +1,22 @@
+# python3 -I c1_counterfactual.py c1raw --boost B (design instrument, probe/design-ci-rev4:measure/rev), over today's Tests pull_request runs at the fetched PR heads; rows with wall < 300 s are runs cancelled in the 07:47Z rate-limit incident and are excluded
+239.1 39210927685   3224       20       20
+239.1 39204608714    817     -168      -72
+239.1 39203060616   2891      806      903
+239.1 39209638517   2252      982      855
+239.1 39218223244   3334     1067     1067
+239.1 39212286203   2746      747      624
+427 39210927685   3224       20       20
+427 39204608714    817     -356      -72
+427 39203060616   2891      618      903
+427 39209638517   2252      825      855
+427 39218223244   3334      966     1067
+427 39212286203   2746      747      624
+480 39210927685   3224       20       20
+480 39204608714    817     -409      -72
+480 39203060616   2891      565      903
+480 39209638517   2252      772      855
+480 39218223244   3334      913     1067
+480 39212286203   2746      747      624
+boost 239.1: n=6 V1 median gain 776.5 s, slower 1, worst -168 s
+boost 427: n=6 V1 median gain 682.5 s, slower 1, worst -356 s
+boost 480: n=6 V1 median gain 656.0 s, slower 1, worst -409 s

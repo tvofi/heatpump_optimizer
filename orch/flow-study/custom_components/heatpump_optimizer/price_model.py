@@ -1,0 +1,905 @@
+"""A learned prior for the part of the price horizon that is not published yet.
+
+Nord Pool and Tibber publish tomorrow's prices around 13:00 local time. Before
+that, a large fraction of a 24-hour-plus horizon has no data, and the
+coordinator used to fill it by repeating the last known value:
+
+.. code-block:: python
+
+    while len(prices) < n_steps:
+        prices.append(prices[-1] if prices else 0.5)
+
+A flat tail has no trough. The optimizer therefore cannot see a cheap period
+ahead worth waiting for, and systematically under-defers load in the morning —
+precisely when deferral is most valuable. It also interacts badly with the
+terminal-cost term, which values stored heat against a price that is entirely
+fictitious.
+
+What replaces it is a normalised diurnal shape learned from the prices that
+*have* been seen, scaled to the recent price level. Two design points matter:
+
+**The prior must never displace real data.** If tomorrow's prices are known,
+the learned shape is not consulted at all. It fills unknown steps only.
+
+**Padded steps are marked.** Consumers get a per-step confidence flag so the
+plan sensors and the dashboard card can show where the plan rests on a guess
+rather than on published prices. A plan that looks identical whether or not it
+is built on real prices is a plan nobody can audit.
+"""
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any
+
+import aiohttp
+import numpy as np
+
+from .const import (
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_SOURCE,
+    CONF_PRICE_SURCHARGE,
+    CONF_PRICE_VAT,
+    CONF_TIBBER_TOKEN,
+    DEFAULT_PRICE_SOURCE,
+    DEFAULT_PRICE_SURCHARGE,
+    DEFAULT_PRICE_VAT,
+    PRICE_SOURCE_ENTITY,
+)
+from .inputs import normalize_price_per_kwh
+from .payload import PricePrior
+
+_LOGGER = logging.getLogger(__name__)
+
+HOURS_PER_DAY = 24
+QUARTERS_PER_HOUR = 4
+QUARTERS_PER_DAY = HOURS_PER_DAY * QUARTERS_PER_HOUR
+# Weekday and weekend price shapes differ enough to be worth separating: the
+# morning peak is later and shallower at the weekend.
+PROFILE_WEEKDAY = 0
+PROFILE_WEEKEND = 1
+
+# EWMA rate for the shape. Slow, because a single unusual day (a cold snap, a
+# transmission outage) should not redefine what a normal day looks like.
+SHAPE_ALPHA = 0.12
+# Below this many observed days the shape is blended towards flat, so an early
+# accidental pattern cannot drive the plan.
+SHAPE_CONFIDENCE_DAYS = 5
+# Guard rails on the normalised shape. Real spot curves do swing widely, but a
+# factor outside this range is a data error rather than a market.
+SHAPE_MIN = 0.2
+SHAPE_MAX = 3.0
+
+# The quarter-hour refinement (#19) rides its own confidence ramp: the hourly
+# shape may be fully trusted while intra-hour structure is still unseen, and
+# a factor of 1.0 at zero confidence makes the 96-bin model collapse exactly
+# onto the 24-bin one — which is what keeps old stores and fresh installs
+# byte-identical.
+QUARTER_ALPHA = 0.12
+QUARTER_CONFIDENCE_DAYS = 5
+# Intra-hour ramps are real (the 06:45 quarter can be 50-100 öre from 06:00)
+# but a quarter at several times its hour's mean is a data error.
+QUARTER_FACTOR_MIN = 0.25
+QUARTER_FACTOR_MAX = 4.0
+
+# Dispersion of the prior's misses (#34), per (profile, hour), as an EWMA of
+# squared normalised residuals. Slightly faster than the shape: how wrong the
+# prior has been lately is more useful than a long memory of old regimes.
+VAR_ALPHA = 0.15
+# The largest variance observe_day can write: a normalised price and the
+# shape's prediction both lie in the shape's cone (every bin positive, the
+# largest at most SHAPE_MAX / SHAPE_MIN times the smallest), so no residual
+# exceeds that ratio.
+RESIDUAL_VAR_MAX = (SHAPE_MAX / SHAPE_MIN) ** 2
+
+
+def _stored_rows(raw: Any, width: int, what: str) -> list[list[float]] | None:
+    """Two stored profiles of ``width`` finite bins, or ``None``.
+
+    ``None`` quietly for an absent or misshapen field, which an older store
+    legitimately has, and with a warning for a non-finite or unreadable bin:
+    a nan bin prices its hour at max(0.0, nan) == 0.0 (#922).
+    """
+    if not (
+        isinstance(raw, list)
+        and len(raw) == 2
+        and all(isinstance(s, list) and len(s) == width for s in raw)
+    ):
+        return None
+    try:
+        parsed = [[float(v) for v in s] for s in raw]
+    except (TypeError, ValueError, OverflowError):
+        parsed = None
+    if parsed is None or not np.all(np.isfinite(parsed)):
+        _LOGGER.warning("Persisted %s has a non-finite or unreadable bin; restarting it", what)
+        return None
+    return parsed
+
+
+def _stored_counts(raw: Any) -> list[int] | None:
+    """Two stored day counts, floored at zero as observing leaves them."""
+    if not (isinstance(raw, list) and len(raw) == 2):
+        return None
+    try:
+        return [max(0, int(v)) for v in raw]
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _in_domain(values: list[float], lo: float, hi: float, what: str) -> list[float]:
+    """A stored profile as its update path could have written it (D1-s5-02).
+
+    ``observe_day`` and ``observe_day_quarters`` clip each observation to
+    [lo, hi], fold it by EWMA and renormalise to mean 1.0. Each step keeps the
+    profile in one cone: every bin positive, the largest at most ``hi / lo``
+    times the smallest. A profile outside it is not learned evidence, so it is
+    put through the same clip and renormalisation, and says so.
+    """
+    low, high = min(values), max(values)
+    if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):
+        return values
+    _LOGGER.warning(
+        "Persisted %s hold a bin outside what the learner writes; clipped to "
+        "[%s, %s] and renormalised",
+        what,
+        lo,
+        hi,
+    )
+    clipped = np.clip(np.asarray(values, dtype=float), lo, hi)
+    return [float(v) for v in clipped / float(np.mean(clipped))]
+
+
+def _profile_index(when: datetime) -> int:
+    return PROFILE_WEEKEND if when.weekday() >= 5 else PROFILE_WEEKDAY
+
+
+@dataclass
+class PriceShapeModel:
+    """Normalised mean price by hour of day, split weekday/weekend.
+
+    The 24-bin hourly ``shapes`` are the model as it has always been. The
+    quarter factors (#19) and residual variance (#34) are strictly additive
+    refinements: absent from an old store they default to "no effect", and
+    the loader never reshapes ``shapes`` itself — the silent-fallback loader
+    would discard a reshaped payload, learned state and all.
+    """
+
+    #: ``shapes[profile][hour]``, each profile normalised to mean 1.0.
+    shapes: list[list[float]] = field(
+        default_factory=lambda: [[1.0] * HOURS_PER_DAY for _ in range(2)]
+    )
+    #: Number of complete days folded into each profile.
+    days: list[int] = field(default_factory=lambda: [0, 0])
+    #: ``quarter_factors[profile][hour*4+q]``: each quarter's price relative
+    #: to its hour's mean, each hour's four factors normalised to mean 1.0.
+    quarter_factors: list[list[float]] = field(
+        default_factory=lambda: [[1.0] * QUARTERS_PER_DAY for _ in range(2)]
+    )
+    #: Complete quarter-resolution days folded into each profile.
+    quarter_days: list[int] = field(default_factory=lambda: [0, 0])
+    #: EWMA of squared normalised prior residuals per (profile, hour): how
+    #: far the day's real normalised price landed from what the trusted
+    #: shape would have predicted for that hour.
+    residual_var: list[list[float]] = field(
+        default_factory=lambda: [[0.0] * HOURS_PER_DAY for _ in range(2)]
+    )
+
+    # -- learning -----------------------------------------------------------
+
+    def observe_day(self, when: datetime, hourly_prices: list[float]) -> bool:
+        """Fold one complete day of hourly prices into the shape.
+
+        Returns whether the observation was used. A partial day is rejected:
+        the shape is about the *relative* cost of each hour, and a day missing
+        its cheap night hours would bias every hour upward.
+        """
+        if len(hourly_prices) != HOURS_PER_DAY:
+            return False
+        values = np.asarray(hourly_prices, dtype=float)
+        if not np.all(np.isfinite(values)):
+            return False
+        mean = float(np.mean(values))
+        # A zero or negative daily mean makes the normalisation meaningless.
+        # Negative spot hours are real and are kept in the shape; a whole day
+        # averaging at or below zero is not something to generalise from.
+        if mean <= 1e-6:
+            return False
+
+        normalised = np.clip(values / mean, SHAPE_MIN, SHAPE_MAX)
+        idx = _profile_index(when)
+
+        # The prior's miss, measured against what it would actually have
+        # predicted — the trust-damped shape — *before* this day is folded
+        # in. Folding first would let the day grade its own homework.
+        predicted = np.asarray(self.shape_for(when), dtype=float)
+        residuals = normalised - predicted
+        var = np.asarray(self.residual_var[idx], dtype=float)
+        if self.days[idx] == 0:
+            var = residuals**2
+        else:
+            var = (1.0 - VAR_ALPHA) * var + VAR_ALPHA * residuals**2
+        self.residual_var[idx] = [float(v) for v in var]
+
+        current = np.asarray(self.shapes[idx], dtype=float)
+        if self.days[idx] == 0:
+            updated = normalised
+        else:
+            updated = (1.0 - SHAPE_ALPHA) * current + SHAPE_ALPHA * normalised
+        # Re-normalise so the profile always has mean 1.0 and the scaling step
+        # below is a pure level shift.
+        updated = updated / max(float(np.mean(updated)), 1e-6)
+        self.shapes[idx] = [float(v) for v in updated]
+        self.days[idx] = self.days[idx] + 1
+        return True
+
+    def observe_day_quarters(
+        self, when: datetime, quarter_prices: list[float]
+    ) -> bool:
+        """Fold one complete day of quarter prices into the quarter factors.
+
+        Strictly additive beside ``observe_day``: the hourly shape carries
+        the diurnal structure, and this carries only how each hour's price
+        splits across its four quarters — the ramp structure the 15-minute
+        MTU introduced, which an hourly prior smears flat.
+        """
+        if len(quarter_prices) != QUARTERS_PER_DAY:
+            return False
+        values = np.asarray(quarter_prices, dtype=float)
+        if not np.all(np.isfinite(values)):
+            return False
+        if float(np.mean(values)) <= 1e-6:
+            return False
+
+        by_hour = values.reshape(HOURS_PER_DAY, QUARTERS_PER_HOUR)
+        hour_means = by_hour.mean(axis=1)
+        factors = np.ones_like(by_hour)
+        usable = hour_means > 1e-6
+        factors[usable] = np.clip(
+            by_hour[usable] / hour_means[usable, None],
+            QUARTER_FACTOR_MIN,
+            QUARTER_FACTOR_MAX,
+        )
+
+        idx = _profile_index(when)
+        current = np.asarray(self.quarter_factors[idx], dtype=float).reshape(
+            HOURS_PER_DAY, QUARTERS_PER_HOUR
+        )
+        if self.quarter_days[idx] == 0:
+            updated = factors
+        else:
+            updated = (1.0 - QUARTER_ALPHA) * current + QUARTER_ALPHA * factors
+        # Each hour's four factors keep mean 1.0 so the refinement never
+        # shifts the hourly level, only how it splits inside the hour.
+        updated = updated / np.maximum(updated.mean(axis=1, keepdims=True), 1e-6)
+        self.quarter_factors[idx] = [float(v) for v in updated.reshape(-1)]
+        self.quarter_days[idx] = self.quarter_days[idx] + 1
+        return True
+
+    # -- use ----------------------------------------------------------------
+
+    def confidence(self, when: datetime) -> float:
+        """How much to trust the shape, between 0 and 1."""
+        idx = _profile_index(when)
+        return min(1.0, self.days[idx] / SHAPE_CONFIDENCE_DAYS)
+
+    def quarter_confidence(self, when: datetime) -> float:
+        """How much to trust the intra-hour factors, between 0 and 1."""
+        idx = _profile_index(when)
+        return min(1.0, self.quarter_days[idx] / QUARTER_CONFIDENCE_DAYS)
+
+    def shape_for(self, when: datetime) -> np.ndarray:
+        """Shape for this day, blended towards flat while still uncertain."""
+        idx = _profile_index(when)
+        shape = np.asarray(self.shapes[idx], dtype=float)
+        trust = self.confidence(when)
+        return 1.0 + (shape - 1.0) * trust
+
+    def quarter_factor(self, when: datetime) -> float:
+        """Intra-hour factor at ``when``, damped towards 1.0 while uncertain."""
+        idx = _profile_index(when)
+        trust = self.quarter_confidence(when)
+        if trust <= 0.0:
+            return 1.0
+        q = (when.hour % HOURS_PER_DAY) * QUARTERS_PER_HOUR + (
+            when.minute // 15
+        ) % QUARTERS_PER_HOUR
+        factor = float(self.quarter_factors[idx][q])
+        return 1.0 + (factor - 1.0) * trust
+
+    def predict(self, when: datetime, level: float) -> float:
+        """Expected price at ``when`` given a recent average price ``level``."""
+        shape = self.shape_for(when)
+        return float(
+            level * shape[when.hour % HOURS_PER_DAY] * self.quarter_factor(when)
+        )
+
+    def expected_daily_min(
+        self, day_types: list[int], level: float
+    ) -> float | None:
+        """Expected cheapest hourly price over the given day types (#47).
+
+        The elastic legionella gate asks: is today's known minimum already
+        as cheap as a typical day gets, or is a better day likely before
+        the deadline? The answer is the level scaled by the LOWEST hourly
+        shape factor across the day types the remaining interval spans.
+
+        None — the gate's "no opinion, defer to the deadline" answer —
+        when any requested day type is not yet fully trusted. This is
+        load-bearing, not politeness: a damped young shape has its minimum
+        pulled toward 1.0, making the "expected minimum" the daily MEAN,
+        and every horizon's cheapest hour beats its mean — so a young
+        model would run the cycle at the minimum interval every time, the
+        exact opposite of deferring. Shopping is for models that know the
+        shape of a day.
+        """
+        if not day_types or not np.isfinite(level) or level <= 0.0:
+            return None
+        factors = []
+        for idx in day_types:
+            idx = int(idx) % len(self.shapes)
+            if self.days[idx] < SHAPE_CONFIDENCE_DAYS:
+                return None
+            shape = np.asarray(self.shapes[idx], dtype=float)
+            factors.append(float(np.min(shape)))
+        return float(level * min(factors))
+
+    def sigma(self, when: datetime, level: float) -> float:
+        """One-sigma dispersion of the prior's guess at ``when``, in SEK/kWh.
+
+        Damped by the shape's own confidence: a young model has both a vague
+        mean and a vague variance, and a risk premium built on the latter
+        alone would swing the plan on two days of evidence.
+        """
+        idx = _profile_index(when)
+        var = float(self.residual_var[idx][when.hour % HOURS_PER_DAY])
+        if var <= 0.0:
+            return 0.0
+        return float(level * np.sqrt(var) * self.confidence(when))
+
+    # -- persistence --------------------------------------------------------
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "shapes": self.shapes,
+            "days": self.days,
+            "quarter_factors": self.quarter_factors,
+            "quarter_days": self.quarter_days,
+            "residual_var": self.residual_var,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> "PriceShapeModel":
+        model = cls()
+        if not isinstance(data, dict):
+            return model
+        # Additive fields (#19, #34): absent from a pre-v4 store, and their
+        # defaults mean "no effect", so an old payload loads into exactly the
+        # behaviour it had. Each is brought into the domain its own update
+        # path writes (D1-s5-02).
+        shapes = _stored_rows(data.get("shapes"), HOURS_PER_DAY, "price shape")
+        if shapes is not None:
+            model.shapes = [_in_domain(s, SHAPE_MIN, SHAPE_MAX, "price shape") for s in shapes]
+        quarters = _stored_rows(data.get("quarter_factors"), QUARTERS_PER_DAY, "quarter factors")
+        if quarters is not None:
+            model.quarter_factors = [
+                [
+                    f
+                    for h in range(0, QUARTERS_PER_DAY, QUARTERS_PER_HOUR)
+                    for f in _in_domain(
+                        s[h : h + QUARTERS_PER_HOUR],
+                        QUARTER_FACTOR_MIN,
+                        QUARTER_FACTOR_MAX,
+                        "quarter factors",
+                    )
+                ]
+                for s in quarters
+            ]
+        var = _stored_rows(data.get("residual_var"), HOURS_PER_DAY, "price variance")
+        if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:
+            model.residual_var = [[max(0.0, v) for v in s] for s in var]
+        elif var is not None:
+            _LOGGER.warning("Persisted price variance exceeds what the learner writes; restarting at zero")
+        model.days = _stored_counts(data.get("days")) or model.days
+        model.quarter_days = _stored_counts(data.get("quarter_days")) or model.quarter_days
+        return model
+
+    def summary(self) -> PricePrior:
+        return {
+            "weekday_days": self.days[PROFILE_WEEKDAY],
+            "weekend_days": self.days[PROFILE_WEEKEND],
+            "weekday_shape": [round(v, 3) for v in self.shapes[PROFILE_WEEKDAY]],
+            "weekend_shape": [round(v, 3) for v in self.shapes[PROFILE_WEEKEND]],
+            "weekday_quarter_days": self.quarter_days[PROFILE_WEEKDAY],
+            "weekend_quarter_days": self.quarter_days[PROFILE_WEEKEND],
+            "weekday_sigma": [
+                round(float(np.sqrt(max(0.0, v))), 4)
+                for v in self.residual_var[PROFILE_WEEKDAY]
+            ],
+            "weekend_sigma": [
+                round(float(np.sqrt(max(0.0, v))), 4)
+                for v in self.residual_var[PROFILE_WEEKEND]
+            ],
+        }
+
+
+@dataclass
+class PriceShapeLearner:
+    """The learned price shape and the days it has folded, which change together.
+
+    A day is folded once: ``fold`` skips a day already seen, and marks one
+    seen only when the model accepted it, so a partial or rejected day is
+    retried when it arrives complete. The quarter refinement (#19) keeps its
+    own record, because a day can arrive at hourly resolution first and at
+    full 15-minute resolution later. One store holds all three.
+    """
+
+    model: PriceShapeModel = field(default_factory=PriceShapeModel)
+    days_seen: set[str] = field(default_factory=set)
+    quarter_days_seen: set[str] = field(default_factory=set)
+
+    def fold(self, entries: list[dict[str, Any]]) -> bool:
+        """Fold every new complete day in ``entries``; whether anything was learned."""
+        learned = False
+        for day, hours in hourly_from_entries(entries).items():
+            if day not in self.days_seen and (when := _noon(day)) is not None \
+                    and self.model.observe_day(when, hours):
+                self.days_seen.add(day)
+                learned = True
+        for day, quarters in quarters_from_entries(entries).items():
+            if day not in self.quarter_days_seen and (when := _noon(day)) is not None \
+                    and self.model.observe_day_quarters(when, quarters):
+                self.quarter_days_seen.add(day)
+                learned = True
+        return learned
+
+    def store_payload(self) -> dict[str, Any]:
+        # Only recent days matter for de-duplication, and an unbounded set
+        # would grow forever.
+        return {
+            "model": self.model.as_dict(),
+            "days_seen": sorted(self.days_seen)[-90:],
+            "quarter_days_seen": sorted(self.quarter_days_seen)[-90:],
+        }
+
+    def restore(self, stored: dict[str, Any]) -> None:
+        """Adopt a stored payload; a record that is not a list keeps the one in memory."""
+        self.model = PriceShapeModel.from_dict(stored.get("model"))
+        days = stored.get("days_seen")
+        if isinstance(days, list):
+            self.days_seen = {str(d) for d in days}
+        qdays = stored.get("quarter_days_seen")
+        if isinstance(qdays, list):
+            self.quarter_days_seen = {str(d) for d in qdays}
+
+    def adopt_model(self, payload: dict[str, Any]) -> None:
+        """A snapshot's model (the drift rollback); the days already folded stay folded."""
+        self.model = PriceShapeModel.from_dict(payload)
+
+
+def _noon(day: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(f"{day}T12:00:00")
+    except ValueError:
+        return None
+
+
+def extend_price_series(
+    known: list[float],
+    n_steps: int,
+    step_start_times: list[datetime],
+    model: PriceShapeModel | None,
+    *,
+    fallback: float = 0.5,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Extend a price series to ``n_steps``, marking which steps are guessed.
+
+    Returns ``(prices, known_mask, sigma)``. ``known_mask[i]`` is True for
+    steps backed by published prices. ``sigma`` (#34) is the prior's learned
+    one-sigma dispersion per step, zero on every known step — published
+    prices are facts — and zero everywhere while nothing has been learned,
+    so a consumer adding ``λ·sigma`` prices exactly as before by default.
+    """
+    prices = list(known[:n_steps])
+    known_count = len(prices)
+    mask = np.zeros(n_steps, dtype=bool)
+    mask[:known_count] = True
+    sigma = np.zeros(n_steps, dtype=float)
+
+    if known_count >= n_steps:
+        return np.asarray(prices[:n_steps], dtype=float), mask, sigma
+
+    if known_count == 0:
+        return np.full(n_steps, fallback, dtype=float), mask, sigma
+
+    # The level to scale the shape by comes from the known window — but the
+    # shape is normalised to mean 1.0 over a whole *day*, and the known window
+    # rarely is one. Known prices ending at the evening peak average ~1.4× the
+    # daily level, and scaling by that raw mean overprices the entire guessed
+    # tail by the same 40%. Dividing by the shape's own mean over the known
+    # steps calibrates the level so shape × level reproduces the known window,
+    # and reduces to the raw mean when the window covers whole days.
+    level = float(np.mean(prices))
+    last_known = float(prices[-1])
+    if model is not None:
+        shape_values = [
+            float(
+                model.shape_for(step_start_times[i])[
+                    step_start_times[i].hour % HOURS_PER_DAY
+                ]
+            )
+            for i in range(min(known_count, len(step_start_times)))
+        ]
+        shape_mean = float(np.mean(shape_values)) if shape_values else 1.0
+        if shape_mean > 1e-6:
+            level /= shape_mean
+
+    for i in range(known_count, n_steps):
+        when = (
+            step_start_times[i]
+            if i < len(step_start_times)
+            else step_start_times[-1]
+        )
+        if model is None or model.confidence(when) <= 0.0:
+            # No learned shape yet, so there is nothing better than the old
+            # flat repeat. Being explicit about that is better than pretending.
+            prices.append(last_known)
+            continue
+        prices.append(max(0.0, model.predict(when, level)))
+        sigma[i] = model.sigma(when, level)
+
+    return np.asarray(prices[:n_steps], dtype=float), mask, sigma
+
+
+def _entries_by_day(entries: list[dict[str, Any]]) -> dict[str, dict[int, dict[int, float]]]:
+    """Valid entries grouped as ``{day: {hour: {minute: value}}}``.
+
+    Keyed by minute rather than kept as a list so quarter order never depends
+    on the order the API happened to deliver entries in, and so a duplicated
+    entry overwrites instead of double-counting.
+
+    A local day whose entries change UTC offset mid-day — a DST transition —
+    is dropped entirely, for every learner fed from here. The bucketing is
+    positional (index == wall-clock hour), and on the autumn fold the
+    repeated local hour's second occurrence overwrites the first, so a
+    25-hour day emerged as a well-formed 24-hour day and trained the shape,
+    the quarter factors and the residual variance on a fabricated hour. The
+    23-hour spring day was only ever rejected incidentally by the
+    24-hour completeness gates. Two days a year, unbiased; the offset
+    information exists only here — downstream the day is bare floats —
+    which is why the predicate cannot live anywhere else. Naive timestamps
+    carry one offset (``None``) and degrade safely to "kept".
+    """
+    by_day: dict[str, dict[int, dict[int, float]]] = {}
+    offsets: dict[str, set[timedelta | None]] = {}
+    for entry in entries or []:
+        starts_at = entry.get("starts_at") or entry.get("startsAt")
+        total = entry.get("total")
+        if not starts_at or total is None:
+            continue
+        try:
+            when = datetime.fromisoformat(str(starts_at))
+            value = float(total)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if not np.isfinite(value):
+            continue
+        day_key = when.date().isoformat()
+        day = by_day.setdefault(day_key, {})
+        day.setdefault(when.hour, {})[when.minute] = value
+        offsets.setdefault(day_key, set()).add(when.utcoffset())
+    for day_key, seen in offsets.items():
+        if len(seen) > 1:
+            del by_day[day_key]
+    return by_day
+
+
+def hourly_from_entries(entries: list[dict[str, Any]]) -> dict[str, list[float]]:
+    """Group Tibber-style price entries into complete days by local date.
+
+    Only days with all 24 hours present are returned, since a partial day would
+    bias the learned shape. An hour delivered as several 15-minute entries is
+    averaged — assigning the entries to one slot per hour, as this previously
+    did, silently trained the hourly shape on whichever quarter arrived last,
+    the :45 one.
+    """
+    complete: dict[str, list[float]] = {}
+    for day, hours in _entries_by_day(entries).items():
+        if len(hours) == HOURS_PER_DAY:
+            complete[day] = [
+                float(np.mean(list(hours[h].values())))
+                for h in range(HOURS_PER_DAY)
+            ]
+    return complete
+
+
+def quarters_from_entries(entries: list[dict[str, Any]]) -> dict[str, list[float]]:
+    """Complete quarter-resolution days, ``{day: [96 values]}`` (#19).
+
+    A day only qualifies when every hour delivered all four quarter marks —
+    hourly data, or a day straddling the MTU switch, trains the hourly shape
+    but says nothing about intra-hour structure.
+    """
+    quarter_marks = tuple(15 * q for q in range(QUARTERS_PER_HOUR))
+    complete: dict[str, list[float]] = {}
+    for day, hours in _entries_by_day(entries).items():
+        if len(hours) == HOURS_PER_DAY and all(
+            all(mark in hours[h] for mark in quarter_marks)
+            for h in range(HOURS_PER_DAY)
+        ):
+            complete[day] = [
+                hours[h][mark]
+                for h in range(HOURS_PER_DAY)
+                for mark in quarter_marks
+            ]
+    return complete
+
+
+TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
+TIBBER_PRICE_QUERY = """
+{
+  viewer {
+    homes {
+      currentSubscription {
+        priceInfo {
+          current {
+            total
+            startsAt
+            level
+          }
+          today {
+            total
+            startsAt
+            level
+          }
+          tomorrow {
+            total
+            startsAt
+            level
+          }
+        }
+      }
+    }
+  }
+}
+"""
+TIBBER_PRICE_QUERY_QUARTER = """
+{
+  viewer {
+    homes {
+      currentSubscription {
+        priceInfo(resolution: QUARTER_HOURLY) {
+          current {
+            total
+            startsAt
+            level
+          }
+          today {
+            total
+            startsAt
+            level
+          }
+          tomorrow {
+            total
+            startsAt
+            level
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def tibber_query_body(query: str) -> str:
+    return (
+        '{"query": "'
+        + query.replace("\n", " ").replace('"', '\\"')
+        + '"}'
+    )
+
+
+def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, Any]] | str:
+    """Tibber JSON to `{total, starts_at, level}` rows, or a failure reason."""
+    if not isinstance(data, dict):
+        return "Tibber API returned no data"
+    if "errors" in data:
+        return f"Tibber API errors: {data['errors']}"
+    homes = data.get("data", {}).get("viewer", {}).get("homes", [])
+    if not homes:
+        return "No homes found in Tibber data"
+    subscription = homes[0].get("currentSubscription")
+    if not subscription:
+        # The API answered and the account holds no contract: a successful
+        # fetch of nothing, not an API error (pinned in tests/features.py).
+        return []
+    price_info = subscription.get("priceInfo") or {}
+    prices: list[dict[str, Any]] = []
+    for period in ("today", "tomorrow"):
+        for row in price_info.get(period) or []:
+            if not isinstance(row, dict):
+                continue
+            # R5-D1-06 (#1297) and R10 D1-s3-02 (#2236): the entity path's
+            # own validators (#1090's drop-whole shape). A total that is not
+            # a finite float, or a start that is not a timestamp, drops the
+            # row: a startless row was placed by list position, 95 of 96
+            # quarters in the wrong slot. One rule for both ingress paths.
+            total, start = _raw_value(row), _raw_start(row)
+            if total is None or start is None:
+                continue
+            prices.append(
+                {"total": total, "starts_at": start, "level": row.get("level", "NORMAL")}
+            )
+    # R10 D1-s3-01 (#2233): a subscription with no usable row is a failed
+    # fetch, never an empty success -- an HTTP 200 with empty days used to
+    # replace a good series.
+    return prices or "Tibber returned no usable price rows"
+
+
+def _raw_start(item: dict[str, Any]) -> str | None:
+    """A row's start as ISO text, or None when it is absent or no timestamp."""
+    start = item.get("start") or item.get("starts_at") or item.get("startsAt")
+    if start is None:
+        return None
+    text = str(start.isoformat()) if hasattr(start, "isoformat") else str(start).strip()
+    try:
+        datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return text
+
+
+def _raw_value(item: dict[str, Any]) -> float | None:
+    raw = item.get("value")
+    if raw is None:
+        raw = item.get("total")
+    if raw is None:
+        raw = item.get("price")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not np.isfinite(value):
+        return None
+    return value
+
+
+def apply_price_adjustments(
+    entries: list[dict[str, Any]], vat: float, surcharge: float
+) -> list[dict[str, Any]]:
+    factor = float(vat) if np.isfinite(vat) else 1.0
+    extra = float(surcharge) if np.isfinite(surcharge) else 0.0
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        try:
+            total = float(entry.get("total", 0.0)) * factor + extra
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if not np.isfinite(total):
+            continue
+        out.append({**entry, "total": total})
+    return out
+
+
+def prices_from_entity_attributes(
+    attrs: dict[str, Any] | None,
+    vat: float = 1.0,
+    surcharge: float = 0.0,
+) -> list[dict[str, Any]] | str:
+    """Nord Pool / ENTSO-E-style `raw_today` / `raw_tomorrow` into price rows.
+
+    Each value is read in the entity's own unit (#1513): an öre/kWh or
+    EUR/MWh series is the same price as SEK/kWh or EUR/kWh, before VAT and
+    the SEK/kWh surcharge are applied to it.
+    """
+    if not isinstance(attrs, dict) or not attrs:
+        return "Price entity published no today/tomorrow series"
+    scale = normalize_price_per_kwh(1.0, attrs.get("unit_of_measurement")) or 1.0
+    rows: list[dict[str, Any]] = []
+    for key in ("raw_today", "raw_tomorrow", "today", "tomorrow"):
+        block = attrs.get(key)
+        if not isinstance(block, list):
+            continue
+        for item in block:
+            if not isinstance(item, dict):
+                continue
+            start = _raw_start(item)
+            value = _raw_value(item)
+            if start is None or value is None:
+                continue
+            rows.append(
+                {"total": value * scale, "starts_at": start, "level": "NORMAL"}
+            )
+    if not rows:
+        return "Price entity published no today/tomorrow series"
+    return apply_price_adjustments(rows, vat, surcharge)
+
+
+def prices_from_entity_state(
+    state: Any,
+    vat: float = 1.0,
+    surcharge: float = 0.0,
+) -> list[dict[str, Any]] | str:
+    """Read one HA price sensor. Empty / missing is a failed fetch."""
+    if state is None:
+        return "Price entity is empty"
+    raw = str(getattr(state, "state", "")).strip().lower()
+    attrs = getattr(state, "attributes", None)
+    if raw in {"unknown", "unavailable", ""} and not (
+        isinstance(attrs, dict) and attrs
+    ):
+        return "Price entity is empty"
+    return prices_from_entity_attributes(
+        attrs if isinstance(attrs, dict) else {}, vat, surcharge
+    )
+
+
+async def _tibber_post(session: Any, token: str, body: str) -> tuple[int, Any]:
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    async with session.post(
+        TIBBER_API_URL,
+        data=body,
+        headers=headers,
+        timeout=aiohttp.ClientTimeout(total=15),
+    ) as resp:
+        if resp.status != 200:
+            return resp.status, None
+        return resp.status, await resp.json()
+
+
+async def pull_prices(
+    session: Any, config: dict[str, Any], entity_state: Any = None
+) -> tuple[str, Any]:
+    """`('ok', rows)` / `('fail', reason)` / `('reauth', reason)`."""
+    source = config.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+    if source == PRICE_SOURCE_ENTITY:
+        if not config.get(CONF_PRICE_ENTITY):
+            return "fail", "Price entity is empty"
+        try:
+            vat = float(config.get(CONF_PRICE_VAT, DEFAULT_PRICE_VAT) or 1.0)
+            extra = float(
+                config.get(CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE) or 0.0
+            )
+        except (TypeError, ValueError):
+            vat, extra = 1.0, 0.0
+        parsed = prices_from_entity_state(entity_state, vat, extra)
+        if isinstance(parsed, str):
+            return "fail", parsed
+        return "ok", parsed
+
+    token = config.get(CONF_TIBBER_TOKEN)
+    if not token:
+        return "fail", "No Tibber token configured"
+    status, payload = await _tibber_post(
+        session, token, tibber_query_body(TIBBER_PRICE_QUERY_QUARTER)
+    )
+    if status in (401, 403):
+        return (
+            "reauth",
+            f"Tibber refused the token (HTTP {status}); reauthentication started",
+        )
+    if status != 200:
+        return "fail", f"Tibber API error: {status}"
+    parsed = prices_from_tibber_payload(payload)
+    if isinstance(parsed, str):
+        status, payload = await _tibber_post(
+            session, token, tibber_query_body(TIBBER_PRICE_QUERY)
+        )
+        if status in (401, 403):
+            return (
+                "reauth",
+                f"Tibber refused the token (HTTP {status}); "
+                "reauthentication started",
+            )
+        if status != 200:
+            return "fail", parsed
+        parsed = prices_from_tibber_payload(payload)
+        if isinstance(parsed, str):
+            return "fail", parsed
+    return "ok", parsed

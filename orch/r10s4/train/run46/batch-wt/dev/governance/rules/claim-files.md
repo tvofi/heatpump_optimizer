@@ -1,0 +1,53 @@
+---
+description: Claim-file conflicts are prevented by the claimnotes merge driver, not repaired after the fact
+paths:
+  - "tests/golden/**"
+---
+# The two claim files
+
+Every branch writes a note into `tests/golden/claimed_drift.txt` and
+`tests/golden/card_claimed_drift.txt` at the same place, so every branch that
+merged `main` after another branch merged conflicted in both.
+`.gitattributes` now routes both files to the
+`claimnotes` merge driver in `tests/env_drift.py`. Install it once per clone;
+a worktree shares its checkout's config, so one install covers every worktree:
+
+```
+python3 tests/env_drift.py --install-merge-driver
+```
+
+The driver unions the note comments and **refuses** — leaving ordinary conflict
+markers and a non-zero exit — when both sides rewrote the bare claim list. The
+refusal is the point. A claim is value-bearing, and git's free `merge=union`
+would silently reinstate a claim the branch deleted, where the inherited-claims
+guard cannot see it: that guard fires only on a list *exactly* equal to the
+baseline's, and a unioned list carries the branch's own claim too.
+
+Two limits, both measured. Git never clones config: an uninstalled driver falls
+back to the text merge, never worse. Git reads `.gitattributes` from the branch
+merged **into**: one cut before it landed conflicts once more.
+
+**GitHub is one of those uninstalled clones, and that one is not free (#570).**
+`mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
+every open pull request flips to `DIRTY` the moment `main` touches a claim file.
+GitHub will not build a merge commit for a `DIRTY` pull request, and the
+`pull_request` workflows never fire — such a PR does not go red, it **cannot
+run**; no new one queues. The merge-main bot
+(`ci-autofix.md`) merges `main` in where the drivers can; else merge locally. Before treating any conflict as real,
+confirm it:
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+**So a branch that claims nothing does not touch the claim files at all.** No
+check reads a note, and a file byte-identical to its fork point's claims
+nothing: it passes, the autofix leaves it, and its lines excuse no drift. A
+line excuses only the diff that wrote it, so lines `main` carries from earlier
+merges are inert until `stamp.py` empties them. Such a file cannot conflict and
+keeps the `claims-for:` line the stamp last wrote. Edit these only when
+you are claiming drift; there a conflict is meaningful, and rare.
+A may-drift fixture is claimed with its entry suspended for this release; the
+stamp owes the entry back verbatim (R8-P3; `env_drift.py` `MAY-DRIFT UNCOVERED`).
+
+`ci-autofix.md` says why no autofix job repairs this, and what `claims-autofix` does.

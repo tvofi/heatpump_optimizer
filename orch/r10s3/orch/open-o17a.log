@@ -1,0 +1,2 @@
+===== daemonize pid=46075 2026-10-18T13:04:33Z argv: bash tools/audit/seat/open_pr.sh r10-codeql-lang-skip 54a69b23a2a03f64ee8504e9a37ff2d5490ca9ff R10-CODEQL-LANG-SKIP: skip a CodeQL leg when the diff has no file in its language R10-CODEQL-LANG-SKIP
+PR=2405 HEAD=fbba2ccb58a74111c4cfb139639533238835cd66 AUTHOR=tvofi

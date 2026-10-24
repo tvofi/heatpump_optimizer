@@ -1,0 +1,40 @@
+TICK SEAT Window 31, round 10, session s4, repo tvofi/heatpump_optimizer. Read your brief /Users/timmalmstrom/hpo-orch/r10s3/orch/briefs/tick-watcher.md and follow it. Run passes about every 4 min for up to 70 min. The scratch dir is /Users/timmalmstrom/hpo-seats/r10s4/tick-seat/. Window 30 notes are in w30/ (read w15/standing-filters.txt and w30/out.log first; copy w30/state/ to w31/state/ so window-30 reports stay suppressed). Write yours to w31/.
+
+Report to the orchestrator (main session) with SendMessage ONLY when something new needs action. Quiet passes send nothing. End with a closing summary.
+
+Standing filters (orchestrator rulings):
+- Read only the board's current-main section.
+- Do not report:
+  - reviewer-fire lines for heads that have already been fired;
+  - nightly-status;
+  - the board's "no delivery row" flag on a PR when the board's measure is older than the PR's own head;
+  - record/autofix PRs (#2610 and later). Report only their merge.
+- Report a red check-run only if it is on a current PR head or on main, AND it completed after 12:50Z. Do not report one whose log shows "API rate limit exceeded" (HTTP 403) or "API is unreachable".
+- Already handled, so do NOT report:
+  - stranded ref r10-fly-gh-read-retry a457acaf. It holds no commit outside main.
+  - stranded ref audit-r10-roster (roster batch 13, held until the trains drain). Its moves are the orchestrator's own carries: do not report them.
+- Run `bash tools/audit/seat/bus.sh orphans --min-age-h 0` from /Users/timmalmstrom/hpo-seats/r10s4/gc-main. Report any OTHER stranded or superseded ref that stays unchanged for over 30 min with no PR.
+- For check-runs, use `gh api "repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs?per_page=100" --jq '<filter>'`. Never pass --arg to gh. Spare the API: one read per head per pass, never faster than every 4 min, and only for heads that changed since your last read. If gh returns 403 or a rate limit, skip that pass's API reads and say so.
+- Report merges once each, with the merge SHA. Report a main red on a REQUIRED check, and main's Tests run (fast, closures) once it concludes on main's current head.
+- Report new returns on these refs (git ls-remote, one call per pass). Record each value on pass 1 and report only changes:
+  - refs/heads/handoff-body/r10-currency (now a4c998f1)
+  - refs/heads/handoff-body/r10-scores (SCORES fixer; absent)
+  - refs/heads/handoff-body/r10-loop-cpu (now 9da177f6)
+  - refs/heads/handoff-body/r10-fly-gh-read-retry-2 (now e1a8ce08)
+  - refs/heads/handoff-body/r10-record-api-budget (now f80cf0ca)
+  - refs/heads/handoff-body/r10-nightly-absent-new (now 91ea6423)
+  - refs/heads/fix/r10-rca-body-lint (the RCA PR; absent)
+- Report open PR head moves (gh pr list --json number,headRefOid, once per pass).
+- Report disk below 5 GB free (df -h /System/Volumes/Data).
+- If the tick board's file mtime is older than 12 min, report it once.
+
+End with RESULT / CHECKS-RUN / UNCERTAINTIES / ESCALATE lines.
+
+Additions for Window 27:
+- Scheduled runs: Tests has no schedule since R10-CI-LAYOUT P1 (21 Oct). The nightly lanes are nightly.yml, cron "17 2 * * *" (last: 23 Oct 02:35Z, success). Report the next scheduled nightly.yml conclusion once. Governance is weekly, Monday 07:00Z.
+- Never report r10-ci-layout-p2* or audit-r10-roster orphans. r10-fly-gh-read-retry (a457acaf) is known; report it again only if its handoff ref moves or a PR opens for it. r10-scores has a fixer out: report it only when a PR opens for it.
+- OWED-REVIEW level, every pass: for each open PR (gh pr list once), if neither a probe/rev-<N>-* ref nor review/<N> was written after the PR head's commit time, list it as "REVIEW OWED #N <head8>". Skip a head that is an ancestor-recarry: `git log --no-merges <old>..<new> ^origin/main` is empty, or holds only bot autofix or record commits. Report only changes from the previous pass. Skip record/autofix bot PRs. Known (main 57b7b4994): the merge train (run38 and on) holds, in order, #2652 at 0a6dff94 (trailer fix, merge verdict, approval 5624905772), #2650 at dc7454a9 (record), #2645 at 05b9c1d5, #2620 at 72fbab2a (round-3 merge verdict, approval 5624905871) and #2651 at 91e37c09 (re-review merge, approval 5625025183). For these, report merges, head moves and reds, not OWED. A head move on any of them is URGENT: it voids the approval. Out now: the #2647 round-3 review (probe/rev-2647-2fe32f12, at 488cbef7; budget-raise-gate red expected, do not report it); the #2632 round-4 cloud fixer (handoff-body/r10-loop-cpu will move past 9da177f6, so report the move once; tick_loop then updates the PR, and the review becomes OWED). An OWED is suppressed when a reviewer row in ~/hpo-orch/r10s3/orch/cloud-sessions.tsv or ~/hpo-orch/r10s4/dispatch-relay.tsv is dated after the head commit time. P2b: the probe-runner opens draft probe PRs titled `probe:` from ci-probe/* refs: never report those PRs (head ref fix/r10-ci-layout-p2-probe-*, e.g. #2649) as OWED or RED, and do not report handoff/handoff-body r10-ci-layout-p2-* refs as stranded.
+- Report each merge, and each head move of an open PR.
+- Run for up to 70 min.
+
+Also read /Users/timmalmstrom/hpo-orch/r10s4/briefs/overrides-s4b.md.

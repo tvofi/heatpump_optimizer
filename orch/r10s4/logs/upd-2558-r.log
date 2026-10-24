@@ -1,0 +1,5 @@
+===== daemonize pid=77223 2026-10-21T21:52:49Z argv: bash tools/audit/seat/update_pr.sh fix/r10-plan-artifact a4a2a653333cf41b73759587e0fa396a7cabaabe /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2558.md
+  REFUSE   pr-body                PR-BODY: 1 error(s) in /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2558.md -- no budget leaf raised over 1ebc737e7...1ec637687
+  REFUSE   ancestry reds          RED UNANSWERED (closures nightly-status): PR-BODY: 1 error(s) in /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2558.md
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-plan-artifact.log

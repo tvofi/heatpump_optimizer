@@ -1,0 +1,7 @@
+1 of 4247 FEATURE CHECKS FAILED
+exit 1
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+1 of 4247 FEATURE CHECKS FAILED

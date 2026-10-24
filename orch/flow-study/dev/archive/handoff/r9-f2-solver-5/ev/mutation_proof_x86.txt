@@ -1,0 +1,7 @@
+healthy: grid_divergences=0 term_divergences=0 calls(97,2)=(162, 162)
+M1 row_sums->np.sum(axis=1): grid_divergences=0
+M2 block means->np.mean(axis=1): grid_divergences=0
+M3 bisection without the freeze: grid_divergences=86
+M4 twin accumulation -> plain reduce (single-sum arm, where the mutant is faithful): term_divergences=4
+M5 window means per row: calls(97,2)=(4318, 233) (pin: equal)
+restored: grid_divergences=0 term_divergences=0 calls(97,2)=(162, 162)

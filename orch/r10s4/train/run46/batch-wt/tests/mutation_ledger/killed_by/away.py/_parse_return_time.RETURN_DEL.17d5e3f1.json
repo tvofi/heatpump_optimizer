@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:_parse_return_time RETURN_DEL 17d5e3f1",
+  "killed_by": "tests/features.py",
+  "old": "    return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against db878b29fa301d44231ccec55a85a80d610e9b1e: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=16."
+}

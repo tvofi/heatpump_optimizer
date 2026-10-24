@@ -1,0 +1,1 @@
+Approved under mandate 6329234399 (scope all). The fix review at this head returned merge (probe/rev-2652-ae629214, relayed to review/2652). Both producer mutants go red, the producer sweep finds no other emitter, and the red-check root cause is answered in the body.

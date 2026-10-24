@@ -1,0 +1,47 @@
+{
+ "group": "R10-FLOW-PULL",
+ "lane": "RP",
+ "kind": "policy",
+ "class": "policy",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "dev/governance/roles/nudge.md",
+  "dev/governance/roles/orchestrator.md"
+ ],
+ "hot_files": [
+  "dev/governance/roles/nudge.md"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "Policy: tvofi's approving review before merge (CLAUDE.md); the mandate 6175172275 covers it until 2026-10-28T18:14Z, after which a fresh grant is needed.",
+ "rca": [],
+ "after": [],
+ "carry": [
+  "Owner rulings owed: takt and pitch, lane caps, records in the pitch, the absorb trigger, the fly-in and expedite rule (the Lean flow pre-study, section R).",
+  "Pre-study: the Lean flow pre-study, section K3."
+ ],
+ "architect_note": "",
+ "brief": "Pull, pitch and classes of service in the orchestrator's turn (Lean study K3 and K10). nudge.md sits at its cap of 115 lines and 3814 tokens, measured by node tools/policy/policy_lint.mjs --budgets, so every sentence added is paid by a sentence cut. Change: step 16 dispatches by pull, ordered by critical-path depth, within flow-lane caps A4 B4 C3 F2 (the dispatch gate in tools/audit/seat/pr_cap.py enforces the total); a fly-in is registered on the roster at dispatch with roster_edit.py append-group under a name starting R10-FLY- (no new kind, no schema change), and an expedite item (red main, quota exhaustion, outage, security) bypasses the caps, one at a time. Steps 3 and 7: the train loads on an hourly pitch with --bot-prs, so record pull requests merge as part of the pitch, not between pitches. Step 2: the reviewer still starts at handoff; the verdict posts once required checks have concluded at that head; a head that moved since a merge verdict is first put to app_approve.sh --carry, and gets a reviewer only when the carry refuses. Step 6 shrinks to its exceptions, since the record beat merges its own pull request when its approver token is present. Step 12 shrinks to its exceptions once R10-FLOW-POSTMERGE lands. Step 9: absorb main into an open head only when it is DIRTY or merge-tree reports a conflict. orchestrator.md's sentence that dispatches the reviewer at push stays; reconcile its DIRTY sentence with step 9 in the same pull request. In orchestrator.md section 5, which every architect note cites but which holds no chain rule today, state the rule: a serial chain orders groups whose owning seams overlap, not groups that share a file. And the round's scope freezes at its register: a finding made mid-round goes to the next round's register unless it is expedite or a fly-in of size S. Policy: tvofi's approving review before merge (CLAUDE.md); the mandate 6175172275 covers it until 2026-10-28T18:14Z, after which a fresh grant is needed.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-pull",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

@@ -1,0 +1,39 @@
+prelude	completed	success
+cancel-superseded	completed	skipped
+refresh	completed	skipped
+hassfest / hassfest	completed	success
+governance / policy-docs	completed	failure
+validate / validate-hacs	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+governance / instrument-self-tests	completed	failure
+governance / wave-script	completed	failure
+tests / closure-scope	completed	success
+tests / briefs	completed	success
+tests / mutation	completed	success
+governance / env-matrix	completed	success
+codeql / Analyze (python)	completed	success
+codeql / Analyze (actions)	completed	success
+tests / nightly-status	completed	skipped
+budget-raise-gate	completed	skipped
+arch-score	completed	skipped
+governance / record	completed	skipped
+governance / delivery-status	completed	skipped
+governance / delivery-status-publish	completed	skipped
+kernel-points	completed	skipped
+tests / fast (3.14)	completed	failure
+tests / arch-instrument	completed	success
+tests / browser	completed	success
+tests / coverage	completed	success
+tests / closures	completed	failure
+tests / typing	completed	success
+tests / nightly-ha	completed	skipped
+tests / mutation-pins	completed	skipped
+tests / mutation-autofix	completed	skipped
+tests / closures-autofix	completed	skipped
+tests / coverage-ratchet	completed	success
+tests / graders-head-copy	completed	skipped
+tests / ci-ratchet	completed	skipped
+tests / claims-autofix	completed	skipped
+gate	completed	failure
+tests / lane-proofs	completed	skipped
+pr-contract	completed	skipped

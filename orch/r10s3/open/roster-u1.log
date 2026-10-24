@@ -1,0 +1,2 @@
+===== daemonize pid=1304 2026-10-18T04:51:36Z argv: bash tools/audit/seat/update_pr.sh fix/audit-r10-roster-pr 72b97a4a557b1260bc18364c8acfcb076d2c881d /Users/timmalmstrom/hpo-seats/r10s3/roster-pr/BODY.md
+fatal: couldn't find remote ref fix/audit-r10-roster-pr

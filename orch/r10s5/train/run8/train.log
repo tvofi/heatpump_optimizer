@@ -1,0 +1,33 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run8/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run8 pid=96122 start=2026-10-23T20:15:24Z
+BATCH 20261023-201525 pid=96137 base=main queue=1 (#2668) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 51f1470b: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+PRE-FLIGHT: 1 of 1 admitted
+#2668 serial: grader
+OVERLAP: recarrying #2668 up front, their pull_request runs fire together
+#2668 overlap: recarry start
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+TRAIN HOLD refs/heads/train-hold 4b05abad: the record beat waits
+#2668 recarry START (branch fix/r10-fly-no-footers-push-paths)
+#2668 recarry: main merged, head c412d18a; app_push: RECARRY: prepr SKIPPED: HEAD c412d18a is the clean merge of the live head 9ef0633b and origin/main's d7cb6350, and the body is the live one
+serial: #2668
+TRAIN HOLD refs/heads/train-hold 10746276: the record beat waits
+beat: waiting CI at c412d18a (poll 2, t+242s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold 8e25b8c7: the record beat waits
+beat: waiting CI at c412d18a (poll 3, t+485s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold a76e0638: the record beat waits
+beat: waiting CI at c412d18a (poll 4, t+728s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold e84fcc7a: the record beat waits
+beat: waiting CI at c412d18a (poll 5, t+970s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 2c10838d: the record beat waits
+beat: waiting CI at c412d18a (poll 6, t+1212s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold ae96bb0e: the record beat waits
+#2668 c412d18a ci red=[]
+#2668 approved (app)
+#2668 MERGED 25816d5eb50d285c0c94261223e5e0b2b3380759
+#2668 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s5/train/run8/wt/2668 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s5/train/run8/wt/2668' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T20:42:23Z

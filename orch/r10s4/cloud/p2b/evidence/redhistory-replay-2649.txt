@@ -1,0 +1,3 @@
+raw #2649 check-runs (probe-layout names): reds=["pr-contract"]
+same, pr-contract under its P2b name: reds=[]
+null: plus a unit red at the same head: reds=["tests / fast (3.14)"]

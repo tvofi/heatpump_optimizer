@@ -1,0 +1,3 @@
+app_push: RECARRY: prepr RUNS: the body file is not the live pull-request body
+app_push: PUSHED 0b9431baec2ff7b57dceadf6ed5ef56da1d25a25 to tvofi/heatpump_optimizer:fix/r10-currency as the App; pull request #2620 is open at 0b9431baec2ff7b57dceadf6ed5ef56da1d25a25 with the body read back: 
+RESULT pr=2620 head=0b9431baec2ff7b57dceadf6ed5ef56da1d25a25

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/notifier.py:async_setup_notifier._on_update GUARD_OFF 31af90bf",
+  "killed_by": "tests/features.py",
+  "old": "        if coordinator.data is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

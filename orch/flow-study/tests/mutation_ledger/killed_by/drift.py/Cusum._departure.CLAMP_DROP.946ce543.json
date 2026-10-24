@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum._departure CLAMP_DROP 946ce543",
+  "killed_by": "tests/features.py",
+  "old": "            max(0.0, utc_elapsed_seconds(when, self.last_fed) / 3600.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cb93535d88a9fcf7ba5a8eb0ec66d8be116e672b: CLAMP_DROP (`(0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

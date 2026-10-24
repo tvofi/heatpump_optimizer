@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_action BOOLOP bb3f033b",
+  "killed_by": "tests/features.py",
+  "old": "        if switch_entity and not skip_off:",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: BOOLOP (`if switch_entity or not skip_off:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Carry destination for round 9's stages covering #1655, from F4.2 and F2.3.",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job). F4.2's carry to the",
+    "coordinator.py stage that seeds the sysid free-heat prior was consumed by",
+    "round-9 F1.7, which seeds it in sysid.arm from the learned profile and extends",
+    "the R9-P5 gains axis to (0.4, 0.8) kW. F2.3's carry below binds any later stage",
+    "that sub-steps the sysid candidate rollout; F1.7 does not."
+  ],
+  "issue": 1655,
+  "stage": "any later stage that sub-steps the sysid candidate rollout (D7-s2-01); the prior-seeding stage this file first named was round-9 F1.7",
+  "carries": [
+    {
+      "from": "the pull request that lands round 9's F2.3 (roster group R9-F2.3: fixes #1671, part of #1644 and #1645) -- the plant model's coupled Euler guard, the coil debit on the tank's draw scale, the settle-up ends and the single inlet default",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control. The plant's sub-step rule used to judge each store's own conductance-to-mass ratio against 1.5; for coupled stores that lets the step matrix reach an eigenvalue near 3. The round-9 finder harness tools/audit/round9/D2/s1/m1_stability.py (evidence commit 79aa98ec) counted grid configurations inside the config-flow ranges that leave the passive envelope: non-zero at F2.3's merge base, zero at its head, and zero at the base too under its own ratio-1 perturbation, which is the control. F2.3's head judges every row of the coupled step matrix (loss plus every coupling, plus a throttled valve's emitter conductance in the upper-zone, slab and buffer rows) against `EULER_MONOTONE_MAX_RATIO` in `ThermalModel._stability_substeps`; tests/features.py's R9-F2.3 block pins the envelope and a non-negative sub-step matrix per case, each failing at the merge base.",
+      "remeasure": "Do not trust this entry's figures: they are measured at F2.3's head. Read `ThermalModel._stability_substeps` in custom_components/heatpump_optimizer/thermal_model.py at your merge base, and re-run tests/features.py's R9-F2.3 section.",
+      "brief": "If this stage sub-steps the sysid candidate rollout (D7-s2-01), take the sub-step count from the plant's own `ThermalModel._stability_substeps`, or reproduce its row rule exactly; do not re-derive a per-store ratio at 1.5, which is the rule F2.3 refuted: the finder's single-zone point (house and slab mass 0.5, slab transfer 5.0) diverges under it. A rollout that sub-steps differently from the plant it is fitted against re-introduces the integrator mismatch the stage exists to remove."
+    }
+  ]
+}

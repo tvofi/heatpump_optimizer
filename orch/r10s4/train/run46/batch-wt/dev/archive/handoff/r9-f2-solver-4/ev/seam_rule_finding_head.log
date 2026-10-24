@@ -1,0 +1,2 @@
+### seam_rule_finding
+custom_components/heatpump_optimizer/thermal_model.py:1161:    return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)

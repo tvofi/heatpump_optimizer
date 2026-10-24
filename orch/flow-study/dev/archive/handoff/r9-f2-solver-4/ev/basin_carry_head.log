@@ -1,0 +1,3 @@
+everything_on              cost=59.254608 starts=5 min_temp=17.0 deg_steps=0.578119 {'room_temp_trajectory': 0.0, 'upper_temp_trajectory': 0.578119, 'lower_temp_trajectory': 0.0} on_true=68/96 plan_sha1=2e023086a7bbff0f6a1bb0517506c3dfb6b7f4ef
+winter_two_zone_no_dhw     cost=58.851802 starts=4 min_temp=17.0 deg_steps=0.855744 {'room_temp_trajectory': 0.0, 'upper_temp_trajectory': 0.855744, 'lower_temp_trajectory': 0.0} on_true=63/96 plan_sha1=cdb56eb16a69c43cb82bb07ecc97175ece31e1fd
+shoulder                   cost=3.782815 starts=6 min_temp=17.0 deg_steps=0.000000 {'room_temp_trajectory': 0.0, 'upper_temp_trajectory': 0.0, 'lower_temp_trajectory': 0.0} on_true=55/96 plan_sha1=8baabfecb541f141915435fec0594ed81d64165d

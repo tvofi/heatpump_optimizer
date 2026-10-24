@@ -1,0 +1,6 @@
+===== daemonize pid=5672 2026-10-24T09:38:17Z argv: bash tools/audit/seat/open_pr.sh r10-flow-autotrain acdc10b22e018087626b0d545c22cf8e99965b97 R10 flow autotrain flow-autotrain
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+  REFUSE   agreement lane         agreement_py restore: 18 closure file(s), 14 covered by the wave-script restore list, 4 missing
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 50af6174f53c -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-flow-autotrain/p1.log

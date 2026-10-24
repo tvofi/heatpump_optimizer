@@ -1,0 +1,38 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run11/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run11 pid=55075 start=2026-10-23T22:46:12Z
+BATCH 20261023-224612 pid=55108 base=main queue=1 (#2671) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 774d4e79: the record beat waits
+BOT #2676 MERGED f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c
+OVERLAP: main at f8cc41ab0dc2 is still running (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+#2671 serial: grader, workflow
+OVERLAP: recarrying #2671 up front, their pull_request runs fire together
+#2671 overlap: recarry start
+TRAIN HOLD refs/heads/train-hold 9481bd91: the record beat waits
+#2671 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-orch-ledger held fix/r10-orch-ledger, clean at origin/fix/r10-orch-ledger; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-orch-ledger switch fix/r10-orch-ledger)
+#2671 recarry START (branch fix/r10-orch-ledger)
+#2671 recarry: main merged, head f51e5f74; app_push: RECARRY: prepr SKIPPED: HEAD f51e5f74 is the clean merge of the live head 5c640992 and origin/main's f8cc41ab, and the body is the live one
+serial: #2671
+TRAIN HOLD refs/heads/train-hold 38db5270: the record beat waits
+beat: waiting CI at f51e5f74 (poll 2, t+242s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold 9ac14cf3: the record beat waits
+beat: waiting CI at f51e5f74 (poll 3, t+484s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 55a857b2: the record beat waits
+beat: waiting CI at f51e5f74 (poll 4, t+726s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold f45192d3: the record beat waits
+beat: waiting CI at f51e5f74 (poll 5, t+968s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 7797f0ce: the record beat waits
+beat: waiting CI at f51e5f74 (poll 6, t+1210s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 2b658a19: the record beat waits
+beat: waiting CI at f51e5f74 (poll 7, t+1452s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 507acfc5: the record beat waits
+beat: waiting CI at f51e5f74 (poll 8, t+1694s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 46cf547d: the record beat waits
+#2671 f51e5f74 ci red=[]
+#2671 approved (mandate)
+#2671 MERGED 6120fb5138dccca84a5f5ca1e8bd3ef8487a1efa
+#2671 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s5/train/run11/wt/2671 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s5/train/run11/wt/2671' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T23:20:23Z

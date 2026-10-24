@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:_parse_cyclic_range RETURN_DEL aa9b5919",
+  "killed_by": "tests/features.py",
+  "old": "    return frozenset({value})",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

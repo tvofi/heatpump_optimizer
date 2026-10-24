@@ -1,0 +1,147 @@
+# routing-ops-1: roster_edit.py ops from routing-decisions-1.md (routing audit 1, 2026-10-24).
+# Run from a checkout of main at the repository root, against origin/handoff/audit-r10-roster as roster_edit.py
+# resolves it. Not applied. Carry text lives in the @files; new groups in groups/*.json.
+
+# --- 1. New groups whose issue already exists (invariants 1 and 3) ---
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ADVISOR-RESIDUE.json
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-RESTORE-RACE-PROBE.json
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-BRIEFS-FOLD-D0.json
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-REPLAY-REAL-DAY.json
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ARCHSCORE-SPELLINGS.json
+
+# --- 2. Re-home NOT IMPLEMENTED carries to live groups (invariant 1) ---
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--056ddbd0.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--8c6a3e6f.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-JIDOKA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-JIDOKA--9728f4d0.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--17086c62.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-RECORD-PITCH @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-RECORD-PITCH--6635e3d7.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-TOOLKIT-MODEL @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-TOOLKIT-MODEL--a6edee9d.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--dbae61eb.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLY-CLOUD-SETUP-TOOLCHAIN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-CLOUD-SETUP-TOOLCHAIN--6d4f5c52.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLY-GH-READ-RETRY @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLY-GH-READ-RETRY--bb2965c2.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-MERGE-SUBJECT-HARDEN @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-MERGE-SUBJECT-HARDEN--f09dc4ca.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-BEATD @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-BEATD--cdd7283c.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--8ab071b4.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-DISPATCH-REG @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-DISPATCH-REG--9a2082ce.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-LEDGER @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-LEDGER--6bec0b0a.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--3b97e1aa.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-ORCH-ROSTER-SCHEMA @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-ORCH-ROSTER-SCHEMA--7f85b089.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--631f8640.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-RCA-FRICTION-RESIDUE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-RCA-FRICTION-RESIDUE--76e30be3.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-TRAIN-OVERLAP-GRADE @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-TRAIN-OVERLAP-GRADE--6fb50ac5.txt
+python3 tools/audit/seat/roster_edit.py append-carry R10-UPDATE-PR-SIGNALS @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-UPDATE-PR-SIGNALS--01ce8b81.txt
+
+# --- 3. Wire an existing open issue to a live group with none (invariant 2; also covers #2235 and #2271 for invariant 3) ---
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-JIDOKA 2428
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-CARRY-DISPOSITION 2428
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-ROSTER-FREEZE 2389
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-BODY-ONLY 2389
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-ROW-HEAD-CARRY 2389
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-CARRY-DOC-CONTEXT 2389
+python3 tools/audit/seat/roster_edit.py wire-issue R10-STRUCTURE-ALIAS 2235
+python3 tools/audit/seat/roster_edit.py wire-issue R10-DIAG-REDACT 2271
+
+# --- 4. Absorb R10-FLY-CAP-LINE into R10-FLOW-WIP (same seam; avoids a one-line issue) ---
+python3 tools/audit/seat/roster_edit.py append-carry R10-FLOW-WIP @/Users/timmalmstrom/hpo-orch/r10s6/routing-carries-1/R10-FLOW-WIP--capline.txt
+python3 tools/audit/seat/roster_edit.py set-stage R10-FLY-CAP-LINE done
+python3 tools/audit/seat/roster_edit.py set-resume R10-FLY-CAP-LINE --field note 'absorbed into R10-FLOW-WIP by routing audit 1 (2026-10-24); brief and carry moved there'
+
+# --- 5. Not roster ops: DELIVERED issues to close by hand, each with a comment naming the PR (gh_comment.py, read back) ---
+# close #2250: delivered by #2612 (merged 008ad15); see routing-decisions-1.md section C
+# close #2252: delivered by #2435 (merged 05c39d3); see routing-decisions-1.md section C
+# close #2258: delivered by #2647 (merged 14405df); see routing-decisions-1.md section C
+# close #2265: delivered by #2390 (merged a96f4be); see routing-decisions-1.md section C
+# close #2298: delivered by #2521 (merged 92b5bf4); see routing-decisions-1.md section C
+# close #2410: delivered by #2669 (merged 5c9828f); see routing-decisions-1.md section C
+# close #2496: delivered by #2513 (merged 929275e); see routing-decisions-1.md section C
+# #2674's carry file is on main only: the roster branch lacks dev/programme/carries/carry-2674.json; sync the roster branch from main (roster_sync) before section 1's R10-RESTORE-RACE-PROBE append-group is reviewed.
+
+# --- 6. Ops that need an issue created first (invariant 2). Each section creates its issue, then wires it. ---
+
+# NEEDS ISSUE Lean flow study: mechanise the flow board, merge pitch, post-merge beat, caps and projection model
+N_LEAN_FLOW_STUDY=$(gh issue create --repo tvofi/heatpump_optimizer --title "Lean flow study: mechanise the flow board, merge pitch, post-merge beat, caps and projection model" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/lean-flow-study.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-BOARD "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-MQ-PROBE "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-POSTMERGE "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-RECORD-PITCH "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-WIP "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-AUTOTRAIN "$N_LEAN_FLOW_STUDY"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-TOOLKIT-MODEL "$N_LEAN_FLOW_STUDY"
+
+# NEEDS ISSUE Round-11 readiness: the P3 plan workflow and the audit programme playbook
+N_ROUND11_READINESS=$(gh issue create --repo tvofi/heatpump_optimizer --title "Round-11 readiness: the P3 plan workflow and the audit programme playbook" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/round11-readiness.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-AUDIT-PLAN "$N_ROUND11_READINESS"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-ROUND-PLAYBOOK "$N_ROUND11_READINESS"
+
+# NEEDS ISSUE Seat context cost: a script-built review packet and a per-role policy pack
+N_SEAT_CONTEXT_COST=$(gh issue create --repo tvofi/heatpump_optimizer --title "Seat context cost: a script-built review packet and a per-role policy pack" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/seat-context-cost.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-ORCH-REVIEW-PACKET "$N_SEAT_CONTEXT_COST"
+python3 tools/audit/seat/roster_edit.py wire-issue R10-POLICY-ROLE-PACK "$N_SEAT_CONTEXT_COST"
+
+# NEEDS ISSUE Mechanise the design and design-review stages in the roster, the bus and the tick
+N_DESIGN_STAGES=$(gh issue create --repo tvofi/heatpump_optimizer --title "Mechanise the design and design-review stages in the roster, the bus and the tick" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/design-stages.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-DESIGN-STAGES "$N_DESIGN_STAGES"
+
+# NEEDS ISSUE open_pr.sh can leave a pull request with no delivery row
+N_OPENPR_ATOMIC=$(gh issue create --repo tvofi/heatpump_optimizer --title "open_pr.sh can leave a pull request with no delivery row" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/openpr-atomic.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-OPENPR-ATOMIC "$N_OPENPR_ATOMIC"
+
+# NEEDS ISSUE cloud_relay.sh: review/<N> pushes refused as non-fast-forward, and transient push failures, are never retried
+N_RELAY_REVIEW_FF=$(gh issue create --repo tvofi/heatpump_optimizer --title "cloud_relay.sh: review/<N> pushes refused as non-fast-forward, and transient push failures, are never retried" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/relay-review-ff.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-RELAY-REVIEW-FF "$N_RELAY_REVIEW_FF"
+
+# NEEDS ISSUE bus.sh orphans reports landed-rewritten handoffs as stranded
+N_ORPHANS_REWRITTEN=$(gh issue create --repo tvofi/heatpump_optimizer --title "bus.sh orphans reports landed-rewritten handoffs as stranded" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/orphans-rewritten.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-ORPHANS-REWRITTEN "$N_ORPHANS_REWRITTEN"
+
+# NEEDS ISSUE Dependabot alerts stay open on patched pins: the dependency graph stopped updating after 2026-10-03
+N_DEPGRAPH_STALE=$(gh issue create --repo tvofi/heatpump_optimizer --title "Dependabot alerts stay open on patched pins: the dependency graph stopped updating after 2026-10-03" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/depgraph-stale.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-DEPGRAPH-STALE "$N_DEPGRAPH_STALE"
+
+# NEEDS ISSUE stamp.py cannot check release notes before the stamp
+N_STAMP_CHECK_NOTES=$(gh issue create --repo tvofi/heatpump_optimizer --title "stamp.py cannot check release notes before the stamp" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/stamp-check-notes.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-STAMP-CHECK-NOTES "$N_STAMP_CHECK_NOTES"
+
+# NEEDS ISSUE gh_comment.py does not refuse an owner comment that pairs a revoke word with a mandate id
+N_MANDATE_REVOKE_GUARD=$(gh issue create --repo tvofi/heatpump_optimizer --title "gh_comment.py does not refuse an owner comment that pairs a revoke word with a mandate id" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/mandate-revoke-guard.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-MANDATE-REVOKE-GUARD "$N_MANDATE_REVOKE_GUARD"
+
+# NEEDS ISSUE merge_train.py batch --overlap merges onto a tree no CI checked
+N_TRAIN_OVERLAP_GRADE=$(gh issue create --repo tvofi/heatpump_optimizer --title "merge_train.py batch --overlap merges onto a tree no CI checked" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/train-overlap-grade.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-TRAIN-OVERLAP-GRADE "$N_TRAIN_OVERLAP_GRADE"
+
+# NEEDS ISSUE Nightly heartbeat lane: py-spy hangs per process, leaving the stable lane's false-red rate near 6.7 %
+N_NIGHTLY_HB_RESPAWN=$(gh issue create --repo tvofi/heatpump_optimizer --title "Nightly heartbeat lane: py-spy hangs per process, leaving the stable lane's false-red rate near 6.7 %" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/nightly-hb-respawn.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-NIGHTLY-HB-RESPAWN "$N_NIGHTLY_HB_RESPAWN"
+
+# NEEDS ISSUE prune_refs.py spends one REST write per ref and would delete live session and design refs
+N_PRUNE_REFS=$(gh issue create --repo tvofi/heatpump_optimizer --title "prune_refs.py spends one REST write per ref and would delete live session and design refs" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/prune-refs.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-PRUNE-REFS "$N_PRUNE_REFS"
+
+# NEEDS ISSUE Round-10 closeout: drive branches, worktrees and refs down before the closure stamp
+N_CLOSEOUT_CLEANUP=$(gh issue create --repo tvofi/heatpump_optimizer --title "Round-10 closeout: drive branches, worktrees and refs down before the closure stamp" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/closeout-cleanup.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-CLOSEOUT-CLEANUP "$N_CLOSEOUT_CLEANUP"
+
+# NEEDS ISSUE Immersion energy booked on an install with no immersion element
+N_IMMERSION_LATCH=$(gh issue create --repo tvofi/heatpump_optimizer --title "Immersion energy booked on an install with no immersion element" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/immersion-latch.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-IMMERSION-LATCH "$N_IMMERSION_LATCH"
+
+# NEEDS ISSUE Suite determinism: features.py under HASTUB_TZ and coverage_tree's descendant race
+N_SUITE_ENV_FLAKES=$(gh issue create --repo tvofi/heatpump_optimizer --title "Suite determinism: features.py under HASTUB_TZ and coverage_tree's descendant race" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/suite-env-flakes.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-SUITE-ENV-FLAKES "$N_SUITE_ENV_FLAKES"
+python3 tools/audit/seat/roster_edit.py set-stage R10-FLY-SUITE-ENV-FLAKES carries-open
+
+# NEEDS ISSUE GitHub reads the retry barrier did not reach: pr-contract's body read and git transport
+N_GH_READ_RESIDUE=$(gh issue create --repo tvofi/heatpump_optimizer --title "GitHub reads the retry barrier did not reach: pr-contract's body read and git transport" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/gh-read-residue.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-GH-READ-RETRY "$N_GH_READ_RESIDUE"
+python3 tools/audit/seat/roster_edit.py set-stage R10-FLY-GH-READ-RETRY carries-open
+
+# NEEDS ISSUE field_coverage.mjs keeps attribution in both pending and ignore
+N_NO_FOOTERS_STRICT=$(gh issue create --repo tvofi/heatpump_optimizer --title "field_coverage.mjs keeps attribution in both pending and ignore" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/no-footers-strict.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-NO-FOOTERS "$N_NO_FOOTERS_STRICT"
+python3 tools/audit/seat/roster_edit.py set-stage R10-FLY-NO-FOOTERS carries-open
+
+# NEEDS ISSUE Routing invariants: every carry, roster group and open issue has a live owner, checked in CI and the tick
+N_ROUTING_INVARIANTS=$(gh issue create --repo tvofi/heatpump_optimizer --title "Routing invariants: every carry, roster group and open issue has a live owner, checked in CI and the tick" --body-file /Users/timmalmstrom/hpo-orch/r10s6/routing-issues-1/routing-invariants.md | sed 's#.*/##')
+python3 tools/audit/seat/roster_edit.py append-group /Users/timmalmstrom/hpo-orch/r10s6/groups/R10-ROUTING-INVARIANTS.json
+python3 tools/audit/seat/roster_edit.py wire-issue R10-ROUTING-INVARIANTS "$N_ROUTING_INVARIANTS"

@@ -1,0 +1,187 @@
+2026-10-24T07:48:31Z | #2609 | confirm-owed: verdict refused, PR closed; re-scope or drop the review/2609 verdict | -> OWED confirm-owed refs/heads/review/2609 db41f858 tries=1/3: BUS refused 2609: pull request #2609 is closed
+2026-10-24T07:48:31Z | handoff/orch-machinery | stranded 91h, no body ref; dispatch or body decision | OWNER FLAG ? refs/heads/handoff/orch-machinery 09174d94e24f stranded 91.1h
+2026-10-24T07:48:31Z | R10-REPLAY-LANE | stranded 87.5h, no code ref; dispatch | OWNER FLAG R10-REPLAY-LANE refs/heads/handoff-body/r10-replay-lane bb50912b4836 stranded 87.5h
+2026-10-24T07:48:31Z | handoff/audit-r10-roster-stages | stranded 64h, no body ref | OWNER FLAG ? refs/heads/handoff/audit-r10-roster-stages 7f28b1bb80ed stranded 64.0h
+2026-10-24T07:48:31Z | handoff-body/r10-rca-raise-gate-grammar | stranded 20.6h, no code ref; dispatch | OWNER FLAG ? refs/heads/handoff-body/r10-rca-raise-gate-grammar 2eadf9061e85 stranded 20.6h
+2026-10-24T07:48:31Z | handoff-body/r10-rca-body-check-parity | stranded 18h, no code ref; dispatch | OWNER FLAG ? refs/heads/handoff-body/r10-rca-body-check-parity 4fd3eef16dbc stranded 18.0h
+2026-10-24T07:48:31Z | audit-r10-roster 93007df25c20 | OWED handoff: open_pr.sh (opener) or human decision | OWED handoff: audit-r10-roster 93007df25c20 5.1h uncovered=58 repair=opener
+2026-10-24T07:48:31Z | main state docs | record beat owed: state_docs.py --push + #201 comment for 10 merges, main 50af6174f53c | record beat owed: state_docs.py --push + #201 comment for 50af6174f53c ... 6120fb5138dc
+2026-10-24T07:48:31Z | HANDOVER | updated-for 0cc148b2f80f is 1972 commits behind origin/main | HANDOVER updated-for 0cc148b2f80f is 1972 commit(s) behind origin/main
+2026-10-24T07:48:31Z | owner disposition | 34 groups blocked on owner disposition; oldest issue #2273 8d old; #2674 needs scheduled/deferred/refused | 34 group(s) blocked on owner disposition; oldest issue #2273 is 8d old; disposition #2674
+2026-10-24T07:48:31Z | UNBLOCKED not started (32 groups) | start a fixer on each handoff branch | config-notices, replay-scoped, policy-fixer-md, policy-gate-scoping, rca-headmoved, sav-comfort, mutation-anchor, merge-subject-harden, ceiling-probe, card-voice, learner-default, mutant-skip, flow-board, flow-design-stages, flow-postmerge, flow-roster-freeze, flow-wip, flow-autotrain, flow-audit-plan, fly-cap-line, fly-carry-doc-context, fly-stamp-check-notes, fly-mandate-revoke-guard, fly-prune-refs, orch-roster-schema, fly-worktree-gc, fly-daemonize-argv, fly-cipredict-layout, fly-cloud-setup-toolchain, fly-yield-guard, fly-envmatrix-noremote, structure-alias | -> <group>: UNBLOCKED, not started -- start a fixer on handoff/<group>
+2026-10-24T07:57:54Z | handoff-body/r10-triage-s6-batch1 | NEW handoff-body ref; orchestrator to dispatch or record its body | NEW ls-remote refs/heads/handoff-body/r10-triage-s6-batch1 c702c2d434787ebcd03bca8429e0c6e6d214fe38
+2026-10-24T07:57:54Z | tick-loop | tick-loop stale: tick.txt 730s old before the 07:57:44Z pass; recovered | tick.txt mtime 07:45:29Z until TICK-PASS 07:57:44Z
+2026-10-24T08:06:59Z | probe/rev-2683-fae76273 | NEW probe ref; orchestrator to dispatch or record | NEW ls-remote refs/heads/probe/rev-2683-fae76273 5a68dc3fe76c05191e2a68bd24d4fadf8c7a9934
+2026-10-24T08:06:59Z | R10-MUTATION-ANCHOR | roster next_step push REFUSED rc=2 (HEAD 83f08436 on no origin ref; edit would be lost); orchestrator to push or re-run set-resume | roster-report: set-resume R10-MUTATION-ANCHOR next_step refused rc=2
+2026-10-24T08:06:59Z | r10-triage-s6-batch1 | TRIAGE-HANDOFF: P43 ACCEPT needs ROSTER-OP append-carry R10-FLY-CARRY-DISPOSITION (orchestrator runs it); P42 and P44 DEFER | triage-report.txt TRIAGE-HANDOFF r10-triage-s6-batch1 8844c2e9 c702c2d4
+2026-10-24T08:06:59Z | main red diagnosis | widened: grade step, not artifacts fetch; fix PR must cover both | to-main.txt NOTE r10-ci-ratchet-artifacts 07:48:54Z
+2026-10-24T08:14:32Z | r10s5 state-beat | NEW state-beat down: roster_sync Traceback, r10s5 orch-wt missing (count 15 to 16) | state-beat.log: roster_edit.Refuse fetch failed, cannot change to /Users/timmalmstrom/hpo-seats/r10s5/orch-wt
+2026-10-24T08:14:32Z | handoff-body/r10-triage-s6-batch2 | NEW triage handoff f0b13a7c; P49 ROSTER-OP append-carry R10-FLOW-RECORD-PITCH and P45/P46/P51 ROSTER-OP append-carry R10-ORCH-BEATD for the orchestrator; P50 REJECT | triage-report TRIAGE-HANDOFF r10-triage-s6-batch2 1dc67949 f0b13a7c
+2026-10-24T08:14:32Z | probe/rev-2688-c39b48f6 | NEW probe ref 16c3c52b; orchestrator to dispatch or record | ls-remote refs/heads/probe/rev-2688-c39b48f6 16c3c52b19c3ab7d89f90737456d211cbe8ec1c9
+2026-10-24T08:14:32Z | #2688 | verdict b451bde0c queued after #2683, held: main still red | merge-report 08:12:56Z
+2026-10-24T08:14:32Z | probe/rev-2683-fae76273 | relay refused rc=1 try 1 of 3 at 08:04:12Z, retry next pass | tick-loop.log cloud_relay line
+2026-10-24T08:15:16Z | coordinator ruling | state-beat now read from r10s6/state-beat.log (pid 54912); #2683 and #2688 verdicts POSTED so probe-ref relay refusals are duplicates (suppressed); triage roster ops HELD until ruling files are on main
+2026-10-24T08:23:09Z | handoff-body/r10-ci-ratchet-artifacts | NEW handoff-body ref 5ef9a6f5 (main-red hotfix topic, already in flight); dispatch or review | ls-remote refs/heads/handoff-body/r10-ci-ratchet-artifacts 5ef9a6f57641bdd9ce611ac19b499a6b86182522
+2026-10-24T08:23:09Z | probe/rev-2689-90b38f9f | NEW probe ref fca6c83b; orchestrator to dispatch or record | ls-remote refs/heads/probe/rev-2689-90b38f9f fca6c83bf7c6057c8ada3c7f5789437df12933c2
+2026-10-24T08:23:09Z | handoff/r10-rca-prepr-bounce | STRANDED-OWED: RCA doc absent from main, cited by body_push.sh:17, INSTRUMENTS.md:127, bugclasses.json:2336; handoff ref 5fa9ffce | to-main.txt STRANDED-OWED line 08:2x
+2026-10-24T08:23:09Z | r10-demand-overbook | ACK: residual carry R10-UX-HEALTH; roster carry line is the orchestrator's | to-main.txt ACK line
+2026-10-24T08:31:45Z | handoff-body/r10-merge-subject-harden | NEW handoff-body ref a3ce4894; dispatch or record | ls-remote refs/heads/handoff-body/r10-merge-subject-harden a3ce4894b61aad48af714c78a16be148c3b8db56
+2026-10-24T08:31:45Z | handoff-body/r10-replay-scoped | NEW handoff-body ref bf471f87; dispatch or record | ls-remote refs/heads/handoff-body/r10-replay-scoped bf471f87c0f82732060be2ed39cabb815858e1fd
+2026-10-24T08:31:45Z | r10-ci-ratchet-artifacts | HANDOFF recorded 078fb5a7 -> 5ef9a6f5 (hotfix topic); dispatch review | to-main.txt HANDOFF line
+2026-10-24T08:41:36Z | handoff-body/r10-demand-overbook | NEW handoff-body ref 4604f4a3; dispatch or record | ls-remote refs/heads/handoff-body/r10-demand-overbook 4604f4a3271e51cc93f48903831f101bf6a663e2
+2026-10-24T08:41:36Z | handoff-body/r10-rca-ci-ratchet-run-name | NEW handoff-body ref 976050aa; dispatch or record | ls-remote refs/heads/handoff-body/r10-rca-ci-ratchet-run-name 976050aaacc3ca118d385449318bf1e2e7f6150f
+2026-10-24T08:41:36Z | handoff-body/r10-rca-strand | NEW handoff-body ref a5fd2ca8; dispatch or record | ls-remote refs/heads/handoff-body/r10-rca-strand a5fd2ca80c018ae25e7704c9807f395083d1beff
+2026-10-24T08:41:36Z | handoff-body/r10-triage-s6-batch2 | MOVED f0b13a7c -> cffd95fe; triage roster ops still held | ls-remote refs/heads/handoff-body/r10-triage-s6-batch2 cffd95fecc86ebe5cc6138f1e2138220502156d6
+2026-10-24T08:41:36Z | P52 | triage verdict REJECT barrier; ask the RCA seat for a bugclasses.json row R10-RCA-CI-RATCHET-RUN-NAME on its own PR before merge | triage-report.txt P52 registration line
+2026-10-24T08:53:32Z | handoff-body/r10-policy-gate-scoping | NEW handoff-body ref 30473f74; dispatch or record | ls-remote refs/heads/handoff-body/r10-policy-gate-scoping 30473f74b4a828f5107d031a2f44b9428baefbac
+2026-10-24T08:53:32Z | handoff-body/r10-rca-ci-ratchet-run-name | MOVED 976050aa -> 5659eaf6; dispatch or record | ls-remote
+2026-10-24T08:53:32Z | handoff-body/r10-triage-s6-batch1 | MOVED c702c2d4 -> e4895d4c; triage roster ops held | ls-remote
+2026-10-24T08:53:32Z | handoff-body/r10-triage-s6-batch2 | MOVED cffd95fe -> 42bb34be; triage roster ops held | ls-remote
+2026-10-24T08:53:32Z | #2688 | ref_privacy red until batch1 body is updated (host-path fix) | triage-report.txt batch1 line
+2026-10-24T08:53:32Z | r10-codeql-dependabot D2 | DECISION-OWED: remove two stale code-scanning configs; deletes analyses (irreversible), owner decides | to-main.txt DECISION-OWED D2
+2026-10-24T08:53:32Z | r10-codeql-dependabot D3 | DECISION-OWED: drop codeql.yml weekly schedule (recommended) or keep; owner decides | to-main.txt DECISION-OWED D3
+2026-10-24T08:53:42Z | coordinator ruling | pass-9 items 1-7 handled: 1,3,4,5 queued to dispatch seat; 2 RCA seat repairing; D3 schedule dropped; D2 with tvofi by hand. Suppressed.
+2026-10-24T09:05:05Z | handoff-body/r10-config-notices | NEW handoff-body ref 6b6c156e; dispatch or record | ls-remote refs/heads/handoff-body/r10-config-notices 6b6c156ec7cd9ac1e0c829e3008000b28e5a5b59
+2026-10-24T09:05:05Z | handoff-body/r10-demand-overbook | MOVED 4604f4a3 -> a7a683d1 (HANDOFF d6ab12b4); dispatch or record | ls-remote refs/heads/handoff-body/r10-demand-overbook a7a683d1fcb48a76e34908cfbc59f2677eb6f04e
+2026-10-24T09:05:05Z | R10-UX-HEALTH residuals | PLACE-RESIDUALS refused: orchestrator must name the target group per residual (a)(b)(c) as append-carry lines; append-carry R10-UX-HEALTH pushed 4bdb4c470 | roster-report.txt
+2026-10-24T09:05:05Z | dev/audit/harnesses/r10_demand_overbook.py | not on origin/main; lint did not flag it | roster-report.txt append-carry note
+2026-10-24T09:05:19Z | coordinator ruling | pass-10 items handled: config-notices queued to OPEN; demand-overbook body update queued; residuals placed as append-carry LEARNER-DEFAULT, BUFFER-STORE x2; harness lands with the DEMAND-OVERBOOK PR (expected). Suppressed.
+2026-10-24T09:14:31Z | handoff-body/r10-flow-autotrain | NEW handoff-body ref a0a66d2b; dispatch or record | ls-remote refs/heads/handoff-body/r10-flow-autotrain a0a66d2b
+2026-10-24T09:14:31Z | handoff-body/r10-ratio-anchor | NEW handoff-body ref b346a647 (cloud fixer already running); dispatch or record | ls-remote refs/heads/handoff-body/r10-ratio-anchor b346a647
+2026-10-24T09:14:31Z | handoff-body/r10-triage-s6-batch1 | MOVED e4895d4c -> ae6a97c5 (Red checks + code-scanning read added); triage roster ops held | ls-remote
+2026-10-24T09:14:31Z | prestudy-mech | DECISION-OWED: 9 owner cards in /Users/timmalmstrom/hpo-seats/r10s6/prestudy-mech/CARDS.json (top: retire 4 standing seats ~46M IE/day; context ceiling ~45M; event waits ~20M; MQ decision before head-carry builds) | to-main.txt DECISION-OWED prestudy-mech
+2026-10-24T09:14:40Z | coordinator ruling | pass-11 items handled and suppressed: flow-autotrain queued to OPEN; ratio-anchor opening now; #2688 update queued; prestudy cards with tvofi.
+2026-10-24T09:25:15Z | probe/rev-2689-3709b452 | NEW probe ref 16b320f8; dispatch or record | ls-remote refs/heads/probe/rev-2689-3709b452 16b320f8654af428082b73c9b4f2774ee7d1ff5e
+2026-10-24T09:25:15Z | R10-ORCH-REVIEW-PACKET | new group appended 1c142a52c (roster append-group) | roster-report.txt
+2026-10-24T09:25:15Z | prestudy-mech card 4 | DECISION-OWED: TRAIN-OVERLAP-GRADE barrier held behind MQ-PROBE; recommended keep edge, release if owner declines | with tvofi per ruling; to-main.txt
+2026-10-24T09:25:15Z | prestudy-mech card 1 | DECISION-OWED: which beat job takes dispatch-at-push (bus.sh dispatch) after relay retires; standing-dispatch.md | with tvofi per ruling; to-main.txt
+2026-10-24T09:25:28Z | coordinator ruling | pass-12: items 3 and 4 ruled and suppressed (TRAIN-OVERLAP-GRADE edge dropped; dispatch half moves to R10-ORCH-DISPATCH-REG beat job); item 2 informational; item 1 (probe/rev-2689 verdict) is the coordinator's.
+2026-10-24T09:35:32Z | handoff-body/r10-policy-fixer-md | NEW handoff-body ref 3045badb; dispatch or record | ls-remote refs/heads/handoff-body/r10-policy-fixer-md 3045badb0be4a70aa21bb09c0871ef35018a13d5
+2026-10-24T09:35:32Z | handoff-body/r10-triage-s6-batch2 | MOVED 42bb34be -> 12560224; triage roster ops held | ls-remote
+2026-10-24T09:35:32Z | handoff-body/r10-triage-s6-batch3 | NEW triage handoff ref bae9e5b8; P53 ROSTER-OP append-carry R10-FLY-OPENPR-ATOMIC held until ruling files on main | ls-remote refs/heads/handoff-body/r10-triage-s6-batch3 bae9e5b8eed7b8ced78f5f0042c8706e9ac2f924
+2026-10-24T11:30:43Z | GAP | tick passes 09:36Z-11:25Z not processed: watcher keyed on BOARD line count, tick.txt is overwritten per pass so count stayed 1; watcher ran to its 11:30Z deadline (exit 0, no pass seen) | tick.txt BOARD e8a08cf9 11:25:37Z
+2026-10-24T11:30:43Z | REVIEW OWED | #2678 6ee3e4d4f83b; #2701 344f5fa29e7b | board REVIEW OWED lines (not re-verified against verdict ancestor test)
+2026-10-24T11:30:43Z | confirm-owed | review/2695 176332a22c00c5fa73795ee3e74375d48a20fc83 tries=2/3, poster refused | board OWED 11:17:32Z
+2026-10-24T11:30:43Z | handoff-no-pr | 22 handoff-body/handoff refs lack a PR (oldest r10-replay-lane 1792513027, r10-rca-raise-gate-grammar, r10-rca-body-check-parity); dispatch or record | board OWED 11:25:34Z (capped at 20 of 22)
+2026-10-24T11:30:43Z | main | BOARD origin/main e8a08cf9 at 11:25:37Z; 126 DISPATCH LIST findings; 10 orphans | board
+2026-10-24T11:31:21Z | OWED | #2692 NOT REVIEWABLE at 799830bb: required gate red (pr-contract, tests); back to its fixer, not a reviewer (K15 (d)); also code-owned with no @tvofi review | board PRS 11:25:37Z
+2026-10-24T11:31:21Z | OWED | #2696 NOT REVIEWABLE at b5cf12df (required gate red); code-owned with no @tvofi review at any head | board PRS 11:25:37Z
+2026-10-24T11:31:21Z | OWED | #2700 code-owned with no @tvofi review at any head | board PRS 11:25:37Z
+2026-10-24T11:31:21Z | OWED | #2691 BLOCKED-UNFIXED at 4a81d718 | board PRS 11:25:37Z
+2026-10-24T11:31:21Z | OWED | #2697 BLOCKED-UNFIXED at b4dd1191 | board PRS 11:25:37Z
+2026-10-24T11:31:21Z | NEW | record beat: state_docs.py --push and #201 comment for e8a08cf9efef and the 9 merges since last stamp | board STATE 11:25:37Z
+2026-10-24T11:31:21Z | NEW | 18 groups UNBLOCKED, not started (fixer dispatch owed by orchestrator): R10-ARCH-SHAPES, R10-RCA-HEADMOVED, R10-CEILING-PROBE, R10-CARD-VOICE, R10-LEARNER-DEFAULT, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-POSTMERGE, R10-FLOW-ROSTER-FREEZE, R10-FLOW-WIP, R10-FLOW-AUDIT-PLAN, R10-FLY-CAP-LINE, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-PRUNE-REFS, R10-ORCH-ROSTER-SCHEMA, R10-FLY-WORKTREE-GC, R10-FLY-DAEMONIZE-ARGV | board PLAN 11:25:37Z
+2026-10-24T11:31:21Z | NOTED-NOT-NEW | 22 handoff refs without PR and the OWNER FLAG stranded list are the same refs as the reported 22; not repeated | board 11:25:34Z
+2026-10-24T11:31:21Z | main | BOARD e8a08cf9efef 11:25:37Z; WIP 21/6 at cap; main green; mandate 6329234399 in force | board
+2026-10-24T11:39:40Z | OWED | #2692 NOT REVIEWABLE at 799830bb: gate red; back to its fixer (K15 (d)) | board PRS 11:34:05Z
+2026-10-24T11:39:40Z | OWED | #2696 RED unanswered in ## Red checks: pr-contract; codeql, gate, tests running | board PRS 11:34:05Z
+2026-10-24T11:39:40Z | NEW | handoff refs without PR: handoff/r10-roster-runq e191a706, handoff-body/r10-roster-runq 8950989c, handoff/r10-mutant-skip a7e41d64, handoff-body/r10-mutant-skip 275bfc67 | board OWED 11:33:52Z
+2026-10-24T11:39:40Z | NEW | handoff/r10-codeql-dependabot moved to 5832d8c6 (attempt 11:30:57Z,started); earlier ref 08739929 | board OWED 11:33:52Z
+2026-10-24T11:39:40Z | NOTED-NOT-NEW | #2691, #2697 no longer BLOCKED-UNFIXED at this pass; #2678, #2701, review/2695 excluded per standing list | board
+2026-10-24T11:47:36Z | OWED | #2692 NOT REVIEWABLE at 799830bb (gate red); also code-owned with no @tvofi review | board PRS 11:43:47Z
+2026-10-24T11:47:36Z | OWED | #2696 code-owned with no @tvofi review at any head; its red pr-contract cleared, now GREEN | board PRS 11:43:47Z
+2026-10-24T11:47:36Z | OWED | #2691 BLOCKED-UNFIXED at 4a81d718 | board PRS 11:43:47Z
+2026-10-24T11:47:36Z | OWED | #2697 BLOCKED-UNFIXED at b4dd1191 | board PRS 11:43:47Z
+2026-10-24T11:47:36Z | NOTED-NOT-NEW | #2701 NOT REVIEWABLE (gate red) and #2678/#2701 REVIEW OWED are on the standing exclusion list | board
+2026-10-24T11:47:36Z | UNVERIFIED | handoff-no-pr list at 11:43:47Z has 35 lines; a ref-by-ref diff against the reported set was not completed | board OWED
+2026-10-24T11:55:38Z | OWED | #2692 NOT REVIEWABLE at f4458d21 (gate red, pr-contract RED unanswered); head moved from 799830bb | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | OWED | #2692 code-owned with no @tvofi review at any head | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | OWED | #2696 code-owned with no @tvofi review at any head | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | OWED | #2700 code-owned with no @tvofi review at any head | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | OWED | #2691 BLOCKED-UNFIXED at 4a81d718 | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | OWED | #2697 BLOCKED-UNFIXED at b4dd1191 | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | NEW | #2692 head moved 799830bb -> f4458d21 | board PRS 11:51:59Z
+2026-10-24T11:55:38Z | UNRESOLVED | handoff-no-pr: board lists 36 refs; 22 were reported last window, and this window's log holds only 5 ref lines, so unreported count is up to 14 and not established ref-by-ref | board OWED 11:51:59Z
+2026-10-24T12:01:42Z | NOTE | coordinator: handoff-no-pr resolved; 50 landed plus 7 triaged refs archived as archive/* tags about 11:55Z. Old 36 count retired; next pass reports its new handoff-no-pr count | coordinator message
+2026-10-24T12:03:40Z | COUNT | handoff-no-pr at board 11:59:53Z: 39 lines, not reduced; the archive/* tags from about 11:55Z do not appear to be reflected on this pass | board OWED 11:59:37Z
+2026-10-24T12:03:40Z | OWED | #2692 NOT REVIEWABLE at f4458d21 (gate red); #2692, #2696, #2700 no @tvofi review; #2691, #2697 BLOCKED-UNFIXED lines still present though both are GREEN | board PRS 11:59:53Z
+2026-10-24T12:13:41Z | NEW | #2702 appears: NOT REVIEWABLE at 9fb02780 (gate red, RED unanswered in ## Red checks: gate); REVIEW OWED 9fb027801a46 also listed, which conflicts with the gate-red line | board PRS 12:09:04Z
+2026-10-24T12:13:41Z | OWED | #2692 NOT REVIEWABLE at f4458d21 (gate red); #2692, #2696, #2700 no @tvofi review; #2691, #2697 BLOCKED-UNFIXED | board PRS 12:09:04Z
+2026-10-24T12:13:41Z | COUNT | handoff-no-pr OWED: 39 (code 16, body 23), unchanged | board OWED 12:09:04Z
+2026-10-24T12:13:41Z | NOTE | origin/main moved e8a08cf9 -> ac5788f2 | board
+2026-10-24T12:21:43Z | COUNT | handoff-no-pr OWED: 29 (code 14, body 15), down from 39 at 12:09:04Z after the archive/* tags | board OWED 12:18:18Z
+2026-10-24T12:21:43Z | NEW | #2696 BLOCKED-UNFIXED at b5cf12df | board PRS 12:18:18Z
+2026-10-24T12:21:43Z | OWED | #2692 NOT REVIEWABLE at f4458d21 (gate red, now RUN); #2692, #2696, #2700 no @tvofi review; #2702 NOT REVIEWABLE at 9fb02780 and REVIEW OWED 9fb027801a46; #2691, #2697 BLOCKED-UNFIXED | board PRS 12:18:18Z
+2026-10-24T12:22:41Z | FILTER | record/* and autofix PRs (incl #2702) never REVIEW OWED; suppressed. "no tvofi review" counts as owed only where the verdict is merge at head | coordinator
+2026-10-24T12:22:41Z | ROUTED | BLOCKED-UNFIXED #2691, #2696, #2697 and #2692 repairs sent to cloud fixers ~12:25Z; routed until their handoff moves | coordinator
+2026-10-24T12:22:53Z | CORRECTION | coordinator: no fourth BLOCKED-UNFIXED. Routed set is #2691, #2696, #2697 and the #2692 gate-red repair. Do not wait for a fourth.
+2026-10-24T12:41:46Z | NEW | #2692 now GREEN; its NOT REVIEWABLE line is gone; repair routed until handoff moves | board PRS 12:36:53Z
+2026-10-24T12:41:46Z | OWED | no tvofi review: #2692, #2696, #2700 (verdict at head not visible on this board, so owed-or-not is unverified) | board PRS 12:36:53Z
+2026-10-24T12:41:46Z | ROUTED | #2691, #2696, #2697 BLOCKED-UNFIXED; #2692 repair | board PRS 12:36:53Z
+2026-10-24T12:41:46Z | SUPPRESSED | #2702 REVIEW OWED (record/autofix filter) | board
+2026-10-24T12:41:46Z | COUNT | handoff-no-pr OWED 29 (code 14, body 15), unchanged | board OWED 12:36:53Z
+2026-10-24T12:42:08Z | CORRECTION | coordinator: #2692 green at f4458d21; its red-checks answer belongs to the repair fixer, review dispatched after handoff moves, so ROUTED. No tvofi review for #2692, #2696, #2700 is NOT owed: no merge verdict at head (#2696 being repaired, #2700 reviewer running).
+2026-10-24T12:49:46Z | OWED | none after filters. #2692, #2696, #2700 no-review lines not owed (no merge verdict at head); #2702 suppressed (record/autofix); #2697 routed (BLOCKED-UNFIXED); #2678 standing exclusion | board 12:45:10Z
+2026-10-24T12:49:46Z | STATUS | open PRs 7; #2698 RUN and #2689 RUN appear; neither has an owed action | board PRS 12:45:10Z
+2026-10-24T12:49:46Z | COUNT | handoff-no-pr OWED 29 (code 14, body 15), unchanged | board OWED 12:45:10Z
+2026-10-24T12:50:47Z | NEW | confirm-owed refs/heads/review/2695 (tries 3/3, bus refused: #2695 closed; first seen board 12:26:01Z, not previously logged) | board 12:45:10Z
+2026-10-24T12:52:14Z | FILTER | confirm-owed review/2695 DISPOSED (#2695 merged) | coordinator
+2026-10-24T12:52:14Z | FILTER | "N group(s) blocked on owner disposition" suppressed unless count > 38 (S6-U) | coordinator
+2026-10-24T12:52:14Z | ROUTED | OWNER FLAG R10-CI-LAYOUT-P2 handoff-body 226a294e; p2b-v2 running; old ref archived on handoff | coordinator
+2026-10-24T12:59:02Z | OWED | #2698 DIRTY: content conflict in tests/structure_budgets.json; back to owning fixer (verdict does not carry) | board 12:54:18Z fa4dad4a75ee
+2026-10-24T12:59:02Z | NEW | audit-r10-roster handoff bbe44258e087 OWED (0.0h, uncovered=159, repair=opener); replaces f596fd3c from 12:45 | board REPLAN 12:54:18Z
+2026-10-24T12:59:02Z | FILTER | #2703 (record/autofix, renamed from #2702) NOT REVIEWABLE gate red and REVIEW OWED 61cd68eb: suppressed under record/autofix filter | board 12:54:18Z
+2026-10-24T12:59:02Z | COUNT | handoff-no-pr OWED 29 (code 14, body 15), unchanged | board 12:54:18Z
+2026-10-24T12:59:18Z | CORRECTION | coordinator: #2703 is a new record PR, not #2702 renamed; #2702 merged at fa4dad4a7; record/autofix filter still applies to #2703 | coordinator
+2026-10-24T13:07:03Z | OWED | reviewer-fire #2696 at 96b8dd7b nonce=373be8e6 (board OWED 13:00:36Z) | board fa4dad4a75ee 13:02:29Z
+2026-10-24T13:07:03Z | NEW | #2704 (fix/r10-policy-fixer-md) no delivery row in its three-dot diff | board PRS 13:02:29Z
+2026-10-24T13:07:03Z | RESOLVED | #2698 DIRTY cleared (now BLOCKED, run in flight); audit-r10-roster bbe44258 OWED cleared | board 13:02:29Z
+2026-10-24T13:07:03Z | COUNT | handoff-no-pr OWED 27 (was 29), down after the roster line cleared | board OWED 13:02:29Z
+2026-10-24T13:07:03Z | FILTER | #2703 record/autofix gate-red and REVIEW OWED suppressed | board 13:02:29Z
+2026-10-24T13:07:49Z | CLEARED | reviewer-fire #2696 (96b8dd7b, nonce 373be8e6): reviewer fired 13:03:19Z, session cse_0187xy, per coordinator ack | coordinator
+2026-10-24T13:07:49Z | CLEARED | #2704 no delivery row: delivery row routed to the dispatch seat, per coordinator ack | coordinator
+2026-10-24T13:09:00Z | STATUS | window 5 start: board unchanged fa4dad4a75ee 13:02:29Z, 0 owed, watcher bvl3t5gwu armed | tick
+2026-10-24T13:11:00Z | OWED | #2698 NOT REVIEWABLE at 3383fb2a: gate red, Red checks unanswered (gate, pr-contract): back to its fixer | board 9586fce08141 13:10:10Z
+2026-10-24T13:11:00Z | NEW | #2706 (fix/r10-rca-gate-lease-flake) and #2707 (fix/r10-fly-cipredict-layout) no delivery row in three-dot diff | board 13:10:10Z
+2026-10-24T13:11:00Z | NEW | UNBLOCKED not started: R10-ARCH-SHAPES, R10-RCA-HEADMOVED, R10-CEILING-PROBE (WIP 21/6, at cap; CP exemption is main's call) | board 13:10:10Z
+2026-10-24T13:11:00Z | FILTER | #2705 record/autofix REVIEW OWED suppressed; #2678 Dependabot excluded | board 13:10:10Z
+2026-10-24T13:11:00Z | COUNT | handoff-no-pr OWED 27, unchanged; open PRs 11 | board 13:10:10Z
+2026-10-24T13:12:00Z | ROUTED | #2698 to dispatch (autofix wait or repair fixer); #2706, #2707 openers add delivery rows, dispatch follows | coordinator
+2026-10-24T13:12:00Z | FILTER | unblocked-not-started groups (ARCH-SHAPES, RCA-HEADMOVED, CEILING-PROBE) held while WIP 21/6; report only if on critical path | coordinator
+2026-10-24T13:20:00Z | OWED | record beat: state_docs.py --push + #201 comment for merges up to 9586fce08141 (list led by 9586fce08141, fa4dad4a75ee, d2dcfed15a0c) | board 13:18:38Z
+2026-10-24T13:28:00Z | OWED | #2704 NOT REVIEWABLE at 04860ee0: gate red, Red checks unanswered (gate): back to its fixer | board 9586fce08141 13:27:06Z
+2026-10-24T13:28:00Z | NEW | #2708 (fix/r10-fly-envmatrix-noremote) no delivery row; same opener-adds-row class as #2706/#2707 | board 13:27:06Z
+2026-10-24T13:30:00Z | ROUTED | #2704 gate red and #2708 missing delivery row routed to dispatch | coordinator
+2026-10-24T13:44:00Z | OWED | #2706 NOT REVIEWABLE at ea459c0b: gate red, Red checks unanswered (gate, pr-contract): back to its fixer | board 9586fce08141 13:43:10Z
+2026-10-24T13:44:00Z | OWED | REVIEW OWED #2710 ffec1a9bfae7 (fix/audit-r10-roster-pr5; not record/autofix) | board 13:43:10Z
+2026-10-24T13:44:00Z | NEW | #2709, #2710, #2711, #2712 opened, no delivery row (opener-adds-row class); open PRs 14 | board 13:43:10Z
+2026-10-24T13:44:00Z | STATUS | #2696 now GREEN (reviewer already fired); record beat still owed, unchanged; handoff-no-pr 27 | board 13:43:10Z
+2026-10-24T13:46:00Z | ROUTED | #2706 to dispatch (pr-contract rerun after codeql; reviewer already fired); #2709-#2712 openers add rows | coordinator
+2026-10-24T13:46:00Z | FILTER | #2710 REVIEW OWED held on purpose (roster seat updating head); suppress until head changes | coordinator
+2026-10-24T13:46:00Z | NOTE | coordinator: #201 comment 6384739224 posted for 9586fce; board 13:43:10Z still prints record beat owed (line 194) and HANDOVER 2030 behind (line 192); quoted to main | board
+2026-10-24T13:52:30Z | OWED | REVIEW OWED #2710 at new head 19ab022eab98 (head changed, suppression ends) | board bf9f8aa16709 13:51:43Z
+2026-10-24T13:52:30Z | OWED | record beat: main moved to bf9f8aa16709 (2 new merges 36db48e724e2, bf9f8aa16709 beyond the 9586fce set); state_docs.py --push + #201 comment | board 13:51:43Z
+2026-10-24T13:52:30Z | NEW | #2712 Red checks unanswered: tests / mutation | board 13:51:43Z
+2026-10-24T13:52:30Z | NEW | #2714 (fix/r10-roster-runq) opened, no delivery row (opener class); #2707 row now present | board 13:51:43Z
+2026-10-24T13:52:30Z | FILTER | #2713 record/autofix REVIEW OWED suppressed | board 13:51:43Z
+2026-10-24T13:54:00Z | FILTER | #2710 REVIEW OWED held until coordinator sends the head (19ab022ea not final); HANDOVER line suppressed (triage P61) | coordinator
+2026-10-24T13:54:00Z | ROUTED | #2712 mutation red and #2714 row to dispatch; record beat for 36db48e/bf9f8aa posted (comment 6385003069); quote line if next board still lists them | coordinator
+2026-10-24T14:02:00Z | OWED | record beat still lists 36db48e, bf9f8aa after your post; plus new merge e97f5749b441 | board e97f5749b441 14:00:52Z
+2026-10-24T14:02:00Z | NEW | #2704 gate red again at new head 859b74ba (was 04860ee0), Red checks unanswered (gate) | board 14:00:52Z
+2026-10-24T14:02:00Z | COUNT | handoff-no-pr OWED 17 (was 27); open PRs 13 | board 14:00:52Z
+2026-10-24T14:02:00Z | FILTER | #2710 REVIEW OWED held; #2713 record suppressed | board 14:00:52Z
+2026-10-24T14:05:20Z | NEW | #2707 (fix/r10-fly-cipredict-layout) BLOCKED-UNFIXED at cd7dc09a: cloud_relay verdict-unposted; route to dispatch | board e97f5749b441 14:00:52Z
+2026-10-24T14:05:20Z | NEW | #2709 (fix/r10-fly-cloud-setup-toolchain) BLOCKED-UNFIXED at 3580acc0: cloud_relay verdict-unposted; route to dispatch | board 14:00:52Z
+2026-10-24T14:05:20Z | OWED | DISPATCH opener R10-CONFIG-NOTICES handoff/r10-config-notices 5b067738bd38 (5.0h, last attempt 13:25:45Z unopened) | board 14:00:52Z
+2026-10-24T14:05:20Z | OWED | DISPATCH opener R10-FLOW-AUTOTRAIN handoff/r10-flow-autotrain b3dceb5cafc8 (4.0h, last attempt 12:24:59Z unopened) | board 14:00:52Z
+2026-10-24T14:05:20Z | OWED | OWNER FLAG R10-CI-LAYOUT-P2 handoff-body/r10-ci-layout-p2 226a294e837b stranded 47.9h (threshold 12h); owner decision | board 14:00:52Z
+2026-10-24T14:05:20Z | STATUS | open PRs 15 (WIP 21/6, at cap); handoff-no-pr OWED 17 unchanged; #2698/#2704/#2706 gate-red routes unchanged; no new merge since e97f5749b441 | board 14:00:52Z
+2026-10-24T14:10:00Z | NEW | #2707 Red checks unanswered: pr-contract; #2710 Red checks unanswered: governance / instrument-self-tests (REVIEW OWED still held) | board e97f5749b441 14:09:31Z
+2026-10-24T14:10:00Z | STATUS | #2691, #2696 no longer on the open list; all else unchanged; handoff-no-pr 17; record beat line unchanged | board 14:09:31Z
+2026-10-24T14:19:00Z | OWED | BLOCKED-UNFIXED #2698 3383fb2a, #2704 859b74ba, #2706 ea459c0b, #2707 cd7dc09a (gate red), #2711 5021b50d | board e97f5749b441 14:18:16Z
+2026-10-24T14:19:00Z | OWED | REVIEW OWED #2734 58f2e75132b4 (triage/s6-batch4), #2735 d47d5e0fe168 (triage/s6-batch5); both also no delivery row | board 14:18:16Z
+2026-10-24T14:19:00Z | OWED | 19 open issues no disposition, 15 oldest #2715-#2729 | board 14:18:16Z
+2026-10-24T14:19:00Z | OWED | 39 groups blocked on owner disposition (above the 38 threshold), oldest #2273 9d | board 14:18:16Z
+2026-10-24T14:19:00Z | FILTER | #2710 head now ce69a3f2eec7, REVIEW OWED held pending coordinator head; #2713 record suppressed; HANDOVER suppressed | board 14:18:16Z
+2026-10-24T14:19:00Z | COUNT | handoff-no-pr 17 unchanged; open PRs 15; record beat line unchanged | board 14:18:16Z
+2026-10-24T14:24:01Z | NEW | handoff-no-pr refs/heads/handoff/r10-ci-layout-p2b-v2 a928a9dc2eba (attempt 14:12:23Z started) and handoff-body twin 1965cbfe4f34 | board 14:18:11Z
+2026-10-24T14:24:01Z | NEW | handoff-no-pr r10-thermal-power-option 7882a1427e82 (attempt 13:18:25Z unopened, 1.8h) | board 14:18:11Z
+2026-10-24T14:24:01Z | FILTER | #2678 REVIEW OWED 6ee3e4d4f83b on standing exclusion (Dependabot); #2710 REVIEW OWED held pending coordinator head; #2713 record suppressed; HANDOVER suppressed | board 14:18:16Z
+2026-10-24T14:24:01Z | STATUS | open PRs 15, WIP 21/6; 39 groups and 19 open issues unchanged (under threshold); no new merge sha | board 14:18:16Z
+2026-10-24T14:31:00Z | NEW | REVIEW OWED #2736 cf212c29e00b (new PR since 14:18 board) | board 14:30:51Z
+2026-10-24T14:31:00Z | STATUS | open PRs 16 (WIP 21/6); open issues 19->18; 17 handoff-no-pr, DISPATCH/OWNER FLAG unchanged; #2710/#2678/#2713 filters held | board 14:30:51Z
+2026-10-24T14:39:30Z | NEW | BLOCKED-UNFIXED #2734 35cb7e8c, #2735 0f77f2ec | board 14:39:18Z
+2026-10-24T14:39:30Z | OWED | record beat: new merge shas 2cdf7adca320, ac5788f26177, 026527b5ae8d beyond the prior set (state_docs.py --push + #201 comment) | board 14:39:18Z
+2026-10-24T14:39:30Z | STATUS | open PRs 17 (WIP 21/6); handoff-no-pr 15 (was 17); DISPATCH/OWNER FLAG unchanged; #2710/#2678/#2713 filters held | board 14:39:18Z
+2026-10-24T14:48:57Z | NEW | tick_loop heartbeat push rejected (heartbeat/orchestrator, remote rejected); a stop is not visible off-host | tick-loop.log
+2026-10-24T14:48:57Z | OWED | 14:48 board: REVIEW OWED #2735 5a03e901be80 (head moved from 0f77f2ec); BLOCKED-UNFIXED #2734 35cb7e8c; open PRs 18; handoff-no-pr 17; dispatch/owner-flag and record-beat lines unchanged | board 14:48:47Z

@@ -1,0 +1,35 @@
+337af58a 1 tvofi test(R10-VENT-DETECTOR): a persistent model bias must not trip the ope
+9b474621 1 tvofi fix(R10-VENT-DETECTOR): the open-window CUSUM folds the residual's dep
+7ebe8b5f 1 tvofi test(R10-VENT-DETECTOR): the R10-P5 census barrier, and the sweep inst
+844eb5ad 1 tvofi fix(R10-VENT-DETECTOR): the reference is a forgetting least-squares fi
+b8c01b77 1 tvofi fix(R10-VENT-DETECTOR): the reference also regresses on the interval's
+98236fdb 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector
+f7f1af6e 1 tvofi fix(R10-VENT-DETECTOR): declare the detector's fit in store.DOMAINS; o
+0d31b73b 1 tvofi test(R10-VENT-DETECTOR): pin the seed, the non-finite feed and the asy
+f2ed19d3 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector
+420f05f9 1 tvofi record(closures): tests/harness_headers.py opens the two vent-detector
+ed0f62bc 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector-
+1705b919 1 github-actions[bot] ci: pin killed mutants
+99efd205 1 tvofi fix(#2241): VENT_CUSUM_REFERENCE_HOURS' comment names the sun regresso
+836f57ce 1 tvofi test(#2241): a warm glitch cannot drag the vent reference past the cli
+c54735cb 2 tvofi Merge commit '836f57ceea0ea5a8e94cb19ca4329e2c0968751e' into fix/r10-v
+d0001a46 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector-
+649b2744 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector-
+a8631107 1 github-actions[bot] ci: pin killed mutants
+d752b9aa 2 tvofi Merge remote-tracking branch 'origin/fix/r10-vent-detector-pr' into fi
+1820d450 1 tvofi test(drift): pin the prior's one-sample weight by value (#2241)
+4d8e3aa0 1 tvofi mutation: triage drift.py Cusum.update CMP_BOUND as equivalent (#2241)
+50336bdd 2 tvofi Merge commit '4d8e3aa031a0ebacbf8dc2660ba772cacc8d054a' into fix/r10-v
+1388086e 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector-
+aa82837c 1 tvofi record: the delivery row for #2391
+3aba8f1e 1 github-actions[bot] ci: pin killed mutants
+23568da0 2 Claude Merge remote-tracking branch 'origin/main' into fix/r10-vent-detector-
+c9a3ddd2 1 Claude test(#2241): the vent detector's sun regressor, through the real feed
+371a739f 1 Claude test(#2241): the R10-P5 census reads the end state; say so
+c1b085db 2 tvofi Merge commit '371a739f2b1b7923a091e9c90b827614cb9a9e1e' into fix/r10-v
+09145aee 2 tvofi Merge remote-tracking branch 'origin/main' into r10-vent-detector-rc23
+b83a5383 2 tvofi Merge remote-tracking branch 'origin/main' into r10-vent-detector-rc23
+00b244c7 2 tvofi Merge remote-tracking branch 'origin/main' into r10-vent-detector-rc23
+4c19994f 2 tvofi Merge remote-tracking branch 'origin/main' into r10-vent-detector-rc23
+a06242c1 2 github-actions[bot] ci: merge main
+4c1352f0 2 tvofi Merge commit '4c19994fcfa3e7a46dec1d9fbe528fca10414e21' into fix/r10-v

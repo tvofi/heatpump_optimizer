@@ -1,0 +1,34 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b11/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b11 pid=10799 start=2026-10-19T06:36:08Z
+BATCH 20261019-063608 pid=10851 base=main queue=1 (#2415) --overlap --skip-bad
+OVERLAP: main at 768bfc0c341d is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2415 serial: budget, grader
+OVERLAP: recarrying #2415 up front, their pull_request runs fire together
+#2415 overlap: recarry start
+#2415 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-structure-blind held fix/r10-rca-structure-blind, clean at origin/fix/r10-rca-structure-blind; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-structure-blind switch fix/r10-rca-structure-blind)
+#2415 recarry START (branch fix/r10-rca-structure-blind)
+#2415 recarry: main merged, head e584e4f1; app_push: RECARRY: prepr SKIPPED: HEAD e584e4f1 is the clean merge of the live head bd8011e9 and origin/main's 768bfc0c, and the body is the live one
+serial: #2415
+beat: waiting CI at e584e4f1 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at e584e4f1 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at e584e4f1 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at e584e4f1 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at e584e4f1 (poll 6, t+1205s, required: 14, concluded: 11/14)
+beat: waiting CI at e584e4f1 (poll 7, t+1446s, required: 14, concluded: 11/14)
+beat: waiting CI at e584e4f1 (poll 8, t+1687s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 9, t+1928s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 10, t+2169s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 11, t+2410s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 12, t+2651s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 13, t+2892s, required: 14, concluded: 12/14)
+beat: waiting CI at e584e4f1 (poll 14, t+3133s, required: 14, concluded: 12/14)
+#2415 e584e4f1 ci red=[]
+#2415 approved (app)
+#2415 MERGED f0a4acac79849d5c769285f6ca65a2134fe064c6
+#2415 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b11/wt/2415 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b11/wt/2415' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-19T07:34:28Z

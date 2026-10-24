@@ -1,0 +1,1161 @@
+12:51:39Z relay 2560 nonce=fa6eb2e975611e9aca353f4d9f00ea4d head=085a4caf rc=2: cloud_relay: refused: refs/heads/probe/rev-2560-fa6eb2e9 at ff54231270e4bf10a94df73dba5dd35ecb0c95d0 was already relayed 
+12:51:39Z REFUSED 2560 head=085a4caf: report to main, not retried
+12:51:39Z tick
+12:52:03Z verdict 2560: Fix review: blocked 085a4caf harness: class-open tools/audit/seat/ci_predict_replay.sh:47 (posted; probe ff542312 relayed earlier, confirmed by comment at head)
+12:56:45Z relay 2529 nonce=5a067b503faa6da9926b251336626c65 head=044edcc2 rc=0: cloud_relay: POSTED #2529 e8b9cedc09a843fe1d0b6b0714a81413974fcd4b cloud_relay: relayed refs/heads/probe/rev-2529-5a067b50 bd5a59e75f7f216bdd1440442492b4280102034b; next: bus.sh confirm 2529 <review commit> 
+12:56:45Z verdict 2529: Fix review: blocked 044edcc2b32ef6fb9172b79bfc169c7beeb0dc38 carry-missing: not carried to R10-CI-LAYOUT (PR 1/PR 2) -- this round's new finding, that every main merge into the PR 1/PR 2 branches must re-run selftest_wiring.py --check and that neither prepr.sh nor the orchestrator's merge path runs it, is only in the PR body; roster handoff/audit-r10-roster 31e162fd3a1207db596539b2330af1d274c36c85 holds neither line
+12:56:45Z tick
+12:57:29Z loop restarted with 2563 added (cse_01KabicmP1Fm1QbTQZnXSJHV)
+12:57:28Z tick
+12:57:37Z tick
+12:57:45Z tick
+13:02:49Z tick
+13:07:53Z tick
+13:12:57Z tick
+13:15:37Z loop restarted: 2567 added; 2555 and 2525 dropped (merged)
+13:15:35Z relay 2559 nonce=d63af2393eeaa21f6c75c7b3e356a3b6 head=39f46573 rc=0: cloud_relay: POSTED #2559 e9bea1894942c769d31eeb2f16e1d60fb1b57ee8 cloud_relay: relayed refs/heads/probe/rev-2559-d63af239 e408b57e4f9d201fa1d4791c20fb9bf57fed5203; next: bus.sh confirm 2559 <review commit> 
+13:15:35Z verdict 2559: Fix review: blocked 39f465739706edd44c7446a7cdebc0e0c5b30091 head-moved: measured 39f465739706edd44c7446a7cdebc0e0c5b30091, head is 13a798252c51e730f409d1648f1a39b3b0c1c997
+13:15:35Z tick
+13:20:56Z tick
+13:26:01Z relay 2548 nonce=2246ae046f7e4d4683a374de41c516aa head=f2f204fc rc=0: cloud_relay: POSTED #2548 f6ba699113d41f2aa8919153ae0a82c8ae4928be cloud_relay: relayed refs/heads/probe/rev-2548-2246ae04 836fbb899d495ad082b65239219f7cc4436bfa0a; next: bus.sh confirm 2548 <review commit> 
+13:26:01Z verdict 2548: Fix review: merge f2f204fc3ed608a69b56ee9ebc0c2eee23e74dc1
+13:26:01Z relay 2567 nonce=68a19d6bd6420145d20641357a1b572a head=93015eca rc=0: cloud_relay: POSTED #2567 34928f455917c68016d1a51ddec04d71ae5201a8 cloud_relay: relayed refs/heads/probe/rev-2567-68a19d6b 9d596a6c878d650bd723729ef919f1ec0f1df823; next: bus.sh confirm 2567 <review commit> 
+13:26:01Z verdict 2567: Fix review: blocked 93015ecada7190edc054e49a47538704b14e1f34 mutation-survivor: widened skip predicates W4 (open-status) and W7 (row-only head pin) survive the self-test; pr-contract red on the body (carry_audit); row-only drops prepr 7c ancestry reds
+13:26:01Z tick
+13:29:08Z tick
+13:34:13Z tick
+13:36:44Z added 2527 head d809c1f3 nonce 3417d19a
+13:36:42Z relay 2563 nonce=4781a1280f18f8b3240d780b7dc421bf head=829ea7c7 rc=0: cloud_relay: POSTED #2563 374708fe35602a2e42a85299f6f0dc16b9698a50 cloud_relay: relayed refs/heads/probe/rev-2563-4781a128 fad5fa91f5f58719f86b52d80144a160a58dd1ed; next: bus.sh confirm 2563 <review commit> 
+13:36:42Z verdict 2563: Fix review: blocked 829ea7c7238d62293a58bb9d9625e844ac7fd09d carry-missing: not carried to R10-BRIEFS-FOLD
+13:36:42Z tick
+13:41:26Z added handoff-body/r10-night-folds watch (baseline 070c5cb4)
+13:41:24Z tick
+13:46:13Z added 2560 head 2108fcb0 nonce 6abf0de1
+13:46:11Z tick
+13:51:17Z relay 2559 nonce=a8bfe1057ec1aa34a14f6aae1d415383 head=5756617f rc=0: cloud_relay: POSTED #2559 93354d3b9cd1aa1f6a2260c8b63b20fb30ecb153 cloud_relay: relayed refs/heads/probe/rev-2559-a8bfe105 80b879de620915d76275e4d791883a5d6c53fb30; next: bus.sh confirm 2559 <review commit> 
+13:51:17Z verdict 2559: Fix review: blocked 5756617f185bbed71852ed1273c19b1e45787c9d head-moved: measured 5756617f185bbed71852ed1273c19b1e45787c9d, head is 2e77ed3e6aa2f03565bd02274ac847227bc619b5
+13:51:17Z tick
+13:53:34Z added 2559 head 2e77ed3e nonce a3eee38c
+13:53:32Z tick
+13:58:37Z relay 2531 nonce=a7f748b64d36d03677e8c6487ff5cf32 head=70892719 rc=0: cloud_relay: POSTED #2531 1947512937cdcf41a35fa9131eb10e8b9d6dc732 cloud_relay: relayed refs/heads/probe/rev-2531-a7f748b6 8d25294ede73dad8877535c9d6df65f4ef9d84e7; next: bus.sh confirm 2531 <review commit> 
+13:58:37Z verdict 2531: Fix review: merge 708927198d91ca8cfbc79d1843cf401904782d6d
+13:58:37Z relay 2560 nonce=6abf0de1f258dffa046f06ddd148adc0 head=2108fcb0 rc=0: cloud_relay: POSTED #2560 d950a78a318bf13b097d5b0f8b7b0b86e5a4fe64 cloud_relay: relayed refs/heads/probe/rev-2560-6abf0de1 ca957a15f23516fab471a84b295fb1160c3c0129; next: bus.sh confirm 2560 <review commit> 
+13:58:37Z verdict 2560: Fix review: merge 2108fcb09ef16a53119dedb8b731bd89f0fea0ad
+13:58:37Z tick
+14:04:28Z tick
+14:08:35Z added 2559 head 802b3850 nonce 3b1255fa; roster freeze noted, loop does not touch roster
+14:08:33Z relay 2559 nonce=a3eee38c3144cc46f38b3f801f78f093 head=2e77ed3e rc=0: cloud_relay: POSTED #2559 de43289e453d19a370bee0625e70b3ef0c0f936e cloud_relay: relayed refs/heads/probe/rev-2559-a3eee38c 314641edda9d48ea4f7bdc6443e927c468fbba7a; next: bus.sh confirm 2559 <review commit> 
+14:08:33Z verdict 2559: Fix review: blocked 2e77ed3e6aa2f03565bd02274ac847227bc619b5 head-moved: measured 2e77ed3e6aa2f03565bd02274ac847227bc619b5, head is 802b38503eb5de20e87c278ba7923508a50c0f1f
+14:08:33Z HANDOFF-MOVED handoff-body/r10-row-only-update from b2f83c79 to f8953922
+14:08:33Z tick
+14:13:01Z relay 2527 nonce=3417d19a57ee47d2124a34be56bab9b1 head=d809c1f3 rc=2: cloud_relay: refused: refs/heads/probe/rev-2527-3417d19a at f5daf0dc0c511fdb541f6a1b3565dff4395ec8d4 was already relayed 
+14:13:01Z REFUSED 2527 head=d809c1f3: report to main, not retried
+14:13:04Z loop: added 2521 2524 2528; runs until stop file; 2567 PR head watch baseline f1695654
+14:13:01Z relay 2559 nonce=3b1255fa5a49d4c6524da1bfde40756b head=802b3850 rc=0: cloud_relay: POSTED #2559 6ac91608a939eacf211c9ab6d819aa0b51ca841e cloud_relay: relayed refs/heads/probe/rev-2559-3b1255fa 6b5087955d955eeef66b018e2e7cf8df0cf004d0; next: bus.sh confirm 2559 <review commit> 
+14:13:01Z verdict 2559: Fix review: blocked 802b38503eb5de20e87c278ba7923508a50c0f1f body-stale: the body enumerates the diff at code head 31e162fd and calls it the authored code head, but this head carries 2c76c312; at the head done=52 (body 51), carries=257 (body 254), and R10-MERGE-PR-MANDATE to done plus 3 carries are undescribed
+14:13:01Z tick
+14:14:37Z CHECKS-RED 2570 4a97526f61d754a4e833882d1fe2f8344ccae973: pr-contract	completed	failure 
+14:14:34Z tick
+14:15:55Z added 2567 nonce add37b67; checks-watch started for 2569 and 2570
+14:19:40Z tick
+14:20:36Z checks-watch restarted: 2569 2570 2549 (wave-script excluded from pending) + 2559 head move watch
+14:24:25Z added 2571 nonce 4754a76a; cleared 2559 802b3850 done-key so a fresh nonce at that head is relayed; old 3b1255fa target removed
+14:24:21Z tick
+14:24:50Z added 2559 dispatch nonce ac5fc7de at head 802b3850
+14:24:47Z tick
+14:29:52Z relay 2521 nonce=7b4fa5ee6cfb88d3dab2c78e78093b49 head=a85e97a7 rc=0: cloud_relay: POSTED #2521 b2d312cdf7a2db0cae3991fd3241575847b8331c cloud_relay: relayed refs/heads/probe/rev-2521-7b4fa5ee 36a447787bb8ed5f97f962159268e26656517fce; next: bus.sh confirm 2521 <review commit> 
+14:29:52Z verdict 2521: Fix review: merge a85e97a7325fc48767ba5abb1ec4c6fb92506939
+14:29:52Z tick
+14:31:27Z checks-watch: latest-run rule per check name
+14:35:17Z relay 2528 nonce=6f43192ea7aa130e69cbd1ebe0306a7b head=b18052f6 rc=2: cloud_relay: refused: refs/heads/probe/rev-2528-6f43192e at 5bd4d97e2d322a089995f407907f4108702dd0a8 was already relayed 
+14:35:17Z REFUSED 2528 head=b18052f6: report to main, not retried
+14:35:17Z relay 2567 nonce=add37b67f64bb470070faa4b0f8e06af head=f1695654 rc=0: cloud_relay: POSTED #2567 35a168292841f58ebecf9d81a6ba121062e5fe21 cloud_relay: relayed refs/heads/probe/rev-2567-add37b67 f2af2683afd80a49c3268050d2e18ad91282293b; next: bus.sh confirm 2567 <review commit> 
+14:35:17Z verdict 2567: Fix review: blocked f16956542b2c4470de5a3e12fc843f97cef1840e mutation-survivor: W11 (row-only (c) drops its one-row conjunct) survives the self-test; a two-line row file skips prepr
+14:35:17Z relay 2571 nonce=4754a76a2b269a20cfbe6c86d9b4e3a8 head=90788b1e rc=2: cloud_relay: refused: refs/heads/probe/rev-2571-4754a76a at f8272d55f96e513abe80cf0fd95710410b95bca7 was already relayed 
+14:35:17Z REFUSED 2571 head=90788b1e: report to main, not retried
+14:35:17Z tick
+14:36:32Z CHECKS-GREEN 2570 4a97526f61d754a4e833882d1fe2f8344ccae973 (required checks but nightly-status concluded green)
+14:36:35Z CHECKS-GREEN 2559 802b38503eb5de20e87c278ba7923508a50c0f1f (required checks but nightly-status concluded green)
+14:37:30Z handoff-watch started: r10-row-only-update (f8953922) and r10-prepr-closures (a7c5383b)
+14:38:57Z added 2570 nonce 30159a79; handoff-watch: r10-verdict-item-barrier body+handoff
+14:38:54Z relay 2559 nonce=ac5fc7de21c9800a844568dec61b4152 head=802b3850 rc=0: cloud_relay: POSTED #2559 7adab9fdc9faf5a352e4df929aeef8e2ccb6279f cloud_relay: relayed refs/heads/probe/rev-2559-ac5fc7de c73c8a3c24c35a67675099165b4a9af31b87f856; next: bus.sh confirm 2559 <review commit> 
+14:38:54Z verdict 2559: Fix review: merge 802b38503eb5de20e87c278ba7923508a50c0f1f
+14:38:54Z tick
+14:41:23Z handoff-watch: added r10-ci-ratchet-window body (appears) and handoff (none yet)
+14:44:18Z relay 2570 nonce=30159a7900c7363a6498f101d0bf8479 head=4a97526f rc=0: cloud_relay: POSTED #2570 ed738a615d0c3dedcc2e3617d9e1f80886f0275f cloud_relay: relayed refs/heads/probe/rev-2570-30159a79 f66186d3595bfd80adbb67fe7745e22114cd9164; next: bus.sh confirm 2570 <review commit> 
+14:44:18Z verdict 2570: Fix review: merge 4a97526f61d754a4e833882d1fe2f8344ccae973
+14:44:18Z tick
+14:49:44Z tick
+14:51:48Z CHECKS-GREEN 2569 5ffbaaaeb827f184ed44abd9ead267ee8e626b08 (required checks but nightly-status concluded green)
+14:52:13Z added 2559 routing-only reviewer nonce 8ddeb923 (second verdict at 802b3850); cleared prior 802b3850 done-key
+14:52:10Z tick
+14:53:05Z added 2569 reviewer nonce 277db9ac head 5ffbaaae
+14:53:02Z tick
+14:53:47Z checks-watch restarted: added 2572 (ADVISOR)
+14:54:16Z relay 2524 nonce=1253d5ae head=c071fa5f rc=2 (manual, probe e2ea6776)
+14:55:40Z handoff-watch: added r10-pusher-reap body 26d54533 handoff 6ff10e62
+14:58:07Z relay 2559 nonce=8ddeb923d0afccbb941906ea350d89f1 head=802b3850 rc=0: cloud_relay: POSTED #2559 22df9d2304b25bca0a1ca823214d282420a990a4 cloud_relay: relayed refs/heads/probe/rev-2559-8ddeb923 6111b35b2329e9f3eb792904df9ec185735dd1e8; next: bus.sh confirm 2559 <review commit> 
+14:58:07Z verdict 2559: Fix review: merge 802b38503eb5de20e87c278ba7923508a50c0f1f
+14:58:07Z HANDOFF-MOVED handoff-body/r10-night-folds from 070c5cb4 to 70a8d2f0
+14:58:07Z tick
+14:58:56Z CHECKS-GREEN 2549 61fd4f27cbd3e3e3eb092044b6e55fa24028683f (required checks but nightly-status concluded green)
+14:58:58Z CHECKS-RED 2572 b6f1b2463c3b39614dec79344d5c3094a6fc0d50: mutation	completed	failure pr-contract	completed	failure 
+15:00:43Z HANDOFF-MOVED handoff-body/r10-row-only-update from f8953922 to e5e81f0b
+15:01:22Z checks-watch re-pointed 2572 to a7fc5785
+15:02:28Z added 2549 reviewer nonce 347dd5f4
+15:02:25Z HANDOFF-MOVED handoff-body/r10-row-only-update from b2f83c79 to e5e81f0b
+15:02:25Z HEAD-MOVED fix/r10-row-only-update (PR 2567) from f1695654 to 54bf1821
+15:02:25Z tick
+15:02:43Z CHECKS-RED 2572 a7fc578531e0cc036c84411944896f2fcab165c2: pr-contract	completed	failure 
+15:02:46Z CHECKS-RED 2563 906c7a73156df928652b0daf3c5754bae3e86050: mutation	completed	failure 
+15:07:31Z relay 2569 nonce=277db9ac1c42a10b967e4edadf5a17d4 head=5ffbaaae rc=0: cloud_relay: POSTED #2569 04d4b83ca37700a79d8c416c0a221c911524e7a1 cloud_relay: relayed refs/heads/probe/rev-2569-277db9ac 91cf45ea988d7c285ab8613681b526fee11ffbd7; next: bus.sh confirm 2569 <review commit> 
+15:07:31Z verdict 2569: Fix review: merge 5ffbaaaeb827f184ed44abd9ead267ee8e626b08
+15:07:31Z tick
+15:08:13Z added 2567 reviewer nonce b1b280e7 head 54bf1821
+15:08:10Z tick
+15:10:55Z HANDOFF-MOVED handoff/r10-ci-ratchet-window from none to c4c5db7b
+15:13:18Z relay 2549 nonce=347dd5f47f9a56ca94bb88316fc66043 head=61fd4f27 rc=2: cloud_relay: refused: refs/heads/probe/rev-2549-347dd5f4 at 9a62a71b9caf9d41b62a5747911430f05afd5600 was already relayed 
+15:13:18Z REFUSED 2549 head=61fd4f27: report to main, not retried
+15:13:18Z tick
+15:15:59Z HANDOFF-MOVED handoff-body/r10-verdict-item-barrier from b2a1f10d to bb9bdeb8
+15:16:00Z HANDOFF-MOVED handoff/r10-verdict-item-barrier from 821507dc to 795b8bef
+15:17:54Z added 2572 reviewer nonce e25f00fd head 21eeb5b2
+15:17:51Z tick
+15:18:18Z HEAD-MOVED 2572 from a7fc5785 to 21eeb5b2
+15:18:40Z checks-watch re-pointed 2572 to 21eeb5b2
+15:18:44Z CHECKS-RED 2572 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70: mutation	completed	failure 
+15:22:57Z tick
+15:23:36Z tick
+15:23:48Z added 2563 reviewer nonce 4004edbf head 9851d39d; handoff-watch: r10-flow-dispatch, r10-flow-body-patch, r10-flow-yield-probe (none yet)
+15:23:59Z HEAD-MOVED 2563 from 906c7a73 to 9851d39d
+15:23:59Z CHECKS-RED 2563 9851d39de867653f4fdc4412c3a1eea8dcb5f7b3: mutation	completed	failure pr-contract	completed	failure 
+15:24:36Z added 2571 reviewer nonce aa42fa34 head cb48de24
+15:24:33Z relay 2567 nonce=b1b280e7efb0939ec05a8f6b4be26f74 head=54bf1821 rc=0: cloud_relay: POSTED #2567 21141036150b87dd3fbe9012995d9595c1ea8993 cloud_relay: relayed refs/heads/probe/rev-2567-b1b280e7 e68bc68ff184920d4fb35feb93083e0d4d93058f; next: bus.sh confirm 2567 <review commit> 
+15:24:33Z verdict 2567: Fix review: blocked 54bf182104e450c0ac2e6eb007da59b9315e0565 carry-missing: not carried to R10-POLICY-FIXER-MD
+15:24:33Z tick
+15:28:48Z HANDOFF-MOVED handoff/r10-ci-ratchet-window from none to d0c4989f
+15:30:04Z tick
+15:33:59Z HANDOFF-MOVED handoff/r10-flow-body-patch from none to 314be574
+15:34:19Z HEAD-MOVED 2563 from 906c7a73 to 56297e44
+15:34:19Z CHECKS-RED 2563 56297e445e024470f5816c3a3bcedcefd01b1e12: mutation	completed	failure pr-contract	completed	failure 
+15:35:10Z relay 2571 nonce=aa42fa3468a15c64be454da5c30aa04d head=cb48de24 rc=2: cloud_relay: refused: refs/heads/probe/rev-2571-aa42fa34 at 273f7fb5accb3c0acefa34b978e2f10556a205e8 was already relayed 
+15:35:10Z REFUSED 2571 head=cb48de24: report to main, not retried
+15:35:10Z tick
+15:39:02Z HANDOFF-MOVED handoff-body/r10-prepr-closures from a7c5383b to bbddb449
+15:39:04Z HANDOFF-MOVED handoff-body/r10-ci-ratchet-window from none to b63e1cb9
+15:39:06Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to ff648aa4
+15:39:07Z HANDOFF-MOVED handoff/r10-flow-dispatch from none to d45f4b49
+15:39:09Z HANDOFF-MOVED handoff/r10-flow-body-patch from none to 18e7a7c6
+15:40:16Z tick
+15:44:13Z HANDOFF-MOVED handoff-body/r10-ci-ratchet-window from none to b57d80f4
+15:44:18Z HANDOFF-MOVED handoff-body/r10-flow-body-patch from none to 6ef11528
+15:45:23Z tick
+15:49:25Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to a9cea799
+15:49:28Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from none to 14f9d6ab
+15:49:28Z HANDOFF-MOVED handoff/r10-flow-yield-probe from none to 78649700
+15:50:31Z tick
+15:55:39Z tick
+16:00:45Z tick
+16:04:51Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to c65695a3
+16:04:51Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to b5b91be9
+16:05:50Z added 2567 second nonce 84c4ff91 and 2576 reviewer 4d0edcbf
+16:05:47Z tick
+16:10:53Z relay 2576 nonce=4d0edcbf69127fde5d9f909abc74dedc head=df70cb6b rc=0: cloud_relay: OWED #2576: bus.sh confirm failed; run it by hand cloud_relay: relayed refs/heads/probe/rev-2576-4d0edcbf 1bfd439fe198ff09f0a7f26d72f9f4b165cfaa54; next: bus.sh confirm 2576 <review commit> 
+16:10:53Z verdict 2576: Fix review: merge df70cb6bca69c7b1717abcc317233ff1bc994df3
+16:10:53Z tick
+16:16:20Z HEAD-MOVED 2572 from 21eeb5b2 to 441d1993
+16:16:19Z relay 2563 nonce=4004edbfe5086f63375b4065c95e4a1d head=9851d39d rc=1: bus: REFUSE: the push of review/2563 was refused 
+16:16:19Z REFUSED 2563 head=9851d39d: report to main, not retried
+16:16:19Z tick
+16:16:56Z checks-watch re-pointed 2572 to 441d1993
+16:18:34Z 2572 reviewer re-fired: nonce cecf419e head 441d1993; dropped e25f00fd
+16:18:32Z tick
+16:22:08Z HEAD-MOVED 2569 from 5ffbaaae to 8c008227
+16:22:14Z CHECKS-GREEN 2567 54bf182104e450c0ac2e6eb007da59b9315e0565 (required checks but nightly-status concluded green)
+16:22:38Z relay 2567 nonce=84c4ff91ffe593f474b8b71e65da7c72 head=54bf1821 rc=2: cloud_relay: refused: refs/heads/probe/rev-2567-84c4ff91 at caedf67849f10c11c88c4990e47cdfebd47658df was already relayed 
+16:22:38Z REFUSED 2567 head=54bf1821: report to main, not retried
+16:22:41Z added 2569 reviewer nonce 060a085f at 8c008227; checks watch: 2575 2577 2528
+16:22:38Z tick
+16:24:22Z added 2575 reviewer nonce 39359734; handoff-watch: body r10-flow-relay-hold baseline 5e24a0f9
+16:24:18Z tick
+16:24:42Z added 2575 reviewer nonce 39359734; handoff-watch: body r10-flow-relay-hold baseline 5e24a0f9
+16:24:39Z tick
+16:29:46Z tick
+16:32:47Z added 2578 reviewer a40c3488 and check-runs; handoff baselines relay-hold (body dd295d08, handoff cfa89d24) and yield-probe (body 14f9d6ab, handoff 78649700)
+16:32:44Z tick
+16:37:51Z tick
+16:38:00Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 26ed913c
+16:42:56Z relay 2578 nonce=a40c3488651515a962e45d98fbdbf21c head=50c4a681 rc=0: cloud_relay: POSTED #2578 d0feacfb601bcfbbecb2084638c910162c641015 cloud_relay: relayed refs/heads/probe/rev-2578-a40c3488 d0f79e63810fc4c56b2c53b021432a3ad98fc9d8; next: bus.sh confirm 2578 <review commit> 
+16:42:56Z verdict 2578: Fix review: blocked 50c4a681d0e3bee30e415a1ecc663ff5eab158f8 mutant-survives: read-back retry-exhaustion die -> break passes the self-test and prints OK for a body never read back
+16:42:56Z tick
+16:47:49Z handoff-watch: r10-ci-layout-p1 (body+handoff none), r10-flow-body-patch handoff 18e7a7c6; checks-watch 2579 468781122d; 2579 nonce 7393693a noted (reviewer held)
+16:48:19Z tick
+16:53:25Z relay 2569 nonce=060a085f4ed98e9def007eee9b4aa4d7 head=8c008227 rc=2: cloud_relay: refused: refs/heads/probe/rev-2569-060a085f at 5d61deafc78327aaac1e302f37a7466455037218 was already relayed 
+16:53:25Z REFUSED 2569 head=8c008227: report to main, not retried
+16:53:25Z relay 2575 nonce=393597344df1a6c95b4c1280a13dcad9 head=ea5f6603 rc=2: cloud_relay: refused: refs/heads/probe/rev-2575-39359734 at 4fb1587bc30ea497d8580d38d6170e0fbd03739f was already relayed 
+16:53:25Z REFUSED 2575 head=ea5f6603: report to main, not retried
+16:53:25Z tick
+16:58:04Z added 2580 reviewer d81197b4 and checks (a8a2778e)
+16:58:01Z tick
+17:03:06Z tick
+17:03:29Z CHECKS-GREEN 2577 6684dee65832c7b8e822f8ee0b33fd3f627b54ed (required checks but nightly-status concluded green)
+17:08:11Z HANDOFF-MOVED handoff-body/r10-night-folds from 070c5cb4 to cc6c2db9
+17:08:11Z tick
+17:08:47Z CHECKS-GREEN 2528 5332c59f9b5e883d1b1638a6f310fbc7237bdaa9 (required checks but nightly-status concluded green)
+17:08:49Z CHECKS-GREEN 2578 50c4a681d0e3bee30e415a1ecc663ff5eab158f8 (required checks but nightly-status concluded green)
+17:11:27Z added 2576 probe 71d2e101 and 2567 probe 7d363d31 (carry re-verdicts); 2528 bus dispatch b5c87533 noted
+17:11:36Z relay 2580 nonce=d81197b47dc8c4f3a8b76b9d08ceb8b3 head=a8a2778e rc=2: cloud_relay: refused: refs/heads/probe/rev-2580-d81197b4 at 33963758b3bfcb93d2df664dfd9e6fa2df852f9d was already relayed 
+17:11:36Z REFUSED 2580 head=a8a2778e: report to main, not retried
+17:11:39Z cleared done-keys for 2567 54bf1821 and 2576 df70cb6b; dropped already-relayed 84c4ff91 and 4d0edcbf targets
+17:11:36Z tick
+17:11:50Z added 2528 reviewer nonce b5c87533 at 5332c59f
+17:11:47Z tick
+17:13:53Z CHECKS-GREEN 2569 8c008227a25192fc542bca64abbd4098a2862d1a (required checks but nightly-status concluded green)
+17:14:01Z HEAD-MOVED 2563 from 56297e44 to baa01ed8
+17:14:02Z CHECKS-GREEN 2575 ea5f660303823ce04ed55af4022b4f7064ee403e (required checks but nightly-status concluded green)
+17:14:31Z checks-watch re-pointed 2563 to baa01ed856c09c1a9ac2222ee2177d783b0d7317
+17:16:53Z relay 2576 nonce=71d2e101ef8e59ecfb4f697cd84adb00 head=df70cb6b rc=2: cloud_relay: refused: refs/heads/probe/rev-2576-71d2e101 at 13848b7d23938de3faecb508277aa86915d3411d was already relayed 
+17:16:53Z REFUSED 2576 head=df70cb6b: report to main, not retried
+17:16:53Z relay 2567 nonce=7d363d3179d4917c247b34f2a4fb0303 head=54bf1821 rc=2: cloud_relay: refused: refs/heads/probe/rev-2567-7d363d31 at 6287ed724cd08c1ad7164c52adea05765a68e030 was already relayed 
+17:16:53Z REFUSED 2567 head=54bf1821: report to main, not retried
+17:16:53Z tick
+17:18:50Z HANDOFF-MOVED handoff/r10-flow-body-patch from 18e7a7c6 to 1554a032
+17:19:56Z CHECKS-RED 2563 baa01ed856c09c1a9ac2222ee2177d783b0d7317: mutation	completed	failure pr-contract	completed	failure 
+17:20:04Z CHECKS-GREEN 2579 468781122d076f5396f4a27c171b78f64f1c5537 (required checks but nightly-status concluded green)
+17:22:00Z tick
+17:23:48Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to bcaa5abe
+17:23:49Z HANDOFF-MOVED handoff/r10-flow-relay-hold from cfa89d24 to 0ddbc0c2
+17:24:22Z added 2578 reviewer d495ed90 (3f22a805) and 2529 reviewer 6a90cc3d (8f026328) + checks
+17:24:19Z tick
+17:24:32Z HEAD-MOVED 2578 from 50c4a681 to 3f22a805
+17:25:10Z checks-watch re-pointed 2578 to 3f22a805
+17:28:56Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to e8564392
+17:28:58Z HANDOFF-MOVED handoff-body/r10-flow-body-patch from none to 0f47fbef
+17:29:25Z tick
+17:30:33Z CHECKS-GREEN 2572 441d19932f40475ddc0420f3b67ba8d90202eb2c (required checks but nightly-status concluded green)
+17:30:44Z CHECKS-GREEN 2580 a8a2778e155e0f13527ec2864f856d8ddd942e31 (required checks but nightly-status concluded green)
+17:34:08Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to 2d09e22b
+17:34:13Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to 604b6a93
+17:34:14Z HANDOFF-MOVED handoff/r10-flow-relay-hold from cfa89d24 to ce4d1208
+17:34:30Z tick
+17:36:07Z relay 2578 nonce=d495ed9002400d88ebb148c78bead593 head=3f22a805 rc=0: cloud_relay: POSTED #2578 6c4de149cbdb7fbb0307468e2b0070eeb0fd6f29 cloud_relay: relayed refs/heads/probe/rev-2578-d495ed90 d5a74b987564839959f276ecf6034321828dc6a1; next: bus.sh confirm 2578 <review commit> 
+17:36:07Z verdict 2578: Fix review: merge 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20
+17:36:07Z tick
+17:41:34Z HEAD-MOVED 2563 from baa01ed8 to ac4d6210
+17:41:34Z CHECKS-RED 2563 ac4d62106fde9620887bc25d00b1ea5c916632ac: pr-contract	completed	failure 
+17:41:33Z relay 2572 nonce=cecf419ef61f5daf10cddb3679e265ca head=441d1993 rc=2: cloud_relay: refused: refs/heads/probe/rev-2572-cecf419e at ba1b1e8f9a653a2f49dc072a79f1facf1e9ae96a was already relayed 
+17:41:33Z REFUSED 2572 head=441d1993: report to main, not retried
+17:41:33Z tick
+17:46:39Z tick
+17:46:45Z HANDOFF-MOVED handoff-body/r10-flow-andon from none to 1ef4dbd0
+17:51:47Z relay 2580 nonce=6ed39626378f4923fe2e58ee0552fedb head=a54aed8b rc=1: bus: REFUSE: the push of review/2580 was refused 
+17:51:47Z REFUSED 2580 head=a54aed8b: report to main, not retried
+17:51:47Z tick
+17:52:41Z HANDOFF-MOVED design/r10-scores from none to 6f14f9d0
+17:52:42Z HANDOFF-MOVED handoff-body/design-r10-scores from none to 99bbf6f6
+17:56:27Z relay 2576 nonce=4e030b94445cb86f87f436bd597d7054 head=fe1365f0 rc=0: cloud_relay: POSTED #2576 c4e92a2eafa524b4b05c47592ba378f7850bd182 cloud_relay: relayed refs/heads/probe/rev-2576-4e030b94 a5b6f0ebd2deae5a603b34eedae9edc7d09665ef; next: bus.sh confirm 2576 <review commit> 
+17:56:27Z verdict 2576: Fix review: blocked fe1365f0f992b1d53d79c8e0a1d94804a74f53d8 body-stale: Null control says every carry list is unchanged except R10-POLICY-FIXER-MD, but at this head R10-LIVESTATE (8 to 9) and R10-UX-HEALTH (5 to 6) changed too, and Head still names f424d993d as the authored code head
+17:56:27Z tick
+17:58:28Z HANDOFF-MOVED design-verdict/r10-scores from none to d43358cf
+17:58:28Z HANDOFF-MOVED handoff-body/design-verdict-r10-scores from none to 5b248eae
+18:01:50Z relay 2547 nonce=c2c5075c4ebcb40ffb1e164a8ee4f777 head=90bab078 rc=2: cloud_relay: refused: refs/heads/probe/rev-2547-c2c5075c at e977c7caa47852d7de720cc1647fb4ec65fe1d26 was already relayed 
+18:01:50Z REFUSED 2547 head=90bab078: report to main, not retried
+18:01:50Z tick
+18:05:35Z HANDOFF-MOVED handoff-body/r10-row-only-update from f8953922 to f7158ad8
+18:05:46Z HANDOFF-MOVED handoff-body/r10-row-only-update from e5e81f0b to f7158ad8
+18:05:48Z HANDOFF-MOVED design/r10-scores from 6f14f9d0 to 220192d7
+18:05:48Z HANDOFF-MOVED handoff-body/design-r10-scores from 99bbf6f6 to 8bc27406
+18:05:50Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to d82834d0
+18:06:57Z HANDOFF-MOVED handoff-body/r10-row-only-update from b2f83c79 to f7158ad8
+18:06:57Z HEAD-MOVED fix/r10-row-only-update (PR 2567) from f1695654 to 4ef1a827
+18:06:57Z tick
+18:08:11Z HEAD-MOVED 2567 from 54bf1821 to 4ef1a827
+18:08:17Z CHECKS-GREEN 2578 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20 (required checks but nightly-status concluded green)
+18:09:38Z tick
+18:13:37Z CHECKS-GREEN 2580 a54aed8b9e756aaa47ea18e9a13bf33a06878a0b (required checks but nightly-status concluded green)
+18:14:44Z relay 2576 nonce=4942e7460eab68db29c0ef60597171a3 head=1ebbae78 rc=2: cloud_relay: refused: refs/heads/probe/rev-2576-4942e746 at e0555ec6cd27a503a2b98fef63ea8a5c8de34083 was already relayed 
+18:14:44Z REFUSED 2576 head=1ebbae78: report to main, not retried
+18:14:44Z tick
+18:15:07Z HANDOFF-MOVED design-verdict/r10-scores from d43358cf to 6928d245
+18:15:07Z HANDOFF-MOVED handoff-body/design-verdict-r10-scores from none to d0465e88
+18:16:07Z HANDOFF-MOVED handoff-body/mrbatch from none to 88e7b59a
+18:16:52Z MRBATCH-RELAYED 2571 nonce=56cafa79188c2e5e20f1b4065ee02f3b head=cb48de24 review_commit=2403a1e9c7fbc3cafe8eabe2963e71abfcd68a76
+18:17:00Z MRBATCH-RELAYED 2580 nonce=59942ae7eea0b6867213ae5094c34126 head=a54aed8b review_commit=c4d76a3ac9ef5805a94cde819df2ae441f8f41d1
+18:17:08Z MRBATCH-RELAYED 2578 nonce=054b1614a42cb0e88d11ee0686849089 head=3f22a805 review_commit=26d774d252f5fc00e1d5496a24f1e87f4d908754
+18:17:16Z MRBATCH-RELAYED 2569 nonce=f516a337d7a8b35ec4420848109661f3 head=8c008227 review_commit=1b3303b86c361a737a10781ba5634dfe3103655e
+18:19:52Z tick
+18:21:20Z HANDOFF-MOVED handoff-body/r10-flow-main-gate from none to 034148a8
+18:21:20Z HANDOFF-MOVED handoff-body/r10-flow-andon from 1ef4dbd0 to dcaf45f8
+18:21:22Z HANDOFF-MOVED design/r10-scores from 220192d7 to f01e06d2
+18:21:23Z HANDOFF-MOVED handoff-body/design-r10-scores from 8bc27406 to 6f22b4a3
+18:24:47Z HANDOFF-MOVED handoff-body/r10-ci-layout-p1 from none to ef5c94f3
+18:24:47Z HANDOFF-MOVED handoff/r10-ci-layout-p1 from none to 1b4fae9d
+18:24:57Z tick
+18:30:01Z tick
+18:30:11Z HANDOFF-MOVED handoff-body/r10-flow-andon from 1ef4dbd0 to a902b1cd
+18:30:14Z HANDOFF-MOVED design-verdict/r10-scores from 6928d245 to 7a09f464
+18:30:15Z HANDOFF-MOVED handoff-body/design-verdict-r10-scores from d0465e88 to df204533
+18:35:07Z tick
+18:40:13Z tick
+18:43:06Z MRBATCH-RELAYED 2584 nonce=ee2cfa334fe07c8fd0715f8725b0e38d head=957df90a review_tip=03187081
+18:44:59Z P1-PR-OPENED r10-ci-layout-p1 #2585 (head fix/r10-ci-layout-p1)
+18:45:24Z CHECKS-GREEN 2567 4ef1a8270f3bd30bc6c313c950f6f44713a1442d (required checks but nightly-status concluded green)
+18:45:19Z relay 2567 nonce=cdda16118cf7b9ea9ddfcd538c68d6d3 head=4ef1a827 rc=0: cloud_relay: POSTED #2567 2d15c5809211b82519fd81c6a8e0cae52eccae04 cloud_relay: relayed refs/heads/probe/rev-2567-cdda1611 2a9141e203c7e6b32e7fecb5273bb23a7641237f; next: bus.sh confirm 2567 <review commit> 
+18:45:19Z verdict 2567: Fix review: merge 4ef1a8270f3bd30bc6c313c950f6f44713a1442d
+18:45:19Z tick
+18:50:53Z CHECKS-GREEN 2529 8f026328dd45d8113e05c51c64038fa47a3a4b67 (required checks but nightly-status concluded green)
+18:50:46Z relay 2529 nonce=6a90cc3dbdedf45b14fd822bc8d7958d head=8f026328 rc=0: cloud_relay: POSTED #2529 3ebd4914f96c58743b601aaf804ed7a4db3768f2 cloud_relay: relayed refs/heads/probe/rev-2529-6a90cc3d 3cba80d7ee35f47ee0246ef0c4924b00c728f210; next: bus.sh confirm 2529 <review commit> 
+18:50:46Z verdict 2529: Fix review: merge 8f026328dd45d8113e05c51c64038fa47a3a4b67
+18:50:46Z HANDOFF-MOVED handoff-body/r10-night-folds from 070c5cb4 to c4de1bde
+18:50:46Z tick
+18:51:58Z HANDOFF-MOVED handoff-body/r10-night-folds from cc6c2db9 to c4de1bde
+18:54:42Z MRBATCH-RELAYED 2582 nonce=5f55e15cff83ca14fd0727e303b83a81 head=83d9662d review_tip=b309a4e3
+18:56:08Z tick
+19:01:14Z tick
+19:01:21Z HEAD-MOVED 2563 from baa01ed8 to 2f475810
+19:06:20Z tick
+19:07:48Z HANDOFF-MOVED handoff/r10-flow-design-policy from none to 87c3672f
+19:07:48Z HANDOFF-MOVED handoff-body/r10-flow-design-policy from none to 65796d3d
+19:11:24Z tick
+19:16:30Z tick
+19:18:11Z HANDOFF-MOVED handoff-body/r10-ci-layout-p1 from ef5c94f3 to dd8e9e74
+19:18:11Z HANDOFF-MOVED handoff/r10-ci-layout-p1 from 1b4fae9d to 2bd0e21b
+19:21:35Z tick
+19:23:29Z HANDOFF-MOVED handoff/r10-flow-main-gate from 14ce0159 to b07e9e9d
+19:23:29Z HANDOFF-MOVED handoff-body/r10-flow-main-gate from 034148a8 to 2edbf9d2
+19:26:44Z MRBATCH-RELAYED 2586 nonce=1ebc1fe85a6438a89a0e5b7681c01870 head=d3e34be5 review_tip=973043f2
+19:26:42Z tick
+19:31:47Z tick
+19:36:52Z tick
+19:41:57Z tick
+19:42:24Z MRBATCH-REFUSED 2563 nonce=7e7638c43a22772a346ee4c2283f8832 head=2f475810 rc=1 review_tip=374708fe: fatal: the remote end hung up unexpectedly bus: REFUSE: the push of review/2563 was refused 
+19:44:37Z HANDOFF-MOVED handoff/r10-flow-design-policy from none to d2ba1e18
+19:47:02Z tick
+19:49:02Z HEAD-MOVED 2569 from 5ffbaaae to ea0b369c
+19:49:09Z CHECKS-GREEN 2563 2f47581094ad66bd76ccfa6efff92aef90036aeb (required checks but nightly-status concluded green)
+19:49:14Z HEAD-MOVED 2578 from 3f22a805 to 48cc0918
+19:49:16Z HEAD-MOVED 2580 from a54aed8b to ed13f9a4
+19:49:17Z HEAD-MOVED 2529 from 8f026328 to a8b68af8
+19:52:07Z tick
+19:57:12Z tick
+20:00:24Z HANDOFF-MOVED handoff-body/r10-flow-design-policy from none to 31df5c63
+20:02:18Z tick
+20:07:23Z tick
+20:10:30Z CHECKS-GREEN 2580 ed13f9a4fc9c000136489f8c9f87474ab540d87a (required checks but nightly-status concluded green)
+20:12:27Z tick
+20:17:32Z tick
+20:21:04Z CHECKS-GREEN 2578 48cc0918a4ed912d4149d088d0ca6191cf8cf1dc (required checks but nightly-status concluded green)
+20:22:39Z tick
+20:27:45Z tick
+20:31:27Z CHECKS-GREEN 2569 ea0b369ccc904a40a0b4ab7cc06e0420c9c9cf75 (required checks but nightly-status concluded green)
+20:32:52Z tick
+20:37:08Z HEAD-MOVED 2563 from baa01ed8 to 7c8af240
+20:37:08Z CHECKS-GREEN 2563 7c8af24094e27c56b4057639e374ba41587ba845 (required checks but nightly-status concluded green)
+20:37:57Z tick
+20:43:13Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 74ef5875
+20:43:03Z relay 2528 nonce=b5c87533bd83cca7b8de279dd5a2019d head=5332c59f rc=0: cloud_relay: POSTED #2528 998fbac2efb54fee35b019a411f9a549e23bd816 cloud_relay: relayed refs/heads/probe/rev-2528-b5c87533 099292a5f035cbf7e3c672d48399870f10cbd49b; next: bus.sh confirm 2528 <review commit> 
+20:43:03Z verdict 2528: Fix review: blocked 5332c59f9b5e883d1b1638a6f310fbc7237bdaa9 vacuous-test: the reap arms check only the recorder's leader pid, so a watchdog that TERMs the pid instead of the group orphans derive_closures.sh's lanes and the self-test stays 323/0; step 6b's own closures_step call is also unpinned
+20:43:03Z tick
+20:48:30Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 532bff2f
+20:48:28Z tick
+20:53:34Z tick
+20:53:47Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to a3b38dde
+20:58:34Z HEAD-MOVED 2529 from 8f026328 to 42e88011
+20:58:39Z tick
+20:59:07Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 0345d29d
+21:03:35Z HEAD-MOVED 2569 from 5ffbaaae to 8c81605c
+21:03:43Z HEAD-MOVED 2567 from 54bf1821 to 0b1d9d49
+21:03:49Z HEAD-MOVED 2578 from 3f22a805 to 36ca386d
+21:03:52Z HEAD-MOVED 2580 from a54aed8b to bc313e7c
+21:03:48Z HEAD-MOVED fix/r10-row-only-update (PR 2567) from f1695654 to 0b1d9d49
+21:03:48Z tick
+21:04:16Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to 274449aa
+21:04:17Z HANDOFF-MOVED handoff/r10-flow-dispatch from none to 742ed664
+21:04:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 1252ae24
+21:08:54Z ROW-LANDED 2557 at 7e312ed2
+21:08:54Z ROW-LANDED 2558 at 59c5b20e
+21:08:54Z tick
+21:09:31Z HANDOFF-MOVED handoff/r10-advisor from cd1c837c to b11f008c
+21:09:48Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d077c1fe
+21:09:49Z HANDOFF-MOVED handoff/r10-flow-design-policy from none to d8fe7653
+21:14:03Z tick
+21:14:33Z HEAD-MOVED 2577 from 6684dee6 to 69a429cf
+21:15:12Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 91033351
+21:19:06Z tick
+21:20:31Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to b268b8d8
+21:24:10Z tick
+21:25:42Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 5ac1af7b
+21:25:43Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to ce0d6d26
+21:25:50Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 43b92f8c
+21:25:51Z HANDOFF-MOVED handoff-body/r10-flow-design-policy from none to 8cdf3b31
+21:29:13Z tick
+21:30:29Z HEAD-MOVED 2572 from 441d1993 to 4b215f4b
+21:31:08Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 8162c672
+21:34:17Z tick
+21:36:30Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 3c8111a4
+21:39:20Z tick
+21:41:54Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 8138db55
+21:44:29Z tick
+21:46:58Z CHECKS-GREEN 2578 36ca386d6a830a90096df6821b85abfad0c6a1f9 (required checks but nightly-status concluded green)
+21:46:59Z HEAD-MOVED 2579 from 46878112 to 816b1e20
+21:46:59Z CHECKS-RED 2579 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb: pr-contract	completed	failure 
+21:47:01Z CHECKS-GREEN 2580 bc313e7cad5e78ea918427db74d33e8109fb00d4 (required checks but nightly-status concluded green)
+21:47:12Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 12367b7e
+21:49:32Z tick
+21:52:04Z CHECKS-GREEN 2569 8c81605c3b802b78283dd1aed06713b7cf2f6544 (required checks but nightly-status concluded green)
+21:52:33Z HANDOFF-MOVED handoff-body/r10-night-folds from cc6c2db9 to f9ce29e9
+21:52:36Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to abca772e
+21:54:35Z HANDOFF-MOVED handoff-body/r10-night-folds from 070c5cb4 to f9ce29e9
+21:54:35Z tick
+21:57:40Z HANDOFF-MOVED handoff-body/r10-prepr-closures from a7c5383b to 37fd6045
+21:57:46Z CHECKS-RED 2567 0b1d9d496562e8d6d930d15e7f199d8ad8432f96: pr-contract	completed	failure 
+21:58:00Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c9140d29
+21:59:39Z tick
+22:03:17Z CHECKS-GREEN 2577 69a429cfab2d02fd938ac13ef2893c520ca98f7a (required checks but nightly-status concluded green)
+22:03:20Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c20ae3db
+22:04:43Z tick
+22:08:40Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to a89809fa
+22:09:46Z tick
+22:13:51Z HEAD-MOVED 2569 from 5ffbaaae to 84488cd7
+22:14:01Z HEAD-MOVED 2567 from 54bf1821 to 7a3b6d6d
+22:14:03Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 7504b180
+22:14:15Z CHECKS-GREEN 2529 42e88011142a2f7b97475e102400082e4d2cf5d9 (required checks but nightly-status concluded green)
+22:14:49Z HEAD-MOVED fix/r10-row-only-update (PR 2567) from f1695654 to 7a3b6d6d
+22:14:49Z tick
+22:19:24Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c2d4c24d
+22:19:28Z HEAD-MOVED 2563 from baa01ed8 to d48018b8
+22:19:36Z CHECKS-GREEN 2579 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb (required checks but nightly-status concluded green)
+22:19:57Z tick
+22:24:46Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 810c3868
+22:24:47Z CHECKS-GREEN 2572 4b215f4be037df2d519b7d189663fd04d3e37c5b (required checks but nightly-status concluded green)
+22:24:55Z HEAD-MOVED 2528 from 5332c59f to 10f85c3e
+22:24:59Z tick
+22:30:02Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c9905c60
+22:30:03Z tick
+22:35:06Z tick
+22:35:09Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to 639e19f3
+22:35:10Z HANDOFF-MOVED handoff/r10-flow-dispatch from none to 11c9209a
+22:35:15Z HANDOFF-MOVED handoff-body/r10-flow-andon from 1ef4dbd0 to 00627b1a
+22:35:17Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to f17bfd3c
+22:35:18Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4ece7ca8
+22:40:08Z tick
+22:45:10Z tick
+22:45:46Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to bc4aab93
+22:45:46Z HANDOFF-MOVED handoff/r10-flow-relay-hold from cfa89d24 to 929ee160
+22:45:50Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 1a06ae82
+22:50:13Z tick
+22:51:00Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 8ca90cdd
+22:51:00Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to aba00fbf
+22:51:05Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 5ffe2a93
+22:51:21Z HEAD-MOVED 2577 from 6684dee6 to 997dadc9
+22:51:22Z CHECKS-GREEN 2528 10f85c3ee7065d31230e292d7438e105efb9ff57 (required checks but nightly-status concluded green)
+22:55:15Z tick
+22:56:34Z CHECKS-GREEN 2567 7a3b6d6da9dd3e052bd68e360e03f1e1023effec (required checks but nightly-status concluded green)
+23:00:17Z tick
+23:05:20Z tick
+23:10:22Z tick
+23:15:24Z tick
+23:17:38Z CHECKS-GREEN 2569 84488cd7a991c7a70491beb59cb54824727e32c8 (required checks but nightly-status concluded green)
+23:20:28Z tick
+23:22:40Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 605f523d
+23:23:03Z CHECKS-GREEN 2563 d48018b80be11a2029e8492590a1a9e4b3a2eae9 (required checks but nightly-status concluded green)
+23:23:06Z CHECKS-GREEN 2577 997dadc906c8a98343944639c6464f38dbb0b6da (required checks but nightly-status concluded green)
+23:25:30Z tick
+23:30:33Z tick
+23:33:35Z HEAD-MOVED 2572 from 441d1993 to 876af788
+23:35:35Z tick
+23:40:37Z tick
+23:43:42Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 984f4d88
+23:45:40Z tick
+23:50:42Z tick
+23:55:44Z tick
+00:00:46Z tick
+00:05:48Z tick
+00:10:50Z tick
+00:15:43Z HEAD-MOVED 2572 from 441d1993 to e5845f90
+00:15:52Z tick
+00:20:26Z HANDOFF-MOVED handoff-body/r10-flow-andon from 1ef4dbd0 to 027f3f5b
+00:20:29Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4947c7f6
+00:20:55Z tick
+00:25:38Z HANDOFF-MOVED handoff-body/r10-ci-layout-p1 from ef5c94f3 to a51cb2fe
+00:25:39Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 0d85c105
+00:25:45Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2ffa66ed
+00:25:57Z tick
+00:30:59Z tick
+00:31:10Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2ce05426
+00:31:12Z HANDOFF-MOVED handoff-body/r10-flow-design-policy from none to eda36f40
+00:31:44Z HEAD-MOVED 2580 from a54aed8b to f44296a6
+00:36:02Z tick
+00:36:26Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 743463c6
+00:37:00Z HEAD-MOVED 2579 from 46878112 to eb9f7e89
+00:41:05Z tick
+00:46:07Z tick
+00:51:09Z tick
+00:52:04Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to c6570ac6
+00:52:04Z HANDOFF-MOVED handoff/r10-flow-dispatch from none to d2154512
+00:56:12Z tick
+00:58:01Z HEAD-MOVED 2577 from 6684dee6 to 1060a1f0
+01:01:14Z tick
+01:03:22Z CHECKS-GREEN 2580 f44296a61f42250b23c0f557a54c6295ab991dac (required checks but nightly-status concluded green)
+01:06:16Z tick
+01:08:29Z CHECKS-GREEN 2572 e5845f90c2f423d3bdc4857a96f34fa4845a4ecd (required checks but nightly-status concluded green)
+01:11:18Z tick
+01:16:20Z tick
+01:18:17Z HANDOFF-MOVED handoff-body/r10-prepr-closures from a7c5383b to aca933b3
+01:18:29Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 306a96d5
+01:19:03Z HEAD-MOVED 2563 from baa01ed8 to b2849f56
+01:21:22Z tick
+01:24:25Z CHECKS-GREEN 2579 eb9f7e89d0b258ca66a8d9757df0156a776b7332 (required checks but nightly-status concluded green)
+01:26:25Z tick
+01:28:50Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to 3febef00
+01:28:50Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to 6978fe22
+01:28:59Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 3aa797b8
+01:29:40Z HEAD-MOVED 2528 from 5332c59f to 1723d874
+01:29:40Z CHECKS-RED 2528 1723d8743619f397bcf9e04a219e1a581f4a736c: pr-contract	completed	failure 
+01:31:27Z tick
+01:36:29Z tick
+01:41:31Z tick
+01:45:28Z CHECKS-GREEN 2577 1060a1f035db0bb84263080ec4b36343a742c870 (required checks but nightly-status concluded green)
+01:46:33Z tick
+01:49:52Z HANDOFF-MOVED handoff-body/r10-flow-body-patch from none to f3bd3413
+01:49:53Z HANDOFF-MOVED handoff/r10-flow-body-patch from 18e7a7c6 to dcb7f980
+01:51:35Z tick
+01:55:07Z HANDOFF-MOVED handoff-body/r10-flow-dispatch from none to 1aa4220b
+01:55:07Z HANDOFF-MOVED handoff/r10-flow-dispatch from none to 9dcdfe94
+01:56:04Z HEAD-MOVED 2578 from 3f22a805 to 94ef8a7d
+01:56:38Z tick
+02:01:16Z HEAD-MOVED 2563 from baa01ed8 to 4276bf8e
+02:01:18Z HEAD-MOVED 2577 from 6684dee6 to 9720cda1
+02:01:40Z tick
+02:05:39Z HANDOFF-MOVED handoff-body/r10-ci-layout-p1 from ef5c94f3 to 58d40acf
+02:05:40Z HANDOFF-MOVED handoff/r10-ci-layout-p1 from 1b4fae9d to 188c5728
+02:05:41Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to 672fe0e8
+02:05:42Z HANDOFF-MOVED handoff/r10-flow-relay-hold from cfa89d24 to f78491bb
+02:06:41Z HEAD-MOVED 2580 from a54aed8b to 056776d8
+02:06:41Z CHECKS-RED 2580 056776d8754930075a030426dd807208e0fd2bc3: pr-contract	completed	failure 
+02:06:42Z tick
+02:11:44Z tick
+02:16:46Z tick
+02:21:49Z tick
+02:26:51Z tick
+02:27:44Z CHECKS-GREEN 2578 94ef8a7d7bfddda09f1698f75ff06f466a085f69 (required checks but nightly-status concluded green)
+02:31:53Z tick
+02:32:05Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 940c524d
+02:36:56Z tick
+02:41:58Z tick
+02:47:00Z tick
+02:48:45Z CHECKS-GREEN 2563 4276bf8e7b5f769b5595f35232161ed963501961 (required checks but nightly-status concluded green)
+02:48:47Z CHECKS-GREEN 2577 9720cda1ebc3cb8304e62b5914910d54642e721a (required checks but nightly-status concluded green)
+02:52:03Z tick
+02:57:06Z tick
+02:59:21Z HEAD-MOVED 2577 from 6684dee6 to d1bc4b59
+02:59:23Z HEAD-MOVED 2578 from 3f22a805 to 115bf041
+03:02:08Z tick
+03:04:38Z CHECKS-RED 2577 d1bc4b59c2ff4adeaf83325b2b0cc741eb5c907b: env-matrix	completed	failure instrument-self-tests	completed	failure policy-docs	completed	failure 
+03:04:41Z CHECKS-RED 2578 115bf041d7bb129fb36b75fbfbae58a4f7502125: env-matrix	completed	failure instrument-self-tests	completed	failure policy-docs	completed	failure 
+03:07:10Z tick
+03:08:52Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 70a211b2
+03:08:52Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to 80b4f276
+03:12:12Z tick
+03:17:14Z tick
+03:22:16Z tick
+03:27:18Z tick
+03:32:21Z tick
+03:37:24Z tick
+03:42:27Z tick
+03:47:29Z tick
+03:52:31Z tick
+03:57:33Z tick
+04:01:28Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to 0d34e1fb
+04:01:28Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to f1e7b889
+04:02:35Z tick
+04:07:38Z tick
+04:12:40Z tick
+04:17:42Z tick
+04:22:44Z tick
+04:27:46Z tick
+04:32:48Z tick
+04:37:51Z tick
+04:39:46Z HEAD-MOVED 2579 from 46878112 to e53fee36
+04:42:53Z tick
+04:47:55Z tick
+04:52:57Z tick
+04:58:00Z tick
+05:03:03Z tick
+05:08:05Z tick
+05:13:07Z tick
+05:16:40Z HEAD-MOVED 2577 from 6684dee6 to 283348fe
+05:16:40Z CHECKS-RED 2577 283348fe4484c8c46477435a7af9997c09783e8f: pr-contract	completed	failure 
+05:16:43Z HEAD-MOVED 2578 from 3f22a805 to e6e3cd84
+05:16:43Z CHECKS-RED 2578 e6e3cd849708b45ebb1a3d1cde3d48715f4b23d6: pr-contract	completed	failure 
+05:18:10Z tick
+05:23:12Z tick
+05:27:16Z CHECKS-GREEN 2579 e53fee3670d81481bd25d255f3f27365e287c12e (required checks but nightly-status concluded green)
+05:28:14Z tick
+05:33:16Z tick
+05:38:19Z tick
+05:43:21Z tick
+05:48:23Z tick
+05:53:26Z tick
+05:58:28Z tick
+06:03:30Z tick
+06:08:32Z tick
+06:13:35Z tick
+06:18:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 71410dba
+06:18:37Z tick
+06:20:06Z HEAD-MOVED 2577 from 6684dee6 to 731a1149
+06:20:06Z CHECKS-RED 2577 731a1149157881915df065ee7717126e687aa3d1: pr-contract	completed	failure 
+06:23:40Z tick
+06:23:44Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2e38c61d
+06:28:43Z tick
+06:29:00Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 26e43321
+06:29:00Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 56201518
+06:33:45Z tick
+06:38:47Z tick
+06:43:49Z tick
+06:48:51Z tick
+06:53:53Z tick
+06:57:04Z HEAD-MOVED 2578 from 3f22a805 to 5f216b37
+06:57:07Z HEAD-MOVED 2580 from a54aed8b to caac2c8d
+06:58:56Z tick
+07:01:09Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to e5d5c508
+07:03:58Z tick
+07:07:36Z HEAD-MOVED 2577 from 6684dee6 to ccd5f061
+07:09:00Z tick
+07:12:53Z CHECKS-RED 2577 ccd5f0611d5a5ef7332c4db32f28b572943e0c53: pr-contract	completed	failure 
+07:14:02Z tick
+07:19:05Z tick
+07:24:07Z tick
+07:29:09Z tick
+07:34:03Z CHECKS-GREEN 2578 5f216b37f4aad0681f6a8a42f419fb1674b55bea (required checks but nightly-status concluded green)
+07:34:11Z tick
+07:39:14Z tick
+07:39:23Z CHECKS-GREEN 2580 caac2c8dfb338b316803b94ba1df13aff02647e0 (required checks but nightly-status concluded green)
+07:43:16Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4da10dba
+07:44:16Z tick
+07:49:18Z tick
+07:54:20Z tick
+07:59:04Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 8da941ac
+07:59:23Z tick
+08:00:27Z CHECKS-GREEN 2577 ccd5f0611d5a5ef7332c4db32f28b572943e0c53 (required checks but nightly-status concluded green)
+08:04:25Z tick
+08:09:27Z tick
+08:11:05Z HEAD-MOVED 2578 from 3f22a805 to fa9a8fd4
+08:11:08Z HEAD-MOVED 2580 from a54aed8b to 8aec4677
+08:14:30Z tick
+08:14:51Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to a2ba48ec
+08:19:32Z tick
+08:24:34Z tick
+08:29:36Z tick
+08:34:39Z tick
+08:37:36Z CHECKS-GREEN 2578 fa9a8fd4ee9cb65e977e397f15c03333ba12319b (required checks but nightly-status concluded green)
+08:39:41Z tick
+08:44:43Z tick
+08:46:33Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to b93ece16
+08:48:14Z CHECKS-GREEN 2580 8aec467755b2ec15635430e82c4002f3aea5d611 (required checks but nightly-status concluded green)
+08:49:46Z tick
+08:54:48Z tick
+08:59:50Z tick
+09:02:20Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to e511768e
+09:04:53Z tick
+09:09:20Z HEAD-MOVED 2580 from a54aed8b to 808137a9
+09:09:20Z CHECKS-RED 2580 808137a949c2c1ce64acc340cfd72ccfebc7a6b8: delivery-status	completed	failure 
+09:09:55Z tick
+09:12:50Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to a3229154
+09:14:57Z tick
+09:19:59Z tick
+09:25:01Z tick
+09:28:37Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to f6d6d79d
+09:28:38Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 838178f8
+09:30:03Z tick
+09:33:48Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 370eda34
+09:33:49Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to 384a0e8c
+09:35:05Z tick
+09:35:44Z HEAD-MOVED 2579 from 46878112 to 6ad8089c
+09:39:11Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 9bd3c4d5
+09:40:08Z tick
+09:44:26Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 33138bc2
+09:45:10Z tick
+09:46:18Z CHECKS-RED 2579 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2: instrument-self-tests	completed	failure 
+09:46:19Z HEAD-MOVED 2580 from a54aed8b to 76bcb1ee
+09:46:19Z CHECKS-RED 2580 76bcb1ee313e9d5754f18658192eb81b8b9040cd: arch-score	completed	failure env-matrix	completed	failure pr-contract	completed	failure 
+09:50:12Z tick
+09:55:14Z tick
+10:00:17Z tick
+10:05:19Z tick
+10:10:21Z tick
+10:15:24Z tick
+10:20:27Z tick
+10:21:22Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d9f33a0f
+10:25:29Z tick
+10:26:37Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2a64d2b5
+10:30:31Z tick
+10:35:34Z tick
+10:37:08Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 9619aa9b
+10:40:36Z tick
+10:42:24Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to aa38bdd5
+10:45:39Z tick
+10:49:53Z HEAD-MOVED 2580 from a54aed8b to 3567b14f
+10:49:53Z CHECKS-RED 2580 3567b14ffa876277878db238aa91c7cd70a83f11: pr-contract	completed	failure 
+10:50:41Z tick
+10:55:43Z tick
+10:58:11Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to d2102a0d
+11:00:46Z tick
+11:05:48Z tick
+11:10:50Z tick
+11:15:52Z tick
+11:16:21Z HEAD-MOVED 2580 from a54aed8b to b8c6d6d5
+11:16:21Z CHECKS-RED 2580 b8c6d6d5571614f5897413d77bf1476022830583: pr-contract	completed	failure 
+11:19:17Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 59eb73ac
+11:20:55Z tick
+11:25:57Z tick
+11:31:00Z tick
+11:36:02Z tick
+11:37:34Z HEAD-MOVED 2580 from a54aed8b to 25a22a31
+11:37:34Z CHECKS-RED 2580 25a22a315ed8d19b82f171e535c9dfcbb1d830f5: pr-contract	completed	failure 
+11:41:04Z tick
+11:46:06Z tick
+11:51:09Z tick
+11:56:07Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d352f6ad
+11:56:11Z tick
+12:01:12Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to 4e0924dc
+12:01:13Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to db0d8837
+12:01:13Z tick
+12:01:22Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to e70ce979
+12:06:15Z tick
+12:06:39Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to a97c74e2
+12:11:18Z tick
+12:16:20Z tick
+12:17:07Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to 7b0ad1ea
+12:20:03Z CHECKS-GREEN 2580 25a22a315ed8d19b82f171e535c9dfcbb1d830f5 (required checks but nightly-status concluded green)
+12:21:22Z tick
+12:26:25Z tick
+12:27:39Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to 96061140
+12:27:40Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to 218b0af4
+12:27:46Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 229151c2
+12:30:39Z HEAD-MOVED 2579 from 46878112 to 45754ede
+12:31:27Z tick
+12:36:29Z tick
+12:41:32Z tick
+12:46:34Z tick
+12:51:36Z tick
+12:56:39Z tick
+12:59:21Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to bbf9c836
+13:01:41Z tick
+13:04:38Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 9879251a
+13:06:43Z tick
+13:07:50Z CHECKS-GREEN 2579 45754ede263322459d69936f5898d26fe64654f4 (required checks but nightly-status concluded green)
+13:09:55Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c98fb4c2
+13:11:46Z tick
+13:16:48Z tick
+13:21:50Z tick
+13:26:52Z tick
+13:31:54Z tick
+13:36:57Z tick
+13:41:59Z tick
+13:47:01Z tick
+13:52:04Z tick
+13:52:11Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4209e135
+13:55:43Z HEAD-MOVED 2580 from a54aed8b to 187cec73
+13:57:06Z tick
+14:02:08Z tick
+14:02:43Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to fb0760bf
+14:07:11Z tick
+14:07:59Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2501a0a1
+14:12:13Z tick
+14:17:15Z tick
+14:22:17Z tick
+14:23:41Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to a505bece
+14:23:42Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to 8a01caf2
+14:27:19Z tick
+14:27:32Z HEAD-MOVED 2579 from 46878112 to 632d2fe2
+14:32:22Z tick
+14:37:25Z tick
+14:42:27Z tick
+14:47:29Z tick
+14:48:49Z CHECKS-GREEN 2580 187cec730000ae37c4191d642cf22c0422c7797e (required checks but nightly-status concluded green)
+14:52:31Z tick
+14:57:34Z tick
+15:02:36Z tick
+15:07:39Z tick
+15:12:41Z tick
+15:17:43Z tick
+15:22:46Z tick
+15:27:48Z tick
+15:32:50Z tick
+15:37:53Z tick
+15:41:56Z CHECKS-GREEN 2579 632d2fe261b5293e718363485cd816909bf3290c (required checks but nightly-status concluded green)
+15:42:55Z tick
+15:47:57Z tick
+15:52:59Z tick
+15:58:01Z tick
+16:03:04Z tick
+16:08:06Z tick
+16:13:09Z tick
+16:18:12Z tick
+16:23:14Z tick
+16:28:17Z tick
+16:33:19Z tick
+16:35:46Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to adfa501b
+16:38:21Z tick
+16:41:05Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 3015bc2c
+16:41:05Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d7e1f9fc
+16:43:24Z tick
+16:46:18Z HANDOFF-MOVED handoff-body/r10-flow-relay-hold from dd295d08 to 54b03f92
+16:46:18Z HANDOFF-MOVED handoff/r10-flow-relay-hold from cfa89d24 to 0e4558f4
+16:48:27Z tick
+16:51:05Z HEAD-MOVED 2579 from 46878112 to 837231bc
+16:51:05Z CHECKS-GREEN 2579 837231bc0bf4ca49b60ee050441c24ee3c047e9a (required checks but nightly-status concluded green)
+16:51:06Z HEAD-MOVED 2580 from a54aed8b to 3541137e
+16:53:29Z tick
+16:56:45Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to 2d5d6be1
+16:58:31Z tick
+17:03:34Z tick
+17:07:15Z HANDOFF-MOVED handoff-body/r10-prepr-closures from a7c5383b to 3ed885c5
+17:08:37Z tick
+17:13:39Z tick
+17:17:31Z HEAD-MOVED 2528 from 5332c59f to 2af78ed5
+17:18:41Z tick
+17:23:00Z CHECKS-GREEN 2580 3541137e8998aa0b2c609d4429feb37e5999140d (required checks but nightly-status concluded green)
+17:23:44Z tick
+17:28:46Z tick
+17:33:37Z HEAD-MOVED 2580 from a54aed8b to be9baf45
+17:33:40Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to ae1b71ed
+17:33:48Z tick
+17:38:51Z tick
+17:43:53Z tick
+17:44:08Z CHECKS-GREEN 2528 2af78ed5959f39dbe1e2bdee2efa0298ee198312 (required checks but nightly-status concluded green)
+17:48:55Z tick
+17:53:58Z tick
+17:59:01Z tick
+18:04:03Z tick
+18:05:22Z HEAD-MOVED 2528 from 5332c59f to e3bee54e
+18:05:26Z CHECKS-GREEN 2580 be9baf45f9bf810dba3984bd8d96d48b1a741023 (required checks but nightly-status concluded green)
+18:09:06Z tick
+18:14:08Z tick
+18:19:11Z tick
+18:24:13Z tick
+18:29:15Z tick
+18:34:18Z tick
+18:37:06Z CHECKS-GREEN 2528 e3bee54ebc8fa49390590d9e98f0d5d3525a7061 (required checks but nightly-status concluded green)
+18:39:20Z tick
+18:42:19Z HANDOFF-MOVED handoff/r10-pusher-reap from 6ff10e62 to a0cb0cdd
+18:42:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 324b6d31
+18:44:22Z tick
+18:47:34Z HANDOFF-MOVED handoff-body/r10-pusher-reap from 26d54533 to 0854e390
+18:47:44Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to ba4f670f
+18:49:25Z tick
+18:54:27Z tick
+18:59:30Z tick
+19:04:32Z tick
+19:09:34Z tick
+19:14:36Z tick
+19:19:39Z tick
+19:24:41Z tick
+19:29:43Z tick
+19:34:45Z tick
+19:39:48Z tick
+19:44:50Z tick
+19:49:53Z tick
+19:54:55Z tick
+19:59:58Z tick
+20:05:00Z tick
+20:10:03Z tick
+20:12:02Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 26645ca8
+20:15:06Z tick
+20:20:08Z tick
+20:25:10Z tick
+20:30:13Z tick
+20:35:15Z tick
+20:40:17Z tick
+20:45:20Z tick
+20:50:23Z tick
+20:55:26Z tick
+21:00:28Z tick
+21:04:48Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 1946d3e3
+21:05:31Z tick
+21:10:06Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 525b2024
+21:10:34Z tick
+21:15:36Z tick
+21:20:27Z HANDOFF-MOVED handoff/r10-advisor from cd1c837c to none
+21:20:30Z HANDOFF-MOVED handoff/r10-verdict-item-barrier from 821507dc to none
+21:20:35Z HANDOFF-MOVED handoff/r10-ci-layout-p1 from 1b4fae9d to none
+21:20:37Z HANDOFF-MOVED handoff/r10-flow-yield-probe from 78649700 to none
+21:20:39Z HANDOFF-MOVED handoff/r10-flow-main-gate from 14ce0159 to none
+21:20:39Z tick
+21:20:42Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to b645549c
+21:20:43Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to ca48ff79
+21:25:42Z tick
+21:26:00Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 6e8141ea
+21:30:45Z tick
+21:31:03Z HANDOFF-MOVED handoff-body/r10-row-only-update from f8953922 to none
+21:31:04Z HANDOFF-MOVED handoff-body/r10-verdict-item-barrier from b2a1f10d to none
+21:31:10Z HANDOFF-MOVED handoff-body/r10-ci-layout-p1 from ef5c94f3 to none
+21:31:11Z HANDOFF-MOVED handoff-body/r10-flow-yield-probe from 14f9d6ab to none
+21:31:14Z HANDOFF-MOVED handoff-body/r10-flow-main-gate from 034148a8 to none
+21:31:14Z HANDOFF-MOVED handoff-body/r10-row-only-update from e5e81f0b to none
+21:31:15Z HANDOFF-MOVED handoff-body/r10-night-folds from cc6c2db9 to none
+21:31:16Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to f2d1bbdf
+21:31:17Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 0a326689
+21:35:48Z tick
+21:40:50Z tick
+21:41:50Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 6893cb3a
+21:41:51Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c7fd0568
+21:45:53Z tick
+21:47:09Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to fbbddb52
+21:47:09Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 814cffed
+21:50:55Z tick
+21:52:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to ddd2e8de
+21:55:58Z tick
+22:01:00Z tick
+22:06:02Z tick
+22:11:06Z tick
+22:16:08Z tick
+22:18:55Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 5a762df2
+22:21:11Z tick
+22:26:14Z tick
+22:31:17Z tick
+22:36:20Z tick
+22:40:05Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 5ba47bff
+22:41:22Z tick
+22:45:25Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 0ae37987
+22:46:25Z tick
+22:50:44Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to cccbf4fb
+22:51:28Z tick
+22:56:02Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 224dfb4e
+22:56:31Z tick
+23:01:33Z tick
+23:06:35Z tick
+23:11:38Z tick
+23:16:40Z tick
+23:21:43Z tick
+23:26:46Z tick
+23:27:44Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d18d2da9
+23:31:48Z tick
+23:33:03Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to dd7962ec
+23:36:53Z tick
+23:38:22Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to f0578d43
+23:41:55Z tick
+23:43:39Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2f6e6ad4
+23:46:58Z tick
+23:48:57Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 1611191e
+23:52:01Z tick
+23:54:16Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to ae27f394
+23:57:03Z tick
+23:59:33Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to f664d7b5
+00:02:06Z tick
+00:04:50Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 16370d88
+00:07:09Z tick
+00:12:12Z tick
+00:17:14Z tick
+00:22:17Z tick
+00:27:20Z tick
+00:32:22Z tick
+00:37:25Z tick
+00:41:55Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 75c891e2
+00:42:28Z tick
+00:47:12Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 600635c1
+00:47:31Z tick
+00:52:31Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d37aa1b1
+00:52:34Z tick
+00:57:37Z tick
+00:57:50Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 62be37fe
+01:02:40Z tick
+01:07:43Z tick
+01:08:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 3e7aaed3
+01:12:46Z tick
+01:13:47Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to b3a9d011
+01:17:50Z tick
+01:22:54Z tick
+01:27:57Z tick
+01:29:43Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2a3d7afe
+01:33:00Z tick
+01:38:02Z tick
+01:43:06Z tick
+01:48:09Z tick
+01:53:12Z tick
+01:58:14Z tick
+02:03:16Z tick
+02:08:19Z tick
+02:13:22Z tick
+02:18:24Z tick
+02:23:27Z tick
+02:27:56Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to d33d65e1
+02:28:30Z tick
+02:33:32Z tick
+02:38:35Z tick
+02:43:37Z tick
+02:48:40Z tick
+02:53:43Z tick
+02:58:46Z tick
+02:59:44Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 95891bbd
+03:03:49Z tick
+03:08:52Z tick
+03:10:20Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 545406a3
+03:13:54Z tick
+03:15:38Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to e96196ab
+03:18:57Z tick
+03:20:54Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2ad8710e
+03:24:00Z tick
+03:29:03Z tick
+03:34:06Z tick
+03:39:08Z tick
+03:44:11Z tick
+03:49:13Z tick
+03:52:35Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 0ee3db85
+03:54:15Z tick
+03:59:18Z tick
+04:03:09Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to df67aaa1
+04:04:21Z tick
+04:09:23Z tick
+04:13:48Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 8de7e22a
+04:14:26Z tick
+04:19:07Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to 26e81fb0
+04:19:29Z tick
+04:24:31Z tick
+04:29:34Z tick
+04:34:36Z tick
+04:39:39Z tick
+04:44:41Z tick
+04:49:43Z tick
+04:54:46Z tick
+04:59:49Z tick
+05:04:51Z tick
+05:09:53Z tick
+05:14:56Z tick
+05:19:58Z tick
+05:25:00Z tick
+05:27:45Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to c539935a
+05:30:03Z tick
+05:35:05Z tick
+05:40:08Z tick
+05:45:10Z tick
+05:50:12Z tick
+05:55:15Z tick
+06:00:17Z tick
+06:05:19Z tick
+06:09:59Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 1f27f9da
+06:10:22Z tick
+06:15:17Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to c9e144d4
+06:15:18Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 7f9ffa70
+06:15:24Z tick
+06:20:26Z tick
+06:20:34Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 85ac3ec1
+06:25:29Z tick
+06:30:31Z tick
+06:35:33Z tick
+06:40:36Z tick
+06:45:38Z tick
+06:46:55Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to bb7c6eb2
+06:50:40Z tick
+06:55:43Z tick
+07:00:46Z tick
+07:05:48Z tick
+07:10:50Z tick
+07:15:52Z tick
+07:20:55Z tick
+07:25:57Z tick
+07:30:59Z tick
+07:36:01Z tick
+07:41:04Z tick
+07:46:06Z tick
+07:51:09Z tick
+07:55:32Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to b9e3a651
+07:56:12Z tick
+08:01:14Z tick
+08:06:17Z tick
+08:11:19Z tick
+08:16:22Z tick
+08:21:24Z tick
+08:26:27Z tick
+08:27:14Z HANDOFF-MOVED handoff-body/audit-r10-roster from 170a325b to eb120345
+08:31:29Z tick
+08:36:31Z tick
+08:41:34Z tick
+08:46:36Z tick
+08:51:39Z tick
+08:56:41Z tick
+09:01:44Z tick
+09:06:46Z tick
+09:11:48Z tick
+09:16:50Z tick
+09:21:52Z tick
+09:26:54Z tick
+09:31:56Z tick
+09:36:58Z tick
+09:42:01Z tick
+09:47:03Z tick
+09:52:05Z tick
+09:57:07Z tick
+10:02:10Z tick
+10:07:12Z tick
+10:12:14Z tick
+10:17:16Z tick
+10:22:19Z tick
+10:27:21Z tick
+10:28:28Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 7c5ca6bf
+10:32:23Z tick
+10:37:26Z tick
+10:42:28Z tick
+10:47:30Z tick
+10:52:33Z tick
+10:54:53Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 2e71b743
+10:57:36Z tick
+11:00:12Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4b3ca5d6
+11:02:39Z tick
+11:07:41Z tick
+11:12:44Z tick
+11:17:46Z tick
+11:22:49Z tick
+11:27:51Z tick
+11:32:54Z tick
+11:37:56Z tick
+11:42:22Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to d9b29967
+11:42:59Z tick
+11:48:01Z tick
+11:53:04Z tick
+11:58:07Z tick
+12:03:09Z tick
+12:08:12Z tick
+12:13:14Z tick
+12:18:16Z tick
+12:19:17Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to b60bcd63
+12:23:19Z tick
+12:28:21Z tick
+12:33:24Z tick
+12:35:04Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 09b7c763
+12:38:26Z tick
+12:40:20Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 59fa6da8
+12:43:29Z tick
+12:48:31Z tick
+12:50:52Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to e5fdf08c
+12:53:33Z tick
+12:56:09Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 56bf50f7
+12:58:36Z tick
+13:03:38Z tick
+13:06:42Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 036cb0a3
+13:08:40Z tick
+13:11:58Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 790b48f5
+13:13:43Z tick
+13:17:14Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 4a9965e7
+13:18:45Z tick
+13:23:47Z tick
+13:27:44Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 3b4b615e
+13:28:50Z tick
+13:33:52Z tick
+13:38:17Z HANDOFF-MOVED handoff/audit-r10-roster from 23ef06dc to 6322452d
+13:38:54Z tick
+13:43:57Z tick
+13:48:59Z tick
+13:54:02Z tick
+13:59:04Z tick
+14:04:06Z tick
+14:09:08Z tick
+14:14:11Z tick
+14:19:13Z tick
+14:24:16Z tick
+14:29:18Z tick
+14:34:20Z tick
+14:39:23Z tick
+14:44:25Z tick
+14:49:27Z tick

@@ -1,0 +1,4 @@
+===== daemonize pid=66008 2026-10-21T02:39:19Z argv: bash -c W=/Users/timmalmstrom/hpo-seats/r10s3/roster-r10; python3 tools/audit/seat/roster_edit.py append-carry R10-HEAT-METER @/Users/timmalmstrom/hpo-orch/r10s3/orch/carry/dhw-share-attribution.txt --worktree $W --push --message "roster: R10-HEAT-METER carries the whole-unit dhw_share attribution gap"
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 9c02a6acfa3813989e238a408eeb6345d18ede0f

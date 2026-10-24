@@ -1,0 +1,5 @@
+===== daemonize pid=48363 2026-10-24T08:46:54Z argv: bash tools/audit/seat/open_pr.sh r10-rca-ci-ratchet-run-name 35a535f510c6efd58aec76e90eb05744bfdbd3ba Root-cause record: ci-ratchet red on main from d5dc3e26a rca-ci-ratchet-run-name
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-rca-ci-ratchet-run-name/p1.log

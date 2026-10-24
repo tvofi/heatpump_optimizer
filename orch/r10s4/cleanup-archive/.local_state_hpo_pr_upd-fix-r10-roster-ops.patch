@@ -1,0 +1,257 @@
+# worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-roster-ops  branch refs/heads/fix/r10-roster-ops  head 716a34f28571ff1dc47369075dad51afa31b8a44
+M  .github/workflows/governance.yml
+AA dev/programme/delivery/2513.md
+M  tools/audit/seat/INSTRUMENTS.md
+M  tools/audit/seat/r10_roster_ops_mutants.py
+M  tools/audit/seat/roster_edit.py
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 1782d1d41..0f5e57b14 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -621,6 +621,17 @@ jobs:
+           python3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"
+           grep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"
+ 
++      # The mutation sweep costs one roster_edit self-test (~a minute) per
++      # plant, so CI runs only the preconditions every plant rests on: its
++      # anchor still occurs exactly once in the target's live text, and its
++      # mutant parses -- the rot that silently turns a plant into a no-op.
++      - name: Show the roster-ops mutation harness pinning its own plants
++        if: ${{ !cancelled() }}
++        run: |
++          set -o pipefail
++          python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
++          grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
++
+       - name: Show the roster library refusing its own fixtures
+         if: ${{ !cancelled() }}
+         run: |
+diff --git a/dev/programme/delivery/2513.md b/dev/programme/delivery/2513.md
+index 2c1686c92..27ad8c6a1 100644
+--- a/dev/programme/delivery/2513.md
++++ b/dev/programme/delivery/2513.md
+@@ -1 +1,5 @@
++<<<<<<< HEAD
+ - [#2513](https://github.com/tvofi/heatpump_optimizer/pull/2513) — **open**, roster-edit: set-after and drop-carry ops, with a mutant driver
++=======
++- [#2513](https://github.com/tvofi/heatpump_optimizer/pull/2513) — **open**, roster-edit: set-after and drop-carry ops, with a mutant driver (R10-ROSTER-OPS)
++>>>>>>> 4e2223a57d230c75fbb965dfac431fd4e03f05d8
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 9d61d1377..bd7c80260 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -511,7 +511,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
+   fixes|issues]` (refuses an absent N), `append-group`, `edit-brief`,
+   `append-carry`, `drop-carry <group> <index|--match TEXT>` (0-based index,
+-  or the one entry containing TEXT; the last drop removes the key),
++  or the one entry containing TEXT; the last drop leaves `"carry": []`, the
++  key kept),
+   `set-after <group> <G1,G2,...|->` (replaces the after-edges whole, `-` for
+   none), and `set-resume <group> --field
+   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
+diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
+index efb7f20b1..f21a64c1c 100644
+--- a/tools/audit/seat/r10_roster_ops_mutants.py
++++ b/tools/audit/seat/r10_roster_ops_mutants.py
+@@ -17,7 +17,8 @@ Plants, one per refusal of the two ops and per round-trip property:
+   C1-C5  drop-carry: an absent carry, no match (silently drops entry 0), an
+          ambiguous match (silently drops the first), a negative index (drops
+          the last), a non-integer index (silently drops entry 0).
+-  C6     drop-carry of the last entry leaves `"carry": []`.
++  C6     the last drop deletes the `carry` key (the byte round-trip
++         regression; the live roster's empty shape is `"carry": []`).
+   C7     drop-carry by index drops the neighbour.
+   C8     drop-carry's unknown group.
+   P1-P3  the argparse refusals: index and --match together, neither, and
+@@ -26,10 +27,16 @@ Plants, one per refusal of the two ops and per round-trip property:
+ 
+     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
+     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
++    python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
+ 
+ Null control: `--null` runs the self-test with no plant, which must print
+-rc=0 fails=0.
++rc=0 fails=0. `--self-test` does not run the plants -- one costs the target's
++own minute -- and pins instead the preconditions the sweep rests on: every
++anchor occurs exactly once in the target as it stands, every mutant parses,
++and report()/select() keep their shapes.
+ """
++import contextlib
++import io
+ import re
+ import subprocess
+ import sys
+@@ -59,8 +66,8 @@ PLANTS = {
+            "        if not i < len(carry):\n"),
+     "C5": ("            i = int(index)\n",
+            '            i = int(index) if index.lstrip("-").isdigit() else 0\n'),
+-    "C6": ('    if not carry:\n        del g["carry"]\n',
+-           '    if False:\n        del g["carry"]\n'),
++    "C6": ("    del carry[i]\n",
++           '    del carry[i]\n    if not carry:\n        del g["carry"]\n'),
+     "C7": ("    del carry[i]\n", "    del carry[i - 1]\n"),
+     "C8": ('    g = _need(roster, group)\n    carry = g.get("carry")',
+            f'    {DETACHED}\n    carry = g.get("carry")'),
+@@ -72,7 +79,7 @@ PLANTS = {
+ }
+ 
+ 
+-def self_test():
++def target_self_test():
+     r = subprocess.run([sys.executable, TARGET, "--self-test"], cwd=ROOT,
+                        capture_output=True, text=True)
+     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+@@ -87,17 +94,68 @@ def report(name, rc, fails, tail):
+         print("    crash tail:", *tail, sep="\n      ")
+ 
+ 
++def select(names):
++    """The plants a run names, and any name the table does not hold."""
++    chosen = names or list(PLANTS)
++    return chosen, [n for n in chosen if n not in PLANTS]
++
++
++def self_test():
++    passed = failed = 0
++
++    def ck(name, ok):
++        nonlocal passed, failed
++        passed, failed = passed + ok, failed + (not ok)
++        print(f"  {'ok  ' if ok else 'FAIL'} {name}")
++
++    text = (ROOT / TARGET).read_text()
++    for name, (old, new) in PLANTS.items():
++        ck(f"{name}: anchor occurs once in {TARGET}", text.count(old) == 1)
++        ck(f"{name}: the plant changes the text", new != old)
++        try:
++            compile(text.replace(old, new), TARGET, "exec")
++            ok = True
++        except SyntaxError:
++            ok = False
++        ck(f"{name}: the mutant parses", ok)
++
++    def rendered(rc, fails, tail):
++        out = io.StringIO()
++        with contextlib.redirect_stdout(out):
++            report("X", rc, fails, tail)
++        return out.getvalue().splitlines()
++
++    ck("a killed plant prints its tally and drops the (got:) suffix",
++       rendered(1, ["FAIL a (got: 2)"], [])
++       == ["RESULT mutant=X rc=1 fails=1", "    FAIL a"])
++    ck("a crash with no FAIL line prints its tail",
++       rendered(1, [], ["Traceback", "boom"])
++       == ["RESULT mutant=X rc=1 fails=0", "    crash tail:",
++           "      Traceback", "      boom"])
++    ck("a survivor prints fails=0 and no tail",
++       rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
++    ck("no names selects every plant", select([]) == (list(PLANTS), []))
++    ck("a named plant is kept", select(["A1"]) == (["A1"], []))
++    ck("an unknown plant is returned for refusal",
++       select(["ZZ"]) == (["ZZ"], ["ZZ"]))
++
++    print(f"r10_roster_ops_mutants self-test: {passed + failed} checks, "
++          f"{failed} failed")
++    return 1 if failed else 0
++
++
+ def main(argv):
+     path = ROOT / TARGET
++    if argv == ["--self-test"]:
++        return self_test()
+     if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", TARGET],
+                       cwd=ROOT).returncode != 0:
+         print(f"refusing: {TARGET} differs from HEAD", file=sys.stderr)
+         return 2
+     if argv == ["--null"]:
+-        report("null", *self_test())
++        report("null", *target_self_test())
+         return 0
+-    names = argv or list(PLANTS)
+-    unknown = [n for n in names if n not in PLANTS]
++    names, unknown = select(argv)
+     if unknown:
+         print(f"unknown plant(s): {unknown}", file=sys.stderr)
+         return 2
+@@ -112,7 +170,7 @@ def main(argv):
+                       file=sys.stderr)
+                 return 2
+             path.write_bytes(text.replace(old, new).encode("utf-8"))
+-            rc, fails, tail = self_test()
++            rc, fails, tail = target_self_test()
+             path.write_bytes(original)
+             report(name, rc, fails, tail)
+             if not fails:
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index 8b6536d3c..4bcd66470 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -69,7 +69,9 @@ Ops (all group ids must exist, except append-group which must not):
+   drop-carry   removes one carry entry by 0-based index or by the one entry
+                containing --match TEXT, refusing an absent carry, an index
+                out of range, no match and an ambiguous match; dropping the
+-               last entry removes the key.
++               last entry leaves the `carry` list empty, never removing the
++               key (27 of the 91 live groups carry `"carry": []`, and none
++               omits it, so the key's presence is the file's own shape).
+ """
+ 
+ from __future__ import annotations
+@@ -282,8 +284,9 @@ def _cycle(edges):
+ def op_drop_carry(roster, group, index=None, match=None):
+     """The inverse of append-carry: drop one carry entry, by its 0-based
+     index (`jq '.carry[N]'`) or by the one entry containing `match`.
+-    Dropping the last entry removes the key, so append-then-drop restores
+-    the roster's bytes."""
++    Dropping the last entry leaves `carry` empty and the key in place; a
++    group that already carries a list (all 91 live ones do) is therefore
++    byte-restored by append-then-drop of the appended entry."""
+     g = _need(roster, group)
+     carry = g.get("carry") or []
+     if not carry:
+@@ -306,8 +309,6 @@ def op_drop_carry(roster, group, index=None, match=None):
+             raise Refuse(f"drop-carry: index {i} out of range for {group} "
+                          f"({len(carry)} entries)")
+     del carry[i]
+-    if not carry:
+-        del g["carry"]
+ 
+ 
+ def _need(roster, group):
+@@ -664,7 +665,7 @@ def _self_test() -> int:
+          "after": [], "brief": "fixture group A",
+          "resume": {"stage": "not-started", "branch": "handoff/a"}},
+         {"group": "R9-B", "lane": "L1", "issues": [], "fixes": [],
+-         "after": ["R9-A"], "brief": "fixture group B",
++         "after": ["R9-A"], "brief": "fixture group B", "carry": [],
+          "resume": {"stage": "not-started", "branch": "handoff/b"}},
+     ]}
+     (seed / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+@@ -877,9 +878,11 @@ def _self_test() -> int:
+           refuses("--match is a drop-carry flag", "set-after", "R9-B",
+                   "R9-A", match="x"))
+ 
+-    # drop-carry: the inverse of append-carry, by index or by a unique match;
+-    # dropping the last entry removes the key, so append-then-drop restores
+-    # the roster's bytes exactly.
++    # drop-carry: the inverse of append-carry, by index or by a unique match.
++    # R9-B carries `"carry": []`, the live roster's empty shape (27 of 91
++    # groups; none omits the key), so the round-trip below is pinned on the
++    # shape the roster actually has. Dropping the last entry leaves the list
++    # empty, keeping the key: append-then-drop restores the bytes exactly.
+     def carry_of(group):
+         return next(g for g in branch_roster()["groups"]
+                     if g["group"] == group).get("carry")
+@@ -926,9 +929,9 @@ def _self_test() -> int:
+     check("drop-carry by match drops that entry",
+           edit("drop-carry", "R9-B", None, match="beta") == 0
+           and carry_of("R9-B") == ["alpha one"])
+-    check("drop-carry of the last entry removes the key",
++    check("drop-carry of the last entry leaves the key empty",
+           edit("drop-carry", "R9-B", None, match="alpha one") == 0
+-          and carry_of("R9-B") is None)
++          and carry_of("R9-B") == [])
+     check("append-carry then drop-carry is byte-identical",
+           bytes_at() == before_carry)
+ 

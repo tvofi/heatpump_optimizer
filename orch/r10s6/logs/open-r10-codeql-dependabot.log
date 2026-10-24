@@ -1,0 +1,6 @@
+===== daemonize pid=16059 2026-10-24T11:30:56Z argv: bash tools/audit/seat/open_pr.sh r10-codeql-dependabot 5832d8c6c01d3feb525cd4b3f85f364265d12595 CodeQL errors and Dependabot configuration codeql-dependabot
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+  REFUSE   field coverage          REFUSED registry: `pinned tools/policy/dependabot_contract.mjs` is unregistered: DECLARED names neither an arm for its input nor none;FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-codeql-dependabot/p1.log

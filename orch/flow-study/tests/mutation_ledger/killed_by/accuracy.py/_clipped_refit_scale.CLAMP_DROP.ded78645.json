@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_clipped_refit_scale CLAMP_DROP ded78645",
+  "killed_by": "tests/features.py",
+  "old": "        or pairs < 24.0 / max(dt_hours, 1e-6)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: CLAMP_DROP (`or pairs < 24.0 / (dt_hours)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

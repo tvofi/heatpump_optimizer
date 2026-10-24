@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:ComfortLearner.from_dict CLAMP_DROP aab481b6",
+  "killed_by": "tests/features.py",
+  "old": "            learner.overrides = max(0, int(data.get(\"overrides\", 0)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: CLAMP_DROP (`learner.overrides = (0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:has_hot_water GUARD_OFF 7f44624a",
+  "killed_by": "tests/entities.py",
+  "old": "    if params is not None:",
+  "reason": "moved from sensor.py:432 by R8-P2 (#1527/#1542), where `_DHWEntityMixin`'s registry default became `has_hot_water()`. `if params is not None:` -> `if False:` skips the configured `_thermal_params` path and falls back to the payload, which a real coordinator has not built at registration: tests/entities.py fails `the real coordinator derives the same on default from config (#1398)` and `the boost overlay keeps hot-water power where the plant has hot water (#1527)`, 12 -> 14 failed. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+}

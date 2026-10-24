@@ -1,0 +1,12 @@
+[
+  {
+    "pr": 2645,
+    "phase": "pre-flight",
+    "reason": "carry: CARRY: no 05b9c1d5383cf9ca7e2cd5310914897960244301 -> 42cb7d1692680f3ebb41477d86be68bcc0a36321: 42cb7d1692680f3ebb41477d86be68bcc0a36321 merges 6d3770f39aabc8fb228a505dba28665ec8abe1d3, which is not o"
+  },
+  {
+    "pr": 2647,
+    "phase": "pre-flight",
+    "reason": "approve: 1 budget raise(s), first tests/structure_budgets.json: seam_cut_total: 708 -> 714 (a cap went up): a raise is the owner's (0013): a mandated approval is on this head, but `## Raise justification` lacks an `Architecture score: dS` line from score.py"
+  }
+]

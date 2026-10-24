@@ -1,0 +1,22 @@
+===== daemonize pid=49103 2026-10-20T16:49:36Z argv: python3 -u -I /Users/timmalmstrom/hpo-orch/r10s3/orch/wire-issues.py
+R10-SAV-COMFORT -> #2492: wired
+R10-MUTATION-ANCHOR -> #2493: wired
+R10-MERGE-SUBJECT-HARDEN -> #2494: wired
+R10-CI-LAYOUT -> #2495: wired
+R10-ROSTER-OPS -> #2496: wired
+R10-MERGE-PR-MANDATE -> #2497: wired
+R10-CEILING-PROBE -> #2498: wired
+R10-DEMAND-OVERBOOK: attempt 1 failed: roster_edit: REFUSED: branch handoff/audit-r10-roster at 867d953ea013 is not contained in origin/handoff/audit-r10-roste
+R10-DEMAND-OVERBOOK -> #2499: wired
+R10-BUFFER-STORE -> #2500: wired
+R10-COP-PARTLOAD -> #2501: wired
+R10-UPDATE-PR-SIGNALS: attempt 1 failed: roster_edit: REFUSED: branch handoff/audit-r10-roster at 4ebf13806abf is not contained in origin/handoff/audit-r10-roste
+R10-UPDATE-PR-SIGNALS -> #2502: wired
+R10-HANDOFF-ARCHIVE -> #2503: wired
+R10-DEPENDABOT-AIOHTTP -> #2504: wired
+R10-ORCH-MACHINERY -> #2505: wired
+R10-CARD-VOICE -> #2506: wired
+R10-THERMAL-POWER-OPTION -> #2507: wired
+R10-LEARNER-DEFAULT -> #2508: wired
+R10-MUTANT-SKIP -> #2509: wired
+SUMMARY wired=18 failed=0 []

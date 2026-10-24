@@ -1,0 +1,4 @@
+RESULT mutant=REV_CAP4c_window_captured_at_load_control rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:keydown:SVG#27/2 -> history back; plan:keydown:SVG#27/2:Escape -> history back; plan:keydown:SVG#27/2:Enter -> history back; plan:keydown:SVG#27/2:  -> history back; plan:keydown:SVG#27/2:Context
+restored

@@ -1,0 +1,11 @@
+# main push runs: failing jobs (any attempt), per main commit; from raw/runs_<sha>.json + raw/jobs_<id>.json
+c353027737 ['Governance/record#a1:failure', 'Tests/record-autofix#a1:failure', 'Tests/ci-ratchet#a1:failure']
+1bcc798847 ['Governance/record#a1:failure', 'Tests/ci-ratchet#a1:failure']
+f0a4acac79 ['Tests/ci-ratchet#a1:failure']
+db3293dcb1 ['Governance/record#a1:cancelled', 'Tests/ci-ratchet#a1:failure']
+efdc055a82 ['Tests/ci-ratchet#a1:failure']
+768bfc0c34 ['Tests/ci-ratchet#a1:failure']
+abb3979380 ['Tests/record-autofix#a1:failure', 'Tests/ci-ratchet#a1:failure', 'Governance/record#a1:failure']
+7ab3030bbf ['Tests/record-autofix#a1:failure', 'Tests/ci-ratchet#a1:failure', 'Governance/record#a1:failure']
+913ce1ff5b ['Tests/ci-ratchet#a1:failure']
+2d843030a3 []

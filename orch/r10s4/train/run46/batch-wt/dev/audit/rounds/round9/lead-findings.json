@@ -1,0 +1,1203 @@
+[
+ {
+  "step": "D1.M2",
+  "severity": "low",
+  "title": "hastub Store decodes with stdlib json: 6 of 6 hostile number tokens load where HA's orjson Store drops the file",
+  "claim": "For 6 stored documents holding one healthy leaf and one hostile number token (NaN, Infinity, -Infinity, 1e400, a 401-digit integer, 2**64), QuarantiningStore.async_load over tests/hastub's Store returns a different payload than over Home Assistant's orjson codec in 6 of 6: the stub keeps the healthy sibling in all 6 where Home Assistant loses the whole store in 5, and the stub hands a 401-digit exact int to the loader that Home Assistant never produces.",
+  "mechanism": "tests/hastub/homeassistant/helpers/storage.py round-trips through stdlib json, which accepts NaN/Infinity tokens, decodes 1e400 as inf and keeps arbitrary-precision ints. Home Assistant's Store reads with orjson, which refuses those tokens (and >64-bit literals past double range), logs 'Unrecoverable error decoding storage', moves the file aside and returns None. So every store-fuzz verdict through the stub is leaf-level where Home Assistant's is whole-store: the stub-only raises D1-s1 and D1-s2 reported (19 of 250 accuracy mutants; energy and defrost 10**400) come from it, and the whole-store reset a corrupt file causes in Home Assistant is invisible to the suite.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/stub_store_codec.py",
+   "harness_path": "tools/audit/round9/D1/leads/stub_store_codec.py",
+   "value": 6,
+   "unit": "documents of 6 whose loaded payload differs from Home Assistant's",
+   "load1": 0.38,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "tests/hastub/homeassistant/helpers/storage.py:Store.async_load, driven through heatpump_optimizer.store:QuarantiningStore.async_load",
+  "perturbation": {
+   "change": "--orjson: the stub's json.loads replaced by orjson.loads returning None on a decode error (Home Assistant's corrupt-file path)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Hostile stored documents (of 6) whose QuarantiningStore.async_load payload through the stub differs from the payload through Home Assistant's orjson decode-or-None.",
+  "phenomenon_property": "The test double for Home Assistant's Store decodes and encodes exactly as Home Assistant's does (orjson; a document it cannot decode loads as None), so a store fuzz through it reports what Home Assistant would do.",
+  "seam_rule": "grep -n 'json\\.' tests/hastub/homeassistant/helpers/storage.py; harness: tools/audit/round9/D1/leads/stub_store_codec.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/stub_store_codec.py",
+   "value": "control_divergent=0",
+   "note": "a healthy document loads identically through both codecs"
+  },
+  "proposed_fix_scope": "tests/hastub storage.Store: decode with orjson when importable (it is a Home Assistant core dependency) and return None on a decode error; encode NaN as null as orjson does. Re-run tests/finite_boundary.py and the store fuzzers.",
+  "files": [
+   "tests/hastub/homeassistant/helpers/storage.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P11",
+  "id": "D1-s1-51",
+  "scope": "D1-s1",
+  "seat": "D1-s1",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M3",
+  "severity": "low",
+  "title": "hastub dt_util.now() is naive by default: the naive-vs-aware verdict of 6 of 6 stored-timestamp cells is inverted",
+  "claim": "On the stub's default clock (no HASTUB_TZ, not frozen aware), dt_util.now() is naive, so for D1-s1-01's three seams (SnapshotRing.due, CurveLearner._step_down, ComfortLearner._decay) an aware stored stamp raises TypeError in 3 of 3 and a naive one in 0 of 3 -- the opposite of Home Assistant, where now is always aware -- 6 of 6 cells divergent.",
+  "mechanism": "tests/hastub/homeassistant/util/dt.py:now returns datetime.now() unless HASTUB_TZ is set or freeze() was given an aware instant. A test on that clock never meets the naive-stored failure production meets (D1-s1-01, D1-s3-01 and D14-s1-01 are its instances) and would see the healthy aware case fail, so such tests either freeze naive or avoid the comparison; store_fuzz.py --naive-clock (D1-s3) lost every naive_dt failure for this reason.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/stub_naive_clock.py",
+   "harness_path": "tools/audit/round9/D1/leads/stub_naive_clock.py",
+   "value": 6,
+   "unit": "cells of 6 whose raise verdict differs from Home Assistant's aware clock",
+   "load1": 0.24,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "tests/hastub/homeassistant/util/dt.py:now, driving heatpump_optimizer.snapshots:SnapshotRing.due, curve_learning:CurveLearner._step_down, comfort_learning:ComfortLearner._decay",
+  "perturbation": {
+   "change": "HASTUB_TZ=UTC in the environment (the stub's aware mode)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Of 3 seams x {aware, naive} stored stamps, cells whose TypeError verdict under the stub's default now() differs from the verdict under an aware now.",
+  "phenomenon_property": "The test double's clock has Home Assistant's type: dt_util.now() is always tz-aware, so every stored-timestamp seam is exercised against the now it meets in production.",
+  "seam_rule": "grep -n 'def now\\|def utcnow\\|datetime.now()' tests/hastub/homeassistant/util/dt.py; harness: tools/audit/round9/D1/leads/stub_naive_clock.py",
+  "null_control": {
+   "command": "HASTUB_TZ=UTC PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/stub_naive_clock.py",
+   "value": 0,
+   "note": "with an aware stub clock the verdicts equal Home Assistant's"
+  },
+  "proposed_fix_scope": "tests/hastub util/dt.now: return an aware datetime by default (UTC or DEFAULT_TIME_ZONE), keeping as_local the identity for golden fixtures; re-run the gate to find the tests that relied on a naive now.",
+  "files": [
+   "tests/hastub/homeassistant/util/dt.py"
+  ],
+  "class_guess": "P11",
+  "id": "D1-s1-52",
+  "scope": "D1-s1",
+  "stop_rule_class": "bug",
+  "seat": "D1-s1",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M5",
+  "severity": "medium",
+  "title": "A learner or arbiter raise on the cycle path fails the solve or the whole cycle and skips actuation and saves",
+  "claim": "A raise inside ComfortLearner.record_quiet_period makes async_run_optimization return 'solve_failed' with an ERROR traceback on 3 of 3 cycles although the plan was published, and a raise inside pump_arbiter.apply makes _async_update_data fail 3 of 3 cycles and skip 15 of 15 sibling steps (frequency command, pump drive, accuracy and energy saves, drift watch).",
+  "mechanism": "_record_quiet_comfort_period is called unfenced inside async_run_optimization's try after _optimization_result and _solve_failures=0 are set, so its raise lands in the solve's except (logged 'Optimization failed', counter set to 1 each cycle, _command_valve_target skipped). pump_arbiter.apply is awaited unfenced as the first line of _apply_action, while its siblings _command_frequency, _async_drive_pumps and _async_watch_learning_drift are each fenced; an arbiter raise therefore aborts the cycle before them and before _async_save_accuracy/_async_save_energy_totals. D1-s3-03 (non-numeric pump_duty set-point) and D1-s3-01 (naive stored timestamp in hold()) are real producers of such a raise.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/cycle_fence.py",
+   "harness_path": "tools/audit/round9/D1/leads/cycle_fence.py",
+   "value": "quiet_solve_failed=3/3 (plan published 3/3); arbiter_cycles_failed=3/3, arbiter_skipped_steps=15/15",
+   "unit": "cycles of 3 / sibling steps of 15",
+   "load1": 0.57,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization (seam _record_quiet_comfort_period) and HeatPumpOptimizerCoordinator._async_update_data (seam _apply_action -> pump_arbiter.apply)",
+  "perturbation": {
+   "change": "--fence: wrap each seam call in try/except (in memory), the shape its siblings already have",
+   "expected_direction": "to_zero",
+   "observed_value": "quiet_solve_failed=0, arbiter_cycles_failed=0, skipped=0"
+  },
+  "metric_definition": "Per arm over 3 cycles: cycles reported failed (solve_failed return / _async_update_data raise) and sibling cycle steps not reached, with a raise injected in the subsystem.",
+  "phenomenon_property": "A fault in a best-effort subsystem called on the cycle path (a learner feed, the pump arbiter) never turns a produced plan into a failed solve and never aborts the cycle's other actuation or saves; it is fenced and logged once like its siblings.",
+  "seam_rule": "grep -nE '^\\s+(await )?self\\._[a-z_]+\\(|pump_arbiter\\.apply|boost\\.apply' custom_components/heatpump_optimizer/coordinator.py restricted to the try-bodies of _async_update_data (:4595-4700) and async_run_optimization (:4773-5120), keeping calls not inside their own try; harness: tools/audit/round9/D1/leads/cycle_fence.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/cycle_fence.py --no-inject",
+   "value": "0/3 failed, 0/15 skipped",
+   "note": "same cycles without the injected raise"
+  },
+  "reproduction_steps": [
+   "Build a coordinator with comfort_learning_enabled and a varying price day; make ComfortLearner.record_quiet_period raise; run async_run_optimization 3 times: each returns 'solve_failed' after publishing the plan.",
+   "Make pump_arbiter.apply raise; run _async_update_data 3 times: each raises UpdateFailed and none of the 5 sibling steps runs."
+  ],
+  "proposed_fix_scope": "coordinator.py: fence _record_quiet_comfort_period after the plan is committed, and pump_arbiter.apply inside _apply_action, each logging once like _command_frequency's fence.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s2-51",
+  "scope": "D1-s2",
+  "stop_rule_class": "bug",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M1",
+  "severity": "medium",
+  "title": "Five store writers do not wait for the startup read: a save in that window replaces persisted learned state",
+  "claim": "When a store's writer runs while its startup load (spawned fire-and-forget in the coordinator's __init__) is still in flight, the restarted coordinator ends with the defaults instead of the persisted state in 5 of 5 stores (energy totals 1234.5 -> 0.0, ledger operation score 77 -> None, house heat-loss scale 1.3 -> 1.0, price-model days seen 2 -> 0, comfort weight 7.5 -> 5.0), while async_set_mode, the one writer that awaits async_wait_for_read, loses nothing.",
+  "mechanism": "R6's startup-clobber fix added QuarantiningStore.async_wait_for_read and put it in async_set_mode only. _async_save_energy_totals, _async_save_ledger, _async_save_thermal_learning, _async_save_price_model and _async_save_accuracy (called from the cycle end, async_reset_comfort_weight, sysid adoption, the settlement path) save their whole in-memory payload without waiting, so a save that precedes the read replaces the file (or, in Home Assistant, is the pending data the read returns) and the loader then installs the defaults. The energy loader's max() guard does not help: it reads the clobbered value.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/startup_clobber.py",
+   "harness_path": "tools/audit/round9/D1/leads/startup_clobber.py",
+   "value": 5,
+   "unit": "stores of 5 whose persisted marker is lost",
+   "load1": 0.06,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.store:QuarantiningStore.async_save / async_wait_for_read, driven through HeatPumpOptimizerCoordinator._async_save_{energy_totals,ledger,thermal_learning,price_model,accuracy} against the __init__-spawned loaders",
+  "perturbation": {
+   "change": "--wait: QuarantiningStore.async_save first awaits self.async_wait_for_read() (in memory)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Of 5 stores, count whose persisted learned marker differs from the value held after every startup load has landed, when each store's writer runs during its load.",
+  "phenomenon_property": "No save to a store can land before that store's startup read has been applied; every writer of a store that has a startup load waits for it (or the boundary does it for all).",
+  "seam_rule": "grep -nE 'async_save\\(|_async_save_if_changed\\(' custom_components/heatpump_optimizer/coordinator.py (every writer of a store whose loader is in the __init__ _spawn(load()) tuple, coordinator.py:1862-1876); harness: tools/audit/round9/D1/leads/startup_clobber.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/startup_clobber.py --after-read",
+   "value": 0,
+   "note": "same writers after the loads land: nothing lost; async_set_mode control arm: 0 of 1 lost"
+  },
+  "reproduction_steps": [
+   "Persist learned state from one coordinator.",
+   "Restart: construct a new coordinator on a real loop (hass.async_create_task eager, the Store read slower than the first writer).",
+   "Call any of the five writers before the read lands, let the loads land, read the learned values back: all five are defaults."
+  ],
+  "proposed_fix_scope": "Make the wait structural: QuarantiningStore.async_save awaits async_wait_for_read (one line at the boundary), or add the wait to each of the five writers.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "custom_components/heatpump_optimizer/store.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s2-52",
+  "scope": "D1-s2",
+  "stop_rule_class": "bug",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M1",
+  "severity": "medium",
+  "title": "set_thermal_parameters changes are silently lost at the next restart (24 of 26 fields)",
+  "claim": "Of the 26 set_thermal_parameters fields whose call changes coordinator state, 24 revert to the configured value after a Home Assistant restart on the same entry and store disk; only dhw_cooling_rate and buffer_cooling_rate, which the thermal-learning store carries, survive.",
+  "mechanism": "HeatPumpOptimizerCoordinator.async_update_thermal_params assigns the fields onto the live _thermal_params/_opt_config (the _THERMAL_PARAM_FIELDS table and the explicit branches) and persists only the learned cooling rates via _async_save_thermal_learning. Nothing writes the other fields to entry.options or a store, and a restart rebuilds ThermalParameters/OptimizationConfig from the entry, so the service's effect lasts until the next restart with no log line, repair or doc sentence saying so (configuration.md:924 says only that it 'writes model parameters at runtime').",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/runtime_params_restart.py",
+   "harness_path": "tools/audit/round9/D1/leads/runtime_params_restart.py",
+   "value": 24,
+   "unit": "fields of 26 changed whose effect is lost at restart",
+   "load1": 0.09,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_update_thermal_params (the set_thermal_parameters service's write path), read back through a restarted HeatPumpOptimizerCoordinator after its startup loads",
+  "perturbation": {
+   "change": "--persist: the call's fields are also written into entry.options before the restart (the fix's shape)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Fields whose single-field set_thermal_parameters call changed coordinator state, counted when that change is absent after a restart with every store load landed.",
+  "phenomenon_property": "A value the user sets through a service either survives a restart (persisted in the entry or a store) or the service and its documentation say it is runtime-only; no user setting reverts silently.",
+  "seam_rule": "grep -n '_THERMAL_PARAM_FIELDS\\|async def async_update_thermal_params' custom_components/heatpump_optimizer/coordinator.py plus services.py SERVICE_SCHEMA_SET_THERMAL_PARAMS keys; harness: tools/audit/round9/D1/leads/runtime_params_restart.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/runtime_params_restart.py --persist",
+   "value": 0,
+   "note": "the same restart with the fields in the entry options loses none, so the rig's restart itself preserves state"
+  },
+  "reproduction_steps": [
+   "Call heatpump_optimizer.set_thermal_parameters with dhw_setpoint 52 (or any of the 24 fields).",
+   "Restart Home Assistant.",
+   "The coordinator's dhw_setpoint is the options value again; nothing was logged."
+  ],
+  "proposed_fix_scope": "Either persist the service's fields (entry options via async_update_entry, or the thermal-learning store) or document them as runtime-only in services.yaml/strings.json/configuration.md.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "custom_components/heatpump_optimizer/services.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s2-53",
+  "scope": "D1-s2",
+  "stop_rule_class": "bug",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M6",
+  "severity": "low",
+  "title": "apply_manual_plan accepts expires_at past the horizon: the override owns all 96 steps, the invariant it states is unenforced",
+  "claim": "With space_slots=[] and expires_at=now+48h, handle_apply_manual_plan installs an override whose channel_pins leave 0 of 96 horizon steps free at apply time and 0 of 96 twenty-three hours later, against 16 and 96 with the default expiry, although const.MANUAL_PLAN_WINDOW_HOURS documents 'override shorter than horizon' as the invariant that stops a daily re-apply switching the optimizer off while appearing to leave it on.",
+  "mechanism": "handle_apply_manual_plan uses MANUAL_PLAN_WINDOW_HOURS only as the default; an explicit expires_at is parsed and passed to build_override, which refuses only a past expiry. Nothing caps it at now + MANUAL_PLAN_WINDOW_HOURS (or below the horizon), so the override pins every step and the optimizer plans nothing on that channel.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/manual_plan_expiry.py",
+   "harness_path": "tools/audit/round9/D1/leads/manual_plan_expiry.py",
+   "value": "free_at_apply=0, free_at_23h=0",
+   "unit": "free space-channel steps of 96",
+   "load1": 0.34,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.services:handle_apply_manual_plan -> HeatPumpOptimizerCoordinator.async_apply_manual_plan; read back through manual_plan:ManualOverride.channel_pins",
+  "perturbation": {
+   "change": "--clamp: the handler's parsed expires_at is capped at now + MANUAL_PLAN_WINDOW_HOURS (in memory)",
+   "expected_direction": "up",
+   "observed_value": "free_at_apply=16, free_at_23h=96"
+  },
+  "metric_definition": "PIN_FREE steps in the installed override's 96-step space-channel pins at apply time and 23 h later.",
+  "phenomenon_property": "Every manual override leaves the optimizer a free tail of the horizon: no accepted expires_at lets an override cover the whole horizon.",
+  "seam_rule": "grep -n 'expires_at' custom_components/heatpump_optimizer/services.py custom_components/heatpump_optimizer/manual_plan.py; harness: tools/audit/round9/D1/leads/manual_plan_expiry.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/manual_plan_expiry.py",
+   "value": "default expiry: free_at_apply=16, free_at_23h=96",
+   "note": "control_default_* lines of the same run"
+  },
+  "proposed_fix_scope": "services.py: refuse (ServiceValidationError) or clamp an expires_at beyond now + MANUAL_PLAN_WINDOW_HOURS; README/services text then matches (D6-s1-04 is the doc half).",
+  "files": [
+   "custom_components/heatpump_optimizer/services.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s2-54",
+  "scope": "D1-s2",
+  "stop_rule_class": "bug",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M5",
+  "severity": "medium",
+  "title": "A solve worker that cannot start (Popen OSError) skips the in-process fallback: no plan, no fallback notice",
+  "claim": "With subprocess.Popen raising OSError(EAGAIN) when the solve worker is spawned, 0 of 3 cycles publish a plan and no solve_worker_fallback notice is raised, while the same failure re-raised as ProcessWorkerUnavailable yields 3 of 3 plans through the in-process fallback and the notice.",
+  "mechanism": "_run_in_process calls _ensure_worker() (subprocess.Popen) inside _PROCESS_LOCK but before its try, so a spawn OSError escapes as OSError. _await_optimize catches only ProcessWorkerUnavailable, so the #511 degrade (in-process solve, _note_worker_fallback) is skipped and the OSError lands in async_run_optimization's generic except as 'Optimization failed'.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/worker_spawn.py",
+   "harness_path": "tools/audit/round9/D1/leads/worker_spawn.py",
+   "value": "planned=0/3, fallback_notice=0",
+   "unit": "cycles publishing a plan / solve_worker_fallback issues",
+   "load1": 0.12,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:_run_in_process / _ensure_worker / _await_optimize, driven through HeatPumpOptimizerCoordinator.async_run_optimization",
+  "perturbation": {
+   "change": "--wrap: _ensure_worker's OSError re-raised as ProcessWorkerUnavailable (in memory)",
+   "expected_direction": "up",
+   "observed_value": "planned=3/3, fallback_notice=1"
+  },
+  "metric_definition": "Of 3 cycles with the worker spawn failing, cycles whose async_run_optimization publishes a plan; plus the count of solve_worker_fallback issues raised.",
+  "phenomenon_property": "Every way the solve worker can be unusable, including failing to start, takes the #511 degrade path (in-process plan plus the fallback notice); none drops the plan.",
+  "seam_rule": "grep -n '_ensure_worker()\\|raise ProcessWorkerUnavailable\\|except ProcessWorkerUnavailable' custom_components/heatpump_optimizer/coordinator.py; harness: tools/audit/round9/D1/leads/worker_spawn.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/worker_spawn.py --no-inject",
+   "value": "planned=3/3, notice=0",
+   "note": "working spawn"
+  },
+  "proposed_fix_scope": "coordinator._run_in_process: move _ensure_worker() inside the try (or convert OSError from Popen into ProcessWorkerUnavailable).",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s2-55",
+  "scope": "D1-s2",
+  "stop_rule_class": "bug",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M3",
+  "severity": "medium",
+  "title": "A report-on-change indoor thermometer silent over 60 min turns Indoor Temperature unavailable while HA holds its valid reading",
+  "claim": "With the indoor thermometer's state '21.3' valid in Home Assistant but last reported 61, 90, 240 or 480 min ago, the integration's Indoor Temperature sensor is unavailable in 4 of 7 silence cells (available at 5-59 min), and a thermometer that re-writes an unchanged value (last_reported 5 min, last_updated 480 min) stays available, so the gaps come from genuine report silence, not from ignoring last_reported.",
+  "mechanism": "InputReader._age_gate marks the indoor reading stale once its last_reported/last_updated age exceeds INPUT_MAX_AGE_MINUTES[indoor] = 60 min (x staleness scale, default 1.0); reading_ok['upper_floor_temperature'] goes False and _MeasuredTemperatureMixin.available follows it. A thermometer that reports only on change (common for battery Zigbee/BLE sensors: a stable room for hours sends nothing and Home Assistant writes nothing) therefore reads as dead, contradicting const.py's stated intent that the limits are 'generous multiples of a normal reporting interval so that a healthy sensor never trips them'. The user sees history gaps (reported: ~16:30-20:45 and ~03:30-06:15 local, the stable hours); the same stale flag also withholds the reading from the cycle. D1-s5-01's age_of seam (inlet/humidity) ignores last_reported, but this path does not: its re-report arm is available.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/indoor_silence.py",
+   "harness_path": "tools/audit/round9/D1/leads/indoor_silence.py",
+   "value": "4 of 7",
+   "unit": "silence cells with Indoor Temperature unavailable while the source state is valid",
+   "load1": 0.12,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.inputs:InputReader._age_gate (via HeatPumpOptimizerCoordinator._update_current_state), read through heatpump_optimizer.sensor:IndoorTempSensor.available",
+  "perturbation": {
+   "change": "--scale 8: the shipped staleness_max_age_scale option at 8 (or --no-watchdog)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Of source-silence ages {5,30,59,61,90,240,480} min with a valid source state, cells whose IndoorTempSensor.available is False after one input cycle.",
+  "phenomenon_property": "A measured input whose source entity still holds a valid state in Home Assistant is not published as unavailable merely because a healthy report-on-change device sent nothing for an hour; staleness of such inputs is judged by the source's own availability or a limit its reporting pattern cannot trip. Too-eager question (orchestrator addendum): the guard is too eager exactly for report-on-change thermometers silent over 60 min (4 of 7 cells, every silence >= 61 min); an unchanged value that moves only last_reported does NOT trip it (rereport_unavailable=0 of 1). How often real devices exceed 60 min was not measurable in this container (no device report-interval corpus); the field evidence is the reported gaps in the stable hours (~16:30-20:45, ~03:30-06:15 local).",
+  "seam_rule": "grep -n 'INPUT_MAX_AGE_MINUTES' custom_components/heatpump_optimizer/const.py (every keyed limit) plus grep -n '_reading_key' custom_components/heatpump_optimizer/sensor.py (every entity whose availability follows one); harness: tools/audit/round9/D1/leads/indoor_silence.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/indoor_silence.py",
+   "value": "rereport_unavailable=0; 5-59 min cells available",
+   "note": "the same valid state re-reported, or silent under the limit, is available"
+  },
+  "proposed_fix_scope": "inputs.py/const.py: decide staleness of temperature inputs by the source's availability (or a limit sized for report-on-change devices), or keep the reading published while the source is available and only withhold it from learners; the design decision is the owner's.",
+  "files": [
+   "custom_components/heatpump_optimizer/inputs.py",
+   "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/sensor.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s5-51",
+  "scope": "D1-s5",
+  "stop_rule_class": "bug",
+  "seat": "D1-s5",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D1.M6",
+  "severity": "medium",
+  "title": "InputReader has no plausibility window: -127 and 85 degC sensor sentinels are delivered as ok on 6 of 6 temperature inputs",
+  "claim": "InputReader.read delivers the DS18B20 fault sentinels -127 degC and 85 degC as ok readings on all 6 temperature inputs (indoor, outdoor, DHW, floor return, buffer tank, lower floor): 12 of 12 cells, so every consumer (published sensors, learners, the solve's initial state) receives them as measurements.",
+  "mechanism": "InputReader.read validates finiteness, unit and age (_finite, normalize_temperature_c, _age_gate) but no physical range per key; the only range checks live at single consumers (coordinator._dhw_inlet_c's -5..35), so D1-s1-03's -127 draw is one downstream instance of a boundary that admits any finite number.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/sentinel_temps.py",
+   "harness_path": "tools/audit/round9/D1/leads/sentinel_temps.py",
+   "value": 12,
+   "unit": "sentinel cells of 12 delivered as ok readings",
+   "load1": 0.2,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.inputs:InputReader.read",
+  "perturbation": {
+   "change": "--range: a per-key plausibility window applied to the delivered reading (indoor/lower 0..45, floor 0..60, outdoor -60..60, DHW/buffer 0..100)",
+   "expected_direction": "down",
+   "observed_value": 2
+  },
+  "metric_definition": "Of 6 temperature input keys x {-127, 85} degC, cells InputReader.read returns ok with the sentinel value.",
+  "phenomenon_property": "A temperature input outside the physical window of what it measures is refused (reported as a reading problem) at the input boundary, so no consumer receives a sensor fault code as a measurement.",
+  "seam_rule": "grep -n 'INPUT_MAX_AGE_MINUTES\\[\\|CONF_.*TEMP.*_ENTITY: ' custom_components/heatpump_optimizer/const.py (every temperature key InputReader reads); harness: tools/audit/round9/D1/leads/sentinel_temps.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/sentinel_temps.py",
+   "value": "control_21_3=6 of 6",
+   "note": "a plausible reading is delivered on every key"
+  },
+  "proposed_fix_scope": "inputs.py: a per-key plausible range table beside INPUT_MAX_AGE_MINUTES, refused as a named problem ('implausible') in InputReader.read.",
+  "files": [
+   "custom_components/heatpump_optimizer/inputs.py",
+   "custom_components/heatpump_optimizer/const.py"
+  ],
+  "class_guess": "new",
+  "id": "D1-s5-52",
+  "scope": "D1-s5",
+  "stop_rule_class": "bug",
+  "seat": "D1-s5",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D2.M2",
+  "severity": "low",
+  "title": "DHW setpoint advisor prices candidates at the 5.0 degC ThermalState default when no outdoor thermometer is mapped",
+  "claim": "On a hot-water install without an outdoor thermometer, _dhw_setpoint_sweep prices all 7 candidates at outdoor 5.0 degC (the constructor default) instead of the forecast the plan uses, so the published cost_per_day is off by more than 5 % on 7 of 7 candidates at a -15 degC forecast (worst 52.7 %) and at -5 degC (worst 26.5 %); the recommended setpoint is unchanged.",
+  "mechanism": "_dhw_setpoint_sweep reads float(ctx._current_state.outdoor_temperature), which _update_current_state only overwrites from an ok outdoor-thermometer reading; without one it stays ThermalState's 5.0 default, and compute_cop_dhw(5.0, t) overstates the COP. forecast_outdoor_now and sensor._effective_outdoor exist for exactly this case and the outdoor sensor already uses them.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+   "harness_path": "tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+   "value": 14,
+   "unit": "candidates of 14 (two cold forecasts x 7) whose published cost_per_day is off by more than 5 %",
+   "load1": 0.14,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+  "perturbation": {
+   "change": "--forecast: the sweep's outdoor input set to forecast_outdoor_now (the fix's input)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Candidates of the DHW setpoint sweep whose cost_per_day differs by more than 5 % from the sweep priced at the forecast's current outdoor temperature.",
+  "phenomenon_property": "No consumer of ThermalState.outdoor_temperature uses the 5.0 degC constructor default as a measurement: without a thermometer every consumer falls back to the forecast's current step (or reports unknown).",
+  "seam_rule": "grep -n '_current_state.outdoor_temperature\\|state.outdoor_temperature' custom_components/heatpump_optimizer/*.py; harness: tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+   "value": "F+5: off=0 of 7",
+   "note": "a forecast equal to the default gives identical prices"
+  },
+  "proposed_fix_scope": "coordinator._dhw_setpoint_sweep: use the outdoor thermometer while it reads, else forecast_outdoor_now(self._weather_forecast, now), else skip pricing.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "class_guess": "P6",
+  "id": "D2-s1-51",
+  "scope": "D2-s1",
+  "stop_rule_class": "bug",
+  "seat": "D2-s1",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D5.M4",
+  "severity": "low",
+  "stop_rule_class": "hygiene",
+  "title": "Two optimizer comments describe a data flow the code does not have (warm-start alignment, buffer-series stash)",
+  "claim": "HeatPumpOptimizer._warm_start_starts' docstring calls the handed plan 'the same problem one step later', but after a 30-min re-plan (2 steps) coordinator._warm_seeded hands the previous schedule at offset 0; and OptimizationResult.buffer_temp_trajectory's comment says the model stashes the buffer series on itself for the terminal cost, but a valved solve (buffer_is_store) makes 0 sequence-valued writes on the ThermalModel.",
+  "mechanism": "_warm_seeded copies result.power_schedule verbatim (D0-s3's non-finding measured that aligning it changes no plan, so only the sentence is wrong); the last_buffer_trajectory stash was removed (D7-s2's non-finding: the terminal-cost closure takes buffer_temps as an argument) and the field comment at optimizer.py:1084-1089 still explains the field by it.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/leads/dataflow_comments.py",
+   "harness_path": "tools/audit/round9/D5/leads/dataflow_comments.py",
+   "value": "handed_offset_steps=0 vs elapsed_steps=2; model_sequence_writes=0",
+   "unit": "index offset / attribute writes",
+   "load1": 0.47,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:_warm_seeded (the array it attaches as _prev_shipped_plan) and heatpump_optimizer.thermal_model:ThermalModel.__setattr__ during HeatPumpOptimizer.optimize",
+  "perturbation": {
+   "change": "--shift (in memory, _warm_seeded drops the elapsed 2 steps) and --plant (a buffer series stashed on the model) ",
+   "expected_direction": "up",
+   "observed_value": "handed_offset_steps=2; model_sequence_writes=1"
+  },
+  "metric_definition": "(a) shift aligning the handed plan to the previous plan after one 30-min re-plan; (b) sequence-valued ThermalModel attribute writes during one valved solve.",
+  "phenomenon_property": "A comment that states how data reaches a symbol (aligned, stashed, copied) matches what the code delivers at that symbol.",
+  "seam_rule": "grep -n 'one step later\\|stashes the series' custom_components/heatpump_optimizer/optimizer.py; harness: tools/audit/round9/D5/leads/dataflow_comments.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/leads/dataflow_comments.py --shift --plant",
+   "value": "2 / 1",
+   "note": "both counters move when the described flow is planted"
+  },
+  "proposed_fix_scope": "Reword optimizer.py:3100 (the handed plan is the previous plan on its own clock, a candidate the multi-start may reject) and optimizer.py:1087-1089 (drop the stash sentence).",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "class_guess": "I5",
+  "id": "D5-s2-51",
+  "scope": "D5-s2",
+  "seat": "D5-s2",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "step": "D7.M6",
+  "severity": "low",
+  "title": "nightly_ha._async_check_a4 returns inside finally: an in-flight CancelledError or KeyboardInterrupt is swallowed",
+  "claim": "When the broken-price refresh raises a BaseException the inner handler does not catch (CancelledError, KeyboardInterrupt) and the recovery refresh then raises, tests/nightly_ha.py:_async_check_a4 returns normally in 2 of 2 arms because of the `return` inside its finally (tests/nightly_ha.py:1274), and CPython 3.14 emits 1 SyntaxWarning compiling the file (PEP 765).",
+  "mechanism": "The recovery block in the outer finally catches Exception from the second async_refresh and returns; a return in finally discards any exception propagating from the try, so a cancellation or interrupt that reached the finally (a lane timeout, a runner stop) ends the A4 check as an ordinary recorded failure instead of stopping the run.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/nightly_finally_return.py",
+   "harness_path": "tools/audit/round9/D7/leads/nightly_finally_return.py",
+   "value": "swallowed=2 of 2; syntax_warnings=1",
+   "unit": "arms returning normally / SyntaxWarnings",
+   "load1": 0.3,
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "B10-role leads seat, round-9 orchestrator cloud container (Linux 6.18, 4 cores), CPython 3.14.0rc2, numpy 2.4.6",
+   "contention_note": "leads seat alone on the container except the orchestrator's idle session; counts are contention-immune",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "cpu_or_wall": "count"
+  },
+  "instrumented_symbol": "tests/nightly_ha.py:_async_check_a4",
+  "perturbation": {
+   "change": "--fixed: the finally's return replaced by a flag checked after the block (same function, compiled in memory)",
+   "expected_direction": "to_zero",
+   "observed_value": "swallowed=0, syntax_warnings=0"
+  },
+  "metric_definition": "Of 2 arms (CancelledError, KeyboardInterrupt from the first refresh, recovery refresh raising), arms where _async_check_a4 returns instead of propagating; plus SyntaxWarnings on compile.",
+  "phenomenon_property": "No finally block in the suite or its lanes ends in return/break/continue, so an exception in flight always propagates (PEP 765).",
+  "seam_rule": "python3 -W error::SyntaxWarning -c \"import py_compile,glob; [py_compile.compile(f, doraise=True) for f in glob.glob('tests/*.py')]\" (each failure is a seam); harness: tools/audit/round9/D7/leads/nightly_finally_return.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/nightly_finally_return.py",
+   "value": "control_swallowed=0 of 2",
+   "note": "with the recovery refresh succeeding the in-flight exception propagates"
+  },
+  "proposed_fix_scope": "tests/nightly_ha.py:1266-1281: record the recovery failure in a flag and return after the finally.",
+  "files": [
+   "tests/nightly_ha.py"
+  ],
+  "class_guess": "new",
+  "id": "D7-s3-51",
+  "scope": "D7-s3",
+  "stop_rule_class": "bug",
+  "seat": "D7-s3",
+  "from_lead": true,
+  "leads_seat": "L1"
+ },
+ {
+  "id": "D8-s3-61",
+  "scope": "D8-s3",
+  "step": "D8.M4",
+  "title": "Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is",
+  "severity": "low",
+  "claim": "In 5 of 5 golden topologies with mixing_valve_mode=manual, Valve Target Recommendation publishes a target (23.0 \u00b0C) and its reason while its registry default is off; in the same 5 topologies without a valve it is available with state unknown.",
+  "mechanism": "ValveTargetRecommendationSensor keeps a static _attr_entity_registry_enabled_default=False and the base availability, while the payload key it reads (coordinator._mixing_valve_view) exists only when mixing_valve.is_throttling(mode). Its sibling opt-in readouts take default and availability from the configured feature: ConfiguredInputMixin (ECL110, probes; #1302/#1542) and DHWEntityMixin (#1398). The class docstring's reason ('disabled rather than eternally-unknown') covers only the no-valve install, where the entity is nevertheless available.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only D",
+   "harness_path": "tools/audit/round9/D8/leads/l2_d8_leads.py",
+   "value": 5,
+   "unit": "topologies (of 5) with a throttling valve where the entity publishes a value while enabled_default is False",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box L2: 4-core Linux cloud container, /home/claude/venv314 CPython",
+   "cpu_or_wall": "count",
+   "contention_note": "leads fan-out: seats L1/L3/L4 on the same box; count is contention-immune",
+   "tolerance": "exact",
+   "load1": 1.94,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:ValveTargetRecommendationSensor (entity_registry_enabled_default, available, native_value) over heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._mixing_valve_view",
+  "perturbation": {
+   "change": "--perturb valve: entity_registry_enabled_default follows mixing_valve.is_throttling(config mixing_valve_mode) (in memory)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "Topologies (of the 5 golden coordinator scenarios) with mixing_valve_mode=manual where the entity's native_value is not None and entity_registry_enabled_default is False.",
+  "phenomenon_property": "An entity whose value exists only under an opt-in configuration feature takes its registry default and its availability from that feature being configured, never from a static class attribute.",
+  "seam_rule": "grep -n '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/binary_sensor.py  (each hit checked against the payload gate its value needs)",
+  "stop_rule_class": "bug",
+  "class_guess": "P2",
+  "files": [
+   "custom_components/heatpump_optimizer/sensor.py",
+   "README.md"
+  ],
+  "proposed_fix_scope": "Gate ValveTargetRecommendationSensor's default and availability on mixing_valve.is_throttling(mode) in the ConfiguredInputMixin shape; update README.md:551/:560 and the disabled-set pins in tests/entities.py. Existing registry entries keep their state.",
+  "seat": "D8-s3",
+  "from_lead": true,
+  "leads_seat": "L2"
+ },
+ {
+  "id": "D1-s2-71",
+  "scope": "D1-s2",
+  "step": "D1.M1",
+  "title": "hastub DataUpdateCoordinator drops update_interval: the coordinator's cadence is unreadable in 4 of 4 cells",
+  "severity": "low",
+  "claim": "Built through the real HeatPumpOptimizerCoordinator.__init__ with optimization_interval 5, 15, 30 and 60 min, the hastub DataUpdateCoordinator exposes no update_interval in 4 of 4 cells (upstream stores it), and ha_contract.py's inventory does not declare the attribute absent.",
+  "mechanism": "tests/hastub/homeassistant/helpers/update_coordinator.py:DataUpdateCoordinator.__init__ accepts update_interval as a keyword and never stores it; the stub's authority (tests/ha_contract.py, 'absent' tuple for DataUpdateCoordinator) lists _schedule_refresh, _handle_refresh_interval and others but not update_interval, so the divergence is undeclared and no test can pin the cadence (a harness had to spy on the base __init__).",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/l3_update_interval.py",
+   "harness_path": "tools/audit/round9/D1/leads/l3_update_interval.py",
+   "value": 4,
+   "unit": "of 4 configured intervals with no readable coordinator.update_interval (RESULT unreadable_cells)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "shared leads box, 3 other leads seats; a count, contention-immune",
+   "tolerance": "exact",
+   "load1": 1.0,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/hastub/homeassistant/helpers/update_coordinator.py:DataUpdateCoordinator.__init__ (driven by heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.__init__)",
+  "perturbation": {
+   "change": "--perturb store: the stub __init__ keeps self.update_interval = update_interval (in memory)",
+   "expected_direction": "to_zero",
+   "observed_value": "unreadable_cells 4 -> 0; matching_cells 0 -> 4"
+  },
+  "metric_definition": "Configured optimization_interval cells whose coordinator.update_interval is absent after the real coordinator __init__ over the hastub base class.",
+  "phenomenon_property": "Every attribute upstream DataUpdateCoordinator sets from a constructor argument the integration passes is readable on the stub, or is declared absent in ha_contract.py's inventory.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/l3_update_interval.py  (cells = configured intervals; extend to every keyword the integration passes to DataUpdateCoordinator.__init__)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/l3_update_interval.py",
+   "value": "null_control_kept_attrs_readable=4 of 4",
+   "note": "attributes the stub does keep (name, config_entry) are readable in every cell"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "P11",
+  "files": [
+   "tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "tests/ha_contract.py"
+  ],
+  "proposed_fix_scope": "Store update_interval in the stub's __init__ (as upstream does) and pin it in ha_contract.py against the real package; ~2 lines plus one contract row.",
+  "seat": "D1-s2",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D11-s1-71",
+  "scope": "D11-s1",
+  "step": "D11.M3",
+  "title": "Two parsers of a rule's paths: frontmatter disagree on 2 of 6 legal shapes (rules_sync vs policy_lint)",
+  "severity": "low",
+  "claim": "On 2 of 6 probe frontmatters (a trailing YAML comment on a paths entry; a quoted list item under another key) rules_sync.mjs:parse and policy_lint.mjs:rulePaths return different path lists, so the generated .cursor/rules globs and the binding/budget checks read different scopes for one file; 0 of the 10 live rules diverge today.",
+  "mechanism": "rules_sync.mjs:parse takes every `- \"...\"` line anywhere in the frontmatter and requires `\"\\s*$` at line end; policy_lint.mjs:rulePaths reads only the `paths:` block and accepts trailing text. Neither calls the other, and rules_sync --check compares the .mdc with its own parse, so the divergence passes both checks.",
+  "evidence": {
+   "command": "node tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs",
+   "harness_path": "tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs",
+   "value": 2,
+   "unit": "of 6 probe frontmatters with differing path lists (RESULT divergent_cells)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "shared leads box, 3 other leads seats; a count, contention-immune",
+   "tolerance": "exact",
+   "load1": 0.72,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": ".claude/workflows/rules_sync.mjs:parse and .claude/workflows/policy_lint.mjs:rulePaths (both extracted from the files at run time)",
+  "perturbation": {
+   "change": "--perturb eol: rules_sync parse's `\"([^\"]+)\"\\s*$/gm` -> `\"([^\"]+)\"/gm` (one-line edit, in memory)",
+   "expected_direction": "down",
+   "observed_value": "divergent_cells 2 -> 1 (the trailing-comment cell agrees; the other-key cell remains)"
+  },
+  "metric_definition": "Probe rule frontmatters on which rules_sync parse().paths and policy_lint rulePaths() return different lists (JSON-compared).",
+  "phenomenon_property": "One rule file's paths: scope is parsed by one function, so the generated Cursor globs, rule-binding, role budgets and the always-loaded cap read the same list for every frontmatter.",
+  "seam_rule": "node tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs  (cells = frontmatter shapes; seams = every reader of a rule's paths: key: grep -n 'paths' .claude/workflows/*.mjs)",
+  "null_control": {
+   "command": "node tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs",
+   "value": "null_control_wellformed_divergent=0 of 3; live_rules_divergent=0 of 10",
+   "note": "well-formed double-quoted block entries agree; capability, not incidence"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "I4",
+  "files": [
+   ".claude/workflows/rules_sync.mjs",
+   ".claude/workflows/policy_lint.mjs"
+  ],
+  "proposed_fix_scope": "rules_sync.mjs reuses policy_lint's rulePaths (export it, or move it to a shared module) instead of its own regex; add the two probe shapes to rules_sync's --check fixtures.",
+  "seat": "D11-s1",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D11-s1-72",
+  "scope": "D11-s1",
+  "step": "D11.M3",
+  "title": "entities.py GOV pin reads governance.yml only: a new governance job in 3 of 3 other workflow files passes",
+  "severity": "low",
+  "claim": "The entities.py pin on governance_cost.py's GOV set stays green when a new job is added to pr-contract.yml, budget-raise-gate.yml or budget-raise-gate-rerun.yml (3 of 3), although GOV's own derivation rule names the first two as governance, and rerun-stale-verdict is already a governance job GOV does not name.",
+  "mechanism": "The pin checks GOV <= all job ids and _workflow_job_ids(governance.yml) <= GOV; the second arm reads only governance.yml, while governance_cost.py's comment derives GOV from governance.yml plus briefs, pr-contract.yml and budget-raise-gate.yml. Jobs in those files are never compared, so the set can go stale unseen (D13-s1 measured 64 s of rerun-stale-verdict missed).",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/leads/l3_gov_pin.py",
+   "harness_path": "tools/audit/round9/D11/leads/l3_gov_pin.py",
+   "value": 3,
+   "unit": "of 3 probe governance jobs outside governance.yml the pin passes (RESULT escaping_cells)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "shared leads box, 3 other leads seats; a count, contention-immune",
+   "tolerance": "exact",
+   "load1": 0.89,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/entities.py GOV pin ('the governance-cost GOV set names only jobs the workflow files define, and every governance.yml job'), executed from its own source slice; tools/audit/round4/D11/governance_cost.py:GOV",
+  "perturbation": {
+   "change": "--perturb all-files: the pin's `_workflow_job_ids(_DS_GOV)` widened, in memory, to the union over governance.yml, pr-contract.yml, budget-raise-gate.yml and budget-raise-gate-rerun.yml",
+   "expected_direction": "to_zero",
+   "observed_value": "escaping_cells 3 -> 0; the pin also fails at baseline on the live rerun-stale-verdict"
+  },
+  "metric_definition": "Probe cells (one new job appended to a workflow file GOV's rule or D13's re-derivation counts as governance) in which entities.py's GOV pin still passes.",
+  "phenomenon_property": "Every job of every workflow file GOV's derivation rule names is either in GOV or refused by the pin.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/leads/l3_gov_pin.py  (cells = workflow files named by GOV's derivation comment plus workflow_run followers of them)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/leads/l3_gov_pin.py",
+   "value": "positive_control_pin_fails=1 of 1 (new job in governance.yml)",
+   "note": "the pin does fire on the file it reads"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "I4",
+  "files": [
+   "tests/entities.py",
+   "tools/audit/round4/D11/governance_cost.py",
+   ".github/workflows/budget-raise-gate-rerun.yml"
+  ],
+  "proposed_fix_scope": "Derive the pin's governance job set from the same file list GOV's comment names (and add budget-raise-gate-rerun.yml, or record why it is excluded); add rerun-stale-verdict to GOV.",
+  "seat": "D11-s1",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D7-s1-71",
+  "scope": "D7-s1",
+  "step": "D7.M1",
+  "title": "Cold-water inlet default held three times: 3 of 5 sites ignore DEFAULT_DHW_INLET_TEMP when it moves",
+  "severity": "low",
+  "claim": "With const.DEFAULT_DHW_INLET_TEMP moved from 10.0 to 12.5, 3 of 5 production sites that resolve a cold-water default still deliver 10.0: bare ThermalParameters() (thermal_model.py:469 literal), sysid._sizing_model's plant (via that literal) and dhw_coil_draw_reduction's inlet_temp default (const.DHW_COLD_WATER_TEMP).",
+  "mechanism": "The default is spelled three ways: const.DEFAULT_DHW_INLET_TEMP (from_config and the options flow read it), a bare 10.0 on the ThermalParameters field, and const.DHW_COLD_WATER_TEMP, now only a default argument all three call sites override. They agree only because all three are 10.0 today.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_cold_water_default.py",
+   "harness_path": "tools/audit/round9/D7/leads/l3_cold_water_default.py",
+   "value": 3,
+   "unit": "of 5 sites whose delivered default does not follow the moved constant (RESULT sites_not_following)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "shared leads box, 3 other leads seats; a count, contention-immune",
+   "tolerance": "exact",
+   "load1": 1.19,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.dhw_inlet_temp (also thermal_model:dhw_coil_draw_reduction, const:DEFAULT_DHW_INLET_TEMP)",
+  "perturbation": {
+   "change": "--perturb literal: thermal_model.py:469 `dhw_inlet_temp: float = 10.0` -> `= const.DEFAULT_DHW_INLET_TEMP` (one-line edit, in memory)",
+   "expected_direction": "down",
+   "observed_value": "sites_not_following 3 -> 1 (the coil default remains)"
+  },
+  "metric_definition": "Of 5 production sites resolving a cold-water inlet default, those whose delivered value does not move when const.DEFAULT_DHW_INLET_TEMP is moved 10.0 -> 12.5.",
+  "phenomenon_property": "A configurable default is defined once and every site that falls back to it reads that one definition.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_cold_water_default.py  (sites = grep -n 'DEFAULT_DHW_INLET_TEMP\\|DHW_COLD_WATER_TEMP\\|dhw_inlet_temp: float' custom_components/heatpump_optimizer/*.py)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_cold_water_default.py --no-move",
+   "value": "sites_disagreeing=0 of 5",
+   "note": "with the constant unmoved all sites agree at 10.0: no user-visible divergence today (hygiene)"
+  },
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "files": [
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/const.py"
+  ],
+  "proposed_fix_scope": "The ThermalParameters field defaults to const.DEFAULT_DHW_INLET_TEMP; DHW_COLD_WATER_TEMP is removed or aliased to it and dhw_coil_draw_reduction's inlet_temp made required (all 3 callers pass it).",
+  "seat": "D7-s1",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D7-s3-72",
+  "scope": "D7-s3",
+  "step": "D7.M6",
+  "title": "4 of 5 ThermalModel per-step scratch members are written every step and read by no production consumer",
+  "severity": "low",
+  "claim": "Across four real solves (winter_single_dhw, dhw_cold_tank, wood_two_tank, wood_coil) production writes _step_dhw_refused, _step_dhw_floor_injected, _step_dhw_draw_kw and _step_wood_refused 31k-167k times each and no production function reads them (0 consumer reads, 0 loads outside thermal_model.py); only tests/features.py does (18 references).",
+  "mechanism": "The step functions book refused heat, floor injection and the debited draw on the model instance for a consumer that was never written: only _step_buffer_refused is read (simulate_trajectory). The _step_dhw_draw_kw comment says it lets 'energy accounting outside the model' balance the step; nothing outside reads it. D7-s3-01's reach census counts a store as reach, so it cannot see write-only members.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_write_only_scratch.py",
+   "harness_path": "tools/audit/round9/D7/leads/l3_write_only_scratch.py",
+   "value": 4,
+   "unit": "of 5 _step_* members with production writes and 0 production consumer reads (RESULT write_only_members)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "shared leads box, 3 other leads seats; a count, contention-immune",
+   "tolerance": "exact",
+   "load1": 1.99,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel._step_dhw_refused (and _step_dhw_floor_injected, _step_dhw_draw_kw, _step_wood_refused; runtime descriptors record caller frames)",
+  "perturbation": {
+   "change": "--perturb reader: a one-line production read of self._step_dhw_draw_kw in ThermalModel.simulate_trajectory, compiled under thermal_model.py",
+   "expected_direction": "down",
+   "observed_value": "write_only_members 4 -> 3"
+  },
+  "metric_definition": "ThermalModel _step_* members with >=1 production write and 0 reads from production functions that never write that member, over four golden solves.",
+  "phenomenon_property": "Every member production writes is read by some production consumer; state computed only for tests is dead production work.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_write_only_scratch.py  (members = ThermalModel class attributes named _step_*; extend to any attribute with production stores and no production loads)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_write_only_scratch.py",
+   "value": "live_control_buffer_consumer_reads=97344",
+   "note": "_step_buffer_refused, written by the same step functions, is read by simulate_trajectory: the instrument sees a live consumer"
+  },
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "files": [
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "Either give the ledgers their production consumer (the energy/refused-heat accounting their comments describe) or return them from the step for the tests that assert conservation instead of storing them on the instance; retarget the 18 features.py references.",
+  "seat": "D7-s3",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D9-s1-71",
+  "scope": "D9-s1",
+  "step": "D9.M1",
+  "title": "Constant DHW parameter helpers recomputed ~15-45k times per solve; a per-solve cache saves 3-17 % of CPU",
+  "severity": "low",
+  "claim": "ThermalParameters.dhw_tank_heat_loss_coefficient, dhw_inlet_reference and effective_dhw_draw_pattern are recomputed 4k-11k, 12k-33k and ~98 times per DHW solve for values constant within the solve; memoising them per instance leaves 5 of 5 plans bitwise identical and cuts the capture's thread CPU by 0.026-0.174 (mean 0.094) against a null arm of -0.030..+0.050 (mean -0.001).",
+  "mechanism": "The DHW step reads the tank loss coefficient (an np.clip on a scalar each call), the inlet reference and, per horizon build, the windowed draw pattern (24 overlap_fraction calls) through properties/methods that recompute from unchanged parameters on every simulated step.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py",
+   "harness_path": "tools/audit/round9/D9/leads/l3_dhw_helpers.py",
+   "value": 0.094,
+   "unit": "mean share of golden.capture thread CPU saved by the per-solve cache over 5 DHW cells (RESULT saved_share_mean)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "cpu",
+   "contention_note": "PROVISIONAL: fan-out CPU on a shared box with other leads seats; interleaved plain/memo arms, ratio metric; re-take in the quiet window",
+   "tolerance": "\u00b10.05 (null arm band)",
+   "load1": 1.79,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.dhw_tank_heat_loss_coefficient (with .dhw_inlet_reference and .effective_dhw_draw_pattern), driven through HeatPumpOptimizer.optimize",
+  "perturbation": {
+   "change": "per-instance memoisation of the three helpers (in memory); the null arm installs the same wrapper layer without caching",
+   "expected_direction": "down",
+   "observed_value": "CPU ratio memo/plain 0.826-0.974 vs null 0.950-1.030"
+  },
+  "metric_definition": "1 - (thread CPU of golden.capture with the three helpers memoised per ThermalParameters instance / plain), interleaved x2 per cell; plus helper calls per solve.",
+  "phenomenon_property": "A value that is constant within a solve is computed once per solve, not once per simulated step.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py  (seams = ThermalParameters properties/methods called from simulate_dhw_step and the DHW planners; count calls per solve)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py --null",
+   "value": "saved_share_min=-0.0302 max=0.0497 mean=-0.0006",
+   "note": "same wrapper layer, no cache: the band the memo arm must exceed"
+  },
+  "leave_one_out": {
+   "cells": 5,
+   "min": 0.0259,
+   "max": 0.1742,
+   "drop_most_favourable": 0.0745
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "new",
+  "files": [
+   "custom_components/heatpump_optimizer/thermal_model.py"
+  ],
+  "proposed_fix_scope": "Hoist the three values once per solve (a cached_property invalidated on parameter change, or locals in simulate_dhw_step's caller); scalar math instead of np.clip in dhw_tank_heat_loss_coefficient.",
+  "seat": "D9-s1",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D9-s2-71",
+  "scope": "D9-s2",
+  "step": "D9.M2",
+  "title": "stress.py samples 0 of 51 throttling-valve plants; a valve adds 1.3-2.7x solve CPU the gate never sees",
+  "severity": "medium",
+  "claim": "None of tests/stress.py's 51 sweep cases builds a plant with a throttling mixing valve (0 of 51, keyed on the params handed to optimize()), while on four golden valve plants the valve itself multiplies optimize() CPU by 1.30-2.70 against the same plant with mixing_valve_mode='none' (smart_write 2.70x: 2x the step-equivalents), so a regression confined to the valve path is unsampled by the only per-PR CPU gate.",
+  "mechanism": "sweep_combinations() crosses season x zones x DHW and tariff/pv/cycling on house() defaults, which leave mixing_valve_mode at none; build_case takes no valve argument. The valve branches of the simulate kernels (_simulate_step_two_zone, simulate_trajectory_batch) and smart_write's larger search therefore contribute no row to the budget table, the same UNSAMPLED shape build_case's docstring records for #287's zero-range bounds.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py",
+   "harness_path": "tools/audit/round9/D9/leads/l3_valve_solve.py",
+   "value": 0,
+   "unit": "of 51 stress sweep cases with a throttling valve (RESULT stress_sweep_valve_cases); valve/no-valve CPU 1.30-2.70x",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "leads box (shared 4-core Linux cloud container), CPython 3.14.0rc2 venv314 / node v22.22.2",
+   "cpu_or_wall": "count",
+   "contention_note": "the coverage count is exact; CPU ratios are fan-out numbers on a shared box (thread_factor 1.000), re-take in the quiet window",
+   "tolerance": "exact (count); CPU ratios provisional",
+   "load1": 1.83,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/stress.py:sweep_combinations/build_case (plant handed to heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize), metered with tests/stress.py:SolverWork",
+  "perturbation": {
+   "change": "--perturb novalve: mixing_valve_mode='none' on the four valve cells (config change)",
+   "expected_direction": "down",
+   "observed_value": "valve cells' CPU/reference 131-285 -> 101-116; smart_write step-equivalents 9,426,048 -> 4,852,896"
+  },
+  "metric_definition": "Stress sweep cases whose built ThermalParameters throttle; and per golden valve plant, optimize() thread CPU / reference_solve with the valve vs mixing_valve_mode='none'.",
+  "phenomenon_property": "Every plant topology the integration supports that changes the solve's kernel or search is sampled by at least one stress.py budget row.",
+  "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py  (topology axes = const TOPOLOGY_* and mixing_valve modes; count sweep cases per axis value)",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py --perturb novalve",
+   "value": "control cells (winter_two_zone_no_dhw, shoulder_two_zone) step-equivalents unchanged exactly (4,219,488; 3,507,029); CPU/reference 84.7->92.6, 71.7->74.7",
+   "note": "the no-valve controls do not move under the perturbation beyond CPU noise; only valve cells do"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "I1",
+  "files": [
+   "tests/stress.py",
+   "tests/stress_budgets.json"
+  ],
+  "proposed_fix_scope": "Add at least one manual and one smart_write two-zone valve case (and valve_upper_direct_slab / two_tank_4way where their kernels differ) to sweep_combinations via a build_case config, record their budget rows (a budget-table re-record, owner-approved).",
+  "reproduction_steps": [
+   "valve arm: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py",
+   "no-valve arm: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py --perturb novalve"
+  ],
+  "seat": "D9-s2",
+  "from_lead": true,
+  "leads_seat": "L3"
+ },
+ {
+  "id": "D2-s2-81",
+  "scope": "D2-s2",
+  "step": "D2.M3",
+  "title": "Two-zone comfort penalty halves each zone's floor price; shipped plans sit up to 0.46 K below min_temp",
+  "severity": "medium",
+  "claim": "On the stock two-zone house (tests/golden.py:make, winter_cold) the shipped plan's upper zone falls below min_temp 17.0 by 2.467 degree-steps summed over 12 price x DHW cells (1.314 in two|dhw|winter_typical, coldest 16.54 C), while the same house single-zone breaches 0.147 and every flat-price cell 0.",
+  "mechanism": "_comfort_terms (and _comfort_terms_batch) average the two zones' penalties with 0.5 x (...), which also halves each zone's quadratic floor term and its _COMFORT_FLOOR_L1 linear term; the constant's own comment says 2.0 is the smallest L1 that removes residual floor violations, so each zone of a two-zone house gets half of it and the solver buys the breach back where prices reward it (two|dhw|winter_typical: holding the floor costs 70.52 vs 67.50 SEK).",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+   "harness_path": "tools/audit/round9/D2/leads/l4_zone_floor.py",
+   "value": 2.4672,
+   "unit": "degree-steps (K x 15-min steps), 12 two-zone cells",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+   "cpu_or_wall": "count",
+   "contention_note": "other leads seats shared the box; counts are contention-immune",
+   "tolerance": "exact on one BLAS build; +-0.05 degree-steps across builds",
+   "load1": 1.26,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (shipped upper/lower_temp_trajectory), via optimizer:HeatPumpOptimizer._comfort_terms / _comfort_terms_batch and the module constant _COMFORT_FLOOR_L1",
+  "perturbation": {
+   "change": "--perturb: optimizer._COMFORT_FLOOR_L1 2.0 -> 4.0 in memory (each zone gets the single-zone linear floor price)",
+   "expected_direction": "down",
+   "observed_value": 0.8574
+  },
+  "metric_definition": "sum over steps and zones of max(0, min_temp - T_zone) of the shipped two-zone trajectories, over 6 price profiles x DHW on/off at winter_cold, 24 h",
+  "phenomenon_property": "Each zone of a two-zone plan pays the same price per degree-step below min_temp as a single-zone room does, so the floor the L1 term exists to pin holds per zone.",
+  "seam_rule": "grep -n \"0.5 \\* weight\\|_COMFORT_FLOOR_L1\" custom_components/heatpump_optimizer/optimizer.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+   "value": "single_zone_floor_deg_steps_sum=0.1471 (1 of 12 cells); two_zone_flat_sum=0.0000",
+   "note": "same house single-zone and the flat-price cells; the breach is price-bought and two-zone-specific"
+  },
+  "leave_one_out": {
+   "cells": 12,
+   "min": 0.0,
+   "max": 1.3144,
+   "drop_most_favourable": 0.1048
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_zone_floor.py --perturb"
+  ],
+  "proposed_fix_scope": "optimizer.py _comfort_terms/_comfort_terms_batch: keep the two-zone average for the pull and the overshoot, but price each zone's undershoot (quadratic and L1) at the single-zone weight; pin with a two-zone winter_typical floor check.",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "expected_golden_drift": [
+   "winter_two_zone_dhw",
+   "winter_two_zone_no_dhw"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P3",
+  "seat": "D2-s2",
+  "from_lead": true,
+  "leads_seat": "L4"
+ },
+ {
+  "id": "D4-s2-81",
+  "scope": "D4-s2",
+  "step": "D4.M2",
+  "title": "Setup overview page and setup diagram publish English slot text on a Swedish install",
+  "severity": "medium",
+  "claim": "With the Swedish translation active, 22 of the 23 text lines the setup_overview flow page renders, all 16 slot labels describe_setup publishes (setup_topology, drawn verbatim by the card) and all 3 sensor_advisor labels are byte-identical to the English install's, while the narrative on the same plan sensors is Swedish (0 of 1 identical).",
+  "mechanism": "topology._SLOTS holds English literal labels and render_text_summary English headings; describe_setup, render_text_summary and rank_sensor_advisor take no language, so config_flow._setup_overview_form fills the sv template's {setup_summary} with English and the plan sensors publish English labels; narrative.render, by contrast, picks TEMPLATES[language].",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+   "harness_path": "tools/audit/round9/D4/leads/l4_setup_labels.py",
+   "value": 41,
+   "unit": "published strings identical en/sv (22 page lines + 16 slot labels + 3 advisor labels)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+   "cpu_or_wall": "count",
+   "contention_note": "other leads seats shared the box; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 1.19,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.config_flow:_setup_overview_form; heatpump_optimizer.topology:describe_setup / render_text_summary / rank_sensor_advisor",
+  "perturbation": {
+   "change": "--perturb: the three topology functions wrapped in memory to pass every published literal through a Swedish table when the language is sv (the narrative.render pattern)",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "metric_definition": "published setup strings (rendered setup_overview lines, setup_topology slot labels, sensor_advisor labels) byte-identical between an en and an sv install",
+  "phenomenon_property": "Every user-facing string the backend publishes for the setup diagram and the sensor advisor follows the instance language, as the narrative does.",
+  "seam_rule": "grep -n \"describe_setup\\|render_text_summary\\|rank_sensor_advisor\" custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+   "value": "null_narrative_lines_identical_to_en=0 of 1",
+   "note": "narrative.render on the same sensors follows the language"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py --perturb"
+  ],
+  "proposed_fix_scope": "topology.py: slot labels and summary headings keyed by translation key (resolved from strings/translations by hass.config.language in the flow, or published as keys the card translates); config_flow/sensor call sites pass the language.",
+  "files": [
+   "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/config_flow.py",
+   "custom_components/heatpump_optimizer/sensor.py",
+   "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new",
+  "seat": "D4-s2",
+  "from_lead": true,
+  "leads_seat": "L4"
+ },
+ {
+  "id": "D2-s4-81",
+  "scope": "D2-s4",
+  "step": "D2.M5",
+  "title": "sysid cannot adopt its own exact noise-free fit on 43 of 80 preset houses, yet arms on all 80",
+  "severity": "medium",
+  "claim": "Driving the production step experiment on a plant exactly equal to the declared one with a noise-free reading, over every BuildingPreset structure x era x emitter at 3.5 and 6 kW, 19 of 80 cells complete and are refused by adoption_decision (heat-loss half-width 0.096-0.234 against the ln 1.10 = 0.0953 bar, fit error 0.0000) and 24 abort as 'fitted parameters outside plausible bounds'; all 80 arm.",
+  "mechanism": "The adoption bar keys on slab_ua_adoption_halfwidth, which at zero noise is set by the prior and window design, not by the fit's error, so light, radiator-heated and low-energy houses never reach it; separately the fit's plausibility box (tau 0.1-200 h, UA 0.01-5) rejects exact-data fits on masonry, low-energy and slab-floor cells (not separated here: true parameters outside the box versus a fit that misses them).",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+   "harness_path": "tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+   "value": 19,
+   "unit": "cells of 80 refused at zero bias (plus 24 plausibility aborts)",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+   "cpu_or_wall": "count",
+   "contention_note": "other leads seats shared the box; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 1.32,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.sysid:SystemIdentification.arm/step/_finish, sysid:adoption_decision, sysid:slab_ua_adoption_halfwidth",
+  "perturbation": {
+   "change": "--perturb: sysid.UA_ADOPTION_HALFWIDTH_BAR ln(1.10) -> ln(1.20) in memory",
+   "expected_direction": "down",
+   "observed_value": 2
+  },
+  "metric_definition": "preset cells whose exact-plant, noise-free sysid experiment completes and adoption_decision refuses (80 = 4 structures x 5 eras x 2 emitters x 2 pump sizes)",
+  "phenomenon_property": "A sysid experiment the tree arms on a declared plant can adopt its own exact answer: at zero bias and zero noise the gate admits and the plausibility box contains the fit.",
+  "seam_rule": "grep -n \"UA_ADOPTION_HALFWIDTH_BAR\\|plausible bounds\\|def adoption_decision\" custom_components/heatpump_optimizer/sysid.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+   "value": "null_admitted=37 of 80",
+   "note": "the same drive admits exact fits on 37 cells (e.g. heavier pre-1980 houses), so the drive can admit"
+  },
+  "leave_one_out": {
+   "cells": 80,
+   "min": 0,
+   "max": 1,
+   "drop_most_favourable": 18
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/leads/l4_sysid_null_refusal.py --perturb",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py (D14-s3's light_new rows: hw 0.1446 at every zero-bias source)"
+  ],
+  "proposed_fix_scope": "sysid.py: arm only where the declared plant's zero-noise half-width clears the bar and its parameters lie in the plausibility box (refuse at arm time with a reason), or size the window/step so they do; widen the box to the presets' own range.",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P5",
+  "seat": "D2-s4",
+  "from_lead": true,
+  "leads_seat": "L4"
+ },
+ {
+  "id": "D12-s3-81",
+  "scope": "D12-s3",
+  "step": "D12.M4",
+  "title": "Grid-fee bounds are SEK numbers: a 0.05 EUR/kWh fee is unenterable in HUF, ISK, JPY and KRW",
+  "severity": "medium",
+  "claim": "A 0.05 EUR/kWh transfer fee converted into each of 12 instance currencies draws 8 blocking verdicts across 4 currencies (HUF, ISK, JPY, KRW): the rules text is refused as implausible (HUF, KRW), the fixed-fee field's selector caps it at 5 in any currency (all four), and an entity-mode fee raises the grid_fee_magnitude repair (HUF, KRW); SEK, EUR, NOK and DKK draw 0.",
+  "mechanism": "grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0 (read by spec_problem and coordinator._audit_grid_fee) and the grid_fee_fixed NumberSelector max 5 are fixed numbers sized for SEK, while the same widget's unit and the repair text follow hass.config.currency.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+   "harness_path": "tools/audit/round9/D12/leads/l4_fee_bound.py",
+   "value": 8,
+   "unit": "blocking verdicts (3 seams x 12 currencies); 4 currencies",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+   "cpu_or_wall": "count",
+   "contention_note": "other leads seats shared the box; counts are contention-immune",
+   "tolerance": "exact given the stated exchange-rate table",
+   "load1": 2.07,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.grid_fee:spec_problem; heatpump_optimizer.config_flow:_page_schema (grid_fees page, grid_fee_fixed selector); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._audit_grid_fee",
+  "perturbation": {
+   "change": "--perturb: IMPLAUSIBLE_FEE_SEK_PER_KWH 10 -> 1e6 in memory (grid_fee and the coordinator's imported copy)",
+   "expected_direction": "down",
+   "observed_value": 4
+  },
+  "metric_definition": "seam verdicts refusing or capping a 0.05 EUR/kWh fee expressed in each of 12 currencies at a stated rate table (rules refusal, fixed selector max, repair raised)",
+  "phenomenon_property": "Every magnitude bound on a money field scales with the instance currency the field is labelled in, so a fee that is ordinary in that currency is accepted without a repair.",
+  "seam_rule": "grep -n \"IMPLAUSIBLE_FEE_SEK_PER_KWH\\|_number(0, 5, 0.01\" custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+   "value": "null_blocked=0 of 4 (SEK, EUR, NOK, DKK)",
+   "note": "the currencies the constants were sized for"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --perturb",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --fee 0.03"
+  ],
+  "proposed_fix_scope": "grid_fee.py/config_flow.py/coordinator.py: derive the implausibility bound and the fixed-fee selector max from the instance currency (a per-currency scale, or a bound relative to the published spot prices) rather than SEK constants.",
+  "files": [
+   "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/config_flow.py",
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P8",
+  "seat": "D12-s3",
+  "from_lead": true,
+  "leads_seat": "L4"
+ },
+ {
+  "id": "D6-s1-81",
+  "scope": "D6-s1",
+  "step": "D6.M1",
+  "title": "README's SEK currency fallback is unreachable under Home Assistant core, which defaults Config.currency to EUR",
+  "severity": "low",
+  "claim": "README.md says money is labelled 'SEK when the instance has none', but resolve_currency returns FALLBACK_CURRENCY for 0 of 2 Home Assistant core versions (2025.2.0, hacs.json's minimum, and 2026.2.3): core's Config.__init__ sets currency 'EUR', so an instance that never chose a currency is labelled EUR; only the test stub (FakeHass, currency 'SEK') produces SEK.",
+  "mechanism": "currency.resolve_currency falls back only on a falsy hass.config.currency; HA core initialises it to 'EUR' and validates a configured value, so the fallback and the README/docstring rationale describe the test double, not the counterpart.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+   "harness_path": "tools/audit/round9/D6/leads/l4_currency_fallback.py",
+   "value": 0,
+   "unit": "HA core versions (of 2) reaching the SEK fallback",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+   "cpu_or_wall": "count",
+   "contention_note": "reads HA core wheels fetched with pip download --no-deps into a mktemp root (or --wheels DIR)",
+   "tolerance": "exact",
+   "load1": 1.99,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.currency:resolve_currency, fed HA core homeassistant/core_config.py:Config.__init__'s currency default (AST-read from the wheel)",
+  "perturbation": {
+   "change": "--perturb: currency.resolve_currency replaced in memory by lambda hass: FALLBACK_CURRENCY",
+   "expected_direction": "up",
+   "observed_value": 2
+  },
+  "metric_definition": "HA core versions for which resolve_currency on core's own Config.currency default returns FALLBACK_CURRENCY",
+  "phenomenon_property": "What the README and currency.py say an unconfigured instance shows is what Home Assistant core delivers, not what the test stub pins.",
+  "seam_rule": "grep -n \"FALLBACK_CURRENCY\\|SEK when the instance\" README.md custom_components/heatpump_optimizer/currency.py tests/harness.py",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+   "value": "stub_resolves_to=SEK",
+   "note": "tests/harness.py FakeHass pins currency SEK itself; the SEK label comes from the stub, not the fallback"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py",
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/leads/l4_currency_fallback.py --perturb"
+  ],
+  "proposed_fix_scope": "README.md line 450 and currency.py's docstring: state that the label is hass.config.currency (EUR on an instance that never set one); keep or drop the dead fallback deliberately.",
+  "files": [
+   "README.md",
+   "custom_components/heatpump_optimizer/currency.py"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "P11",
+  "seat": "D6-s1",
+  "from_lead": true,
+  "leads_seat": "L4"
+ }
+]

@@ -1,0 +1,3 @@
+===== daemonize pid=86921 2026-10-24T12:43:34Z argv: bash tools/audit/seat/open_pr.sh r10-fly-envmatrix-noremote 767c5890d6a37b9f422f363519ded8a006411ecf R10-FLY-ENVMATRIX-NOREMOTE: env-matrix without a remote R10-FLY-ENVMATRIX-NOREMOTE 2505
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+PR=2708 HEAD=ae77c4150ee0245f5546c73fd9c3f35691e9a3c6 AUTHOR=tvofi

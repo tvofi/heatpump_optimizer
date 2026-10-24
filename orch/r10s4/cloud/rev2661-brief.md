@@ -1,0 +1,7 @@
+Fix reviewer for PR #2661, a roster batch (branch fix/audit-r10-roster-pr2), head 6156d54c96eddb07dc40ec2ce02f96e899986c84. It lands 5 roster_edit commits from handoff/audit-r10-roster onto main, the same shape as PR #2655. The only file is dev/programme/rosters/wave-r10-groups.json, plus the delivery row dev/programme/delivery/2661.md. Follow dev/governance/roles/fix-review.md exactly, from a detached worktree at the head. Your ev/ MUST contain a file holding the full 40-hex head (ev/HEAD.txt), or the relay refuses the verdict.
+
+Verify:
+(1) Three-dot diff `git diff $(git merge-base origin/main HEAD)...HEAD`: only the roster and the delivery row. Any other file blocks the PR.
+(2) Each of the 5 group changes (jq over both rosters) matches its commit: set-stage done for R10-SCORES (#2647 merged), R10-FLOW-TOOLKIT-MEASURE (#2645 merged) and R10-FLY-NO-FOOTERS-EMITTERS (#2652 merged); append-carry to R10-FLY-SUITE-ENV-FLAKES (the carry #2632's body cites); and the R10-LEARNER-DEFAULT re-cite to coordinator.py lines that exist at origin/main and say what the brief claims. A stage marked done whose PR has not merged on main blocks the PR.
+(3) Null control: nothing main wrote to the roster since the merge base is lost. 169 groups before and after, and no group removed.
+(4) `node tools/policy/brief_lint.mjs` on the roster reports 0 errors. Record the scoped-gate MODE line. Read CI with one bulk check-runs call. The merge-tree against origin/main is clean. VERSION is untouched. Commits carry no footers.

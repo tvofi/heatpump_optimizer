@@ -1,0 +1,5 @@
+PRECONDITION staged-hash: SKIP -- not evaluated: no --staged
+PRECONDITION gate-at-head: PASS -- 4 suite(s); every suite's newest gate is green
+PRECONDITION caller-is-owner: PASS -- gh api user reads 'tvofi'
+PRECONDITION main-push-idle: FAIL -- in progress: ['Tests 39916385638']
+PRECONDITION queue-drained: FAIL -- open besides #2649: [2652, 2651, 2650, 2647, 2645, 2632, 2620]

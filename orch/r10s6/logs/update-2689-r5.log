@@ -1,0 +1,2 @@
+===== daemonize pid=739 2026-10-24T08:52:08Z argv: env HANDOFF_TOPIC=r10-triage-s6-batch2 bash tools/audit/seat/update_pr.sh fix/r10-triage-s6-batch2 630c5a75d10e3845f0108ed15d9466379dd45a1a /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-orchestrator-e30fa3/59bcea68-160f-4ed5-8266-e558408abe7b/scratchpad/body-2689-r5/BODY.md
+HEAD=80a62d9a7bba087c216e5370c31efb216581bf92

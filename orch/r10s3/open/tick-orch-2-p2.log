@@ -1,0 +1,62 @@
+===== daemonize pid=56883 2026-10-17T22:52:28Z argv: bash tools/pr/app_push.sh tvofi/heatpump_optimizer /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-orch-2/wt fix/r10-tick-orch-2 /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-orch-2/body.md
+  ok       body path              not directly in a shared root
+  ok       merge-base             bad6f7a5190b156f010ec7d94693a61bf54f1e11
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=2 label=prepr-57001 expires_at=2026-10-17T23:22:30.264609+00:00
+  ok       gate mode              MODE: FULL
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since bad6f7a5190b
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: bad6f7a5190b156f010ec7d94693a61bf54f1e11 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against bad6f7a5190b (a data-file read is not seen)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against bad6f7a5190b
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:both
+             22:always
+             35:none
+             39:none
+             43:none
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             2281 l
+             2281 f
+             14 c
+             93 c
+             93 c
+             93 c
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-orch-2/body.md -- no budget leaf raised over bad6f7a51...1c9c0bdf3
+  ok       figures                FIGURES: 4 resolved, 0 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  WARN     push order             HEAD is 1 commit(s) ahead of origin/fix/r10-tick-orch-2 -- A PUSH MUST FOLLOW THIS BODY EDIT
+  ok       ancestry reds          no red check run stands on any commit this branch pushed
+
+  !!! HEAD is 1 commit(s) ahead of origin/fix/r10-tick-orch-2, so `pr-contract` -- which reads
+  !!! the PULL REQUEST head, not this one -- refuses this body on any run that
+  !!! fires before the push, the `edited` run setting it fires included.
+  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so
+  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --
+  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.
+  !!! If setting the body is your LAST action, the refusal stays on your head.
+
+PRE-PR: 1c9c0bdf39e2383880243125dfd54e30b93ae1c6 000000000000000000000000
+To https://github.com/tvofi/heatpump_optimizer.git
+   799bf9c60..1c9c0bdf3  fix/r10-tick-orch-2 -> fix/r10-tick-orch-2
+app_push: PUSHED 1c9c0bdf39e2383880243125dfd54e30b93ae1c6 to tvofi/heatpump_optimizer:fix/r10-tick-orch-2 as the App; pull request #2360 is open at 1c9c0bdf39e2383880243125dfd54e30b93ae1c6 with the body read back: 

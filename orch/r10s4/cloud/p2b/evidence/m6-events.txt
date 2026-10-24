@@ -1,0 +1,16 @@
+M-6 nochain events on PR #2649 (fix/r10-ci-layout-p2-probe-A), head 06b077f884414cbd08b4cba7a913423dade8b110
+(1) PUSH via update_pr.sh (App path): head landed, runs created 2026-10-23T06:22:31Z
+    code run 39911090068 "CI code pr=2649 base=main sha=0b08394979bafb5b6cb6ccd45efc936338331958"
+    edit run 39911090487 (from update_pr.sh's own body PATCH, same second)
+(2) EDIT via body_patch.sh (trailing newline), 06:22:47Z-06:22:53Z, "head unmoved", body read back identical
+    -> second edit run 39911128328, created 06:22:54Z
+(3) REVIEW: id 5624686741, user tvofi, state COMMENTED, submitted 2026-10-23T06:23:55Z at the head (owner write via main, not me)
+    -> review run 39911235897 created 06:23:58Z
+Gate jobs (all started AFTER the review: review run 06:26:22-06:26:42; code 06:27:00-06:27:17; edit 06:27:01-06:27:21 and 06:27:02-06:27:24).
+ So the review landed ~2.5 min BEFORE any gate attempt completed. Each gate step "Judge this head" printed PASS.
+ All four runs completed success at 06:27:24Z latest. Jobs: code: prelude, refresh, probe / probe, gate all success; edit runs: probe SKIPPED, gate success.
+Held action_required runs at head: 0 (checked 06:22:53Z).
+Commands: gh api repos/tvofi/heatpump_optimizer/actions/runs?head_sha=<H>; .../actions/runs/<id>/jobs?filter=latest; .../pulls/2649/reviews
+Note: the first push's body needed a Red-checks answer (gate, pr-contract, instrument-self-tests red by construction on the probe tip) to pass prepr.
+
+AMENDMENT (coordinator, 2026-10-23): the line above "gates started AFTER the review" is WRONG for the first attempts. At 06b077f the first gate attempts ran at 06:23:05, 06:23:55 and 06:25:16 and were deferred red; the sweep re-ran them green at 06:27 (see evidence/m6-gate-suites-06b077f8.tsv). The 06:26:22-06:27:24 gate jobs I listed are the re-run (latest) attempts, because jobs?filter=latest hides earlier attempts. The review (06:23:55Z) fell between the first attempts; read from the coordinator's tsv, not from my jobs listing.

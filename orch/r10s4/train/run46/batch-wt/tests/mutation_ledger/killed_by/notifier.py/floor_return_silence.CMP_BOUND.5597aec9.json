@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/notifier.py:floor_return_silence CMP_BOUND 5597aec9",
+  "killed_by": "tests/features.py",
+  "old": "    if now - since < timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd59a4af1b2616a7f00761a3769d22a335e4df7c: CMP_BOUND (`if now - since <= timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

@@ -1,0 +1,10 @@
+===== daemonize pid=4009 2026-10-18T12:08:16Z argv: bash tools/audit/seat/open_pr.sh r10-archscore-coverage-p5 8befb858369d5cf94bf7b8433ecfef998a72515e R10-ARCHSCORE-COVERAGE p5: the shape census, calibrated and gate-only R10-ARCHSCORE-COVERAGE 2259
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-archscore-coverage-p5/wt' already exists
+===== daemonize pid=42122 2026-10-18T12:12:21Z argv: bash tools/audit/seat/open_pr.sh r10-archscore-coverage-p5 8befb858369d5cf94bf7b8433ecfef998a72515e R10-ARCHSCORE-COVERAGE p5: the shape census, calibrated and gate-only R10-ARCHSCORE-COVERAGE 2259
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (121 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (326 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+PR=2401 HEAD=c75609c3a172cae8497086606abe25d7b84a6c08 AUTHOR=tvofi

@@ -1,0 +1,8 @@
+[
+  {
+    "pr": 2511,
+    "phase": "recarry",
+    "reason": "#2511 could not make a worktree at /Users/timmalmstrom/hpo-orch/r10s3/train/b20/wt/2511: branch handoff/r10-sav-reasons is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-sav-reasons. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-sav-reasons (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-sav-reasons status) -- not freed: its HEAD 5fd7c769 is not origin/handoff/r10-sav-reasons 3449af66 (unpushed work)",
+    "class": "HOLDER"
+  }
+]

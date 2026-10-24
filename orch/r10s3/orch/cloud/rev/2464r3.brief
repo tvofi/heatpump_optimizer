@@ -1,0 +1,18 @@
+Round 3 of R10-CI-LAYOUT PR 0, at head 07db3512, which merges code dd3a4447 with main. This is the last round before the three-round rule.
+
+Round 2 at c4a357e5 was blocked root-cause-unanswered. fast (3.14) went red because harness_headers.py's CPU-bounded sysid_estimator_frontier check read 306.4 s against 240 s.
+
+The fixer's root cause: R(a) moved arch_score.py into lane_golden, which runs alongside lane_units, where harness_headers.py ran. In the round-2 job, 404 of harness_headers' 411 s overlapped arch_score. The base layout reads 142.5-164.0 CPU-s.
+
+The fix: harness_headers.py runs alone, right after stress.py, in the alone phase. No bound or headroom changed. A new entities check pins it there, with a null on stress.py. New mutant M8 moves it back into lane_units and is caught; the harness reports survivors=0. The body re-takes ## Red checks: fast (3.14) and pr-contract at c4a357e5.
+
+WAIT for this head's CI to conclude, then read the FULL fast log. Its job time grows past this session, so poll at most every 5 min. Confirm or refute:
+- (a) sysid_estimator_frontier.py is back within 142.5-164.0 CPU-s. A reading at or above the round-2 value refutes co-running as the cause.
+- (b) The 5-minute critical-path saving. The fixer projects about 4.5 min, which misses the bar. Measure it and state which option the body recommends: the A3 fallback for R(a) alone, or keep it and let the post-merge window rule decide.
+
+Also check:
+- the round-2 non-blocking notes (window-rule wording, the R10-STAMP carry line);
+- that the second R10-CI-LAYOUT carry, which keeps harness_headers.py in the alone phase, is in that group's brief on handoff/audit-r10-roster at 1604c987 (not yet on main);
+- every figure, the mutants, and the merge with origin/main.
+
+Say that this is round 3.

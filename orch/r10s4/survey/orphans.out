@@ -1,0 +1,11 @@
+ORPHAN audit-r10-roster 9c02a6acfa3813989e238a408eeb6345d18ede0f 5.2h uncovered=117 repair=opener
+ORPHAN r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 110.3h uncovered=1 repair=opener
+ORPHAN r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 62.6h uncovered=3 repair=opener
+ORPHAN r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a 16.3h uncovered=8 repair=opener
+SUPERSEDED r10-pre-edit-hook 6d0df376aca755d3c6fd2a67be4d9623f92c555f 123.2h
+ORPHAN r10-rca-handoff-slip 5c500b7917145cb266762bf7a02836d2b2e50864 13.4h uncovered=1 repair=opener
+ORPHAN r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 55.6h uncovered=9 repair=opener
+ORPHAN r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce 11.8h uncovered=1 repair=opener
+ORPHAN r10-roster-ops 4e2223a57d230c75fbb965dfac431fd4e03f05d8 12.1h uncovered=3 repair=review
+ORPHAN r10-roster-sync a6d8a78ef832228a702070bc86c307319babcdcc 11.6h uncovered=7 repair=opener
+orphans: 9 stranded, 1 superseded; skipped no-body=26 named=10 ancestor=91 young=0; origin main df6ca4b

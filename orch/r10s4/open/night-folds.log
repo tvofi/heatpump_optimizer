@@ -1,0 +1,15 @@
+===== daemonize pid=88403 2026-10-21T08:05:31Z argv: bash tools/audit/seat/open_pr.sh --over-cap tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens r10-night-folds b4d0dd97425bd0d3ac4c19d6b21d9cb4b5ebdc1a fix(learners): heat-loss learners stop absorbing solar-aperture error (R10-NIGHT-FOLDS) R10-NIGHT-FOLDS 2223
+open_pr: OVER-CAP: 10 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  seam_cut_total: 719 + both deltas = 716
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (800 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/coordinator.py:1090 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:1097 RETURN_DEL; custom_components/heatpump_optimizer/coordinator.py:5091 CMP_BOUND*2; custom_components/heatpump_optimizer/coordinator.py:5091 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:5157 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:5251 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:9041 CMP_BOUND; custom_components/heatpump_optimizer/coordinator.py:9044 GUARD_OFF
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-night-folds/p1.log

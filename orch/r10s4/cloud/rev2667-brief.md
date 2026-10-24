@@ -1,0 +1,8 @@
+Fix reviewer for PR #2667, a roster batch (branch fix/audit-r10-roster-pr4), head 5d874ec6309675a391f1a97acf6e5a77781d3f78. It lands 23 commits from handoff/audit-r10-roster onto main 12032c43: appended carries, new groups (R10-FLY-NO-FOOTERS-PUSH-PATHS, R10-FLY-INERT-LOAD-TIME), and stage changes (R10-LOOP-CPU done at 7108101d7, and groups set in-progress). Same shape as #2655, #2661 and #2663. The only files are dev/programme/rosters/wave-r10-groups.json and the delivery row dev/programme/delivery/2667.md. Follow dev/governance/roles/fix-review.md exactly, from a detached worktree at the head. Your ev/ MUST contain ev/HEAD.txt holding the full 40-hex head, or the relay refuses the verdict.
+
+Verify:
+(1) Three-dot diff: only the roster and the delivery row. Any other file blocks.
+(2) Use python or jq over both rosters (it is a list of objects keyed "group"). For every changed group, classify each change: appended carry, new group, stage/resume edit, or other. "Other" (a brief rewrite, a removed carry, an after change) must be justified by a roster_edit commit message, or the PR is blocked. Each "done" stage cites a merge SHA that is on origin/main. Each new group's files exist at origin/main or on the ref its brief cites.
+(3) Null control: no group is removed, and nothing main wrote to the roster since the merge base is lost. Count groups before and after.
+(4) `node tools/policy/brief_lint.mjs` on the roster reports 0 errors. Record the scoped-gate MODE line. Read CI with one bulk check-runs call. The merge-tree against origin/main is clean, VERSION is untouched, and the commits carry no footers (git log --format=%B).
+Rules: PREPR_SKIP_CLOSURES=1; spare the GitHub API; no Claude footers.

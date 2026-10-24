@@ -1,0 +1,5 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b10/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b10 pid=80949 start=2026-10-19T06:33:42Z
+BATCH 20261019-063343 pid=80982 base=main queue=1 (#2433) --overlap --skip-bad
+TRAIN STOPPED proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list
+SKIP REPORT: 0 skipped of 1
+TRAIN_RC=1 end=2026-10-19T06:33:58Z

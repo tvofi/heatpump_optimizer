@@ -1,0 +1,17 @@
+{
+ "winter/tariff": {
+  "calls": {
+   "batchmath.py": 35480,
+   "const.py": 14,
+   "dhw_schedule.py": 863,
+   "mixing_valve.py": 41299,
+   "optimizer.py": 285205,
+   "tariff.py": 61797,
+   "thermal_model.py": 1442314,
+   "wood_fuel.py": 8
+  },
+  "evals": 788,
+  "objective": 153.2420108979022,
+  "simulate": 3674555
+ }
+}

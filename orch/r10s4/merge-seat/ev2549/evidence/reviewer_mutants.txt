@@ -1,0 +1,6 @@
+R1-no-76-guard KILLED | tick_loop self-test: 8 checks, 1 failed
+R2-no-rc-rm KILLED | cat: /tmp/tmp.ijKq1fq1yk/slow: No such file or directory
+R3-75-not-running KILLED | tick_loop self-test: 8 checks, 1 failed
+R4-no-atomic-rc KILLED | tick_loop self-test: 8 checks, 3 failed
+R5-wait-unbounded KILLED | tick_loop self-test: 8 checks, 4 failed
+R6-late-no-TICK-RELAY KILLED | tick_loop self-test: 8 checks, 1 failed

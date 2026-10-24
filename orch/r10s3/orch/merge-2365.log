@@ -1,0 +1,4 @@
+===== daemonize pid=43138 2026-10-18T12:30:09Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/merge-2365.sh
+12:30:12 {"message":"Repository rule violations found\n\nRequired status check \"budget-raise-gate\" is queued.\n\n","documentation_url":"https://docs.github.com/rest/pulls/pulls#merge-a-pull-request","status":"405"}gh: Repository rule violations found
+
+Required status check "budget-raise-gate" is q

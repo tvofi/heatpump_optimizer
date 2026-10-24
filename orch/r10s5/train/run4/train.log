@@ -1,0 +1,22 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run4/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run4 pid=89364 start=2026-10-23T18:32:41Z
+BATCH 20261023-183241 pid=89373 base=main queue=3 (#2669 #2664 #2670) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d165182c: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+PARK #2670 findings: 2 finding item(s) with no valid `Carry:` (carry_audit.py pr 2670); first: review 6371729358 item f3e2f4f5 (unrouted): - **Carry markers.** `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roste
+PRE-FLIGHT: 2 of 3 admitted
+#2669 serial: bot-head, grader, workflow
+#2664 serial: grader
+OVERLAP: recarrying #2664 up front, their pull_request runs fire together
+#2664 overlap: recarry start
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+TRAIN HOLD refs/heads/train-hold b737889c: the record beat waits
+#2664 recarry START (branch fix/r10-fly-relay-review-ff)
+#2664 recarry: main merged, head 8373f16d; app_push: RECARRY: prepr SKIPPED: HEAD 8373f16d is the clean merge of the live head 5d5e49e6 and origin/main's c5e1be19, and the body is the live one
+serial: #2669, #2664
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+SKIP #2669 ci: [BOT-HEAD] #2669 #2669 head 8734cdd1 is a GITHUB_TOKEN push (github-actions[bot]: 'ci: merge main'): its pull_request runs are held action_required, so the required contexts only they write are ABSENT until one is approved -- the head can look settled and be unmergeable, with nothing saying why. The required follow-up is an App push at this head: run the train again once main has moved (its recarry is one), or have the orchestrator App-push the branch
+TRAIN HOLD refs/heads/train-hold 5ef922b0: the record beat waits
+beat: waiting CI at 8373f16d (poll 2, t+243s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold b76a3617: the record beat waits
+beat: waiting CI at 8373f16d (poll 3, t+485s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 66a5be4c: the record beat waits

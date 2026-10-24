@@ -1,0 +1,570 @@
+=== EVENT 2026-10-18T15:58:21Z new merge on main 211c8290eda3 -> 5a41a56696c6 (beats owed)
+BOARD measured from origin/main at 5a41a56696c6, 2026-10-18T15:55:55.813365+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2390: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2394: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2396: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2401: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2408: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 5a41a56696c6, 211c8290eda3, 55dc8d9c2c59, faf04b0ef3d8, 7c275a6bfc17, 0d11a7bd63ec, f8f56fa71f91, 4a4dee5c0525, 3027d062e7ad, f1b21daabad6
+=== EVENT 2026-10-18T16:27:00Z new red check at open PR head
+   #2400 [fix/r10-bus-orphans-force] RED:pr-contract
+=== EVENT 2026-10-18T16:37:03Z hard signal
+   log tail: #2400 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | #2400 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | released /Users/timmalmstrom/hpo-orch/r10s3/train/t9/wt/2400 | TRAIN STOPPED merge: #2400 not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | TRAIN_RC=1 end=2026-10-18T16:27:41Z
+=== EVENT 2026-10-18T16:38:57Z hard signal
+   log tail: #2400 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | #2400 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | released /Users/timmalmstrom/hpo-orch/r10s3/train/t9/wt/2400 | TRAIN STOPPED merge: #2400 not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag. | TRAIN_RC=1 end=2026-10-18T16:27:41Z
+=== EVENT 2026-10-18T16:41:51Z hard signal
+TRAIN DONE
+=== EVENT 2026-10-18T16:53:11Z new red check at open PR head
+-> #2406: RED unanswered in ## Red checks: nightly-ha (stable), pr-contract
+=== EVENT 2026-10-18T17:04:39Z unreadable section
+-> prepr slots: 14 running (cap 4) -- do not start a fifth
+   log tail: serial: #2401 | beat: waiting CI at 40c311ff (poll 2, t+241s, required: 14, concluded: 10/14) | beat: waiting CI at 40c311ff (poll 3, t+482s, required: 14, concluded: 11/14) | beat: waiting CI at 40c311ff (poll 4, t+723s, required: 14, concluded: 11/14) | beat: waiting CI at 40c311ff (poll 5, t+964s, required: 14, concluded: 11/14)
+   #2394: required contexts not started yet (WAITING on needs; a run is in flight): closures
+   #2394 [fix/r10-ci-autofix-inert-route] RUN:Analyze (python),browser,coverage,fast (3.14)
+   #2396 [fix/r10-ci-concurrency-pr] RUN:composed-proof
+   #2401 [fix/r10-archscore-coverage-p5] RUN:Analyze (python),closures,fast (3.14)
+   #2411 [fix/r10-sav-baseline] RUN:mutation-pins (1),mutation-pins (2)
+   #2416 [fix/r10-sweep-template-pr] RUN:Analyze (python),browser,coverage,fast (3.14)
+-> UNREADABLE: reviews of #2394 (os/tvofi/heatpump_optimizer/pulls/2394/reviews": net/http: TLS handshake timeout)
+DISPATCH LIST: 93 finding(s)
+=== EVENT 2026-10-18T17:21:41Z new red check at open PR head
+   #2399 [fix/r10-diag-replay-pr] RED:CodeQL
+=== EVENT 2026-10-18T17:30:20Z hard signal
+TRAIN STOPPED approve: #2401 code-owned and a budget file changed (tests/ci_budgets.json): a raise is the owner's (0013)
+=== EVENT 2026-10-18T17:39:34Z hard signal
+TRAIN STOPPED approve: #2401 code-owned and a budget file changed (tests/ci_budgets.json): a raise is the owner's (0013)
+   log tail: serial: #2401, #2396 | #2401 40c311ff ci red=[] | released /Users/timmalmstrom/hpo-orch/r10s3/train/t12/wt/2396 | TRAIN STOPPED approve: #2401 code-owned and a budget file changed (tests/ci_budgets.json): a raise is the owner's (0013) | TRAIN_RC=1 end=2026-10-18T17:33:01Z
+=== EVENT 2026-10-18T17:48:53Z hard signal
+TRAIN STOPPED approve: #2401 code-owned and a budget file changed (tests/ci_budgets.json): a raise is the owner's (0013)
+   log tail: #2396 overlap: recarry start | serial: #2401, #2396 | #2401 40c311ff ci red=[] | TRAIN STOPPED approve: #2401 code-owned and a budget file changed (tests/ci_budgets.json): a raise is the owner's (0013) | TRAIN_RC=1 end=2026-10-18T17:41:37Z
+=== EVENT 2026-10-18T17:58:07Z new merge on main c8cc75ea90a3 -> 176851e950a8 (beats owed)
+BOARD measured from origin/main at 176851e950a8, 2026-10-18T17:56:15.931825+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2390: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2394: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2408: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2416: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 176851e950a8, c8cc75ea90a3, acd9c2fa9440, c75b52e2d651, 1a6556cb6647, fd0f5d945934, 5a41a56696c6, 9ef452f5d8de, 211c8290eda3, edc4484285a4
+=== EVENT 2026-10-18T18:16:16Z hard signal
+TRAIN DONE
+=== EVENT 2026-10-18T18:27:51Z new red check at open PR head
+   #2411 [fix/r10-sav-baseline] RED:mutation,nightly-ha (stable)
+=== EVENT 2026-10-18T18:48:40Z new red check at open PR head
+-> #2419: RED unanswered in ## Red checks: instrument-self-tests, pr-contract
+=== EVENT 2026-10-18T19:01:26Z hard signal
+TRAIN DONE
+   log tail: NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394' is not a working tree); remove it by hand | NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416' is not a working tree); remove it by hand | SKIP REPORT: 1 skipped of 3 | TRAIN DONE | TRAIN_RC=1 end=2026-10-18T18:54:33Z
+=== EVENT 2026-10-18T19:13:35Z new red check at open PR head
+   #2399 [fix/r10-diag-replay-pr] RED:CodeQL
+=== EVENT 2026-10-18T19:25:25Z new merge on main 5756f2b15781 -> 07a09406a1cc (beats owed)
+BOARD measured from origin/main at 07a09406a1cc, 2026-10-18T19:22:02.776337+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2390: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2408: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 07a09406a1cc, 5756f2b15781, 86010e8cd8fc, fd64a23e9818, 3d46d694d7a2, 319769bb4f5a, 8d4e8be01ce0, 106af95a33f8, 311e9de3e0c6, 176851e950a8
+=== EVENT 2026-10-18T19:37:13Z silent train death: train alive line gone
+BOARD measured from origin/main at 07a09406a1cc, 2026-10-18T19:33:57.000990+00:00
+== TRAIN ==
+   train not alive
+   a nonempty queue file and no live train is a dead train (see the queue line below)
+   prepr slots: 2 running (cap 4)
+-> queue holds 3 unmerged entr(y/ies) -- and no train is running: load one or merge
+=== EVENT 2026-10-18T19:55:56Z new red check at open PR head
+   #2420 [record/autofix] RED:delivery-status,pr-contract,wave-script
+=== EVENT 2026-10-18T20:08:44Z new red check at open PR head
+   #2415 [fix/r10-rca-structure-blind] RED:delivery-status,pr-contract,wave-script
+=== EVENT 2026-10-18T20:23:06Z new red check at open PR head
+-> #2404: RED unanswered in ## Red checks: delivery-status, wave-script
+=== EVENT 2026-10-18T20:34:47Z new red check at open PR head
+-> #2390: RED unanswered in ## Red checks: delivery-status, wave-script
+-> #2406: RED unanswered in ## Red checks: delivery-status, wave-script
+=== EVENT 2026-10-18T20:55:34Z new red check at open PR head
+-> #2408: RED unanswered in ## Red checks: delivery-status, pr-contract, wave-script
+=== EVENT 2026-10-18T21:16:51Z new red check at open PR head
+   #2390 [fix/r10-tick-drivers] RED:delivery-status,pr-contract,wave-script
+-> #2399: RED unanswered in ## Red checks: delivery-status, pr-contract, wave-script
+   #2408 [fix/r10-roster-carry-policy] RED:delivery-status,pr-contract,wave-script
+=== EVENT 2026-10-18T21:28:49Z new red check at open PR head
+-> #2419: RED unanswered in ## Red checks: delivery-status, wave-script
+=== EVENT 2026-10-18T21:39:46Z new red check at open PR head
+-> #2421: RED unanswered in ## Red checks: delivery-status, pr-contract, wave-script
+=== EVENT 2026-10-18T21:50:40Z new red check at open PR head
+   #2368 [fix/r10-pump-model-d2] RED:budget-raise-gate,delivery-status,pr-contract,wave-script
+-> #2391: RED unanswered in ## Red checks: delivery-status, wave-script
+-> #2422: RED unanswered in ## Red checks: delivery-status, pr-contract, wave-script
+=== EVENT 2026-10-18T22:01:05Z new red check at open PR head
+   #2411 [fix/r10-sav-baseline] RED:delivery-status,mutation,pr-contract,wave-script
+=== EVENT 2026-10-18T22:17:40Z new red check at open PR head
+   #2421 [fix/r10-train-raise-hold-pr] RED:delivery-status,pr-contract,wave-script
+   #2422 [fix/r10-openpr-silent-pr] RED:delivery-status,pr-contract,wave-script
+=== EVENT 2026-10-18T22:27:59Z new red check at open PR head
+-> #2423: RED unanswered in ## Red checks: graders-head-copy
+=== EVENT 2026-10-18T22:38:51Z new red check at open PR head
+   #2391 [fix/r10-vent-detector-pr] RED:delivery-status,pr-contract,wave-script
+-> #2420: RED unanswered in ## Red checks: delivery-status, pr-contract
+=== EVENT 2026-10-18T23:01:35Z new red check at open PR head
+   #2420 [record/autofix] RED:delivery-status,pr-contract
+=== EVENT 2026-10-18T23:30:51Z new red check at open PR head
+-> #2424: RED unanswered in ## Red checks: delivery-status, pr-contract
+=== EVENT 2026-10-19T00:19:22Z new merge on main 89e33859ad16 -> fa5026c42e1e (beats owed)
+BOARD measured from origin/main at fa5026c42e1e, 2026-10-19T00:17:43.625534+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2390: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2408: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2421: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for fa5026c42e1e, 8baf5eac34e3, 89e33859ad16, 07a09406a1cc, 5756f2b15781, 86010e8cd8fc, fd64a23e9818, 3d46d694d7a2, 319769bb4f5a, 8d4e8be01ce0
+=== EVENT 2026-10-19T00:28:23Z new red check at open PR head
+-> #2390: RED unanswered in ## Red checks: delivery-status
+-> #2399: RED unanswered in ## Red checks: delivery-status, pr-contract
+=== EVENT 2026-10-19T00:57:05Z new merge on main fa5026c42e1e -> b87e8f19b0a7 (beats owed)
+BOARD measured from origin/main at b87e8f19b0a7, 2026-10-19T00:54:47.296908+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2390: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2408: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2421: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for b87e8f19b0a7, 328813ad5fb2, 9c5157077e09, fa5026c42e1e, 8baf5eac34e3, 89e33859ad16, 07a09406a1cc, 5756f2b15781, 86010e8cd8fc, fd64a23e9818
+=== EVENT 2026-10-19T01:08:36Z new red check at open PR head
+   #2390 [fix/r10-tick-drivers] RED:delivery-status,pr-contract
+   #2399 [fix/r10-diag-replay-pr] RED:delivery-status,pr-contract
+=== EVENT 2026-10-19T01:44:37Z new red check at open PR head
+   #2390 [fix/r10-tick-drivers] RED:pr-contract
+=== EVENT 2026-10-19T01:55:42Z new merge on main b87e8f19b0a7 -> 06c6f3cf2589 (beats owed)
+BOARD measured from origin/main at 06c6f3cf2589, 2026-10-19T01:52:52.135460+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2406: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2421: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 06c6f3cf2589, a96f4be4ac0a, 6f5718396723, b87e8f19b0a7, 742199ed2e94, 328813ad5fb2, 9c5157077e09, fa5026c42e1e, 8baf5eac34e3, 89e33859ad16
+=== EVENT 2026-10-19T02:44:50Z new red check at open PR head
+   #2399 [fix/r10-diag-replay-pr] RED:pr-contract
+=== EVENT 2026-10-19T02:54:58Z silent train death: train alive line gone
+BOARD measured from origin/main at 06c6f3cf2589, 2026-10-19T02:52:31.786229+00:00
+== TRAIN ==
+   train not alive
+   a nonempty queue file and no live train is a dead train (see the queue line below)
+   prepr slots: 2 running (cap 4)
+-> queue holds 3 unmerged entr(y/ies) -- and no train is running: load one or merge
+=== EVENT 2026-10-19T03:13:41Z new DIRTY/CONFLICTING PR
+-> #2373: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2404: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+=== EVENT 2026-10-19T03:31:25Z new merge on main fa424fd91a04 -> 8fc5a5825dd8 (beats owed)
+BOARD measured from origin/main at 8fc5a5825dd8, 2026-10-19T03:29:17.957621+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2421: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for dd27e7c1b4c6, 8fc5a5825dd8, 8cc1abc3a27d, fa424fd91a04, 954a7b20ffb3, 491693ee68d3, 2ddfa503269c, 035300530acc, 669074c242d9, 4a00b97f8927
+=== EVENT 2026-10-19T03:45:31Z new red check at open PR head
+-> #2399: RED unanswered in ## Red checks: arch-score, env-matrix, nightly-status
+-> #2421: RED unanswered in ## Red checks: arch-score, nightly-status, validate-hacs
+-> #2422: RED unanswered in ## Red checks: arch-score, env-matrix, nightly-status, validate-hacs
+=== EVENT 2026-10-19T04:26:11Z new merge on main dd27e7c1b4c6 -> 6154714d78ed (beats owed)
+BOARD measured from origin/main at 6154714d78ed, 2026-10-19T04:24:18.800532+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for fa16596c3438, 6154714d78ed, 0dac0bf8731a, e9c0092e27e9, 6046ea608a9d, 2bdc2a657ddd, dd27e7c1b4c6, 8fc5a5825dd8, 8cc1abc3a27d, 3ab409ceeca8
+=== EVENT 2026-10-19T04:35:30Z new DIRTY/CONFLICTING PR
+-> #2373: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+-> #2404: mergeable state DIRTY (the claim-file merge GitHub cannot run: absorb main locally with the claimnotes driver)
+=== EVENT 2026-10-19T04:51:00Z silent train death: train alive line gone
+BOARD measured from origin/main at fa16596c3438, 2026-10-19T04:49:10.248823+00:00
+== TRAIN ==
+   train not alive
+   a nonempty queue file and no live train is a dead train (see the queue line below)
+   prepr slots: 3 running (cap 4)
+-> queue holds 3 unmerged entr(y/ies) -- and no train is running: load one or merge
+=== EVENT 2026-10-19T05:00:19Z new red check at open PR head
+   #2415 [fix/r10-rca-structure-blind] RED:pr-contract
+=== EVENT 2026-10-19T05:09:30Z new merge on main fa16596c3438 -> 2d843030a3d7 (beats owed)
+BOARD measured from origin/main at 2d843030a3d7, 2026-10-19T05:07:31.218456+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a, e9c0092e27e9, 6046ea608a9d, 2bdc2a657ddd, dd27e7c1b4c6, 8fc5a5825dd8, 8cc1abc3a27d
+=== EVENT 2026-10-19T05:25:32Z new merge on main 2d843030a3d7 -> 913ce1ff5b02 (beats owed)
+BOARD measured from origin/main at 913ce1ff5b02, 2026-10-19T05:24:02.922050+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2373: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> record beat owed: state_docs.py --push + #201 comment for 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a, e9c0092e27e9, 6046ea608a9d, 2bdc2a657ddd, dd27e7c1b4c6, 8fc5a5825dd8
+=== EVENT 2026-10-19T06:06:12Z new merge on main 913ce1ff5b02 -> abb397938097 (beats owed)
+BOARD measured from origin/main at abb397938097, 2026-10-19T06:04:36.783802+00:00
+-> #2368: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2404: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a, dd27e7c1b4c6, 8fc5a5825dd8, 8cc1abc3a27d
+-> OWED handoff: audit-r10-roster 95d31034fc87796c26f575cd9cb502db582ab8dd 0.1h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 16.0h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 60.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 8.2h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 12.8h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 5.8h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 10.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head 4b2f770e0fe0790a49429ec369fe89b6807836b1 12.9h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 11.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-tick-selftest-ci c13ed69e6d609d90e05cf3d018cd3bda349023d1 0.5h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-trust-relative 06bbc1ec61c8f1ea669d2de2fb98393213abeadb 8.1h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T06:28:46Z new merge on main abb397938097 -> 768bfc0c341d (beats owed)
+BOARD measured from origin/main at 768bfc0c341d, 2026-10-19T06:26:56.991010+00:00
+-> #2433: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 768bfc0c341d, abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a, dd27e7c1b4c6, 8fc5a5825dd8
+-> OWED handoff: audit-r10-roster f207611bd01f7b8d667c32d55d84818e9796947a 0.0h uncovered=10 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 16.4h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 60.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 8.6h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 13.1h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 6.2h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 10.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head 4b2f770e0fe0790a49429ec369fe89b6807836b1 13.2h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 11.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-trust-relative 06bbc1ec61c8f1ea669d2de2fb98393213abeadb 8.5h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T06:44:27Z new red check at open PR head
+-> #2435: RED unanswered in ## Red checks: mutation, pr-contract
+=== EVENT 2026-10-19T07:06:49Z new merge on main 768bfc0c341d -> efdc055a825e (beats owed)
+BOARD measured from origin/main at efdc055a825e, 2026-10-19T07:05:18.939834+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for efdc055a825e, 768bfc0c341d, abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a, dd27e7c1b4c6
+-> OWED handoff: audit-r10-roster e954183250c53817499a3e86632c64bd6b4c75ea 0.6h uncovered=11 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-archscore-census fbcf5c3e8f384fc240f8f15b28f68ccf5b3f441a 1.0h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 17.0h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 61.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 9.2h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 13.8h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 6.8h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 11.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 0.3h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 12.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T07:14:40Z new merge on main efdc055a825e -> db3293dcb12f (beats owed)
+BOARD measured from origin/main at db3293dcb12f, 2026-10-19T07:13:33.414686+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for db3293dcb12f, efdc055a825e, 768bfc0c341d, abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed, 0dac0bf8731a
+-> OWED handoff: audit-r10-roster 96472416408dbda2e1432abbf06df4b761d76e3e 0.0h uncovered=12 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-archscore-census fbcf5c3e8f384fc240f8f15b28f68ccf5b3f441a 1.1h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 17.1h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 61.6h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 9.4h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 13.9h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 6.9h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 11.7h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 0.4h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 12.6h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T07:22:21Z new red check at open PR head
+-> #2435: RED unanswered in ## Red checks: pr-contract
+=== EVENT 2026-10-19T07:37:06Z new merge on main db3293dcb12f -> f0a4acac7984 (beats owed)
+BOARD measured from origin/main at f0a4acac7984, 2026-10-19T07:35:33.994382+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for f0a4acac7984, db3293dcb12f, efdc055a825e, 768bfc0c341d, abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7, fa16596c3438, 6154714d78ed
+-> OWED handoff: audit-r10-roster a83c32762e69dc74cb00fb563b1c62c70d011dfe 0.0h uncovered=14 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-archscore-census fbcf5c3e8f384fc240f8f15b28f68ccf5b3f441a 1.5h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 17.5h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 62.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 9.7h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 14.3h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 7.3h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 12.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 0.8h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 12.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T07:45:21Z new merge on main 1bcc798847d3 -> c3530277373d (beats owed)
+BOARD measured from origin/main at c3530277373d, 2026-10-19T07:43:59.408594+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f, efdc055a825e, 768bfc0c341d, abb397938097, 7ab3030bbfff, 913ce1ff5b02, 2d843030a3d7
+-> OWED handoff: audit-r10-roster f0fb8ae4a311d3875c845428804367d5ac11c254 0.0h uncovered=16 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-archscore-census fbcf5c3e8f384fc240f8f15b28f68ccf5b3f441a 1.6h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 17.6h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 62.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 9.9h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 14.4h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 7.4h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 12.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 0.9h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 13.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T07:53:46Z new red check at open PR head
+-> #2435: RED unanswered in ## Red checks: arch-score, env-matrix, nightly-status, validate-hacs
+-> #2441: RED unanswered in ## Red checks: CodeQL, arch-score, env-matrix, nightly-status, pr-contract, validate-hacs
+=== EVENT 2026-10-19T08:01:57Z new red check at open PR head
+   #2368 [fix/r10-pump-model-d2] RED:budget-raise-gate,pr-contract
+-> #2442: RED unanswered in ## Red checks: arch-score, nightly-status, validate-hacs
+=== EVENT 2026-10-19T08:09:55Z new red check at open PR head
+-> #2368: RED unanswered in ## Red checks: arch-score, env-matrix, nightly-status, validate-hacs
+=== EVENT 2026-10-19T08:18:03Z new red check at open PR head
+-> #2441: RED unanswered in ## Red checks: Analyze (python), arch-score, env-matrix, nightly-status, validate-hacs
+=== EVENT 2026-10-19T08:32:37Z new red check at open PR head
+-> #2442: RED unanswered in ## Red checks: env-matrix, nightly-status, pr-contract, validate-hacs
+=== EVENT 2026-10-19T08:40:51Z new red check at open PR head
+   #2368 [fix/r10-pump-model-d2] RED:budget-raise-gate,nightly-status,pr-contract
+-> #2368: RED unanswered in ## Red checks: nightly-status
+-> #2435: RED unanswered in ## Red checks: nightly-status
+-> #2441: RED unanswered in ## Red checks: pr-contract
+-> #2442: RED unanswered in ## Red checks: nightly-status, pr-contract
+=== EVENT 2026-10-19T08:49:15Z new red check at open PR head
+   #2368 [fix/r10-pump-model-d2] RED:nightly-status,pr-contract
+   #2442 [fix/r10-recarry-head-pr] RED:nightly-status
+=== EVENT 2026-10-19T08:58:10Z new red check at open PR head
+   #2368 [fix/r10-pump-model-d2] RED:pr-contract
+=== EVENT 2026-10-19T09:07:32Z new red check at open PR head
+   #2435 [fix/r10-trust-relative] RED:nightly-status
+=== EVENT 2026-10-19T09:23:42Z new red check at open PR head
+-> R10-CI-RATCHET-RED: UNBLOCKED, not started -- start a fixer on handoff/r10-ci-ratchet-red
+=== EVENT 2026-10-19T09:32:16Z new merge on main 499f952b0b4f -> 6962641638f0 (beats owed)
+BOARD measured from origin/main at 6962641638f0, 2026-10-19T09:30:55.746389+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f, efdc055a825e, 768bfc0c341d, abb397938097
+-> OWED handoff: audit-r10-roster 66a8d60d6f52a5d768e4d6880e2e23e55ed0b3d1 0.1h uncovered=25 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 19.4h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 63.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 11.7h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 16.2h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 9.2h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 14.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 14.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T09:47:36Z new merge on main 6962641638f0 -> 90557e39ea0b (beats owed)
+BOARD measured from origin/main at 90557e39ea0b, 2026-10-19T09:45:53.021174+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f, efdc055a825e, 768bfc0c341d, abb397938097
+-> OWED handoff: audit-r10-roster d19b0854defc8be644b7d5103a9726a2c1469187 0.0h uncovered=28 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-archscore-census 73261ce9b5c636ed8aa9ef19118a12e745af27bd 0.5h uncovered=3 repair=review -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 19.7h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 64.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 11.9h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 16.5h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 9.5h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 14.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 15.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T10:03:21Z new merge on main 90557e39ea0b -> 05c39d3a6597 (beats owed)
+BOARD measured from origin/main at 05c39d3a6597, 2026-10-19T10:01:40.520062+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f, efdc055a825e, 768bfc0c341d
+-> OWED handoff: audit-r10-roster 1283f9087fc9d84ca864cd0afd018001a9b7a49a 0.0h uncovered=29 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 19.9h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 64.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 12.2h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 16.7h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 9.7h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 14.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 15.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T10:27:23Z new merge on main 05c39d3a6597 -> fb9b3fc1fe16 (beats owed)
+BOARD measured from origin/main at fb9b3fc1fe16, 2026-10-19T10:25:40.999857+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for fb9b3fc1fe16, 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f, efdc055a825e
+-> OWED handoff: audit-r10-roster cbdfc9e08395c0e40826b7660175f41825d39fda 0.2h uncovered=33 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 20.3h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 64.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 12.6h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 17.1h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 10.1h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 14.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 15.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T10:36:18Z new red check at open PR head
+   #2441 [fix/r10-archscore-census] RED:arch-score,env-matrix,nightly-status,validate-hacs
+=== EVENT 2026-10-19T11:13:38Z new red check at open PR head
+-> #2444: RED unanswered in ## Red checks: instrument-self-tests
+=== EVENT 2026-10-19T11:43:55Z new red check at open PR head
+-> #2445: RED unanswered in ## Red checks: mutation, nightly-status, pr-contract
+=== EVENT 2026-10-19T11:53:30Z new merge on main fb9b3fc1fe16 -> ecdeb42cbcaf (beats owed)
+BOARD measured from origin/main at ecdeb42cbcaf, 2026-10-19T11:51:46.029945+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984, db3293dcb12f
+-> OWED handoff: audit-r10-roster 49cd03ede6d01fdd92d674dec9837b383e090ff5 0.1h uncovered=36 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 21.8h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 66.3h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 14.0h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 18.5h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-prepr-unpinned-red e6fc778ef4178a5bf3b544f04cf2a6378ac4993f 0.7h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 11.6h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 16.3h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 17.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T12:02:28Z silent train death: train alive line gone
+BOARD measured from origin/main at ecdeb42cbcaf, 2026-10-19T12:00:40.719860+00:00
+== TRAIN ==
+-> prepr slots: 4 running (cap 4) -- do not start a fifth
+-> stale queue entries (not OPEN: merged or closed, drop them): #2379, #2394, #2416
+   no train running (the queue holds no OPEN entry)
+   log tail: NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394' is not a working tree); remove it by hand | NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416' is not a working tree); remove it by hand | SKIP REPORT: 1 skipped of 3 | TRAIN DONE | TRAIN_RC=1 end=2026-10-18T18:54:33Z
+=== EVENT 2026-10-19T12:11:40Z new red check at open PR head
+-> #2445: RED unanswered in ## Red checks: fast (3.14), mutation, nightly-status, pr-contract
+-> #2447: RED unanswered in ## Red checks: instrument-self-tests, nightly-status
+=== EVENT 2026-10-19T12:28:17Z new red check at open PR head
+-> #2445: RED unanswered in ## Red checks: fast (3.14), mutation, mutation-autofix, nightly-status, pr-contract
+   #2446 [record/autofix] RED:nightly-status
+=== EVENT 2026-10-19T12:38:17Z new merge on main ecdeb42cbcaf -> e8c67e1d3df1 (beats owed)
+BOARD measured from origin/main at e8c67e1d3df1, 2026-10-19T12:35:49.506619+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d, 1bcc798847d3, f0a4acac7984
+-> OWED handoff: audit-r10-roster 49cd03ede6d01fdd92d674dec9837b383e090ff5 0.8h uncovered=36 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 22.5h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 67.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 14.8h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 19.3h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-prepr-unpinned-red dcf20edf0ac284ae6c011efeff17b65ab923ff98 0.4h uncovered=2 repair=review -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 12.3h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 17.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 17.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-seat-selftests-ci c4a6597eb345f6eff4b303dbfc9dfc68d4cc8fff 1.3h uncovered=1 repair=update -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T12:54:33Z new red check at open PR head
+-> #2444: RED unanswered in ## Red checks: nightly-status, pr-contract
+=== EVENT 2026-10-19T13:11:16Z new red check at open PR head
+   #2449 [record/autofix] RED:nightly-status,pr-contract
+=== EVENT 2026-10-19T13:20:43Z new red check at open PR head
+   #2448 [fix/r10-dead-rate-limit-pr] RED:nightly-status
+   #2449 [record/autofix] RED:nightly-status
+=== EVENT 2026-10-19T13:29:27Z new merge on main e8c67e1d3df1 -> d4fb5351beee (beats owed)
+BOARD measured from origin/main at d4fb5351beee, 2026-10-19T13:28:06.339484+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f, c3530277373d
+-> OWED handoff: audit-r10-roster 1c71becaa345be58c0031426dd1e9625a9e92fd6 0.0h uncovered=43 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 23.4h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 67.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 15.6h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 20.2h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 13.2h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 17.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 18.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T13:37:29Z new red check at open PR head
+   #2450 [record/autofix] RED:nightly-status,pr-contract
+-> #2450: RED unanswered in ## Red checks: nightly-status, pr-contract
+=== EVENT 2026-10-19T13:45:52Z new red check at open PR head
+   #2450 [record/autofix] RED:nightly-status
+=== EVENT 2026-10-19T13:54:16Z new merge on main d4fb5351beee -> 4e1b360709d9 (beats owed)
+BOARD measured from origin/main at 4e1b360709d9, 2026-10-19T13:52:58.641717+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597, 6962641638f0, 9fb01d46774d, 499f952b0b4f
+-> OWED handoff: audit-r10-roster 2e6418bce467413411b56f3e77d45163b466c4e0 0.3h uncovered=45 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 68.3h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 16.0h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 20.6h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 13.6h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 18.3h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 19.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T14:02:04Z new red check at open PR head
+   #2451 [record/autofix] RED:nightly-status,pr-contract
+-> #2451: RED unanswered in ## Red checks: nightly-status, pr-contract
+=== EVENT 2026-10-19T14:10:33Z new red check at open PR head
+   #2447 [fix/r10-prepr-unpinned-red-pr] RED:nightly-status
+   #2451 [record/autofix] RED:nightly-status
+=== EVENT 2026-10-19T14:18:43Z new merge on main 0fd52fd72994 -> e59f0291a675 (beats owed)
+BOARD measured from origin/main at e59f0291a675, 2026-10-19T14:17:25.017575+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597, 6962641638f0
+-> OWED handoff: audit-r10-roster 5472ac0d67f860bc26224617307701419479a122 0.1h uncovered=57 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 68.7h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 16.4h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 21.0h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 14.0h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 18.7h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 19.6h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-seat-selftests-ci bc94fc2a3502489b99f0adac12637d5472132b02 0.7h uncovered=1 repair=review -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-setpoint-power 53fc30d6c91d76ea04c6f8fc7259c1d6809b1b9c 0.6h uncovered=4 repair=update -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T14:26:33Z new red check at open PR head
+-> #2444: RED unanswered in ## Red checks: arch-score, validate-hacs
+   #2453 [record/autofix] RED:nightly-status
+=== EVENT 2026-10-19T14:33:50Z new merge on main e59f0291a675 -> 64b0ae6901b7 (beats owed)
+BOARD measured from origin/main at 64b0ae6901b7, 2026-10-19T14:32:51.401357+00:00
+-> #2444: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 64b0ae6901b7, e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597
+-> OWED handoff: audit-r10-roster 5472ac0d67f860bc26224617307701419479a122 0.4h uncovered=57 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 69.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 16.7h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 21.2h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 14.3h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 19.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 19.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T14:53:19Z new red check at open PR head
+-> #2444: RED unanswered in ## Red checks: env-matrix, pr-contract, validate-hacs
+=== EVENT 2026-10-19T15:00:50Z new red check at open PR head
+-> #2444: RED unanswered in ## Red checks: pr-contract
+=== EVENT 2026-10-19T15:15:05Z new red check at open PR head
+   #2444 [fix/r10-seat-selftests-ci] RED:nightly-status
+=== EVENT 2026-10-19T15:29:59Z new red check at open PR head
+-> #2445: RED unanswered in ## Red checks: arch-score
+=== EVENT 2026-10-19T15:50:01Z new red check at open PR head
+   #2445 [fix/r10-setpoint-power] RED:nightly-status,pr-contract
+=== EVENT 2026-10-19T16:28:17Z silent train death: train alive line gone
+BOARD measured from origin/main at 64b0ae6901b7, 2026-10-19T16:27:15.626011+00:00
+== TRAIN ==
+   prepr slots: 0 running (cap 4)
+-> stale queue entries (not OPEN: merged or closed, drop them): #2379, #2394, #2416
+   no train running (the queue holds no OPEN entry)
+   log tail: NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394' is not a working tree); remove it by hand | NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416' is not a working tree); remove it by hand | SKIP REPORT: 1 skipped of 3 | TRAIN DONE | TRAIN_RC=1 end=2026-10-18T18:54:33Z
+=== EVENT 2026-10-19T16:41:35Z new merge on main 64b0ae6901b7 -> 27f90741f53b (beats owed)
+BOARD measured from origin/main at 27f90741f53b, 2026-10-19T16:40:36.686771+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 64b0ae6901b7, e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16, 05c39d3a6597
+-> OWED handoff: audit-r10-roster 8ef14537558b8b09209660fec122fe00883d7c7a 1.3h uncovered=67 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 71.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8 1.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 18.8h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 23.4h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 16.4h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 21.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 22.0h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T16:48:39Z new merge on main 27f90741f53b -> 9d300ed118ce (beats owed)
+BOARD measured from origin/main at 9d300ed118ce, 2026-10-19T16:47:46.966718+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 9d300ed118ce, 64b0ae6901b7, e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf, fb9b3fc1fe16
+-> OWED handoff: audit-r10-roster 6b6613fbe10c12f8deb14b2a9041bc9d67e7683b 0.0h uncovered=68 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 71.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8 1.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 18.9h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 23.5h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 16.5h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 21.2h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 22.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T16:55:46Z silent train death: train alive line gone
+BOARD measured from origin/main at 9d300ed118ce, 2026-10-19T16:54:48.458906+00:00
+== TRAIN ==
+   prepr slots: 0 running (cap 4)
+-> stale queue entries (not OPEN: merged or closed, drop them): #2379, #2394, #2416
+   no train running (the queue holds no OPEN entry)
+   log tail: NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394' is not a working tree); remove it by hand | NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416' is not a working tree); remove it by hand | SKIP REPORT: 1 skipped of 3 | TRAIN DONE | TRAIN_RC=1 end=2026-10-18T18:54:33Z
+=== EVENT 2026-10-19T17:27:01Z new merge on main 9d300ed118ce -> 5b9c33d58d38 (beats owed)
+BOARD measured from origin/main at 5b9c33d58d38, 2026-10-19T17:26:06.230587+00:00
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 5b9c33d58d38, 9d300ed118ce, 64b0ae6901b7, e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc, e8c67e1d3df1, ecdeb42cbcaf
+-> OWED handoff: audit-r10-roster 6b6613fbe10c12f8deb14b2a9041bc9d67e7683b 0.6h uncovered=68 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 71.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8 1.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 19.6h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 24.1h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 17.1h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 21.9h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 22.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+=== EVENT 2026-10-19T17:34:02Z new red check at open PR head
+   #2444 [fix/r10-seat-selftests-ci] RED:nightly-status
+=== EVENT 2026-10-19T18:02:43Z new merge on main 5b9c33d58d38 -> 91f01195099d (beats owed)
+BOARD measured from origin/main at 91f01195099d, 2026-10-19T18:01:07.143630+00:00
+-> #2456: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+   cloud-relay log: none yet (no OWED to report)
+-> record beat owed: state_docs.py --push + #201 comment for 91f01195099d, 76e96a406d4c, 5b9c33d58d38, 9d300ed118ce, 64b0ae6901b7, e59f0291a675, 0fd52fd72994, 4e1b360709d9, d4fb5351beee, d0285e70fafc
+-> OWED handoff: audit-r10-roster fa5b6815c9f1c5b9a872966f3b84b127a36e0ebb 0.0h uncovered=69 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 72.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-follower-debounce f210e78b59ffa9b15993cb80eaea4dd496c2d3a8 2.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 20.2h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-merge-pr-mandate 6219325ca20928f82c80880b1ed7fadf3e1c93b2 24.7h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-harness-friction d1611efe6b7d7bd0d6fdb1651924d015aed3f74d 17.7h uncovered=9 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-rca-nightly-pyspy 0b7145312480e83c46665876ff5ade670125c900 22.5h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-roster-ops 9969e3ca80bd6255cd1231b1b4e53410a6fbeb88 23.4h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)

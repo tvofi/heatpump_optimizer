@@ -1,0 +1,3 @@
+===== daemonize pid=749 2026-10-21T18:22:43Z argv: bash tools/audit/seat/open_pr.sh r10-flow-main-gate 14ce015949c34a34586eae8b570b4d5cebbf6da6 fix(train): one CI-state classifier for train, merge_pr and tick (R10-FLOW-MAIN-GATE) R10-FLOW-MAIN-GATE
+open_pr: 19 open PRs; the cap gates dispatch, not opening
+PR=2584 HEAD=957df90af06717cd38127f7edf6623b9ff248989 AUTHOR=tvofi

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 4ab30306",
+  "killed_by": "tests/features.py",
+  "old": "        if value is not None:",
+  "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`; `the fabricated trajectory of a failed first fetch is converted too`. Measured at 25497c4b, 2026-09-24."
+}

@@ -1,0 +1,4 @@
+Architecture score: dS +5.6289 IMPROVES
+  duplication_copies 64 -> 41  +5.6249
+  coord_footprint 2506 -> 2499  +0.0040
+rc=0

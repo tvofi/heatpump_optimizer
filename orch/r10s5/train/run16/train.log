@@ -1,0 +1,11 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run16/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run16 pid=92976 start=2026-10-24T02:05:37Z
+BATCH 20261024-020537 pid=92985 base=main queue=1 (#2675) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 5b787ce1: the record beat waits
+BOT #2684 MERGED d5dc3e26a3cc297a6888c07961bff74d70b7f60e
+OVERLAP: main at d5dc3e26a3cc is still running (gate): a wait, not red; --overlap does not wait
+PARK #2675 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2675); first: body item f61f187d (bad): #2674: #2674 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2674.json
+PRE-FLIGHT: 0 of 1 admitted
+SKIP REPORT: 1 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-24T02:05:56Z

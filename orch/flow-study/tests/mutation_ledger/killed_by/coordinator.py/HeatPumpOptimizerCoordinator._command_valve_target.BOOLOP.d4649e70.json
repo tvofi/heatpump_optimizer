@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_valve_target BOOLOP d4649e70",
+  "killed_by": "tests/features.py",
+  "old": "                    kind == mixing_valve.WRITE_TARGET_FLOW and not params.two_zone_enabled,",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e5f7e169d64b93d4ae117eb07c68ecef6d47aea6: BOOLOP (`kind == mixing_valve.WRITE_TARGET_FLOW or not params.two_zone_enabled,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

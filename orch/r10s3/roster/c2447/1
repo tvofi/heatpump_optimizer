@@ -1,0 +1,1 @@
+Source: #2447 Forward-carry. Step 6f reads the committed tree (`git grep` at HEAD), as CI does; an uncommitted raw `git init` is invisible to it. A seat running prepr before committing gets a green it did not earn. Carry: R10-POLICY-FIXER-MD (fixer.md step 6, commit before prepr).

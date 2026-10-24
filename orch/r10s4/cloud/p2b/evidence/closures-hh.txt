@@ -1,0 +1,191 @@
+== check before (B2 recordings, artifact 12501157066)
+note: tests/block_duty.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/boost_drift_replay.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card.mjs lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card_drift.mjs lists 8 file(s) this run did not touch (safe: over-scoped)
+note: tests/debug_collect.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/deployment_shape.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/doc_claims.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/finite_boundary.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/guard_pins.py lists 5 file(s) this run did not touch (safe: over-scoped)
+UNDER-SCOPED: tests/harness_headers.py really reads 2 file(s) the committed closure does not list:
+    dev/audit/harnesses/r10_ci_layout_u5/run_part.py
+    dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py
+note: tests/harness_headers.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/manual_plan.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/plan_view.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/solar_alignment.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/wood_advisor.py lists 4 file(s) this run did not touch (safe: over-scoped)
+
+1 closure(s) are stale. Re-derive the named script:
+    ./tests/derive_closures.sh --single <script>
+and commit tests/closures.json. A full derive_closures.sh off
+Linux replaces node-lane recordings; --single cannot shrink them.
+rc=1
+== merge
+closure: these scripts failed while being recorded, so their
+closure is only what they reached before stopping:
+  tests/harness_headers.py (exit 1) -- see the run output
+Fix them, or record and merge in two steps if you have checked
+that the run still exercised every import and every file read:
+  ./tests/derive_closures.sh --record-only --out-dir D
+  python3 tests/closure.py merge --in-dir D --partial --allow-failures
+rc=1
+== check after
+note: tests/block_duty.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/boost_drift_replay.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card.mjs lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card_drift.mjs lists 8 file(s) this run did not touch (safe: over-scoped)
+note: tests/debug_collect.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/deployment_shape.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/doc_claims.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/finite_boundary.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/guard_pins.py lists 5 file(s) this run did not touch (safe: over-scoped)
+UNDER-SCOPED: tests/harness_headers.py really reads 2 file(s) the committed closure does not list:
+    dev/audit/harnesses/r10_ci_layout_u5/run_part.py
+    dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py
+note: tests/harness_headers.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/manual_plan.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/plan_view.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/solar_alignment.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/wood_advisor.py lists 4 file(s) this run did not touch (safe: over-scoped)
+
+1 closure(s) are stale. Re-derive the named script:
+    ./tests/derive_closures.sh --single <script>
+and commit tests/closures.json. A full derive_closures.sh off
+Linux replaces node-lane recordings; --single cannot shrink them.
+rc=1
+== merge --allow-failures (harness_headers ran all 109 checks; the one FAIL is the frontier headroom grade, #2659)
+closure: tests/block_duty.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/boost_drift_replay.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/card.mjs would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/card_drift.mjs would drop 8 file(s) the committed closure listed; keeping them.
+    .gitattributes
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    dev/audit/rounds/round4/D6/claims.json
+    dev/audit/rounds/round4/D6/claims.md
+    tests/card.mjs
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/debug_collect.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/deployment_shape.py would drop 2 file(s) the committed closure listed; keeping them.
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/doc_claims.py would drop 1 file(s) the committed closure listed; keeping them.
+    tests/hastub/homeassistant/components/repairs.py
+closure: tests/entities.py would drop 1 file(s) the committed closure listed; keeping them.
+    tests/golden/card_claimed_drift.txt
+closure: tests/env_drift.py would drop 1 file(s) the committed closure listed; keeping them.
+    VERSION
+closure: tests/finite_boundary.py would drop 2 file(s) the committed closure listed; keeping them.
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/golden.py would drop 1 file(s) the committed closure listed; keeping them.
+    VERSION
+closure: tests/guard_pins.py would drop 5 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/setpoint_check.py
+    tests/hastub/homeassistant/components/__init__.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/harness_headers.py would drop 3 file(s) the committed closure listed; keeping them.
+    tests/hastub/homeassistant/components/repairs.py
+    tools/audit/round4/D11/d11lib.py
+    tools/audit/round4/D11/governance_cost.py
+closure: tests/manual_plan.py would drop 3 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+closure: tests/plan_view.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/solar_alignment.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: tests/wood_advisor.py would drop 4 file(s) the committed closure listed; keeping them.
+    custom_components/heatpump_optimizer/repairs.py
+    custom_components/heatpump_optimizer/silent_mode.py
+    tests/hastub/homeassistant/components/repairs.py
+    tests/hastub/homeassistant/data_entry_flow.py
+closure: updated 33 closure(s) in /Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tests/closures.json
+  tests/arch_score.py         156 files
+  tests/arch_score_head.py    124 files
+  tests/backtest.py            36 files
+  tests/block_duty.py          90 files
+  tests/boost_drift_replay.py   88 files
+  tests/card.mjs               94 files
+  tests/card_drift.mjs         97 files
+  tests/config_flow_steps.py  126 files
+  tests/debug_collect.py       99 files
+  tests/deployment_shape.py   122 files
+  tests/doc_claims.py         172 files
+  tests/edge.py                34 files
+  tests/entities.py           356 files
+  tests/env_drift.py          192 files
+  tests/features.py           140 files
+  tests/finite_boundary.py    115 files
+  tests/frontend.py             6 files
+  tests/golden.py             194 files
+  tests/guard_pins.py          66 files
+  tests/ha_contract.py         36 files
+  tests/harness_headers.py    394 files
+  tests/layout.py               3 files
+  tests/manual_plan.py        106 files
+  tests/md_tables.mjs          10 files
+  tests/open_meteo.py           3 files
+  tests/optimality.py          36 files
+  tests/plan_view.py           86 files
+  tests/solar_alignment.py     87 files
+  tests/stress.py              40 files
+  tests/structure.py           84 files
+  tests/typing_ruler.py        84 files
+  tests/validate.py            34 files
+  tests/wood_advisor.py        90 files
+rc=0
+== check after merge
+note: tests/block_duty.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/boost_drift_replay.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card.mjs lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/card_drift.mjs lists 8 file(s) this run did not touch (safe: over-scoped)
+note: tests/debug_collect.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/deployment_shape.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/doc_claims.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/finite_boundary.py lists 2 file(s) this run did not touch (safe: over-scoped)
+note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+note: tests/guard_pins.py lists 5 file(s) this run did not touch (safe: over-scoped)
+note: tests/harness_headers.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/manual_plan.py lists 3 file(s) this run did not touch (safe: over-scoped)
+note: tests/plan_view.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/solar_alignment.py lists 4 file(s) this run did not touch (safe: over-scoped)
+note: tests/wood_advisor.py lists 4 file(s) this run did not touch (safe: over-scoped)
+closure: committed closures cover every file this run touched
+rc=0

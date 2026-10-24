@@ -1,0 +1,5 @@
+===== daemonize pid=96523 2026-10-23T12:54:01Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) r10-fly-relay-review-ff af21edb9e6e6cf8fac5e5f3c21305adef0a51a26 R10-FLY-RELAY-REVIEW-FF: relay retries confirm on unposted verdicts R10-FLY-RELAY-REVIEW-FF
+open_pr: OVER-CAP: 7 open >= 6, overridden: wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20)
+ref_privacy: REFUSE: co-author-trailer in the message of 4ea20609ac40 would publish this host or a tool's attribution; nothing pushed
+app_push: REFUSE: the branch or a commit it publishes would publish this host (#2310) or a tool's attribution; NOTHING was minted or pushed
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-relay-review-ff/p2.log

@@ -1,0 +1,7 @@
+RESULT p3_seam_groups=0 count
+RESULT p3_raw_divisor_groups=0 count
+RESULT p3_capacity_groups=0 count
+RESULT buffer_tank_thermal_mass_seam=0 count
+RESULT thread_factor=1.002
+RESULT load1=2.09
+RESULT swapins=0

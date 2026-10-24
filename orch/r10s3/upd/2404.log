@@ -1,0 +1,10 @@
+===== daemonize pid=14344 2026-10-18T19:43:28Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-carry-enforce 6f20f78a3e1d8ae387cd227fa05131f0856ed6e3 /Users/timmalmstrom/hpo-orch/r10s3/upd/2404.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (774 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging .github/CODEOWNERS
+Auto-merging .github/workflows/governance.yml
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/merge_train.py
+Auto-merging tools/audit/seat/queue_pre_flight.py
+HEAD=03f1681a3e684854b5b934020ec5d44612b2ffd2

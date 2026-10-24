@@ -1,0 +1,1076 @@
+"""Guarded reads of Home Assistant states, with a staleness watchdog.
+
+Every sensor the optimizer depends on is read through :class:`InputReader`
+rather than directly from ``hass.states``. Two things are enforced here that a
+bare read cannot express:
+
+**Freshness.** ``unavailable`` and ``unknown`` are the easy failures; they are
+visible and every call site already handles them. The dangerous failure is a
+sensor that stops updating while continuing to report its last value. A dead
+battery in a tank probe or a dropped Zigbee room sensor leaves a perfectly
+valid-looking constant in the state machine indefinitely. The optimizer then
+plans against a fiction — but the worse consequence is that the learners
+observe a flatline, attribute it to thermal behaviour, and persist a corrupted
+parameter that survives a restart. A learner that stops learning is
+recoverable; one that learns from a flatline is not. So an over-age value is
+reported as *missing*, and the caller is expected to freeze rather than guess.
+
+**Units.** Power entities report W, kW or MW depending on the device, and the
+internal model works in kW throughout. Assuming kW reads a 3000 W draw as
+3000 kW, which would silently dominate every cost calculation. Temperature
+and energy states are the same story in another unit family: the state
+machine converts a device-class sensor to the instance unit system, so
+``read`` takes the number with the unit it arrived in and converts °F/Wh
+(and their spellings) to the degC/kWh the model works in (#961).
+
+**Not everything is a number.** An operating mode is a word, and a defrost or
+online flag is ``on``/``off``. ``read`` rejects those as ``not_numeric``, so
+until v5.3.0 the only string input in the integration — the external-heat
+override — was read by hand, straight out of ``hass.states``, with no
+freshness guard at all. That is precisely backwards: a stuck ``on`` on a
+flag that *suppresses* heating is more dangerous than a stuck temperature,
+because it costs a warm house rather than a little accuracy. ``read_state``
+and ``read_bool`` put strings and flags through the same guard as every
+number, and produce the same :class:`InputReading` the rest of the code
+already understands.
+"""
+from __future__ import annotations
+
+import logging
+import math
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from collections.abc import Callable
+from typing import Any
+
+from .const import (
+    ENERGY_UNIT_TO_KWH,
+    FLOW_UNIT_TO_KG_S,
+    INPUT_MAX_AGE_MINUTES,
+    INPUT_PLAUSIBLE_RANGE_C,
+    POWER_UNIT_TO_KW,
+    PRICE_ENERGY_TO_KWH,
+    PRICE_MAJOR_SYMBOLS,
+    PRICE_MINOR_UNITS,
+    STALENESS_SCALE_MAX,
+    STALENESS_SCALE_MIN,
+    TEMPERATURE_UNIT_TO_C,
+)
+from .log_latch import log_held
+from .payload import InputProblem
+
+_LOGGER = logging.getLogger(__name__)
+
+_INVALID_STATES = ("unknown", "unavailable", "none", "")
+
+
+class _Unbounded:
+    """Sentinel for ``max_age_minutes``: read with no freshness horizon.
+
+    Distinct from ``None``, which means "whatever :data:`INPUT_MAX_AGE_MINUTES`
+    says for this key". A caller passes this when age is not evidence about
+    the entity in question — the case being an entity nothing ever re-writes,
+    such as an ``input_boolean`` or a template flag fed by one, where the
+    timestamp records when a *person* last decided something rather than when
+    the reading was last confirmed. Ageing those out turns a deliberate
+    setting into no setting at all.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "UNBOUNDED"
+
+
+#: See :class:`_Unbounded`.
+UNBOUNDED = _Unbounded()
+
+
+@dataclass
+class InputReading:
+    """One attempt to read a configured entity."""
+
+    key: str
+    entity_id: str | None
+    value: float | None = None
+    #: The raw state string, for inputs whose meaning is a word rather than a
+    #: number (``read_state``). ``read`` never sets it, so every existing
+    #: caller sees exactly the reading it saw before.
+    text: str | None = None
+    #: The boolean ``text`` was interpreted as (``read_bool``).
+    flag: bool | None = None
+    age_minutes: float | None = None
+    max_age_minutes: float | None = None
+    #: ``None`` when the read succeeded, otherwise why it did not.
+    problem: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        """Whether the reading may be used.
+
+        Widened in v5.3.0 from "has a number" to "has *something*", so that a
+        string or a flag participates in ``InputHealth`` — and therefore in
+        ``_learning_frozen`` and the diagnostics — on exactly the same terms
+        as a temperature. ``read`` still populates only ``value``, so this is
+        unchanged for every numeric caller.
+        """
+        return (
+            self.value is not None or self.text is not None
+        ) and self.problem is None
+
+    @property
+    def stale(self) -> bool:
+        """Whether a value was present but too old to trust."""
+        return self.problem == "stale"
+
+
+@dataclass
+class InputHealth:
+    """A snapshot of every guarded read from one update cycle."""
+
+    readings: dict[str, InputReading] = field(default_factory=dict)
+
+    def record(self, reading: InputReading) -> InputReading:
+        self.readings[reading.key] = reading
+        return reading
+
+    @property
+    def stale_keys(self) -> list[str]:
+        return sorted(k for k, r in self.readings.items() if r.stale)
+
+    @property
+    def missing_keys(self) -> list[str]:
+        """Configured entities that produced no usable value at all."""
+        return sorted(
+            k
+            for k, r in self.readings.items()
+            if r.entity_id and not r.ok and not r.stale
+        )
+
+    def ages(self) -> dict[str, float]:
+        return {
+            k: round(r.age_minutes, 1)
+            for k, r in self.readings.items()
+            if r.age_minutes is not None
+        }
+
+    def details(self) -> list[InputProblem]:
+        """Per-input evidence, so a user can see *why* something is flagged."""
+        out: list[InputProblem] = []
+        for key in sorted(self.readings):
+            reading = self.readings[key]
+            if reading.entity_id is None or reading.ok:
+                continue
+            out.append(
+                {
+                    "input": key,
+                    "entity_id": reading.entity_id,
+                    "problem": reading.problem,
+                    "age_minutes": (
+                        round(reading.age_minutes, 1)
+                        if reading.age_minutes is not None
+                        else None
+                    ),
+                    "max_age_minutes": reading.max_age_minutes,
+                }
+            )
+        return out
+
+    @property
+    def problem_entity_ids(self) -> list[str]:
+        """Entity ids of every failing input, so the flag names its sources.
+
+        The same readings :meth:`details` reports, reduced to the identity a
+        user configured. Sorted and deduplicated: one entity may fill two
+        slots, and the question this answers is "which sensor do I go and
+        fix", asked once per sensor.
+        """
+        return sorted(
+            {
+                reading.entity_id
+                for reading in self.readings.values()
+                if reading.entity_id and not reading.ok
+            }
+        )
+
+    def problem_messages(self) -> list[str]:
+        """One short line per failing input, in :meth:`details` order."""
+        return [describe_problem(entry) for entry in self.details()]
+
+
+def state_stamp(state: Any) -> datetime | None:
+    """When Home Assistant last heard from the entity behind ``state``.
+
+    The one stamp chain every freshness decision reads (D1-s5-01).
+    ``last_reported`` first: ``last_updated`` only moves when the state
+    *object* changes, so a live sensor re-reporting an unchanged value -- a
+    stable tank overnight -- read as silent while a genuinely dead sensor
+    looked no different. A dead sensor stops reporting too, so the
+    fail-closed intent is preserved. The #775 fix taught the reader this and
+    left ``age_of`` on the old chain; one owner is what stops that recurring.
+    """
+    stamp = (
+        getattr(state, "last_reported", None)
+        or getattr(state, "last_updated", None)
+        or getattr(state, "last_changed", None)
+    )
+    return stamp if isinstance(stamp, datetime) else None
+
+
+def state_age(state: Any, now: datetime) -> timedelta | None:
+    """``now`` minus :func:`state_stamp`, signed, or ``None`` if unknowable.
+
+    Negative for a stamp ahead of ``now``, which every caller must refuse
+    rather than read as fresh (#775). ``None`` with no comparable pair:
+    mixing naive and aware datetimes raises, and an unknown age is not the
+    same as "fresh".
+    """
+    stamp = state_stamp(state)
+    if stamp is None or stamp.tzinfo is None or now.tzinfo is None:
+        return None
+    return now - stamp
+
+
+def plausible_c(key: str, value_c: float) -> bool:
+    """Whether ``value_c`` lies in the physical window of what ``key`` measures.
+
+    ``True`` for a key with no window. The boundary D1-s5-52 found missing:
+    a DS18B20 reports -127 degC for a lost bus and 85 degC for a power-on
+    reset, both finite numbers in the right unit, and ``read`` delivered
+    them as measurements to every consumer. See
+    :data:`~.const.INPUT_PLAUSIBLE_RANGE_C` for the windows.
+    """
+    window = INPUT_PLAUSIBLE_RANGE_C.get(key)
+    return window is None or window[0] <= value_c <= window[1]
+
+
+def max_age_for(key: str, scale: float = 1.0) -> float | None:
+    """Age limit in minutes for a configuration key, or ``None`` if unbounded."""
+    base = INPUT_MAX_AGE_MINUTES.get(key)
+    if base is None:
+        return None
+    scale = min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
+    return base * scale
+
+
+def normalize_power_kw(value: float, unit: Any) -> float | None:
+    """Convert a power reading to kW using the entity's declared unit.
+
+    An unrecognised unit returns ``None`` rather than a guess: a wrongly scaled
+    power value is worse than no power value, because everything downstream
+    (COP learning, peak tracking, cost reconciliation) trusts it.
+    """
+    if unit is None:
+        # Home Assistant requires a unit on any sensor with a device class, so
+        # a missing one means the entity is not really a power sensor.
+        return None
+    factor = POWER_UNIT_TO_KW.get(str(unit).strip())
+    if factor is None:
+        return None
+    return value * factor
+
+
+def normalize_flow_kg_s(value: float, unit: Any) -> float | None:
+    """Convert a water flow reading to kg/s using the entity's declared unit.
+
+    The flow sibling of :func:`normalize_power_kw` (#2016): an unrecognised
+    unit is ``None``, because a wrongly scaled flow is a wrongly scaled heat.
+    """
+    if unit is None:
+        return None
+    factor = FLOW_UNIT_TO_KG_S.get(str(unit).strip())
+    return None if factor is None else value * factor
+
+
+def normalize_temperature_c(value: float, unit: Any) -> float | None:
+    """Convert a temperature reading to degC using the entity's declared unit.
+
+    The same principle as :func:`normalize_power_kw`, for the family `read`
+    itself must consult (#961): the state machine hands the integration the
+    instance unit system's own unit, so a US-customary Home Assistant reports
+    the same physical plant in °F, and reading that number as degC published
+    70.5 degC for a house at 21.4. Returns ``None`` for a unit outside the
+    temperature family rather than a guess; the degC row is the identity, so
+    a metric read passes through bit-for-bit.
+    """
+    spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+    if spec is None:
+        return None
+    offset, factor = spec
+    return (value + offset) * factor
+
+
+def normalize_energy_kwh(value: float, unit: Any) -> float | None:
+    """Convert an energy reading to kWh using the entity's declared unit.
+
+    The energy sibling of :func:`normalize_temperature_c` (#961): a Wh meter
+    was adopted as that many kWh, three orders of magnitude, because nothing
+    consulted the unit.
+    """
+    factor = ENERGY_UNIT_TO_KWH.get(str(unit).strip())
+    if factor is None:
+        return None
+    return value * factor
+
+
+def state_unit(state: Any) -> Any:
+    """The ``unit_of_measurement`` a state declares, or ``None``."""
+    return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
+
+
+def _finite(raw: Any) -> float | None:
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return value if math.isfinite(value) else None
+
+
+def temperature_c(raw: Any, unit: Any) -> float | None:
+    """A raw temperature in degC, or ``None`` if not a finite number (#1513).
+
+    Converted when ``unit`` is a temperature unit and adopted raw otherwise,
+    which is what :func:`_value_in_model_units` does for ``read`` (#961).
+    """
+    value = _finite(raw)
+    if value is None:
+        return None
+    converted = normalize_temperature_c(value, unit)
+    return value if converted is None else converted
+
+
+def temperature_from_c(value_c: float, unit: Any) -> float:
+    """:func:`normalize_temperature_c` inverted, for a write in an entity's
+    own unit; the identity for a unit outside the table."""
+    spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+    if spec is None:
+        return value_c
+    offset, factor = spec
+    return value_c / factor - offset
+
+
+#: A set-point state that holds no reading: the entity is down or has not reported.
+_NO_SETPOINT = ("unknown", "unavailable", "none", "")
+#: The service, and its data key, that writes a temperature set-point, per domain.
+SETPOINT_SERVICES = {
+    "climate": ("set_temperature", "temperature"),
+    "number": ("set_value", "value"),
+    "input_number": ("set_value", "value"),
+}
+#: The attributes a set-point entity states its range in: a climate entity's
+#: ``min_temp``/``max_temp`` (Home Assistant's ``ATTR_MIN_TEMP``/``ATTR_MAX_TEMP``),
+#: every other domain's ``min``/``max``.
+_RANGE_KEYS = {"climate": ("min_temp", "max_temp")}
+_NUMBER_RANGE_KEYS = ("min", "max")
+
+
+def _instance_unit(hass: Any) -> Any:
+    units = getattr(getattr(hass, "config", None), "units", None)
+    return getattr(units, "temperature_unit", None)
+
+
+def setpoint_unit(hass: Any, entity_id: str, state: Any) -> Any:
+    """The unit a set-point entity's target and range are in, by its domain.
+
+    A climate entity's are attributes in the instance's unit system, which
+    its state never declares, so the domain decides -- not whether a target
+    attribute happens to be present (D12-s3-01). Any other entity declares
+    its own.
+    """
+    if entity_id.split(".", 1)[0] == "climate":
+        return _instance_unit(hass)
+    return state_unit(state)
+
+
+def setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
+    """The set-point in degC and the unit its entity is written in (#1513).
+
+    A number entity's state is its value; a climate entity's state is its
+    HVAC mode and its target the ``temperature`` attribute, in the
+    instance's unit system.
+    """
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    raw = getattr(state, "state", None)
+    if raw is None or str(raw).lower() in _NO_SETPOINT:
+        return None
+    unit = setpoint_unit(hass, entity_id, state)
+    value = temperature_c(raw, unit)
+    if value is None:
+        unit = _instance_unit(hass)
+        attrs = getattr(state, "attributes", None) or {}
+        value = temperature_c(attrs.get("temperature"), unit)
+    return None if value is None else (value, unit)
+
+
+def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
+    """The set-point in degC, or ``None`` when it cannot be read."""
+    reading = setpoint_and_unit(hass, entity_id)
+    return None if reading is None else reading[0]
+
+
+def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:
+    """The set-point entity's own (min, max) in degC, ``None`` where it states none.
+
+    Read from the attributes its domain carries, in the unit
+    :func:`setpoint_unit` writes it in (L2: a climate slot read as a number
+    was never clamped).
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    if not entity_id or state is None:
+        return None, None
+    attrs = getattr(state, "attributes", None) or {}
+    low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
+    unit = setpoint_unit(hass, entity_id, state)
+    return temperature_c(attrs.get(low_key), unit), temperature_c(attrs.get(high_key), unit)
+
+
+#: The step a set-point entity that states none accepts, in its own unit:
+#: whole degrees, which many pumps' set-points take and nothing else
+#: (tvofi, 2026-10-19).
+DEFAULT_SETPOINT_STEP = 1.0
+#: The attribute a set-point entity states its step in, per domain.
+_STEP_KEYS = {"climate": "target_temp_step"}
+_NUMBER_STEP_KEY = "step"
+_ROUNDINGS: dict[str, Callable[[float], int]] = {
+    "nearest": round, "up": math.ceil, "down": math.floor,
+}
+
+
+def setpoint_step(hass: Any, entity_id: str) -> float:
+    """The step the entity accepts a set-point on, in its own unit."""
+    state = hass.states.get(entity_id)
+    attrs = getattr(state, "attributes", None) or {}
+    step = _finite(attrs.get(_STEP_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_STEP_KEY)))
+    return step if step is not None and step > 0.0 else DEFAULT_SETPOINT_STEP
+
+
+def _on_step(value: float, step: float, rounding: str) -> float:
+    """``value`` on a multiple of ``step``, rounded as ``rounding`` says.
+
+    A value within a millionth of a step of a multiple is that multiple,
+    so a whole degree that went through a unit conversion stays whole.
+    """
+    ratio = value / step
+    near = round(ratio)
+    turns = near if abs(ratio - near) < 1e-6 else _ROUNDINGS[rounding](ratio)
+    return round(turns * step, 6)
+
+
+def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
+    reading = setpoint_and_unit(hass, entity_id)
+    return (
+        reading[1] if reading is not None
+        else setpoint_unit(hass, entity_id, hass.states.get(entity_id))
+    )
+
+
+def quantise_setpoint_c(
+    hass: Any,
+    entity_id: str,
+    value_c: float,
+    *,
+    rounding: str = "nearest",
+    lo_c: float | None = None,
+    hi_c: float | None = None,
+) -> float:
+    """``value_c`` on the entity's step, in its own unit, returned in degC.
+
+    ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
+    ``hi_c`` down, and the result stays between them, so a caller keeps a
+    floor above its gate and a ceiling inside its configured maximum while
+    the levels between round to nearest, monotone in the value. The step is
+    the entity's own (``setpoint_step``) in the unit the write uses
+    (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
+    """
+    unit = _setpoint_unit_of(hass, entity_id)
+    step = setpoint_step(hass, entity_id)
+    out = _on_step(temperature_from_c(value_c, unit), step, rounding)
+    if lo_c is not None:
+        out = max(out, _on_step(temperature_from_c(lo_c, unit), step, "up"))
+    if hi_c is not None:
+        out = min(out, _on_step(temperature_from_c(hi_c, unit), step, "down"))
+    converted = temperature_c(out, unit)
+    return out if converted is None else converted
+
+
+async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
+    """Write ``value``, already in the entity's own unit, to a set-point entity.
+
+    The one service call every set-point write goes through, so the value
+    sent is on the entity's step (``setpoint_step``, whole degrees where it
+    states none) -- a whole one as an integer, which a pump that takes no
+    decimals accepts. ``False``, and nothing called, for a domain with no
+    set-point service.
+    """
+    domain = entity_id.split(".", 1)[0]
+    service = SETPOINT_SERVICES.get(domain)
+    if service is None:
+        return False
+    sent = _on_step(float(value), setpoint_step(hass, entity_id), "nearest")
+    await hass.services.async_call(
+        domain, service[0],
+        {"entity_id": entity_id, service[1]: int(sent) if sent.is_integer() else sent},
+        blocking=True,
+    )
+    return True
+
+
+async def write_setpoint_c(
+    hass: Any, entity_id: str, value_c: float, rounding: str = "nearest"
+) -> bool:
+    """Write ``value_c`` degC in the unit :func:`setpoint_and_unit` reads the entity in.
+
+    One rule for the read and the write, so a written set-point reads back as
+    itself. An entity with no reading yet is written in its domain's unit.
+    ``rounding`` puts it on the entity's step (``quantise_setpoint_c``): a
+    caller writing a ceiling passes ``down``.
+    """
+    unit = _setpoint_unit_of(hass, entity_id)
+    on_step = quantise_setpoint_c(hass, entity_id, value_c, rounding=rounding)
+    return await write_setpoint(hass, entity_id, temperature_from_c(on_step, unit))
+
+
+def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
+    """Convert a price to major currency per kWh using its unit (#1513).
+
+    A price sensor declares ``<money>/<energy>``: an ISO code or a symbol is
+    the major unit, a minor one (öre, cent) a hundredth of it, and the energy
+    kWh, MWh or Wh. Reading öre/kWh as SEK/kWh put a Nord Pool sensor's
+    ``price_in_cents`` option into the plan at 100x. No unit at all is major
+    currency per kWh, which is what a unit-less template sensor has always
+    meant here; a unit outside this grammar returns ``None`` rather than a
+    guess. The currency itself is never converted.
+    """
+    if unit is None or not str(unit).strip():
+        return value
+    money, sep, energy = str(unit).strip().partition("/")
+    per_kwh = PRICE_ENERGY_TO_KWH.get(energy.strip().lower())
+    money = money.strip()
+    if not sep or per_kwh is None:
+        return None
+    if money.lower() in PRICE_MINOR_UNITS:
+        return value * per_kwh / 100.0
+    major = money in PRICE_MAJOR_SYMBOLS or (
+        len(money) == 3 and money.isalpha() and money.isupper()
+    )
+    return value * per_kwh if major else None
+
+
+def price_per_kwh(raw: Any, unit: Any) -> float | None:
+    """A raw price in major currency per kWh, or ``None`` if not a finite
+    number. An unparseable unit keeps the raw number, as every install read
+    it before; the coordinator's ``price_unit_unrecognised`` notice names it.
+    """
+    value = _finite(raw)
+    if value is None:
+        return None
+    converted = normalize_price_per_kwh(value, unit)
+    return value if converted is None else converted
+
+
+def _value_in_model_units(
+    state: Any, value: float, reading: InputReading
+) -> float:
+    """The state's numeric value in the degC/kWh the model works in (#961).
+
+    The state machine converts a device-class sensor to the instance unit
+    system, so the number means whatever its unit says it means. Only the
+    temperature and energy families are converted here; power stays with
+    :meth:`InputReader.read_power_kw`, whose unknown-unit refusal must not
+    start firing for slots it does not own. A unit outside every table is
+    adopted raw — ``read`` is the generic reader and most numeric states
+    carry no convertible unit at all — but noted at debug, because a
+    silently raw °F was exactly the defect.
+    """
+    attributes = getattr(state, "attributes", None)
+    unit = None
+    if attributes is not None:
+        try:
+            unit = attributes.get("unit_of_measurement")
+        except AttributeError:  # pragma: no cover - defensive
+            unit = None
+    # R5-D1-06 (#1297): `float()` parses "nan"/"inf"/"1e999" without
+    # raising, so a hostile or broken sensor state reached the thermal
+    # state as a non-finite float -- a "nan" indoor temperature published
+    # a failed plan with NaN savings while the cycle reported success.
+    # Raising here lands in `read`'s existing not_numeric handler: refused
+    # exactly like a word. The guard sits BEFORE the conversion returns
+    # below because no unit conversion can make a non-finite input
+    # finite: NaN °F converts to NaN °C either way.
+    if not math.isfinite(value):
+        raise ValueError(f"non-finite state {value!r}")
+    converted = normalize_temperature_c(value, unit)
+    if converted is None:
+        converted = normalize_energy_kwh(value, unit)
+    if converted is not None:
+        return converted
+    if unit is not None and str(unit).strip() not in POWER_UNIT_TO_KW:
+        _LOGGER.debug(
+            "Input %s (%s) reports unit %r, which no reader converts; "
+            "adopting the raw state value",
+            reading.key,
+            reading.entity_id,
+            unit,
+        )
+    return value
+
+
+#: State strings that mean "yes". Deliberately wide: the same configuration
+#: slot may be filled with a ``binary_sensor`` (``on``/``off``), a ``switch``,
+#: an ``input_boolean``, or a plain ``sensor`` carrying whatever word the
+#: source integration happened to publish. Being strict here would not make a
+#: wrong answer less likely — it would only turn a readable flag into
+#: ``not_boolean`` for half the users who configure it correctly.
+BOOL_TRUE: frozenset[str] = frozenset(
+    {
+        "on",
+        "true",
+        "yes",
+        "1",
+        "home",
+        "open",
+        "opened",
+        "heat",
+        "heating",
+        "detected",
+        "active",
+        "enable",
+        "enabled",
+        "online",
+        "connected",
+        "running",
+    }
+)
+
+#: State strings that mean "no".
+BOOL_FALSE: frozenset[str] = frozenset(
+    {
+        "off",
+        "false",
+        "no",
+        "0",
+        "not_home",
+        "closed",
+        "clear",
+        "idle",
+        "inactive",
+        "disable",
+        "disabled",
+        "offline",
+        "disconnected",
+        "standby",
+        "stopped",
+    }
+)
+
+
+#: Tokens in the two tables above that describe what a machine is DOING
+#: rather than the position of a flag.
+#:
+#: The flag slots accept a plain ``sensor`` as well as the three real flag
+#: domains, and a generic heat-pump status sensor cycling
+#: ``heating``/``running``/``idle``/``defrosting`` is exactly what a user
+#: drops into one. Read as flags those words are actively wrong in every
+#: slot: ``idle`` in the online slot reads as "the pump is off the network"
+#: and freezes every learner, ``heating`` in the fault slot reads as an
+#: alarm, and ``heating`` in the defrost slot marks every heating interval a
+#: defrost — excluding it from COP learning and folding it into the duty.
+#:
+#: A ``binary_sensor``, ``switch`` or ``input_boolean`` cannot make that
+#: mistake: its state is on/off by construction. So these words are accepted
+#: from those domains and refused from free-text ones, where refusing means
+#: "no evidence" — which for all three flags is the pre-v5.3.0 behaviour.
+AMBIGUOUS_ACTIVITY_TOKENS: frozenset[str] = frozenset(
+    {"heat", "heating", "running", "active", "idle", "inactive",
+     "standby", "stopped"}
+)
+
+#: Domains whose state is a flag by construction rather than free text.
+FLAG_DOMAINS: tuple[str, ...] = ("binary_sensor", "switch", "input_boolean")
+
+
+def is_flag_domain(entity_id: str | None) -> bool:
+    """Whether this entity's state is on/off by construction."""
+    return str(entity_id or "").split(".", 1)[0] in FLAG_DOMAINS
+
+
+def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
+    """Interpret a state string as a flag, or ``None`` if it is not one.
+
+    Numbers are read as "non-zero means yes". That is not a guess: the Tuya
+    fault DP is a code where zero means healthy and anything else is a fault,
+    and the source integration's own mapping is literally ``value != 0``. A
+    user who points a flag slot at the raw code sensor instead of the derived
+    binary sensor must get the same answer as the binary sensor would give.
+    The same rule reads the defrost DP (0/1) correctly.
+
+    Kept module-level rather than buried in ``read_bool`` so callers with
+    their own extra rule on top — the external-heat override reads a flue
+    *temperature* as a threshold, which is a heuristic about one sensor and
+    emphatically not a general boolean — can reuse the vocabulary without
+    inheriting a numeric rule that would be wrong for them.
+    """
+    if isinstance(raw, bool):
+        return raw
+    token = str(raw).strip().lower()
+    if strict and token in AMBIGUOUS_ACTIVITY_TOKENS:
+        return None
+    if token in BOOL_TRUE:
+        return True
+    if token in BOOL_FALSE:
+        return False
+    try:
+        return float(token) != 0.0
+    except (TypeError, ValueError):
+        return None
+
+
+class InputReader:
+    """Reads configured entities, applying the freshness and unit guards."""
+
+    def __init__(
+        self,
+        hass: Any,
+        config: dict[str, Any],
+        *,
+        enabled: bool = True,
+        scale: float = 1.0,
+        now: Any = None,
+    ) -> None:
+        self.hass = hass
+        self.config = config
+        self.enabled = bool(enabled)
+        self.scale = float(scale)
+        self._now: Callable[[], datetime] | None = now
+        self.health = InputHealth()
+
+    def _utcnow(self) -> datetime:
+        if callable(self._now):
+            return self._now()
+        from homeassistant.util import dt as dt_util
+
+        utc_now: datetime = dt_util.utcnow()
+        return utc_now
+
+    def _age_minutes(self, state: Any) -> float | None:
+        """Minutes since the sensor last reported, or ``None`` if not knowable.
+
+        ``last_reported`` is preferred where Home Assistant provides it:
+        ``last_updated`` only moves when the state *object* changes, so a live
+        sensor re-reporting an unchanged value — a stable tank overnight — was
+        flagged stale while a genuinely dead sensor looked no different. A dead
+        sensor stops reporting too, so the fail-closed intent is preserved.
+        The chain and the comparison are :func:`state_age`'s.
+        """
+        age = state_age(state, self._utcnow())
+        # A stamp ahead of now is not freshness. Clamping to 0.0 made a
+        # backward host-clock step report every input as brand new (#775).
+        if age is None or age < timedelta(0):
+            return None
+        return age.total_seconds() / 60.0
+
+    def _begin(
+        self,
+        key: str,
+        max_age_minutes: float | _Unbounded | None,
+        entity_id: str | None,
+    ) -> tuple[InputReading, Any]:
+        """Resolve the entity and reject the states no reader can use.
+
+        The half of a read that is identical whether the value turns out to
+        be a number, a word or a flag: which entity, which age limit, and the
+        three ways a read fails before its content is even looked at. Shared
+        so that a string input cannot quietly acquire different rules about
+        ``unavailable`` from a temperature.
+
+        Returns ``(reading, state)``; ``state`` is ``None`` exactly when
+        ``reading.problem`` has already been set and the caller should record
+        and return it as-is.
+        """
+        entity_id = entity_id if entity_id is not None else self.config.get(key)
+        # `isinstance` rather than `is UNBOUNDED`: identical for a private
+        # sentinel with one instance, and it is what narrows the union so
+        # the `float()` below is checked rather than suppressed.
+        if isinstance(max_age_minutes, _Unbounded):
+            # Recorded as "no limit" rather than as a very large one, so the
+            # diagnostics say what is actually true about this read.
+            limit: float | None = None
+        elif max_age_minutes is not None:
+            limit = float(max_age_minutes)
+        else:
+            limit = max_age_for(key, self.scale)
+        reading = InputReading(
+            key=key, entity_id=entity_id, max_age_minutes=limit
+        )
+
+        if not entity_id:
+            reading.problem = "not_configured"
+            return reading, None
+
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            reading.problem = "missing_entity"
+            return reading, None
+
+        raw = getattr(state, "state", None)
+        if raw is None or str(raw).lower() in _INVALID_STATES:
+            reading.problem = "unavailable"
+            return reading, None
+
+        return reading, state
+
+    def _age_gate(self, reading: InputReading, state: Any) -> None:
+        """Record the reading's age and flag it stale when over the limit."""
+        age = self._age_minutes(state)
+        reading.age_minutes = age
+        # `age is None` is fresh only when there is no comparable stamp
+        # (untimestamped stubs). A future stamp is the #775 fail-open.
+        future = age is None and state_age(state, self._utcnow()) is not None
+        limit = reading.max_age_minutes
+        # Latched per install, input and entity (the reader is rebuilt every
+        # read; one key for all inputs would re-warn as they alternate), and
+        # cleared by every fresh read, so a stamp ahead again warns again.
+        if log_held(
+            self.hass, f"future_stamp:{reading.key}:{reading.entity_id}",
+            self.enabled and limit is not None and future,
+            "Input %s (%s) has a last-reported stamp ahead of the host "
+            "clock; treating as stale rather than age 0",
+            reading.key,
+            reading.entity_id,
+        ):
+            reading.problem = "stale"
+            return
+        if self.enabled and limit is not None and age is not None and age > limit:
+            # Keep the content populated so a caller that explicitly wants the
+            # last known value can still degrade gracefully, but mark it so the
+            # default path treats it as absent.
+            reading.problem = "stale"
+            _LOGGER.debug(
+                "Input %s (%s) is %.0f min old, over its %.0f min limit; "
+                "treating as missing",
+                reading.key,
+                reading.entity_id,
+                age,
+                limit,
+            )
+
+    def read(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | _Unbounded | None = None,
+        entity_id: str | None = None,
+    ) -> InputReading:
+        """Read one configured numeric entity.
+
+        ``key`` is the configuration key, which also selects the age limit.
+        Temperature and energy values are converted to the model's units (#961).
+        """
+        reading, state = self._begin(key, max_age_minutes, entity_id)
+        if state is None:
+            return self.health.record(reading)
+
+        try:
+            raw_state: Any = getattr(state, "state", None)
+            value = _value_in_model_units(
+                state, float(raw_state), reading
+            )
+        except (TypeError, ValueError):
+            reading.problem = "not_numeric"
+            return self.health.record(reading)
+
+        reading.value = value
+        self._age_gate(reading, state)
+        if not plausible_c(key, value):
+            # A sensor fault code is not a measurement at any age: withheld
+            # outright, where a stale value stays readable (D1-s5-52).
+            reading.value = None
+            reading.problem = "implausible"
+            _LOGGER.debug(
+                "Input %s (%s) reads %.1f, outside %s; treating as missing",
+                key,
+                reading.entity_id,
+                value,
+                INPUT_PLAUSIBLE_RANGE_C[key],
+            )
+        return self.health.record(reading)
+
+    def read_state(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | _Unbounded | None = None,
+        entity_id: str | None = None,
+        valid: Any = None,
+    ) -> InputReading:
+        """Read one configured entity whose state is a word, not a number.
+
+        The same contract as :meth:`read` in every respect that matters —
+        the same problems, the same age limit from ``INPUT_MAX_AGE_MINUTES``,
+        the same ``InputHealth`` record — with the content landing in
+        ``text`` instead of ``value``. An operating mode nobody has reported
+        for an hour is not evidence about the pump's current state, and
+        pretending otherwise is the same mistake as trusting a flatlined
+        thermometer.
+
+        ``valid``, when given, is either a container of acceptable states
+        (compared case-insensitively) or a predicate. A state outside it is
+        reported as ``unknown_value`` rather than passed on, so a caller
+        cannot mistake an unrecognised word for a meaningful one. Staleness
+        outranks it: an old unrecognised value is stale first.
+        """
+        reading, state = self._begin(key, max_age_minutes, entity_id)
+        if state is None:
+            return self.health.record(reading)
+
+        reading.text = str(getattr(state, "state", "")).strip()
+        self._age_gate(reading, state)
+        if reading.problem is None and valid is not None:
+            if callable(valid):
+                accepted = bool(valid(reading.text))
+            else:
+                accepted = reading.text.lower() in {
+                    str(v).strip().lower() for v in valid
+                }
+            if not accepted:
+                reading.problem = "unknown_value"
+        return self.health.record(reading)
+
+    def read_bool(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | _Unbounded | None = None,
+        entity_id: str | None = None,
+        strict: Any = None,
+    ) -> InputReading:
+        """Read one configured entity as a flag.
+
+        A thin layer over :meth:`read_state` so a defrost, online or fault
+        signal inherits the freshness discipline rather than being read by
+        hand. ``flag`` carries the interpretation; ``text`` keeps the word it
+        came from, because "which state did it actually report" is the first
+        question asked of a flag that is behaving oddly.
+        """
+        reading = self.read_state(
+            key, max_age_minutes=max_age_minutes, entity_id=entity_id
+        )
+        if reading.text is None:
+            return reading
+        # Default: strict for anything that is not a flag domain by
+        # construction, so a status sensor cannot be read as a flag. Callers
+        # may force it either way, but nobody has to remember to.
+        strict_now = (
+            is_flag_domain(reading.entity_id) is False
+            if strict is None
+            else bool(strict)
+        )
+        flag = parse_bool(reading.text, strict=strict_now)
+        if flag is None:
+            if reading.problem is None:
+                reading.problem = "not_boolean"
+            return reading
+        # Set even on a stale reading, mirroring ``read`` keeping ``value``:
+        # ``ok`` is already False, and a caller that deliberately wants the
+        # last known flag must be able to reach it.
+        reading.flag = flag
+        return reading
+
+    def read_power_kw(self, key: str) -> InputReading:
+        """Read a power entity and normalise it to kW."""
+        reading = self.read(key)
+        if reading.value is None:
+            return reading
+        state = self.hass.states.get(reading.entity_id)
+        unit = None
+        attributes = getattr(state, "attributes", None)
+        if attributes is not None:
+            try:
+                unit = attributes.get("unit_of_measurement")
+            except AttributeError:  # pragma: no cover - defensive
+                unit = None
+        converted = normalize_power_kw(reading.value, unit)
+        if converted is None:
+            reading.value = None
+            if reading.problem is None:
+                reading.problem = "unknown_unit"
+            return reading
+        reading.value = converted
+        return reading
+
+    def read_flow_kg_s(self, key: str) -> InputReading:
+        """Read a water-flow entity and normalise it to kg/s (#2016).
+
+        An unknown unit and a negative reading are absent, not adopted.
+        """
+        reading = self.read(key)
+        if reading.value is None:
+            return reading
+        state = self.hass.states.get(reading.entity_id)
+        converted = normalize_flow_kg_s(reading.value, state_unit(state))
+        if converted is None or converted < 0.0:
+            reading.value = None
+            if reading.problem is None:
+                reading.problem = (
+                    "unknown_unit" if converted is None else "implausible"
+                )
+            return reading
+        reading.value = converted
+        return reading
+
+
+def stale_summary(health: InputHealth) -> str:
+    """One-line description for the diagnostic entity's state."""
+    stale = health.stale_keys
+    missing = health.missing_keys
+    if not stale and not missing:
+        return "ok"
+    parts = []
+    if stale:
+        parts.append(f"{len(stale)} stale")
+    if missing:
+        parts.append(f"{len(missing)} missing")
+    return ", ".join(parts)
+
+
+#: Human wording for each reading problem, for
+#: :func:`describe_problem`. Raw tokens read as codes; a user deciding
+#: which sensor to go and fix is owed words. A token not yet in this table
+#: renders as itself, so a future failure class cannot publish nothing.
+PROBLEM_WORDS: dict[str, str] = {
+    "implausible": "outside its plausible range",
+    "missing_entity": "entity not found",
+    "not_boolean": "not a yes/no flag",
+    "not_numeric": "not a number",
+    "unavailable": "unavailable",
+    "unknown_unit": "unknown unit",
+    "unknown_value": "unrecognized state",
+}
+
+
+def describe_problem(entry: InputProblem) -> str:
+    """One line for one :meth:`InputHealth.details` entry.
+
+    ``"sensor.indoor: stale (last report 47 min)"`` -- the entity a user
+    configured, the failure class in words, and the age when the class is
+    staleness and the reader could measure it. Staleness is the one class
+    where "how long ago" is the whole diagnosis, so it is the one class
+    that carries a number.
+    """
+    problem = str(entry.get("problem"))
+    word = PROBLEM_WORDS.get(problem, problem)
+    if problem == "stale" and (age := entry.get("age_minutes")) is not None:
+        return f'{entry["entity_id"]}: {word} (last report {age:.0f} min)'
+    return f'{entry["entity_id"]}: {word}'
+
+
+def age_of(state: Any, now: datetime) -> timedelta | None:
+    """Age of a Home Assistant state object, for callers outside the reader.
+
+    The reader's rule exactly (D1-s5-01): :func:`state_age`'s stamp chain,
+    and ``None`` for a stamp ahead of ``now``, which every caller refuses.
+    """
+    age = state_age(state, now)
+    return None if age is None or age < timedelta(0) else age

@@ -1,0 +1,70 @@
+57c57
+< # claims-for: 7.0.0
+---
+> # claims-for: 7.0.1
+59c59
+< # v7.0.0: Round-9 closure. The stamp empties the list; the
+---
+> # v7.0.1: t. The stamp empties the list; the
+62,66d61
+< # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+< # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+< # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+< # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+< # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+72a68,91
+> # R10-PUMP-MODEL (D2-s2-01, #2238): the hot-water tank pays the flow lift at its
+> # own water temperature on both plants, where a direct plant used to apply a
+> # linear 0.008/K penalty instead. Direction, measured base 92accb2cf vs this
+> # head in one environment: the tank's modelled COP falls (0.62x the space curve
+> # at a 55 C tank and 8 C outdoor, against the penalty's 0.84x), so the plan is
+> # re-solved and the always-hot baseline's DHW costs more -- baseline_cost is up
+> # on every claimed fixture below, and the other plan keys move either way. 41 of
+> # the 56 scenarios move; winter_single_no_dhw is byte-identical, which is the
+> # null (its scenario has no hot water). Twelve of the claimed fixtures carry a
+> # may-drift entry, whose judged keys (baseline_cost here, on all twelve) a
+> # may-drift entry cannot excuse and a name cannot be both, so those entries are
+> # suspended above for this release: capacity_tariff_15min, cycling_cost,
+> # direct_flow_carnot, everything_on, flat_prices, fuse_guard, narrow_band,
+> # precip_snow, shoulder, shoulder_two_zone, tariff_plus_two_zone and
+> # winter_two_zone_dhw. This is the R8-P3 wood_coil precedent; their removal
+> # conditions are unmet, so a later branch restores each entry as the wood_coil
+> # one was restored.
+> #
+> #
+> # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+> # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+> # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+> # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+> # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+659a679,692
+> #
+> # R10-RATIO-SITES (#2239): this branch claims these three and nothing else.
+> # `_house_ua_kw_per_c` prices the whole house from the two-zone split (upper
+> # 0.10 + lower 0.09 = 0.19) where `typical_heat_loss` read the configured
+> # single-zone `heat_loss_coefficient` (0.15), so the forecast summary's
+> # typical heat loss rises by 0.19/0.15 and `solar_fraction` falls. Two leaves
+> # are deterministic and moved in every environment measured:
+> # solar_reduction_factor 0.98877 -> 0.991134 and pre_heat_urgency
+> # 0.15754 -> 0.162269, both RISE (less solar share, so less reduction and
+> # more urgency). The rest are displace_schedule leaves that move by 0.1;
+> # WHICH indices move is the solver basin's property, so it differs by BLAS
+> # build: CI (CPython 3.13, numpy 2.4.6) moved [33]; [1],[21]; [21],[41] for
+> # the three fixtures, this Darwin seat [33]; [9],[29]; [4],[5],[28],...
+> # No price, cost, outdoor, price_known or baseline_cost leaf moves.
+661c694,706
+< 
+---
+> # R10-SAV-BASELINE (#2255): this branch claims the fixtures below. The
+> # thermostat reference now starts from the state it would have held (zones at
+> # the step's comfort target, slab at the temperature that delivers that
+> # demand) rather than from the plan's measured start, and the start's
+> # stored-heat gap is settled as the end's is, debited past the caps by at most
+> # the thermostat's horizon cost. baseline_cost (a MAY_DRIFT_JUDGED_KEY) moves
+> # in every plan fixture, so each may-drift entry among them is suspended above
+> # with its restore obligation; deferred_energy_cost, predicted_savings and
+> # savings_percentage follow. The reference is reported, never optimised, but
+> # its energy seeds three of the space solve's starts (`baseline_energy`), so a
+> # plan can land in another basin: valve_storage_low_target does, at a lower
+> # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
+> # plan leaves are their own machine-sensitive ones. No coord_* capture moves.

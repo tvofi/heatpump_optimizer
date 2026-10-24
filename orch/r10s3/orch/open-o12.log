@@ -1,0 +1,2 @@
+===== daemonize pid=77875 2026-10-18T12:04:12Z argv: bash tools/audit/seat/open_pr.sh r10-bus-orphans-force e73f506d161451c7cd2ba05ec17e5e67c476be16 R10-BUS-ORPHANS-FORCE: bus.sh fetches rewritten refs and update_pr restores a missing delivery row R10-BUS-ORPHANS-FORCE
+PR=2400 HEAD=3b4c0fabfc12640e97f96fa581c0923dc4e27e2f AUTHOR=tvofi

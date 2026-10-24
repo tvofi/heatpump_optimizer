@@ -1,0 +1,8 @@
+Fix reviewer for PR #2663, a roster batch (branch fix/audit-r10-roster-pr3), head a487ee67b5c310276f5652c4180033893b9ce217. It lands 10 append-carry commits from handoff/audit-r10-roster onto main 4c31eb16, the same shape as PRs #2655 and #2661. The only files are dev/programme/rosters/wave-r10-groups.json and the delivery row dev/programme/delivery/2663.md. Follow dev/governance/roles/fix-review.md exactly, from a detached worktree at the head. Your ev/ MUST contain ev/HEAD.txt holding the full 40-hex head, or the relay refuses the verdict.
+
+Verify:
+(1) Three-dot diff `git diff $(git merge-base origin/main HEAD)...HEAD`: only the roster and the delivery row. Any other file blocks the PR.
+(2) Use jq over both rosters. Each of the 9 changed groups gains only appended carries, with no stage, brief or `after` change. Each carry's text matches its roster_edit commit message source, and each cites a real source: the #2632 review (R10-LIVESTATE, R10-FLY-SUITE-ENV-FLAKES), the RCA raise-gate grammar (R10-POLICY-LINT-FAMILY), triage P-N (R10-FLOW-JIDOKA), triage P-O (R10-FLY-RELAY-REVIEW-FF), and the others the commits name. Any SHA, file or line a carry cites must exist at origin/main or on the ref it names.
+(3) Null control: nothing main wrote to the roster since the merge base is lost. Group count before and after is 169, and no group is removed.
+(4) `node tools/policy/brief_lint.mjs` on the roster reports 0 errors. Record the scoped-gate MODE line. Read CI with one bulk check-runs call. The merge-tree against origin/main is clean, VERSION is untouched, and the commits carry no footers.
+Rules: PREPR_SKIP_CLOSURES=1; spare the GitHub API; no Claude footers.

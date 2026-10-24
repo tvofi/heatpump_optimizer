@@ -1,0 +1,80 @@
+﻿2026-10-23T07:33:17.4987900Z Current runner version: '2.338.0'
+2026-10-23T07:33:17.5005698Z ##[group]Runner Image Provisioner
+2026-10-23T07:33:17.5006246Z Hosted Compute Agent
+2026-10-23T07:33:17.5006632Z Version: 20261012.601
+2026-10-23T07:33:17.5007078Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-23T07:33:17.5007516Z Build Date: 2026-10-12T17:48:21Z
+2026-10-23T07:33:17.5007961Z Worker ID: {db0aa065-08a5-4f23-b3f7-8525105c9c4a}
+2026-10-23T07:33:17.5008429Z Region: centralus
+2026-10-23T07:33:17.5008793Z Cloud: Azure
+2026-10-23T07:33:17.5009175Z ##[endgroup]
+2026-10-23T07:33:17.5010184Z ##[group]Operating System
+2026-10-23T07:33:17.5010825Z Ubuntu
+2026-10-23T07:33:17.5011161Z 24.04.5
+2026-10-23T07:33:17.5011663Z LTS
+2026-10-23T07:33:17.5012015Z ##[endgroup]
+2026-10-23T07:33:17.5012352Z ##[group]Runner Image
+2026-10-23T07:33:17.5012718Z Image: ubuntu-24.04
+2026-10-23T07:33:17.5013140Z Version: 20261012.334.1
+2026-10-23T07:33:17.5013904Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-23T07:33:17.5014844Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-23T07:33:17.5015390Z ##[endgroup]
+2026-10-23T07:33:17.5016146Z ##[group]GITHUB_TOKEN Permissions
+2026-10-23T07:33:17.5017587Z Contents: read
+2026-10-23T07:33:17.5017953Z Metadata: read
+2026-10-23T07:33:17.5018302Z ##[endgroup]
+2026-10-23T07:33:17.5019707Z Secret source: Actions
+2026-10-23T07:33:17.5020274Z Cache mode: write
+2026-10-23T07:33:17.5020900Z Prepare workflow directory
+2026-10-23T07:33:17.5239113Z Prepare all required actions
+2026-10-23T07:33:17.5271126Z Getting action download info
+2026-10-23T07:33:17.7874761Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-23T07:33:17.8603725Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-23T07:33:17.9868027Z Download action repository 'actions/cache@caa296126883cff596d87d8935842f9db880ef25' (SHA:caa296126883cff596d87d8935842f9db880ef25)
+2026-10-23T07:33:18.1461922Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-23T07:33:18.3594823Z Complete job name: coverage
+2026-10-23T07:33:18.4067939Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-23T07:33:18.4068438Z with:
+2026-10-23T07:33:18.4068664Z   fetch-depth: 0
+2026-10-23T07:33:18.4068923Z   repository: tvofi/heatpump_optimizer
+2026-10-23T07:33:18.4071122Z   token: ***
+2026-10-23T07:33:18.4071353Z   ssh-strict: true
+2026-10-23T07:33:18.4071726Z   ssh-user: git
+2026-10-23T07:33:18.4071969Z   persist-credentials: true
+2026-10-23T07:33:18.4072230Z   clean: true
+2026-10-23T07:33:18.4072478Z   sparse-checkout-cone-mode: true
+2026-10-23T07:33:18.4072759Z   fetch-tags: false
+2026-10-23T07:33:18.4073001Z   show-progress: true
+2026-10-23T07:33:18.4073261Z   lfs: false
+2026-10-23T07:33:18.4073488Z   submodules: false
+2026-10-23T07:33:18.4073734Z   set-safe-directory: true
+2026-10-23T07:33:18.4074012Z   allow-unsafe-pr-checkout: false
+2026-10-23T07:33:18.4074368Z ##[endgroup]
+2026-10-23T07:33:18.4699493Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-23T07:33:18.4700824Z ##[group]Getting Git version info
+2026-10-23T07:33:18.4701270Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-23T07:33:18.4702120Z [command]/usr/bin/git version
+2026-10-23T07:33:18.4740986Z git version 2.55.0
+2026-10-23T07:33:18.4752279Z ##[endgroup]
+2026-10-23T07:33:18.4760673Z Temporarily overriding HOME='/home/runner/work/_temp/dcfd2897-d404-49c2-81eb-a200c1568216' before making global git config changes
+2026-10-23T07:33:18.4761933Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-23T07:33:18.4764009Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-23T07:33:18.4811207Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-23T07:33:18.4812533Z ##[group]Initializing the repository
+2026-10-23T07:33:18.4814088Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-23T07:33:18.4883785Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-23T07:33:18.4884378Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-23T07:33:18.4884884Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-23T07:33:18.4885382Z hint: call:
+2026-10-23T07:33:18.4885741Z hint:
+2026-10-23T07:33:18.4886038Z hint: 	git config --global init.defaultBranch <name>
+2026-10-23T07:33:18.4886374Z hint:
+2026-10-23T07:33:18.4886692Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-23T07:33:18.4887428Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-23T07:33:18.4888080Z hint:
+2026-10-23T07:33:18.4888444Z hint: 	git branch -m <name>
+2026-10-23T07:33:18.4888858Z hint:
+2026-10-23T07:33:18.4889402Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-23T07:33:18.4890404Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-23T07:33:18.4894033Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-23T07:33:18.4928284Z ##[endgroup]

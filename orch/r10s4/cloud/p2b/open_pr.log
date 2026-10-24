@@ -1,0 +1,5 @@
+start 2026-10-23T11:30:43Z
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b/wt' already exists
+open_pr: STOPPED: line 41 exited 128: git worktree add -q -b $BR $WT $C
+rc=128 end 2026-10-23T11:30:46Z

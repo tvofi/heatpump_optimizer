@@ -1,0 +1,389 @@
+# Architecture
+
+For anyone reading or changing the code. If you want to know what the
+integration does rather than how it is built, start with
+[how-it-works.md](how-it-works.md).
+
+The shape is a thin Home Assistant layer wrapped around a much larger core that
+knows nothing about Home Assistant: 81 modules, of which 28 import the
+`homeassistant` package at module level, one more touches it inside a single
+function, and the rest take numbers in and give numbers back. The glue reads
+entity states, writes actuators and persists learned state. Keeping those two
+apart is what lets the model and the optimizer be driven directly by the test
+suite, with no Home Assistant running.
+
+## How the pieces fit
+
+```mermaid
+flowchart TB
+    subgraph outside["Outside the integration"]
+        tibber["Tibber or a price entity<br/>published hourly prices"]
+        weather["HA weather entity<br/>temperature, wind, rain,<br/>forecast irradiance"]
+        meteo["Open-Meteo<br/>15-minute irradiance<br/>+ satellite observation"]
+        pump["Heat pump<br/>mode, set-points, power switch"]
+        card["Dashboard card<br/>www/"]
+    end
+
+    subgraph ha["Home Assistant boundary — side effects live here"]
+        states["Entity states<br/>temperatures, power, tank probes,<br/>presence, humidity"]
+
+        subgraph glue["Integration glue — imports homeassistant"]
+            entities["Entity layer<br/>81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+            ui["config_flow · services · frontend<br/>repairs · diagnostics · notifier"]
+            reader["inputs.py — InputReader<br/>freshness and unit guards"]
+            coord["coordinator.py<br/>HeatPumpOptimizerCoordinator<br/>the orchestration seam"]
+            arbiter["pump_arbiter.py<br/>pump mode and set-points<br/>on opt-in"]
+            store["store.py — QuarantiningStore<br/>the one persistence boundary"]
+        end
+    end
+
+    subgraph core["Pure core — no homeassistant import"]
+        model["thermal_model.py<br/>ThermalModel<br/>house, slab, buffer, DHW tank, COP"]
+        opt["optimizer.py · dhw_planner.py<br/>HeatPumpOptimizer.optimize · DhwPlanner<br/>LP for hot water, L-BFGS-B for space"]
+        prices["price_model · tariff · grid_fee · ledger<br/>spot price, learned tail,<br/>transfer fee, capacity peak"]
+        worker["process_worker.py<br/>one-shot solve interpreter"]
+    end
+
+    subgraph learn["Learners — called by the coordinator"]
+        learners["accuracy · comfort_learning · curve_learning<br/>defrost · dhw_draws · dhw_learning<br/>drift · snapshots · sysid"]
+    end
+
+    states --> reader
+    reader --> coord
+    entities -- "entity actions" --> coord
+    ui -- "services call in" --> coord
+
+    tibber --> coord
+    weather --> coord
+    meteo --> coord
+
+    card -- "services: apply_manual_plan,<br/>simulate_plan, assign_entity" --> ui
+    entities --> card
+
+    coord --> prices
+    coord --> model
+    prices --> opt
+    model --> opt
+    coord -- "SolveInputs" --> worker
+    worker --> opt
+    opt --> coord
+
+    coord -->|"prediction vs realised"| learners
+    learners -->|"learned corrections"| coord
+    learners -. "learner state" .-> store
+    coord -->|"save"| store
+    store -->|"restore"| coord
+
+    coord --> arbiter
+    arbiter --> pump
+    coord --> pump
+    coord --> entities
+```
+
+Read the diagram as four regions.
+
+- **Outside the integration** are the things the integration talks to: the
+  price source, the weather entity, Open-Meteo, the heat pump's own controls
+  and the dashboard card. Each is reached through a Home Assistant entity or
+  service, never imported.
+- **The Home Assistant boundary** is where side effects live.
+  `inputs.InputReader` performs every entity read;
+  `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
+  calls the core and then writes; `pump_arbiter` writes the pump's mode and
+  set-points and owns the power switch; `store.QuarantiningStore` is the
+  persistence boundary; `open_meteo.py` owns the network client; `issues.py`
+  and `repairs.py` own the repair registry.
+- **The pure core** — the model, the optimizer, the price and tariff
+  arithmetic and the one-shot solve worker — takes plain numbers and returns
+  plain numbers. No module there imports `homeassistant`.
+- **The learners** consume the coordinator's evidence and return corrections.
+  Most are pure; three still import `homeassistant` at module level —
+  `accuracy` and `defrost` for the clock, `dhw_learning` for the clock and the
+  `HomeAssistant` type — so the glue calls them and they never call the glue.
+
+## The module map
+
+```text
+custom_components/heatpump_optimizer/
+├── __init__.py           # Setup and unload, the 13 services, entry migrations
+├── const.py              # Every config key, default and tuning constant
+├── entry_config.py       # The entry's configuration, parsed once: one default
+│                         #   and one coercion per key
+├── store.py              # The store-load boundary: a Store whose loads refuse
+│                         #   non-finite numeric leaves
+├── config_flow.py        # Setup flow plus 23 option pages behind two menus
+├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
+├── payload.py            # The typed contract of the payload the coordinator publishes
+├── notifier.py           # The documented events, fired from the payload on each update
+├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
+├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── plan_step.py          # The plan step: its width, and which step an instant
+│                         #   falls in, for the solve and the pump arbiter
+├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
+├── batchmath.py          # The batched row reduction every batch twin owes its scalar
+├── process_worker.py     # One-shot interpreter for GIL-bound solves
+├── open_meteo.py         # Irradiance forecast and satellite observation client
+├── inputs.py             # Guarded state reads with a staleness watchdog
+├── issues.py             # The repair-notice writer: raise, clear, the docs link
+├── log_latch.py          # The transition latch for persisting conditions logged at WARNING
+├── comfort_band.py       # The band's cross-field rules, shared by the config
+│                         #   flow, the apply_schedule service and the thermostat
+│
+│   # Prices, tariffs and money
+├── price_model.py        # Learned diurnal price shape for the unpublished tail
+├── price_tiles.py        # The what-if price tiles: a degree held, over 30 days
+├── tariff.py             # Monthly capacity (effekt) tariff and peak tracking
+├── grid_fee.py           # Time-of-use DSO transfer fees layered on the spot price
+├── ledger.py             # Month-keyed ledger of settled energy and money
+├── currency.py           # The one place the display currency is decided
+├── wear.py               # Compressor start counting and the wear price it implies
+├── wood_fuel.py          # Firewood price and the cheaper-than-pump rule
+│
+│   # Weather, sun and hot water
+├── pv.py                 # PV production model and marginal-cost pricing
+├── defrost.py            # Learned COP and capacity derate in the frosting band
+├── dhw_schedule.py       # Demand-window parsing, merging and evaluation
+├── dhw_draws.py          # Learned per-window draw quantiles, including heavy days
+├── dhw_learning.py       # The hot-water learner: hourly draw profile, day types,
+│                         #   standby rate, and the stores that persist them
+│
+│   # Plumbing and layout
+├── mixing_valve.py       # The valve that lets a buffer tank actually store heat
+├── topology.py           # One description of the configured system, shared by
+│                         #   every picture of it
+├── pump_schedule.py      # Hot-water circulation and space pump windows
+│
+│   # Learning, evidence and self-checks
+├── accuracy.py           # Predicted versus realised, recorded per interval
+├── draw_range.py         # The metered running draw, and the range it clamps a plan to
+├── diagnosis.py          # One-input-at-a-time attribution of the last interval's error
+├── drift.py              # The CUSUM primitive shared by every drift detector
+├── snapshots.py          # Weekly learner snapshots and the rollback alarm
+├── comfort_learning.py   # Revealed-preference comfort-weight tuning
+├── curve_learning.py     # Standing cool-only bias on the ECL110 heat curve
+├── sysid.py              # Active step-response identification
+├── presets.py            # Building archetypes to thermal parameters
+├── external_heat.py      # Wood-furnace detection with hysteresis and decay
+├── setpoint_check.py     # Disinfection set-point consistency: configured vs live
+│
+│   # The pump's own account of itself
+├── pump_mode.py          # Operating-mode vocabulary: can it heat, can it make
+│                         #   hot water right now
+├── pump_signals.py       # Mode, defrost, online and fault slots read together
+│                         #   and resolved to the decisions the rest of the
+│                         #   integration asks
+├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
+│                         #   plan step, and stands down on a manual change
+├── early_cutoff.py       # Switches a space-heating pump off inside the
+│                         #   interval once the room passes its threshold
+├── flow_lift.py          # Supply and return water: how far the real supply
+│                         #   sits from the model's own weather curve
+├── flow_meter.py         # The water flow sensor: thermal output from flow,
+│                         #   supply and return, when no power or frequency
+│                         #   signal exists
+├── silent_mode.py        # The pump's silent-mode schedule as a ceiling on
+│                         #   the plan's power
+├── quiet_windows.py      # The user's silent and off windows: per-step
+│                         #   actions, the silent cap, the off mask, and
+│                         #   the save-time overlap rules
+├── modbus_prefill.py     # Option values a GCHV pump's Modbus registers
+│                         #   suggest, for the options flow's pre-fill page
+├── device_prefill.py     # The same suggestions from a heat-pump DEVICE's
+│                         #   entity-registry records, one table per source
+├── name_match.py         # The fallback: the roles a device's entity NAMES
+│                         #   can fill where no table proves its model, and
+│                         #   the disclaimer that says so on the page
+├── prefill_offer.py      # Whether a device is worth OFFERING that pre-fill
+│                         #   when the integration is set up: the qualifying
+│                         #   minimum, read off the corpus measurement
+├── quick_setup.py        # The quick-setup page's answer-to-config mapping:
+│                         #   house questions to option keys, through presets
+│
+│   # People, safety and actuation
+├── away.py               # Away state, return time and deadline-driven recovery
+├── boost.py              # Two-hour maximum-heat overlays, hot water or space
+├── manual_plan.py        # Pinned run slots, and what safety may still release
+├── power_guard.py        # Live peak protection inside the metering window
+├── freq_control.py       # Inverter frequency: observe first, actuate only on opt-in
+├── battery.py            # The thermal stores, published as a virtual battery
+├── narrative.py          # The plan told in sentences, grouped by reason
+├── legionella.py         # The anti-legionella cycle: when it runs, what it refuses
+├── disinfection.py       # The pump's own disinfection switch: observe first,
+│                         #   turned on and off by the cycle only on opt-in
+│
+│   # Home Assistant entities and frontend
+├── entity.py             # The shared entity base every platform builds on
+├── sensor.py             # 62 sensors
+├── binary_sensor.py      # Away Mode, External Heat Source, Input Problem,
+│                         #   Mold Floor Breach, Open Window Detected,
+│                         #   Wood Cheaper Than Heat Pump
+├── button.py             # Optimize now, run identification, reset comfort
+│                         #   weight, diagnose last interval; finalize the
+│                         #   debug collection while that option is on
+├── climate.py            # Virtual climate entity: modes, presets, DHW status
+├── switch.py             # Away, Block DHW, Block Space Heating,
+│                         #   Boost Space Heating, DHW Boost, Optimizer Active
+├── datetime.py           # The away-override return instant, as one datetime entity
+├── frontend.py           # Serves and registers the Lovelace card
+├── services.py           # The domain's 13 services: schemas, handlers and registration
+├── debugger.py           # A week of cycle rows for one entry, kept across a
+│                         #   reload and carried by Download diagnostics
+├── replay_doc.py         # The replay document's allowlist and sanitiser, one
+│                         #   copy for that bundle and the repository's export
+├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
+├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
+│
+├── www/                  # The dashboard card, one self-contained file
+├── brand/                # Icon and logo
+├── icon.png              # Integration icon
+├── services.yaml         # The 13 service definitions
+├── strings.json          # UI strings
+├── translations/
+│   ├── en.json           # English
+│   └── sv.json           # Swedish
+└── manifest.json         # Integration manifest
+```
+
+## The Home Assistant boundary
+
+28 of the 81 modules import `homeassistant` at module level: `__init__`,
+`config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
+platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
+and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
+`dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `issues`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
+`store`. One module outside that set touches it at all: `inputs`
+reaches for `homeassistant.util.dt` inside a function, as the fallback when no
+clock function was injected.
+
+The other 52 modules are deliberately free of it, so each can be driven
+directly by `tests/features.py` with no Home Assistant running. That matters
+because the failure mode of this integration is a *plausible* plan: a detector
+that never fires, or a watchdog that lets a flatline through, produces output
+that looks entirely normal. Only a mechanism-level test catches it.
+
+## The three big ones
+
+**`coordinator.py`** is the update loop, and the only module that talks to
+almost everything else. Each interval it reads the configured entities through
+`inputs`, fetches Tibber prices and the weather forecast, refreshes Open-Meteo
+irradiance when that is the selected source, folds any newly complete price day
+into the learned price shape, runs the optimization, applies the first step to
+the heat pump, and compares last interval's prediction with what actually
+happened so the learners have something to learn from. What it publishes is
+composed from small per-domain views — thermal, DHW, learning, measurement,
+grid, ECL110, external heat, health — rather than one long literal.
+
+**`thermal_model.py`** holds the physics: two zones with their own masses and
+losses, the slab, the buffer tank, the mixing valve when one is configured, the
+DHW tank with its draws and standby losses, and the COP model with its learned
+derates. It is a simulator, not a controller — it answers "if this much power
+goes in for this long, where does everything end up".
+
+**`optimizer.py`** does the solve. Hot water is planned first as a deferrable
+on/off load, by a linear program plus a cheapest-first repair against the real
+tank simulation -- the `DhwPlanner` in `dhw_planner.py`, built once per solve
+from that solve's inputs; space heating is then optimized around those fixed blocks by
+multi-start L-BFGS-B; and one co-optimization pass re-plans hot water where the
+two competed for the compressor. Comfort bounds are soft penalties rather than
+hard constraints, so a cold morning can never be infeasible.
+
+## How a plan is made
+
+```text
+prices ─┐
+weather ┼─► coordinator._forecast_arrays() ──► ForecastArrays ──► optimizer.optimize()
+solar  ─┘        │                                                    │
+                 ├─ learned price shape fills the unpublished tail    ├─ with hot water:
+                 ├─ PV surplus replaces the import price              │    plan the tank by LP,
+                 └─ Open-Meteo overrides irradiance by timestamp      │    then solve space
+                                                                      │    around it, then
+                                                                      │    re-plan the tank
+                                                                      │    against contention
+                                                                      └─ without: solve directly
+                                                                             │
+   entities ◄── coordinator._build_data_dict() ◄── OptimizationResult ◄──────┘
+                     │
+                     └─ composed from per-domain views (thermal, dhw, learning,
+                        measurement, grid, ECL110, external heat, health)
+```
+
+Both optimizer paths share one set of cost terms — the comfort penalty, the
+terminal cost, the cycling and capacity charges — so enabling hot water cannot
+change the space-heating objective. That is not hypothetical tidiness: it used
+to, and the two objectives had silently drifted apart.
+
+## Why the version floor is where it is
+
+The floor used to be whatever the newest Home Assistant API the integration
+provably used demanded — `ConfigEntry.runtime_data`, which put it at 2024.6.0.
+That rule left the *Python* range undeclared and untested: 2024.6.0 implied
+Python 3.12, CI ran only 3.13, and reported installations run 3.14, so neither
+end of the implied range was exercised.
+
+The floor is chosen by the Python range instead, which reverses the inference.
+**2025.2.0 is the first Home Assistant release whose own `pyproject.toml` says
+`requires-python = ">=3.13.0"`** — 2024.12.0 and 2025.1.0 both still say
+`>=3.12.0`, and 2025.8.0 says `>=3.13.2`. So 2025.2.0 is the lowest Home
+Assistant that can guarantee the declared Python 3.13, and it is comfortably
+above the 2024.6.0 that `runtime_data` needs.
+
+`tests/entities.py` pins the README's requirement line, its badge and the
+`hacs.json` floor to the interpreters CI actually runs, so none of this can rot
+away from the measurement.
+
+One consequence: config-flow `section()` grouping was rejected in part because
+the floor predated it. At 2025.2.0 that objection is gone. The compatibility
+shims written for older releases are left in place — removing them is a
+separate change.
+
+## Where the architecture is measured
+
+These instruments keep this page honest:
+
+- `tests/entities.py` derives the module count, the importer set, the
+  option-page count, the service count and the entity census from the tree,
+  and fails a page that disagrees. It also checks that the module map lists
+  every module and that the switch and binary-sensor rows name every entity
+  their platforms construct.
+- `tests/doc_claims.py` scans every count of a tree-measurable set across the
+  reader docs, so a stale number here is a red check wherever it is written.
+- `tests/doc_claims.py` also checks this page's wiring: every repository path
+  it names resolves or carries a marker naming the roster group that lands it,
+  and every diagram opens with a known type and names only nodes it declares.
+- [`tools/audit/archscore/ABOUT.md`](../tools/audit/archscore/ABOUT.md)
+  describes the architecture score, `tools/audit/archscore/`. It prices the coordinator and the
+  structures around it; a decomposition elsewhere — the optimizer, for
+  example — reads NULL. It is a review trigger, never a target a seat is
+  rewarded for moving, and it is a required check on a pull request.
+
+## The shape at programme end
+
+The page above describes `main`. The round-10 roster still holds groups that
+change the shape of the code, and each change below is marked with the group
+that lands it, so R10-ARCH-DOCS can resolve every line once its group is done.
+No group in the roster adds a module, so the module map above is already the
+module set at programme end.
+
+- **One owner of the thermal parameters**, copied on write, so a service call cannot publish a torn or unclamped set across its await, and the coordinator context is written once [target: R10-PARAMS-OWNER]
+- **The live state published whole**: the thermal state, the away state and the event callbacks publish a copy, and each collaborator owns its own fields [target: R10-LIVESTATE]
+- **One owner per duplicated shape**: a power reader in `inputs` that refuses a non-finite or out-of-range reading, one hour-clock owner and one finite-float owner [target: R10-ARCH-SHAPES]
+- **Payload mixins on the entity base**: the finite scrub, the value and path mixins and the zone set-point attributes, shared by the sensors that each carried their own guard [target: R10-SENSOR-PAYLOAD]
+- **A delivered-heat meter input**: measured COP from heat over electric energy, split into hot water and space by the pump's mode [target: R10-HEAT-METER]
+- **An honest COP state**: "not measurable here" where no meter makes COP observable [target: R10-COP-GATE]
+- **One rule for scores**: no evidence is a dash with a reason, never zero, and one view model behind the scores, Savings, Advisor and Health [target: R10-SCORES]
+- **Learner progress in the payload**: phase, progress and what each learner waits for [target: R10-LEARNER-ETA]
+- **One options page template** driven by the field registry [target: R10-CONFIGFLOW-PAGES]
+
+## Where to start reading
+
+- Changing what the optimizer *wants*: `optimizer.py`, then the cost terms in
+  its module docstring.
+- Changing what the house *does*: `thermal_model.py`.
+- Adding a setting: `const.py` for the key and default, `config_flow.py` for
+  the page it belongs on, then wherever it is read.
+- Adding an entity: the platform module, plus `translations/en.json` and
+  `sv.json` for its name — display names come from the translation key, and
+  `tests/entities.py` pins the entity counts the README publishes against the
+  entities the platforms actually construct.
+- Running or extending the test suite: [tests/README.md](../tests/README.md)
+  covers the gate, the scoping closures and what each script is for.

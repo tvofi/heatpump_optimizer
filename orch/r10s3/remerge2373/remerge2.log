@@ -1,0 +1,10 @@
+===== daemonize pid=22010 2026-10-18T19:50:20Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/remerge_main.sh 2373 /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage-p4 fix/r10-archscore-coverage-p4 /Users/timmalmstrom/hpo-orch/r10s3/remerge2373/body.md
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (119 entries)
+  closures.tests/doc_claims.py: merged as a set (153 entries)
+  closures.tests/entities.py: merged as a set (325 entries)
+  re-run the gate that owns this file before pushing
+app_push: RECARRY: prepr RUNS: the body file is not the live pull-request body
+  REFUSE   pr-body                  ERROR   [pr-body] --paths-file /tmp/prepr-paths.23169 is empty. A pull request changes at least one file; an empty list means the derivation failed. -- no budget leaf raised over 07a09406a...2adb8cc6f
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+RESULT pr=2373 head=e14a378c12e5d292c1f564bc9100ecb0de39bd76

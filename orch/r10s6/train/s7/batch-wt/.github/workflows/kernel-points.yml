@@ -1,0 +1,110 @@
+name: Kernel points
+
+# The OpenBLAS kernel matrix behind tests/optimality.py's ftol bound (#1725,
+# D2-s2-01's ruling, #201 comment 6240984157 step 2). The stop-rule gap moves
+# with the DYNAMIC_ARCH kernel's summation order, so a bound on it is half the
+# smallest gap measured across kernels -- and the CI runner's own kernel plus
+# the three x86 kernels OpenBLAS can be forced to are points no dev box
+# reaches. dev/audit/harnesses/k1725_blas_kernel_gap.py prints them.
+#
+# On demand only, and never required: the `kernel-points` label put on a pull
+# request, a push to a pull request that carries it, or a manual dispatch. It is
+# not in the required set and runs on no unlabelled push, so it costs nothing on
+# an ordinary pull request and cannot hold a merge; it exists to re-derive the
+# bound when the solver's numerics move. The push arm is what makes the label a
+# standing request: a `labeled` event runs at the head of that moment, so a
+# label put on before this file reached the head -- #2368's, at 74f23814e -- or
+# a head that moves after it, otherwise gets no run, or a matrix of a tree that
+# is no longer the pull request.
+#
+# This file is a callee of ci.yml (DESIGN-P2 2.1, A2): `workflow_call` for the
+# umbrella's `kernel-points` job, which passes the prelude's `pr`, `base` and
+# `head`, and `workflow_dispatch`. The `labeled`/`synchronize` choice is
+# tools/ci/prelude.py's workset, so no label test is made here, and the caller
+# is `if:`-guarded on it. The `pull_request` trigger and this file's
+# `cancel-in-progress` group are gone: the umbrella's run-id groups cancel
+# nothing (N1), and a superseded run is `cancel-superseded`'s. The unit's job
+# carries the matrix as it was.
+
+on:
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR this ref heads; required off main (A2 item 4)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  kernel-points:
+    name: kernel-points (${{ matrix.coretype }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # A measurement, never a verdict: no `gate` REQUIRED row names this job, so
+    # the pull request's own harness copy needs no pin (codeowners_gap.py's
+    # rule, which refuses the marker on any required context). Since ci.yml
+    # calls it on a labelled pull request (R10-CI-LAYOUT P2b, U11), the
+    # reachability the job's old event `if:` hid is read.
+    env:
+      HPO_JOB_GRADES: nothing
+    strategy:
+      fail-fast: false
+      matrix:
+        # `native` leaves OPENBLAS_CORETYPE unset: the kernel the runner's own
+        # CPU selects, the one the `fast` job's optimality.py run sees.
+        coretype: [native, Haswell, Sandybridge, Nehalem]
+    steps:
+      # The ref guard (4.3 item 5, A2 item 4). A dispatched run at a pull
+      # request's head, with no `pr` named, would leave a red that
+      # `pr-contract` cannot attribute. `inputs.pr` is the caller's under
+      # `workflow_call`, whose event is the caller's.
+      - name: Ref guard
+        if: >-
+          github.event_name == 'workflow_dispatch'
+          && github.ref != 'refs/heads/main'
+          && inputs.pr == ''
+        run: |
+          echo "::error::dispatch off main must name the pull request (-f pr=N)"
+          exit 1
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+
+      # The same hash-pinned resolution the `fast` job installs, so the
+      # kernel is the only thing that differs from the gate's own run.
+      - name: Install dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Run the kernel harness
+        env:
+          CORE: ${{ matrix.coretype }}
+        run: |
+          if [ "$CORE" != native ]; then export OPENBLAS_CORETYPE="$CORE"; fi
+          PYTHONPATH=tests/hastub python3 dev/audit/harnesses/k1725_blas_kernel_gap.py | tee kernel-points.log
+          {
+            echo "### kernel-points ($CORE)"
+            echo '```'
+            grep -E '^(environment:|RESULT)' kernel-points.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

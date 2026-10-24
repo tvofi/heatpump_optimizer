@@ -1,0 +1,7 @@
+===== daemonize pid=15944 2026-10-21T06:14:38Z argv: bash -c W=/Users/timmalmstrom/hpo-seats/r10s3/roster-r10; python3 tools/audit/seat/roster_edit.py append-carry R10-CI-LAYOUT @/Users/timmalmstrom/hpo-orch/r10s3/orch/carry/ratchet-flap-distribution.txt --worktree $W --push --message "roster: R10-CI-LAYOUT carries the ratchet flap distribution, so no raise is re-recorded on one window"
+roster_edit: LINT GATE REFUSED the push
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 1 error(s) across 1 file(s)
+the commit is local at handoff/audit-r10-roster c108226e4a16; nothing pushed
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster

@@ -1,0 +1,2 @@
+===== daemonize pid=64423 2026-10-19T07:20:15Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-recarry-head bef08da499276ead55f0f8457479f116fa730e85 R10-RECARRY-HEAD: recarry note lands under the Head heading, not a quote of it R10-RECARRY-HEAD
+fatal: a branch named 'fix/r10-recarry-head-pr' already exists

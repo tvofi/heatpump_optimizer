@@ -1,0 +1,638 @@
+"""Shared scaffolding for the unit-style tests.
+
+The existing suite is made of end-to-end scripts that assert on outcomes. That
+catches an optimizer that gets obviously worse, but it cannot catch a detector
+that never fires, a watchdog that lets a flatline through, or a tariff model
+that charges the whole month's fee once per hour. Those need the modules driven
+directly, which is what these helpers are for.
+
+Deliberately not pytest: the rest of the suite is plain scripts so it can run
+against a real Home Assistant environment without extra tooling, and mixing two
+runners in one directory would be worse than a small amount of duplication.
+"""
+from __future__ import annotations
+
+import os
+import sys
+from datetime import datetime, timedelta, timezone
+from operator import attrgetter
+from types import SimpleNamespace
+from typing import Any
+
+sys.path.insert(0, "tests")
+sys.path.insert(0, "custom_components")
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers.typing import UNDEFINED
+
+UTC = timezone.utc
+
+
+class Results:
+    """A tiny pass/fail recorder shared by the test scripts."""
+
+    def __init__(self, title: str) -> None:
+        self.title = title
+        self.failures = 0
+        self.checks = 0
+        print(f"\n=== {title} ===")
+
+    def section(self, name: str) -> None:
+        print(f"\n-- {name}")
+
+    def check(self, name: str, condition: bool, detail: str = "") -> bool:
+        self.checks += 1
+        if condition:
+            print(f"  ok   {name}")
+        else:
+            self.failures += 1
+            suffix = f"  [{detail}]" if detail else ""
+            print(f"  FAIL {name}{suffix}")
+        return bool(condition)
+
+    def close(self, label: str) -> int:
+        if self.failures:
+            print(f"\n{self.failures} of {self.checks} {label} FAILED")
+            return 1
+        print(f"\nALL {self.checks} {label} PASSED")
+        return 0
+
+
+class FakeState:
+    """Stand-in for a Home Assistant state object."""
+
+    def __init__(
+        self,
+        state,
+        *,
+        last_updated: datetime | None = None,
+        last_reported: datetime | None = None,
+        unit: str | None = None,
+        attributes: dict | None = None,
+    ) -> None:
+        self.state = state
+        # Do not invent `datetime.now()`. Tests freeze InputReader at a
+        # `now=` far behind wall-clock; a default stamp of "right now" is
+        # then months ahead of that clock and #775's fail-closed gate
+        # treats every omitted timestamp as clock skew. No stamp means
+        # untimestamped, which the reader already accepts.
+        self.last_updated = last_updated
+        self.last_changed = last_updated
+        # Home Assistant sets this on every state WRITE, including one that
+        # rewrites an unchanged value, which is why InputReader prefers it.
+        # The stub had no such attribute at all, so every freshness test in
+        # the suite was silently exercising the last_updated fallback and the
+        # mechanism v5.3.0's cloud-gap argument rests on was never run.
+        # Defaults to last_updated (an entity that has only ever changed),
+        # and a test that wants a re-reporting sensor sets it explicitly.
+        self.last_reported = last_reported if last_reported is not None else last_updated
+        self.attributes = dict(attributes or {})
+        if unit is not None:
+            self.attributes["unit_of_measurement"] = unit
+
+
+class FakeStates:
+    def __init__(self, mapping: dict | None = None) -> None:
+        self._states = dict(mapping or {})
+
+    def get(self, entity_id):
+        return self._states.get(entity_id)
+
+    def set(self, entity_id, state):
+        self._states[entity_id] = state
+
+    def keys(self):
+        return self._states.keys()
+
+
+class FakeBus:
+    """The slice of ``hass.bus`` the integration touches: one-shot listeners.
+
+    Honest rather than a no-op: the listener is kept and the remove callback
+    actually removes it, so a test can fire what production registered and a
+    listener that outlives its entry is visible (#525).
+    """
+
+    def __init__(self) -> None:
+        self.listeners: list[tuple[str, object]] = []
+
+    def async_listen_once(self, event_type, listener):
+        entry = (event_type, listener)
+        self.listeners.append(entry)
+
+        def _remove():
+            if entry in self.listeners:
+                self.listeners.remove(entry)
+
+        return _remove
+
+    def listeners_for(self, event_type) -> list:
+        return [fn for kind, fn in self.listeners if kind == event_type]
+
+
+class EagerHass:
+    """A hass whose ``async_create_task`` starts the coroutine as upstream's
+    eager background task does (``eager_start=True``): it runs up to its
+    first suspension before the call returns. The fakes it drives never
+    suspend, so it completes there; one that suspends is refused."""
+
+    def async_create_task(self, coro):
+        try:
+            coro.send(None)
+        except StopIteration:
+            return None
+        coro.close()
+        raise AssertionError("a background task suspended under EagerHass")
+
+
+class FakeHass:
+    """The slice of ``hass`` the integration actually touches in these tests."""
+
+    def __init__(self, states: dict | None = None) -> None:
+        self.states = FakeStates(states)
+        self.data = {}
+        self.services = FakeServices()
+        self.config = FakeConfig()
+        self.config_entries = FakeConfigEntries()
+        self.http = FakeHttp()
+        self.bus = FakeBus()
+        self._tasks = []
+        # Kept apart from the plain executor: #525 is precisely about which
+        # of the two an import goes through, so a fake that merged them
+        # could not tell a fixed call site from the blocking one.
+        self.import_jobs = []
+
+    def async_create_task(self, coro):
+        # Nothing here awaits the setup tasks, and leaving the coroutine
+        # un-awaited emits a warning that looks like a test failure.
+        coro.close()
+        return None
+
+    async def async_add_executor_job(self, func, *args):
+        return func(*args)
+
+    async def async_add_import_executor_job(self, func, *args):
+        self.import_jobs.append(func)
+        return func(*args)
+
+
+class FakeServiceCall:
+    """The slice of ``ServiceCall`` the integration's handlers read."""
+
+    def __init__(self, domain, service, data) -> None:
+        self.domain = domain
+        self.service = service
+        self.data = dict(data or {})
+
+
+class FakeServices:
+    """Honest registration state, not a no-op.
+
+    A stub that swallows ``async_register`` cannot catch a service that is
+    registered but never removed — which is exactly the class of leak the
+    lifecycle tests exist for — so the registry is real: registration stores
+    the handler, removal deletes it, and ``async_services`` reports what is
+    actually there. ``async_call`` dispatches through the stored schema to
+    the stored handler, the way Home Assistant does, so a service test
+    exercises the handler body rather than a recording stub.
+    """
+
+    def __init__(self) -> None:
+        self.calls = []
+        self._registry: dict[str, dict] = {}
+        self._schemas: dict[tuple, object] = {}
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        handler = self._registry.get(domain, {}).get(service)
+        if handler is None:
+            return None
+        schema = self._schemas.get((domain, service))
+        payload = schema(dict(data or {})) if schema is not None else dict(data or {})
+        return await handler(FakeServiceCall(domain, service, payload))
+
+    def async_register(self, domain, service, handler, schema=None, **kwargs):
+        self._registry.setdefault(domain, {})[service] = handler
+        self._schemas[(domain, service)] = schema
+
+    def async_remove(self, domain, service):
+        self._registry.get(domain, {}).pop(service, None)
+        self._schemas.pop((domain, service), None)
+
+    def async_services(self) -> dict:
+        return self._registry
+
+
+class FakeConfigEntries:
+    """Platform forwarding is not what these tests exercise; it just has to
+    report success so the entry-level setup/unload paths can run whole. The
+    entry roster is real so service handlers that resolve their targets via
+    ``async_entries`` find the entry the test set up."""
+
+    def __init__(self) -> None:
+        self.entries = []
+        self.reloaded = []
+        # One name per async_update_entry call (#100): the options pages that
+        # stay in the dialog persist through here, and tests assert both the
+        # write and its count.
+        self.updated = []
+
+    def async_update_entry(self, entry, options=None, **kwargs):
+        """Record the write-through (#100) and apply it, as HA does.
+
+        The pre-existing tail version of this method (a generic kwargs
+        setter) silently shadowed the recording one when both were
+        defined; merged here into the one definition.
+        """
+        if options is not None:
+            kwargs["options"] = options
+        for key, value in kwargs.items():
+            if value is not UNDEFINED:  # upstream: a keyword left UNDEFINED
+                setattr(entry, key, value)
+        self.updated.append(getattr(entry, "entry_id", None))
+
+    def async_entries(self, domain=None):
+        return [
+            entry
+            for entry in self.entries
+            if domain is None or getattr(entry, "domain", domain) == domain
+        ]
+
+    def async_get_entry(self, entry_id):
+        """The entry with this id, or None -- what a service handler given an
+        ``entry_id`` resolves through (action-setup)."""
+        return next((e for e in self.entries if e.entry_id == entry_id), None)
+
+    def async_entry_for_domain_unique_id(self, domain, unique_id):
+        """The entry already configured with this unique id, or None -- what
+        the flow's duplicate guard asks (unique-config-entry)."""
+        if unique_id is None:
+            return None
+        return next(
+            (
+                e
+                for e in self.entries
+                if getattr(e, "domain", domain) == domain
+                and getattr(e, "unique_id", None) == unique_id
+            ),
+            None,
+        )
+
+    async def async_reload(self, entry_id):
+        self.reloaded.append(entry_id)
+        return True
+
+    async def async_forward_entry_setups(self, entry, platforms):
+        return None
+
+    async def async_unload_platforms(self, entry, platforms):
+        return True
+
+
+class FakeHttp:
+    def register_static_path(self, *args, **kwargs):
+        return None
+
+
+class FakeConfig:
+    latitude = 59.33
+    longitude = 18.07
+    language = "en"
+    # What a Swedish install has configured; also what the golden coordinator
+    # fixtures pin as the published currency leaf.
+    currency = "SEK"
+
+    def __init__(self) -> None:
+        # The domains whose ``async_setup`` has run on this instance, as
+        # ``hass.config.components`` records it; ``ha_setup_entry`` consults
+        # it so the domain is set up once, before its first entry.
+        self.components: set[str] = set()
+
+
+def with_config(holder: Any, changes: dict[str, Any]) -> None:
+    """Lay ``changes`` over ``holder._config`` and parse the result.
+
+    The coordinator's configuration is parsed once and frozen (#1745), so a
+    test that varies a key rebuilds it rather than writing an item into it.
+    """
+    from heatpump_optimizer.entry_config import EntryConfig
+
+    holder._config = EntryConfig.from_mapping({**holder._config, **changes})
+
+
+class FakeCoordinator:
+    """A coordinator stand-in for exercising the entity classes.
+
+    The entities are thin readers over ``coordinator.data``, so testing them
+    against a dict is both sufficient and much less brittle than constructing a
+    real coordinator, which is precisely the fixture fragility the backlog
+    warned about.
+    """
+
+    # The real coordinator's read-only views (R9-EG-B2, #1739), over the same
+    # private names a test passes as keywords. A view over a member the test
+    # did not pass raises AttributeError, as the real one would, so a
+    # ``getattr(coordinator, "thermal_params", None)`` fallback still runs.
+    thermal_params = property(attrgetter("_thermal_params"))
+    thermal_model = property(attrgetter("_thermal_model"))
+    away_state = property(attrgetter("_away_state"))
+    mold_floor_series = property(attrgetter("_mold_floor_series"))
+
+    @property
+    def effective_config(self) -> Any:
+        """The merged entry config the real coordinator was built from, parsed."""
+        from heatpump_optimizer.entry_config import EntryConfig
+
+        return EntryConfig.from_mapping(getattr(self, "_config", None) or {})
+
+    def __init__(self, data: dict | None = None, **extra) -> None:
+        self.data = data
+        self.device_info = {"identifiers": {("heatpump_optimizer", "test")}}
+        self.optimization_running = False
+        self.system_identification_active = False
+        # Mirrors DataUpdateCoordinator: True until a refresh fails. Lets
+        # entity tests flip it and watch ``super().available`` conjunctions.
+        self.last_update_success = True
+        self.pressed = []
+        # What the real coordinator resolves from hass.config at construction.
+        self.currency = "SEK"
+        # ``coordinator.hass``, which the gap advisor reads the language from.
+        self.hass = FakeHass()
+        # What the climate thermostat card shows as the user's target.
+        self.target_temperature = 21.0
+        # What `configured_dhw_windows()` answers: the hot-water windows as
+        # configured, in the spec grammar (a weekly one here, so a test can
+        # tell it from the flat `dhw_windows` the plan carries).
+        self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
+        # The live mode and away override the real coordinator holds, which
+        # change at once on a set call; ``data`` changes only on a refresh.
+        # With no payload the mode is the real coordinator's own default.
+        self.mode = (data or {}).get("mode", "auto")
+        self._away_state = SimpleNamespace(
+            override_active=bool((data or {}).get("away_override_active")),
+            override_return_iso=(data or {}).get("away_override_return_time"),
+        )
+        self.mode_calls: list[str] = []
+        # One entry per refresh requested: what ``on_refresh`` returned when
+        # it was asked for (a test sets it to read what had been published).
+        self.refreshes: list = []
+        self.on_refresh = None
+        self.away_calls: list[dict] = []
+        self.boost_calls: list[dict] = []
+        # The month figures the accumulators publish (#4): None until a test
+        # sets them, mirroring "no bookings this month yet" on a real
+        # coordinator at month start.
+        self._month_totals: dict[str, tuple[float, float]] = {}
+        for key, value in extra.items():
+            setattr(self, key, value)
+
+    def month_channel_totals(self, line: str):
+        """The real coordinator reads this from the monthly ledger."""
+        return self._month_totals.get(line)
+
+    async def async_request_refresh(self):
+        """The real one runs the solve inline on a first call (the debouncer
+        awaits it outside its cooldown): 30 to 70 s on a Pi."""
+        self.refreshes.append(self.on_refresh() if self.on_refresh else None)
+
+    async def async_set_mode(self, mode, *, refresh=True):
+        self.mode_calls.append(mode)
+        self.mode = mode
+        if refresh:
+            await self.async_request_refresh()
+
+    async def async_set_away(self, active=None, return_time=None, *, refresh=True):
+        self.away_calls.append({"active": active, "return_time": return_time})
+        if active is not None:
+            self._away_state.override_active = bool(active)
+        if active is False:
+            self._away_state.override_return_iso = None
+        elif return_time is not None:
+            self._away_state.override_return_iso = return_time.isoformat()
+        if refresh:
+            await self.async_request_refresh()
+
+    async def async_set_boost(self, channel, active):
+        self.boost_calls.append({"channel": channel, "active": active})
+
+    async def async_set_target_temperature(self, temp):
+        self.target_temperature = float(temp)
+
+    def record_setpoint_override(self, temp):
+        self.pressed.append(f"override:{temp}")
+
+    async def async_publish_current_action(self, reason=None):
+        self.pressed.append(f"publish:{reason}")
+
+    def configured_dhw_windows(self) -> str:
+        return self.configured_windows
+
+    def configured_quiet_windows(self) -> dict[str, str]:
+        """What `configured_quiet_windows()` answers: the quiet-window
+        specs as configured (#1910). Empty by default -- the fake
+        configures no rows, which is the real coordinator's answer for an
+        install that sets none, and keeps the sensor's quiet attributes
+        absent exactly as on such an install."""
+        return {
+            "quiet_silent_windows_spec": "",
+            "quiet_off_windows_spec": "",
+        }
+
+    def describe_setup(self) -> dict:
+        """The topology the plan sensors publish for the card's setup page."""
+        return {"two_zone": False, "dhw": False, "slots": []}
+
+    async def async_run_optimization(self):
+        """The press's solve: the fake's answer is that it ran (#1644,
+        D10-s1-02 -- the button calls the action's own entry point)."""
+        self.pressed.append("force_optimization")
+        return None
+
+    async def async_arm_system_identification(self):
+        self.pressed.append("system_identification")
+
+    async def async_reset_comfort_weight(self):
+        self.pressed.append("reset_comfort_weight")
+
+
+class FakeEntry:
+    def __init__(
+        self,
+        data: dict | None = None,
+        options: dict | None = None,
+        *,
+        entry_id: str = "test_entry",
+        unique_id: str | None = None,
+    ) -> None:
+        self.data = dict(data or {})
+        self.options = dict(options or {})
+        self.entry_id = entry_id
+        self.version = 1
+        self.domain = "heatpump_optimizer"
+        self.title = "Heat Pump Optimizer"
+        # What a pre-guard entry carries: nothing. The flow's duplicate guard
+        # (unique-config-entry) sets it on entries it creates.
+        self.unique_id = unique_id
+        # Mirrors the real entry: NOT_LOADED until the manager -- here
+        # ``ha_setup_entry`` -- has run the integration's setup. Service
+        # handlers act only on LOADED entries, so a test that calls one must
+        # have gone through that path rather than ``async_setup_entry`` alone.
+        self.state = ConfigEntryState.NOT_LOADED
+        self._on_unload = []
+        # The names of the background tasks handed to the entry, in order.
+        self.background_tasks: list[str] = []
+        # Reauth flows the entry was asked to start (D10-s1-03).
+        self.reauth_starts = 0
+
+    def add_update_listener(self, listener):
+        return lambda: None
+
+    def async_start_reauth(self, hass, context=None, data=None):
+        """Upstream opens the flow once and ignores repeats; this counts calls."""
+        self.reauth_starts += 1
+
+    def async_on_unload(self, func):
+        self._on_unload.append(func)
+
+    def async_create_background_task(self, hass, target, name, eager_start=True):
+        """Upstream hands the task to ``hass`` (eagerly started) and cancels
+        it at unload; this hands it to the fake hass's ``async_create_task``,
+        closes it where there is none, and cancels a real task at unload."""
+        self.background_tasks.append(name)
+        create = getattr(hass, "async_create_task", None)
+        if create is None:
+            target.close()
+            return None
+        task = create(target)
+        if task is not None and hasattr(task, "cancel"):
+            self.async_on_unload(lambda: task.cancel() and None)
+        return task
+
+
+async def ha_setup_component(integration, hass, domain: str | None = None) -> bool:
+    """Run the domain's ``async_setup`` once per instance, as Home Assistant's
+    ``async_setup_component`` does before the domain's first entry -- that is
+    where the services are registered (action-setup). A second call on the
+    same instance is a no-op, exactly as it is there."""
+    domain = domain or getattr(integration, "DOMAIN", None)
+    if domain in hass.config.components:
+        return True
+    setup = getattr(integration, "async_setup", None)
+    if setup is not None and not await setup(hass, {}):
+        return False
+    hass.config.components.add(domain)
+    return True
+
+
+async def ha_setup_entry(integration, hass, entry) -> bool:
+    """Set an entry up the way Home Assistant's entry manager does.
+
+    The domain is set up first (``ha_setup_component``, once), then
+    ``ConfigEntry.async_setup``'s part: ``async_setup_entry``, and the state
+    moved to LOADED on success. Both halves matter to a test that drives a
+    service afterwards: the registry has to hold the handler, and the handler
+    acts only on LOADED entries. The entry is also held by
+    ``hass.config_entries`` from here on, as an entry the manager sets up
+    always is.
+    """
+    if not await ha_setup_component(
+        integration, hass, getattr(entry, "domain", None)
+    ):
+        return False
+    if entry not in hass.config_entries.entries:
+        hass.config_entries.entries.append(entry)
+    entry.state = ConfigEntryState.SETUP_IN_PROGRESS
+    ok = await integration.async_setup_entry(hass, entry)
+    entry.state = ConfigEntryState.LOADED if ok else ConfigEntryState.SETUP_ERROR
+    return ok
+
+
+async def ha_unload_entry(integration, hass, entry) -> bool:
+    """Unload an entry the way ``ConfigEntry.async_unload`` does (2024.6+).
+
+    On success the manager runs the ``async_on_unload`` callbacks, deletes
+    ``runtime_data`` and sets the state back to NOT_LOADED -- so a test that
+    reads ``entry.runtime_data`` after an unload gets the AttributeError a
+    stale reader would get in Home Assistant, not yesterday's coordinator.
+    """
+    ok = await integration.async_unload_entry(hass, entry)
+    if ok:
+        for callback in list(getattr(entry, "_on_unload", ())):
+            callback()
+        if hasattr(entry, "_on_unload"):
+            entry._on_unload.clear()
+        if hasattr(entry, "runtime_data"):
+            delattr(entry, "runtime_data")
+        entry.state = ConfigEntryState.NOT_LOADED
+    return ok
+
+
+def minutes_ago(minutes: float, now: datetime | None = None) -> datetime:
+    return (now or datetime.now(UTC)) - timedelta(minutes=minutes)
+
+
+class CapturingOptimizer:
+    """Picklable optimize() stub for dst_checks (must not live in ``__main__``)."""
+
+    def __init__(self, inner):
+        self._inner = inner
+
+    def optimize(self, *, inputs):
+        from heatpump_optimizer.optimizer import OptimizationResult
+
+        prices = inputs.forecast.prices
+        start_time = inputs.start_time
+        n = len(prices)
+        return OptimizationResult(
+            power_schedule=[1.0] * n,
+            room_temp_trajectory=[21.0] * (n + 1),
+            slab_temp_trajectory=[22.0] * (n + 1),
+            timestamps=[
+                start_time + timedelta(hours=0.25 * i) for i in range(n)
+            ],
+            prices=[float(p) for p in prices],
+            predicted_cost=1.0,
+            baseline_cost=1.0,
+            predicted_savings=0.0,
+            savings_percentage=0.0,
+            optimal_setpoints=[21.0] * n,
+            status="ok",
+        )
+
+    def get_current_action(self, result, now):
+        return self._inner.get_current_action(result, now)
+
+
+class ProcessProbeOptimizer:
+    """An ``optimize`` the solve worker can actually unpickle (#511).
+
+    ``_worker_env`` puts ``tests/`` on the child's ``PYTHONPATH`` precisely so
+    a test job can be resolved there; a stub in a script's ``__main__`` cannot
+    be, which is what makes it the negative case rather than this.
+    """
+
+    def optimize(self, *, inputs):
+        return (os.getpid(), inputs)
+
+
+class UnpicklableResult:
+    """A value the solve worker can produce but can never send home (#524)."""
+
+    def __reduce__(self):
+        raise TypeError("this result refuses to pickle")
+
+
+def unpicklable_result_job(*positional, **keywords):
+    """A job the child resolves and runs; only its RESULT will not pickle."""
+    return UnpicklableResult()
+
+
+class UnpicklableResultOptimizer:
+    """``optimize`` succeeds in the child and its result cannot come back.
+
+    The sibling of ``ProcessProbeOptimizer``: same import story, so the only
+    thing under test is what the worker does with a reply it cannot pickle.
+    """
+
+    def optimize(self, *, inputs):
+        return UnpicklableResult()

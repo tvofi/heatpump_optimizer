@@ -1,0 +1,12 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18206
+  max_class_loc: 8457 + both deltas = 8446
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/const.py
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+  REFUSE   unpinned sites         `## Unpinned sites` omits: custom_components/heatpump_optimizer/coordinator.py:5124 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:5128 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:5135 GUARD_OFF; custom_components/heatpump_optimizer/coordinator.py:5142 CMP_BOUND*2; custom_components/heatpump_optimizer/coordinator.py:5142 GUARD_OFF
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ratio-anchor.log

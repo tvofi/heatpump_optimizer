@@ -1,0 +1,99 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/next-batch.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b3 pid=96973 start=2026-10-19T00:20:22Z
+BATCH 20261019-002022 pid=97000 base=main queue=4 (#2390 #2368 #2408 #2399) --overlap --skip-bad
+OVERLAP: main at fa5026c42e1e is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2368 policy: budget files changed (tests/stress_budgets.json): the owner's review does not sit at this head (no decisive review by tvofi (id 70032254) on this pull request); a raise is the owner's (0013)
+PARK #2408 policy: policy paths changed (.claude/rules/finding-propagation.md, dev/governance/roles/fix-review.md, dev/governance/roles/orchestrator.md, dev/governance/rules/finding-propagation.md): no decisive review by tvofi (id 70032254) on this pull request
+PRE-FLIGHT: 2 of 4 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2390 serial: grader
+#2399 serial: grader
+OVERLAP: recarrying #2390, #2399 up front, their pull_request runs fire together
+#2390 overlap: recarry start
+#2390 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-drivers held fix/r10-tick-drivers, clean at origin/fix/r10-tick-drivers; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-drivers switch fix/r10-tick-drivers)
+#2390 recarry START (branch fix/r10-tick-drivers)
+#2390 recarry: main merged, head 742199ed; app_push: RECARRY: prepr SKIPPED: HEAD 742199ed is the clean merge of the live head aad55ffb and origin/main's fa5026c4, and the body is the live one
+#2399 overlap: recarry start
+#2399 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-diag-replay-pr held fix/r10-diag-replay-pr, clean at origin/fix/r10-diag-replay-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-diag-replay-pr switch fix/r10-diag-replay-pr)
+#2399 recarry START (branch fix/r10-diag-replay-pr)
+#2399 recarry: main merged, head d8889b62; app_push: RECARRY: prepr SKIPPED: HEAD d8889b62 is the clean merge of the live head 5c2bfcb1 and origin/main's fa5026c4, and the body is the live one
+serial: #2390, #2399
+beat: waiting CI at 742199ed (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 742199ed (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at 742199ed (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at 742199ed (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at 742199ed (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 742199ed (poll 7, t+1445s, required: 14, concluded: 12/14)
+beat: waiting CI at 742199ed (poll 8, t+1686s, required: 14, concluded: 13/14)
+beat: waiting CI at 742199ed (poll 9, t+1927s, required: 14, concluded: 13/14)
+beat: waiting CI at 742199ed (poll 10, t+2168s, required: 14, concluded: 13/14)
+beat: waiting CI at 742199ed (poll 11, t+2409s, required: 14, concluded: 13/14)
+#2390 742199ed ci red=[]
+#2390 approved (mandate)
+#2390 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 [MAIN-MOVED] merge: not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.; origin/main has moved past the head; recarry 1/3 onto the new main, then CI again
+#2390 recarry START (branch fix/r10-tick-drivers)
+#2390 recarry: main merged, head 6f571839; app_push: RECARRY: prepr SKIPPED: HEAD 6f571839 is the clean merge of the live head 742199ed and origin/main's b87e8f19, and the body is the live one
+beat: waiting CI at 6f571839 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 6f571839 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at 6f571839 (poll 4, t+724s, required: 14, concluded: 12/14)
+beat: waiting CI at 6f571839 (poll 5, t+965s, required: 14, concluded: 12/14)
+beat: waiting CI at 6f571839 (poll 6, t+1206s, required: 14, concluded: 12/14)
+beat: waiting CI at 6f571839 (poll 7, t+1447s, required: 14, concluded: 13/14)
+beat: waiting CI at 6f571839 (poll 8, t+1688s, required: 14, concluded: 13/14)
+#2390 6f571839 ci red=[]
+#2390 approved (mandate)
+#2390 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2390 MERGED a96f4be4ac0a5deddea1e4ac70010c519733272b
+#2390 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2399 d8889b62 ci red=[]
+#2399 approved (app)
+#2399 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 2/8 refused (rc=1): GraphQL: Repository rule violations found Required status check "pr-contract" is failing. (mergePullRequest)
+#2399 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 [MAIN-MOVED] merge: not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.; origin/main has moved past the head; recarry 1/3 onto the new main, then CI again
+#2399 recarry START (branch fix/r10-diag-replay-pr)
+#2399 recarry: main merged, head 705a9b85; app_push: RECARRY: prepr SKIPPED: HEAD 705a9b85 is the clean merge of the live head d8889b62 and origin/main's 06c6f3cf, and the body is the live one
+beat: waiting CI at 705a9b85 (poll 2, t+241s, required: 14, concluded: 9/14)
+beat: waiting CI at 705a9b85 (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 705a9b85 (poll 4, t+723s, required: 14, concluded: 10/14)
+beat: waiting CI at 705a9b85 (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at 705a9b85 (poll 6, t+1205s, required: 14, concluded: 11/14)
+beat: waiting CI at 705a9b85 (poll 7, t+1446s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 8, t+1687s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 9, t+1928s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 10, t+2169s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 11, t+2410s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 12, t+2651s, required: 14, concluded: 13/14)
+beat: waiting CI at 705a9b85 (poll 13, t+2891s, required: 14, concluded: 13/14)
+#2399 705a9b85 ci red=[]
+#2399 approved (app)
+#2399 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2399 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+SKIP #2399 merge: #2399 not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b3/wt/2390 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b3/wt/2390' is not a working tree); remove it by hand
+released /Users/timmalmstrom/hpo-orch/r10s3/train/b3/wt/2399
+SKIP REPORT: 3 skipped of 4
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T02:50:27Z

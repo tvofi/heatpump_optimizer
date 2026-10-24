@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2526,
+    "phase": "pre-flight",
+    "reason": "policy: policy paths changed (.claude/rules/gate-scoping.md, dev/governance/rules/gate-scoping.md, tests/README.md): no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driven approval is the owner's only under a mandate in force"
+  }
+]

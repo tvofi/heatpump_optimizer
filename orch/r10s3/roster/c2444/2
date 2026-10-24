@@ -1,0 +1,1 @@
+Source: #2444 Forward-carry. `merge_pr.sh`'s path after its gates, and the push lines of `handoff_push.sh`, `open_pr.sh` and `update_pr.sh`, are not exercised by those files' own self-tests. The self-tests that exist are offline and wired here. Giving those lines offline seams of their own is a coverage finding. Carry: R10-CI-LAYOUT

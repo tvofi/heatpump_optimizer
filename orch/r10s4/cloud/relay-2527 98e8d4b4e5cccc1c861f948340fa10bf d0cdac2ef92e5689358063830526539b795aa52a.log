@@ -1,0 +1,1 @@
+usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>

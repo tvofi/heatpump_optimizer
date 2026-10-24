@@ -1,0 +1,13 @@
+[
+  {
+    "pr": 2452,
+    "phase": "post-merge",
+    "reason": "after #2452 main is 7416f340a3e9, whose tree is not proof 31c8ff8a0e93's; read that merge before anything else lands"
+  },
+  {
+    "pr": 2487,
+    "phase": "merge",
+    "reason": "main moved: its tree is not the one #2487's proof was built on; run the batch again",
+    "class": "MAIN-MOVED"
+  }
+]

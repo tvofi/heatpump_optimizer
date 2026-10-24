@@ -1,0 +1,5 @@
+===== daemonize pid=48015 2026-10-24T08:46:53Z argv: bash tools/audit/seat/open_pr.sh r10-merge-subject-harden 09b1d002c19f941e9ba77367554e086c8cec50ee R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings from #2423 merge-subject-harden
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 50af6174f53c -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-merge-subject-harden/p1.log

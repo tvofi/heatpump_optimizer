@@ -1,0 +1,14 @@
+/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-round-10-fixing-de8016
+/Users/timmalmstrom/hpo-seats/r10s3/O12/wt2
+/Users/timmalmstrom/hpo-seats/r10s3/O17/wt-r10-codeql-lang-skip
+/Users/timmalmstrom/hpo-seats/r10s3/deeplink-census/wt
+/Users/timmalmstrom/hpo-seats/r10s3/leaf-imports/wt
+/Users/timmalmstrom/hpo-seats/r10s3/n-log-flood/wt
+/Users/timmalmstrom/hpo-seats/r10s3/rca-inert-predict/wt
+/Users/timmalmstrom/hpo-seats/r10s3/ref-privacy/wt
+/Users/timmalmstrom/hpo-seats/r10s3/roster-unwire/rwt
+/Users/timmalmstrom/hpo-seats/r10s3/roster-unwire/wt
+/Users/timmalmstrom/hpo-seats/r10s3/store/wt
+/Users/timmalmstrom/hpo-seats/r10s3/tools-o1/wt
+/private/tmp/r10-n-log-flood/wt-r3
+/private/tmp/r2345-r6/wt

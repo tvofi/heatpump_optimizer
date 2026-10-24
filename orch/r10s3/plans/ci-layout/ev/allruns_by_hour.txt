@@ -1,0 +1,10 @@
+# every workflow run created 2026-10-19 04:00-10:00Z (gh api --paginate actions/runs?created=...), by hour and event
+hour	pull_request	pull_request_review	push	schedule	workflow_dispatch	workflow_run	total
+2026-10-19T04Z	35	2	18	0	8	55	118
+2026-10-19T05Z	105	3	12	0	0	117	237
+2026-10-19T06Z	103	6	18	0	0	126	253
+2026-10-19T07Z	114	8	30	1	8	120	281
+2026-10-19T08Z	21	0	0	1	0	70	92
+2026-10-19T09Z	9	0	0	0	0	10	19
+total runs 1000
+PR-event runs by workflow: {'Architecture score': 69, 'PR contract': 69, 'Budget raise gate': 88, 'CodeQL': 35, 'Hassfest': 35, 'Kernel points': 5, 'Validate': 35, 'Governance': 35, 'Tests': 35}

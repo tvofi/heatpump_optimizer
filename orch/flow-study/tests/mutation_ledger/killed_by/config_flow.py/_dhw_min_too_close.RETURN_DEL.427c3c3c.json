@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_dhw_min_too_close RETURN_DEL 427c3c3c",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN",
+  "reason": "Recorded by `mutation_table.py --drain` against 994695e06c4c2b78d6420f82c322188317817f91: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+}

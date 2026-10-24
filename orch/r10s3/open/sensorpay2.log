@@ -1,0 +1,2 @@
+===== daemonize pid=90919 2026-10-18T05:51:59Z argv: bash tools/audit/seat/update_pr.sh fix/r10-sensor-payload 839b1b863d7e729890d771d054c2c01c10d476ec /Users/timmalmstrom/hpo-seats/r10s3/sensor-payload/BODY.md 2242
+HEAD=fa1ecd8e119eec136fddfb1c30e304bec73e7435

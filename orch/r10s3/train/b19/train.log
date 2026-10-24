@@ -1,0 +1,98 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b19/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b19 pid=6043 start=2026-10-19T15:21:11Z
+BATCH 20261019-152111 pid=6076 base=main queue=1 (#2444) --overlap --skip-bad
+OVERLAP: main at 64b0ae6901b7 is not green (env-matrix, fast (3.14), validate-hacs) before admission; --overlap logs it and does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2444 serial: grader, workflow
+OVERLAP: recarrying #2444 up front, their pull_request runs fire together
+#2444 overlap: recarry start
+#2444 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-seat-selftests-ci held fix/r10-seat-selftests-ci, clean at origin/fix/r10-seat-selftests-ci; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-seat-selftests-ci switch fix/r10-seat-selftests-ci)
+#2444 recarry START (branch fix/r10-seat-selftests-ci)
+#2444 recarry: main merged, head 07e34f2a; app_push: RECARRY: prepr SKIPPED: HEAD 07e34f2a is the clean merge of the live head 8be64a11 and origin/main's 64b0ae69, and the body is the live one
+serial: #2444
+beat: waiting CI at 07e34f2a (poll 2, t+241s, required: 14, concluded: 8/14)
+beat: waiting CI at 07e34f2a (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 07e34f2a (poll 4, t+724s, required: 14, concluded: 11/14)
+beat: waiting CI at 07e34f2a (poll 5, t+965s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 6, t+1206s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 7, t+1447s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 8, t+1688s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 9, t+1929s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 10, t+2170s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 11, t+2411s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 12, t+2652s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 13, t+2893s, required: 14, concluded: 12/14)
+beat: waiting CI at 07e34f2a (poll 14, t+3133s, required: 14, concluded: 12/14)
+#2444 07e34f2a ci red=[]
+#2444 approved (mandate)
+#2444 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2444 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+SKIP #2444 merge: #2444 not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+released /Users/timmalmstrom/hpo-orch/r10s3/train/b19/wt/2444
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T16:23:13Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b19/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b19 pid=71906 start=2026-10-21T00:12:25Z
+BATCH 20261021-001225 pid=71930 base=main queue=2 (#2514 #2516) --skip-bad
+BOT #2532 pending at 258b3754: AUTOMERGE PENDING #2532: pending: wave-script; not merged
+beat: waiting CI at f639f3b0 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 4, t+724s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 5, t+965s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 6, t+1206s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 7, t+1448s, required: 14, concluded: 11/14)
+beat: waiting CI at f639f3b0 (poll 8, t+1690s, required: 14, concluded: 12/14)
+beat: waiting CI at f639f3b0 (poll 9, t+1932s, required: 14, concluded: 12/14)
+beat: waiting CI at f639f3b0 (poll 10, t+2174s, required: 14, concluded: 12/14)
+beat: waiting CI at f639f3b0 (poll 11, t+2415s, required: 14, concluded: 13/14)
+beat: waiting CI at f639f3b0 (poll 12, t+2657s, required: 14, concluded: 13/14)
+beat: waiting CI at f639f3b0 (poll 13, t+2899s, required: 14, concluded: 13/14)
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2514 serial: grader
+#2516 serial: grader, workflow
+serial: #2514, #2516
+BOT #2532 MERGED 499930761a033936125a6501245c44a7ea981d95
+#2514 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-replay-lane held handoff/r10-replay-lane, clean at origin/handoff/r10-replay-lane; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-replay-lane switch handoff/r10-replay-lane)
+#2514 recarry START (branch handoff/r10-replay-lane)
+#2514 recarry: main merged, head 844c0a84; app_push: RECARRY: prepr SKIPPED: HEAD 844c0a84 is the clean merge of the live head aea79fa6 and origin/main's 49993076, and the body is the live one
+beat: waiting CI at 844c0a84 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 844c0a84 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 844c0a84 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 844c0a84 (poll 5, t+963s, required: 14, concluded: 11/14)
+beat: waiting CI at 844c0a84 (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 844c0a84 (poll 7, t+1445s, required: 14, concluded: 13/14)
+#2514 844c0a84 ci red=[]
+#2514 approved (app)
+#2514 MERGED 0280e6efdf57878c4108dd2ec3883559122d7ebb
+#2514 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+BOT #2533 MERGED 45cee4bc3fe03ca99e8ffb63abd739b5dfb7d94f
+#2516 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-codeql-cap held handoff/r10-codeql-cap, clean at origin/handoff/r10-codeql-cap; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-handoff-r10-codeql-cap switch handoff/r10-codeql-cap)
+#2516 recarry START (branch handoff/r10-codeql-cap)
+#2516 recarry: main merged, head 0d020a9e; app_push: RECARRY: prepr SKIPPED: HEAD 0d020a9e is the clean merge of the live head 33704404 and origin/main's 45cee4bc, and the body is the live one
+beat: waiting CI at 0d020a9e (poll 2, t+241s, required: 14, concluded: 9/14)
+beat: waiting CI at 0d020a9e (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 0d020a9e (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at 0d020a9e (poll 5, t+964s, required: 14, concluded: 12/14)
+beat: waiting CI at 0d020a9e (poll 6, t+1204s, required: 14, concluded: 12/14)
+beat: waiting CI at 0d020a9e (poll 7, t+1445s, required: 14, concluded: 12/14)
+beat: waiting CI at 0d020a9e (poll 8, t+1686s, required: 14, concluded: 12/14)
+beat: waiting CI at 0d020a9e (poll 9, t+1927s, required: 14, concluded: 13/14)
+beat: waiting CI at 0d020a9e (poll 10, t+2168s, required: 14, concluded: 13/14)
+beat: waiting CI at 0d020a9e (poll 11, t+2409s, required: 14, concluded: 13/14)
+#2516 0d020a9e ci red=[]
+#2516 approved (mandate)
+#2516 MERGED 2ea829be46320541b2218d02ae8ccf3579e34d3f
+#2516 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b19/wt/2514 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b19/wt/2514' is not a working tree); remove it by hand
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/b19/wt/2516 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/b19/wt/2516' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 2
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-21T02:20:41Z

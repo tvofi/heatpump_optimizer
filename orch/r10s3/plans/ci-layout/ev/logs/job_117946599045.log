@@ -1,0 +1,176 @@
+nightly-status	Set up job	﻿2026-10-19T08:35:53.2998035Z Current runner version: '2.337.0'
+nightly-status	Set up job	2026-10-19T08:35:53.3023795Z ##[group]Runner Image Provisioner
+nightly-status	Set up job	2026-10-19T08:35:53.3024750Z Hosted Compute Agent
+nightly-status	Set up job	2026-10-19T08:35:53.3025246Z Version: 20261012.601
+nightly-status	Set up job	2026-10-19T08:35:53.3025861Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+nightly-status	Set up job	2026-10-19T08:35:53.3026587Z Build Date: 2026-10-12T17:48:21Z
+nightly-status	Set up job	2026-10-19T08:35:53.3027195Z Worker ID: {1880d835-d419-4db6-ad9b-81b1390fd850}
+nightly-status	Set up job	2026-10-19T08:35:53.3027925Z Region: centralus
+nightly-status	Set up job	2026-10-19T08:35:53.3028459Z Cloud: Azure
+nightly-status	Set up job	2026-10-19T08:35:53.3028901Z ##[endgroup]
+nightly-status	Set up job	2026-10-19T08:35:53.3030196Z ##[group]Operating System
+nightly-status	Set up job	2026-10-19T08:35:53.3030913Z Ubuntu
+nightly-status	Set up job	2026-10-19T08:35:53.3031367Z 24.04.5
+nightly-status	Set up job	2026-10-19T08:35:53.3031892Z LTS
+nightly-status	Set up job	2026-10-19T08:35:53.3032444Z ##[endgroup]
+nightly-status	Set up job	2026-10-19T08:35:53.3033021Z ##[group]Runner Image
+nightly-status	Set up job	2026-10-19T08:35:53.3033649Z Image: ubuntu-24.04
+nightly-status	Set up job	2026-10-19T08:35:53.3034317Z Version: 20261012.334.1
+nightly-status	Set up job	2026-10-19T08:35:53.3035314Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+nightly-status	Set up job	2026-10-19T08:35:53.3036917Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+nightly-status	Set up job	2026-10-19T08:35:53.3037858Z ##[endgroup]
+nightly-status	Set up job	2026-10-19T08:35:53.3038972Z ##[group]GITHUB_TOKEN Permissions
+nightly-status	Set up job	2026-10-19T08:35:53.3041190Z Actions: read
+nightly-status	Set up job	2026-10-19T08:35:53.3041766Z Contents: read
+nightly-status	Set up job	2026-10-19T08:35:53.3042329Z Metadata: read
+nightly-status	Set up job	2026-10-19T08:35:53.3042918Z ##[endgroup]
+nightly-status	Set up job	2026-10-19T08:35:53.3044918Z Secret source: Actions
+nightly-status	Set up job	2026-10-19T08:35:53.3045805Z Cache mode: write
+nightly-status	Set up job	2026-10-19T08:35:53.3046436Z Prepare workflow directory
+nightly-status	Set up job	2026-10-19T08:35:53.3398266Z Prepare all required actions
+nightly-status	Set up job	2026-10-19T08:35:53.3451431Z Getting action download info
+nightly-status	Set up job	2026-10-19T08:35:53.6194181Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+nightly-status	Set up job	2026-10-19T08:35:53.7272345Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+nightly-status	Set up job	2026-10-19T08:35:53.9395211Z Complete job name: nightly-status
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-19T08:35:54.0221110Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0222128Z with:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0222630Z   repository: tvofi/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0225945Z   token: ***
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0226379Z   ssh-strict: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0226841Z   ssh-user: git
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0227262Z   persist-credentials: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0227811Z   clean: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0228369Z   sparse-checkout-cone-mode: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0228850Z   fetch-depth: 1
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0229294Z   fetch-tags: false
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0229774Z   show-progress: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0230195Z   lfs: false
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0230617Z   submodules: false
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0231160Z   set-safe-directory: true
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0231946Z   allow-unsafe-pr-checkout: false
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.0232626Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1162474Z Syncing repository: tvofi/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1164363Z ##[group]Getting Git version info
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1165215Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1166267Z [command]/usr/bin/git version
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1282002Z git version 2.55.0
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1285382Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1296574Z Temporarily overriding HOME='/home/runner/work/_temp/5e717a31-1e99-40c6-9074-b29c7afaeab0' before making global git config changes
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1298538Z Adding repository directory to the temporary git global config as a safe directory
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1302099Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1345782Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1349424Z ##[group]Initializing the repository
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1354563Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1453446Z hint: Using 'master' as the name for the initial branch. This default branch name
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1459814Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1461238Z hint: to use in all of your new repositories, which will suppress this warning,
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1462324Z hint: call:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1462870Z hint:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1463518Z hint: 	git config --global init.defaultBranch <name>
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1464345Z hint:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1465101Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1466321Z hint: 'development'. The just-created branch can be renamed via this command:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1467192Z hint:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1467862Z hint: 	git branch -m <name>
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1468548Z hint:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1469312Z hint: Disable this message with "git config set advice.defaultBranchName false"
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1470539Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1472849Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1538279Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1539580Z ##[group]Disabling automatic garbage collection
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1540397Z [command]/usr/bin/git config --local gc.auto 0
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1553150Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1554313Z ##[group]Setting up auth
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1555548Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1578145Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1882698Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.1910615Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2072245Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2096953Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2254046Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2286301Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2287347Z ##[group]Fetching the repository
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:54.2294725Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3f927c11ee5624a162648aeedaed1697eb0bc7b7:refs/remotes/pull/2441/merge
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3331885Z From https://github.com/tvofi/heatpump_optimizer
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3333818Z  * [new ref]         3f927c11ee5624a162648aeedaed1697eb0bc7b7 -> pull/2441/merge
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3338026Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3339728Z ##[group]Determining the checkout info
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3341726Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3345641Z [command]/usr/bin/git sparse-checkout disable
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3400626Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3437167Z ##[group]Checking out the ref
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.3440057Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2441/merge
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7986124Z Note: switching to 'refs/remotes/pull/2441/merge'.
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7987274Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7987763Z You are in 'detached HEAD' state. You can look around, make experimental
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7988498Z changes and commit them, and you can discard any commits you make in this
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7989207Z state without impacting any branches by switching back to a branch.
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7991961Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7992397Z If you want to create a new branch to retain commits you create, you may
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7993307Z do so (now or later) by using -c with the switch command. Example:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7993649Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7993855Z   git switch -c <new-branch-name>
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7994079Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7994268Z Or undo this operation with:
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7994465Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7994640Z   git switch -
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7994865Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7995124Z Turn off this advice by setting config variable advice.detachedHead to false
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7995504Z 
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.7995882Z HEAD is now at 3f927c1 Merge 3797a7c9d2878a6e277e0b2c0370b92791aadd83 into c3530277373ddf87652858f9ecb0ee1cf36f4347
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.8017312Z ##[endgroup]
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.8060039Z [command]/usr/bin/git log -1 --format=%H
+nightly-status	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:35:56.8080564Z 3f927c11ee5624a162648aeedaed1697eb0bc7b7
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	﻿2026-10-19T08:35:56.8365105Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8365700Z with:
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8366092Z   python-version: 3.13
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8366427Z   check-latest: false
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8368709Z   token: ***
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8369044Z   update-environment: true
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8369357Z   allow-prereleases: false
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8369707Z   freethreaded: false
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.8370036Z ##[endgroup]
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.9539853Z ##[group]Installed versions
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.9618748Z Successfully set up CPython (3.13.16)
+nightly-status	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-19T08:35:56.9619903Z ##[endgroup]
+nightly-status	Report the last scheduled run's conclusion	﻿2026-10-19T08:35:56.9831735Z ##[group]Run set -euo pipefail
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9832558Z ^[[36;1mset -euo pipefail^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9833342Z ^[[36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9834017Z ^[[36;1mgit checkout "$PINNED" -- \^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9834407Z ^[[36;1m  'tests/nightly_status.py'^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9834995Z ^[[36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:56.9835722Z ^[[36;1mpython -I -S tests/nightly_status.py^[[0m
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0096729Z shell: /usr/bin/bash -e {0}
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0097301Z env:
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0097865Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0098439Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0098937Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0099461Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0100120Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0100686Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0103579Z   GITHUB_TOKEN: ***
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0104004Z   PINNED: c3530277373ddf87652858f9ecb0ee1cf36f4347
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:35:57.0104408Z ##[endgroup]
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7626602Z NIGHTLY PASSED: every job of the scheduled run below succeeded or was skipped, 1 night ago.
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7628640Z   scheduled run 39106988523, 2026-10-18T07:15:29+00:00, head 994695e, run conclusion 'success'
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7629817Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/39106988523
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7631203Z   (run 39218718759 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7632080Z   27 job(s) in that run, 10 succeeded, 17 skipped.
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7632332Z 
+nightly-status	Report the last scheduled run's conclusion	2026-10-19T08:36:00.7633254Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+nightly-status	Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	﻿2026-10-19T08:36:00.7931441Z Post job cleanup.
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-19T08:36:00.9204506Z Post job cleanup.
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0000279Z [command]/usr/bin/git version
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0070175Z git version 2.55.0
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0119866Z Temporarily overriding HOME='/home/runner/work/_temp/63d2d642-6e4c-4add-a905-2c93eb509fc6' before making global git config changes
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0130951Z Adding repository directory to the temporary git global config as a safe directory
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0132204Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0163339Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0202995Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0502716Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0547013Z http.https://github.com/.extraheader
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0566891Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0623799Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.0992132Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-status	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-19T08:36:01.1019561Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-status	Complete job	﻿2026-10-19T08:36:01.1341440Z Cleaning up orphan processes

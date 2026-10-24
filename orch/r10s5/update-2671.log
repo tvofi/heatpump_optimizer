@@ -1,0 +1,19 @@
+===== daemonize pid=88110 2026-10-23T19:37:20Z argv: bash tools/pr/update_pr.sh fix/r10-orch-ledger 25ebba408bd39413d568a11504a9bb20598f7914 /Users/timmalmstrom/hpo-orch/r10s5/body-2671.md
+bash: tools/pr/update_pr.sh: No such file or directory
+===== daemonize pid=88746 2026-10-23T19:38:04Z argv: bash tools/audit/seat/update_pr.sh fix/r10-orch-ledger 25ebba408bd39413d568a11504a9bb20598f7914 /Users/timmalmstrom/hpo-orch/r10s5/body-2671.md
+update_pr: REFUSE: worktree /Users/timmalmstrom/.local/state/hpo/pr/r10-orch-ledger/wt holds commits of fix/r10-orch-ledger that origin/fix/r10-orch-ledger lacks (unpushed work, e.g. a PR's row): not detaching it
+===== daemonize pid=96566 2026-10-23T19:40:52Z argv: bash tools/audit/seat/update_pr.sh fix/r10-orch-ledger 25ebba408bd39413d568a11504a9bb20598f7914 /Users/timmalmstrom/hpo-orch/r10s5/body-2671.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (29 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (839 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/cloud_relay.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/cloud_relay.sh
+Automatic merge failed; fix conflicts and then commit the result.
+update_pr: STOPPED: line 57 exited 1: $G merge -q --no-edit origin/main
+===== daemonize pid=74568 2026-10-23T21:42:43Z argv: bash tools/audit/seat/update_pr.sh fix/r10-orch-ledger 041b22d6002ea72803f264b553e6bcdb849e28eb /Users/timmalmstrom/hpo-orch/r10s5/dispatch-seat/body-2671.63189b1a8.md
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/ref_privacy.py
+HEAD=5c640992a0c816a726086e34e7f2f1e536b44b34

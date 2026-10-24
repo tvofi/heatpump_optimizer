@@ -1,0 +1,11 @@
+===== daemonize pid=10415 2026-10-21T22:42:25Z argv: bash tools/audit/seat/update_pr.sh fix/r10-pusher-reap e856439273f4ac037b1d0390b0147b3385e201b7 /Users/timmalmstrom/hpo-orch/r10s4/bodies/pusher-reap/BODY.md
+Auto-merging tools/audit/seat/cloud_relay.sh
+Auto-merging tools/audit/seat/handoff_push.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/handoff_push.sh
+Auto-merging tools/audit/seat/open_pr.sh
+Auto-merging tools/audit/seat/pr_args.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/pr_args.sh
+Auto-merging tools/audit/seat/update_pr.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/update_pr.sh
+Automatic merge failed; fix conflicts and then commit the result.
+update_pr: STOPPED: line 49 exited 1: $G merge -q --no-edit origin/main

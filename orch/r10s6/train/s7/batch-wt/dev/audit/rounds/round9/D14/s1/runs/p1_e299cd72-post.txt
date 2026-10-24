@@ -1,0 +1,67 @@
+# store constructions: 12
+SITE away.py:330:QuarantiningStore
+SITE boost.py:144:QuarantiningStore
+SITE coordinator.py:1755:QuarantiningStore
+SITE coordinator.py:1931:QuarantiningStore
+SITE coordinator.py:1992:QuarantiningStore
+SITE coordinator.py:2017:QuarantiningStore
+SITE coordinator.py:2103:QuarantiningStore
+SITE coordinator.py:2158:QuarantiningStore
+SITE coordinator.py:2170:QuarantiningStore
+SITE dhw_learning.py:103:QuarantiningStore
+SITE dhw_learning.py:122:QuarantiningStore
+SITE legionella.py:80:QuarantiningStore
+NOTE seed arbiter: ModuleNotFoundError: No module named 'heatpump_optimizer.pump_arbiter'
+RESULT seams_accuracy=126 count
+RESULT seams_away=3 count
+RESULT seams_boost=2 count
+RESULT seams_dhw_draws=7 count
+RESULT seams_dhw_legionella=3 count
+RESULT seams_dhw_profile=14 count
+RESULT seams_energy=8 count
+RESULT seams_ledger=28 count
+RESULT seams_manual_plan=10 count
+RESULT seams_price_model=30 count
+RESULT seams_snapshots=226 count
+RESULT seams_thermal_learning=45 count
+# stores seeded: 12; unread by any discovered loader: []
+WEDGE store=boost path=dhw/until failed_cycles=0/3
+WEDGE store=dhw_legionella path=last_attempt failed_cycles=3/3
+WEDGE store=dhw_legionella path=last_cycle failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/meta/spot_price/count failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/meta/spot_price/sum failed_cycles=3/3
+WEDGE store=snapshots path=snapshots/#/accuracy/temperature_bias failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/learners failed_cycles=0/3
+RESULT wedge_null_control_failed_cycles=0 count
+RESULT p1_wedged_seams=6 count
+SEAM escape store=boost path=dhw/until loader boost.restore_session: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_attempt consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_cycle consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh consumer publish: TypeError subs=['"Infinity"', '"NaN"', '-inf', '[]', 'inf', 'nan', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek consumer publish: TypeError subs=['"Infinity"', '"NaN"', '-inf', '[]', 'inf', 'nan', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/count consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/sum consumer publish: TypeError subs=['"Infinity"', '"NaN"', '-inf', '[]', 'inf', 'nan', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/sum consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: TypeError subs=['"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: TypeError subs=['"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/learners consumer service.restore_learned_snapshot: AttributeError subs=['"x"', '3.0']
+RESULT escapes_boost=1 count
+RESULT escapes_dhw_legionella=2 count
+RESULT escapes_ledger=35 count
+RESULT escapes_snapshots=5 count
+RESULT store_constructions=12 count
+RESULT stores_seeded=12 count
+RESULT mutants=3980 count
+RESULT clean_fixture_escapes=0 count
+RESULT p1_escaping_mutants=43 count
+RESULT p1_escape_seams=9 count
+RESULT p1_poison_mutants=0 count
+RESULT thread_factor=1.000
+RESULT load1=7.49
+RESULT swapins=0

@@ -1,0 +1,3 @@
+===== daemonize pid=67662 2026-10-18T14:58:24Z argv: bash tools/audit/seat/update_pr.sh fix/r10-sav-baseline 9b9982e6c0b1d89dfc0cd9841c26aff322a36939 /Users/timmalmstrom/hpo-orch/r10s3/orch/b2411/BODY.md 2255
+  REFUSE   ancestry reds          RED UNANSWERED (fast (3.14) mutation nightly-ha (stable)):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/orch/b2411/BODY.md: check `nightly-ha (stable)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

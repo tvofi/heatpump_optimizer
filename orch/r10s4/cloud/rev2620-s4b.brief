@@ -1,0 +1,7 @@
+REVIEW of #2620 (R10-CURRENCY) at head 08ba3d9d7b115bf4f8b0f592d34397862622c5a3, full adversarial first review. Read dev/governance/roles/fix-review.md; review from a detached worktree at that head with the finder's harness. PREPR_SKIP_CLOSURES=1. Spare the GitHub API.
+The orchestrator granted an after-edge into `_raise_cop_issue` (seam learning) as the ratchet payment (route 1 in the body's Decisions). Verify:
+1. The payment is a real correction, not a metric game.
+2. Null control: dev/audit/rounds/round10/D14/s3/p8_replay_currency.py -- reintroduce arm reports 14, clean arm reports 0.
+3. The structure ratchet (tests/structure.py) passes with no budget raise.
+4. Fixes #2243 and #2222 are both substantiated by the change.
+Time box 60 min.

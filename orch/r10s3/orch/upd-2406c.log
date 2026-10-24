@@ -1,0 +1,5 @@
+===== daemonize pid=22363 2026-10-18T16:48:22Z argv: bash tools/audit/seat/update_pr.sh fix/r10-roster-fastpath ddb2725f593bbab8c7c70dfb6161f23a1b890cee /Users/timmalmstrom/hpo-orch/r10s3/orch/b2406r5/BODY.md
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/handoff_push.sh
+  REFUSE   ancestry reds          RED UNANSWERED (closures fast (3.14) nightly-ha (stable)):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/orch/b2406r5/BODY.md: check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

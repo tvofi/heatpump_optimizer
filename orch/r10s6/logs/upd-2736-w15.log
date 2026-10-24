@@ -1,0 +1,3 @@
+===== daemonize pid=40118 2026-10-24T14:25:25Z argv: bash tools/audit/seat/update_pr.sh policy/r10-mechanise-first - /Users/timmalmstrom/hpo-orch/r10s6/scratch/body-2736.md
+app_push: ROW-ONLY: prepr RUNS: parent 1 2a8d7102 is not the live pull-request head cf212c29
+HEAD=fbbd3e61fe312f94b6c4c579b64236fcf9699248

@@ -1,0 +1,99 @@
+# routing-fixes-1: proposed roster_edit.py ops, not applied. Placeholders in <> need a decision or a new issue number.
+# Invariant 2 (32): live group with no issue. Needs a tracking issue per group (a GitHub write, not done here); then:
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-BOARD <ISSUE-FOR-R10-FLOW-BOARD>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-DESIGN-STAGES <ISSUE-FOR-R10-FLOW-DESIGN-STAGES>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-JIDOKA <ISSUE-FOR-R10-FLOW-JIDOKA>   # stage in-progress
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-MQ-PROBE <ISSUE-FOR-R10-FLOW-MQ-PROBE>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-POSTMERGE <ISSUE-FOR-R10-FLOW-POSTMERGE>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-RECORD-PITCH <ISSUE-FOR-R10-FLOW-RECORD-PITCH>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-ROSTER-FREEZE <ISSUE-FOR-R10-FLOW-ROSTER-FREEZE>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-WIP <ISSUE-FOR-R10-FLOW-WIP>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-AUTOTRAIN <ISSUE-FOR-R10-FLOW-AUTOTRAIN>   # stage in-progress
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-BODY-ONLY <ISSUE-FOR-R10-FLOW-BODY-ONLY>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-OPENPR-ATOMIC <ISSUE-FOR-R10-FLY-OPENPR-ATOMIC>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-ROW-HEAD-CARRY <ISSUE-FOR-R10-FLY-ROW-HEAD-CARRY>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-AUDIT-PLAN <ISSUE-FOR-R10-FLOW-AUDIT-PLAN>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-RELAY-REVIEW-FF <ISSUE-FOR-R10-FLY-RELAY-REVIEW-FF>   # stage carries-open
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-CAP-LINE <ISSUE-FOR-R10-FLY-CAP-LINE>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-CARRY-DISPOSITION <ISSUE-FOR-R10-FLY-CARRY-DISPOSITION>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-ORPHANS-REWRITTEN <ISSUE-FOR-R10-FLY-ORPHANS-REWRITTEN>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-CARRY-DOC-CONTEXT <ISSUE-FOR-R10-FLY-CARRY-DOC-CONTEXT>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-DEPGRAPH-STALE <ISSUE-FOR-R10-FLY-DEPGRAPH-STALE>   # stage in-progress
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLOW-TOOLKIT-MODEL <ISSUE-FOR-R10-FLOW-TOOLKIT-MODEL>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-ROUND-PLAYBOOK <ISSUE-FOR-R10-ROUND-PLAYBOOK>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-STAMP-CHECK-NOTES <ISSUE-FOR-R10-FLY-STAMP-CHECK-NOTES>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-MANDATE-REVOKE-GUARD <ISSUE-FOR-R10-FLY-MANDATE-REVOKE-GUARD>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-TRAIN-OVERLAP-GRADE <ISSUE-FOR-R10-TRAIN-OVERLAP-GRADE>   # stage queued
+python3 tools/audit/seat/roster_edit.py wire-issue R10-NIGHTLY-HB-RESPAWN <ISSUE-FOR-R10-NIGHTLY-HB-RESPAWN>   # stage queued
+python3 tools/audit/seat/roster_edit.py wire-issue R10-FLY-PRUNE-REFS <ISSUE-FOR-R10-FLY-PRUNE-REFS>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-STRUCTURE-ALIAS <ISSUE-FOR-R10-STRUCTURE-ALIAS>   # stage in-progress
+python3 tools/audit/seat/roster_edit.py wire-issue R10-ORCH-REVIEW-PACKET <ISSUE-FOR-R10-ORCH-REVIEW-PACKET>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-POLICY-ROLE-PACK <ISSUE-FOR-R10-POLICY-ROLE-PACK>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-CLOSEOUT-CLEANUP <ISSUE-FOR-R10-CLOSEOUT-CLEANUP>   # stage not-started
+python3 tools/audit/seat/roster_edit.py wire-issue R10-IMMERSION-LATCH <ISSUE-FOR-R10-IMMERSION-LATCH>   # stage queued
+python3 tools/audit/seat/roster_edit.py wire-issue R10-DIAG-REDACT <ISSUE-FOR-R10-DIAG-REDACT>   # stage not-started
+# Invariant 3 (14): open issue owned only by a done group. If its PR landed and implemented it, close the issue (not a roster op); otherwise reopen the group:
+python3 tools/audit/seat/roster_edit.py set-stage R10-ARCHSCORE-COVERAGE carries-open   # #2235
+python3 tools/audit/seat/roster_edit.py set-stage R10-LIVESTATE carries-open   # #2248
+python3 tools/audit/seat/roster_edit.py set-stage R10-SOLVER carries-open   # #2250
+python3 tools/audit/seat/roster_edit.py set-stage R10-TRUST-RELATIVE carries-open   # #2252
+python3 tools/audit/seat/roster_edit.py set-stage R10-ADVISOR carries-open   # #2257
+python3 tools/audit/seat/roster_edit.py set-stage R10-SCORES carries-open   # #2258
+python3 tools/audit/seat/roster_edit.py set-stage R10-ARCHSCORE-COVERAGE carries-open   # #2259
+python3 tools/audit/seat/roster_edit.py set-stage R10-TICK-DRIVERS carries-open   # #2265
+python3 tools/audit/seat/roster_edit.py set-stage R10-BRIEFS-FOLD carries-open   # #2269
+python3 tools/audit/seat/roster_edit.py set-stage R10-DIAG-REPLAY carries-open   # #2271
+python3 tools/audit/seat/roster_edit.py set-stage R10-REPLAY-LANE carries-open   # #2272
+python3 tools/audit/seat/roster_edit.py set-stage R10-I5-DOCS carries-open   # #2298
+python3 tools/audit/seat/roster_edit.py set-stage R10-POLICY-LINT-FAMILY carries-open   # #2410
+python3 tools/audit/seat/roster_edit.py set-stage R10-ROSTER-OPS carries-open   # #2496
+# Invariant 1a (40 pairs): destination group is done; verify the carry was implemented, else re-home it to a live group:
+# #2675 -> #2674: no roster op; carry-2674.json is on main, not on the roster branch. Rebase the roster branch on main (roster_sync) so the destination resolves
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2632>   # only if not implemented; dest R10-FLY-SUITE-ENV-FLAKES is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2632>   # only if not implemented; dest R10-LIVESTATE is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2639>   # only if not implemented; dest R10-FLY-GH-READ-RETRY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2643>   # only if not implemented; dest R10-FLY-NO-FOOTERS is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2633>   # only if not implemented; dest R10-FLOW-ARCH-PLANNER is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2629>   # only if not implemented; dest R10-RECORD-API-BUDGET is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2628>   # only if not implemented; dest R10-FLOW-ARCH-PLANNER is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2622>   # only if not implemented; dest R10-POLICY-LINT-FAMILY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2612>   # only if not implemented; dest R10-BRIEFS-FOLD is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2605>   # only if not implemented; dest R10-NIGHTLY-PYSPY-RETRY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2606>   # only if not implemented; dest R10-RECORD-API-BUDGET is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2606>   # only if not implemented; dest R10-FLY-GH-READ-RETRY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2589>   # only if not implemented; dest R10-FLY-GH-READ-RETRY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2609>   # only if not implemented; dest R10-PLAN-ARTIFACT is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2585>   # only if not implemented; dest R10-REPLAY-LANE is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2585>   # only if not implemented; dest R10-RCA-FRICTION is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2577>   # only if not implemented; dest R10-FLOW-MAIN-GATE is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2558>   # only if not implemented; dest R10-PLAN-ARTIFACT is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2582>   # only if not implemented; dest R10-FLOW-ANDON is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2545>   # only if not implemented; dest R10-RCA-HANDOFF-SLIP is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2595>   # only if not implemented; dest R10-POLICY-LINT-FAMILY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2586>   # only if not implemented; dest R10-RCA-ORCH-CONTINUITY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2563>   # only if not implemented; dest R10-BRIEFS-FOLD is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2563>   # only if not implemented; dest R10-NIGHT-FOLDS is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2561>   # only if not implemented; dest R10-BRIEFS-FOLD is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2561>   # only if not implemented; dest R10-POLICY-LINT-FAMILY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2557>   # only if not implemented; dest R10-RCA-HANDOFF-SLIP is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2572>   # only if not implemented; dest R10-LIVESTATE is done
+# #2572 -> #2257: covered by the R10-ADVISOR set-stage line above
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2572>   # only if not implemented; dest R10-ADVISOR is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2566>   # only if not implemented; dest R10-HANDOVER-REFRESH is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2529>   # only if not implemented; dest R10-CI-LAYOUT is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2529>   # only if not implemented; dest R10-CI-LAYOUT-P1 is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2521>   # only if not implemented; dest R10-BRIEFS-FOLD is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2521>   # only if not implemented; dest R10-CURRENCY is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2548>   # only if not implemented; dest R10-REPLAY-LANE is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2559>   # only if not implemented; dest R10-ROSTER-OPS is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2559>   # only if not implemented; dest R10-BRIEFS-FOLD is done
+python3 tools/audit/seat/roster_edit.py append-carry <LIVE-GROUP> @<carry-file-from-#2513>   # only if not implemented; dest R10-ROSTER-OPS is done
+# Invariant 1b (25 unrouted items in 13 PRs) are fixed by PR-body or review edits (add a Carry: marker or dismissed: reason), not roster ops.
+# Invariant 1c (7 carry files for closed issues): decide per file whether to delete it (git) or re-home its carries:
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-1645>   # or delete dev/programme/carries/carry-1645.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-1774>   # or delete dev/programme/carries/carry-1774.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-1795>   # or delete dev/programme/carries/carry-1795.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-1922>   # or delete dev/programme/carries/carry-1922.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-2065>   # or delete dev/programme/carries/carry-2065.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-2066>   # or delete dev/programme/carries/carry-2066.json
+python3 tools/audit/seat/roster_edit.py append-group <json-with-group-for-carry-2075>   # or delete dev/programme/carries/carry-2075.json

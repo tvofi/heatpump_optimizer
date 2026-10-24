@@ -1,0 +1,6 @@
+# triage STATE (window 4)
+- Rulings in proposals.md: S6-U overturned to DEFER (P54); S6-V1,V2,V7 ACCEPT -> new group R10-FLY-POOL-INSTRUMENT (P55, P60 reopen of P50); V3,V4(first),V5,V6 DEFER (P56-59); V8 ACCEPT narrowed -> new group R10-FLY-RECORD-BEAT (P61); V9 ACCEPT -> R10-CI-LAYOUT-P2 (P62); V4 recurrence ACCEPT narrowed -> R10-ORCH-BEATD generation token (P63); V10 ACCEPT narrowed -> R10-FLY-OPENPR-ATOMIC (P64, unfiled).
+- PRs: #2734 (s6-batch4, P54-P62), #2735 (s6-batch5, P63). Worktrees wt, wt5 under hpo-seats/r10s6/triage are detached; detach right after app_push opens.
+- Owed: P64 (V10) has no batch file; open s6-batch6 (worktree from origin/main, body6.md, Forward-carry as `n/a: ...`, run app_push.sh with `bash`, detached, via nohup) when more arrives or soon. Carries: carries/carry-triage-s6v4.md (cites batch5#P63), carry-triage-s6v9.md, carry-triage-s6v10.md (cites P64), briefs brief-pool-instrument.md, brief-record-beat.md.
+- Lessons: prepr "refusal" first seen was the heavy-slot queue wait; Forward-carry needs `n/a: reason` or Carry: dest, never a bare path; check roster-report.txt before saying a queue line was not applied.
+- Poll proposals.md every 5 min, touch triage.alive each pass.

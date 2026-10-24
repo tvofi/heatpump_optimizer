@@ -1,0 +1,12 @@
+== gate
+##[group]GITHUB_TOKEN Permissions
+Actions: read
+Contents: read
+Metadata: read
+PullRequests: read
+##[endgroup]
+== probe / probe
+##[group]GITHUB_TOKEN Permissions
+Contents: read
+Metadata: read
+##[endgroup]

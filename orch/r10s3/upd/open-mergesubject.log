@@ -1,0 +1,2 @@
+===== daemonize pid=45087 2026-10-18T21:51:48Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-merge-subject bc69ba0224ba1fea508f94823830c92c3f0cafb7 R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard R10-MERGE-SUBJECT
+PR=2423 HEAD=58dbe46a0eff6d217378ecd3bccc331eb20867a1 AUTHOR=tvofi

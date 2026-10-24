@@ -1,0 +1,1 @@
+Source: #2441 Friction. body_push.sh: unenforced: its predictor (`tools/pr/ci_predict.py`) passed a body that pr-contract's carry_audit refused, with 6 items unrouted, so the refusal surfaced only after the PR was updated.

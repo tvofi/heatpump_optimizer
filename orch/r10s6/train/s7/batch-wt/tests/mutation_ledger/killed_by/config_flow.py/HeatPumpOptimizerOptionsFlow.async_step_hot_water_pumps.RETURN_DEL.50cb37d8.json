@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_hot_water_pumps RETURN_DEL 50cb37d8",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        return await self._page(\"hot_water_pumps\", user_input, clear=True)",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1, newly failing ['five saved top pages accumulate on the entry, not replace each other']."
+}

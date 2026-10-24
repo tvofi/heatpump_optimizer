@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:utc_step_starts GUARD_OFF ca88efc3",
+  "killed_by": "tests/features.py",
+  "old": "    if tz is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 811df3cf3362ea0c626bcfdf8bf4a3cf2937c846: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

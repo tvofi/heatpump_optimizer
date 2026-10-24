@@ -1,0 +1,7 @@
+# fix PRs: first pull_request Tests run on the branch -> merge commit time (UTC); heads = distinct head SHAs with a pull_request Tests run (raw/branchruns_<pr>.json, main_last12.txt)
+#2433  first CI 10-19 06:10Z  merged 10-19 07:39Z    1.5 h  heads 3  h/head 0.50
+#2415  first CI 10-18 15:56Z  merged 10-19 07:33Z   15.6 h  heads 7  h/head 2.23
+#2404  first CI 10-18 12:54Z  merged 10-19 07:04Z   18.2 h  heads 9  h/head 2.02
+#2391  first CI 10-18 10:28Z  merged 10-19 06:23Z   19.9 h  heads 9  h/head 2.21
+#2422  first CI 10-18 21:47Z  merged 10-19 05:59Z    8.2 h  heads 4  h/head 2.05
+median lifetime 15.6 h; median heads 7

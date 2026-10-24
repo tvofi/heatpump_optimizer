@@ -1,0 +1,16 @@
+rm /Users/timmalmstrom/hpo-seats/r10s3/ci-concurrency
+rm /Users/timmalmstrom/hpo-seats/r10s3/cloud-shape/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/fix-sweep/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/O11/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/O6b/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/openpr-silent/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/prepr-red/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/raise-hold/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/rchead/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/seatci/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/sensor-payload/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/setpoint/wt
+rm /Users/timmalmstrom/hpo-seats/r10s3/wt-2444r2
+rm /Users/timmalmstrom/hpo-seats/r10s3/wt-policy-instr
+rm /Users/timmalmstrom/hpo-seats/r10s3/wt-savings-negative
+rm /Users/timmalmstrom/hpo-seats/r10s3/wt-stamp-claims

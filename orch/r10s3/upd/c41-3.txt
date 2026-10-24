@@ -1,0 +1,1 @@
+Source: #2441 Forward-carry. `archscore.family_orphan_overrides` has no planted census; this PR exempts it with a reason. A finder planting it needs a plant that edits the `ENTITY_FAMILY_OVERRIDES` dict in place, which the arm's append-only plant cannot do.

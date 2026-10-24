@@ -1,0 +1,4 @@
+===== daemonize pid=2537 2026-10-24T08:43:11Z argv: env HANDOFF_TOPIC=r10-triage-s6-batch2 bash tools/audit/seat/update_pr.sh fix/r10-triage-s6-batch2 1dc67949505875052d731dfc297a71f816871630 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-orchestrator-e30fa3/59bcea68-160f-4ed5-8266-e558408abe7b/scratchpad/body-2689.md
+  REFUSE   body path              /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-orchestrator-e30fa3/59bcea68-160f-4ed5-8266-e558408abe7b/scratchpad/body-2689.md sits directly in a root other seats write to -- move it to your own subdirectory, e.g. <abs-scratch>/<seat>/
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-triage-s6-batch2.log

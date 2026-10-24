@@ -1,0 +1,13 @@
+green-no-skipped: ruleset_cutover self-test: 88 checks, 5 failed
+absent-ignored: ruleset_cutover self-test: 88 checks, 4 failed
+owed-accepts-green: ruleset_cutover self-test: 88 checks, 2 failed
+digest-unchecked: ruleset_cutover self-test: 88 checks, 2 failed
+copy-count-unchecked: ruleset_cutover self-test: 88 checks, 1 failed
+no-integration-id: ruleset_cutover self-test: 88 checks, 2 failed
+merge-parent-always: ruleset_cutover self-test: 88 checks, 1 failed
+reaches-ignored: ruleset_cutover self-test: 88 checks, 1 failed
+disable-whole-off: ruleset_cutover self-test: 88 checks, 1 failed
+base-pinned-owed: ruleset_cutover self-test: 88 checks, 5 failed
+ratchet-always-green: ruleset_cutover self-test: 94 checks, 2 failed
+ratchet-oldest-wins: ruleset_cutover self-test: 94 checks, 2 failed
+ratchet-tests-only: ruleset_cutover self-test: 94 checks, 2 failed

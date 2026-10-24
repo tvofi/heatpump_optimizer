@@ -1,0 +1,36 @@
+8011549f 1 tvofi O11: carry-forward made mechanical -- every recorded finding names its
+027df03e 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+dd53fde9 1 tvofi O11: land the sweep-rows harness the body figures cite (fixer.md step 
+e8bb3fd0 1 tvofi O11: place tools/audit/carry_audit.py in tests/layout.json's tools cat
+21d3e1b3 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+4a1b42dd 1 tvofi O11: pr-contract runs the owned carry check last, not a pinned one; on
+2fee8612 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+7167a97d 1 tvofi O11: carry_audit sweep reads the orchestrator ledger's FINDING:/LESSON
+713182ca 1 tvofi record: the delivery row for #2404
+faf1bf1b 1 tvofi O11: answer #2404's two reds -- carry_dests reads each Carry:, the har
+71b30848 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+18e26326 2 tvofi Merge commit '71b30848f87112dfc65497ca4976a5b26da4418e' into fix/r10-c
+5cf5786b 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce
+71a7b629 1 tvofi O11: an item id routes only inside its marker; a code-span Carry: is a
+58be9866 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+269a8dfd 1 tvofi O11: read a code span as CommonMark closes one
+354c84a9 2 tvofi Merge commit '269a8dfd454aec568a67563ed97844f27184ffdd' into fix/r10-c
+b3a12147 1 tvofi O11: pin each half of the item-ref guard on its own
+cb398f3e 2 tvofi Merge remote-tracking branch 'origin/main' into seat/r10-carry-enforce
+312f3192 2 tvofi Merge commit 'cb398f3e38b1d6c3eacd3f74a9663a8f2706ad0e' into fix/r10-c
+8c666c64 1 Claude O11: pin every predicate of the marker parser on its own
+f08104f7 2 Claude Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce
+6f20f78a 1 Claude O11: sweep the whole parser for predicates that die only in pairs
+7c0383bc 2 tvofi Merge commit '6f20f78a3e1d8ae387cd227fa05131f0856ed6e3' into fix/r10-c
+03f1681a 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce
+bd68cf75 2 tvofi Merge remote-tracking branch 'origin/main' into handoff/r10-carry-enfo
+4696bac1 2 tvofi Merge commit 'bd68cf756ab63a475d37d30fcdf60b35d85a6214' into fix/r10-c
+b419463b 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce
+a945bb62 2 tvofi Merge origin/main into fix/r10-carry-enforce
+b2bbe086 2 tvofi Merge remote-tracking branch 'origin/main' into handoff/r10-carry-enfo
+ab52c845 2 tvofi Merge remote-tracking branch 'origin/main' into handoff/r10-carry-enfo
+f8acbc62 2 tvofi Merge remote-tracking branch 'origin/main' into handoff/r10-carry-enfo
+74201dd5 2 tvofi Merge origin/main into handoff/r10-carry-enforce
+e23fa988 2 tvofi Merge commit '74201dd56bec5ed4b98a09557c1569f0c4e6a13a' into fix/r10-c
+519bb4db 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce
+7e6870d9 2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-carry-enforce

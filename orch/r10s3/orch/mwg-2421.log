@@ -1,0 +1,17 @@
+===== daemonize pid=98341 2026-10-19T03:59:24Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/merge-when-green.sh 2421 e9c0092e27e91e4b1d23178fc75774e5798dcc22 Leaves #201 open. Approved under mandate 6175172275 (review 5566738503).
+03:59:25 pend=3 fail=7
+04:01:27 pend=2 fail=7
+04:03:29 pend=2 fail=7
+04:05:32 pend=2 fail=7
+04:07:34 pend=3 fail=1
+04:09:36 pend=1 fail=1
+04:11:38 pend=1 fail=1
+04:13:39 pend=1 fail=1
+04:15:41 pend=1 fail=1
+04:17:43 pend=1 fail=1
+04:19:45 pend=1 fail=1
+===== daemonize pid=98139 2026-10-19T04:20:36Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/merge-when-green.sh 2421 e9c0092e27e91e4b1d23178fc75774e5798dcc22 Leaves #201 open. Approved under mandate 6175172275 (review 5566738503).
+04:20:37 required pend=1 fail=0
+04:22:38 required pend=1 fail=0
+04:24:39 required pend=0 fail=0
+MERGED fa16596c3438ba7010a19138d293d4b6a4379375

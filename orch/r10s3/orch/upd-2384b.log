@@ -1,0 +1,2 @@
+===== daemonize pid=41095 2026-10-18T13:12:00Z argv: bash tools/audit/seat/update_pr.sh fix/audit-r10-roster 07ba56db12032cb3412e56c97f9ea9f812ed8c55 /Users/timmalmstrom/hpo-orch/r10s3/orch/body-2384-new.md
+error: cannot lock ref 'refs/remotes/origin/main': is at dc8aa807f4984dbf869ecc69a91c483bf594f685 but expected 63816b85706b245af8a6c4072cdb27ae03569f7b

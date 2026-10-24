@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:allow_on GUARD_OFF 3eaea930",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if not on or held.cut_at is None or held.wiring is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd59a4af1b2616a7f00761a3769d22a335e4df7c: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

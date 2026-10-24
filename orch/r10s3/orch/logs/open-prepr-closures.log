@@ -1,0 +1,3 @@
+===== daemonize pid=69694 2026-10-20T23:00:03Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this makes the closures ruling mechanical and stops the recorder leak r10-prepr-closures e32513490631475ce7e2307183786c0c1c808e7b ci(prepr): closures is CI's off Linux, and the recorder dies with its parent (R10-PREPR-CAP) R10-PREPR-CAP
+open_pr: OVER-CAP: 9 open >= 6, overridden: owner 2026-10-20: the cap gates group dispatch, not opening; this makes the closures ruling mechanical and stops the recorder leak
+PR=2528 HEAD=a4f01a42154341293aaed52642434c12fab3322b AUTHOR=tvofi

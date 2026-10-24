@@ -1,0 +1,44 @@
+2026-10-22T12:16:21Z	cse_01B3nvFz7Skb5rTTvgtr6a84	rev2605d	delta review #2605 @4eed14bd nonce b73b5f39
+2026-10-22T12:30:46Z	cse_01BPecVxsYrxoLX5cQU34pNQ	rev2579r6	opus r6 review #2579 @45754ede nonce 6b482079
+2026-10-22T13:09:21Z	cse_01LAMi8aEnSdjgc3vbMjxMrM	fix2579r7	opus r7 fixer #2579 from 45754ede
+2026-10-22T13:46:20Z	cse_01PPKBzcQxu3Kk3CWxRNwiVo	rev2609d	delta review #2609 @97ac438d nonce efe053c1
+2026-10-22T14:01:27Z	cse_01SSiNtqXjY7fXbVrhF6MAui	fix-ci-layout-p2	opus fixer R10-CI-LAYOUT-P2	2026-10-22T14:01:27Z	cse_01Jpb69gUnGU2uJzhv4zv4oP	fix-solver	opus fixer R10-SOLVER		
+2026-10-22T14:26:53Z	cse_019hyABruTEgfwyx4TmvnK3M	fixer p2a-u0a opus
+2026-10-22T14:26:53Z	cse_01PZLsf7mySUDu2eCeGMJLDv	fixer p2a-u9c opus
+2026-10-22T14:26:53Z	cse_01YB6hVLTtekvdtsaHLXoYWY	fixer p2a-u0b sonnet
+2026-10-22T14:26:53Z	cse_012C2ve2Q5YprvyRrcdbKfLi	fixer p2a-u6lib sonnet
+2026-10-22T14:31:43Z	cse_01VT4MtiY589Xurq7Pwgyqgg	reviewer 2579 r7 632d2fe2 nonce d190b84d
+2026-10-22T14:44:34Z	cse_017QAZdvVu3Ad96UmpwvzzYS	fixer p2a-up sonnet at 58730d09
+2026-10-22T15:53:25Z	cse_01JQXwgRWxfKFom43sty6yz2	reviewer 2612 r1 47b6768c nonce b73e3ccc
+2026-10-22T15:53:54Z	cse_01LLvr2igWxVkQ3BuP1hAnMU	fixer 2580 conflict (mutants harness) sonnet
+2026-10-22T16:38:16Z	cse_01Fb1W6qxHnYQP6yo39Kgchb	fixer 2528 main-merge+Red checks body sonnet
+2026-10-22T16:38:57Z	cse_011KnQHNrkgHf2Rh3KrQGY62	fixer 2524 conflict merge_train.py + round close opus
+2026-10-22T16:42:50Z	rev-2613	cse_01UXMZZLtM2QarH4rtXiPN3K	sonnet	probe/rev-2613-44d118ee	488c30d0
+2026-10-22T16:47:28Z	rev-2580d	cse_014g1pf12jf8pNBzJ2Beae3v	sonnet	probe/rev-2580-744dbd9b	3541137e
+2026-10-22T16:47:28Z	fix-2612r2	cse_01HpiHWwkH7UCPNpZbWu4JbC	opus	handoff-body/r10-solver	a6e53320
+2026-10-22T17:14:16Z	rev-2528d	cse_01MJXQgKrbnt8Lmvj9kBnbqE	sonnet	probe/rev-2528-97f2e58f	2af78ed5
+2026-10-22T17:22:58Z	fix-currency	cse_01USXaa36pNNaVCQNZ8eH5mB	opus	handoff-body/r10-currency	8a94ffd0
+2026-10-22T17:45:11Z	rev-2524r	cse_0181SNeUWkTJseuePx6Nd58f	opus	probe/rev-2524-2323f58f	e62be31d
+2026-10-22T18:12:13Z	fix-currency-r2	cse_011aqzm4YL9jLhU4jLvbkLYE	opus	handoff-body/r10-currency	50808a75
+2026-10-22T18:15:54Z	rev-2617	cse_01XSjEYscBf49rTrWXStDwuE	sonnet	probe/rev-2617-aa87d534	41effd9e
+2026-10-22T18:33:05Z	fix-2524-conflict	cse_017vgBWpht2ykX1ZgxBDAY5q	opus	handoff-body/r10-pusher-reap	e62be31d
+2026-10-22T19:16:31Z	rev-2619	cse_01Q7gXEd1AKsQp6zGz3bHXWx	sonnet	probe/rev-2619-a529b044	abebbedc
+2026-10-22T19:16:31Z	rev-2612r2	cse_01VP7nEVBt6SKF95dfm4zCsj	opus	probe/rev-2612-ce0f1a89	c8dea465
+2026-10-22T19:26:37Z	rev-2620	cse_013coJJtpXPZsXwqrjtYWLdc	opus	probe/rev-2620-62684c0b	08ba3d9d
+2026-10-22T19:26:37Z	rev-2524d2	cse_01EwrUC5iqQw9FRyEdFP5RZf	sonnet	probe/rev-2524-a8b610eb	e7fc6584
+2026-10-22T19:54:46Z	fixer	r10-currency r3 (#2620 metric-gamed: drop alias, real payment or raise)	cse_0125e2vGSdUhN2eRXrabjJHy	opus
+2026-10-22T20:11:27Z	fixer	R10-SCORES (critical-path head, over drain cap)	cse_01LDiRr7xuyKtzhvXAeBMKfY	opus
+2026-10-22T20:38:04Z	fixer	R10-LOOP-CPU	cse_019gPVfQ8QSjYSP3HbNGBguE	opus
+2026-10-22T20:38:04Z	fixer	R10-FLY-GH-READ-RETRY PR 2	cse_01QFcP6Ea7M3rDDN8Wvijpj3	opus
+2026-10-22T20:50:20Z	fixer	R10-RECORD-API-BUDGET (M0+M1+M2)	cse_01FkQZmJajsKWipnvUbmtity	opus
+2026-10-22T21:10:44Z	reviewer	rev2622 (P2a, opus)	cse_01GLgt5916ByuqPtBLwdtS3M	opus
+2026-10-22T21:10:44Z	fixer	R10-NIGHTLY-ABSENT-NEW	cse_01MHkG3FB6tTZS8RG8XKGEKP	opus
+rev2622	cse_01GLgt5916ByuqPtBLwdtS3M	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-flow-pull	cse_017yqudjfKMaL1ocVMcxUsFR	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-flow-toolkit-measure	cse_018swh7jThahixUK3wAgbzbn	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-briefs-fold	cse_01So3QQDHt3b7Mw5TsjVAvHt	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-flow-arch-planner	cse_01Cn6WajUHr1DaRLjsQEXPnr	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-fly-depgraph-stale	cse_019vJdyNHLs3xdXJPfngiQwm	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-rca-body-lint-r2	cse_01AaMioVXV8Bpbz6Eth549vE	trig_01NjP2sfNyi48RQm2DBvzrwF	running
+fixer-r10-fly-no-footers	cse_011ZYZDFMU2BBc73oDaMDrbN	trig_01NjP2sfNyi48RQm2DBvzrwF	cancelled-do-not-open
+fixer-r10-nightly-absent-new-r2	cse_01BLz42AuxniEzouh5AF1kzA	trig_01NjP2sfNyi48RQm2DBvzrwF	running

@@ -1,0 +1,12 @@
+CONFLICT RESOLUTION for PR #2580 (group R10-FLOW-RELAY-HOLD, branch fix/r10-flow-relay-hold), head 187cec730000ae37c4191d642cf22c0422c7797e. EXCEPTION to the generic base rule above: work on the PR branch, not a fresh cut. Check out 187cec730000ae37c4191d642cf22c0422c7797e in your own worktree, then `git merge origin/main` (now 49018a8b, after #2584 merged). The merge conflicts in dev/audit/harnesses/r10_seat_selftests_mutants.py, where #2584 and this PR both added mutant blocks.
+Resolve it by keeping BOTH sides' mutants. Each instrument's mutants stay inside its own block, under per-file ids. Renumber nothing that is already pinned. Leave no duplicate id.
+Then re-execute fixer.md steps 2-8 after the merge:
+- run the harness and check that every mutant in both blocks is still killed (undisposed=0, stale=0);
+- check that this PR's own self-tests pass, and run structure.py;
+- run the scoped gate with PREPR_SKIP_CLOSURES=1.
+Change no logic beyond the conflict. Commit the merge and push it to refs/heads/handoff/r10-flow-relay-hold.
+Body: take the PR's current body (`gh pr view 2580 --json body`; this is one of your few gh calls). Change only:
+- `## Head`, naming your new head;
+- `## Red checks`;
+- any figure the merge moves.
+Push it with body_push.sh r10-flow-relay-hold. Three-round rule: keep the body minimal. Spare the GitHub API. Time box 45 min.

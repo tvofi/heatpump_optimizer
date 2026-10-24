@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker._close_window CLAMP_DROP 36acc124",
+  "killed_by": "tests/features.py",
+  "old": "        del ranked[max(tariff.peaks_averaged * 2, 6):]",
+  "reason": "#1512: dropping the max(..., 6) floor keeps only 2k days, so raising peaks_averaged mid-month from 1 to 3 bills two real days and the new one instead of the month's three highest; tests/features.py prints 1 of 3168 FEATURE CHECKS FAILED against a 0 baseline: `raising the averaged count mid-month bills the month's k highest days (the tracker keeps a margin of at least six days)` (billed 6.667 against the bill 8.0). It survived both drivers at 86b3e0de (ALL 3167 FEATURE CHECKS PASSED with the mutant). Measured 2026-09-24 in a detached worktree."
+}

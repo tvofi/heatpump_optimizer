@@ -1,0 +1,2 @@
+===== daemonize pid=3268 2026-10-22T00:01:47Z argv: bash tools/audit/seat/update_pr.sh fix/r10-flow-relay-hold 929ee160731596b654d2c69afa1e278d5ca7ec40 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-round-10-orchestrator-f39e64/7d62e977-f3f4-4b8b-9c9f-1dd8f78f1e70/scratchpad/r10-flow-relay-hold.md
+branch fix/r10-flow-relay-hold checked out elsewhere: /Users/timmalmstrom/hpo-seats/r10s3/train2547/state9/wt/2580                                 bc313e7ca [fix/r10-flow-relay-hold]

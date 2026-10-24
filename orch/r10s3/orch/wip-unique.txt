@@ -1,0 +1,116 @@
+ext-audit-r10-D0-s1-61959be6 own=0 dirty=14 :: 
+ext-audit-r10-D0-s2-16c77e29 own=0 dirty=14 :: 
+ext-audit-r10-D0-s3-f686bdbf own=0 dirty=14 :: 
+ext-audit-r10-D11-s1-d9b28869 own=0 dirty=14 :: 
+ext-audit-r10-D11-s2-bb65798c own=0 dirty=14 :: 
+ext-audit-r10-D11-s3-cb018bdc own=0 dirty=14 :: 
+ext-audit-r10-D13-s1-ff6fe5f5 own=0 dirty=14 :: 
+ext-audit-r10-D13-s2-fbf72467 own=0 dirty=14 :: 
+ext-audit-r10-D13-s3-60d4e8f2 own=0 dirty=14 :: 
+ext-audit-r10-D14-s1-8585cfbd own=0 dirty=14 :: 
+ext-audit-r10-D14-s2-58f51d0c own=0 dirty=14 :: 
+ext-audit-r10-D14-s3-ce5bdd9f own=0 dirty=14 :: 
+ext-audit-r10-D3-s1-f10f5dc4 own=0 dirty=14 :: 
+ext-audit-r10-D3-s2-2c253781 own=0 dirty=14 :: 
+ext-audit-r10-D3-s3-f101dad5 own=0 dirty=14 :: 
+ext-audit-r10-D9-s1-ba964536 own=0 dirty=14 :: 
+ext-audit-r10-D9-s2-525c20ae own=0 dirty=14 :: 
+ext-audit-r10-D9-s3-c044ced4 own=0 dirty=14 :: 
+ext-base-033c8981 own=2 dirty=1 :: fix(R10-DEEPLINK-CENSUS): the setup fold's boolean is not the navigation primitive's name|Merge remote-tracking branch 'origin/main' into r8/r10-deeplink-census
+ext-base-718d87ae own=0 dirty=1 :: 
+ext-base-84b7a419 own=0 dirty=2 :: 
+ext-base-cda9da8a own=0 dirty=1 :: 
+ext-base-e9c58497 own=0 dirty=1 :: 
+ext-base-ece70320 own=0 dirty=1 :: 
+ext-base-f88e4447 own=0 dirty=1 :: 
+ext-base-wt-5e0a6472 own=0 dirty=1 :: 
+ext-base-wt-97c07a97 own=0 dirty=1 :: 
+ext-base2212-794c8d36 own=0 dirty=2 :: 
+ext-before-r4-a123ab58 own=0 dirty=6 :: 
+ext-before-r5-5c10d286 own=0 dirty=3 :: 
+ext-before-r6-25d260ca own=0 dirty=1 :: 
+ext-final-2605afba own=4 dirty=0 :: carry(R10-DEEPLINK-CENSUS): the stage briefs name the form and open-name refusals|fix(R10-DEEPLINK-CENSUS): the surface refuses a form built, given an action an
+ext-fix-0a179f8a own=1 dirty=0 :: fix(coverage): stage this run's per-script data over a restored cache entry|
+ext-fix-2310-5a8620e8 own=1 dirty=0 :: fix(#2310): a verdict comment names its evidence home-relative, and a body naming the host is refused|
+ext-fxrv-loopnorm-base-e10837b3 own=0 dirty=1 :: 
+ext-fxrv-loopnorm-head-e5af3725 own=0 dirty=2 :: 
+ext-gate-3da8d20c own=1 dirty=0 :: fix(R10-DEEPLINK-CENSUS): the census holds every route out, on one declared surface|
+ext-gate2-6a4d7bdb own=2 dirty=0 :: carry(R10-DEEPLINK-CENSUS): the card stages' briefs name the census's new refusals|fix(R10-DEEPLINK-CENSUS): the census holds every route out, on one declared s
+ext-head-262070ae own=0 dirty=1 :: 
+ext-head-60b52f09 own=4 dirty=1 :: carry(R10-DEEPLINK-CENSUS): the stage briefs name the form and open-name refusals|fix(R10-DEEPLINK-CENSUS): the surface refuses a form built, given an action an
+ext-head-9fda0645 own=0 dirty=1 :: 
+ext-head2-16ce285b own=4 dirty=1 :: carry(R10-DEEPLINK-CENSUS): the stage briefs name the form and open-name refusals|fix(R10-DEEPLINK-CENSUS): the surface refuses a form built, given an action an
+ext-hwt-ff62c4d1 own=0 dirty=2 :: 
+ext-measure-31deb24b own=0 dirty=1 :: Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr-r6|fix(R10-DEEPLINK-CENSUS): the surface and the reach arm refuse the name, not the s
+ext-measured-7fa45e1f own=0 dirty=1 :: Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr-r6|fix(R10-DEEPLINK-CENSUS): the surface and the reach arm refuse the name, not the s
+ext-measured2-0c8c67e0 own=0 dirty=1 :: Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr-r6|fix(R10-DEEPLINK-CENSUS): the surface and the reach arm refuse the name, not the s
+ext-measured3-5bb40070 own=0 dirty=1 :: Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr-r6|fix(R10-DEEPLINK-CENSUS): the surface and the reach arm refuse the name, not the s
+ext-measured4-95f9de6c own=0 dirty=1 :: Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr-r6|fix(R10-DEEPLINK-CENSUS): the surface and the reach arm refuse the name, not the s
+ext-mut-3bd16013 own=0 dirty=1 :: 
+ext-mut-f2f7f011 own=1 dirty=1 :: fix(replay): normalise the loop figure by a pure-Python reference, not the BLAS solve|
+ext-mut-fe9c9a75 own=0 dirty=1 :: 
+ext-new-51bcb782 own=0 dirty=1 :: 
+ext-p3wt-19754014 own=5 dirty=1 :: Merge remote-tracking branch 'origin/main' into handoff/r10-archscore-coverage-p3|chore(closures): classify attempts 27-33 (derive_closures.sh --single tests/ar
+ext-pre-24338f1e own=0 dirty=1 :: record: delivery row for #2345|Merge remote-tracking branch 'origin/main' into fix/r10-deeplink-census-pr|fix(R10-DEEPLINK-CENSUS): the global scan reads JS ide
+ext-r10-arch-doc-475371e3 own=1 dirty=0 :: docs: rework architecture.md with an explicit HA boundary|
+ext-r10-dev-onboard-2259cca7 own=2 dirty=0 :: fix(layout): place the dev onboarding docs in the manifest|docs(dev): add onboarding README and CI gate guide|
+ext-r3-before-0537034e own=0 dirty=4 :: 
+ext-rev2212-0da892f9 own=0 dirty=1 :: 
+ext-rev2214-db199712 own=0 dirty=1 :: 
+ext-revdeeplink-c2916bc1 own=0 dirty=1 :: 
+ext-revfahrenheit-0a91a13c own=0 dirty=1 :: 
+ext-revfahrenheit-base-341391dd own=0 dirty=1 :: 
+ext-review-2320-33845-208e9de1 own=0 dirty=30 :: 
+ext-review-r3-359f1512 own=0 dirty=1 :: 
+ext-revstale-a6b0ba65 own=0 dirty=1 :: 
+ext-roster-wt-prepr-5106cc7c own=0 dirty=1 :: 
+ext-roster-wt-prepr2-52de5186 own=0 dirty=1 :: 
+ext-roster-wt-prepr3-17964d96 own=0 dirty=1 :: 
+ext-roster-wt-r1-c3facf22 own=0 dirty=1 :: 
+ext-roster-wt-r2-59cda9c2 own=0 dirty=1 :: 
+ext-roster-wt-r3-e292cee6 own=0 dirty=1 :: 
+ext-roster-wt-r4-720c16a0 own=0 dirty=1 :: 
+ext-roster-wt-r5-969d0212 own=0 dirty=1 :: 
+ext-roster-wt-r6-74f67307 own=0 dirty=1 :: 
+ext-roster-wt-r7-3827bf3a own=0 dirty=1 :: 
+ext-roster-wt3-92af808a own=0 dirty=1 :: 
+ext-roster-wt4-e09b0b22 own=0 dirty=1 :: 
+ext-roster-wt5-513f673c own=0 dirty=1 :: 
+ext-sync-tool-3f0f85d4 own=0 dirty=1 :: 
+ext-w0-3c9c7f92 own=0 dirty=1 :: claims(R10-PUMP-MODEL): the 41 golden scenarios D2-s2-01 moves|fix(r10-pump-model): one DHW lift law, the duty floor as an argument, the step-start fold|
+ext-w1-278958ad own=0 dirty=1 :: claims(R10-PUMP-MODEL): the 41 golden scenarios D2-s2-01 moves|fix(r10-pump-model): one DHW lift law, the duty floor as an argument, the step-start fold|
+ext-w1-4a5f7e20 own=0 dirty=1 :: fix(R10-N-log-flood): key the arbiter latch on hass, normalize the ledger rows|record(mutation): re-key _log_held's killed pins to log_latch.py|fix(R10-N-log-fl
+ext-w2-91e84113 own=0 dirty=1 :: claims(R10-PUMP-MODEL): the 41 golden scenarios D2-s2-01 moves|fix(r10-pump-model): one DHW lift law, the duty floor as an argument, the step-start fold|
+ext-w3-5525a299 own=0 dirty=1 :: claims(R10-PUMP-MODEL): the 41 golden scenarios D2-s2-01 moves|fix(r10-pump-model): one DHW lift law, the duty floor as an argument, the step-start fold|
+ext-wt-083cc4b9 own=4 dirty=0 :: Merge origin/main into handoff/r10-deeplink-census|test(card): the census states the stub-selector residual it still leaves to the static arm|test(card): driver
+ext-wt-0842a6e8 own=1 dirty=0 :: record: the delivery row for #2282|
+ext-wt-0b8f5caa own=0 dirty=1 :: 
+ext-wt-2ee3ce0b own=0 dirty=60 :: 
+ext-wt-47f8755c own=0 dirty=1 :: 
+ext-wt-5c36cbee own=0 dirty=2 :: 
+ext-wt-6572e73d own=0 dirty=2 :: 
+ext-wt-6d5c9ebd own=1 dirty=0 :: record: the delivery row for #2285|
+ext-wt-7bc1655d own=1 dirty=0 :: record: the delivery row for #2316|
+ext-wt-7f527b59 own=0 dirty=1 :: 
+ext-wt-A_guard_false-46573323 own=0 dirty=1 :: 
+ext-wt-B_guard_true-67d07148 own=0 dirty=1 :: 
+ext-wt-C_no_wiring_drop-6fa8f276 own=0 dirty=1 :: 
+ext-wt-D_release_not_detach-64179e05 own=0 dirty=1 :: 
+ext-wt-E_listener_branch_only-3de88627 own=0 dirty=1 :: 
+ext-wt-F_no_registration-cc93c0e1 own=0 dirty=1 :: 
+ext-wt-a35a46d4 own=0 dirty=1 :: test(early_cutoff): assert the release/detach path directly|
+ext-wt-afe5f724 own=4 dirty=1 :: carry(R10-DEEPLINK-CENSUS): the stage briefs name the form and open-name refusals|fix(R10-DEEPLINK-CENSUS): the surface refuses a form built, given an action an
+ext-wt-b787dfe5 own=1 dirty=0 :: fix: hold record merges while a merge train is live (#2302)|
+ext-wt-bfbf868c own=0 dirty=1 :: 
+ext-wt-c1e5b189 own=0 dirty=59 :: fix(r10-pump-model): the modulation floor as an argument, the step-start folded|
+ext-wt-d480264e own=10 dirty=0 :: calibration(p4): re-record after the decorator exclusion; literal_clone_copies row at the merged head|fix(archscore p4): a decorator is not a literal spec|Merge
+ext-wt-f61c7488 own=1 dirty=0 :: record: the delivery row for #2329|
+ext-wt-f6dc0ab7 own=0 dirty=1 :: 
+ext-wt-fd8435a0 own=0 dirty=1 :: 
+ext-wt-head-9eb237fa own=0 dirty=1 :: 
+ext-wt-instr-920efa1f own=0 dirty=1 :: 
+ext-wt-r3-base-0d944d92 own=0 dirty=1 :: 
+ext-wt2-c1d36376 own=0 dirty=1 :: 
+ext-wt3-4b8199f4 own=0 dirty=1 :: 
+repo-claude-worktrees-r10-structure-blind-fixer own=2 dirty=0 :: record(structure): class_excess_loc 18498 -> 18468 after the main merge|Merge remote-tracking branch 'origin/main' into HEAD|
+repo-claude-worktrees-session-recovery-state-2fcd3e own=1 dirty=0 :: roster_edit append-carry R10-ARCHSCORE-COVERAGE (tools/audit/seat/roster_edit.py)|

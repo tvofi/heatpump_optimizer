@@ -1,0 +1,34 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run15/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run15 pid=76545 start=2026-10-22T22:28:44Z
+BATCH 20261022-222844 pid=76549 base=main queue=1 (#2628) --skip-bad
+TRAIN HOLD refs/heads/train-hold 2ffb1c82: the record beat waits
+TRAIN HOLD refs/heads/train-hold 8c5cd009: the record beat waits
+beat: waiting CI at fef4a135 (poll 2, t+243s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold e870f305: the record beat waits
+beat: waiting CI at fef4a135 (poll 3, t+486s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold b3cceb68: the record beat waits
+beat: waiting CI at fef4a135 (poll 4, t+729s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 6e1f4803: the record beat waits
+beat: waiting CI at fef4a135 (poll 5, t+972s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 3cc13e7f: the record beat waits
+beat: waiting CI at fef4a135 (poll 6, t+1215s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 9b95eace: the record beat waits
+beat: waiting CI at fef4a135 (poll 7, t+1458s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 50709691: the record beat waits
+beat: waiting CI at fef4a135 (poll 8, t+1702s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold f15f9e3a: the record beat waits
+beat: waiting CI at fef4a135 (poll 9, t+1945s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold bc0c4a01: the record beat waits
+beat: waiting CI at fef4a135 (poll 10, t+2189s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold fef28257: the record beat waits
+beat: waiting CI at fef4a135 (poll 11, t+2433s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 2a3132ea: the record beat waits
+beat: waiting CI at fef4a135 (poll 12, t+2677s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold e7d24a59: the record beat waits
+PARK #2628 policy: policy paths changed (dev/governance/roles/nudge.md, dev/governance/roles/orchestrator.md): no decisive review by tvofi (id 70032254) on this pull request
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-22T23:17:37Z

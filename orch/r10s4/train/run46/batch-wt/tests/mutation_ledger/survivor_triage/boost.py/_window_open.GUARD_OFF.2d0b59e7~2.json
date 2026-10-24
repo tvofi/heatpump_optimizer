@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_window_open GUARD_OFF 2d0b59e7#2",
+  "old": "    if not windows:",
+  "reason": "Equivalent (GUARD_OFF) on the second `if not windows`. Skipping return False falls through to hour_in_windows(hour, windows). hour_in_windows(12.0, []) is False, measured by PYTHONPATH=tests/hastub:custom_components python3 -c 'from heatpump_optimizer.dhw_schedule import hour_in_windows; print(hour_in_windows(12.0, []))'.",
+  "verdict": "equivalent"
+}

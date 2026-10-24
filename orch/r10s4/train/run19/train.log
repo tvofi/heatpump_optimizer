@@ -1,0 +1,18 @@
+TRAIN pid=83900 queue=1 (#2628)
+TRAIN HOLD refs/heads/train-hold bef4f342: the record beat waits
+TRAIN HOLD refs/heads/train-hold de1a5bb2: the record beat waits
+TRAIN HOLD refs/heads/train-hold 7bf62c01: the record beat waits
+#2628 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-flow-pull/wt held fix/r10-flow-pull, clean at origin/fix/r10-flow-pull; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-flow-pull/wt switch fix/r10-flow-pull)
+#2628 recarry START (branch fix/r10-flow-pull)
+#2628 recarry: main merged, head 8a009877; app_push: RECARRY: prepr SKIPPED: HEAD 8a009877 is the clean merge of the live head ced4bf66 and origin/main's cf01e82e, and the body is the live one
+TRAIN HOLD refs/heads/train-hold 099f7f99: the record beat waits
+beat: waiting CI at 8a009877 (poll 2, t+242s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold a8dc6b33: the record beat waits
+beat: waiting CI at 8a009877 (poll 3, t+485s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 0dab3fae: the record beat waits
+beat: waiting CI at 8a009877 (poll 4, t+727s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 2a553c24: the record beat waits
+#2628 8a009877 ci red=[]
+released /Users/timmalmstrom/hpo-orch/r10s4/train/run19/wt/2628
+TRAIN HOLD released
+TRAIN STOPPED #2628 policy: policy paths changed (dev/governance/roles/nudge.md, dev/governance/roles/orchestrator.md): no decisive review by tvofi (id 70032254) on this pull request

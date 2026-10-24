@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for F6.1 (#1652, D4-s1-01/D4-s1-03/CARD_VERSION review",
+    "fixes) into the P9 class-barrier stage (F6.3, handoff/r9-rca-p9's",
+    "tests/card_browser.mjs). Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1652,
+  "stage": "F6.3, the P9 zero-rule class-barrier PR built on tests/card_browser.mjs (branch handoff/r9-rca-p9)",
+  "carries": [
+    {
+      "from": "the F6.1 review round that fixed D4-s1-01 (heatpump-optimizer-card.js's whatif/save/pin/dhw-warn colours now read hass.themes.darkMode in JS, via _isDarkMode()/cardStyleBlock(darkMode), instead of deferring to a CSS prefers-color-scheme media query)",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control. tests/card_browser.mjs's grid at handoff/r9-rca-p9's current head (no reference to hass.themes.darkMode anywhere in the file -- grep confirms zero matches) never sets hass.themes.darkMode on the mounted card, so every cell's card renders with darkMode falsy regardless of the cell's own `theme: \"dark\"`/`colorScheme` setting. Run against this PR's fixed card (D4-s1-01 closed), that stock grid reports 'FAIL P9 grid: every visible text run clears WCAG AA against what is under it', 8 instances, all in the 3.68-3.76:1 range (span.delta.dearer, span.cheaper, span.dearer x2, div.wi-result.cheaper, div.wi-result.dearer, div.wi-hint.wi-warn) -- exactly the light-safe literals' own measured range on a #1c1c1c background (documented in the card's own D4-s1-01 comment). The perturbation that voids the finding: patching the grid so `hass.themes = { darkMode: cell.theme === \"dark\" }` is passed into the mounted card for every cell, then re-running -- 0 contrast failures (verified locally, not committed to this branch: F6.1's own scratch patch, reverted before every commit). The same patch produces zero regressions on any light-cell run, since `cell.theme === \"dark\"` reduces to `false` there, matching the grid's pre-existing (accidental) behaviour.",
+      "remeasure": "Do not trust these counts: they are measured at F6.1's head (this repository's git log names it) and F6.3 is judged against its own merge base. Before trusting this carry, grep tests/card_browser.mjs for `darkMode` at F6.3's merge base -- if it already appears (wired by an intervening PR), this carry is stale and F6.3's own grid run is authoritative instead. If it does not, re-run the grid once unpatched against the current card (expect the same class of contrast failures if D4-s1-01-shaped colours are still in the card) and once with `hass.themes.darkMode` wired to `cell.theme === \"dark\"` (expect them to clear) before deciding the barrier is ready.",
+      "brief": "F6.3's zero-rule P9 grid must set `hass.themes.darkMode` on every mounted cell to match that cell's own theme (`cell.theme === \"dark\"`), not leave it unset -- the card now reads that flag in JS (not a `prefers-color-scheme` media query) to choose its dark-safe colour literals, and a grid that never sets it silently tests every cell as light-mode regardless of the theme axis it claims to cover. HA's own theme CSS variables (`--card-background-color` etc.) are themselves selected by `hass.themes.darkMode`, a profile setting the user can flip independently of the OS's own light/dark preference -- so HA dark mode on a light OS (or the reverse) is an ordinary, reachable install, not a state HA cannot reach; also keep two OS-mismatch cells (HA dark on an OS light scheme, HA light on an OS dark scheme), each with darkMode and theme vars in lockstep, as the regression guard against keying colours off the OS. Keep both cells that hold `theme` and `hass.themes.darkMode` in lockstep (the barrier's normal light/dark coverage), since that is the real state space the card's D4-s1-01 fix depends on being tested against."
+    }
+  ]
+}

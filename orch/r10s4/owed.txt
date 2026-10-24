@@ -1,0 +1,3 @@
+OWED after #2576 merges: roster_edit.py append-carry R10-ROSTER-PUSH-RACE @~/hpo-orch/r10s4/roster/c2569.txt (use @file; read back); also set-stages queued by the merge seat
+P6 adopted (assessor 2026-10-21): new seat-selftest mutants use per-file ids (cloud_relay-1, handoff_push-1, merge_pr-1) placed beside that file's entries; docstring count dropped; S01-S34 stay. Already-fired fixers (RELAY-HOLD round 2 cse_01PQod..., PR G #2529 round 2 cse_01WVKp...) were briefed to renumber to S35+; if both land, the second to merge converts to per-file ids when it absorbs main (tell its fixer then). Future fixer briefs touching r10_seat_selftests_mutants.py carry the convention.
+P7: RATCHET-RED/#2531 first, PR G, P1; P2 at boundary; no R10-FLY-RECORD-ENUM (one transient 500).

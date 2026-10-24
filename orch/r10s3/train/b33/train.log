@@ -1,0 +1,25 @@
+===== daemonize pid=57124 2026-10-20T07:06:45Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/b33/q.json.pre --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/b33 --mandate 6175172275 --overlap --free-holders
+train.sh: REFUSE: queue file not found: /Users/timmalmstrom/hpo-orch/r10s3/train/b33/q.json.pre
+===== daemonize pid=57264 2026-10-20T07:06:54Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/b33/q.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/b33 --mandate 6175172275 --overlap --free-holders
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b33/q.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b33 pid=57264 start=2026-10-20T07:06:54Z
+BATCH 20261020-070654 pid=57272 base=main queue=1 (#2469) --overlap
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2469 serial: grader
+OVERLAP: recarrying #2469 up front, their pull_request runs fire together
+#2469 overlap: recarry start
+#2469 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-worktree-vanish held fix/r10-rca-worktree-vanish, clean at origin/fix/r10-rca-worktree-vanish; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-rca-worktree-vanish switch fix/r10-rca-worktree-vanish)
+#2469 recarry START (branch fix/r10-rca-worktree-vanish)
+#2469 recarry: main merged, head 511bfe9e; app_push: RECARRY: prepr SKIPPED: HEAD 511bfe9e is the clean merge of the live head 42bee4bd and origin/main's 0c298f6b, and the body is the live one
+serial: #2469
+beat: waiting CI at 511bfe9e (poll 2, t+241s, required: 14, concluded: 12/14)
+beat: waiting CI at 511bfe9e (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at 511bfe9e (poll 4, t+724s, required: 14, concluded: 12/14)
+beat: waiting CI at 511bfe9e (poll 5, t+965s, required: 14, concluded: 13/14)
+beat: waiting CI at 511bfe9e (poll 6, t+1206s, required: 14, concluded: 13/14)
+beat: waiting CI at 511bfe9e (poll 7, t+1447s, required: 14, concluded: 13/14)
+beat: waiting CI at 511bfe9e (poll 8, t+1688s, required: 14, concluded: 13/14)
+#2469 511bfe9e ci red=['Analyze (python)']
+released /Users/timmalmstrom/hpo-orch/r10s3/train/b33/wt/2469
+TRAIN STOPPED ci: #2469 red at the head: Analyze (python)
+TRAIN_RC=1 end=2026-10-20T07:39:30Z

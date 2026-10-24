@@ -1,0 +1,3 @@
+===== daemonize pid=78405 2026-10-18T22:57:40Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh record/autofix 55f73caa994e /Users/timmalmstrom/hpo-orch/r10s3/upd/2420.md
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

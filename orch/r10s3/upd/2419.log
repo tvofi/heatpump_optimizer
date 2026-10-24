@@ -1,0 +1,3 @@
+===== daemonize pid=87322 2026-10-18T20:56:15Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-cloud-shape-pr f5b439077a8ce59dfe8866dd98001e291e29956b /Users/timmalmstrom/hpo-orch/r10s3/upd/2419.md
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+HEAD=15ef95bd2e1bffc4c9031b769d0838a450be1960

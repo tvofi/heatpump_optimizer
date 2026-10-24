@@ -1,0 +1,2 @@
+===== daemonize pid=95236 2026-10-18T03:06:41Z argv: bash tools/audit/seat/open_pr.sh r10-archscore-coverage-p4 94522163e091b1f14ccb8ba5c4d0bad1cfce6ae7 R10-ARCHSCORE-COVERAGE p4: card coverage and literal clones read by the score R10-ARCHSCORE-COVERAGE
+PR=2373 HEAD=28d6a60bb80a5c6bdb6c565e65e1b6b7fceab4f5 AUTHOR=tvofi

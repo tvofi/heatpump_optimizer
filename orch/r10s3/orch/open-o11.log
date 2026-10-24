@@ -1,0 +1,6 @@
+===== daemonize pid=76651 2026-10-18T11:23:36Z argv: bash tools/audit/seat/open_pr.sh r10-carry-enforce dd53fde96653da5f5e558a4eedc799fd570c1e50 R10-CARRY-ENFORCE: every finding carries a destination (carry_audit) R10-CARRY-ENFORCE
+  REFUSE   field coverage          REFUSED registry: `pinned tools/audit/carry_audit.py` is unregistered: DECLARED names neither an arm for its input nor none;FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on closures against 932f5d6019e5 -- repair before the handoff; `--apply-inert` repairs them
+  REFUSE   layout guard           placement: tools/audit/carry_audit.py is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind -- place it where tests/layout.json says, or the fast job refuses it
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

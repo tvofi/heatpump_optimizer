@@ -1,0 +1,2 @@
+===== daemonize pid=84612 2026-10-20T23:21:16Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-codeql-cap bash tools/audit/seat/update_pr.sh handoff/r10-codeql-cap 7b64805231166191ff3f29e2ed3f618edf2cbf70 /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-codeql-cap.md
+HEAD=33704404d201f3ce78443e4f3636a9beeff3324e

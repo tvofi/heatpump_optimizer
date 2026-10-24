@@ -1,0 +1,4 @@
+===== daemonize pid=10478 2026-10-24T11:36:24Z argv: bash tools/audit/seat/update_pr.sh fix/r10-replay-scoped - /Users/timmalmstrom/hpo-orch/r10s6/2692-body.md
+Auto-merging tests/entities.py
+app_push: ROW-ONLY: prepr RUNS: parent 1 642538f4 is not the live pull-request head 799830bb
+HEAD=f4458d2160d8f9f6b10d7fb3d657140201cd1d31

@@ -1,0 +1,34 @@
+OPEN FIRST (CRITICAL PATH) r10-ratio-anchor code 97ce097abeb43faeea0d7c071ee42d574705eeea body b346a647: ahead of every other OPEN. If ref_privacy flags the cloud commit author, report it; don't rewrite.
+# r10 s6 dispatch/relay/verdict queue (orchestrator writes; dispatch seat reads)
+2026-10-24T07:50Z #2678 (dependabot setuptools 84.0.0->84.1.0, head 6ee3e4d4f): check whether its BLOCKED state is only the required `gate` red from main's ci-ratchet outage or the pre-cutover fixture; read failing checks with tools/audit/seat/failure_logs.sh. Report; do not dispatch a reviewer yet.
+2026-10-24T07:50Z #2683: report whether head 8d965647d moved past verdict 07b83e9b2 only by merging origin/main (git diff --name-only 07b83e9b2 8d965647d vs the branch's own files) -> CARRY or REVIEW-OWED.
+2026-10-24T07:55Z #2683: orchestrator ruling — NOT a carry (structure_budgets.json differs from main's side by 14 lines). Prepare a DELTA review: bus.sh dispatch 2683 at head 8d965647d (role reviewer), render the cloud reviewer payload with a brief file saying "Delta-scoped re-review of #2683 (R10-INPUT-STALENESS): round-2 verdict merge at 07b83e9b2 (comment 6379079217). Head 8d965647d merged origin/main 88744e573; review only the merge resolution, especially tests/structure_budgets.json (14 lines differ from main's side): every metric must equal the merged tree's measurement and none may rise against main. Read CI at this head." Model claude-opus-5-5. Report fire-owed.
+2026-10-24T07:55Z relay: dispose the confirm-owed review/2609 line (PR closed) with tools/audit/seat/cloud_relay.sh dispose.
+2026-10-24T07:57Z NEW REVIEWER ROUTE (all future reviewer dispatches): after cloud_dispatch.py renders the payload, publish its prompt as PROMPT.md in a parentless commit on refs/heads/dispatch/reviewer-<pr>-<nonce8>, then rewrite POOL.txt on refs/heads/dispatch/rpool-s6 to list only reviews not yet claimed (check `git ls-remote origin 'refs/heads/claim/s6/rev-*'`) with yours appended, and report `fire-owed-pool #<pr> <head> <nonce> dispatch/reviewer-<pr>-<nonce8>`. I then fire one run of the pool routine. (#2683's brief is already on dispatch/reviewer-2683 and claimed by the run I fired.)
+2026-10-24T07:57Z OPEN triage handoff r10-triage-s6-batch1: tools/audit/seat/open_pr.sh with code 8844c2e9fc105de6988302d1983e664461bd49e7, no intended issues; then approve_held_runs, bus.sh dispatch, and a reviewer per the new route (model claude-sonnet-5-5 is enough: a ruling file only). Report.
+2026-10-24T08:20Z OPEN triage handoff r10-triage-s6-batch2: open_pr.sh r10-triage-s6-batch2 009b5c6ffbb71bc547f18f62973e737a9c1d0b1e "Record proposal-triage rulings, s6 batch 2 (P45-P51)" triage-s6-batch2 (detached, log under r10s6/logs), then approve_held_runs, bus.sh dispatch, reviewer route (rpool). Report fire-owed-pool.
+2026-10-24T08:20Z OPEN (revised) r10-triage-s6-batch2: open_pr.sh r10-triage-s6-batch2 1dc67949505875052d731dfc297a71f816871630 "Record proposal-triage rulings, s6 batch 2 (P45-P51)" triage-s6-batch2, then approve_held_runs, bus.sh dispatch, reviewer pool; report fire-owed-pool.
+OPEN r10-merge-subject-harden (pool review)
+OPEN r10-replay-scoped (pool review)
+OPEN r10-rca-strand code 16500c740 (record PR, pool review)
+OPEN r10-rca-ci-ratchet-run-name code 35a535f510c6efd58aec76e90eb05744bfdbd3ba (record PR, pool review)
+UPDATE #2689 r10-triage-s6-batch2 code e06c58981e10fae40a077294c8af41f4485dadaf body cffd95fe (adds P52): update_pr, re-dispatch at new head, report fire-owed-pool
+OPEN r10-demand-overbook code d6ab12b4b7f0554f6fd18915ddc6b71b54acf1db (pool review; Part of #2499, carry R10-UX-HEALTH)
+OPEN r10-policy-gate-scoping code aa44f4bcc8261cc3fa170b6a47e85e6ce4cde7ca (POLICY: merge direct under mandate after review)
+OPEN r10-rca-ci-ratchet-run-name code f5b2f4624994807939b717533dc6d8f0a0b3fb6d (agreement fixed; retry open, pool review)
+UPDATE demand-overbook PR (once open) to body a7a683d1 if opened with an older body (4604f4a3); code d6ab12b4 unchanged
+OPEN r10-config-notices code 5b067738bd38010b0af9e54e78224b55234476e2 (pool review; recorded 5 budget decreases, so it merges ahead of other coordinator PRs only per ratchet order)
+UPDATE #2688 r10-triage-s6-batch1 code 569da4eed060ba229f548719237ba2c4545dec58 body ae6a97c5 (after ratio-anchor open); re-dispatch, report fire-owed-pool
+OPEN r10-flow-autotrain code acdc10b22e018087626b0d545c22cf8e99965b97 body a0a66d2b (pool review; pre-study: high tokens-per-effort, priority after ratio-anchor)
+UPDATE #2689 r10-triage-s6-batch2 code d0492904ea98b9b828b6f653efcb977b8490226d body 12560224 (fixes figure-unverified block); also retitle to '(P45-P52)' and fix delivery/2689.md title; re-dispatch, report fire-owed-pool
+OPEN r10-triage-s6-batch3 code 6cab77593df6e32cf2e44b8b240e8a0050a130de body bae9e5b8 (record PR; pool review)
+OPEN r10-policy-fixer-md code 2788ce34971216471686e716aa1ed340e21e4ac5 body 3045badb (POLICY; pool review; merge direct under mandate)
+2026-10-24T10:09:05Z open-pr r10-rca-gate-lease-flake (handoff + handoff-body pushed by the RCA seat; tests/ only)
+2026-10-24T10:20:17Z open-pr r10-policy-fixer-md 2788ce34971216471686e716aa1ed340e21e4ac5 (policy: merges direct under mandate after review)
+2026-10-24T10:29:45Z open-pr r10-codeql-dependabot 08739929974231c6c7eea1a91048e0185d0c0e3c (code-owned .github: merges under mandate after review)
+2026-10-24T11:33:24Z open-pr r10-roster-runq e191a706c44a636c6252946014c20d7b4a6abbe1 (body 8950989c2; tools/ instrument from the roster seat, decision 0013; no roster group, treat as a fly-in)
+open-pr r10-ci-layout-p2-pre 54c60b5ac88892e08241f91377354c2740b82e9c (owner group R10-CI-LAYOUT-P2; body ref present)
+open-pr r10-mutant-skip a7e41d646087efadd230b22634808f52da83fb38 (owner group R10-MUTANT-SKIP; body ref present)
+open-pr r10-sav-comfort 50f27375e8a2dc87c807af2065b30ef78a175a84 (owner group R10-SAV-COMFORT; body ref present)
+open-pr r10-thermal-power-option 1e04be57142ea615b82aaaf618d0ff2fbed6e5b5 (owner group R10-THERMAL-POWER-OPTION; body ref present)
+open-pr r10-roster-runq e191a706c44a636c6252946014c20d7b4a6abbe1 (owner group none-in-roster, roster-seat tooling roster_queue.py; body ref present)

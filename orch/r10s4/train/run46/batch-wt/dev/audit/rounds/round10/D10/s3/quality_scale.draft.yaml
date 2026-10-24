@@ -1,0 +1,4 @@
+rules:
+  async-dependency: done      # requirements numpy/scipy/threadpoolctl are compute-only; 0 sync HTTP imports
+  inject-websession: done     # 0 aiohttp.ClientSession constructions; async_get_clientsession used
+  strict-typing: done         # py.typed shipped; 0/1971 functions lack a return annotation (mypy strict count is M3, not this seat)

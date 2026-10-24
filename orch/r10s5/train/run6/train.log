@@ -1,0 +1,34 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run6/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run6 pid=30630 start=2026-10-23T19:13:52Z
+BATCH 20261023-191352 pid=30638 base=main queue=2 (#2664 #2670) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 64191d9f: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+OVERLAP: main at 5c9828fe5e55 is still running (Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs, typing): a wait, not red; --overlap does not wait
+PARK #2670 findings: 2 finding item(s) with no valid `Carry:` (carry_audit.py pr 2670); first: review 6371729358 item f3e2f4f5 (unrouted): - **Carry markers.** `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roste
+PRE-FLIGHT: 1 of 2 admitted
+#2664 serial: grader
+OVERLAP: recarrying #2664 up front, their pull_request runs fire together
+#2664 overlap: recarry start
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+TRAIN HOLD refs/heads/train-hold b300bb52: the record beat waits
+#2664 recarry START (branch fix/r10-fly-relay-review-ff)
+#2664 recarry: main merged, head 2ed6599a; app_push: RECARRY: prepr SKIPPED: HEAD 2ed6599a is the clean merge of the live head 8373f16d and origin/main's 5c9828fe, and the body is the live one
+serial: #2664
+TRAIN HOLD refs/heads/train-hold deeb6c54: the record beat waits
+beat: waiting CI at 2ed6599a (poll 2, t+242s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold 64e87c6c: the record beat waits
+beat: waiting CI at 2ed6599a (poll 3, t+485s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 3ce2b69e: the record beat waits
+beat: waiting CI at 2ed6599a (poll 4, t+727s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 646894d4: the record beat waits
+beat: waiting CI at 2ed6599a (poll 5, t+970s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold bd76269c: the record beat waits
+#2664 2ed6599a ci red=[]
+#2664 approved (app)
+#2664 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2664 MERGED 811cd01aaef5a5e72e0f27598aaaef53823302fd
+#2664 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s5/train/run6/wt/2664 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s5/train/run6/wt/2664' is not a working tree); remove it by hand
+SKIP REPORT: 1 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-23T19:37:10Z

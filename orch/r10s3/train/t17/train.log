@@ -1,0 +1,29 @@
+===== daemonize pid=55429 2026-10-20T13:31:11Z argv: bash tools/audit/seat/train.sh --queue /Users/timmalmstrom/hpo-orch/r10s3/train/q-t17.json --repo tvofi/heatpump_optimizer --state-dir /Users/timmalmstrom/hpo-orch/r10s3/train/t17 --checkout /Users/timmalmstrom/hpo-seats/r10s3/orch-wt --mandate 6175172275 --skip-bad --overlap
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/q-t17.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t17 pid=55429 start=2026-10-20T13:31:11Z
+BATCH 20261020-133111 pid=55435 base=main queue=1 (#2486) --overlap --skip-bad
+OVERLAP: main at 76bb45628745 is not green (closures, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+beat: waiting CI at f851f243 (poll 2, t+241s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 5, t+964s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 6, t+1205s, required: 14, concluded: 13/14)
+beat: waiting CI at f851f243 (poll 7, t+1446s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 8, t+1687s, required: 14, concluded: 12/14)
+beat: waiting CI at f851f243 (poll 9, t+1928s, required: 14, concluded: 13/14)
+beat: waiting CI at f851f243 (poll 10, t+2169s, required: 14, concluded: 13/14)
+beat: waiting CI at f851f243 (poll 11, t+2410s, required: 14, concluded: 13/14)
+#2486 admitted at f851f243
+#2486 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2486 approved (app)
+[MAIN-MOVED] before #2486's merge: re-proving #2486 on 2dadcdc8 (1/3)
+#2486 D: alone after the re-proof, it merges unproved
+#2486 approved (app)
+OVERLAP: main at 2dadcdc8cbcc is not green (Analyze (python), closures, fast (3.14)) right before #2486's merge; --overlap logs it and does not wait
+#2486 MERGED 4e5801eb50644df94ccf18650afbb2cc99e854b4
+#2486 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2486 main 4e5801eb tree == proof e3e75c39
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-20T14:17:21Z

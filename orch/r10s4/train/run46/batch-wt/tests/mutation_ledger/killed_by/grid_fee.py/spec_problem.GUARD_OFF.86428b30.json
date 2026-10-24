@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:spec_problem GUARD_OFF 86428b30",
+  "killed_by": "tests/features.py",
+  "old": "    if any(rule.rate < 0.0 for rule in rules):",
+  "reason": "Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

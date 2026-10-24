@@ -1,0 +1,135 @@
+{
+ "dimension": "D1",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D1-s1",
+ "report_path": "tools/audit/round8/D1/REPORT-s1.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D1-s1-01",
+   "title": "set_thermal_parameters DHW minimums written mid-solve are silently reverted by the away-setback unwind",
+   "severity": "medium",
+   "claim": "A set_thermal_parameters call carrying dhw_min_temperature and/or dhw_idle_min_temperature that lands while async_run_optimization is awaiting its solve is acknowledged, applied, and then overwritten with the pre-solve values by the unconditional away.restore_setback in async_run_optimization's finally, even with away mode inactive; the reverted values are what every later solve uses and what the coordinator publishes.",
+   "mechanism": "coordinator.py:4754 snapshots six fields via away.apply_setback, which returns the originals even when no setback is applied (away.py:301-302); the solve then awaits the process worker for seconds (the whole async_run_optimization body incl. shadow solves); coordinator.py:5027 restore_setback writes the six snapshotted values back unconditionally, clobbering any loop-side write made in between. set_thermal_parameters (services.py:handle_set_thermal_params -> coordinator.async_update_thermal_params) is an in-memory writer of two of those fields (dhw_min_temp, dhw_idle_min_temp) that runs on the loop during that await.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_setback_race.py",
+    "harness_path": "tools/audit/round8/D1/s1_setback_race.py",
+    "value": 2,
+    "unit": "fields reverted (of 2), live params and published data both",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container, 15 GB, shared with up to 13 seats (not the audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "load1 13.6-21 from other seats; the counts are contention-immune (the race arm waits on the hooked solve, not on time); the window seconds are provisional",
+    "tolerance": "exact",
+    "load1": 21.08,
+    "thread_factor": 1.085
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization (finally -> heatpump_optimizer.away:restore_setback); heatpump_optimizer.services:handle_set_thermal_params; coordinator:_run_in_process hooked to detect in-flight",
+   "perturbation": {
+    "change": "away.py:302 `return original` -> `return None` (no setback applied => the finally's `if away_original is not None` skips the unwind); harness flag --perturb applies it in-process and restores it",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of dhw_min_temp and dhw_idle_min_temp set by a set_thermal_parameters call made mid-solve, count those != requested after the cycle returns (live ctx params and coordinator.data).",
+   "phenomenon_property": "No loop-side write accepted while a solve is in flight may be undone by the solve's own snapshot-and-unwind; an unwind restores only fields it actually changed, and only if nobody wrote them since.",
+   "seam_rule": "grep -n 'apply_setback\\|restore_setback\\|away_original' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/away.py ; writers of the six snapshotted fields: grep -nE '\\.(target_temp|min_temp|comfort_temp_day|comfort_temp_night|dhw_min_temp|dhw_idle_min_temp) *=|\"dhw_min_temperature\": \"dhw_min_temp\"' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_setback_race.py (control arm, same run)",
+    "value": 0,
+    "note": "same call issued after the cycle has returned: 0 of 2 reverted (live 38.0/31.0, published 38.0/31.0); race arm live 45.0/20.0 (the defaults) after the service had applied 38.0/31.0 (race_applied_at_call=2)"
+   },
+   "reproduction_steps": [
+    "run the command; race arm prints live=(45.0,20.0) published=(45.0,20.0), control arm (38.0,31.0)",
+    "rerun with --perturb: race_reverted_live=0, race_reverted_published=0",
+    "window: setback_window_max_s_provisional=5.8 s on this loaded box (apply_setback -> restore_setback), i.e. ~0.3 % of the default 30-min interval here; larger on a Pi; also covers the first background solve after every setup/reload"
+   ],
+   "proposed_fix_scope": "coordinator.async_run_optimization / away.apply_setback+restore_setback: unwind only when a setback (or economy/open-window widening) was applied, and restore a field only if it still holds the value the envelope wrote (compare-and-restore); alternatively apply the setback to the _solve_snapshot copies instead of the live ctx objects. Add a real-loop test that writes mid-solve.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/services.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D1-s1-02",
+   "title": "diagnose_interval service runs a bound coordinator method on the executor, touching live state off the loop",
+   "severity": "low",
+   "claim": "services.py:handle_diagnose_interval passes coord.diagnose_last_interval to hass.async_add_executor_job, so an executor thread reads _ctx (live _thermal_params) and _last_interval_record and writes _last_diagnosis on the live coordinator, bypassing the _diagnose_payload deepcopy snapshot the Diagnose button path (async_diagnose_interval) uses; it is the only off-loop coordinator access in the lifecycle.",
+   "mechanism": "services.py:965-967; the button path coordinator.async_diagnose_interval -> _await_process(diagnosis.diagnose_record, *_diagnose_payload(self)) deep-copies params and runs in the worker process. The service path shallow-copies the live params (dataclasses.replace) on a thread while the loop may be inside async_run_optimization with the setback/aperture/economy mutations applied, and runs the model in-process holding the GIL.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_thread_reads.py",
+    "harness_path": "tools/audit/round8/D1/s1_thread_reads.py",
+    "value": 3,
+    "unit": "distinct private coordinator attributes accessed off the loop thread",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container, 15 GB, shared with up to 13 seats (not the audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "load1 ~22 from other seats; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 21.94,
+    "thread_factor": 1.083
+   },
+   "instrumented_symbol": "heatpump_optimizer.services:handle_diagnose_interval; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.diagnose_last_interval (class __getattribute__/__setattr__ observed by thread ident)",
+   "perturbation": {
+    "change": "services.py:965-967 `reports[entry_id] = await hass.async_add_executor_job(coord.diagnose_last_interval)` -> `await coord.async_diagnose_interval(); reports[entry_id] = coord._last_diagnosis` (harness --perturb swaps the handler before async_setup registers it)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Distinct single-underscore coordinator attributes read or written from a non-loop thread across setup, two solves, a what-if, the diagnose service and the Diagnose button.",
+   "phenomenon_property": "No executor job receives the live coordinator (or a bound method of it); everything a thread needs crosses as a snapshot, as _solve_snapshot/_diagnose_payload do.",
+   "seam_rule": "grep -nE 'async_add_executor_job\\((coord|self)\\.|_await_process\\([^)]*(coord|self)\\.' custom_components/heatpump_optimizer/*.py ; and PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_thread_reads.py",
+   "reproduction_steps": [
+    "run the command: phase=service offloop=['_ctx','_last_diagnosis','_last_interval_record']; button phase 0",
+    "--perturb: offloop_attrs=0"
+   ],
+   "proposed_fix_scope": "services.handle_diagnose_interval: call coord.async_diagnose_interval() (or _await_process with _diagnose_payload) and read the report back; no production behaviour change beyond the snapshot.",
+   "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Real-loop lifecycle (ThreadPoolExecutor executor, scheduled tasks, entry state machine with per-entry setup_lock, LIFO on_unload, background-task cancel): setup -> first background solve -> reload mid-solve -> unload mid-solve -> setup again leaves no live task, loop timer, bus/state listener referencing a torn-down coordinator, both torn-down coordinators are collected, no exception escapes, no store save or service call after unload, the stale solve never lands on the old instance (#237 latch), and both new instances complete their first real solve. The harness moves: --perturb-no-cancel (skip the in-flight cancel and drop the latch) gives old_solve_landed_after_unload 0->2, released_latch_set 1->0.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_lifecycle.py [--perturb-no-cancel]",
+   "value": "leaked_refs=0 alive_after_gc=0 escaped_exceptions=0 new_first_solve_ok=2 old_solve_landed_after_unload=0 store_saves_after_unload=0 service_calls_after_unload=0 (perturbed: landed=2, latch=0); load1 12.1, thread_factor 1.07 (deliberate executor thread)"
+  },
+  {
+   "claim": "The old solve's executor thread is still inside coordinator._run_in_process when reload/unload returns (cancelling the asyncio task does not stop the concurrent future); it keeps _PROCESS_LOCK until the child answers and the new instance's first solve queues behind it and completes. Latency only, not a wedge.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_lifecycle.py",
+   "value": "old_future_running_at_reload=1 old_future_running_at_unload=1 new_first_solve_ok=2 (provisional timing, load1 12)"
+  },
+  {
+   "claim": "Executor-boundary aliasing census: of the objects every solve job hands the executor thread (optimize + shadow solves, 3 configs, 9 jobs), exactly one per job is shared with the live coordinator, horizon.pv_surplus is coordinator._pv_surplus; its only writer rebinds (coordinator.py:6108) and no in-place write exists, so no torn state. _solve_snapshot's deepcopies hold; harness moves 9->15 when the state deepcopy is removed.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_alias.py [--perturb]; grep -nE '_pv_surplus\\[[^]]*\\] *[-+*/]?=' custom_components/heatpump_optimizer/coordinator.py | wc -l",
+   "value": "jobs_inspected=9 aliased_objects=9 (all _pv_surplus), in-place writers=0; perturbed aliased_objects=15"
+  },
+  {
+   "claim": "During a scheduled cycle and a what-if solve no coordinator attribute is touched from a non-loop thread (the process-worker route passes snapshots only); the Diagnose button path is also clean.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_thread_reads.py",
+   "value": "cycle_offloop_attrs=0 button_offloop_attrs=0"
+  },
+  {
+   "claim": "async_shutdown running twice per unload (async_unload_entry and the base DataUpdateCoordinator's own async_on_unload registration, as real HA does) raises nothing and leaves nothing pending.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s1_lifecycle.py",
+   "value": "escaped_exceptions=0 (loop exception handler + ERROR log records) across 3 unloads"
+  },
+  {
+   "claim": "climate set_temperature mid-solve is not lost to the setback unwind: async_set_target_temperature persists to entry options and the update listener reloads, so the new coordinator is built from the new target; only the in-memory set_thermal_parameters writes are exposed (D1-s1-01).",
+   "command": "grep -n 'ctx._opt_config.target_temp = temperature' -A4 custom_components/heatpump_optimizer/coordinator.py; grep -n 'async_reload' custom_components/heatpump_optimizer/__init__.py",
+   "value": "target write followed by async_update_entry(options) -> async_update_options -> async_reload (code path; not separately executed)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D1/s1_realloop.py",
+  "tools/audit/round8/D1/s1_lifecycle.py",
+  "tools/audit/round8/D1/s1_setback_race.py",
+  "tools/audit/round8/D1/s1_alias.py",
+  "tools/audit/round8/D1/s1_thread_reads.py"
+ ],
+ "unfinished": "Finding ids follow the task's D1-s1-NN form, which tools/audit/finding.schema.json's id pattern ^D(1[0-3]|[0-9])-[0-9]{2}$ rejects; every other schema constraint validates (checked with jsonschema). Not done: a store-load vs first-solve ordering probe under a slow real Store (constructor _spawn loads race the first background solve under a real loop); the away-ACTIVE arm of D1-s1-01 (a mid-solve write while away is also reverted, by the same line, but the proposed one-line perturbation only covers away-inactive); quiet-window re-take of the provisional window seconds. REPORT-s1.md was not written: the harness refuses report .md files from a subagent; the report content is in the returned JSON."
+}

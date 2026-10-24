@@ -1,0 +1,6 @@
+===== daemonize pid=64608 2026-10-19T01:57:00Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-roster-fastpath 26b148e5b6f2114803da0c571c33c55d217232ce /Users/timmalmstrom/hpo-orch/r10s3/upd/2406-rc.md
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/pr/prepr.sh
+HEAD=22803f99bd8be29012a668ef22140dd12ae3aa5e

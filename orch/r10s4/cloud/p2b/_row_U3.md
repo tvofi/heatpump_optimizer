@@ -1,0 +1,1 @@
+| **U3** codeql | `codeql.yml` `workflow_call`, legs from prelude, `scope`/`cancel-superseded`/`workflow_dispatch` removed, D-5 extracted-files soundness check | 150 / 80 | U0a (legs) | cloud, sonnet | P2b |

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable GUARD_OFF 628390f0",
+  "killed_by": "tests/features.py",
+  "old": "        if hw <= UA_ADOPTION_HALFWIDTH_BAR:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

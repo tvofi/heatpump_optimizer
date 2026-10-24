@@ -1,0 +1,21 @@
+  ok       self-test              340 passed, 0 failed
+  ok       wave-script            209 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: a6620c30adcdf0d9529ee66977694bfa2a06d5c3 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:8911 BOOLOP: return value if value is not None and 0.0 < value <= 100.0 e
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:8911 CMP_BOUND*2: return value if value is not None and 0.0 < value <= 100.0 e
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:8911 RETURN_DEL: return value if value is not None and 0.0 < value <= 100.0 e
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:259 GUARD_OFF: if base is None or math.isinf(base):
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:285 CMP_BOUND: and reported > updated
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:287 GUARD_OFF: if owner is None:
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:290 GUARD_OFF: if seen:
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:292 RETURN_DEL: return entity_id in known
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:306 RETURN_DEL: return max_age_for(key, scale, on_change=on_change)
+           PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:874 GUARD_OFF: if max_age_minutes is None:
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against a6620c30adcd (a data-file read is not seen)
+  WARN     unpinned sites         10 site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against a6620c30adcd
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD

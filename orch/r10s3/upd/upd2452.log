@@ -1,0 +1,25 @@
+===== daemonize pid=92989 2026-10-19T22:05:53Z argv: bash tools/audit/seat/update_pr.sh fix/r10-deeplink-handlers 8b3ea42cbd45fcb30fefe03d2e74a79876f5c1c0 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-round-10-orchestration-eaa727/9d5c75e8-1167-40ab-8487-67826f2ebc1f/scratchpad/2452r2/BODY.md
+  REFUSE   body path              /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/cloud_body.4iW2iS sits directly in a root other seats write to -- move it to your own subdirectory, e.g. <abs-scratch>/<seat>/
+app_push: REFUSE: the body did not pa  ok       heavy slot             taken slot=1 label=prepr-97980 expires_at=2026-10-19T22:37:52.922124+00:00
+  REFUSE   policy_lint             Node.js v20.10.0 
+  REFUSE   mutants                Node.js v20.10.0
+  REFUSE   rules_sync             Node.js v20.10.0
+  REFUSE   fragments              Node.js v20.10.0
+  REFUSE   hooks                  Node.js v20.10.0
+  REFUSE   codeowners_gap         
+  REFUSE   contract_rerun         python3: can't open file 'tools/pr/contract_rerun.py': [Errno 2] No such file or directory
+  REFUSE   field coverage         Node.js v20.10.0
+  REFUSE   agreement lane         python3: can't open file 'tools/policy/agreement_py.py': [Errno 2] No such file or directory
+  REFUSE   register check         python3: can't open file 'tools/audit/fold_ledger.py': [Errno 2] No such file or directory
+  REFUSE   temp paths             python3: can't open file 'tools/audit/seat/tmp_paths.py': [Errno 2] No such file or directory
+  REFUSE   pinned graders         no pinned grader found -- the pin reader no longer matches the workflows
+  REFUSE   self-test              bash: tools/pr/prepr.sh: No such file or directory
+  REFUSE   wave-script            Node.js v20.10.0
+  REFUSE   no version edit        
+  REFUSE   claims hygiene          -- run `python3 tests/env_drift.py --claims-only ` for the whole refusal
+  REFUSE   no-copies              the changed-path list did not derive from 4a3cbcf62e6f5e7b6594d376d714388caf2915cf...HEAD, so no-copies was not run
+  REFUSE   preflight              
+  REFUSE   pr-body                the changed-path list did not derive from 4a3cbcf62e6f5e7b6594d376d714388caf2915cf...HEAD, so the `## Approval` gate was not run -- an empty list reads as "touches no policy file", which is the fail-open it exists to close
+  REFUSE   figures                Node.js v20.10.0
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-deeplink-handlers.log

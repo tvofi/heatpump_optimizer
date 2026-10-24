@@ -1,0 +1,1 @@
+Source: #2447 Friction. fixer.md#6: contradiction: the brief says hand off with tools/audit/seat/handoff_push.sh, which opens or updates the PR and writes the delivery row, and also says make no GitHub writes; I pushed the code head to handoff/r10-prepr-unpinned-red and the body with seat/body_push.sh. Carry: R10-POLICY-FIXER-MD.

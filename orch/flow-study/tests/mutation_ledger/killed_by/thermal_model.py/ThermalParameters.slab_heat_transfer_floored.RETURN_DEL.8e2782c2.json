@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.slab_heat_transfer_floored RETURN_DEL 8e2782c2",
+  "killed_by": "tests/features.py",
+  "old": "        return max(self.slab_heat_transfer, 1e-6)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

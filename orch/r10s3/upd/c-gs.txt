@@ -1,0 +1,1 @@
+Source: #2368 Friction. `.claude/rules/gate-scoping.md: unclear: exporting HPO_GATE_LOCK_LABEL for a run.sh run without first taking that label fails every leased script at 0s with no reason line in the gate log (harness_headers.py and stress.py here); the rule says run.sh "under HPO_GATE_LOCK_LABEL renews itself" without saying the label must already hold the lease.`

@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2670,
+    "phase": "pre-flight",
+    "reason": "findings: 2 finding item(s) with no valid `Carry:` (carry_audit.py pr 2670); first: review 6371729358 item f3e2f4f5 (unrouted): - **Carry markers.** `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roste"
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_excess RETURN_DEL 49181110",
+  "killed_by": "tests/features.py",
+  "old": "    return excess",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=28."
+}

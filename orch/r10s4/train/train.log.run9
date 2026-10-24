@@ -1,0 +1,76 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train pid=72148 start=2026-10-21T13:47:59Z
+BATCH 20261021-134759 pid=72175 base=main queue=3 (#2548 #2513 #2544) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold bcd35bf2: the record beat waits
+BOT #2565 MERGED 5d433771aa88bbfd49b8868a9b53ea1241ab85a3
+OVERLAP: main at 5d433771aa88 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script) before admission; --overlap logs it and does not wait
+PARK #2548 findings: 2 finding item(s) with no valid `Carry:` (carry_audit.py pr 2548); first: review 6317237650 item 72befd50 (unrouted): Recorded caveat, not blocking: this box's maximum, 0.1390, is 2.8 % under the cap. Pooled with the b
+PRE-FLIGHT: 2 of 3 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2513 serial: workflow
+TRAIN HOLD refs/heads/train-hold 19224886: the record beat waits
+beat: waiting CI at f9a988aa (poll 2, t+244s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold b6558862: the record beat waits
+beat: waiting CI at f9a988aa (poll 3, t+486s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold a0b83d76: the record beat waits
+beat: waiting CI at f9a988aa (poll 4, t+730s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 74a418df: the record beat waits
+beat: waiting CI at f9a988aa (poll 5, t+973s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 20dbd790: the record beat waits
+beat: waiting CI at f9a988aa (poll 6, t+1217s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 7d6cef18: the record beat waits
+beat: waiting CI at f9a988aa (poll 7, t+1459s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 054a69fe: the record beat waits
+beat: waiting CI at f9a988aa (poll 8, t+1701s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 937df648: the record beat waits
+beat: waiting CI at f9a988aa (poll 9, t+1943s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 5dec2e47: the record beat waits
+beat: waiting CI at f9a988aa (poll 10, t+2187s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold af65d731: the record beat waits
+beat: waiting CI at f9a988aa (poll 11, t+2430s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 6c8c4731: the record beat waits
+beat: waiting CI at f9a988aa (poll 12, t+2672s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 68ef7f7e: the record beat waits
+beat: waiting CI at f9a988aa (poll 13, t+2915s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold ae7b386a: the record beat waits
+beat: waiting CI at f9a988aa (poll 14, t+3158s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 43d9228d: the record beat waits
+#2544 admitted at f9a988aa
+OVERLAP: recarrying #2513 up front, their pull_request runs fire together
+#2513 overlap: recarry start
+BOT #2568 not merged at 0ce8cc77 (OPEN null)
+TRAIN HOLD refs/heads/train-hold 8830c0c4: the record beat waits
+#2513 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-roster-ops held fix/r10-roster-ops, clean at origin/fix/r10-roster-ops; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-roster-ops switch fix/r10-roster-ops)
+#2513 recarry START (branch fix/r10-roster-ops)
+#2513 recarry: main merged, head d54a384b; app_push: RECARRY: prepr SKIPPED: HEAD d54a384b is the clean merge of the live head d72185d7 and origin/main's 5d433771, and the body is the live one
+#2544 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2544 approved (app)
+#2544 MERGED e7c664856776542bf60bd770c98aba1eaadb4041
+#2544 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2504,"state":"CLOSED"}]}}}}}
+#2544 main e7c66485 tree == proof 97c2a5cd
+OVERLAP: main at e7c664856776 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), mutation, policy-docs, typing, validate-hacs) after #2544's unproved merge: revert it first; --overlap logs it and does not wait
+serial: #2513
+TRAIN HOLD refs/heads/train-hold e3703edd: the record beat waits
+beat: waiting CI at d54a384b (poll 2, t+243s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 3d01e73e: the record beat waits
+beat: waiting CI at d54a384b (poll 3, t+486s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 7196b4ae: the record beat waits
+beat: waiting CI at d54a384b (poll 4, t+728s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 2d16b6d1: the record beat waits
+beat: waiting CI at d54a384b (poll 5, t+970s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold cdffe2d5: the record beat waits
+beat: waiting CI at d54a384b (poll 6, t+1213s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 891a6b29: the record beat waits
+beat: waiting CI at d54a384b (poll 7, t+1457s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 72123f39: the record beat waits
+beat: waiting CI at d54a384b (poll 8, t+1701s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold ba3ce817: the record beat waits
+#2513 d54a384b ci red=[]
+#2513 approved (mandate)
+#2513 MERGED 929275e8a3f79ad5e118a82f94ec6ecee306e7c0
+#2513 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/wt/2513 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/wt/2513' is not a working tree); remove it by hand
+SKIP REPORT: 1 skipped of 3
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-21T15:21:12Z

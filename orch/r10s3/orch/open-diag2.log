@@ -1,0 +1,5 @@
+===== daemonize pid=77935 2026-10-18T11:55:23Z argv: bash tools/audit/seat/open_pr.sh r10-diag-replay aaa61a950f55ff1edccc8c10a9de74b260d4477b R10-DIAG-REPLAY: a replay document in Download diagnostics R10-DIAG-REPLAY
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+  REFUSE   ancestry reds          RED UNANSWERED (coverage-ratchet mutation):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-diag-replay/body.md: check `coverage-ratchet` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

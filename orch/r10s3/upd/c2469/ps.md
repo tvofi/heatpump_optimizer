@@ -1,0 +1,1 @@
+From #2469 (R10-UPDATE-PR-LOCK) round 3, a non-blocking reviewer note: the round-4 `update_pr.sh` depends on `ps`, for its process-group leader check and for the lock holder's group drain. On a host with no `ps`, a run re-execs forever and the holder never frees the lock. Guard both with a `--self-test` arm that runs with `ps` off PATH and requires a refusal rather than a hang.

@@ -1,0 +1,21 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s6/train/queue8.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s6/train/s10 pid=39088 start=2026-10-24T13:35:44Z
+BATCH 20261024-133544 pid=39126 base=main queue=1 (#2691) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 7f650c50: the record beat waits
+BOT #2705 pending at 3b08ae8a: AUTOMERGE PENDING #2705: pending: gate; not merged
+OVERLAP: main at 9586fce08141 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+TRAIN HOLD refs/heads/train-hold 57b361e6: the record beat waits
+beat: waiting CI at 3b5eea20 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 72dcd0db: the record beat waits
+#2691 admitted at 3b5eea20
+#2691 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2691 approved (app)
+#2691 MERGED 36db48e724e20b718f4a47262e8fd6b440a8bdc7
+#2691 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2691 main 36db48e7 tree == proof f9620f9f
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T13:45:39Z

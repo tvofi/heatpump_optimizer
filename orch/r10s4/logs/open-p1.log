@@ -1,0 +1,6 @@
+===== daemonize pid=42484 2026-10-21T18:26:15Z argv: bash tools/audit/seat/open_pr.sh r10-ci-layout-p1 1b4fae9df4762f0d70949c7e5d9f2db78ff92c28 ci: R10-CI-LAYOUT PR 1, nightly lanes leave tests.yml (R10-CI-LAYOUT-P1) R10-CI-LAYOUT-P1
+open_pr: 20 open PRs; the cap gates dispatch, not opening
+Auto-merging tests/entities.py
+  REFUSE   ancestry reds          RED UNANSWERED (budget-raise-gate instrument-self-tests nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p1/body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p1/p2.log

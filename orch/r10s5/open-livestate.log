@@ -1,0 +1,5 @@
+===== daemonize pid=17287 2026-10-23T21:39:20Z argv: bash tools/audit/seat/open_pr.sh r10-livestate 16f90d4d7f43855ed9ab3a4aaff146c1e4d88d7b coordinator: live state owned per cycle, restore and await races closed (R10-LIVESTATE) R10-LIVESTATE
+open_pr: 2 open PRs; the cap gates dispatch, not opening
+  REFUSE   ancestry reds          RED UNANSWERED (delivery-status typing): ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-livestate/body.md: check `typing` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-livestate/p2.log

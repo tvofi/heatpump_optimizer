@@ -1,0 +1,2 @@
+===== daemonize pid=16291 2026-10-20T21:41:33Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh r10-replay-cap 38aec7bf09e0f757dfe4f718f52fb655f99964ce test(replay): the loop CPU ratio cap follows the measured ruler (R10-REPLAY-CAP) R10-REPLAY-LANE 2272
+open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)

@@ -1,0 +1,3 @@
+===== daemonize pid=47539 2026-10-20T11:33:16Z argv: bash tools/audit/seat/open_pr.sh r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 test(early_cutoff): assert the release/detach path directly R10-REGISTRY-LEAK
+open_pr: open-PR cap: 2 open < 6
+Auto-merging tests/features.py

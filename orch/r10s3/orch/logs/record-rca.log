@@ -1,0 +1,12 @@
+===== daemonize pid=46883 2026-10-20T18:29:45Z argv: bash /tmp/record-rca.sh
+--- edit-brief R10-ORCH-MACHINERY @/tmp/om-brief-new.txt 2026-10-20T18:29:48Z
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 00571b7ad4dd1e994d1b048cceb5c1a1386bf42d
+rc=0
+--- set-resume R10-REGISTRY-LEAK --field note @/tmp/rl-note-new.txt 2026-10-20T18:30:58Z
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 96f38ff88830144f80c642391938c791e6941a1e
+rc=0
+DONE 2026-10-20T18:32:19Z

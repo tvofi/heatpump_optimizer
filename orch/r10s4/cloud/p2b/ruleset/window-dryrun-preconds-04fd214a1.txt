@@ -1,0 +1,138 @@
+DISABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the live six keys less the required_status_checks rule, enforcement kept
+--- live
++++ disable
+@@ -24,67 +24,6 @@
+   "rules": [
+     {
+       "parameters": {
+-        "do_not_enforce_on_create": false,
+-        "required_status_checks": [
+-          {
+-            "context": "fast (3.14)"
+-          },
+-          {
+-            "context": "browser"
+-          },
+-          {
+-            "context": "briefs"
+-          },
+-          {
+-            "context": "closure-scope"
+-          },
+-          {
+-            "context": "closures"
+-          },
+-          {
+-            "context": "typing"
+-          },
+-          {
+-            "context": "hassfest"
+-          },
+-          {
+-            "context": "validate-hacs"
+-          },
+-          {
+-            "context": "policy-docs"
+-          },
+-          {
+-            "context": "wave-script"
+-          },
+-          {
+-            "context": "pr-contract"
+-          },
+-          {
+-            "context": "env-matrix"
+-          },
+-          {
+-            "context": "Analyze (actions)"
+-          },
+-          {
+-            "context": "Analyze (javascript-typescript)"
+-          },
+-          {
+-            "context": "Analyze (python)"
+-          },
+-          {
+-            "context": "mutation"
+-          },
+-          {
+-            "context": "budget-raise-gate",
+-            "integration_id": 15368
+-          }
+-        ],
+-        "strict_required_status_checks_policy": false
+-      },
+-      "type": "required_status_checks"
+-    },
+-    {
+-      "parameters": {
+         "allowed_merge_methods": [
+           "merge",
+           "squash",
+ENABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the rollback copy with [gate] and its own enforcement
+--- live
++++ enable
+@@ -27,55 +27,7 @@
+         "do_not_enforce_on_create": false,
+         "required_status_checks": [
+           {
+-            "context": "fast (3.14)"
+-          },
+-          {
+-            "context": "browser"
+-          },
+-          {
+-            "context": "briefs"
+-          },
+-          {
+-            "context": "closure-scope"
+-          },
+-          {
+-            "context": "closures"
+-          },
+-          {
+-            "context": "typing"
+-          },
+-          {
+-            "context": "hassfest"
+-          },
+-          {
+-            "context": "validate-hacs"
+-          },
+-          {
+-            "context": "policy-docs"
+-          },
+-          {
+-            "context": "wave-script"
+-          },
+-          {
+-            "context": "pr-contract"
+-          },
+-          {
+-            "context": "env-matrix"
+-          },
+-          {
+-            "context": "Analyze (actions)"
+-          },
+-          {
+-            "context": "Analyze (javascript-typescript)"
+-          },
+-          {
+-            "context": "Analyze (python)"
+-          },
+-          {
+-            "context": "mutation"
+-          },
+-          {
+-            "context": "budget-raise-gate",
++            "context": "gate",
+             "integration_id": 15368
+           }
+         ],
+PRECONDITION staged-hash: PASS -- live b6d380ac9d90f05d staged b6d380ac9d90f05d
+PRECONDITION reds-at-head: FAIL -- reds besides the base-pinned: ['pr-contract / pr-contract', 'tests / closures', 'tests / closures-autofix']
+PRECONDITION caller-is-owner: PASS -- gh api user reads 'tvofi'
+PRECONDITION main-push-idle: FAIL -- in progress: ['Tests 39988023135']
+PRECONDITION queue-drained: FAIL -- open besides #2662: [2670, 2669, 2668, 2666, 2665, 2664, 2657, 2656, 2654, 2653]
+PRECONDITION main-ratchet-green: PASS -- tests.yml push run 39967582556 (2026-10-23T14:11:57Z): ci-ratchet success
+WINDOW DRY-RUN REFUSED: nothing was written

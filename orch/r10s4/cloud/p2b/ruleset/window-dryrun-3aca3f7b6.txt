@@ -1,0 +1,132 @@
+REFUSED: gh api repos/tvofi/heatpump_optimizer/commits/3aca3f7b67c98a186aa60f4c0bad4bceb0631b4f/check-runs?filter=all&per_page=100 exited 1: {"message":"No commit found for SHA: 3aca3f7b67c98a186aa60f4c0bad4bceb0631b4f","documentation_url":"https://docs.github.com/rest/checks/runs#list-check-runs-for-a-git-reference","status":"422"}gh: No commit found for SHA: 3aca3f7b67c98a186aa60f4c0bad4bceb0631b4f (HTTP 422)
+DISABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the live six keys less the required_status_checks rule, enforcement kept
+--- live
++++ disable
+@@ -24,67 +24,6 @@
+   "rules": [
+     {
+       "parameters": {
+-        "do_not_enforce_on_create": false,
+-        "required_status_checks": [
+-          {
+-            "context": "fast (3.14)"
+-          },
+-          {
+-            "context": "browser"
+-          },
+-          {
+-            "context": "briefs"
+-          },
+-          {
+-            "context": "closure-scope"
+-          },
+-          {
+-            "context": "closures"
+-          },
+-          {
+-            "context": "typing"
+-          },
+-          {
+-            "context": "hassfest"
+-          },
+-          {
+-            "context": "validate-hacs"
+-          },
+-          {
+-            "context": "policy-docs"
+-          },
+-          {
+-            "context": "wave-script"
+-          },
+-          {
+-            "context": "pr-contract"
+-          },
+-          {
+-            "context": "env-matrix"
+-          },
+-          {
+-            "context": "Analyze (actions)"
+-          },
+-          {
+-            "context": "Analyze (javascript-typescript)"
+-          },
+-          {
+-            "context": "Analyze (python)"
+-          },
+-          {
+-            "context": "mutation"
+-          },
+-          {
+-            "context": "budget-raise-gate",
+-            "integration_id": 15368
+-          }
+-        ],
+-        "strict_required_status_checks_policy": false
+-      },
+-      "type": "required_status_checks"
+-    },
+-    {
+-      "parameters": {
+         "allowed_merge_methods": [
+           "merge",
+           "squash",
+ENABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the rollback copy with [gate] and its own enforcement
+--- live
++++ enable
+@@ -27,55 +27,7 @@
+         "do_not_enforce_on_create": false,
+         "required_status_checks": [
+           {
+-            "context": "fast (3.14)"
+-          },
+-          {
+-            "context": "browser"
+-          },
+-          {
+-            "context": "briefs"
+-          },
+-          {
+-            "context": "closure-scope"
+-          },
+-          {
+-            "context": "closures"
+-          },
+-          {
+-            "context": "typing"
+-          },
+-          {
+-            "context": "hassfest"
+-          },
+-          {
+-            "context": "validate-hacs"
+-          },
+-          {
+-            "context": "policy-docs"
+-          },
+-          {
+-            "context": "wave-script"
+-          },
+-          {
+-            "context": "pr-contract"
+-          },
+-          {
+-            "context": "env-matrix"
+-          },
+-          {
+-            "context": "Analyze (actions)"
+-          },
+-          {
+-            "context": "Analyze (javascript-typescript)"
+-          },
+-          {
+-            "context": "Analyze (python)"
+-          },
+-          {
+-            "context": "mutation"
+-          },
+-          {
+-            "context": "budget-raise-gate",
++            "context": "gate",
+             "integration_id": 15368
+           }
+         ],

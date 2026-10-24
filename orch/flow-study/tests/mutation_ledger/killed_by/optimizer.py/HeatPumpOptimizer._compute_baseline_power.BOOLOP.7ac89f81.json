@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power BOOLOP 7ac89f81",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        assert wind_speeds is not None and precipitation is not None",
+  "reason": "Recorded by hand at the R9-EG-A3 round-3 head df1321af: the auto-drive was INCONCLUSIVE -- tests/features.py's baseline is red on origin/main itself (R9-F2.1 P3, shipped 110.4366 vs seeded 110.1297 at 82d1f47f), so the drive refused to give any mutant a verdict; the red baseline is kept and disclosed, per the ledger's R9-EG-A2 hand route. Killed by tests/typing_ruler.py under the pinned pair (HPO_TYPING_PYTHON, mypy 2.3.1 + homeassistant-stubs 2026.9.3): `and` -> `or` leaves both series un-narrowed (an `assert A or B` narrows neither), and the census reads errors 0 -> 7, by_code[index] 0 -> 7 -- FAIL errors did not grow [recorded 0, measured 7]. Restored, the census reads 0. Runtime is silent under every suite input (both series are concrete at both callers), which is exactly why the pin is the typing census and not a behaviour check."
+}

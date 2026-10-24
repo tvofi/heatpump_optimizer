@@ -1,0 +1,7 @@
+REVIEW of roster PR #2613 (batch 13, branch fix/audit-r10-roster-13) at head 488c30d0c504b09104cbbf7f86ffd31057e220c7. Data-only: dev/programme/rosters/wave-r10-groups.json and dev/programme/delivery/2613.md. Roster code tip d7e1f9fc0 on main 752f697c. PREPR_SKIP_CLOSURES=1. Spare the GitHub API (one check-runs read).
+Check:
+1. Each stage change is right: R10-FLOW-MAIN-GATE done at 49018a8be (#2584), R10-RCA-INSTALL-RATELIMIT done at 9af4664c1 (#2606), R10-NIGHTLY-PYSPY-RETRY done at 2c0c47494 (#2605) -- each SHA on origin/main and the group's carry owes nothing more (no "PR 2/2" left). R10-FLY-GH-READ-RETRY in-progress (owes PR 2 and 3), R10-FLOW-RELAY-HOLD not-started.
+2. The body's "23 ops" equals `git rev-list --count 59eb73ac5..d7e1f9fc0`; groups 151/151, 17 changed, none removed.
+3. No open PR body (#2612 #2580 #2579 #2528 #2524) carries to a group set done.
+4. brief_lint TOTAL 0; carry_audit check --body 0 unrouted 0 bad; merge-tree with origin/main clean; no red check on the head, or the body's Red checks names it.
+Return merge unless an item fails. Time box 30 min.

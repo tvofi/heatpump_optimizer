@@ -1,0 +1,419 @@
+2026-10-18T17:44:04Z relay 2393 84b7789e c33cd5bda3ae7abf449017ab1506153fb113ed0e
+bus: REFUSE: push-verdict: no file under /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.sx26ITSk0B/ev names the head c75b52e2d651ea8d20c4b8ce3993d25b0297a122
+2026-10-18T17:44:08Z relay 2404 de1a6e03 77fe7b60ff1e98a92a44c504ddb5582a45d6a383
+review/2404 f3cf1fb0118d1961b639852f3e55180194cd9a27
+2026-10-18T17:50:15Z relay 2408 72cc4a24 7f5c882905f4ad49bec40ebb61feaaf029475f85
+bus: REFUSE: push-verdict: the first line is outside fix-review.md's grammar: 'Fix review: blocked e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65 [null-control-false: finding-propagation drops .claude/workflows/wave-*-groups.json, still a live roster home]'
+2026-10-18T17:54:20Z relay 2394 e9967678 c96c6b5997a77d5822d11730b99dd368755c2ec8
+remote: 
+remote: Create a pull request for 'review/2394' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2394        
+remote: 
+review/2394 7d8eb469f3b34f9b85bb0ae6af4fba44c315654c
+2026-10-18T17:56:25Z relay 2415 9e706e56 9453b64f2d6bd7bcd98c736a17fa6889d16f4cdf
+remote: 
+remote: Create a pull request for 'review/2415' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2415        
+remote: 
+review/2415 36a0f3309ae2cd78fec61d17b538c3dfaed40e6d
+2026-10-18T18:05:09Z relay 2379 a71ad76c 41d0ecfe32011729bebd20eb65235ea22feef80f
+review/2379 9b1fd267a08dea5b11c4ca9bfef4b8c9420c7e34
+BUS posted 2379 94ce92523bfa24d2f78b832f6a5cac02f2aa5a33 Fix review: merge f4e168719d12f071bbc7771944e9430147a223db
+2026-10-18T18:11:34Z relay 2416 654dbcb0 a7002c0281ff71f1a698e71b9df1ade09e2d961d
+grep: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.tjLNtH8lpn/verdict.md: No such file or directory
+nonce mismatch
+2026-10-18T18:13:40Z relay 2416 654dbcb0 a7002c0281ff71f1a698e71b9df1ade09e2d961d
+grep: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.fAwFKsBASi/verdict.md: No such file or directory
+nonce mismatch
+2026-10-18T18:15:50Z relay 2416 654dbcb0 a7002c0281ff71f1a698e71b9df1ade09e2d961d
+remote: 
+remote: Create a pull request for 'review/2416' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2416        
+remote: 
+review/2416 adf64ba78a5e847e8c7eef6700a601098b86e671
+remote: 
+remote: Create a pull request for 'verdict/2416' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2416        
+remote: 
+BUS posted 2416 e3a79c586531de1e2704fdb0317200b3e6a5afcd Fix review: merge c5bc2f147b431d586e8a3996196a250ad981de50
+2026-10-18T18:20:21Z relay 2373 4b065d9e c3049bfa64240ed1f44460017e6da14ca412aa0c
+bus: REFUSE: push-verdict: the first line is outside fix-review.md's grammar: 'Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76 [carry: the round-3 carry-missing block is discharged by roster R10-BRIEFS-FOLD carry "From #2373 review r3" at main eae8c4ca4; head unmoved, CI 45/45 concluded none red, merges clean with origin/main c8cc75ea9]'
+2026-10-18T18:22:25Z relay 2373 4b065d9e c3049bfa64240ed1f44460017e6da14ca412aa0c
+bus: REFUSE: push-verdict: the first line is outside fix-review.md's grammar: 'Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76 [carry: the round-3 carry-missing block is discharged by roster R10-BRIEFS-FOLD carry "From #2373 review r3" at main eae8c4ca4; head unmoved, CI 45/45 concluded none red, merges clean with origin/main c8cc75ea9]'
+2026-10-18T18:22:27Z relay 2417 d2409544 af95b9ab90dbb22c6ac22aed3e25334c9f120866
+remote: 
+remote: Create a pull request for 'review/2417' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2417        
+remote: 
+review/2417 8e9e68ec19fe7c066ccbeb891c7cf695f9af9cf5
+remote: 
+remote: Create a pull request for 'verdict/2417' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2417        
+remote: 
+BUS posted 2417 46a895ea1e41ed21e6d99c6464d1f916ac68bc41 Fix review: blocked c83ae12acc074a16af424879b09b151d07726e52 carry-stale: R10-TICK-DRIVERS gains the codeql_scope -> closure.changed_between delegation carry that #2406's round-4 review (6252146172) and #2406's own body say is done in #2406 and must be dropped; #2406's head d1becac2b already delegates, so the carry dispatches finished work
+2026-10-18T18:24:53Z relay 2368 55157baa 4e91371277b13791577389ab1a7585cadeda5271
+remote: 
+remote: Create a pull request for 'review/2368' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2368        
+remote: 
+review/2368 8a4d8e2806de4f2dc9100a37b2705b3818e889ff
+remote: 
+remote: Create a pull request for 'verdict/2368' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2368        
+remote: 
+BUS posted 2368 f2f60753320ff8bade75478133afb658eb6a2c18 Fix review: blocked c3a25d2ae337d82a8401dcfc1ab0f0f7e34aa38b ci-red: fast (3.14) is red at this head on tests/optimality.py's ftol check (60.96 vs 60.96, -0.00% against a 2.5% bound); the ruling's step 2 (the kernel matrix and the ftol re-derivation) and step 4 (each re-planned scenario's solver work stated against the baseline) are still listed as pending in the body, and kernel-points has never run on this branch
+2026-10-18T18:25:22Z relay 2373 4b065d9e c3049bfa64240ed1f44460017e6da14ca412aa0c
+bus: REFUSE: push-verdict: the first line is outside fix-review.md's grammar: 'Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76 [carry: the round-3 carry-missing block is discharged by roster R10-BRIEFS-FOLD carry "From #2373 review r3" at main eae8c4ca4; head unmoved, CI 45/45 concluded none red, merges clean with origin/main c8cc75ea9]'
+2026-10-18T18:27:27Z relay 2373 4b065d9e c3049bfa64240ed1f44460017e6da14ca412aa0c
+bus: REFUSE: push-verdict: the first line is outside fix-review.md's grammar: 'Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76 [carry: the round-3 carry-missing block is discharged by roster R10-BRIEFS-FOLD carry "From #2373 review r3" at main eae8c4ca4; head unmoved, CI 45/45 concluded none red, merges clean with origin/main c8cc75ea9]'
+2026-10-18T18:29:32Z relay 2373 4b065d9e c3049bfa64240ed1f44460017e6da14ca412aa0c
+review/2373 525762098d5b103dd58170b05b1ee87ec2729f87
+BUS posted 2373 16429191b1e35e9035692a296330d807a8068641 Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76
+2026-10-18T18:32:11Z relay 2406 826ac479 48aac355973edbf5399a4426db65e80464d05aea
+review/2406 13cfa2c8355765f25fb5ce82c65f833ce7af1d82
+BUS posted 2406 8d3c0846bc49af7ec2e4c939877dd7ca335d7fe1 Fix review: blocked d1becac2b30830c9fb20bda298056cc8577fb793 red-at-head: tests/entities.py fails 2 graders-head-copy checks at the head (fast (3.14)), and the one-literal _PT_JOB_CANON fix the body names does not clear them; with it applied, 2 other checks fail because the harness executes the step in a planted repo that has no tests/closure.py
+2026-10-18T18:44:48Z relay 2401 fd05f3fc 3d23dd33d23b6112947a2d3395f959e58c521d7d
+review/2401 d4f866ac491936f95ac9c061f510ce324f11cba7
+BUS posted 2401 ead6d16571baf6c9463061b2740d9c1ee36ac024 Fix review: merge 311e9de3e0c6d5bd0aa2139caf16b7707bf232f6
+2026-10-18T19:05:53Z relay 2399 b930fe4a 3997f4115d1bf9fd0274de134e7a987a39e3978c
+remote: 
+remote: Create a pull request for 'review/2399' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2399        
+remote: 
+review/2399 4bbf94496edd0802ce387be6997f527e5d08bc0e
+remote: 
+remote: Create a pull request for 'verdict/2399' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2399        
+remote: 
+BUS posted 2399 e228d2f98b466f21eb70b1a9c6fe341b3ecb1e25 Fix review: blocked acf14d8f2267718203d9dc1b313bc8c3e9f0bc8d carry-missing: not carried to R10-BRIEFS-FOLD
+2026-10-18T19:18:33Z relay 2391 76ef1cf5 2a078893b94dd51f58dfc639740c03d7fd01a541
+remote: 
+remote: Create a pull request for 'review/2391' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2391        
+remote: 
+review/2391 f421a3e9dc82f67df90aaaa1190c6556539bbb59
+remote: 
+remote: Create a pull request for 'verdict/2391' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2391        
+remote: 
+BUS posted 2391 d02e71d3e4314b818eff693cda4f0da874ae83b4 Fix review: blocked 3aba8f1eb2865de9d00edb9321185f387e4322f2 vacuous-test: zeroing the coordinator feed's sun regressor fails no check in tests/features.py, but it moves the finder's harness P1 fix2.00 from 0.006/0.009/0.013 to 0.095/0.106/0.114
+2026-10-18T19:19:17Z relay 2415 855ab27b cdb246f379fd6a00d69b1af98122b413297ddfa3
+review/2415 97e9847dce94b38caf110825017b1628283c8493
+BUS refused 2415 c4d59291032a5719673df25ed0d4e0de68b1b663: the poster refused (/Users/timmalmstrom/heatpump_optimizer/tools/pr/app_comment.sh): app_comment: REFUSE: head moved: the merge verdict names 87c579404df187dc426960c2ac79f10a553be468, the live head of #2415 is 0e238c3042eb4f0b3c8071886e859c08463a6cca
+2026-10-18T20:40:40Z relay 2390 df9e42d8 e16b9a766f4a3c2f62f251d2b90e2299610bb437
+review/2390 afe6e6941e74851f8185dbd7661e75898db81b16
+BUS posted 2390 cb96d9ff72662db0bf3c4692167caf4939402c13 Fix review: merge aad55ffb4de4a12db5ac222160333bc4fda36050
+2026-10-18T20:55:21Z relay 2404 48c96e8c 96d61c14759125efc6cb21c42edb630f29b05fe8
+review/2404 9e33096c2fdec8a447f70a5ca007d8a171d1fd30
+BUS posted 2404 74ba638c7954fd927b58c9c5966649601b722f81 Fix review: blocked 03f1681a3e684854b5b934020ec5d44612b2ffd2 root-cause-unanswered: wave-script went red, unanswered (and delivery-status; pr-contract 117779459209 refuses the body; both reds are main's, so the repair is a body edit only)
+2026-10-18T21:36:58Z relay 2399 519dcc2f 615bef1724aca251eb61d849624ae4c3ea180585
+review/2399 6dbc614c3b417c9be316ac4440fe4abf077161cf
+BUS posted 2399 44d0cf351c14935598ffaf33bf8079fb37f4534c Fix review: merge 5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39
+2026-10-18T21:39:29Z relay 2408 6666813b 653d4d53e7d574dbea5ddf759e225f130371063c
+review/2408 ed125f8fe313c17c63f151f4810c4c819da2078f
+BUS posted 2408 62efc32888c844976676f2c0bce86f46e4e50218 Fix review: merge 928a672753558ca6f88f45f806d9aa9b04440c36
+2026-10-18T21:42:02Z relay 2406 d16dc004 7d22248e15f13bff92f45e76958339dc1208a08e
+review/2406 868caeb942d3bff9cb47200da5c5266f8d03aab3
+BUS posted 2406 ed98ce101e9444508d6a29b34763e527688490d5 Fix review: blocked 2d9f2000967579f577940a0eb4842d0a76867aec root-cause-unanswered: wave-script went red, unanswered
+2026-10-18T21:44:39Z relay 2368 59d82ae4 9cc39501bde0da4d0be551d6d0f1f3d051d3b88e
+review/2368 5ac06d5c58d19638c3553d5079d39c40219460cd
+BUS posted 2368 77c7f88df6c84d58437bdc74b8c30bb1c652593b Fix review: merge 86258e159d6e18b41aa0edafc79c6b8921d5c4dc
+2026-10-18T22:39:30Z relay 2423 ea5bcafd b159295dcfd5d38d1b110b832830e30d0c33ac36
+remote: 
+remote: Create a pull request for 'review/2423' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2423        
+remote: 
+review/2423 56b909f17858a6f4d36fb692bfb589f750f13cff
+remote: 
+remote: Create a pull request for 'verdict/2423' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2423        
+remote: 
+BUS refused 2423 ea7228e5b4d4fff3f8ea622d9a32e0fe8a25cc2c: the poster refused (/Users/timmalmstrom/heatpump_optimizer/tools/pr/app_comment.sh): app_comment: REFUSE: pull request #2423 is closed; a verdict posts only on an open one
+2026-10-18T23:32:05Z relay 2424 7f7e6c9d 067a9adb0f1f51896436dd6d360f1a013499587d
+remote: 
+remote: Create a pull request for 'review/2424' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2424        
+remote: 
+review/2424 62959b6b3d6f6555c9fc4f58b0d808d7c9a4da1e
+remote: 
+remote: Create a pull request for 'verdict/2424' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2424        
+remote: 
+BUS posted 2424 260b6c8c406a58888e52a16c6647585a7cd21a6b Fix review: blocked 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed ci-red: instrument-self-tests is red at this head because of this PR — tests/throwaway_git.py --check refuses the raw `git init` the new self-test adds at tools/policy/agreement.mjs:441 (passes at base 89e33859); `## Red checks` does not name it and pr-contract refuses
+2026-10-18T23:54:27Z relay 2424 2a93fe40 dfad5a8bfaf0fb71ccde57e1fc95c3d271f0eb1f
+review/2424 2d4738c7a0a28008cfcc5ea78093724c5d59e681
+BUS posted 2424 ecf6a9138a7a4c434bf1e30027973c73492ac288 Fix review: merge 8baf5eac34e3e9fa3c447f47ec898a6e588efab3
+2026-10-19T00:51:04Z relay 2420 cb60f35e eca648b4d085b414fcd5e1ffadfeb80d81fb0ce1
+remote: 
+remote: Create a pull request for 'review/2420' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2420        
+remote: 
+review/2420 fc2b555246b8c08e32696e5aae1328639c94b0ae
+remote: 
+remote: Create a pull request for 'verdict/2420' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2420        
+remote: 
+BUS posted 2420 7af6027bdfd968dd714e6433789670938d2d676a Fix review: merge 328813ad5fb2055a07a4867c33f7cfc96d961168
+2026-10-19T01:05:25Z relay 2411 10a5a496 43c4ee656ddf7f7151d4047984c36bb572534fc9
+review/2411 d88958cc07afed3cc02eeb473ee09665bd84e1fa
+BUS posted 2411 2ba585146234ebe238a14891aa56b2ffb2b9801b Fix review: blocked b9f72cb10e8f12798f0111189dedc607d3393acd carry-missing: not carried to the mutation instrument's owner (the entities.py --anchor vacuous-kill finding is in no brief, roster or carry file)
+2026-10-19T01:44:15Z relay 2411 2a9e8d82 09bb8086d43c1ccd9b75284e75941d25e9af8858
+review/2411 5bc7a13ef44570d4e640b97d77d980b1fec020c9
+BUS posted 2411 f5d337191efe36a3e1c17c512bb482e20a61a65c Fix review: merge b9f72cb10e8f12798f0111189dedc607d3393acd
+2026-10-19T02:07:03Z relay 2404 7f3a18f6 11afece9d97c038a5bbe05d96a539bcf85c0e5f0
+review/2404 8a882c3bb939113fadb01ab8ff55f845b210ec75
+BUS posted 2404 896038d42bbd6d3c8597371165a2dbe1369f5a5c Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 carry-missing: not carried to R10-TICK-DRIVERS (merged as #2390 at a96f4be4a, 2026-10-19 01:46 UTC, without the orchestrator_tick carry sweep; Forward-carry "none")
+2026-10-19T02:31:40Z relay 2419 c9b0df97 fcfbe2ac332449b5145d32396e9ef98dae6b0277
+remote: 
+remote: Create a pull request for 'review/2419' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2419        
+remote: 
+review/2419 08be2390a85c590e226e16d04d1af5886f745025
+remote: 
+remote: Create a pull request for 'verdict/2419' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2419        
+remote: 
+BUS posted 2419 33c5f7fc6c39cd0cea556b93f3ddee6b2bf840db Fix review: merge cf687605d2678912b80d7e4c909b2471f32a680b
+2026-10-19T02:34:05Z relay 2406 2d07a42a 62529f36674cf9356d9f10619b859e9198665224
+review/2406 8b82532da7a3618d96189133db5d5b2506d92a99
+BUS posted 2406 e678930e4af0a77463cc6639973345c35e314f11 Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: not carried to the post-merge state-docs beat restart: its only destination is R10-TICK-DRIVERS.carry, and that group is resume.stage done (merged as #2390, a96f4be4a), which finding-propagation.md says is not a destination
+2026-10-19T02:52:44Z relay 2404 17d3fa69 8660cd0e515a536be5024040cf0f2528fa22ee94
+review/2404 90dce7f08e05b6c696790339a57226382f574904
+BUS posted 2404 cb4fffea46806747c40c6e1a55eed89f814d09d3 Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 root-cause-unanswered: pr-contract went red, unanswered (117865632672: carry_audit BAD-DEST, R10-OPENPR-SILENT is not a group of the tree's roster; it exists only on handoff/audit-r10-roster)
+2026-10-19T02:53:09Z relay 2406 b99f1763 43d7cdc70a01dd3007629bae42cdbe29c3021544
+review/2406 a27386d51cacd2bdfc674a032fd38d93abebc304
+BUS posted 2406 f518511fab2259e01bb46f64501a06a51fe37cf2 Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: the body still names done R10-TICK-DRIVERS as the beat-restart destination: a spliced stale second ## Forward-carry (after a broken "## Friction`." heading) contradicts the R10-STAMP one, and carry_audit refuses it BAD-DEST
+2026-10-19T02:59:36Z relay 2408 3e707422 70d51638ce1e590374a6c351faf127a5f59c3194
+review/2408 34eb21f9ebaee948169e25c9cfb8ab6caa727023
+BUS posted 2408 b2ef875e3c4400073b2c0de2eb07f1b40e0db930 Fix review: merge 21e87f79c0baca0a1afce61703ad54d8d0467849
+2026-10-19T03:06:05Z relay 2421 6faf46b9 04986cccbceede0816aeece714af30e45125293a
+remote: 
+remote: Create a pull request for 'review/2421' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2421        
+remote: 
+review/2421 6d29f04b6e172256edfc5ee1a358c3a99d298689
+remote: 
+remote: Create a pull request for 'verdict/2421' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2421        
+remote: 
+BUS posted 2421 24a7cd58d4b6a67c2218b08ceb2cf10a6fcbeb94 Fix review: blocked 1e6e79caa3b2a9f438e055cda1df52dd77eac930 harness: replay-fails-open: r10_train_raise_hold_replay.py, the body's live control, prints "0 raise(s), HOLDS" for #2368 (a real raise) when its gh/git reads fail, contradicting its docstring's "a read that fails prints the train's own Stop"
+2026-10-19T03:10:27Z relay 2406 bacf5bc6 aa0379b0d0ef1013e3eaa82245faf4575a065bfb
+review/2406 4052287eae9f315d1b43f3d884f1b07518da274f
+BUS posted 2406 0951c4903036f08962e3f35c8cf76add177fbafc Fix review: merge 22803f99bd8be29012a668ef22140dd12ae3aa5e
+2026-10-19T03:12:53Z relay 2399 46cd0cfa 98df7948b0adeb71fe6bb547ef7ddc4d7f1f10b7
+review/2399 e0ddc2208fb38415c20cb3499dea76f8eeb86f7d
+BUS posted 2399 39b24f9d2b95348cf27cfc97f511d5dad2b5ea60 Fix review: merge 705a9b851d314f860f3fa29e0e092231d5c878ad
+2026-10-19T03:17:23Z relay 2417 31d0869a c64314a1935dcdf7fcd1acc5ad10a613572a0ddc
+grep: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.Qxjqszyfuz/verdict.md: No such file or directory
+nonce mismatch
+2026-10-19T03:19:31Z relay 2417 31d0869a c64314a1935dcdf7fcd1acc5ad10a613572a0ddc
+review/2417 dcb491be46afc63a391c732ff78eee20ebda71c1
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     d9ad176bb75a4a055525854cd26c3d8142b4b3c3 -> verdict/2417 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of verdict/2417 was refused
+2026-10-19T03:52:13Z relay 2422 ee543287 b4cd53c1d3f7847b75f631d2a346f312763178a4
+remote: 
+remote: Create a pull request for 'review/2422' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2422        
+remote: 
+review/2422 26689f887b2cc7fbb4a75d4c53454f0ae5a1283e
+remote: 
+remote: Create a pull request for 'verdict/2422' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2422        
+remote: 
+BUS posted 2422 df9008ddda230a132aaf363f68962607be34a5d3 Fix review: blocked 01e08685f4e454e17dc16c467a5e5e3c7ad8be5f regression: the automatic merge of origin/main dd27e7c1b (#2406 O17 removed roster_lib.DEFAULT_ROSTER_REF) breaks fold 7; orchestrator_tick.py --self-test crashes with AttributeError at carry_sweep line 1782, so the body's "142 checks, 0 failed" is false at this head
+2026-10-19T03:58:39Z relay 2421 6d05bc1b c3871fc9b46c1e8b71f6246a149fd6274d3b4848
+review/2421 8d1570dc22072b003f5460a717ddfa47c0aadeb9
+BUS posted 2421 084895e628a4051a9eed50c2babff1c4fbb164df Fix review: merge e9c0092e27e91e4b1d23178fc75774e5798dcc22
+2026-10-19T05:25:47Z relay 2422 afbc6892 290da55afaad3b1bdb161b37bc11174331e24c60
+review/2422 c3ea9895ee633fbfed775c1f57567d59e8b56edb
+BUS posted 2422 1341a48bdcbdd91cf49ff0f44bf5a204e7c364d3 Fix review: merge c12b0562da080854e16e52448b7cdb4f1f242883
+2026-10-19T05:56:21Z relay 2404 79a91d7b 2ac93005847bb4b288a4b02100e8158b481c6fcd
+review/2404 f20417bd4768c0142a30c627e44f11c6093d8e16
+BUS posted 2404 cacbab1f763ce0521f25e8b2256c6c28fa6c6bae Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 root-cause-unanswered: pr-contract went red at b419463b1 (117865632672, BAD-DEST R10-OPENPR-SILENT), unanswered; the body says no run on b419463b1 was red
+2026-10-19T05:58:43Z relay 2391 aff6bc82 11fa72a49784a7abfa0ebf8a0b93fba89b79455f
+review/2391 85646a71ab934a463b8adbb2416282e49dac3f3c
+BUS posted 2391 a4d9e8ce22b332e8dc96e2e947c11348d5592422 Fix review: blocked 4c1352f05aa6797e06a7af5fdc456039756f2bcc architecture-unsound: departs from the R10-VENT-DETECTOR architect note (Shape: a detector input independent of the replay residual), and no roster edit-brief amends it (handoff/audit-r10-roster 95d31034f)
+2026-10-19T06:13:14Z relay 2404 fb2e9339 2864ee2f24ffd9f27829191e30066a8d6429ca9d
+review/2404 71ebf07bb7723a6e552798eea6c48f6729fad17b
+BUS posted 2404 5fa0e0125c3db6c06297e36965235a3c5f05cbb8 Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 carry-unsound: Forward-carry item 1 routes to R10-OPENPR-SILENT, which is done (#2422 merged 7ab3030b and delivered the tick carry sweep); carry_audit.py at this head refuses it BAD-DEST against handoff/audit-r10-roster
+2026-10-19T06:21:42Z relay 2391 32b6b8e8 0b706629e34fe590773f5072ac644c7c26efc0f1
+review/2391 68d2702c118730a94aada5827ce576b4537e257c
+BUS posted 2391 a6eac1c2f6cf11846d3e5a184f033f14168d2f8b Fix review: merge 4c1352f05aa6797e06a7af5fdc456039756f2bcc
+2026-10-19T06:22:09Z relay 2404 ad245572 6781d0babfb048b7822a5a28c793b2e7ad23acfe
+review/2404 c4ffb6c41a16168726ba8964a53a941f0b0aa60d
+BUS posted 2404 687c90728f10b1023e562c6cec18a8663a7f43d0 Fix review: merge 519bb4db971b5d49736fcacdd57d57bff8f6c630
+2026-10-19T06:24:35Z relay 2368 09edb010 33ba6b237e87382d0cb8b9ec2898e89a2289a42a
+review/2368 e2fcaec56fa47aa97bf4898c9684fef301dc3739
+BUS posted 2368 4985b06e225cdf5f9b076a389843d981706f4f93 Fix review: merge 91a3f77c9f968341a578d46277c0ff0e08c20dcc
+2026-10-19T06:33:05Z relay 2433 f45ab974 61c6b6bfd79cc07b2e1e0dee5dbc7770aeaa21e9
+remote: 
+remote: Create a pull request for 'review/2433' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2433        
+remote: 
+review/2433 c1ac5dfe8d0d59e0cb8d5172e50bd9d60c527a72
+remote: 
+remote: Create a pull request for 'verdict/2433' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2433        
+remote: 
+BUS posted 2433 41537fe7b08994a66dadea27f22a96b3b458d343 Fix review: merge 45bb861b75728e7924944741b41a68c8fb5e9f5c
+2026-10-19T06:35:30Z relay 2415 59142f3e 5dce9f5a5358ee3fbc4eb927c5ac7b56a99b4d7a
+review/2415 94a6acef9c0928fad739685701e345ea43db991e
+BUS posted 2415 3277284ca5dbd78e0480bc7789541f494db461de Fix review: merge bd8011e9231944317162ffbde7824ffcad89ff2e
+2026-10-19T08:26:46Z relay 2442 c1b189dc 9f19ad9d85ed59fe0a5d12fff8e7213eca3903b5
+remote: 
+remote: Create a pull request for 'review/2442' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2442        
+remote: 
+review/2442 54d47bcd75fcb5bc9468bbec6973dcd9398fc5be
+remote: 
+remote: Create a pull request for 'verdict/2442' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2442        
+remote: 
+BUS posted 2442 be89ac40cf2d754385efe3ea1046d0ee12112d94 Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af carry-missing: the body's ## Forward-carry item and both ## Friction items name no destination, so carry_audit.py (pr-contract's last step) refuses it: CARRY-AUDIT 3 unrouted
+2026-10-19T08:33:06Z relay 2442 b835f2fd 23c5806def73af9d2dc87cb02fe327368e232d13
+review/2442 573659ca4b6b2c8e1dbdf9a797543f6674786d1b
+BUS posted 2442 ae0e1884a1131355c7a65e010669d23dd6fbfe4a Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af body-head-unnamed: ## Head names bef08da49, not this head b9f201f, and pr-contract run 117962608686 (started 08:28:44Z, after the body edit) refuses it with PR-BODY: 4 error(s); the same run also wants arch-score, env-matrix and validate-hacs named under ## Red checks
+2026-10-19T08:47:31Z relay 2435 8e02943d f9d2e27fd398990833b8caddf5ad13821f5ded8d
+remote: 
+remote: Create a pull request for 'review/2435' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2435        
+remote: 
+review/2435 ad5fc8b6b95b8517724524dec71ed23af36fb98e
+remote: 
+remote: Create a pull request for 'verdict/2435' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2435        
+remote: 
+BUS posted 2435 aeff759d1f9c7370abbefd403423f9faab99b565 Fix review: blocked 536080c084c3ea201db13860c29bcca577fac5db carry-missing: pr-contract (jobs 117965471342, 117968141018) refuses the body, carry_audit UNROUTED body item 6ff2bcdb (## Forward-carry): the dominated-rate-limit finding is "none." plus prose naming the orchestrator, not a Carry: to a stage; the fix itself measured sound
+2026-10-19T08:49:54Z relay 2442 a416c1d2 383b1e5a32ea5d426f2c3697979534b0cebe2d87
+review/2442 e524e9e1ce16c4dae2e660adc73299093bd2e3d7
+BUS posted 2442 00e01228f0df1ff81b58c44041706e635301f109 Fix review: merge b9f201f90efbb39422319426a7839c036b7b46af
+2026-10-19T09:54:58Z relay 2435 61d5aad2 7fad7827eb757c1f56a595af750d0224915ac25d
+review/2435 d3ae601f64ffb93b19c4ae64224c47c91a40a12e
+BUS posted 2435 af04c0f6f81a7cede40bcc7b25284e379eaaf822 Fix review: merge 536080c084c3ea201db13860c29bcca577fac5db
+2026-10-19T10:11:17Z relay 2441 1b252987 6fc53e6945232648668a83350b51204856d11445
+remote: 
+remote: Create a pull request for 'review/2441' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2441        
+remote: 
+review/2441 17b01e3595cb037ab6410021909e16b24b192a7d
+remote: 
+remote: Create a pull request for 'verdict/2441' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2441        
+remote: 
+BUS posted 2441 6200c79f1d77f63801686f7267319095deb22f08 Fix review: blocked 733ac35089522bac79c89fe7d28c4860d9f0c0a6 carry-missing: not carried to R10-BRIEFS-FOLD
+2026-10-19T11:38:50Z relay 2441 73f755f5 4c27f19ecda4d1ba19116e1e45ed52f146205102
+review/2441 4591c8c6f62e384c4f6129dfd6616bfc36447123
+BUS posted 2441 571fc335d5a47ce2366cdc131cdca68e37b8f359 Fix review: merge 83e212a1b4823c3e1d9144bde1424a4906302af3
+2026-10-19T12:32:02Z relay 2448 8bdd00fe 010fddd87e8465de787004757c3348a49a162c8e
+remote: 
+remote: Create a pull request for 'review/2448' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2448        
+remote: 
+review/2448 845e3050c40d27243a2aff3668bb1936e1966997
+remote: 
+remote: Create a pull request for 'verdict/2448' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2448        
+remote: 
+BUS posted 2448 88fcc86c514e621e7abd7df0c005add7c12231eb Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, carry_audit.py refuses 3 unrouted body items (## Forward-carry "none" line and both ## Friction lines end `Carry: <file path>`, not GROUP|#issue|O<n>|dismissed); ## Red checks says none
+2026-10-19T12:38:36Z relay 2448 8bdd00fe 72005849b432236f52d985a3b53456413e760c0d
+review/2448 ad7fca46f3b14e7ce89fa575a88cf8eece9f47b6
+BUS posted 2448 bda77215c5c6d5a092d9ded64484c2f504c98572 Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, carry_audit.py refuses 3 unrouted body items (## Forward-carry "none" line and both ## Friction lines end `Carry: <file path>`, not GROUP|#issue|O<n>|dismissed); ## Red checks says none
+2026-10-19T13:19:22Z relay 2448 03cf3d90 c6c9f218846c4dbba5a3556d78f16a0120d7efc4
+review/2448 e3b1bc45ee31392ea20322625704c46c7ab402e5
+BUS posted 2448 c41b2795cdd55a46441c636fb595c46206291b0c Fix review: merge 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1
+2026-10-19T13:21:49Z relay 2447 9c0a8979 86552d1cf20eb63c1f624cd719f863247973be09
+remote: 
+remote: Create a pull request for 'review/2447' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2447        
+remote: 
+review/2447 24851495e15e4c9f2dca6f8afc146ce66418add0
+remote: 
+remote: Create a pull request for 'verdict/2447' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2447        
+remote: 
+BUS posted 2447 9b1e46b78b42e1100e0798a02da5e7b6990bcf84 Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-POLICY-FIXER-MD
+2026-10-19T13:30:14Z relay 2444 183a3969 270de368786c8e217e6edfb4f9334197ded07f80
+remote: 
+remote: Create a pull request for 'review/2444' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2444        
+remote: 
+review/2444 ecff76e9ee28cd58d14e16e022614c944790f05a
+remote: 
+remote: Create a pull request for 'verdict/2444' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2444        
+remote: 
+BUS posted 2444 e9bbcd2caabcf15974eb0cf56fb97b7493195015 Fix review: blocked b891dfa048a9e52bb782dd058415e286cf8efaf5 mutation-survivor: selftest_wiring.py report()'s `return 1 if unwired else 0` -> `return 0` leaves its --self-test green, so the keep-closed check can stop refusing an unwired file with every check green
+2026-10-19T13:34:31Z relay 2447 825e21ce b158850f50f20404c8cc55d237c7f98b9302fbca
+review/2447 cdc5f979493d9b2b81a87b2198eb7a3c99cbc2fa
+BUS posted 2447 c82f716a2d66fc40b8a25529c1c44302a84289b6 Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-CI-LAYOUT (the ## Red checks carry: ref_privacy --check in prepr)
+2026-10-19T13:42:57Z relay 2447 af3e46f5 058800ec1291048e332bb88abde74907205be89d
+review/2447 ef1efd1e2c576e3abe338fb62cd36ee88c8c0823
+BUS posted 2447 1c222ce8a8eab893f9f40298767fc26513f3861f Fix review: merge 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a
+2026-10-19T14:39:51Z relay 2444 f80ab180 728ce09ea958dbf7979b9323d7bb1b41f3451684
+review/2444 f7d18d48c769c55cff095f9e3758490d49607fd6
+BUS posted 2444 7743e486b3d98df59902d7a61a86c5131b1f2921 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: not carried to R10-CI-LAYOUT or R10-BRIEFS-FOLD; three of the body's four Forward-carry and Friction lines are not in handoff/audit-r10-roster at 5472ac0d6, and the body names no roster SHA
+2026-10-19T14:48:14Z relay 2444 cfee7221 93d112337fe408cc414c6a974bebe7eb225647b2
+review/2444 8bb36fb4f8c46ced849e6b07a8aec4f4387dc892
+BUS posted 2444 a83edba40a8dda93bf1677bf7508333bae5ff749 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: the four #2444 carries at roster ebf81fc1d state no control, and the merge_pr/push-lines carry to R10-CI-LAYOUT is half refuted: deleting open_pr.sh's and update_pr.sh's app_push line reddens their self-tests
+2026-10-19T14:50:35Z relay 2452 79d8ef82 82c9b0b0fbfe01273d5a2ff9c2fd7262f23b2ade
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     42512541774396e3bf5d845cc62b4a90e962f6d5 -> review/2452 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of review/2452 was refused
+2026-10-19T14:52:46Z relay 2452 79d8ef82 82c9b0b0fbfe01273d5a2ff9c2fd7262f23b2ade
+remote: error: unable to write file /data/repositories/6/nw/65/74/c4/1203304154/1341087606.git/objects/ghq_4KTYH77IHS0/pack/pack-90efb1860b61de66eb3380aac7ecb89ce8260633.pack: No such file or directory        
+remote: fatal: unable to rename temporary '*.pack' file to '/data/repositories/6/nw/65/74/c4/1203304154/1341087606.git/objects/ghq_4KTYH77IHS0/pack/pack-90efb1860b61de66eb3380aac7ecb89ce8260633.pack'        
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     626f8f09a88d9b0c752e5de37321d023f8762129 -> review/2452 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of review/2452 was refused
+2026-10-19T14:54:51Z relay 2452 79d8ef82 82c9b0b0fbfe01273d5a2ff9c2fd7262f23b2ade
+remote: 
+remote: Create a pull request for 'review/2452' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2452        
+remote: 
+review/2452 f88def1e785cabbf6ab4c444d93880fb541a9ff5
+remote: 
+remote: Create a pull request for 'verdict/2452' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2452        
+remote: 
+BUS posted 2452 9b1d94037f8334957647560ebbae5549b1e905cd Fix review: blocked a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 harness: class-open location.pathname/search setters and a head meta refresh pass the census inside a driven handler, outside the stated residual and its carries
+2026-10-19T15:11:12Z relay 2444 65e9c0a8 a75a0f371525667534b9f196b6620e6de46ec796
+review/2444 18739b7b1b6ec85af8718703fb784ad23ed26a43
+BUS posted 2444 3e2d5afd1754b6b2646e50c37f5ced9cbf64e645 Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a root-cause-unanswered: arch-score went red, unanswered
+2026-10-19T15:17:50Z relay 2444 1104b189 6814e62b1c7b489aa9d54fca0fd66765541c97b8
+remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     5780fffba1bae17d3cbf5fe09bb9092faf0767a9 -> review/2444 (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+bus: REFUSE: the push of review/2444 was refused
+2026-10-19T15:18:12Z relay 2445 ca389306 5f8c23f050bc3bda84feaa35fe22a6458b582c64
+remote: 
+remote: Create a pull request for 'review/2445' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2445        
+remote: 
+review/2445 407699a5e9f7421b055c5417f3c6539d8d4d0539
+remote: 
+remote: Create a pull request for 'verdict/2445' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2445        
+remote: 
+BUS posted 2445 95c28f912c32b4d8488d5645ae8b906142e2cc92 Fix review: merge 40c4e1194dfd23371403f874e9a8a1abd45da162
+2026-10-19T15:20:39Z relay 2444 1104b189 6814e62b1c7b489aa9d54fca0fd66765541c97b8
+review/2444 638454687ef776f43772088ef286f92f96b44a44
+BUS posted 2444 5fbe8b55c065f463b82fa47fd45d0b9d2aaee035 Fix review: merge 8be64a110fa4e741889920c4eff2b6b4cb99cf3a
+2026-10-19T17:54:02Z relay 2455 6925d791 9704400424276f437f4fa58e706955cab4032d47
+remote: 
+remote: Create a pull request for 'review/2455' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2455        
+remote: 
+review/2455 dffad4cbf63baefa4f4520dbf68656169b2b8f8d
+remote: 
+remote: Create a pull request for 'verdict/2455' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/verdict/2455        
+remote: 
+BUS posted 2455 11a65e7395f477ddbce3ce5371becd9ee3580990 Fix review: blocked d1ad4de812df6c3a97bfeb84d37ec11c7ff0095d dispatch-mismatch: PR #2455 at this head is a record-only delivery-row PR and contains no tools/release/stamp.py change to review

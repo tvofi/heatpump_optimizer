@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/repairs.py:async_create_fix_flow GUARD_OFF 18acf7e6",
+  "old": "    if issue_id == ISSUE_SPACE:",
+  "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce).",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:on_room_event CMP_BOUND 412a10cf",
+  "killed_by": "tests/features.py",
+  "old": "    if room <= limit:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: CMP_BOUND (`if room < limit:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,5 @@
+open_pr: OVER-CAP: 10 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+app_push: REFUSE: worktree HEAD (0afb168d0542cdc491d07b600d45a4720a089504) is not the committed tip of 'fix/r10-tick-owed-level' (90bab078d19dd6aebba140fa360576b7780a560a); commit or check out first
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-owed-level/p2.log

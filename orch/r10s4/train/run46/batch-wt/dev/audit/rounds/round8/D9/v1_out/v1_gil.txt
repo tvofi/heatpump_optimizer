@@ -1,0 +1,35 @@
+7.17 9.93 12.48 8/207 1680
+
+=== Stress and economics ===
+RESULT sw0.005.idle.s5=0.0345 ratio (provisional; median of 4: 0.065, 0.025, 0.044, 0.014)
+RESULT sw0.005.idle.s10=0.0000 ratio (provisional; median of 4: 0.000, 0.000, 0.000, 0.000)
+RESULT sw0.005.idle.s20=0.0000 ratio (provisional; median of 4: 0.000, 0.000, 0.000, 0.000)
+RESULT sw0.005.idle.max=6.6236 ms-wall (provisional; median of 4: 9.535, 6.555, 6.095, 6.692)
+RESULT sw0.005.idle.p99=2.5416 ms-wall (provisional; median of 4: 4.140, 1.177, 3.633, 1.451)
+RESULT sw0.005.idle.med=1.1006 ms-wall (provisional; median of 4: 1.110, 1.089, 1.102, 1.099)
+RESULT sw0.005.idle.busy_ms=504.3930 ms-wall (provisional; median of 4: 405.918, 524.729, 522.850, 485.936)
+RESULT sw0.005.pybusy.s5=0.9936 ratio (provisional; median of 4: 0.992, 1.000, 0.996, 0.991)
+RESULT sw0.005.pybusy.s10=0.2815 ratio (provisional; median of 4: 0.433, 0.130, 0.098, 0.475)
+RESULT sw0.005.pybusy.s20=0.0000 ratio (provisional; median of 4: 0.000, 0.000, 0.000, 0.054)
+RESULT sw0.005.pybusy.max=17.4593 ms-wall (provisional; median of 4: 13.847, 17.235, 17.684, 25.844)
+RESULT sw0.005.pybusy.p99=16.3166 ms-wall (provisional; median of 4: 13.836, 15.519, 17.114, 19.082)
+RESULT sw0.005.pybusy.med=6.7214 ms-wall (provisional; median of 4: 7.639, 6.198, 6.187, 7.245)
+RESULT sw0.005.pybusy.busy_ms=495.7856 ms-wall (provisional; median of 4: 400.634, 509.975, 523.034, 481.596)
+RESULT sw0.005.solve.s5=0.4829 ratio (provisional; median of 4: 0.406, 0.471, 0.495, 0.525)
+RESULT sw0.005.solve.s10=0.1240 ratio (provisional; median of 4: 0.032, 0.136, 0.174, 0.112)
+RESULT sw0.005.solve.s20=0.0000 ratio (provisional; median of 4: 0.000, 0.000, 0.000, 0.000)
+RESULT sw0.005.solve.max=16.9909 ms-wall (provisional; median of 4: 12.853, 18.734, 16.626, 17.356)
+RESULT sw0.005.solve.p99=12.6969 ms-wall (provisional; median of 4: 7.700, 14.330, 12.772, 12.622)
+RESULT sw0.005.solve.med=1.5817 ms-wall (provisional; median of 4: 2.196, 1.139, 1.245, 1.918)
+RESULT sw0.005.solve.busy_ms=499.9230 ms-wall (provisional; median of 4: 398.857, 523.800, 522.704, 477.142)
+RESULT sw0.005.solve_noyield.s5=0.6057 ratio (provisional; median of 4: 0.527, 0.596, 0.634, 0.615)
+RESULT sw0.005.solve_noyield.s10=0.1278 ratio (provisional; median of 4: 0.143, 0.060, 0.227, 0.113)
+RESULT sw0.005.solve_noyield.s20=0.0000 ratio (provisional; median of 4: 0.000, 0.000, 0.000, 0.045)
+RESULT sw0.005.solve_noyield.max=14.7667 ms-wall (provisional; median of 4: 14.472, 12.114, 15.061, 21.336)
+RESULT sw0.005.solve_noyield.p99=12.6469 ms-wall (provisional; median of 4: 13.669, 10.001, 14.738, 11.625)
+RESULT sw0.005.solve_noyield.med=2.1236 ms-wall (provisional; median of 4: 1.570, 2.000, 2.247, 2.648)
+RESULT sw0.005.solve_noyield.busy_ms=440.4717 ms-wall (provisional; median of 4: 543.392, 371.045, 403.132, 477.812)
+RESULT deliberate_executor_cpu_ms=3587 ms-cpu
+RESULT thread_factor=1.029
+RESULT load1=7.37
+RESULT swapins=0

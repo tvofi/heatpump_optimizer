@@ -1,0 +1,9 @@
+===== daemonize pid=4124 2026-10-21T20:50:57Z argv: bash tools/audit/seat/update_pr.sh fix/r10-plan-artifact - /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2558.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (801 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging .github/workflows/governance.yml
+Auto-merging tests/closure.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+HEAD=59c5b20ef0d7beef377fe2580bd87f9fdb783ff7

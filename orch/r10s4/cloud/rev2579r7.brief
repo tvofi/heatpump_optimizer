@@ -1,0 +1,9 @@
+RE-REVIEW, round 7, ADVERSARIAL, of PR #2579 (group R10-FLOW-YIELD-PROBE, branch fix/r10-flow-yield-probe) at head 632d2fe261b5293e718363485cd816909bf3290c. The fixer's round-7 code is 8a01caf2e, merged onto the PR by update_pr.sh. Round 6 was BLOCKED; read it with `git fetch origin review/2579 && git show FETCH_HEAD:VERDICT.md` (commit f7a6bdf0c). The round-6 reviewer recommended no further split and named the minimal mergeable part: this PR plus two edits. Check exactly those, and do not re-open settled ground. PREPR_SKIP_CLOSURES=1.
+Required:
+1. The probe-slice survivor is dead. Apply the mutants `nonce[:8]` -> `nonce[-8:]` and `nonce[:8]` -> `nonce[8:16]` in review_strength.py's `load` yourself. Each must fail the self-test. The unmutated self-test passes, and its check count matches the body.
+2. Re-run `dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4`. It must show undisposed=0 and stale=0, and every figure the body states must match.
+3. The GROUP_RE disposition carries no stale count.
+4. `## Forward-carry` cites the two guardrail points as landed by the orchestrator on R10-ORCH-MACHINERY. Check that they are in the group's carry at origin/handoff/audit-r10-roster.
+5. `## Red checks` names every red in the branch history (check-runs API). `git merge-tree --write-tree origin/main <head>` is clean. `carry_audit.py check --body` gives 0 unrouted and 0 bad.
+This is round 7. Return merge unless a required item fails.
+Time box 45 min.

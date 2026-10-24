@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:looks_like_pulse_power RETURN_DEL b2bdffcb",
+  "killed_by": "tests/features.py",
+  "old": "    return \"pulse\" in blob or (\"tibber\" in blob and \"power\" in blob)",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,9 @@
+Decision (mandate 6175172275, recommended option of a planning seat): **re-plan the round-10 after-graph to semantic edges only.** Measured on the roster at `fix/audit-r10-roster` (#2356): of 47 after-edges among open groups, 14 are semantic (a carry or brief requires the earlier result), 30 are file overlap only (both edit `coordinator.py` or another shared file, neither needs the other's result), 3 have no link. Critical path falls from 22 levels to 7. Each semantic classification quotes its roster phrase; the full table is in the planning seat's report, mirrored at `~/hpo-orch/r10s3/` on the orchestrator host.
+
+Constraints kept as serialisers, not edges: learner fits stay serial (VENT-DETECTOR -> NIGHT-FOLDS -> TRUST-RELATIVE -> HEAT-METER); golden movers stay serial (ADVISOR -> SCORES -> LEARNER-ETA -> HEAT-METER -> COP-GATE; SAV-REASONS -> SOLVER; HEAT-METER -> CONFIGFLOW-PAGES); groups that may move `coord_*` goldens stop and report if their fork shows drift. Concurrent `coordinator.py` groups are capped at five, each bound to one seam by an architect note; LEAF-IMPORTS merges first.
+
+Dispatched now on the new graph (no half-done work found for any of them on handoff/fix/wip-sync refs or local worktrees, except TRAIN-HOLD, resumed from its local commit `4e44462fa`): LEAF-IMPORTS, SAV-BASELINE, RATIO-ANCHOR, STORE, SENSOR-PAYLOAD, TICK-ORCH (arms a, c), D15-GRADER, TRAIN-HOLD; already running: VENT-DETECTOR, I5-DOCS. Recovered unpushed work routed to its fixers instead of being redone: archscore p4 (10 commits, `8fda13ce7`), the #2310 bus evidence-path arm (`153797cbe`), DEEPLINK-CENSUS r8 (`f1542b17d`).
+
+The roster's `after` fields follow in a roster PR once `roster_edit.py` carries an op that edits them (no op does today; a string splice is refused by policy).
+
+Leaves #201 open.

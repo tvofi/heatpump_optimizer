@@ -1,0 +1,26 @@
+2026-10-23T08:20:40Z --- M-5b/M-7 on #2649; old head 83de34568bab45dccdb3b0b9bcdb8552b6662a94; completed run for M-5b: 39920652005
+2026-10-23T08:31:51Z new head d7505428267e2a1c89f15329046fb86630eb44df
+2026-10-23T08:31:52Z held action_required at head: 0
+2026-10-23T08:32:54Z M-7 listing of code run 39925217756	in_progress	CI code pr=2649 base=main sha=f607fe09adc2361f5511f9a7d705e36adb2bc321 while probe / probe is in_progress (jobs?filter=latest, once):
+    120319801975	refresh	completed	success	2026-10-23T08:31:30Z
+    120319802303	prelude	completed	success	2026-10-23T08:31:48Z
+    120320152938	probe / probe	in_progress	-	2026-10-23T08:32:10Z
+2026-10-23T08:32:54Z M-7: gate does NOT appear before its needs finish
+2026-10-23T08:32:55Z M-5b: run 39920652005 gate job before re-run: 120308335387 completed success; newer code run 39925217756 status in_progress
+ci_probe: rerun-job ok
+2026-10-23T08:32:56Z M-5b: rerun-job rc=0
+2026-10-23T08:38:02Z newer code run 39925217756 final: completed success attempt=1
+2026-10-23T08:38:03Z its jobs: refresh=success, prelude=success, probe / probe=success, gate=success
+2026-10-23T08:38:03Z re-run 39920652005: completed failure attempt=2 title=CI review pr=2649 base=main sha=283ff6af975b42402ad18ba6e1a061c3f12dfedc
+2026-10-23T08:38:04Z re-run 39920652005 gate: 120320495436 completed failure 2026-10-23T08:33:00Z-2026-10-23T08:33:27Z
+2026-10-23T08:38:05Z cancelled runs at d7505428267e2a1c89f15329046fb86630eb44df (none expected): 
+2026-10-23T08:38:05Z DONE
+--- coordinator verdict
+M-7: PASS. One jobs?filter=latest listing of code run 39925217756 while `probe / probe` was in_progress showed refresh, prelude and probe only.
+  `gate` does not appear in the listing until its needs finish.
+M-5b: PASS on the design's claim. The re-run of completed run 39920652005's gate (attempt 2) left the newer code run 39925217756 unaffected
+  (completed success; refresh, prelude, probe and gate all success) and cancelled nothing at the head. The re-run took its own run's group, not the head's.
+  The re-run attempt itself ended FAIL "repos/.../actions/runs/39920549988/jobs: HTTP 502 Server Error": a transient GitHub 5xx.
+  FINDING: ghapi.get returns a 5xx and gate.py turns it into FAIL with no retry. The sweep re-runs only OLDER reds once a newer
+  gate is green (sweep.py covers_newest), so a 5xx on the NEWEST run's gate leaves the one required check red at the head
+  until the next event. Raised with main for a P2b fix (rule 7: a P2a defect is fixed inside P2b, failing test first).

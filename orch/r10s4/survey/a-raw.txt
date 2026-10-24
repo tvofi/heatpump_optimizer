@@ -1,0 +1,189 @@
+=== 2513 fix/r10-roster-ops 716a34f28571ff1dc47369075dad51afa31b8a44 draft=true state=OPEN ms=BLOCKED
+behind=75 ahead=4
+roster: R10-ROSTER-OPS in-progress;
+handoff=4e2223a57d230c75fbb965dfac431fd4e03f05d8
+handoff-ancestor-of-head=NO
+merge-tree rc=0
+instrument-self-tests	2026-10-20T22:28:09Z	completed	failure
+nightly-status	2026-10-20T22:28:09Z	completed	failure
+--body red section:
+
+- `instrument-self-tests` at `c89cdf73`: `UNWIRED tools/audit/seat/r10_roster_ops_mutants.py: no workflow run line names its self-test` and `selftest_wiring: 38 self-testing, 37 wired, 1 unwired`. Answer: the cheaper detector exists — `python3 -I tools/audit/seat/selftest_wiring.py --check` refuses the file in under a second locally; its standing cost is that second, and no local path on this branch ran it (`prepr` runs it only when `prepr` or a program it names changes). It now prints `38 self-testing, 38 wired, 0 unwired`, rc 0.
+- `pr-contract` at `c89cdf73`: the body's `## Forward-carry` failed `carry_audit`, and `## Head` named `9969e3ca`, not the measured head. Answer: the cheaper detector is `tools/pr/prepr.sh`, which runs the same `policy_lint.mjs --pr-body` and carry checks locally; its standing cost is one prepr run per body, minutes including the gate lease. The corrected `## Forward-carry` is carried from `handoff-body/r10-roster-ops` at `a38f30ac`, and the body above passes that run.
+
+=== 2519 fix/r10-train-hold fb6d355bf68119f2dcffcfecf10099f2d007c183 draft=false state=OPEN ms=UNSTABLE
+behind=28 ahead=9
+roster: R10-TRAIN-HOLD in-progress;
+handoff=a8c8287f57e09c808e47597910bd9791c93a3579
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-21T02:32:51Z	completed	failure
+IC_kwDOT-9fds8AAAABd9v3kA	2026-10-21T01:38:48Z	Fix review: merge 6efcb1ac090e19522c95701db295908fb52990ab
+--body red section:
+
+- `nightly-status` (red at the PR head; run 39493172097). It names main's scheduled run 39387919507 (`2026-10-20T07:39:11Z`, head `0c298f6`), whose `slow` job failed `tests/replay.py`: `synthetic-dhw-only.json: cycle_cost [1 offender: loop_cpu_ratio 0.1114 over its budget 0.111]`, `1 of 93 replay checks FAILED`. That is main's run, measured at 07:45Z, before this branch's first commit (`17197336f`, 16:52Z), and none of this diff's files is an input to the replay lane (the diff is the `record-autofix` job in `tests.yml`, `tools/audit/seat/merge_train.py`, `tests/entities.py`, and the closure recording). Cheaper detector: none exists for the failure itself — `loop_cpu_ratio` is a property of that runner's loop, and the slow lane's own run is the only thing that computes it; `tests/nightly_status.py --repo tvofi/heatpump_optimizer` (run here, one API read) names the lane and the run in seconds but cannot compute the ratio, so it separates "which lane" only. The fix and its proof belong to the nightly lane's owner (the orchestrator drains main's reds): re-record the fixture or re-budget `loop_cpu_ratio` in `tests/replay.py`'s own cycle-cost table (not a `*_budgets.json`; a raise is the owner's, 0013), then dispatch `tests.yml` on `main` and name that run id here, as the job itself instructs. This branch does not touch `tests/replay.py` or its recording.
+- `closures` (run 39493172097, job 118884971127): `INERT READS UNDER-APPROXIMATED … tests/entities.py: tools/audit/seat/merge_train.py`. This diff makes `tests/entities.py` open `merge_train.py` — the TRAIN-HOLD block reads its `HOLD_REF` constant so the two halves cannot name different branches — and `tools/audit/` keeps `merge_train.py` INERT, which would have the merge fast path treat a change to it as unread for that script (the #357 INERT-and-recorded contradiction). **The classification moved, and why**: `merge_train.py` leaves the `tools/audit/` prefix via `tests/closure.py`'s `INERT_EXCEPT` and lands in `tests/entities.py`'s recorded closure, so an edit to the train selects that script; the recording is re-derived with `./tests/derive_closures.sh --single tests/entities.py` and merged into `tests/closures.json` in this branch. The first merge refused the pair (`closure: files on the INERT list are actually read by tests`), which is the mechanism working; after `merge_train.py` joined `INERT_EXCEPT`, `--single` exited 1 on exactly one check, `every tracked file is either measured or deliberately classified` — the chicken-and-egg `gate-scoping.md` documents — so the two-step route recorded and merged (`--record-only --out-dir`, then `merge --in-dir … --partial --allow-failures`; the raw record names `merge_train.py` in its 332 files), and a clean `--single` then exited 0 with the classification satisfied. `tests/closures.json` carries both the read and `rc: 0`. Cheaper detector: it exists and was skipped — `prepr.sh`'s closures step is the local check that records a script's reads, and this wave's `PREPR_SKIP_CLOSURES=1` ruling skipped it (the cost the ruling buys); its standing cost is one script's re-derive (~16 min here) against the gate's ~20-minute full pass.
+- `closures-autofix` (job 118895327353): `AUTOFIX: skip-merge-failed — THE REPAIR DID NOT HAPPEN`, nothing pushed. It repairs only a run it may trust, and the same head's `closures` job was red; the repair is the same recorded read, committed here, so no autofix is owed once the check re-runs.
+- `pr-contract` (run 39493177280): red because this body's previous `## Red checks` did not name `nightly-status`; this body names it and the closures pair, and the check re-runs at the new head. Step-11 timing does not apply — the missing text was the body's own, not a check reading an artifact it does not name.
+
+=== 2521 fix/r10-i5-docs 35ae9daed31b2c2d5024c938d0b8485d50be093b draft=true state=OPEN ms=BLOCKED
+behind=75 ahead=9
+roster: R10-I5-DOCS in-progress;
+handoff=7a7102eb844cf4f549d52af241b7bdc8e5a74797
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-20T22:56:35Z	completed	failure
+pr-contract	2026-10-21T00:12:53Z	completed	failure
+--body red section:
+
+`tests/entities.py`, locally, at 7a4a815e3: `1 of 2347 ENTITY CHECKS FAILED`, "every grader's copy of the barrier is the original, character for character", copies differing: `tests/mutation_table.py`, `tests/coverage_ratchet.py`, `tests/typing_ruler.py`. Cause: this branch had reworded one line of `cap_problem`'s docstring in `tests/structure.py`, and the three graders carry that function verbatim. Answer: the line is a record and is restored as written (d32bdf502); at d32bdf502 `tests/entities.py` reads ALL 2347 ENTITY CHECKS PASSED. The cheaper detector already exists and is the one that fired, before any push; nothing new is owed.
+
+=== 2524 fix/r10-pusher-reap 50571afa92c3716999226049641eae2279d94938 draft=true state=OPEN ms=BLOCKED
+behind=69 ahead=3
+roster: 
+handoff=9719443b11887558f2ef918de5cff646683967c1
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-20T23:01:36Z	completed	failure
+pr-contract	2026-10-20T23:19:17Z	completed	failure
+--body red section:
+
+none
+
+=== 2525 fix/r10-wip-cap 00118887ce1f500825c90073f70910e0fe7a815b draft=true state=OPEN ms=BLOCKED
+behind=69 ahead=8
+roster: 
+handoff=80fe9ac08ef9e8b9f90baf814d79a38d56d4041a
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+env-matrix	2026-10-20T22:59:46Z	completed	failure
+nightly-status	2026-10-20T22:59:46Z	completed	failure
+policy-docs	2026-10-20T22:59:46Z	completed	failure
+pr-contract	2026-10-20T23:29:56Z	completed	failure
+--body red section:
+
+- `tests/harness_headers.py` went red once, at `3af8d082` (12 of 109), with
+  every failure in `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py`:
+  the harness hit its own 900 s wall limit (`rc=124 cpu=168.0s`) on a box at
+  load average 170. It passes at this head (`ALL 109 HARNESS HEADER CHECKS
+  PASSED`, load 65). Its inputs are `dev/audit/rounds/` and the integration — no
+  file this diff touches. The cheaper detector is the harness's own wall/CPU
+  bound, which is what refused it (its 50% CPU bound did not fire); CI runs it
+  in `lane_stress`, sized for a co-runner.
+- `tests/entities.py` is red at this head on one of its 2359 checks: `and on an
+  idle loop it ticks, reports no such gap and dumps nothing` (`ticks=7`, needs
+  `> 10`; idle `max_gap=0.090s`). The heartbeat's 1 ms tick chain starved on the
+=== 2526 fix/r10-gate-priority baa75f58ae7f9c00334d92da24d3285e1b047277 draft=false state=OPEN ms=UNSTABLE
+behind=69 ahead=8
+roster: 
+handoff=31529479c13d41831c7d677ff299559c4f55a040
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-20T23:28:45Z	completed	failure
+IC_kwDOT-9fds8AAAABeAuenw	2026-10-21T05:43:25Z	Fix review: merge baa75f58ae7f9c00334d92da24d3285e1b047277
+--body red section:
+
+- `harness-headers` / `every inlined walk matches the canonical helper and no
+  depth root remains` (`tests/harness_headers.py`): red on this branch's first
+  local gate run, because the new demonstration harness
+  `dev/audit/harnesses/r10_gate_priority_base.py` used a depth root
+  (`Path(__file__).resolve().parents[3]`). The cheaper detector is that same
+  check: `harness_headers.py` is `run_always`, so it ran inside the scoped gate
+  before any push. Its standing cost is one run per gate: 501 s in this run at
+  load1 40-78 (the box carries other seats), against the ~100 s the module's
+  own `SLOT_MIN_SECONDS` comment records for it. No cheaper
+  detector exists — an edit-time hook would perform the same tree walk the check
+  performs. The harness now inlines the canonical `repo_root` copy, and the
+=== 2527 fix/r10-freq-defrost 3ce0b78f89d9cd4cc5f4783591adac37c4b42573 draft=true state=OPEN ms=BLOCKED
+behind=6 ahead=11
+roster: R10-FREQ-DEFROST in-progress;
+handoff=fe9038fbe2bacaa43a6bb9c00ce57814be58ff02
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+closures	2026-10-21T07:37:26Z	in_progress	
+fast (3.14)	2026-10-21T07:09:09Z	completed	failure
+mutation	2026-10-21T07:08:29Z	in_progress	
+nightly-status	2026-10-21T07:08:29Z	completed	failure
+IC_kwDOT-9fds8AAAABd8fjxQ	2026-10-21T00:01:18Z	Fix review: blocked de28f656ba17e2e381471d8d3a50dffdf2840cfc root-cause-unanswered: mutation went red, unanswered
+--body red section:
+
+The scoped gate at `2f8071ef5` ends `4 TEST SCRIPT(S) FAILED`; two of the four reds are this branch's and were repaired.
+CI's required `mutation` ran red at the PR heads `de28f656` and `f8c523f0` and is answered first below; it passes at
+this head (Figures).
+
+- `mutation` (required), red at the PR head `f8c523f0`: `4123 unpinned site(s) against 4126 at the ratchet base
+  f639f3b0d, 2 of them added by this diff`, with one survivor-rate breach beside it (`25.0% of mutants survived against a
+  cap of 20.0%`). Both additions are the two variants of `coordinator.py:10563 CMP_BOUND*2`.
+  `mutation_table --pin-killed` measured both surviving every driver in play (`PIN KILLED: 0 pinned, 2 left unpinned
+  (2 survived)`, 18 drivers, comment-only null control surviving each), so this branch adds their killer rather than a
+  triage: one check that feeds each bound its exact input, and each variant alone fails it (Mutation proof). Both are
+  recorded under `tests/mutation_ledger/killed_by/`, and the refusal and the rate both clear at this head. Cheaper
+=== 2528 fix/r10-prepr-closures a4f01a42154341293aaed52642434c12fab3322b draft=true state=OPEN ms=BLOCKED
+behind=69 ahead=6
+roster: 
+handoff=e32513490631475ce7e2307183786c0c1c808e7b
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-20T23:43:51Z	completed	failure
+pr-contract	2026-10-21T00:14:51Z	completed	failure
+--body red section:
+
+`none`.
+
+=== 2529 fix/r10-ci-layout-g e9d54acdf75741a4c5cb33c3540e18ad609d5fcd draft=true state=OPEN ms=BLOCKED
+behind=69 ahead=5
+roster: R10-CI-LAYOUT in-progress;
+handoff=2fd3fd459e6a8dd6eaf02a938ffa16b8554918e8
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+instrument-self-tests	2026-10-20T23:22:47Z	completed	failure
+nightly-status	2026-10-20T23:21:37Z	completed	failure
+policy-docs	2026-10-20T23:23:10Z	completed	failure
+pr-contract	2026-10-21T00:26:29Z	completed	failure
+--body red section:
+
+- `instrument-self-tests`'s step "Refuse a push that names the host, and an unregistered pusher" is red at the base and at this head with the same 16 refusals: `ref_privacy --check` prints `REFUSE <path>: registered in PUSHERS but holds no push site; drop the entry` for 16 entries, `tools/release/stamp.py`, `tools/pr/push.sh` and `tools/audit/seat/bus.sh` among them. Set-compared at both ends (`python3 -I tools/audit/seat/ref_privacy.py --check` at the head and at a detached `4e5801eb5`), the only difference is the diff-window figure (`605` vs `92 line(s) added since`); no file this diff touches is named, so it adds no refusal. The failing command is its own cheapest detector (seconds, no network); the standing cost is that step's seconds on every pull request, and the answer is a registry decision about which files may push, outside this group's brief. Carry: R10-CI-LAYOUT.
+- The r10 harness's M0 is red on that same step at the base and at the head (`== M0 rc=1 Refuse a push that names the host, and an unregistered pusher | ref_privacy: REFUSE tools/release/stamp.py: ...`), so its `RESULT survivors=1` carries the one pre-existing red; every S mutant this PR adds or changes is killed and no other seat step is red.
+
+=== 2531 fix/r10-ci-ratchet-red fddca8122bf61800022c7ee848188a6c235b2047 draft=true state=OPEN ms=BLOCKED
+behind=66 ahead=5
+roster: R10-CI-RATCHET-RED in-progress;
+handoff=8457652ca58515d4a17d7b258a3888b453267222
+handoff-ancestor-of-head=yes
+merge-tree rc=0
+nightly-status	2026-10-20T23:44:40Z	completed	failure
+pr-contract	2026-10-21T00:50:25Z	completed	failure
+--body red section:
+
+`ci-ratchet` on main — the check this PR fixes, red on the last 14 of the 15
+push runs that carried it. Root-cause trigger (a check red on a commit): the
+cheaper detector is the `--self-test` this PR adds, and before it none existed
+— the decision lived in a heredoc no test could reach, and the job runs only on
+push to main, so the first place the failure could appear was main itself. Its
+standing cost is 15 offline checks: sub-second in `tests/entities.py` (which
+the `fast` lane runs on every pull request) and one step in the ci-ratchet job.
+Every input is synthesised, so it needs no network and no token.
+
+=== 2534 dependabot/pip/tests/pip-ac46af0822 b01e700472f0103510eb2589a8c761df53e30afc draft=false state=OPEN ms=BLOCKED
+behind=49 ahead=1
+roster: 
+handoff=
+merge-tree rc=0
+nightly-status	2026-10-21T01:15:28Z	completed	failure
+pr-contract	2026-10-21T02:01:18Z	completed	failure
+typing	2026-10-21T01:15:54Z	completed	failure
+--body red section:
+=== 2542 record/autofix c2bbc47356bef265595c933a22ef2b7e05310912 draft=false state=OPEN ms=BLOCKED
+behind=0 ahead=2
+roster: 
+handoff=
+merge-tree rc=0
+nightly-status	2026-10-21T07:45:43Z	completed	failure
+pr-contract	2026-10-21T07:51:47Z	in_progress	
+--body red section:
+
+`record`, `nightly-status` and `delivery-status` may stand red on main at the base this beat was computed against; each is answered here.
+
+- `record`: a rowless merge is the batch interval the record protocol promises, and this pull request is that batch, which is the answer the check's own refusal text names. No cheaper detector exists than the check that already fired; its standing cost is one beat per batch.
+- `nightly-status` and `delivery-status` grade `main`, not this pull request. This beat's delivery rows are precisely the drain `delivery-status` batches, so the red is the batch this beat exists to close; `nightly-status` executes nothing this diff changes and is answered because the shared reporter-input rule counts a row the diff rewrites. No cheaper detector exists than the check that already fired; its standing cost is one beat per batch.
+

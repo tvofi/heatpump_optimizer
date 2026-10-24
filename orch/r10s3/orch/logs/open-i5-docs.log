@@ -1,0 +1,14 @@
+===== daemonize pid=47826 2026-10-20T11:33:26Z argv: bash tools/audit/seat/open_pr.sh r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 docs: correct the drifted labels, samples and service counts (D5) R10-I5-DOCS
+open_pr: open-PR cap: 2 open < 6
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (167 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closure.py
+Auto-merging tests/closures.json
+Auto-merging tests/doc_claims.py
+Auto-merging tests/stress.py
+Auto-merging tests/structure.py
+===== daemonize pid=44942 2026-10-20T20:37:55Z argv: bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap governs new group dispatches, not opens; draining a 46h-stalled critical-chain handoff r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 docs: correct statements that drifted from the code (R10-I5-DOCS) R10-I5-DOCS 2222
+open_pr: OVER-CAP: 6 open >= 6, overridden: owner 2026-10-20: the cap governs new group dispatches, not opens; draining a 46h-stalled critical-chain handoff
+fatal: a branch named 'fix/r10-i5-docs-pr' already exists
+open_pr: STOPPED: line 34 exited 255: git worktree add -q -b $BR $WT $C

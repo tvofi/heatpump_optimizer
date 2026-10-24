@@ -1,0 +1,38 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/b9t/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/b9t pid=88313 start=2026-10-19T07:22:21Z
+BATCH 20261019-072221 pid=88328 base=main queue=1 (#2368) --overlap --skip-bad
+OVERLAP: main at db3293dcb12f is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2368 serial: bot-head, budget, claim, grader, workflow
+OVERLAP: recarrying  up front, their pull_request runs fire together
+serial: #2368
+#2368 recarry START (branch fix/r10-pump-model-d2)
+#2368 recarry: main merged, head 97aae1f1; app_push: RECARRY: prepr SKIPPED: HEAD 97aae1f1 is the clean merge of the live head 87eda8c5 and origin/main's db3293dc, and the body is the live one
+beat: waiting CI at 97aae1f1 (poll 2, t+241s, required: 14, concluded: 9/14)
+beat: waiting CI at 97aae1f1 (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 97aae1f1 (poll 4, t+723s, required: 14, concluded: 10/14)
+beat: waiting CI at 97aae1f1 (poll 5, t+964s, required: 14, concluded: 10/14)
+beat: waiting CI at 97aae1f1 (poll 6, t+1205s, required: 14, concluded: 11/14)
+beat: waiting CI at 97aae1f1 (poll 7, t+1446s, required: 14, concluded: 12/14)
+beat: waiting CI at 97aae1f1 (poll 8, t+1687s, required: 14, concluded: 13/14)
+beat: waiting CI at 97aae1f1 (poll 9, t+1928s, required: 14, concluded: 13/14)
+beat: waiting CI at 97aae1f1 (poll 10, t+2169s, required: 14, concluded: 13/14)
+#2368 97aae1f1 ci red=[]
+#2368 [MAIN-MOVED] main: origin/main moved during CI and is not in the head; run the train again; recarry 1/3 onto the new main, then CI again
+#2368 recarry START (branch fix/r10-pump-model-d2)
+#2368 recarry: main merged, head 0b06d22a; app_push: RECARRY: prepr SKIPPED: HEAD 0b06d22a is the clean merge of the live head 97aae1f1 and origin/main's c3530277, and the body is the live one
+beat: waiting CI at 0b06d22a (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 4, t+723s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 5, t+964s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 6, t+1205s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 7, t+1446s, required: 14, concluded: 10/14)
+beat: waiting CI at 0b06d22a (poll 8, t+1687s, required: 14, concluded: 12/14)
+beat: waiting CI at 0b06d22a (poll 9, t+1928s, required: 14, concluded: 13/14)
+#2368 0b06d22a ci red=[]
+SKIP #2368 approve: #2368 code-owned and a budget file changed (tests/stress_budgets.json): a raise is the owner's (0013)
+released /Users/timmalmstrom/hpo-orch/r10s3/train/b9t/wt/2368
+SKIP REPORT: 1 skipped of 1
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-19T08:40:17Z

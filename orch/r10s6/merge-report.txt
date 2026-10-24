@@ -1,0 +1,35 @@
+2026-10-24T07:47:55Z main CI red at 50af6174f (tests/ci-ratchet); all trains held per queue; watching
+2026-10-24T08:08:38Z queue: #2683 verdict now 8d965647d; main still red 50af6174f, held
+2026-10-24T08:12:56Z queue: #2688 verdict b451bde0c queued after #2683; main still red, held
+2026-10-24T09:48:43Z main: #2690 hotfix landed (9fd5eb107); push CI in_progress run 40083332175; trains held until green
+2026-10-24T09:49:02Z parked #2688 verdict b451bde0c stale (head now 1fbc924ab, back in review nonce aaa2a420); skipping until new merge verdict relayed
+2026-10-24T09:50:12Z note: #2687 already merged (0c3640761). Standing order per tvofi via coordinator: one train.sh batch with --overlap, no serial singles
+2026-10-24T10:04:35Z parked #2683 train 20261024-100405: recarry refused, branch fix/r10-input-staleness checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/wt (clean, HEAD 07b83e9b2, origin 8d965647d; --free-holders needs HEAD at origin). Train rc=1 'SKIP REPORT: 1 skipped of 1'. Bot sweep: #2694 AUTOMERGE PENDING (gate pending), not merged; train-hold 'record beat waits'. merged 0
+2026-10-24T10:06:03Z parked #2683 train 20261024-100534: PRE-FLIGHT carry_audit: 4 finding item(s) with no valid Carry (first: review 6379079217 item 57e267d2 unrouted). Holder worktree fast-forwarded to 8d965647d and freed. #2694 AUTOMERGE REFUSE gate failed. merged 0
+2026-10-24T10:06:42Z #2694 gate failed = deferring on sibling run 40083509225 (still being judged; now completed success). Run 40083505710 already at attempt 2, gate in_progress; no rerun needed from me. Awaiting roster tip for #2683 rerun.
+2026-10-24T10:34:37Z train 20261024-100700 (no --pre-flight, --overlap, batch) running: #2683 recarried to 229c6643a, CI runs 40084705099/40084704227 in_progress (34 check runs, gate not yet reported), merge pending; #2694 merged 145bfe197 (bot sweep)
+2026-10-24T11:03:55Z merged #2694 145bfe197 closed none (bot sweep; main push CI 40084642835 success)
+2026-10-24T11:03:55Z merged #2683 d0ae3ca9f closed #2234 (intended; body Closes #2234)
+2026-10-24T11:03:55Z set-stage owed R10-INPUT-STALENESS d0ae3ca9f
+2026-10-24T11:03:55Z main push CI 40088300517 in_progress at d0ae3ca9f
+2026-10-24T11:03:55Z train 20261024-100700 end: TRAIN_RC=0 end=2026-10-24T11:03:14Z, SKIP REPORT: 0 skipped of 1
+merge: 2 merged, 0 parked (open: #2688 awaiting verdict), window ends 2026-10-24T11:40Z
+2026-10-24T11:04:29Z window2 up: watching merge-queue.txt (no new lines past #2688 stale); main push CI 40088300517 at d0ae3ca9f in_progress; #2678 in bot sweep
+2026-10-24T11:18:40Z train s5 20261024-111750 launched: #2693 (verdict 228d5e48d) + --bot-prs (#2699 pending gate); approved, awaiting CI
+2026-10-24T11:20:17Z merged #2693 026527b5a closed none (read back: closingIssues empty). No roster group for #2693 (triage batch3); no set-stage queued. train s5 still running (#2699 bot sweep)
+2026-10-24T11:20:24Z train s5 end: TRAIN_RC=0 end=2026-10-24T11:20:19Z, SKIP REPORT 0 of 1; merged 1 (#2693)
+2026-10-24T11:34:51Z correction: #2699 was already MERGED (read from GitHub); open record PR is #2701, next --bot-prs sweep
+2026-10-24T12:05:51Z merged #2701 ac5788f26 closed none (bot sweep, train s6 20261024-120448 TRAIN_RC=0; GitHub state read back MERGED). #2678 still OPEN/BLOCKED
+2026-10-24T12:14:24Z train s7 launched: #2688 1fbc924ab + #2689 583219fa8 batch, bot sweep #2702
+2026-10-24T12:27:07Z s7 waiting proof run 40093146655 (poll 4); #2702 gate now green, needs sweep after s7
+2026-10-24T12:39:36Z ruling: do not cancel s7 proof run 40093146655; codeql python normally 24-30m; stalled only past 13:00Z, then tell main
+2026-10-24T12:46:16Z merged #2688 2cdf7adca3201ba941c5eb315984643608de33ee closed none (read back empty; main tree == proof). No roster group (triage batch1). s7 continues with #2689
+2026-10-24T12:47:48Z merged #2689 d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44 closed none (read back empty); no roster group. train s7 end TRAIN_RC=0 12:47:38Z, SKIP 0 of 2, merged 2 (#2688,#2689)
+2026-10-24T12:49:08Z merged #2702 fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a closed none (bot sweep, train s8 TRAIN_RC=0; GitHub read back)
+2026-10-24T13:06:37Z merged #2703 9586fce081411da3e552aab930919c40e2b2b233 closed none (bot sweep, train s9; GitHub read back MERGED, closingIssues empty). No set-stage (record PR). #2678 still in sweep
+2026-10-24T13:35:44Z train s10 launched: #2691 3b5eea206 (draft, train marks ready) + bot sweep
+2026-10-24T13:49:12Z merged #2691 36db48e724e20b718f4a47262e8fd6b440a8bdc7 closed none (GitHub read back empty; train s10 TRAIN_RC=0). No roster group (record of stranded RC records; R10-HANDOFF-PREPR-BOUNCE group status not mine: no set-stage queued). #2705 record PR also MERGED on GitHub (merged by CI automerge while train held)
+2026-10-24T13:54:26Z train s11 launched: #2696 96b8dd7bf (draft) + bot sweep (#2713)
+2026-10-24T14:06:03Z merged #2696 e97f5749b441b282e43bd99dbcbb762e9d10a369 closed none (train s11 TRAIN_RC=0; GitHub closingIssues empty). 'R10 rca ci ratchet run name': no set-stage queued. #2713 record still OPEN/BLOCKED after train (bot sweep pending its gate)
+2026-10-24T14:06:12Z window3 STATE written; #2713 owed (gate pending)
+2026-10-24T14:41:07Z train s13 launched: #2714 + #2708 + bot sweep (#2713)

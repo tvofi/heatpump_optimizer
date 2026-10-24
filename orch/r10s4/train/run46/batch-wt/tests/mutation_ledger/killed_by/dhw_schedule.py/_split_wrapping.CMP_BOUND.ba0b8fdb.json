@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_split_wrapping CMP_BOUND ba0b8fdb",
+  "killed_by": "tests/entities.py",
+  "old": "        if end > start:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: CMP_BOUND (`if end >= start:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

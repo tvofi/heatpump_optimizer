@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_leased CMP_BOUND c29ff82d",
+  "killed_by": "tests/features.py",
+  "old": "    cold = float(inp.state.outdoor_temperature) < COLD_RAIL_C",
+  "reason": "R9-EG-B6 (#1739) renamed the line's coordinator reads to the ArbiterInputs snapshot. Re-measured on a git-archive export at be777f2f: driving tests/features.py fails 4 of 3701 feature checks (`at exactly the cold rail the lease is the 90-minute one, not the cold one`, and the pre-existing `the lease ends after 90 minutes, not at them; at exactly -10 degC it is not the cold lease`), against the driver's baseline reds on the export (the #363 recorded_at check a git-archive copy cannot stamp, and the machine-sensitive R9-F2.1 P3 check, which fails identically at the merge base on this Mac) are named and excluded."
+}

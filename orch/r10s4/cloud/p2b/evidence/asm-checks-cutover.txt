@@ -1,0 +1,17 @@
+== agreement
+rc=0
+== rules_sync
+RULES-SYNC ok: every generated rule is the generated form of its source
+== wiring
+selftest_wiring: 89 self-testing, 89 wired, 0 unwired
+gate self-test: 28 checks, 0 failed
+ruleset_cutover self-test: 51 checks, 0 failed
+merge_train self-test: 232 checks, 0 failed
+sweep_driver self-test: 20 checks, 0 failed
+ci_probe self-test: 53 checks, 0 failed
+merge_main_bot self-test: 42 checks, 0 failed
+SELF-TEST: 51 probe(s), 10 null(s), 0 wrong
+RESULT uncovered_files=0 count
+SELF-TEST 27 of 27 probes held
+== structure
+STRUCTURE RATCHET PASSED

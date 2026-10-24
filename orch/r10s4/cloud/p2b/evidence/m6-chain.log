@@ -1,0 +1,28 @@
+start 2026-10-23T07:32:06Z driver a0f525900 --chain
+SWEEP run=39911235897 attempt=1 completed_at=2026-10-23T06:26:42Z started=1792740729 superseded=0 rc=0 :: SWEEP-DONE run=39911235897 reruns=0
+SWEEP run=39911128328 attempt=1 completed_at=2026-10-23T06:25:37Z started=1792740729 superseded=1 rc=0 :: SWEEP-DONE run=39911128328 reruns=0
+SWEEP run=39911128328 attempt=2 completed_at=2026-10-23T06:27:25Z started=1792740730 superseded=0 rc=0 :: SWEEP-DONE run=39911128328 reruns=0
+SWEEP run=39911090487 attempt=1 completed_at=2026-10-23T06:24:11Z started=1792740730 superseded=1 rc=0 :: SWEEP-DONE run=39911090487 reruns=0
+SWEEP run=39911090487 attempt=2 completed_at=2026-10-23T06:27:24Z started=1792740731 superseded=0 rc=0 :: SWEEP-DONE run=39911090487 reruns=0
+SWEEP run=39911090068 attempt=1 completed_at=2026-10-23T06:23:24Z started=1792740731 superseded=1 rc=0 :: SWEEP-DONE run=39911090068 reruns=0
+SWEEP run=39911090068 attempt=2 completed_at=2026-10-23T06:27:18Z started=1792740732 superseded=0 rc=0 :: SWEEP-DONE run=39911090068 reruns=0
+IDLE-EXIT: every run completed, no sweep alive, nothing new for the idle bound
+exit rc=0 2026-10-23T07:47:45Z
+start 2026-10-23T07:47:55Z driver 4319b06a0 --chain --idle 3600 (restart: the first idled out before the events)
+SWEEP run=39911235897 attempt=1 completed_at=2026-10-23T06:26:42Z started=1792741678 superseded=0 rc=0 :: SWEEP-DONE run=39911235897 reruns=0
+SWEEP run=39911128328 attempt=1 completed_at=2026-10-23T06:25:37Z started=1792741679 superseded=1 rc=0 :: SWEEP-DONE run=39911128328 reruns=0
+SWEEP run=39911128328 attempt=2 completed_at=2026-10-23T06:27:25Z started=1792741679 superseded=0 rc=0 :: SWEEP-DONE run=39911128328 reruns=0
+SWEEP run=39911090487 attempt=1 completed_at=2026-10-23T06:24:11Z started=1792741680 superseded=1 rc=0 :: SWEEP-DONE run=39911090487 reruns=0
+SWEEP run=39911090487 attempt=2 completed_at=2026-10-23T06:27:24Z started=1792741680 superseded=0 rc=0 :: SWEEP-DONE run=39911090487 reruns=0
+SWEEP run=39911090068 attempt=1 completed_at=2026-10-23T06:23:24Z started=1792741680 superseded=1 rc=0 :: SWEEP-DONE run=39911090068 reruns=0
+SWEEP run=39911090068 attempt=2 completed_at=2026-10-23T06:27:18Z started=1792741681 superseded=0 rc=0 :: SWEEP-DONE run=39911090068 reruns=0
+SWEEP run=39920549053 attempt=1 completed_at=2026-10-23T07:57:54Z started=1792742313 superseded=0 rc=0 :: SKIP run 39920549053: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39920549988 attempt=1 completed_at=2026-10-23T07:59:05Z started=1792742377 superseded=0 rc=0 :: SKIP run 39920549988: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39920596470 attempt=1 completed_at=2026-10-23T08:00:37Z started=1792742440 superseded=0 rc=0 :: SKIP run 39920596470: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39920652005 attempt=1 completed_at=2026-10-23T08:01:55Z started=1792742565 superseded=0 rc=0 :: SWEEP re-ran gate of run 39920549053 (attempt 1, completed red) | SWEEP re-ran gate of run 39920549988 (attempt 1, completed red) | SWEEP re-ran gate of run 39920596470 (attempt 1, completed red) | SWEEP-DONE run=39920652005 reruns=3
+SWEEP run=39920596470 attempt=2 completed_at=2026-10-23T08:03:14Z started=1792742628 superseded=0 rc=0 :: SWEEP-DONE run=39920596470 reruns=0
+SWEEP run=39920549988 attempt=2 completed_at=2026-10-23T08:03:18Z started=1792742629 superseded=0 rc=0 :: SWEEP-DONE run=39920549988 reruns=0
+SWEEP run=39920549053 attempt=2 completed_at=2026-10-23T08:03:16Z started=1792742629 superseded=0 rc=0 :: SWEEP-DONE run=39920549053 reruns=0
+SWEEP run=39925216164 attempt=1 completed_at=2026-10-23T08:32:11Z started=1792744374 superseded=0 rc=0 :: SKIP run 39925216164: its gate is not green and newest-covering; a newer run's sweep owns convergence
+SWEEP run=39925217756 attempt=1 completed_at=2026-10-23T08:36:32Z started=1792744624 superseded=0 rc=0 :: SWEEP re-ran gate of run 39925216164 (attempt 1, completed red) | SWEEP-DONE run=39925217756 reruns=1
+SWEEP run=39925216164 attempt=2 completed_at=2026-10-23T08:37:30Z started=1792744686 superseded=0 rc=0 :: SWEEP-DONE run=39925216164 reruns=0

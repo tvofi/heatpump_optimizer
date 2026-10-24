@@ -1,0 +1,4 @@
+===== daemonize pid=17128 2026-10-19T13:56:48Z argv: bash tools/audit/seat/update_pr.sh fix/r10-setpoint-power 53fc30d6c91d76ea04c6f8fc7259c1d6809b1b9c /Users/timmalmstrom/hpo-orch/r10s3/upd/b2445-r2.md
+  REFUSE   pr-body                PR-BODY: 2 error(s) in /Users/timmalmstrom/hpo-orch/r10s3/upd/b2445-r2.md -- no budget leaf raised over 4e1b36070...170253e66
+  REFUSE   ancestry reds          RED UNANSWERED (fast (3.14) mutation mutation-autofix nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/upd/b2445-r2.md: check `mutation-autofix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

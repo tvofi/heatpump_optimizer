@@ -1,0 +1,37 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run30/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run30 pid=94697 start=2026-10-23T02:35:15Z
+BATCH 20261023-023515 pid=94703 base=main queue=1 (#2629) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 3b4a0741: the record beat waits
+OVERLAP: main at e30b24bbc45a is still running (Analyze (actions), Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), typing, validate-hacs): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2629 serial: grader, workflow
+OVERLAP: recarrying #2629 up front, their pull_request runs fire together
+#2629 overlap: recarry start
+TRAIN HOLD refs/heads/train-hold a4ce0029: the record beat waits
+#2629 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-record-api-budget held fix/r10-record-api-budget, clean at origin/fix/r10-record-api-budget; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-record-api-budget switch fix/r10-record-api-budget)
+#2629 recarry START (branch fix/r10-record-api-budget)
+#2629 recarry: main merged, head b2955696; app_push: RECARRY: prepr SKIPPED: HEAD b2955696 is the clean merge of the live head b7d2b645 and origin/main's e30b24bb, and the body is the live one
+serial: #2629
+TRAIN HOLD refs/heads/train-hold b9fda9f9: the record beat waits
+beat: waiting CI at b2955696 (poll 2, t+243s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold 3b40bca3: the record beat waits
+beat: waiting CI at b2955696 (poll 3, t+485s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold fdc78275: the record beat waits
+beat: waiting CI at b2955696 (poll 4, t+727s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold fe68ed12: the record beat waits
+beat: waiting CI at b2955696 (poll 5, t+969s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold fd0067e0: the record beat waits
+beat: waiting CI at b2955696 (poll 6, t+1211s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 8ef9725f: the record beat waits
+beat: waiting CI at b2955696 (poll 7, t+1454s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold f298c825: the record beat waits
+#2629 b2955696 ci red=[]
+#2629 approved (mandate)
+#2629 MERGED 97b4fddf21b00c617e12dc906e289f61a2630baf
+#2629 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run30/wt/2629 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run30/wt/2629' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T03:05:18Z

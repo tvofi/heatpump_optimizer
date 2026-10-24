@@ -1,0 +1,10 @@
+{
+  "total_count": 1,
+  "check_runs": [
+    {
+      "name": "fast (3.14)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

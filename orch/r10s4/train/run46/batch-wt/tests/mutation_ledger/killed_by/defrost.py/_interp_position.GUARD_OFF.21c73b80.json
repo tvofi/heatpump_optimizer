@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:_interp_position GUARD_OFF 21c73b80",
+  "killed_by": "tests/features.py",
+  "old": "        if value < centers[i + 1]:",
+  "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). `if value < centers[i + 1]:` -> `if False:` raises the driver's `FAILED` count to 19 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+}

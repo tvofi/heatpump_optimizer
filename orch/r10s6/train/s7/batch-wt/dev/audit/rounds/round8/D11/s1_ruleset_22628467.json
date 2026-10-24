@@ -1,0 +1,38 @@
+{
+  "id": 22628467,
+  "name": "main-protect",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "tvofi/heatpump_optimizer",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [
+
+      ],
+      "include": [
+        "~DEFAULT_BRANCH"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    }
+  ],
+  "node_id": "RRS_lACqUmVwb3NpdG9yec5P7192zgFZSHM",
+  "created_at": "2026-09-09T09:37:08.692Z",
+  "updated_at": "2026-09-19T12:34:49.258Z",
+  "current_user_can_bypass": "never",
+  "_links": {
+    "self": {
+      "href": "https://api.github.com/repos/tvofi/heatpump_optimizer/rulesets/22628467"
+    },
+    "html": {
+      "href": "https://github.com/tvofi/heatpump_optimizer/rules/22628467"
+    }
+  }
+}

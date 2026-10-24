@@ -1,0 +1,23 @@
+===== daemonize pid=78491 2026-10-20T01:31:54Z argv: bash tools/audit/seat/update_pr.sh fix/audit-r10-roster 7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d /Users/timmalmstrom/hpo-orch/r10s3/upd/b2471.md
+  REFUSE   policy_lint             FIXTURE VACUOUS: fixtures/policy-rot/ is missing; every check above is deletable in silence 
+  REFUSE   mutants                Node.js v20.10.0
+  REFUSE   rules_sync             Node.js v20.10.0
+  REFUSE   fragments              Node.js v20.10.0
+  REFUSE   hooks                  Node.js v20.10.0
+  REFUSE   codeowners_gap         
+  REFUSE   contract_rerun         python3: can't open file 'tools/pr/contract_rerun.py': [Errno 2] No such file or directory
+  REFUSE   field coverage         Node.js v20.10.0
+  REFUSE   agreement lane         python3: can't open file 'tools/policy/agreement_py.py': [Errno 2] No such file or directory
+  REFUSE   register check         python3: can't open file 'tools/audit/fold_ledger.py': [Errno 2] No such file or directory
+  REFUSE   temp paths             python3: can't open file 'tools/audit/seat/tmp_paths.py': [Errno 2] No such file or directory
+  REFUSE   pinned graders         no pinned grader found -- the pin reader no longer matches the workflows
+  REFUSE   self-test              bash: tools/pr/prepr.sh: No such file or directory
+  REFUSE   wave-script            Node.js v20.10.0
+  REFUSE   no version edit        
+  REFUSE   claims hygiene          -- run `python3 tests/env_drift.py --claims-only ` for the whole refusal
+  REFUSE   no-copies              the changed-path list did not derive from 2bd48adfab7e5beb27c55ce7572de41d64465145...HEAD, so no-copies was not run
+  REFUSE   preflight              
+  REFUSE   pr-body                the changed-path list did not derive from 2bd48adfab7e5beb27c55ce7572de41d64465145...HEAD, so the `## Approval` gate was not run -- an empty list reads as "touches no policy file", which is the fail-open it exists to close
+  REFUSE   figures                Node.js v20.10.0
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-audit-r10-roster.log

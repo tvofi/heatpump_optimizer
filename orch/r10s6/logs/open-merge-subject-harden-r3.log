@@ -1,0 +1,3 @@
+===== daemonize pid=26354 2026-10-24T09:41:42Z argv: bash tools/audit/seat/open_pr.sh r10-merge-subject-harden 09b1d002c19f941e9ba77367554e086c8cec50ee R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings from #2423 merge-subject-harden
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+PR=2697 HEAD=b4dd119172d5e0f04f800e752dffe265228d19e1 AUTHOR=tvofi

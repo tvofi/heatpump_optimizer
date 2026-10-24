@@ -1,0 +1,17 @@
+# Fixer brief: R10-CI-CONCURRENCY (sonnet-seat or opus-fixer at medium)
+Identity: push refs only (handoff/r10-ci-concurrency + body via body_push.sh); never open a PR, never write to GitHub. Worktree: /Users/timmalmstrom/hpo-seats/r10s3/ci-concurrency (from origin/main). Scratch: /Users/timmalmstrom/hpo-seats/r10s3/ci-concurrency-scratch.
+Contracts: dev/governance/roles/fixer.md, dev/governance/rules/ci-autofix.md (read both from origin/main first).
+
+## Finding (orchestrator measurement, re-measure it)
+Tests runs on non-main branches, 2026-10-14T22:55Z..2026-10-18T07:24Z, 388 completed: 36 ran to completion after a newer-SHA run on the same branch had started (27 pull_request, 9 workflow_dispatch), ~2020 of 9530 wall-min. Rule: completed, conclusion != cancelled, exists a run on the same head_branch with a different head_sha created between this run's created_at and updated_at. Example: run 39090494028 (#2371, bot-sent, attempt 2 by hpo-runs) outlived 39091600343 by 26 min.
+Suspected cause: every PR workflow's concurrency group falls back to github.run_id with cancel-in-progress false whenever event.sender is github-actions[bot], so bot-dispatched (workflow_dispatch) and bot-sent pull_request runs are never cancelled by a newer head. Second suspect: approve_held_runs.sh approving held runs on non-live heads.
+
+## Step 0: PRE-STUDY (deliver before any fix code; push it as PRESTUDY.md on the body ref and stop for my go)
+1. Land the measurement as a harness: dev/audit/harnesses/superseded_runs.py (reads cached /actions/workflows/<file>/runs pages or --fetch; prints RESULT lines per workflow and per (old trigger -> newer trigger) class; null control: a run set where every superseded run is cancelled must print 0). Re-run it over all five PR workflows (tests, validate, hassfest, governance, codeql), not only tests.yml. Report billed job-minutes too if the jobs API gives them, labelled separately from wall-min.
+2. Confirm or refute the cause per class with run ids. Name every class the harness returns and its mechanism; do not assume the two suspects are all of it.
+3. Why the bot exemption exists: find the commit/PR that introduced the sender clause (git log -S) and state the property it protects (ci-autofix.md: a GITHUB_TOKEN push creates no pull_request run; contexts only pull_request writes). State which of those protections any proposed group key keeps or loses.
+4. Interactions: run_twins.py (same-SHA cancelled twins, R9-CI-2a), merge-main bot, the three autofix loop guards, merge_train's CI wait (does cancelling a superseded run ever leave a required context ABSENT at the live head?), budget-raise-gate and pr-contract (cancel false on purpose?).
+5. Options, at least two (e.g. group by PR number/head ref for every event with cancel only across SHAs; restricting approve_held_runs to the live head; doing nothing for a class), each with expected saving from the harness and the risk from 3-4. Recommend one per fixer.md step 17.
+
+## After my go: the fix
+Failing check first (a governance/workflow test or ci-watch-style self-test that fails on the current concurrency expression for a bot-sent superseded run and passes after), mutation proof, null controls: same-SHA runs and push-to-main runs stay uncancelled; a bot PR-event run on the LIVE head is not cancelled by its own dispatch. Body: before/after harness RESULT lines, ## Red checks, carry destination if any. .github/workflows/** may be owner-reviewed: say so in the body.

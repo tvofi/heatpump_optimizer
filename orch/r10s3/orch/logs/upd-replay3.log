@@ -1,0 +1,2 @@
+===== daemonize pid=3285 2026-10-20T22:11:24Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-replay-lane bash tools/audit/seat/update_pr.sh handoff/r10-replay-lane - /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-replay-lane.md
+HEAD=aea79fa6b388ca546f69fdcac5ec0a006aac05dd

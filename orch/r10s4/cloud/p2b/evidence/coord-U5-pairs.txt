@@ -1,0 +1,119 @@
+recheck: BEFORE 39918480035 AFTER 39918497616; no-skip: BEFORE 39918486905 AFTER 39918505090
+== recheck: BEFORE 39918480035 (tests.yml at ci-probe/base) vs AFTER 39918497616 (tests / * in ci.yml at ci-probe/all)
+  B briefs success
+  B closure-scope success
+  B mutation success
+  B nightly-status skipped
+  B cancel-superseded skipped
+  B closures success
+  B browser success
+  B fast (3.14) failure
+  B typing success
+  B coverage success
+  B nightly-ha skipped
+  B mutation-autofix skipped
+  B mutation-pins skipped
+  B closures-autofix skipped
+  B coverage-ratchet success
+  B graders-head-copy skipped
+  B lane-proofs success
+  B ci-ratchet skipped
+  B claims-autofix skipped
+  A tests / briefs failure
+  A tests / mutation success
+  A tests / closure-scope success
+  A tests / nightly-status skipped
+  A tests / arch-instrument success
+  A tests / closures failure
+  A tests / typing success
+  A tests / browser success
+  A tests / fast (3.14) failure
+  A tests / coverage success
+  A tests / nightly-ha skipped
+  A tests / mutation-autofix skipped
+  A tests / mutation-pins skipped
+  A tests / coverage-ratchet success
+  A tests / graders-head-copy skipped
+  A tests / claims-autofix skipped
+  A tests / closures-autofix skipped
+  A tests / ci-ratchet skipped
+  A tests / lane-proofs success
+  LOST   step  closures | Fail if a test file re-implements a production symbol
+  LOST   step  coverage | Check the restored coverage is main's push run's
+  LOST   step  fast (3.14) | Decide the gate scope
+  GAINED step  arch-instrument | Install pinned test dependencies
+  GAINED step  arch-instrument | Run actions/checkout@<sha>
+  GAINED step  arch-instrument | Run actions/setup-python@<sha>
+  GAINED step  arch-instrument | Run the architecture-score pair
+  GAINED step  arch-instrument | Say the lane-skip decision this run stands on
+  GAINED step  browser | Say the lane-skip decision this run stands on
+  GAINED step  typing | Say the lane-skip decision this run stands on
+  GAINED perm  arch-instrument | Contents: read,Metadata: read
+  RUNTIME steps 75->79 perms 10->11 rc 1
+== no-skip: BEFORE 39918486905 (tests.yml at ci-probe/base) vs AFTER 39918505090 (tests / * in ci.yml at ci-probe/all)
+  B mutation success
+  B closure-scope success
+  B briefs success
+  B nightly-status skipped
+  B cancel-superseded skipped
+  B typing success
+  B browser success
+  B coverage success
+  B closures success
+  B fast (3.14) failure
+  B nightly-ha skipped
+  B mutation-autofix skipped
+  B mutation-pins skipped
+  B coverage-ratchet success
+  B graders-head-copy skipped
+  B claims-autofix skipped
+  B lane-proofs skipped
+  B ci-ratchet skipped
+  B closures-autofix skipped
+  A tests / mutation success
+  A tests / closure-scope success
+  A tests / briefs failure
+  A tests / nightly-status skipped
+  A tests / coverage success
+  A tests / closures failure
+  A tests / browser success
+  A tests / fast (3.14) failure
+  A tests / arch-instrument success
+  A tests / typing success
+  A tests / nightly-ha skipped
+  A tests / mutation-autofix skipped
+  A tests / mutation-pins skipped
+  A tests / closures-autofix skipped
+  A tests / coverage-ratchet success
+  A tests / graders-head-copy skipped
+  A tests / ci-ratchet skipped
+  A tests / claims-autofix skipped
+  A tests / lane-proofs skipped
+  LOST   step  closures | Fail if a test file re-implements a production symbol
+  LOST   step  coverage | Check the restored coverage is main's push run's
+  LOST   step  fast (3.14) | Decide the gate scope
+  GAINED step  arch-instrument | Install pinned test dependencies
+  GAINED step  arch-instrument | Run actions/checkout@<sha>
+  GAINED step  arch-instrument | Run actions/setup-python@<sha>
+  GAINED step  arch-instrument | Run the architecture-score pair
+  GAINED step  arch-instrument | Say the lane-skip decision this run stands on
+  GAINED step  browser | Say the lane-skip decision this run stands on
+  GAINED step  typing | Say the lane-skip decision this run stands on
+  GAINED perm  arch-instrument | Contents: read,Metadata: read
+  RUNTIME steps 63->67 perms 9->10 rc 1
+
+--- coordinator verdict (2026-10-23 ~08:30Z). AFTER runs at a0f525900, BEFORE at ci-probe/base c26499e01.
+Both pairs show the same three LOST steps:
+- fast (3.14) | Decide the gate scope: mapped in tests_map.json. The step moved to the prelude (scope -> inputs.gate_scope).
+- closures | Fail if a test file re-implements a production symbol: present in AFTER but SKIPPED, because the step before it,
+  "Fail if tests/closures.json under-approximates", failed. That is UNDER-SCOPED: the closures-autofix bot commit repairs it
+  on the PR, and a dispatch runs no autofix. The step is not lost. It runs once the record is re-derived. P2b's body names the expected bot commit.
+- coverage | Check the restored coverage is main's push run's: present but SKIPPED, because its if: is covbase cache-hit, and the
+  restore key hashes tools/coverage/coverage_tree.sh, which U9p edits (a comment). Different key, so a cache miss.
+  By design, any tree change to the coverage tool discards reuse. Environmental, not a regression. The null: BEFORE's key
+  coverage-per-v1-Linux-c26499e01...-py3.13.16-d7168d82... is the only cache entry for that base.
+AFTER tests / briefs failure: the carry-1648 brief_lint error, fixed on the tip at 1cce735c3. BEFORE briefs success.
+fast (3.14) fails on both sides (BEFORE as well), so it is not a regression of the move.
+GAINED arch-instrument and the stand-down first steps of browser and typing are U5 and U5b's mapped additions.
+VERDICT: equivalent apart from mapped edits, the UNDER-SCOPED skip and the cache-key skip. briefs is owed a re-read on the AFTER tip
+(B1 and B2 run tests / briefs at 1cce735c3).

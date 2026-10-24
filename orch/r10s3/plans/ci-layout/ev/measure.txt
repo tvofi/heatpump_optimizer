@@ -1,0 +1,91 @@
+# A. Per merged-PR final head (pull_request-event runs at that head, all attempts)
+pr	class	wf_runs	by_event	jobs_listed	jobs_exec	jobs_skipped	api_jobs_exec	check_runs	wave_wall_s	last_job	tests_wall_s
+2433	fix	12	{'pull_request_review': 1, 'pull_request': 11}	48	33	15	11	49	2746	Tests/composed-proof	2746
+2439	record	12	{'pull_request_review': 1, 'pull_request': 11}	47	28	19	10	47	356	Tests/composed-proof	355
+2415	fix	12	{'pull_request_review': 1, 'pull_request': 11}	48	33	15	11	49	3224	Tests/composed-proof	3224
+2434	record	12	{'pull_request_review': 1, 'pull_request': 11}	47	28	19	10	47	337	Tests/composed-proof	337
+2404	fix	12	{'pull_request_review': 1, 'pull_request': 11}	48	33	15	11	49	2252	Tests/composed-proof	2252
+2391	fix	12	{'pull_request_review': 1, 'pull_request': 11}	48	33	15	11	49	2891	Tests/composed-proof	2891
+2432	record	12	{'pull_request_review': 1, 'pull_request': 11}	47	28	19	10	47	298	Governance/instrument-self-tests	246
+2422	fix	12	{'pull_request_review': 1, 'pull_request': 11}	48	33	15	11	49	1738	CodeQL/Analyze (python)	817
+2431	record	12	{'pull_request_review': 1, 'pull_request': 11}	47	28	19	10	47	321	Governance/instrument-self-tests	301
+2430	record	9	{'pull_request_review': 1, 'pull_request': 8}	45	26	19	8	45	335	Tests/composed-proof	335
+
+# A-summary: median (min-max) per class
+fix	api	median=11	min=11	max=11	n=5
+fix	cr	median=49	min=49	max=49	n=5
+fix	je	median=33	min=33	max=33	n=5
+fix	jl	median=48	min=48	max=48	n=5
+fix	jsk	median=15	min=15	max=15	n=5
+fix	tw	median=2746	min=817	max=3224	n=5
+fix	wall	median=2746	min=1738	max=3224	n=5
+fix	wf	median=12	min=12	max=12	n=5
+record	api	median=10	min=8	max=10	n=5
+record	cr	median=47	min=45	max=47	n=5
+record	je	median=28	min=26	max=28	n=5
+record	jl	median=47	min=45	max=47	n=5
+record	jsk	median=19	min=19	max=19	n=5
+record	tw	median=335	min=246	max=355	n=5
+record	wall	median=335	min=298	max=356	n=5
+record	wf	median=12	min=9	max=12	n=5
+
+# B. Job duration / queue on the code wave, attempt 1 (fix+record heads), median and max seconds
+Tests/coverage                                          n= 5 dur_med=   1229 dur_max=   1943 queue_med=   25 queue_max=   30
+CodeQL/Analyze (python)                                 n=10 dur_med=    630 dur_max=   1672 queue_med=   32 queue_max=   66
+Tests/closures                                          n=10 dur_med=    497 dur_max=   1830 queue_med=   67 queue_max= 1981
+Tests/fast (3.14)                                       n=10 dur_med=    249 dur_max=   3169 queue_med=   40 queue_max=   60
+Tests/browser                                           n= 5 dur_med=    235 dur_max=    244 queue_med=   27 queue_max=   29
+Governance/instrument-self-tests                        n=10 dur_med=    206 dur_max=    225 queue_med=   48 queue_max=   94
+Governance/env-matrix                                   n=10 dur_med=    186 dur_max=    196 queue_med=   48 queue_max=   95
+Tests/typing                                            n= 5 dur_med=     80 dur_max=     94 queue_med=   28 queue_max=   30
+Architecture score/arch-score                           n=19 dur_med=     63 dur_max=     67 queue_med=    4 queue_max=   24
+Validate/validate-hacs                                  n=10 dur_med=     48 dur_max=     54 queue_med=    5 queue_max=   55
+Governance/policy-docs                                  n=10 dur_med=     44 dur_max=    105 queue_med=   48 queue_max=   94
+CodeQL/Analyze (javascript-typescript)                  n=10 dur_med=     37 dur_max=     78 queue_med=   32 queue_max=   66
+Tests/mutation                                          n=10 dur_med=     34 dur_max=   1155 queue_med=   22 queue_max=   53
+Tests/briefs                                            n=10 dur_med=     28 dur_max=     30 queue_med=   18 queue_max=   40
+Hassfest/hassfest                                       n=10 dur_med=     26 dur_max=     27 queue_med=   13 queue_max=   53
+CodeQL/Analyze (actions)                                n=10 dur_med=     26 dur_max=     52 queue_med=   32 queue_max=   66
+PR contract/pr-contract                                 n=15 dur_med=     24 dur_max=     34 queue_med=   23 queue_max=   51
+Governance/wave-script                                  n=10 dur_med=     23 dur_max=     26 queue_med=   48 queue_max=   95
+Tests/closure-scope                                     n=10 dur_med=     19 dur_max=     22 queue_med=   17 queue_max=   39
+Tests/graders-head-copy                                 n=10 dur_med=     18 dur_max=     98 queue_med=   68 queue_max= 1981
+Governance/delivery-status                              n=10 dur_med=     17 dur_max=     20 queue_med=   48 queue_max=   95
+Tests/composed-proof                                    n=10 dur_med=     17 dur_max=     20 queue_med=  570 queue_max= 3209
+Budget raise gate/budget-raise-gate                     n=19 dur_med=     15 dur_max=     17 queue_med=    4 queue_max=   18
+CodeQL/scope                                            n=10 dur_med=     14 dur_max=     17 queue_med=   12 queue_max=   49
+Tests/cancel-superseded                                 n=10 dur_med=     10 dur_max=     12 queue_med=   16 queue_max=   40
+Tests/nightly-status                                    n=10 dur_med=     10 dur_max=     12 queue_med=   20 queue_max=   39
+CodeQL/cancel-superseded                                n=10 dur_med=      9 dur_max=     14 queue_med=   12 queue_max=   49
+Tests/coverage-ratchet                                  n= 5 dur_med=      9 dur_max=     12 queue_med= 1257 queue_max= 1981
+Tests/lane-proofs                                       n=10 dur_med=      4 dur_max=      7 queue_med=  308 queue_max= 3198
+
+# C. CI cycles per fix PR: distinct heads with a pull_request Tests run, Tests runs, attempts>1
+2433	heads=3	tests_pr_runs=3	dispatch_runs=0	reruns(attempt>1)=0
+2415	heads=7	tests_pr_runs=7	dispatch_runs=2	reruns(attempt>1)=2
+2404	heads=9	tests_pr_runs=9	dispatch_runs=0	reruns(attempt>1)=0
+2391	heads=9	tests_pr_runs=9	dispatch_runs=4	reruns(attempt>1)=4
+2422	heads=4	tests_pr_runs=4	dispatch_runs=0	reruns(attempt>1)=1
+
+# D. workflow_run-event runs (the two re-run workflows), all fetched heads, by UTC hour
+2026-10-19T05Z	Budget raise gate re-run	21
+2026-10-19T05Z	PR contract re-run	95
+2026-10-19T06Z	Budget raise gate re-run	25
+2026-10-19T06Z	PR contract re-run	101
+2026-10-19T07Z	Budget raise gate re-run	23
+2026-10-19T07Z	PR contract re-run	97
+2026-10-19T08Z	Budget raise gate re-run	9
+2026-10-19T08Z	PR contract re-run	60
+totals: {('PR contract re-run', 'skipped'): 268, ('PR contract re-run', 'success'): 84, ('Budget raise gate re-run', 'skipped'): 64, ('Budget raise gate re-run', 'success'): 14, ('PR contract re-run', 'failure'): 1}
+
+# E. main push runs per main commit (push event at the merge sha)
+c353027737	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3626	conclusion=failure
+1bcc798847	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3107	conclusion=failure
+f0a4acac79	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3568	conclusion=failure
+db3293dcb1	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3310	conclusion=failure
+efdc055a82	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=4018	conclusion=failure
+768bfc0c34	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3610	conclusion=failure
+abb3979380	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=2655	conclusion=failure
+7ab3030bbf	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3518	conclusion=failure
+913ce1ff5b	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3346	conclusion=failure
+2d843030a3	push_runs=6	['CodeQL', 'Governance', 'Hassfest', 'Merge main into DIRTY pull requests', 'Tests', 'Validate']	tests_push_wall=3496	conclusion=success

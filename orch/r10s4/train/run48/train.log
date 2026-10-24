@@ -1,0 +1,20 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run48/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run48 pid=36973 start=2026-10-23T13:24:26Z
+BATCH 20261023-132426 pid=36988 base=main queue=1 (#2663) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 52bef8e6: the record beat waits
+OVERLAP: main at 7108101d7121 is still running (Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs, typing): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2663 admitted at a487ee67
+#2663 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2663 approved (app)
+OVERLAP: main at 7108101d7121 is still running (Analyze (python), browser, closures, env-matrix, fast (3.14), policy-docs): a wait, not red; --overlap does not wait
+#2663 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 7108101d7121 is still running (Analyze (python), browser, closures, env-matrix, fast (3.14)): a wait, not red; --overlap does not wait
+#2663 MERGED 12032c43cc321160ab0278f417c9575b786a03b4
+#2663 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2663 main 12032c43 tree == proof f58eef5c
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T13:26:24Z

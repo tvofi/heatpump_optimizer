@@ -1,0 +1,9 @@
+===== daemonize pid=5611 2026-10-18T13:51:46Z argv: bash tools/audit/seat/update_pr.sh fix/r10-vent-detector-pr 836f57ceea0ea5a8e94cb19ca4329e2c0968751e /Users/timmalmstrom/hpo-orch/r10s3/orch/b2391/BODY.md 2241
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (772 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/store.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+HEAD=d0001a46862ada9da97c2e3b980df5e61cee7e33

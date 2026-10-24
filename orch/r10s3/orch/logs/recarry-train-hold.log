@@ -1,0 +1,3 @@
+===== daemonize pid=96038 2026-10-21T02:26:48Z argv: env PREPR_SKIP_CLOSURES=1 HANDOFF_TOPIC=r10-train-hold bash tools/audit/seat/update_pr.sh fix/r10-train-hold - /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-train-hold.md 2302
+Auto-merging tests/entities.py
+HEAD=fb6d355bf68119f2dcffcfecf10099f2d007c183

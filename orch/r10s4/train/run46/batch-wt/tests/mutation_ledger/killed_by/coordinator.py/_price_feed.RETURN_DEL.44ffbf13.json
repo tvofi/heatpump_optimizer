@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_price_feed RETURN_DEL 44ffbf13",
+  "killed_by": "tests/features.py",
+  "old": "    return cfg.price_entity if _entity_price_source(cfg) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c25836e5a847d39f7a023e9f567ac2525741ebe: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

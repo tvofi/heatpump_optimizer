@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:<module> CONST 20381818",
+  "killed_by": "tests/features.py",
+  "old": "SLAB_PAIR_PRIOR_LOG_SD = 0.1",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6: CONST (`SLAB_PAIR_PRIOR_LOG_SD = 0.2`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

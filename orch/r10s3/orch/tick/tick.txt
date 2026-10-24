@@ -1,0 +1,397 @@
+BOARD measured from origin/main at 27b59c9f7975, 2026-10-23T14:48:06.515335+00:00
+== TRAIN ==
+   prepr slots: 0 running (cap 4)
+   no --queue given
+   no train running (the queue holds no OPEN entry)
+   no --train-log given: train state unread
+== PRS ==
+   11 open pull request(s)
+   #2653 [record/autofix] GREEN
+-> #2653: mergeable state BLOCKED
+-> #2653: 137 commits behind main (recarry due before it can merge)
+   #2654 [fix/r10-ci-layout-p2-probe-Btwin] GREEN
+-> #2654: mergeable state BLOCKED
+-> #2654: 73 commits behind main (recarry due before it can merge)
+-> #2656: required contexts ABSENT at head: Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script (settled? re-dispatch)
+   #2656 [fix/r10-ci-layout-p2-probe-B1] RED:gate,governance / env-matrix,governance / policy-docs,governance / wave-script,pr-contract / pr-contract,tests / closures,tests / closures-autofix
+-> #2656: RED unanswered in ## Red checks: pr-contract / pr-contract
+-> #2656: mergeable state BLOCKED
+-> #2657: required contexts ABSENT at head: Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script (settled? re-dispatch)
+   #2657 [fix/r10-ci-layout-p2-probe-B2] RED:gate,tests / closures
+-> #2657: mergeable state BLOCKED
+-> #2657: 36 commits behind main (recarry due before it can merge)
+-> #2662: required contexts ABSENT at head: Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script (settled? re-dispatch)
+   #2662 [fix/r10-ci-layout-p2b] RED:gate,governance / env-matrix,governance / policy-docs,governance / wave-script,pr-contract / pr-contract,tests / closures,tests / closures-autofix
+-> #2662: RED unanswered in ## Red checks: pr-contract / pr-contract
+-> #2662: mergeable state BLOCKED
+-> #2662: 36 commits behind main (recarry due before it can merge)
+-> #2664: NOT REVIEWABLE at 1270ba9b: required pr-contract concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2664 [fix/r10-fly-relay-review-ff] RED:instrument-self-tests,pr-contract
+-> #2664: RED unanswered in ## Red checks: instrument-self-tests, pr-contract
+-> #2664: mergeable state BLOCKED
+-> #2664: 61 commits behind main (recarry due before it can merge)
+   #2665 [fix/r10-ci-layout-p2b-pre2] GREEN
+-> #2665: mergeable state BLOCKED
+-> #2665: 61 commits behind main (recarry due before it can merge)
+   #2666 [fix/r10-rca-inert-closure-recording] GREEN
+-> #2666: mergeable state BLOCKED
+-> #2666: 61 commits behind main (recarry due before it can merge)
+   #2667 [fix/audit-r10-roster-pr4] GREEN
+-> #2667: mergeable state BLOCKED
+-> #2668: NOT REVIEWABLE at 88c469c7: required pr-contract concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2668 [fix/r10-fly-no-footers-push-paths] RED:instrument-self-tests,pr-contract
+-> #2668: RED unanswered in ## Red checks: instrument-self-tests, pr-contract
+-> #2668: mergeable state BLOCKED
+-> #2669: NOT REVIEWABLE at 76370229: required pr-contract concluded red -- back to its fixer, never a reviewer (K15 (d))
+   #2669 [fix/r10-policy-lint-family] RUN:Analyze (python),closures,coverage
+-> #2669: RED unanswered in ## Red checks: pr-contract
+-> #2669: mergeable state BLOCKED
+-> #2654: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2656: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2657: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2662: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2665: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2666: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> #2669: code-owned with no @tvofi review at any head (the approval the ruleset requires is owed)
+-> WIP: 9/6 (open PRs 10) (at the cap: do not dispatch a new group; opening and merging are always allowed)
+   coordinator.py PRs: 0/2
+-> BLOCKED-UNFIXED: #2664 1270ba9b
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/audit-r10-roster eb120345af8cc11036022ccd3fc9ee824f328bee
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-r10-arch-docs-first 67a2b5a4d5a5d1b398b5184909903cffa874204d
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-r10-arch-docs-first-r2 55802772f814983ba56a87b99109a1fdc64f5f21
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-r10-scores 6f22b4a33147eade3bb3a9602150823d845d833d
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-verdict-r10-arch-docs-first 0318decfff6f5f366356efa66bbf3e75759e359c
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-verdict-r10-arch-docs-first-r2 49d55952048896149eb50012ef056534c903bd7a
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/design-verdict-r10-scores df20453378e6543e8ccb53c2885ee4567e4d941d
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-arch-docs-first 7f2090605f5604f9810444340535d8015535dbc9
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-briefs-fold c3e0841db52d1a85c2193867f2c56420e1355559
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2 226a294e837bd62a1d151e0b4e18551a033c10dd
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-policylint 0389da5ba4e64ade59118d93277541594269d880
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-pre 888ce1e0ba813e0149675c58cb5e39ccdf18219b
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u0c fcd05392751957390c89d4173766f9d6027a44a8
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u10 1a25bc9a1a5ea7250563892172b618645da99efd
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u11 5146af7c2e8a76b8122849fea2605e2f1a5a3574
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u1u2u7 82129cadb41450c3883068579936c6a882a8425f
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u3 e39dc35f471b3211733a86c176e4b2e79bab943c
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u4 d0a736bebbcfa3708528793143b07e01fd7423d1
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u5 6bc7c9023b2c5bff0162e7d02066d84497c02e9e
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u6 53eb655452418927027d372405ef0a98c51c0e5c
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u8 0c956f73190d5d66302a50a634b1477fdffd701b
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u9a f2d289129bdcfb6cf535520f623d235421980f6a
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u9bp 9cb3ed828ee5a29fc9dd7e082efb0e78ed140d8e
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2-u9d 2bbd50aa5ebd26d572fd958c1d4e95f87f02a4e1
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a 7d0570a70174da241264d98c94f67e35ca979c53
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a-u0a 84b3a347b559c1387a083a24f7daf08d90e4b0b1
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a-u0b 2f81747f127eac28359ef45febc265c38ac0c2fd
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a-u6lib 29f27b5e860118df90461a23d19ff985d511fd31
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a-u9c 69b0119a97b9a671ea22e250b1f5dfeeeee93c01
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-ci-layout-p2a-up a5e3a0192873c2287dc9f94fa00ed96785350d8d
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-currency d54b0eeed5ea7e01ec16691a7bde3e49f5ca2b46
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-currency-r5 17c276b7871ce411d63dde8940b654be6298cf1d
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-andon 027f3f5bfac68faae1c01439107a7372672fbac5
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-arch-planner 9b574204971d4f58a16e980b9414c1a292bcb833
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-body-patch f3bd3413eeed975e833c058d0207fd142fd11ef3
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-dispatch 1aa4220b04689ac0bfacca834baa78e0b7523c98
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-pull d3b575f04c23b01b30391fc30fe8d25da7c5cbff
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-relay-hold 54b03f92f301e81a276831446e98c0ef5d5e7472
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-flow-toolkit-measure 401186c1af62a94a9bf8008f799a0f9bbea30942
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-fly-budget-leaf 2c4f6b988dcfae0977988a1af622a1c53a0f5e73
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-fly-gh-read-retry-2 b7651daad08d75fed01021cbeea3e957013d4a09
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-fly-no-footers edb7489194ae326fb03059d89d84b2ae170b4418
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-fly-no-footers-ignore 21af14bdc30df62f38850ed32a1af319111c3df7
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-fly-suite-env-flakes-hh d865b22106e7a632bbaa351005df4a3be09f2c31
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-input-staleness e12096fee1dfeb1955e0820356d219890e385380
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-loop-cpu 4bc9e97027a674703221dba0fddff24b7c53dd2b
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-nightly-absent-new 91ea6423167820d01b17261f65bd360d2a7494ca
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-orch-ledger b3b67b1bb766bbf066280a5d91f193188b2879f0
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-plan-artifact dfa559d58fa348ba32fc585db6fe0459e313d5ff
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-prepr-closures 3ed885c58c684c717f9b7d8f738b4fd7e850c6ff
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-pusher-reap 0854e3903680fd45ff1d7bd19b070f10911fd74e
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-rca-body-check-parity 4fd3eef16dbc4d15af04085150b9477b8e6b490a
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-rca-body-lint d9a467770688ca4e9a77abf7d544d254f87f19e7
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-rca-handoff-slip 3e4e58bb379fd1485586953f2017624f3e35d919
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-rca-raise-gate-grammar 2eadf9061e85f2ab92f5b7a6181d3eda1581ab32
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-record-api-budget f80cf0cac78016cd9bb29333be76b0639262cc8c
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-replay-lane bb50912b48367d9403ebc6c398cc59bbbac2a3b1
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-scores f2b98c1dfbe6b64806ad80238f9df3091b00f389
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-site-dompurify-2615 4720efc061d80523a4c1970f12f27d8bdca2c138
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-solver 1d915cef8ab695fe9c25c27db16704d0f8f81646
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff-body/r10-trailer-emitters a25c0f2b1dc018761249d69222af6ce5a9aff145
+-> OWED: OWED 2026-10-23T14:48:04Z handoff-no-pr refs/heads/handoff/audit-r10-plan 3869a87df4d2627ef39c5d3f78e4fdb33e20ade4
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/audit-r10-roster 6322452d4d10399d47b65e2c7a27cbd823eb3083
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/audit-r10-roster-stages 7f28b1bb80ed0138dc3407fd0df93d3376df79f9
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-arch-docs-first 7ae69419ed16f95f70b6cca59fca9b15dd4b3fab
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-briefs-fold a1a2f41e9a8b498c0cc4c7d6a73db34d6f09a980
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-policylint 4ef641145dae8954fa7b81715d46e475ab0be55a
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-pre 54c60b5ac88892e08241f91377354c2740b82e9c
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u0c d22b5f303e09a67106fb44da03ad9e014eb1f840
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u0c-probe 65f112ec51dfa1f3d1617dda2bac74adab394eda
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u10 c2143e8e8b680ff5a1589fba2d1b5c6eb9870c99
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u11 27146eeb80af3c256a24c8011a04c72fc837e95f
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u1u2u7 eaaf57e6d8f9a477ce89fb871ecc6a080e896f51
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u3 0f7f260899e643d87b951135213ee2f453fdc83a
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u4 767a06f7f6dd02bb0cf291377686e292c4bbe587
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u5 fbc994804d3e4358e412399edca8c9f6ee6144a3
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u6 e75ea158c5bc7d5cc99a03b04001a852f5850b66
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u8 e56c58263c81d598f7097c6098fab67de3e45ca3
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u9a c9d647e644f14256a63ad895c7d69f1d58dd75e1
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u9bp ffe738c7c444b658f42c9d3fc6d6d0ea2628873b
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2-u9d 1877542fdd5321b02db79e06562c18d97fd6d362
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a 7bf6a9213139132ef1db920d62eb910cf9107cb7
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a-u0a 06c99c0e3ba5b25701f153864e3f43332e92ab99
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a-u0b 65514d9977ffdd9cdd62389672bdabf5c06e8e01
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a-u6lib c90a9b15b6ebaa45c6d83619b12596b0df9eac47
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a-u9c 75956eeedd4ea3640908d985cf9fa4a30e38a1f1
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ci-layout-p2a-up 7b73637df9f2947bfeb70a4e55cb25777142a027
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-currency 007ec1999b7752073cb8d550210898783582d4c8
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-currency-r5 5115ddc156f623009bd25aec08299b991db0547a
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-andon 841c65da4deed8c78dd73616b56aa0661b830c3a
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-arch-planner 96d7ef878a278d9d9d2c737f12c5f7a0419042b2
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-body-patch dcb7f980bddc8caed8dfbd9bf033b125fc30d7e8
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-dispatch 9dcdfe948c13a44aed6b700e91862d071112da11
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-pull de20d0c7206b2f73ccf4702229dba50d47fb8d1c
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-relay-hold 0e4558f438c1febcbe1f5943e001790eeea4dc26
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-flow-toolkit-measure 6d3770f39aabc8fb228a505dba28665ec8abe1d3
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-fly-budget-leaf cfdd9c26cd388d242fafdaaa6f5e8761f8fbe65e
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-fly-gh-read-retry-2 a7f04962896d8588e3b8d1a670cf411c516dc27d
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-fly-no-footers 5dc336fcf5931cc9b1d67fca189675ef019e21b4
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-fly-no-footers-ignore 227e228fa988563a3fb1430d2e4c7bb1f0bc8641
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-fly-suite-env-flakes-hh 5576bcdbac1b62bd0e0ea0baa34a60c075222dd7
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-input-staleness 7668a4d0974444c9806fe83ae0656b0b6bd1e50a
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-loop-cpu 221ff40fcaec81db64b8f2d7bd28b497eb921449
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-nightly-absent-new 43bc60d2e662f14602e6b57d4f6effd8302d7e1f
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-orch-ledger c9999dfcdf779bd9c6268926e77b864f5f03fa19
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-plan-artifact 6d981d0dbba91c08afbfea3d0c186b4db6e98136
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-prepr-closures 20d129b11e3dc3880e1c9cb2fe3ce0d6b9345370
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-pusher-reap a0cb0cdd7f2d3955f06dbb65946257a938d633a3
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-ratio-anchor db35c6c43948d240ce496468eada8f990f2541ba
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-rca-body-lint 0bcc7d4ecd52e6955cdff3c701735819d39fee23
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-rca-handoff-slip 6a70a8f49618da6f2744380e51a3b4a03f9bd19c
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-record-api-budget 63a4dce67a01c7a3289e3275f01a800a0d94efbf
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-scores 902acfe28c6045f27e9ed4966b400050b4fd2688
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-site-dompurify-2615 79bfa47de5513b552368bbd7222ec0e2cbc76c3f
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-solver 7527c746d9df8e4cd9f9171521f5f5557dc857e4
+-> OWED: OWED 2026-10-23T14:48:05Z handoff-no-pr refs/heads/handoff/r10-trailer-emitters 01ee39a074a230b1fb4ef1b1d22c3057d5e2dc38
+   cloud-relay log: 3323 OWED line(s) naming no PR skipped (an older writer's level lines; the level file is the level)
+-> OWED: OWED 2026-10-19T22:07:48Z handoff-update 2452 r10-deeplink-handlers 8b3ea42cbd45fcb30fefe03d2e74a79876f5c1c0
+-> OWED: OWED reviewer-fire 2452 2a579f5794bef0d817a077ad1603859c070c9931 51e005f5d9892e9da7e85b6d98a58fb6 2026-10-20T13:06:40Z
+-> OWED: OWED 2026-10-19T21:54:16Z handoff-update 2462 r10-policy-instruments 26189a1fdf61777848fca426634bcc14b07a0f93
+-> OWED: OWED 2026-10-20T00:04:16Z handoff-update 2464 r10-ci-layout-p0 b4d7bf9c748caa93b8baf2ce013961bb9d273d4f
+-> OWED: OWED 2026-10-20T02:15:32Z handoff-update 2464 r10-ci-layout-p0 dd3a44474543f52974667fb37861b346d607980d
+-> OWED: OWED 2026-10-19T22:53:52Z handoff-update 2465 r10-setpoint-boost 890fba053bdf3b3c7611f6a860be528665278259
+-> OWED: OWED 2026-10-20T00:11:09Z handoff-update 2465 r10-setpoint-boost f7e98dbe17c1b6370c5783008aac9f1a502024e4
+-> OWED: OWED reviewer-fire 2465 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687 bcefc4adbf3dab121d36b29c4eb05239 2026-10-20T11:00:32Z
+-> OWED: OWED 2026-10-20T01:19:26Z handoff-update 2469 r10-rca-worktree-vanish 75a05f3baa16f13b0bb261f3ed2729f4f26f67cf
+-> OWED: OWED 2026-10-20T03:17:10Z handoff-update 2469 r10-rca-worktree-vanish a3af24fcf08562d07bd2aaa43cf8cf08eab00e4c
+-> OWED: OWED 2026-10-20T05:06:22Z handoff-update 2469 r10-rca-worktree-vanish 931e9a0f567584657ecaed2b61e61c857bdd2135
+-> OWED: OWED 2026-10-20T01:32:15Z handoff-update 2471 audit-r10-roster 7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d
+-> OWED: OWED 2026-10-21T00:10:28Z handoff-update 2519 r10-train-hold a8c8287f57e09c808e47597910bd9791c93a3579
+-> OWED: OWED reviewer-fire 2524 c071fa5f37abdac0da2284547b9282549eb4d607 e95226fbbae9e619a3c64987c1cf6de4 2026-10-21T10:57:54Z
+-> OWED: OWED 2026-10-21T16:08:43Z handoff-update 2524 r10-pusher-reap b5b91be95a2dd08a1d8daab07c406c07a8509e97
+-> OWED: OWED 2026-10-21T17:33:53Z handoff-update 2524 r10-pusher-reap e856439273f4ac037b1d0390b0147b3385e201b7
+-> OWED: OWED 2026-10-22T00:34:39Z handoff-update 2524 r10-pusher-reap e856439273f4ac037b1d0390b0147b3385e201b7
+-> OWED: OWED reviewer-fire 2524 9629ae174f1099e11c6b17f80fe935ae6cba698b cd011a9bf3abe01097887890ee40fefd 2026-10-22T01:33:51Z
+-> OWED: OWED 2026-10-22T04:04:30Z handoff-update 2524 r10-pusher-reap f1e7b88956f6da2407f0cadcf7c6cac1fa340e87
+-> OWED: OWED reviewer-fire 2524 f99ac55b4ddf21f4d6629a4f0832c0b1db97f6c9 84964f138f6c9a35916d6d627fe9b4cc 2026-10-22T12:06:47Z
+-> OWED: OWED reviewer-fire 2524 c3bafaf88cc8f5ad5287b9adc5ba73f7e36c7a9b 665a6b0cf6ef348f49c7ee54423f687c 2026-10-22T17:05:53Z
+-> OWED: OWED 2026-10-22T18:56:44Z handoff-update 2524 r10-pusher-reap a0cb0cdd7f2d3955f06dbb65946257a938d633a3
+-> OWED: OWED reviewer-fire 2528 10f85c3ee7065d31230e292d7438e105efb9ff57 a759d6c2b378770c6ff0097c82aa10f8 2026-10-21T22:39:56Z
+-> OWED: OWED reviewer-fire 2528 1723d8743619f397bcf9e04a219e1a581f4a736c a4b5dbaef6567264e63d26d8b844d291 2026-10-22T01:27:52Z
+-> OWED: OWED reviewer-fire 2545 6e12aeb5bd976a7520361dd05bf9300cb6c77a04 496da28b706aecb02848b0e88481f32f 2026-10-21T13:01:04Z
+-> OWED: OWED 2026-10-21T22:33:45Z handoff-update 2545 r10-rca-handoff-slip 7b05b95f346d4bba88f799a23601def16d305c50
+-> OWED: OWED reviewer-fire 2545 4da469164e865be71478ac1221fbd8aabf0f65db 10cda583714b1c6cbcce9a8cf0a62f13 2026-10-22T00:58:57Z
+-> OWED: OWED reviewer-fire 2554 d82acd2eddf8c7ebd515e28b48a08b5a50ee5df9 259a29349032bd6a5d3991ca5339df83 2026-10-21T22:18:08Z
+-> OWED: OWED reviewer-fire 2554 d270da26b386414811e6fa12750ee10f5477c37d fe6b98b4baff1bae2437e3dbcdf7d3b8 2026-10-22T00:48:19Z
+-> OWED: OWED reviewer-fire 2557 7e312ed2e482faf04be7eb27f38d92aef2b6fae5 8fd67f57c53c2cf9e3e1c1d97c16b7e2 2026-10-21T21:24:24Z
+-> OWED: OWED 2026-10-21T22:30:05Z handoff-update 2558 r10-plan-artifact a4a2a653333cf41b73759587e0fa396a7cabaabe
+-> OWED: OWED reviewer-fire 2558 9ebc80551588c69ebd607c1fd8f9fdb6de993512 b31bf36ebe541343b0a71be5b4004b50 2026-10-21T23:33:59Z
+-> OWED: OWED reviewer-fire 2561 2cf7393b30225dd96668c497c68a31e52f5a0c74 04c8983256177ff66ec5a9b31a0b9269 2026-10-21T21:02:02Z
+-> OWED: OWED reviewer-fire 2563 56297e445e024470f5816c3a3bcedcefd01b1e12 048edf9cc9e8282fe1f84508f11b4f4d 2026-10-21T15:31:37Z
+-> OWED: OWED reviewer-fire 2563 baa01ed856c09c1a9ac2222ee2177d783b0d7317 d841a34ff8b56b413dec841f12169f92 2026-10-21T17:13:15Z
+-> OWED: OWED reviewer-fire 2563 2f47581094ad66bd76ccfa6efff92aef90036aeb 4c6fe35c938321c70e6255847b227df1 2026-10-21T18:58:10Z
+-> OWED: OWED reviewer-fire 2569 8c008227a25192fc542bca64abbd4098a2862d1a 102d42d902b5ed2e5d651adc4d496d24 2026-10-21T16:20:16Z
+-> OWED: OWED reviewer-fire 2571 cb48de247b39b47ffe9e010689f8ff4f971b7e32 47e1946b8ff54a08858a8dc43dab4a83 2026-10-21T15:23:28Z
+-> OWED: OWED reviewer-fire 2577 69a429cfab2d02fd938ac13ef2893c520ca98f7a 4528b40741ae7637491980808388b34a 2026-10-21T21:13:52Z
+-> OWED: OWED reviewer-fire 2577 1060a1f035db0bb84263080ec4b36343a742c870 7d2a0f6ae276f2c6627128b7f4eef7ee 2026-10-22T00:52:58Z
+-> OWED: OWED reviewer-fire 2577 9720cda1ebc3cb8304e62b5914910d54642e721a d3803cc7cf2822cfe769b96a8fbf532e 2026-10-22T01:59:44Z
+-> OWED: OWED reviewer-fire 2578 94ef8a7d7bfddda09f1698f75ff06f466a085f69 f8abeeb2207ce46e5bc3979f72bb6eaf 2026-10-22T01:52:30Z
+-> OWED: OWED reviewer-fire 2579 632d2fe261b5293e718363485cd816909bf3290c 24052b6726f3fe895677ec0ef770fc16 2026-10-22T14:27:06Z
+-> OWED: OWED reviewer-fire 2580 a54aed8b9e756aaa47ea18e9a13bf33a06878a0b 6ed39626378f4923fe2e58ee0552fedb 2026-10-21T17:33:29Z
+-> OWED: OWED 2026-10-21T22:54:23Z handoff-update 2580 r10-flow-relay-hold 929ee160731596b654d2c69afa1e278d5ca7ec40
+-> OWED: OWED reviewer-fire 2580 f44296a61f42250b23c0f557a54c6295ab991dac 0ed27b8ec8d7a80dd5c06d6dda5b6b33 2026-10-22T00:31:07Z
+-> OWED: OWED reviewer-fire 2580 056776d8754930075a030426dd807208e0fd2bc3 bded6e9cf5bed45afc449a17d12c90d7 2026-10-22T02:03:52Z
+-> OWED: OWED 2026-10-21T18:32:01Z handoff-update 2582 r10-flow-andon a50dee030fe8164b5da015e441b2b7ac21323b02
+-> OWED: OWED 2026-10-21T22:54:18Z handoff-update 2582 r10-flow-andon 841c65da4deed8c78dd73616b56aa0661b830c3a
+-> OWED: OWED reviewer-fire 2582 c8b85d11564a9f429fafbe3353a4b8746e45b187 4609f9ffca1b26db069b09122e427086 2026-10-22T00:29:26Z
+-> OWED: OWED 2026-10-21T19:19:26Z handoff-update 2585 r10-ci-layout-p1 2bd0e21b13d3c29795a5f2cba59f14ccf7ff2105
+-> OWED: OWED reviewer-fire 2585 e817bb123b46b6ecee2e2516966dcb48d6061e27 ba02500d49395877f462af385bec246c 2026-10-22T02:13:32Z
+-> OWED: OWED reviewer-fire 2586 bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e 5e007733929501c22eeca4598d80f13d 2026-10-21T19:51:38Z
+-> OWED: OWED reviewer-fire 2586 e4f021a5feb25503025f6e09ae63f866fa5d2025 ae161bb491e861348373d2661f4b874e 2026-10-21T21:47:46Z
+-> OWED: OWED reviewer-fire 2588 7403b33ae210afbaa99f4121f4f194654a2b51a1 ed83ff170cb50a5d552da6535a0e0af5 2026-10-21T22:51:26Z
+-> OWED: OWED reviewer-fire 2588 f167ca00d7ce2a7bba198bb0f711ae93667eb75f adf821cf3037afa7431b1cebe0b0edeb 2026-10-21T23:24:22Z
+-> OWED: OWED reviewer-fire 2588 618810c1e2d9d7a8a44d4b4296227a1d535e1b53 5e940b010facff08129f97ba59a89a4f 2026-10-21T23:43:30Z
+-> OWED: OWED reviewer-fire 2588 c7a7a5772d6dbe145c056373af5a89340883793c 59de076943763b1252a68bf97d1cd1d4 2026-10-22T00:26:27Z
+-> OWED: OWED reviewer-fire 2588 de4729ba156901ec9defeaefd4d2b3946c82f18a 119b809bd4c86ce56679eef250a835a5 2026-10-22T00:38:56Z
+-> OWED: OWED reviewer-fire 2588 ad10fd2153c6c8fe2e1d56c8b0302c5b057cc37a 566ff789bf4f35118501560f72d41fc7 2026-10-22T01:22:17Z
+-> OWED: OWED reviewer-fire 2589 6e4d2b5cf5e9580e20198e2ea282bdb6ef597516 622da006e928932869d5115d27728d13 2026-10-22T02:35:29Z
+-> OWED: OWED reviewer-fire 2589 74a18df941939cd87c11280ec216531148015b46 6e8a9955f9546912dd2c5fb1a571a1e5 2026-10-22T04:48:15Z
+-> OWED: OWED 2026-10-22T08:06:56Z handoff-update 2589 r10-fly-gh-read-retry a457acaf4ad3ddf1c3195e5d3fa1c6aced0d1ff4
+-> OWED: OWED reviewer-fire 2591 c5a968de35f3e71e2e5b06e2174b7b54e6a7c306 607c141d921b6a6a806d4bf3605cc163 2026-10-22T02:23:15Z
+-> OWED: OWED 2026-10-22T10:46:01Z handoff-update 2606 r10-rca-install-ratelimit e96f64a5ad78053eb240056f135a10b08026c86d
+-> OWED: OWED reviewer-fire 2612 c8dea4651d20089a860e6d8f1e11be2216885905 1bc64e4b303d4b1bcfa9081900f9472f 2026-10-22T18:48:53Z
+-> OWED: OWED 2026-10-22T21:41:29Z handoff-update 2626 audit-r10-roster 8afb18cd996681b292f0f63b96184272cd20e087
+-> OWED: OWED 2026-10-22T21:47:33Z handoff-update 2626 audit-r10-roster 814cffede7d67a4e05780094c432e78dc05de04c
+-> OWED: OWED reviewer-fire 2626 6bee9961fa8bbb90d50392fee75a64ab88a3d8e2 b0c90b0d3741fc271d58b18ccb78f269 2026-10-22T21:54:19Z
+-> OWED: OWED reviewer-fire 2626 c2c5a8969dc08c548624d5160d5e43482c0ce392 8e2313d11b0f05b5c856a6b80f59a7b1 2026-10-22T22:21:22Z
+-> OWED: OWED reviewer-fire 2626 f2cc3a9c3db3bff4b998df4dea86a952224f0ba5 0973daacc0d3b19768c4026d5b407237 2026-10-22T22:38:28Z
+-> OWED: OWED reviewer-fire 2626 9da4dcab96eca8278a81fa4589faa865a69d3803 18b86d4a396700198aa9a83226cf8f34 2026-10-22T22:45:38Z
+-> OWED: OWED reviewer-fire 2626 6d9a841e69c91afe6186cbdcb384744c0c44d6d1 a63efd4e15fccc66c4b6ac9aef30875d 2026-10-22T22:51:30Z
+-> OWED: OWED 2026-10-23T00:42:40Z handoff-update 2629 r10-record-api-budget e1ff812cebd05ff80a5519d217c886ff89348892
+-> OWED: OWED reviewer-fire 2632 2f54529b1f2db0b3ff67c917b7caae872d892d72 c4b0770c5139e916f5bf91001aed8319 2026-10-23T09:13:26Z
+-> OWED: OWED 2026-10-23T09:39:06Z handoff-update 2632 r10-loop-cpu 4bae3ae2c7cf00188feaee7aa73c9bd7b01e7f68
+-> OWED: OWED 2026-10-23T01:50:07Z handoff-update 2633 r10-flow-arch-planner 96d7ef878a278d9d9d2c737f12c5f7a0419042b2
+-> OWED: OWED 2026-10-23T03:13:08Z handoff-update 2639 r10-fly-gh-read-retry-2 2e930039dd692271bc968a7108f2f8ec056070cd
+-> OWED: OWED 2026-10-23T11:52:03Z handoff-update 2656 r10-ci-layout-p2-probe-B1 d4506f37e1b43d486167e6743d194b104357a84a
+-> OWED: OWED 2026-10-23T12:14:32Z handoff-update 2656 r10-ci-layout-p2-probe-B1 d5dd8ebf5c81c9b0e63a12995e70f0cb814db388
+-> OWED: OWED 2026-10-23T14:01:31Z handoff-update 2656 r10-ci-layout-p2-probe-B1 beb260478a59b8e7e5ae2b55d601e638f8e555e7
+== ETA ==
+== WORKERS ==
+== PLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+   75 open group(s) of 171
+-> R10-RATIO-ANCHOR: UNBLOCKED, not started -- start a fixer on handoff/r10-ratio-anchor
+-> R10-INPUT-STALENESS: UNBLOCKED, not started -- start a fixer on handoff/r10-input-staleness
+   R10-CURRENCY: in progress (stage in-progress)
+-> R10-LIVESTATE: UNBLOCKED, not started -- start a fixer on handoff/r10-livestate
+-> R10-CONFIG-NOTICES: UNBLOCKED, not started -- start a fixer on handoff/r10-config-notices
+   R10-PARAMS-OWNER: blocked by R10-LIVESTATE, R10-RATIO-ANCHOR (stage not-started)
+   R10-ARCH-SHAPES: blocked by R10-LIVESTATE, R10-INPUT-STALENESS (stage not-started)
+-> R10-LEARNER-ETA: UNBLOCKED, not started -- start a fixer on handoff/r10-learner-eta
+   R10-HEAT-METER: blocked by R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION (stage not-started)
+   R10-COP-GATE: blocked by R10-HEAT-METER (stage not-started)
+   R10-UX-HEALTH: blocked by R10-COP-GATE, R10-HEAT-METER (stage not-started)
+   R10-CONFIGFLOW-PAGES: blocked by R10-HEAT-METER (stage not-started)
+   R10-REPLAY-LANE: in progress (stage in-progress)
+   R10-REPLAY-SCOPED: blocked by R10-REPLAY-LANE (stage not-started)
+   R10-ARCH-DOCS: blocked by R10-RATIO-ANCHOR, R10-INPUT-STALENESS, R10-CURRENCY, R10-LIVESTATE, R10-CONFIG-NOTICES, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-CONFIGFLOW-PAGES, R10-REPLAY-LANE, R10-REPLAY-SCOPED (stage not-started)
+-> R10-POLICY-FIXER-MD: UNBLOCKED, not started -- start a fixer on handoff/r10-policy-fixer-md
+-> R10-POLICY-GATE-SCOPING: UNBLOCKED, not started -- start a fixer on handoff/r10-policy-gate-scoping
+-> R10-RCA-HEADMOVED: UNBLOCKED, not started -- start a fixer on handoff/r10-rca-headmoved
+-> R10-SAV-COMFORT: UNBLOCKED, not started -- start a fixer on handoff/r10-sav-comfort
+-> R10-MUTATION-ANCHOR: UNBLOCKED, not started -- start a fixer on handoff/r10-mutation-anchor
+-> R10-POLICY-LINT-FAMILY: UNBLOCKED, not started -- start a fixer on handoff/r10-policy-lint-family
+-> R10-MERGE-SUBJECT-HARDEN: UNBLOCKED, not started -- start a fixer on handoff/r10-merge-subject-harden
+-> R10-CEILING-PROBE: UNBLOCKED, not started -- start a fixer on handoff/r10-ceiling-probe
+   R10-DEMAND-OVERBOOK: in progress (stage queued)
+   R10-BUFFER-STORE: in progress (stage queued)
+   R10-COP-PARTLOAD: in progress (stage queued)
+   R10-UPDATE-PR-SIGNALS: in progress (stage in-progress)
+   R10-ORCH-MACHINERY: in progress (stage absorbed)
+-> R10-CARD-VOICE: UNBLOCKED, not started -- start a fixer on handoff/r10-card-voice
+-> R10-THERMAL-POWER-OPTION: UNBLOCKED, not started -- start a fixer on handoff/r10-thermal-power-option
+-> R10-LEARNER-DEFAULT: UNBLOCKED, not started -- start a fixer on handoff/r10-learner-default
+-> R10-MUTANT-SKIP: UNBLOCKED, not started -- start a fixer on handoff/r10-mutant-skip
+   R10-CI-LAYOUT-P2: in progress (stage in-progress)
+-> R10-FLOW-BOARD: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-board
+-> R10-FLOW-DESIGN-STAGES: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-design-stages
+   R10-FLOW-JIDOKA: in progress (stage in-progress)
+   R10-FLOW-MQ-PROBE: blocked by R10-CI-LAYOUT-P2 (stage not-started)
+-> R10-FLOW-POSTMERGE: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-postmerge
+   R10-FLOW-RECORD-PITCH: blocked by R10-CI-LAYOUT-P2, R10-FLOW-MQ-PROBE (stage not-started)
+-> R10-FLOW-ROSTER-FREEZE: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-roster-freeze
+-> R10-FLOW-WIP: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-wip
+-> R10-FLOW-AUTOTRAIN: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-autotrain
+   R10-FLOW-BODY-ONLY: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+   R10-FLY-OPENPR-ATOMIC: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+   R10-FLY-ROW-HEAD-CARRY: blocked by R10-CI-LAYOUT-P2, R10-FLY-OPENPR-ATOMIC (stage not-started)
+-> R10-FLOW-AUDIT-PLAN: UNBLOCKED, not started -- start a fixer on handoff/r10-flow-audit-plan
+   R10-FLY-RELAY-REVIEW-FF: blocked by R10-UPDATE-PR-SIGNALS (stage in-progress)
+-> R10-FLY-CAP-LINE: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-cap-line
+   R10-FLY-CARRY-DISPOSITION: blocked by R10-FLY-ORPHANS-REWRITTEN (stage not-started)
+   R10-FLY-ORPHANS-REWRITTEN: blocked by R10-UPDATE-PR-SIGNALS (stage not-started)
+-> R10-FLY-CARRY-DOC-CONTEXT: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-carry-doc-context
+   R10-FLY-DEPGRAPH-STALE: in progress (stage in-progress)
+   R10-FLOW-TOOLKIT-MODEL: blocked by R10-ORCH-PLANPAGE (stage not-started)
+   R10-ROUND-PLAYBOOK: blocked by R10-FLOW-AUDIT-PLAN, R10-ORCH-LEDGER, R10-ORCH-DISPATCH-REG, R10-ORCH-BEATD, R10-ORCH-PLANPAGE, R10-FLOW-AUTOTRAIN, R10-CI-LAYOUT-P2 (stage not-started)
+-> R10-FLY-STAMP-CHECK-NOTES: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-stamp-check-notes
+-> R10-FLY-MANDATE-REVOKE-GUARD: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-mandate-revoke-guard
+   R10-RCA-FRICTION-RESIDUE: in progress (stage queued)
+   R10-TRAIN-OVERLAP-GRADE: in progress (stage queued)
+   R10-NIGHTLY-HB-RESPAWN: in progress (stage queued)
+-> R10-FLY-PRUNE-REFS: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-prune-refs
+-> R10-ORCH-LEDGER: UNBLOCKED, not started -- start a fixer on handoff/r10-orch-ledger
+   R10-ORCH-DISPATCH-REG: blocked by R10-ORCH-LEDGER (stage not-started)
+   R10-ORCH-BEATD: blocked by R10-ORCH-DISPATCH-REG (stage not-started)
+   R10-ORCH-PLANPAGE: blocked by R10-ORCH-BEATD (stage not-started)
+-> R10-ORCH-ROSTER-SCHEMA: UNBLOCKED, not started -- start a fixer on handoff/r10-orch-roster-schema
+-> R10-FLY-WORKTREE-GC: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-worktree-gc
+-> R10-FLY-DAEMONIZE-ARGV: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-daemonize-argv
+-> R10-FLY-CIPREDICT-LAYOUT: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-cipredict-layout
+-> R10-FLY-CLOUD-SETUP-TOOLCHAIN: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-cloud-setup-toolchain
+-> R10-FLY-YIELD-GUARD: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-yield-guard
+-> R10-FLY-ENVMATRIX-NOREMOTE: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-envmatrix-noremote
+-> R10-FLY-SUITE-ENV-FLAKES: UNBLOCKED, not started -- start a fixer on handoff/r10-fly-suite-env-flakes
+-> R10-STRUCTURE-ALIAS: UNBLOCKED, not started -- start a fixer on handoff/r10-structure-alias
+   R10-FLY-NO-FOOTERS-PUSH-PATHS: in progress (stage in-progress)
+   R10-FLY-INERT-LOAD-TIME: in progress (stage in-progress)
+== MAIN ==
+   required contexts (main-protect-checks): 14 read live
+   main 27b59c9f7975 green (35 context(s) concluded green)
+   mandate: in force: mandate 6329234399 (scope all, from 2026-10-21T23:45Z until 2026-11-04T18:14Z)
+   policy corpus at 96d7ef878a27 (first tick: baseline recorded)
+-> checkout is 368 commit(s) behind origin/main (an ancestor checkout is not current)
+== STATE ==
+-> HANDOVER updated-for 0cc148b2f80f is 1750 commit(s) behind origin/main
+-> run python3 tools/audit/seat/state_docs.py --push (the write stays in the per-merge beat; the tick only names it)
+-> record beat owed: state_docs.py --push + #201 comment for 27b59c9f7975, 12032c43cc32, 7108101d7121, 4c31eb16e575, 975fbb832bd7, a6620c30adcd, 14405df59331, bfd61aaf167f, c6ef0668463b, 8a6e5826b608
+== REPLAN ==
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> group R10-RATIO-ANCHOR contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-INPUT-STALENESS contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-CURRENCY contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-LIVESTATE contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-CONFIG-NOTICES contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-PARAMS-OWNER contested by PR #2656 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-ARCH-SHAPES contested by PR #2656 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-LEARNER-ETA contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-HEAT-METER contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-COP-GATE contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-UX-HEALTH contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-CONFIGFLOW-PAGES contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-REPLAY-LANE contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-REPLAY-SCOPED contested by PR #2668 (tools/audit/seat/handoff_push.sh) -- order the group after the PR or merge it first
+-> group R10-POLICY-FIXER-MD contested by PR #2656 (dev/governance/roles/orchestrator.md, tools/policy/policy_lint.mjs) -- order the group after the PR or merge it first
+-> group R10-MUTATION-ANCHOR contested by PR #2656 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-POLICY-LINT-FAMILY contested by PR #2656 (tools/policy/policy_lint.mjs) -- order the group after the PR or merge it first
+-> group R10-MERGE-SUBJECT-HARDEN contested by PR #2656 (dev/governance/roles/orchestrator.md, tools/policy/agreement.mjs) -- order the group after the PR or merge it first
+-> group R10-CI-LAYOUT-P2 contested by PR #2656 (tests/run.sh) -- order the group after the PR or merge it first
+-> group R10-FLOW-BOARD contested by PR #2656 (tools/audit/merge_throughput.py) -- order the group after the PR or merge it first
+-> group R10-FLOW-JIDOKA contested by PR #2656 (tools/pr/prepr.sh) -- order the group after the PR or merge it first
+-> group R10-FLY-RELAY-REVIEW-FF contested by PR #2664 (tools/audit/seat/tick_loop.sh) -- order the group after the PR or merge it first
+-> group R10-FLY-STAMP-CHECK-NOTES contested by PR #2656 (tools/release/stamp.py) -- order the group after the PR or merge it first
+-> group R10-FLY-MANDATE-REVOKE-GUARD contested by PR #2656 (tools/policy/budget_raise_gate.py) -- order the group after the PR or merge it first
+-> group R10-TRAIN-OVERLAP-GRADE contested by PR #2656 (tools/audit/seat/merge_train.py) -- order the group after the PR or merge it first
+-> group R10-FLY-SUITE-ENV-FLAKES contested by PR #2656 (tests/entities.py) -- order the group after the PR or merge it first
+-> group R10-FLY-INERT-LOAD-TIME contested by PR #2654 (tests/closure.py) -- order the group after the PR or merge it first
+-> 36 group(s) blocked on owner disposition; oldest issue #2271 is 8d old -- surface them to the owner
+   roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+-> disposition #2660: scheduled, deferred, or refused
+-> OWED handoff: audit-r10-roster 6322452d4d10399d47b65e2c7a27cbd823eb3083 1.2h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-probe-B1 beb260478a59b8e7e5ae2b55d601e638f8e555e7 1.1h uncovered=2 repair=review -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u0c d22b5f303e09a67106fb44da03ad9e014eb1f840 14.7h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u10 c2143e8e8b680ff5a1589fba2d1b5c6eb9870c99 9.1h uncovered=11 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u11 27146eeb80af3c256a24c8011a04c72fc837e95f 14.3h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u1u2u7 eaaf57e6d8f9a477ce89fb871ecc6a080e896f51 14.2h uncovered=8 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u3 0f7f260899e643d87b951135213ee2f453fdc83a 15.8h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u4 767a06f7f6dd02bb0cf291377686e292c4bbe587 10.9h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u5 fbc994804d3e4358e412399edca8c9f6ee6144a3 13.7h uncovered=10 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u6 e75ea158c5bc7d5cc99a03b04001a852f5850b66 13.7h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u8 e56c58263c81d598f7097c6098fab67de3e45ca3 13.0h uncovered=5 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u9a c9d647e644f14256a63ad895c7d69f1d58dd75e1 15.2h uncovered=4 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u9bp ffe738c7c444b658f42c9d3fc6d6d0ea2628873b 8.3h uncovered=2 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-ci-layout-p2-u9d 1877542fdd5321b02db79e06562c18d97fd6d362 15.7h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-input-staleness 7668a4d0974444c9806fe83ae0656b0b6bd1e50a 3.2h uncovered=3 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+-> OWED handoff: r10-orch-ledger c9999dfcdf779bd9c6268926e77b864f5f03fa19 2.3h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), update_pr.sh (update) or a human decision (review)
+   orphans: 16 stranded, 0 superseded; skipped no-body=29 named=9 ancestor=36 young=0; origin main 27b59c9
+DISPATCH LIST: 324 finding(s)

@@ -1,0 +1,59 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             57f0c9c77cfd5958e0a2443e158bea8326bedae2
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       heavy slot             taken slot=2 label=prepr-31408 expires_at=2026-10-21T19:01:16.049470+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  skip     mutants                the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 5 changed file(s), so no read is reached
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  skip     field coverage         the diff changes no file field coverage reads -- no hit in its declared path list nor in the measured closure(s) of tests/structure.py; the closure table maps all 5 changed file(s), so no read is reached
+  ok       agreement lane         AGREEMENT ok
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 5 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 57f0c9c77cfd
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  ok       wave-script            198 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 57f0c9c77cfd5958e0a2443e158bea8326bedae2 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 57f0c9c77cfd (a data-file read is not seen)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 57f0c9c77cfd
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             5:all
+             5:each
+             12:every
+             12:never
+             18:each
+             34:none
+             41:every
+             41:never
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             2557 a
+             2558 w
+             182 c
+             63 c
+             30 f
+             182 c
+             63 c
+             182 c
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/2567.new.md -- no budget leaf raised over 57f0c9c77...4ef1a8270
+  ok       figures                FIGURES: 11 resolved, 0 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  ok       push order             origin/fix/r10-row-only-update is at 4ef1a8270 -- local mirror, unfetched
+  ok       ancestry reds          the body answers every red this branch pushed (nightly-status)
+
+PRE-PR: 4ef1a8270f3bd30bc6c313c950f6f44713a1442d 0000000000000000000000000
+Everything up-to-date
+app_push: PUSHED 4ef1a8270f3bd30bc6c313c950f6f44713a1442d to tvofi/heatpump_optimizer:fix/r10-row-only-update as the App; pull request #2567 is open at 4ef1a8270f3bd30bc6c313c950f6f44713a1442d with the body read back: 

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_verdict BOOLOP af494230",
+  "killed_by": "tests/features.py",
+  "old": "    rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C",
+  "reason": "pump-duty arbiter revision; `rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` -> `rose = None not in (tank, row[\"tank\"]) or float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

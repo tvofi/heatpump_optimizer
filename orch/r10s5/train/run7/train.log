@@ -1,0 +1,17 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run7/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run7 pid=92464 start=2026-10-23T19:39:36Z
+BATCH 20261023-193936 pid=92481 base=main queue=1 (#2670) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d970b4b5: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+OVERLAP: main at 811cd01aaef5 is still running (Analyze (python), browser, closures, env-matrix, fast (3.14)): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+#2670 admitted at ffe44c22
+#2670 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2670 approved (app)
+OVERLAP: main at 811cd01aaef5 is still running (Analyze (python), browser, closures, env-matrix, fast (3.14)): a wait, not red; --overlap does not wait
+#2670 MERGED d7cb63508d1a13bd63a0cb74119e429899fa476e
+#2670 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2670 main d7cb6350 tree == proof d6ed1d5b
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T19:41:31Z

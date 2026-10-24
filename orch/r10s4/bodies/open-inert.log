@@ -1,0 +1,4 @@
+===== daemonize pid=80898 2026-10-23T13:12:49Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) r10-rca-inert-closure-recording e9d169b79b16355cdfa64d50d11daab2d7475c54 R10-FLY-INERT-LOAD-TIME: closures re-split a recording's inert_reads at load time (class I2 barrier) R10-FLY-INERT-LOAD-TIME
+open_pr: --over-cap is advisory: wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) (the cap gates dispatch, not opening)
+open_pr: 9 open PRs; the cap gates dispatch, not opening
+PR=2666 HEAD=0dda6260a8261233bb435442e52c219f3117a747 AUTHOR=tvofi

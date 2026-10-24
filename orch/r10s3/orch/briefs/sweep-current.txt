@@ -1,0 +1,10 @@
+ORCHESTRATOR SWEEP (autonomous; tvofi away). Read /Users/timmalmstrom/hpo-orch/r10s3/orch/SEATS.md. Then, briefly:
+(0) Run `~/hpo-orch/r10s3/orch/policy_check.sh`. On POLICY RE-READ OWED: re-read CLAUDE.md and every policy file it links (rules, roles, steward, web-fragments, PR template, dimensions) and tools/audit/seat/INSTRUMENTS.md from fresh origin/main (`git -C ~/hpo-seats/r10s3/orch-wt fetch origin && git show origin/main:<path>`), act on any delta against current practice, then `date -u +%FT%TZ > ~/hpo-orch/r10s3/orch/policy-read.stamp` and log it in SEATS.md.
+(1) Count live seats: keep at most 8 local ones (cloud seats are above the cap). If there are fewer, resume the next QUEUED seat with SendMessage.
+(2) Compare `git ls-remote --heads origin 'handoff/r10-*'` with the open PR heads. A handoff tip with a body ref and no PR, or one ahead of its PR, gets open_pr.sh or update_pr.sh (detached via daemonize.py), then tools/pr/approve_held_runs.sh on that branch, then bus.sh dispatch plus a reviewer seat.
+(3) Open PRs: verdicted and green go to a merge_train batch via train.sh (detached), always batched with --overlap. Budget and policy heads are merged directly under mandate 6175172275. Record/autofix PRs: run the automerge-check, approve, merge.
+(4) After each merge: roster set-stage done, a #201 comment, worktree_gc, check which issues the merge closed, remove the finished seat's worktrees and scratch, state_docs --push, and republish the plan artifact (/Users/timmalmstrom/hpo-orch/r10s3/plan/gen.py → scratchpad round-10-plan.html, same path).
+(5) Tick watcher: if ~/hpo-orch/r10s3/orch/tick/alive is missing or older than 15 min, the haiku tick seat has died. Restart it with a new haiku-seat Agent (run_in_background) whose prompt is the contents of ~/hpo-orch/r10s3/orch/briefs/tick-watcher.md, and log the restart in SEATS.md. Act on tick.log's newest actionable lines.
+(6) Cloud: read list_runs and any moved review/* or probe/* refs; confirm verdicts with bus.sh confirm.
+(7) Disk: if `df -h /` shows under 6 GiB free, clean finished worktrees.
+Keep the turn short; update SEATS.md.

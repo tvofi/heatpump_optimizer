@@ -1,0 +1,3 @@
+===== daemonize pid=48275 2026-10-24T08:46:54Z argv: bash tools/audit/seat/open_pr.sh r10-rca-strand 16500c7403f49e8b53bd215695ba2c2af74405b3 Record two stranded root-cause records (R10-HANDOFF-PREPR-BOUNCE) rca-strand
+open_pr: 4 open PRs; the cap gates dispatch, not opening
+PR=2691 HEAD=4a81d718e03564dc1b0de06ee5a68edc98d13096 AUTHOR=tvofi

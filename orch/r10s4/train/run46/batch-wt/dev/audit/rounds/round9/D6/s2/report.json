@@ -1,0 +1,327 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D6/s2/REPORT.md",
+ "exposure": "Opened only the seat's docs cells. Read tools/audit/bugclasses.json for class_guess (it lists earlier-round instance ids; none followed). Read RELEASE_NOTES.md at v6.6.5 to check setup.md's version claim. Checked docs/backlog.md existence at the baseline with git cat-file -e (not read). No tools/audit/round3..round8 evidence, HANDOVER, plans or audit registers were opened.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "depth": "deep",
+   "evidence": "Claims extracted by harness from every table and targeted prose in configuration.md, setup.md, ecl110.md, automations.md, architecture.md, dashboard-card.md configuration section; how-it-works.md sampled (11 claims); docs/setup/*.png existence only"
+  },
+  {
+   "step": "D6.M2",
+   "depth": "deep",
+   "evidence": "497 executed checks across 9 harnesses (config_tables, flow_census, services_claims, behaviour_claims, architecture_claims, setup_claims, howitworks_claims, card_config.mjs, links), each driving the production symbol; perturbation arms run"
+  },
+  {
+   "step": "D6.M3",
+   "depth": "deep",
+   "evidence": "Claims table printed by each harness (verdict per line); totals in REPORT.md: 497 checked, 1 false, 4 stale, 2 unverifiable links plus named measurement-only figures"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M1",
+   "what": "how-it-works.md: only 11 of ~92 numeric/behaviour lines extracted (thermal model, hot water, tariffs, wood, away, learning-loop sections left); dashboard-card.md: chart, headline, savings, advisor, setup page, keyboard and installation prose not extracted"
+  },
+  {
+   "step": "D6.M2",
+   "what": "ecl110.md fixed-mode displaces (+4/max/min), peak-guard -2 C nudge and the ECL110 sensors' enabled/disabled defaults were read in code, not executed; the PNG renders' content was not compared with the forms"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s2-01",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "configuration.md says 'All 74 entities'; the six platforms create 75",
+   "severity": "low",
+   "claim": "docs/configuration.md:196 states that 74 entities appear on setup, but the platforms' real async_setup_entry create 75 for the entry the documented wizard path writes.",
+   "mechanism": "The doc-count pins in tests/entities.py cover README.md only; the copy in configuration.md was not updated when the 75th entity landed (architecture.md:37 and README.md:417 already say 75).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/flow_census.py",
+    "harness_path": "tools/audit/round9/D6/s2/flow_census.py",
+    "value": 1,
+    "unit": "entities (census minus documented count; RESULT configuration_md_count_delta; entities_total=75)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container, 4 CPU, Linux (box B2, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats on the same 4-CPU box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}:async_setup_entry",
+   "perturbation": {
+    "change": "--perturb-count: skip the datetime platform's async_setup_entry (one entity fewer)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "entities created by the six platforms for the wizard-path entry minus the number stated at configuration.md:196",
+   "phenomenon_property": "Every entity count stated in the seat's docs equals the number of entities the platforms' async_setup_entry create for a default entry, per domain where a split is given.",
+   "seam_rule": "grep -nE '\\b[0-9]+ entities\\b|[0-9]+ (sensors|binary sensors|buttons|switches|climate|datetime)\\b' docs/*.md README.md  (checked by tools/audit/round9/D6/s2/flow_census.py)",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md"
+   ],
+   "proposed_fix_scope": "Change 74 to 75 at docs/configuration.md:196; optionally extend tests/entities.py's README count pin to configuration.md."
+  },
+  {
+   "id": "D6-s2-02",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "configuration.md: the weather page does not create the entry; the setup flowchart omits the menu and overview",
+   "severity": "low",
+   "claim": "docs/configuration.md:196 says saving the Weather sensitivity page creates the entry, but that submit returns the setup_overview form, and the flowchart at :24-38 omits the finish-setup menu and the overview step the real flow shows.",
+   "mechanism": "async_step_weather_sensitivity returns async_step_setup_overview(); the finish_setup menu (quick setup / continue / finish now) sits between screen 2 and the temperatures. configuration.md was not updated when those steps were added; setup.md documents them correctly.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/flow_census.py",
+    "harness_path": "tools/audit/round9/D6/s2/flow_census.py",
+    "value": 0,
+    "unit": "create_entry results from the weather page submit (RESULT weather_submit_creates_entry; wizard_steps=11)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container, 4 CPU, Linux (box B2, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats on the same 4-CPU box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_weather_sensitivity",
+   "perturbation": {
+    "change": "--perturb: weather page submit calls _create_setup_entry() directly (the documented behaviour)",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "1 if submitting the weather-sensitivity page with defaults returns create_entry, else 0; plus the number of flow results on the documented path",
+   "phenomenon_property": "The initial-setup sequence configuration.md describes (text and flowchart) is the sequence of forms and menus the real config flow returns, ending where the entry is created.",
+   "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D6/s2/flow_census.py  (prints the driven path; compare with the flowchart at docs/configuration.md:24-38 and the sentence at :196)",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md"
+   ],
+   "proposed_fix_scope": "Rewrite configuration.md :24-38 flowchart and :196 to include the finish-setup menu and the closing overview page (as setup.md already does)."
+  },
+  {
+   "id": "D6-s2-03",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "Curve-bias 'at most 0.5 K per week' is false: 0.6 K in a 7-day window",
+   "severity": "low",
+   "claim": "docs/ecl110.md:31, configuration.md:767 and how-it-works.md:1152 say the learned heat-curve bias moves at most 0.5 K per week, but CurveLearner lowers it by 0.6 K within 7 days on consecutive comfortable days.",
+   "mechanism": "_step_down caps each 0.2 K step by 0.5 x (days since the last step)/7, i.e. against the previous step only; steps come every 3 comfortable days, so three steps (0.6 K) fit in any 7-day window.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/behaviour_claims.py",
+    "harness_path": "tools/audit/round9/D6/s2/behaviour_claims.py",
+    "value": 0.6,
+    "unit": "K (largest bias drop over any 7-day window in 70 comfortable days; RESULT curve_bias_max_7day_drop_k)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container, 4 CPU, Linux (box B2, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats on the same 4-CPU box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.curve_learning:CurveLearner.record_day",
+   "perturbation": {
+    "change": "--perturb-curve: curve_learning.MAX_DOWN_PER_WEEK = 0.3 in memory",
+    "expected_direction": "down",
+    "observed_value": 0.457
+   },
+   "metric_definition": "max over d of bias(day d-7) - bias(day d) while CurveLearner.record_day is fed one comfortable day (margin 1.0 K) per calendar day for 70 days",
+   "phenomenon_property": "The learned curve bias never falls by more than the documented weekly figure over any 7-day window, and every document stating that figure states the same number.",
+   "seam_rule": "grep -rnE '0\\.5 K per week|half a degree per week|≤0\\.5 K per week' docs README.md custom_components/heatpump_optimizer/strings.json custom_components/heatpump_optimizer/translations",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/behaviour_claims.py --perturb-curve",
+    "value": 0.457,
+    "note": "with the per-step cap scaled to 0.3 K/week the same 70-day drive stays under 0.5 K, so the harness separates the two"
+   },
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "files": [
+    "docs/ecl110.md",
+    "docs/configuration.md",
+    "docs/how-it-works.md",
+    "custom_components/heatpump_optimizer/curve_learning.py"
+   ],
+   "proposed_fix_scope": "Either restate the docs (0.2 K per three comfortable days, about 0.47 K/week on average, up to 0.6 K in 7 days) or make _step_down cap the drop over a trailing 7-day window; the seam rule lists every copy of the figure."
+  },
+  {
+   "id": "D6-s2-04",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "how-it-works.md: space solve 'from two starting points'; it runs four, each refined and polished",
+   "severity": "low",
+   "claim": "docs/how-it-works.md:108-113 says the space solve runs from two candidate initial guesses and a third start was not worth doubling the runtime, but a real solve passes four candidates to _multi_start_minimize and runs 8 L-BFGS-B minimizations.",
+   "mechanism": "_solve_space builds [guess, price-ranked, half-headroom, low-energy price-ranked] on the initial solve and _multi_start_minimize refines every candidate and polishes each (#1208); _warm_start_starts adds the previous plan as a fifth after the first cycle (read, not measured).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/howitworks_claims.py",
+    "harness_path": "tools/audit/round9/D6/s2/howitworks_claims.py",
+    "value": 4,
+    "unit": "starting candidates in the first multi-start call (RESULT space_solve_start_candidates; space_solve_minimize_calls=8)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container, 4 CPU, Linux (box B2, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats on the same 4-CPU box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+   "perturbation": {
+    "change": "--perturb-starts: truncate each multi-start call to its first two candidates",
+    "expected_direction": "down",
+    "observed_value": 2
+   },
+   "metric_definition": "len(candidates) handed to optimizer._multi_start_minimize on the first space solve of tests/stress.py:build_case(season='winter', two_zone=False, dhw=False)",
+   "phenomenon_property": "The number of starting points and refinements how-it-works.md states for the space solve equals what optimizer._multi_start_minimize receives and runs in a real solve.",
+   "seam_rule": "grep -rnE 'starting point|initial guess|third start|multi-start' docs README.md",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/how-it-works.md"
+   ],
+   "proposed_fix_scope": "Rewrite the 'Two starting points, not one' paragraph to the current four structural seeds plus the previous-plan candidate, each refined and polished; drop or re-measure the 2.2 %/0.2 % figures."
+  },
+  {
+   "id": "D6-s2-05",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "configuration.md simulate_plan field list omits the five wood fields",
+   "severity": "low",
+   "claim": "docs/configuration.md:951 lists simulate_plan's fields as 11 names after 'Fields, all optional:', but the registered schema has 16, adding wood_slots, wood_type, wood_packing, wood_price_sek_m3 and wood_furnace_efficiency.",
+   "mechanism": "The wood fields were added to SERVICE_SCHEMA_SIMULATE_PLAN and to the table row's count (16) but not to the prose list.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/services_claims.py",
+    "harness_path": "tools/audit/round9/D6/s2/services_claims.py",
+    "value": 5,
+    "unit": "schema fields missing from the prose list",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container, 4 CPU, Linux (box B2, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats on the same 4-CPU box; counts only, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.services:async_register_services (SERVICE_SCHEMA_SIMULATE_PLAN as registered)",
+   "perturbation": {
+    "change": "--perturb: add one Optional field to SERVICE_SCHEMA_SET_THERMAL_PARAMS and drop 'boost' from set_mode before registration",
+    "expected_direction": "up",
+    "observed_value": 5
+   },
+   "metric_definition": "registered simulate_plan schema keys absent from the backticked names after 'Fields, all optional:' at configuration.md:951",
+   "phenomenon_property": "Every per-service field list in configuration.md names exactly the keys the registered schema accepts.",
+   "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D6/s2/services_claims.py  (every table row and prose field list of the Services section)",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md"
+   ],
+   "proposed_fix_scope": "Add the five wood fields to the simulate_plan paragraph."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every parsed settings-table row in configuration.md/ecl110.md (default, min, max, step) matches the rendered config-flow schema",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/config_tables.py",
+   "value": "config_rows_true=233, config_rows_false=0 (263 rows, 247 matched)"
+  },
+  {
+   "claim": "23 option pages: 8 on the first menu, 15 behind Advanced",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/config_tables.py",
+   "value": "option_pages=23 first_menu_pages=8 advanced_menu_pages=15"
+  },
+  {
+   "claim": "configuration.md Services section: 12 services, entry_id roster, field lists, Returns column, 25 ranges probed, set_mode values, 21 assignable keys, 4 layouts",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/services_claims.py",
+   "value": "58 of 59 true (the 1 false is D6-s2-05)"
+  },
+  {
+   "claim": "ecl110.md ON threshold, 8-hour bias window, lag fraction, bias sign; automations.md economy floor, headroom arms, entity ids independent of entry name",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/behaviour_claims.py",
+   "value": "13 of 14 true (the 1 false is D6-s2-03); weather bias 32 steps = 8.0 h; lag 0.165 vs 0.167; 75 of 75 ids identical under two names"
+  },
+  {
+   "claim": "architecture.md: 66 modules, 23 module-level HA importers (exact roster), inputs the only in-function toucher, 42 free, module map complete, platform rosters, 8 snapshots, 2-h boost, floor 2025.2.0",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/architecture_claims.py",
+   "value": "architecture_claims_false=0 of 12"
+  },
+  {
+   "claim": "architecture.md:37 entity split 75 = 59 sensors + 6 binary + 4 buttons + 4 switches + 1 climate + 1 datetime; the six entity ids named in the docs exist",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/flow_census.py",
+   "value": "all per-domain counts OK; doc_entity_ids_missing=0 of 6"
+  },
+  {
+   "claim": "setup.md: images present, three screen-2 groups, five quick-setup defaults, 500/35 L, hot-water off, identical quick/wizard physics, seven sliders, pre-fill offer off, 23 pages, Quick setup last on first menu",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/setup_claims.py",
+   "value": "setup_claims_false=0 of 22"
+  },
+  {
+   "claim": "dashboard-card.md configuration options: defaults, eight series keys, hours 1..168, type refusals, empty title",
+   "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D6/s2/card_config.mjs",
+   "value": "card_claims_false=0 of 21"
+  },
+  {
+   "claim": "how-it-works.md sample: 24 h x 15 min horizon, 30-min interval, zone and single-zone defaults, DHW activation on any one of three inputs, COP/capacity/aperture bounds",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/howitworks_claims.py",
+   "value": "10 of 11 true (the 1 false is D6-s2-04); bounds are constant reads (spot)"
+  },
+  {
+   "claim": "Local links and anchors in the seat's docs resolve",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/links.py",
+   "value": "73 local, 1 broken = how-it-works.md:1317 -> backlog.md, an export artefact (docs/backlog.md omitted by the export per COMMON.md; exists at the baseline, checked with git cat-file -e only). Harness gap named, not a finding."
+  },
+  {
+   "claim": "External links",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s2/links.py",
+   "value": "5 external: 3 blueprint URLs < 400; github.com/tvofi/tuya_heat_pump and developer.tibber.com unreachable from the sandbox (URLError) -> unverifiable"
+  },
+  {
+   "claim": "configuration.md:185-187 anti-legionella rows (orphaned from their table) hold: on, 60 C 55-70, 7 days 1-30",
+   "command": "PYTHONPATH=tests/hastub:tests python -c 'import golden; golden.capture_config_flow()[\"_initial\"][\"dhw\"]'",
+   "value": "True; 60.0 [55,70]; 7.0 [1,30]"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D6/s2/config_tables.py",
+  "tools/audit/round9/D6/s2/flow_census.py",
+  "tools/audit/round9/D6/s2/services_claims.py",
+  "tools/audit/round9/D6/s2/behaviour_claims.py",
+  "tools/audit/round9/D6/s2/architecture_claims.py",
+  "tools/audit/round9/D6/s2/setup_claims.py",
+  "tools/audit/round9/D6/s2/howitworks_claims.py",
+  "tools/audit/round9/D6/s2/card_config.mjs",
+  "tools/audit/round9/D6/s2/links.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/configuration.md",
+   "symbol": "lines 181-187 (setup hot-water table)",
+   "what": "A paragraph splits the table; the three anti-legionella rows follow it with no header and render as literal pipe text"
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "README.md",
+   "symbol": "line 44",
+   "what": "Carries the same 'at most 0.5 K per week' curve-bias claim D6-s2-03 measured false (0.6 K in 7 days)"
+  },
+  {
+   "owner_seat": "D4-s2",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "options ... data_description.curve_learning_enabled (line 1333)",
+   "what": "'at most half a degree per week' -- same figure as D6-s2-03"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/entities.py",
+   "symbol": "README count pins (~lines 566-886)",
+   "what": "Entity/page counts are pinned against README.md only; docs/configuration.md's own count (D6-s2-01) has no pin"
+  }
+ ]
+}

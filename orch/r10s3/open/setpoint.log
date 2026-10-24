@@ -1,0 +1,9 @@
+===== daemonize pid=50385 2026-10-19T11:27:29Z argv: bash tools/audit/seat/open_pr.sh r10-setpoint-power 432c425568e54768a2d9db091aab73af74f51cbd R10-SETPOINT-POWER: the setpoint slides from measured inlet water to the ceiling, and the solver leaves the minimum-power flat zone R10-SETPOINT-POWER
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (788 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/thermal_model.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+  REFUSE   ancestry reds          RED UNANSWERED (mutation nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-setpoint-power/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

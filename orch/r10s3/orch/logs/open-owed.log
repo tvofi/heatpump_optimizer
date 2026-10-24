@@ -1,0 +1,38 @@
+===== daemonize pid=67459 2026-10-20T18:17:26Z argv: bash /Users/timmalmstrom/hpo-orch/r10s3/orch/open-owed.sh
+===== r10-roster-ops 2026-10-20T18:17:26Z
+open_pr: open-PR cap: 1 open < 6
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+  REFUSE   ancestry reds          RED UNANSWERED (instrument-self-tests nightly-status):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-ops/body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-ops/p2.log
+open_pr rc=1 for r10-roster-ops 2026-10-20T19:07:57Z
+===== r10-i5-docs 2026-10-20T19:07:57Z
+open_pr: open-PR cap: 3 open < 6
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-i5-docs/wt' already exists
+open_pr: STOPPED: line 34 exited 128: git worktree add -q -b $BR $WT $C
+open_pr rc=128 for r10-i5-docs 2026-10-20T19:08:07Z
+===== r10-rca-harness-friction 2026-10-20T19:08:07Z
+open_pr: open-PR cap: 3 open < 6
+LEDGER-MERGE: refused dev/audit/config/bugclasses.json: a side is not in its writer's own JSON format
+Auto-merging dev/audit/config/bugclasses.json
+CONFLICT (content): Merge conflict in dev/audit/config/bugclasses.json
+Auto-merging dev/governance/roles/fix-review.md
+Auto-merging dev/governance/roles/orchestrator.md
+CONFLICT (content): Merge conflict in dev/governance/roles/orchestrator.md
+Automatic merge failed; fix conflicts and then commit the result.
+open_pr: STOPPED: line 36 exited 1: git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+open_pr rc=1 for r10-rca-harness-friction 2026-10-20T19:09:05Z
+===== r10-merge-pr-mandate 2026-10-20T19:09:05Z
+open_pr: open-PR cap: 3 open < 6
+Auto-merging .github/workflows/governance.yml
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+CONFLICT (content): Merge conflict in tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/merge_pr.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/merge_pr.sh
+Auto-merging tools/audit/seat/proof_watch.py
+CONFLICT (content): Merge conflict in tools/audit/seat/proof_watch.py
+Auto-merging tools/policy/budget_raise_gate.py
+Automatic merge failed; fix conflicts and then commit the result.
+open_pr: STOPPED: line 36 exited 1: git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+open_pr rc=1 for r10-merge-pr-mandate 2026-10-20T19:09:58Z
+ALL DONE 2026-10-20T19:09:58Z

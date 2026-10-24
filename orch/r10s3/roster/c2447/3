@@ -1,0 +1,1 @@
+Source: #2447 Forward-carry. An unpinned site is now a body obligation at two stages: `## Unpinned sites` (step 7d) and `mutation` under `## Red checks` (this change). If `mutation-autofix` pins the site after the push the `mutation` line becomes a stale claim in the body. Carry: R10-BRIEFS-FOLD (ci-autofix.md: the reviewer re-checks the line after the autofix commit).

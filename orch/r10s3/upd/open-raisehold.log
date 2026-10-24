@@ -1,0 +1,3 @@
+===== daemonize pid=50379 2026-10-18T20:53:31Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-train-raise-hold b3c1d0477e63815c23b707b08656086dea8526d6 R10-TRAIN-RAISE-HOLD: the train decides a raise as the gate does R10-TRAIN-RAISE-HOLD
+  REFUSE   ancestry reds          RED UNANSWERED (delivery-status wave-script):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-train-raise-hold/body.md: check `wave-script` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

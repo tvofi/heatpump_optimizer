@@ -1,0 +1,15 @@
+## --boost 239.1
+
+runs 9
+V1 drop C1:  median gain 20 s, min -168, max 1067, runs slower 1
+V2 split:    median gain 20 s, min -72, max 1067, runs slower 1
+## --boost 427
+
+runs 9
+V1 drop C1:  median gain 20 s, min -356, max 966, runs slower 1
+V2 split:    median gain 20 s, min -72, max 1067, runs slower 1
+## --boost 480
+
+runs 9
+V1 drop C1:  median gain 20 s, min -409, max 913, runs slower 1
+V2 split:    median gain 20 s, min -72, max 1067, runs slower 1

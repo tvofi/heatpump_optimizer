@@ -1,0 +1,4 @@
+===== daemonize pid=3115 2026-10-18T23:10:56Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh record/autofix a0c2835e48ac2a16173d0da3135920e15f6733ed /Users/timmalmstrom/hpo-seats/r10s3/rec2420/body/BODY.md
+Auto-merging dev/programme/delivery/2423.md
+CONFLICT (content): Merge conflict in dev/programme/delivery/2423.md
+Automatic merge failed; fix conflicts and then commit the result.

@@ -1,0 +1,25 @@
+===== daemonize pid=62900 2026-10-18T10:52:25Z argv: bash tools/audit/seat/open_pr.sh r10-diag-replay 36b786eb38682a22b3f5d6e1d3738692ee1d240b R10-DIAG-REPLAY: a replay document in Download diagnostics R10-DIAG-REPLAY
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (118 entries)
+  closures.tests/config_flow_steps.py: merged as a set (124 entries)
+  closures.tests/debug_collect.py: merged as a set (97 entries)
+  closures.tests/deployment_shape.py: merged as a set (120 entries)
+  closures.tests/doc_claims.py: merged as a set (152 entries)
+  closures.tests/entities.py: merged as a set (326 entries)
+  closures.tests/env_drift.py: merged as a set (190 entries)
+  closures.tests/features.py: merged as a set (138 entries)
+  closures.tests/finite_boundary.py: merged as a set (113 entries)
+  closures.tests/golden.py: merged as a set (192 entries)
+  closures.tests/harness_headers.py: merged as a set (388 entries)
+  closures.tests/manual_plan.py: merged as a set (104 entries)
+  closures.tests/structure.py: merged as a set (82 entries)
+  closures.tests/typing_ruler.py: merged as a set (82 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging dev/audit/rounds/round4/D6/claims.py
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.py
+Auto-merging docs/architecture.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/entities.py
+Automatic merge failed; fix conflicts and then commit the result.

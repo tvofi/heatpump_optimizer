@@ -1,0 +1,24 @@
+TRAIN pid=13888 queue=1 (#2636)
+TRAIN HOLD refs/heads/train-hold b0391b76: the record beat waits
+TRAIN HOLD refs/heads/train-hold 0e1f0056: the record beat waits
+TRAIN HOLD refs/heads/train-hold f58c8147: the record beat waits
+#2636 recarry START (branch fix/r10-fly-no-footers-pr)
+#2636 recarry: main merged, head aa551fcb; app_push: RECARRY: prepr SKIPPED: HEAD aa551fcb is the clean merge of the live head 4e1c57d5 and origin/main's c26499e0, and the body is the live one
+TRAIN HOLD refs/heads/train-hold cbf06e41: the record beat waits
+beat: waiting CI at aa551fcb (poll 2, t+242s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold 291210d4: the record beat waits
+beat: waiting CI at aa551fcb (poll 3, t+484s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold d9c4b8f5: the record beat waits
+beat: waiting CI at aa551fcb (poll 4, t+726s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 4b8624ef: the record beat waits
+beat: waiting CI at aa551fcb (poll 5, t+968s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 03c35033: the record beat waits
+beat: waiting CI at aa551fcb (poll 6, t+1210s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 8ec9e30d: the record beat waits
+#2636 aa551fcb ci red=[]
+#2636 approved (mandate)
+#2636 MERGED 7deeef1b6b083b0fb5a8379717f3facd61897c6a
+#2636 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s4/train/run36/wt/2636 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s4/train/run36/wt/2636' is not a working tree); remove it by hand
+TRAIN HOLD released
+TRAIN DONE

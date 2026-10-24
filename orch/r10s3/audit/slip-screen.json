@@ -1,0 +1,110 @@
+[
+  {
+    "pr": 1975,
+    "ask": "Issue #1930 fold (e): \"Option (e), skipping a driver on a mutant line it never executes, is recorded as deferred: high risk, needs a 595-row replay.\"",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/issues/1930",
+    "verdict": "CONFIRMED-SLIP",
+    "delivered_by": null,
+    "evidence": "PR #1975, which closed #1930, implements (a)-(d) and the two carried items only; its body never mentions (e). Roster group R9-F10.16 is stage done in dev/programme/rosters/wave-r9-groups.json. The ask's only surviving text is that done group's brief (line 6684) and PLAN-TABLE.md:167 — no open issue, no carry, no group. Search: grep -n 'lazy_drivers|never executes|skip.*driver.*line' tests/mutation_table.py returns no such logic (REF_DRIVEN/EXCLUSIVE unchanged; (b) was rejected). No later PR or issue names the 595-row replay.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2393,
+    "ask": "\"With no indoor entity configured, ThermalState.room_temperature keeps its 21.0 C constructor default ... _async_learn_house_heat_loss has no other gate ... This belongs to the D1 (robustness) / D2 (physical sanity) brief ... it is named here for the orchestrator to route.\"",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2393",
+    "verdict": "CONFIRMED-SLIP",
+    "delivered_by": null,
+    "evidence": "Neither dev/governance/dimensions/D1.md nor D2.md mentions indoor, room_temperature or this learner (grep -ni 'indoor|room_temperature|learner' D1.md D2.md). Round-10 D1/D2 evidence has no such finding. The code is unchanged on main: coordinator.py _learning_frozen's comment (lines 6385-6388) says a slot the user never configured 'must NOT freeze learning', and _async_learn_house_heat_loss (5002) replays ctx._current_state.room_temperature, whose default is ThermalState.room_temperature: float = 21.0. Search for a later delivery: no issue, no roster group, no dimension-brief text.",
+    "confidence": "high"
+  },
+  {
+    "pr": 1763,
+    "ask": "\"The P2/I5 catch-all split: DEFERRED to a later round ... it is deferred to round 10 with a detector-first pre-study (tvofi's ruling 2026-09-29, decision-3 row in the plan of record)\" — the round-10 pre-study was to measure detector candidates against both classes' members before any rows move.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/1763",
+    "verdict": "CONFIRMED-SLIP",
+    "delivered_by": null,
+    "evidence": "The obligation survives only in dev/programme/plan-2026-09-open-issues.md:99 and the record row dev/programme/delivery/1762.md. None of the 91 groups in dev/programme/rosters/wave-r10-groups.json names it (grep 'catch-all|P2/I5|detector-first' over dev/, dev/programme, dev/governance matches only the plan and bugclasses mechanism_note). No round-10 pre-study artifact measures detector candidates; round-10 CATCHUP/JUDGE/LEADS do not mention P2/I5. Round 10 is the named later round and it ends without it.",
+    "confidence": "medium"
+  },
+  {
+    "pr": 2114,
+    "ask": "\"`tests/README.md`, the one stale citation left -- it cites the kernel-gap instrument at `tools/audit/harnesses/k1725_blas_kernel_gap.py`; the file is `dev/audit/harnesses/k1725_blas_kernel_gap.py` ... `tests/README.md:272` is still owed there as well ... Flagged to the orchestrator for whoever owns the doc.\"",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2114",
+    "verdict": "CONFIRMED-SLIP",
+    "delivered_by": null,
+    "evidence": "tests/README.md:272 on main at #2489 (990e90af9) still reads `tools/audit/harnesses/k1725_blas_kernel_gap.py`; `ls tools/audit/harnesses` is ENOENT and the instrument is at dev/audit/harnesses/k1725_blas_kernel_gap.py:41. The sibling instances in CLAUDE.md and fixer.md were re-pointed by #2072 (commit 71f7a612a), so the fix pattern is demonstrably findable; this one was not carried anywhere (no roster carry, no issue).",
+    "confidence": "high"
+  },
+  {
+    "pr": 2408,
+    "ask": "\"`policy_lint.mjs`'s `cmdRecord` write path: no fixture drives `--record-known-bad`, which is how a crash on every call went unseen. ... A pin belongs in `policy_lint_mutants.mjs`'s fixture drive. It is owed and stays open: that file is outside this group, so the orchestrator dispatches it (out-of-scope findings get fixed).\"",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2408",
+    "verdict": "CONFIRMED-SLIP",
+    "delivered_by": null,
+    "evidence": "grep -rn 'record-known-bad' tools/policy/policy_lint_mutants.mjs tools/policy/fixtures returns nothing; the mutants file drives LOOP_CHECK_NAMES and the corpus lane but has no arm for the --record-known-bad write path. No later PR (the file's record lane, #2422-era CI wiring) adds one; no roster group or carry names it. A later delivery under a different spelling cannot be ruled out from the file alone, hence medium.",
+    "confidence": "medium"
+  },
+  {
+    "pr": 2006,
+    "ask": "Null control: issue #1955 folds (a)-(d) -- clamp planned levels to [p_min, p_max]; flow setpoint follows the planned level; freeze the heat-loss learner when the probe reports no measured power and no duty-cycle mechanism; refuse the duty-cycle reading of sub-minimum levels.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/issues/1955",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "2006",
+    "evidence": "PR #2006's body enumerates (a)-(d); the tree carries each: optimizer.py project_planned_levels/levels_clamped (a), CONF_FLOW_HEAT_C + mixing_valve.flow_setpoint + optimizer.py:5302 (b), learner_unmetered/coordinator.py:2601 (c), planned_draw_runs/planned_draws_run (d). Fold (e) is the known exemplar and is excluded from the counts.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2024,
+    "ask": "Null control: issue #2016 items 1-3 -- the flow_meter_entity key, unit conversion, and the options-step sensor selector.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/issues/2016",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "2024",
+    "evidence": "custom_components/heatpump_optimizer/flow_meter.py exists; const.py:1111 CONF_FLOW_METER_ENTITY; the options field and measured_heat_output_kw are in the tree; #2024's body claims items 1-3 explicitly.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2118,
+    "ask": "Null control: issue #2016 item 4 -- the learners replay measured heat when a flow meter is present (item 5's model-side acceptance).",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/issues/2016",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "2118",
+    "evidence": "thermal_model.py:2632 and 2728 take measured_heat_kw and spend it in place of cop*electrical_power; coordinator.py:6180 references flow_meter.observe_water; #2118's body closes #2016 and names the harness dev/audit/harnesses/ux10_flow_into_model.py, which is in the tree.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2072,
+    "ask": "Null control: #2116's finding that CLAUDE.md and fixer.md still told seats to write harnesses under tools/audit/harnesses/ while tests/layout.py refuses it.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2116",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "2072",
+    "evidence": "CLAUDE.md:156 now reads 'per-group harnesses in dev/audit/harnesses/'; commit 71f7a612a ('fix(rca): the retired harness path is named by policy') is the change, merged as PR #2072.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2421,
+    "ask": "Null control: #2421's 'Not carried: merge_pr.sh's self-test is not wired into a workflow ... wiring it is the orchestrator's to dispatch'.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2421",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "2422-era instrument-self-tests PR",
+    "evidence": ".github/workflows/governance.yml:550 runs `bash tools/audit/seat/merge_pr.sh --self-test`; commit ebc770b80 ('ci(governance): run every seat self-test in instrument-self-tests') added the whole seat self-test block.",
+    "confidence": "high"
+  },
+  {
+    "pr": 2396,
+    "ask": "Null control: #2396's stale sentence 'a GITHUB_TOKEN push creates no pull_request run' in dev/governance/rules/ci-autofix.md.",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/2396",
+    "verdict": "LANDED-ELSEWHERE",
+    "delivered_by": "commit c084cc242",
+    "evidence": "dev/governance/rules/ci-autofix.md:78 now reads that a GITHUB_TOKEN push's pull_request runs are held action_required (since 2026-10-15); the correcting commit is c084cc242 ('ci-autofix.md, merge_train.py: a GITHUB_TOKEN push's pull_request runs are held, not absent').",
+    "confidence": "high"
+  },
+  {
+    "pr": 1721,
+    "ask": "\"Cheaper detector: field coverage's ruleset arm could also load the object as the Actions token sees it. That is owed to a root-cause seat and is not built here.\"",
+    "source_url": "https://github.com/tvofi/heatpump_optimizer/pull/1721",
+    "verdict": "UNPROVEN",
+    "delivered_by": null,
+    "evidence": "tools/policy/counts.mjs has RULESET_TOKEN_HIDDEN and TOKEN_HIDDEN_SKIP_RE (the fix this PR itself landed) but no arm that reads the object as the Actions token sees it at ruleset-level; no RCA document naming the detector or a recorded refusal was found among dev/audit/rca/*. What would settle it: an RCA entry that either lands the detector or records the refusal root-cause.md permits.",
+    "confidence": "low"
+  }
+]

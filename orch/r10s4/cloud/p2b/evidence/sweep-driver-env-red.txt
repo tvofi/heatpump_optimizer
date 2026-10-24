@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tools/audit/seat/sweep_driver.py", line 150, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tools/audit/seat/sweep_driver.py", line 135, in main
+    return sweep_driver_selftest.run_self()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tools/audit/seat/sweep_driver_selftest.py", line 166, in run_self
+    checks = run_checks()
+  File "/Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tools/audit/seat/sweep_driver_selftest.py", line 67, in run_checks
+    d = w.driver(chain)
+  File "/Users/timmalmstrom/hpo-seats/r10s4/p2b-coord/tools/audit/seat/sweep_driver_selftest.py", line 54, in driver
+    return D.Driver("o/r", 7, "tree/tools/ci/gate.py", chain, self.gh, self.spawn, self.out.append,
+           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    self.sleep, lambda: self.t, **kw)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Driver.__init__() got an unexpected keyword argument 'env'

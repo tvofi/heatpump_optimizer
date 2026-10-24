@@ -1,0 +1,140 @@
+2549	09ad7e4f750bfee78b18221d68eae0580fef3d3a	ce9a722a1ecbc50d6fb84a715cc84566	fire-owed
+2513	6b46b4f8ba93ae7574312493a03fd7e0c1d2b725	99034209417c54cc2ba8a44f34229a0c	relay-rc0
+2529	38ec7c60f5d536580a0deddf6c0342a1862f34e6	753fbd51dfffbae90431ade82369497b	relay-rc0
+2544	d4ab722b919b0b07917122bfe0479247bf3b989a	9bb2f26885d4acc59d4a6edd5dcf6555	relay-rc0
+2547	90bab078d19dd6aebba140fa360576b7780a560a	43ea241b40ae10814cc74e8b5440c87c	fire-owed
+2548	daac94b439baf15b1ce8ea6c39bc73731eb076c6	a750134988b08f27aa567c2e73c5fce0	fire-owed
+2525	eda11668ae28b26d1efcb841e8e60431dec97590	45db6e377505caa99814f8b5419601d0	relay-rc0
+2527	d0cdac2ef92e5689358063830526539b795aa52a	98e8d4b4e5cccc1c861f948340fa10bf	fire-owed
+2556	1beed40bfefac3265b2c2dd8551a0b51d47f9ade	8050f8455f4c5acf6630039ed48b434c	fire-owed
+2527	d0cdac2ef92e5689358063830526539b795aa52a	98e8d4b4e5cccc1c861f948340fa10bf	cse_01KzkfCvmfzynFBP1CoGEW3A	fired
+2556	1beed40bfefac3265b2c2dd8551a0b51d47f9ade	8050f8455f4c5acf6630039ed48b434c	cse_01FrNEycCpiT965XZQXCW1JB	fired
+2555	50b73644b8eab70a44cdfb7b67c446f6f1fd86b6	c4e633e0f4796305913a4862e408cf14	fire-owed
+2555	50b73644b8eab70a44cdfb7b67c446f6f1fd86b6	c4e633e0f4796305913a4862e408cf14	cse_0189QEjNaqppBVixi8PZPSv3	fired
+2560	f8694ba2d73595da723f0de3ed78c3e05df78b3d	60c0cd20873ffadd8b9124823443ac67	fire-owed
+2560	f8694ba2d73595da723f0de3ed78c3e05df78b3d	60c0cd20873ffadd8b9124823443ac67	cse_01SmbejhZgNNfhxrN4cqAr2L	fired
+2559	2534cd419eaed42fec07d25f9340fecdc852959c	26fd5e9daaf3a772abf9ca012513e074	fire-owed
+2559	2534cd419eaed42fec07d25f9340fecdc852959c	26fd5e9daaf3a772abf9ca012513e074	hold
+2561	1019d18de448a9569c65a704410c331046cbe868	886cfba8620475ae99447f6d9eef5cb3	fire-owed
+2527	d0cdac2ef92e5689358063830526539b795aa52a	98e8d4b4e5cccc1c861f948340fa10bf	posted-verified	Fix review: blocked d0cdac2 comment present at head
+2547	90bab078d19dd6aebba140fa360576b7780a560a	43ea241b40ae10814cc74e8b5440c87c	posted-verified	Fix review: merge comment present at head
+2556	1beed40bfefac3265b2c2dd8551a0b51d47f9ade	8050f8455f4c5acf6630039ed48b434c	posted-verified	Fix review: merge comment present at head
+2560	f8694ba2d73595da723f0de3ed78c3e05df78b3d	60c0cd20873ffadd8b9124823443ac67	posted-verified	Fix review: blocked comment present at head
+2548	daac94b439baf15b1ce8ea6c39bc73731eb076c6	a750134988b08f27aa567c2e73c5fce0	posted-verified	Fix review: blocked comment present at head
+2561	1019d18de448a9569c65a704410c331046cbe868	886cfba8620475ae99447f6d9eef5cb3	posted-verified	Fix review: blocked comment present at head
+2555	50b73644b8eab70a44cdfb7b67c446f6f1fd86b6	c4e633e0f4796305913a4862e408cf14	awaiting-probe	fired session cse_0189QEjNaqppBVixi8PZPSv3
+2557	01d7ac8c75533bf9e4eff9cbc73d5205a65d6f1f	-	row-missing	no dispatch until dev/programme/delivery/2557.md at head
+2559	103b1118b2b2e23a18b413ec6b983c0127c9d7ec	-	hold	PR head moved from 2534cd41; hold for final head
+2555	50b73644b8eab70a44cdfb7b67c446f6f1fd86b6	c4e633e0f4796305913a4862e408cf14	posted	VERDICT merge, review/2555 740c3567, comment posted 12:18Z
+2559	39f465739706edd44c7446a7cdebc0e0c5b30091	d63af2393eeaa21f6c75c7b3e356a3b6	cse_01UDA4CiHpH9fNeojZKQ8ibH	fired
+2531	708927198d91ca8cfbc79d1843cf401904782d6d	a7f748b64d36d03677e8c6487ff5cf32	cse_01PJx8WwY86KpWNTXVRVA1sd	fired
+2560	085a4cafa84022120460fd23701a21883321536f	fa6eb2e975611e9aca353f4d9f00ea4d	cse_017Lf121BCniuUjr31zJyYH9	fired
+2548	f2f204fc3ed608a69b56ee9ebc0c2eee23e74dc1	2246ae046f7e4d4683a374de41c516aa	cse_01QMPVFCJTzMGYMUpRQEm8kp	fired
+2529	044edcc2b32ef6fb9172b79bfc169c7beeb0dc38	5a067b503faa6da9926b251336626c65	cse_012XuFoH9u4nvSb11arE7SBc	fired
+2557	01d7ac8c75533bf9e4eff9cbc73d5205a65d6f1f	-	row-missing	30 min elapsed 12:44Z; no row at head
+2563	829ea7c7238d62293a58bb9d9625e844ac7fd09d	4781a1280f18f8b3240d780b7dc421bf	cse_01KabicmP1Fm1QbTQZnXSJHV	fired
+2567	93015ecada7190edc054e49a47538704b14e1f34	68a19d6bd6420145d20641357a1b572a	cse_01J2ct7j7s4XKxogw2uZhD51	fired
+2559	5756617f185bbed71852ed1273c19b1e45787c9d	a8bfe1057ec1aa34a14f6aae1d415383	cse_0145KEiCeuoFzo5deEU2Vw5Q	fired
+2527	d809c1f30f02b417dfd2d29ac5a98b6dd2803a55	3417d19a57ee47d2124a34be56bab9b1	cse_01EiNy3r9ThaDQ5ckdgg22A2	fired
+2560	2108fcb09ef16a53119dedb8b731bd89f0fea0ad	6abf0de1f258dffa046f06ddd148adc0	cse_013otQYziTpeUd2JcdVR5Gvf	fired
+2559	2e77ed3e6aa2f03565bd02274ac847227bc619b5	a3eee38c3144cc46f38b3f801f78f093	cse_01FjKPqBWHMNyHgRW6K58pDJ	fired
+2559	802b38503eb5de20e87c278ba7923508a50c0f1f	3b1255fa5a49d4c6524da1bfde40756b	cse_01UVRZvTtYAVpMEkYZnknSdy	fired
+2521	a85e97a7325fc48767ba5abb1ec4c6fb92506939	7b4fa5ee6cfb88d3dab2c78e78093b49	cse_013ewFtb4ZiGCNtFHeQMno9t	fired
+2524	c071fa5f37abdac0da2284547b9282549eb4d607	1253d5aed794d2d9b104a3b1dd1921e3	cse_01H7xtUgZm7p2TkzKrEKwLua	fired
+2528	b18052f664039d36da73ef745a2a8423f82d2c46	6f43192ea7aa130e69cbd1ebe0306a7b	cse_01QwrV4L5wW7ZeBvGCdXdjXG	fired
+2567	f16956542b2c4470de5a3e12fc843f97cef1840e	add37b67f64bb470070faa4b0f8e06af	cse_01M2K6g1oKvEveu1DbmJ1F7b	fired
+2571	90788b1e5ea8ce015e7ae6c432d308d7a5aab476	4754a76a2b269a20cfbe6c86d9b4e3a8	cse_01LoPLkQgkQDrvKRCz9fD64m	fired
+2559	802b38503eb5de20e87c278ba7923508a50c0f1f	ac5fc7de21c9800a844568dec61b4152	cse_01REYimUh6AoMnUKAKEk14WK	fired
+2570	4a97526f61d754a4e833882d1fe2f8344ccae973	30159a7900c7363a6498f101d0bf8479	cse_01SJ4722NMpu1iibhWyySCe9	fired
+2559	802b38503eb5de20e87c278ba7923508a50c0f1f	8ddeb923d0afccbb941906ea350d89f1	cse_01CGscwcVamW57usqvgPgZFP	fired
+2569	5ffbaaaeb827f184ed44abd9ead267ee8e626b08	277db9ac1c42a10b967e4edadf5a17d4	cse_01JdStuHmWdScRsruieWdrRB	fired
+2549	61fd4f27cbd3e3e3eb092044b6e55fa24028683f	347dd5f47f9a56ca94bb88316fc66043	cse_0184YcRLHgaP5h8qMNoaApzy	fired
+2567	54bf182104e450c0ac2e6eb007da59b9315e0565	b1b280e7efb0939ec05a8f6b4be26f74	cse_01VkZC7ykAPYhHnJqhtptnxB	fired
+2572	21eeb5b2325bf6a99f2a282f2e38bafbee44ab70	e25f00fd7f5d87509e4099b38b59be1b	cse_01LD5emKtUEtMT9UKQMzTaC2	fired
+2563	9851d39de867653f4fdc4412c3a1eea8dcb5f7b3	4004edbfe5086f63375b4065c95e4a1d	cse_01WXLfE3Vh9PERQLUrJbjwHA	fired
+2571	cb48de247b39b47ffe9e010689f8ff4f971b7e32	aa42fa3468a15c64be454da5c30aa04d	cse_01B7wkAmPPFRDaKv1TZvkhVK	fired
+2567	54bf182104e450c0ac2e6eb007da59b9315e0565	84c4ff91ffe593f474b8b71e65da7c72	cse_01BpXsDn8DqG4u7q84Hr6NUM	fired
+2576	df70cb6bca69c7b1717abcc317233ff1bc994df3	4d0edcbf69127fde5d9f909abc74dedc	cse_012oHbnQZgV6EbNqmE5cgUFi	fired
+2572	441d19932f40475ddc0420f3b67ba8d90202eb2c	cecf419ef61f5daf10cddb3679e265ca	cse_01LrYDG34S11UYbnV2EtP5AY	fired
+2569	8c008227a25192fc542bca64abbd4098a2862d1a	060a085f4ed98e9def007eee9b4aa4d7	cse_01FYVBYeNxM6tKjVY22zzNai	fired
+2575	ea5f660303823ce04ed55af4022b4f7064ee403e	393597344df1a6c95b4c1280a13dcad9	cse_01AAERipuXiSKvDe6G6XQuZk	fired
+2578	50c4a681d0e3bee30e415a1ecc663ff5eab158f8	a40c3488651515a962e45d98fbdbf21c	cse_019v6Q897z3GZiG9GU2wAJda	fired
+2622	67942203677a3a416fc84e25161a614390c67a99	dcdc56547551e7a48656f24e4ac922ea	-	fire-owed
+2622	67942203677a3a416fc84e25161a614390c67a99	dcdc56547551e7a48656f24e4ac922ea	cse_01GLgt5916ByuqPtBLwdtS3M	running
+2625	10a490f9bc77f1bf148b3774eb6b830eadd3d4c8	-	row-wait	R10-RCA-BODY-LINT; row not at head yet at 21:2xZ; waiting
+2622	91f2bcd4c236095d621f238d44a6ae005e3df220	dcdc56547551e7a48656f24e4ac922ea	note	head moved from 67942203 (orchestrator: pure merge of main); do NOT dispatch for 91f2bcd4; still relay probe/rev-2622-dcdc5654 then push-verdict; report VERDICT + review sha
+2626	d0df7ed3b792cd98378a943e0f825cb8e92863f8	-	wait-stable	R10-ROSTER-OPS batch 15; row present at d0df7ed3; head moved 21:31Z; waiting 10 min stable (stable-2626.sh b1ia5wa94); reviewer model sonnet
+2625	10a490f9bc77f1bf148b3774eb6b830eadd3d4c8	-	cancelled	row watch cancelled by coordinator; round-2 fixer cse_01AaMioVXV8Bpbz6Eth549vE out; await fresh REVIEW 2625 line; do not report row-missing
+2622	91f2bcd4c236095d621f238d44a6ae005e3df220	dcdc56547551e7a48656f24e4ac922ea	cse_01GLgt5916ByuqPtBLwdtS3M	merge-at-stale-head-not-confirmed; relay-refused already-relayed 655760e9
+2626	d0df7ed3b792cd98378a943e0f825cb8e92863f8	66cf77efbcb76efa54736fcf10dc1376	fire-owed	sonnet reviewer json at cloud/rev2626.json; RemoteTrigger unavailable to this seat
+2626	d0df7ed3b792cd98378a943e0f825cb8e92863f8	66cf77efbcb76efa54736fcf10dc1376	abandoned	coordinator hold: roster re-take moves head to c7fd0568; dcdc/66cf nonce at d0df7ed3 abandoned; rev2626.json not fired
+2627	5932ebf55b7088286f8be86a248778d0de4d368e	-	wait-row	REVIEW 2627 first (opus, 26h null control, nightly_status API read once); row missing 21:53Z
+2628	de20d0c7206b2f73ccf4702229dba50d47fb8d1c	-	wait-row	REVIEW 2628 (opus, nudge/orchestrator prose); row missing 21:53Z
+2627	9452b548	-	hold	coordinator hold: branch edits roster file, conflicts with 2626; carry_audit BAD-DEST; round-2 fixer out; fresh REVIEW 2627 will follow
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	88919d7150283ca7b820a8d4186cd07d	fire-owed	opus JSON cloud/rev2628.json; RemoteTrigger unavailable; head moved from de20d0c7
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	88919d7150283ca7b820a8d4186cd07d	fire-owed	opus JSON cloud/rev2628.json; RemoteTrigger unavailable; head moved from de20d0c7
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	88919d7150283ca7b820a8d4186cd07d	cse_01SKT5yCTbbXyH5Ue5LRrXbt	running
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	88919d7150283ca7b820a8d4186cd07d	running	coordinator fired cse_01SKT5yCTbbXyH5Ue5LRrXbt; watching probe/rev-2628-88919d71
+2626	6bee9961fa8bbb90d50392fee75a64ab88a3d8e2	53a94b8780c68537c4f9f363080130b1	fire-owed	sonnet JSON cloud/rev2626.json at stable ancestor head; RemoteTrigger unavailable
+2626	6bee9961fa8bbb90d50392fee75a64ab88a3d8e2	53a94b87	cse_019VCyuPMeKadAWdNtrq6dAK	sonnet	2026-10-22T22:07:36Z
+2626	6bee9961fa8bbb90d50392fee75a64ab88a3d8e2	53a94b8780c68537c4f9f363080130b1	running	coordinator fired cse_019VCyuPMeKadAWdNtrq6dAK (sonnet); watching probe/rev-2626-53a94b87
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	ba85b07cfb7e42ec123227d996fab998	fire-owed	round 2 sonnet JSON cloud/rev2628-r2.json; RemoteTrigger unavailable
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	ba85b07cfb7e42ec123227d996fab998	running	round 2 fired cse_01R36Rk4dWeHysjt87eUGiEg (sonnet); watching probe/rev-2628-ba85b07c
+2629	3fd42d9539ee90e5bf409593ff681f748db76f6e	5c5034eb7c7f033d16bcd621330debde	fire-owed	opus JSON cloud/rev2629.json; RemoteTrigger unavailable
+2629	3fd42d9539ee90e5bf409593ff681f748db76f6e	5c5034eb7c7f033d16bcd621330debde	running	fired cse_01R7tm8VpDL13ebbw8ZQNby4 (opus); watching probe/rev-2629-5c5034eb
+2628	ced4bf66e91d3c61254066c310f1f9af7ea064ef	ba85b07cfb7e42ec123227d996fab998	posted	round 2 VERDICT merge, review b769c6e1, bus confirm rc recorded above
+2627	48e8c29b7ffe23df442d563b7ae81d81e7475d4e	fe39a9af50baca9487d87c76abdfe040	fire-owed	round 2 opus JSON cloud/rev2627-r2.json; RemoteTrigger unavailable
+2627	48e8c29b7ffe23df442d563b7ae81d81e7475d4e	fe39a9af50baca9487d87c76abdfe040	running	round 2 fired cse_01BAiH63udbzbmc2jVLQ2f8X (opus); watching probe/rev-2627-fe39a9af
+2625	960135738416bf6b23cc6552923c392ca9cedc2c	d7b9da0aaa204d1fe6601a439354e76d	fire-owed	round 2 sonnet JSON cloud/rev2625-r2.json; RemoteTrigger unavailable
+2625	960135738416bf6b23cc6552923c392ca9cedc2c	d7b9da0aaa204d1fe6601a439354e76d	running	round 2 fired cse_01Q1ZzoDXTdmq9riWr4AXbwC (sonnet); watching probe/rev-2625-d7b9da0a
+2631	8b33d02131529b27f2ea9848fe33d8270f8f14d0	6f9adbfef62bc13332372cbf77d1dd77	fire-owed	opus JSON cloud/rev2631.json; RemoteTrigger unavailable
+2631	8b33d02131529b27f2ea9848fe33d8270f8f14d0	6f9adbfef62bc13332372cbf77d1dd77	running	fired cse_01S8CmZgiE7WtVG8xd2dKSGg (opus); watching probe/rev-2631-6f9adbfe; if merge, tell merge seat adbb9a7f770bf8720 (policy, --mandate train)
+2627	48e8c29b7ffe23df442d563b7ae81d81e7475d4e	fe39a9af50baca9487d87c76abdfe040	posted	round 2 merge, review e67428ba, probe 901d2879 already relayed
+2632	86b3fe71d656949c8bd07e802c284316acbe825f	a4ff63829f6c447b70bd04d472650dc7	fire-owed	opus JSON cloud/rev2632.json; RemoteTrigger unavailable
+2633	7804d813a7134b9a03ae39c64a7d24dedba69e6c	5d7cbe37a46d2d4c38abfacdae8414d7	fired	opus cloud/rev2633.json cse_019JDrDgvrheqHJE3C8dDRda
+2629	3fd42d9539ee90e5bf409593ff681f748db76f6e	5c5034eb7c7f033d16bcd621330debde	posted	probe 053ea3e9 already relayed; bus confirm on 4ea6c955abe8565abc8c57a31c24731409158867
+2633	8cb08929c3cee3ea7e1252f95538f3e3b93692ab	19426281adf66339d3e838af3fcea571	fired-r2	opus cloud/rev2633-r2.json
+2635	7a3e640d01ffdfe3e74c64fc4e3ede06c087489c	279700e0b22d4a13777ed23c6b7936a3	fired	sonnet cloud/rev2635.json
+2632	ab6216cee6b688b45d6f4b89b70f84563307cacc	cd543cebd2d8ecc87b43aaf1f0b5e309	fired-r2	sonnet cloud/rev2632-r2.json
+2636	328e222fe8d3b4fe92ad9e37724fcc62bad55da8	e881976bd7e564ebf68a0268f794f870	fired	opus cloud/rev2636.json
+2637	0662d20c57d24742da549682641da687477557ab	090182c644a59de1f240fecfc6e150c3	fired	sonnet cloud/rev2637.json
+2629	b7d2b645faf0a440f269b5734d16025058d53e61	8d5be6d3893125ceb8861682c4cb8703	fired-r2	opus cloud/rev2629-r2.json
+2638	3f5400667c3a726b1d63c2f861f83488a80fadf4	508cecf4b349a024fb05e981235af1d5	fired	opus cloud/rev2638.json
+2026-10-23T01:58:37Z	2633	3dc9ae19b33be293d7eb9fb07116b014427a2aa5	probe/rev-2633-f6f116a2
+2026-10-23T02:26:45Z	2641	ea1cde9fd3f95ab13d6d2c2e834a672af44850b5	probe/rev-2641-487840aa
+2026-10-23T03:00:17Z	2643	fc0ab7733e0511f56a4359bc02ea859a4868a898	probe/rev-2643-467c3190
+2026-10-23T03:22:09Z	2645	ad62bf6346a131111ea482185caa2813e9851a19	probe/rev-2645-da7eafe3
+2026-10-23T03:25:25Z	2639	b79c3d4f69bb603ec559ceb2f19f974c917b72f3	probe/rev-2639-369e5c9b
+2026-10-23T03:38:49Z	2639	fixer-r3	handoff-body/r10-fly-gh-read-retry-2
+2645	ad62bf6346a131111ea482185caa2813e9851a19	da7eafe36d7cad6ecc675da0f5632b30	-	awaiting-probe	relay seat 4 took over from seat 3; probe/rev-2645-da7eafe3 not yet on origin
+2632	577ec62dbb35f2353902b5bbe5adb37b69805af2	0d5b2b364ff8c8e510778510c8fdba8e	-	fire-owed	round 3 opus JSON cloud/rev2632-r3.json; brief cloud/rev2632-r3-brief.md; RemoteTrigger unavailable to this seat
+2645	ad62bf6346a131111ea482185caa2813e9851a19	da7eafe36d7cad6ecc675da0f5632b30	-	posted	VERDICT blocked mutation-vacuous; review/2645 58a50a1a; relayed probe cc55f387
+2632	577ec62dbb35f2353902b5bbe5adb37b69805af2	0d5b2b364ff8c8e510778510c8fdba8e	cse_01BH3oxMdddzSZojuU4z7dGb	running	coordinator fired rev2632-r3.json; watching probe/rev-2632-0d5b2b36
+2645	ad62bf6346a131111ea482185caa2813e9851a19	da7eafe36d7cad6ecc675da0f5632b30	-	posted	bot comment for 58a50a1a already present; bus.sh confirm skipped
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	a96f1712ed4f4075e30975a04ce2def5	-	fire-owed	round 2 opus JSON cloud/rev2645-r2.json; brief cloud/rev2645-r2-brief.md; RemoteTrigger unavailable to this seat
+2646	bd74ad8c23f88c5a1ef19565d1eb9b38e2bde210	6d30140f90503ca22c2def0ea6b1c122	-	fire-owed	sonnet JSON cloud/rev2646.json; brief cloud/rev2646-brief.md; RemoteTrigger unavailable to this seat
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	a96f1712ed4f4075e30975a04ce2def5	cse_01BhLagvgyMxNtUopc7Ma8cc	running	coordinator fired round 2; watching probe/rev-2645-a96f1712
+2646	bd74ad8c23f88c5a1ef19565d1eb9b38e2bde210	6d30140f90503ca22c2def0ea6b1c122	cse_01F9fzg1CcUEgFq7RApeo4Gq	running	coordinator fired; watching probe/rev-2646-6d30140f
+2647	19319cc135899015bfc34e8832580665e43a3b80	-	-	row-wait	REVIEW 2647 opus; row missing at head; watching 30 min
+2647	ff6cfdaabc39647855987ae54fed4a3449eb2c47	c6edd5b09341e954f6a0552c0ad06492	-	fire-owed	opus JSON cloud/rev2647.json; brief cloud/rev2647-brief.md; head moved to ff6cfdaa (row present)
+2646	bd74ad8c23f88c5a1ef19565d1eb9b38e2bde210	6d30140f90503ca22c2def0ea6b1c122	cse_01F9fzg1CcUEgFq7RApeo4Gq	posted	VERDICT merge bd74ad8c; probe af0ed574 already in cloud-relayed (my relay refused as already relayed); review/2646 7d3db846
+2639	1cf9ca11b30c639c7608f549ba94a08e9b3f10b1	999f1fb7227192fc4ed414eaeb1919e5	-	fire-owed	opus JSON cloud/rev2639-r3.json; brief cloud/rev2639-r3-brief.md
+2636	4e1c57d5af1326cd61578d3bbf8751f7865a4ffb	9329e3e04f3dab9017782b1f82a8fc34	-	fire-owed	sonnet delta JSON cloud/rev2636-delta.json; brief cloud/rev2636-delta-brief.md
+2639	1cf9ca11b30c639c7608f549ba94a08e9b3f10b1	999f1fb7227192fc4ed414eaeb1919e5	cse_012EXipXywMGJXgd1L4KhR7M	running	coordinator fired round 3; watching probe/rev-2639-999f1fb7
+2636	4e1c57d5af1326cd61578d3bbf8751f7865a4ffb	9329e3e04f3dab9017782b1f82a8fc34	cse_01HFGqeMxpNVsKg7ZE41da85	running	coordinator fired delta; watching probe/rev-2636-9329e3e0
+2646	bd74ad8c23f88c5a1ef19565d1eb9b38e2bde210	6d30140f90503ca22c2def0ea6b1c122	cse_01F9fzg1CcUEgFq7RApeo4Gq	posted	confirmed by main (BUS e5122bb4); nothing owed
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	c978149a1d6a175005643361cd8a54bf	-	fire-owed	sonnet re-check JSON cloud/rev2645-recheck.json; brief cloud/rev2645-recheck-brief.md
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	c978149a1d6a175005643361cd8a54bf	cse_01GGEVf5sJe9wDinYm9krmX8	running	coordinator fired re-check; watching probe/rev-2645-c978149a; then bus.sh confirm
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	a96f1712ed4f4075e30975a04ce2def5	cse_01BhLagvgyMxNtUopc7Ma8cc	posted	round 2 VERDICT blocked carry-missing 05b9c1d5; review/2645 986370a2; relayed probe 86884d52 at 05:01:14Z by round-2 watch (exited)
+2620	72fbab2a719ce14870aa3284a35d043ea1b9588d	654004be88378fbedacb0dc55dea4c83	-	fire-owed	opus JSON cloud/rev2620-r3.json; brief cloud/rev2620-r3-brief.md
+2620	72fbab2a719ce14870aa3284a35d043ea1b9588d	654004be88378fbedacb0dc55dea4c83	cse_0189KMgus5KkvcFoig2ZpQg2	running	coordinator fired round 3; watching probe/rev-2620-654004be
+2645	05b9c1d5383cf9ca7e2cd5310914897960244301	c978149a1d6a175005643361cd8a54bf	cse_01GGEVf5sJe9wDinYm9krmX8	posted	re-check VERDICT merge 05b9c1d5; review/2645 e27cee87; probe 7371aef5 already in cloud-relayed (relayed by another seat before this watch)
+2651	a94b798df61fa52a1b05cd24fd477759d3a43f8c	-	-	row-wait	sonnet roster batch 21; row missing at head; 30-min watch
+2651	a94b798d	-	-	hold	coordinator: row at 539725d1, roster adds R10-FLY-NO-FOOTERS-EMITTERS; do not dispatch until final head
+2651	2bb638af88f6373fe208dd2e57676dfac723bec8	4c449d579ce051cacc85535029ceb8b0	-	fire-owed	sonnet JSON cloud/rev2651.json; brief cloud/rev2651-brief.md; row present
+2652	0a6dff9438c3fccebf20efdd2224d9ced0afa841	ae629214c422ab4022142464b87ae34c	-	fire-owed	sonnet JSON cloud/rev2652.json; brief cloud/rev2652-brief.md; critical path
+2647	488cbef71b0ded138cd75b0f1ea0542350a6f52b	2fe32f1208ceef2db69dbff9efd478aa	-	fire-owed	opus round-3 JSON cloud/rev2647-r3.json; brief cloud/rev2647-r3-brief.md
+2651	91e37c0964e6c203108ae53814dcf1f0a0761bf1	1d6b263f3cd8c61f9744e55b6ce5008e	-	fire-owed	sonnet re-review JSON cloud/rev2651-r2.json; brief cloud/rev2651-r2-brief.md
+2655	462fece405799a633432692248eb5f4e6450e6be	-	-	row-missing	sonnet roster batches 22+23; bus dispatch refused (no row at head); 30-min watch
+2645	42cb7d1692680f3ebb41477d86be68bcc0a36321	09bb1e7be482a702394c58c21efbf7b5	-	fire-owed	sonnet delta JSON cloud/rev2645-delta.json; brief cloud/rev2645-delta-brief.md
+2655	fb8351f624a6cbc4602c22828892bc7ce25c52af	2bc0089477583c66bd0cd1840475b099	-	fire-owed	sonnet JSON cloud/rev2655.json; brief cloud/rev2655-brief.md

@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2368,
+    "phase": "pre-flight",
+    "reason": "recarry: fix/r10-pump-model-d2 is already checked out at /Users/timmalmstrom/hpo-orch/r10s3/train/b9/wt/2368; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree"
+  }
+]

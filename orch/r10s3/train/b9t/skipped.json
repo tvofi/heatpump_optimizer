@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2368,
+    "phase": "approve",
+    "reason": "#2368 code-owned and a budget file changed (tests/stress_budgets.json): a raise is the owner's (0013)"
+  }
+]

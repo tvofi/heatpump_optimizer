@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:gchv_schedule_ready RETURN_DEL 488dc1d9",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return all(get_state(eid) is not None for eid in night_mode_write_ids(prefix).values())",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=7."
+}

@@ -1,0 +1,6 @@
+===== daemonize pid=8819 2026-10-18T13:17:30Z argv: bash tools/audit/seat/update_pr.sh fix/r10-vent-detector 836f57ceea0ea5a8e94cb19ca4329e2c0968751e /Users/timmalmstrom/hpo-orch/r10s3/orch/b2391/BODY.md
+fatal: couldn't find remote ref fix/r10-vent-detector
+===== daemonize pid=11873 2026-10-18T17:23:40Z argv: bash tools/audit/seat/update_pr.sh fix/r10-vent-detector-pr 4d8e3aa031a0ebacbf8dc2660ba772cacc8d054a /Users/timmalmstrom/hpo-orch/r10s3/orch/b2391/BODY.md
+  REFUSE   'Closes #2241' closes #2241; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

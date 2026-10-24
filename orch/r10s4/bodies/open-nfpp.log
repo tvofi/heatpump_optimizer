@@ -1,0 +1,4 @@
+===== daemonize pid=55507 2026-10-23T13:32:06Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) r10-fly-no-footers-push-paths 8aefaa95bc7186fba6f8fa5fe8f662449f945586 R10-FLY-NO-FOOTERS-PUSH-PATHS: judge commit messages on every publishing push path R10-FLY-NO-FOOTERS-PUSH-PATHS
+open_pr: --over-cap is advisory: wave fixer return; opens are never refused by the soft cap (cap gates new dispatches only, 2026-10-20) (the cap gates dispatch, not opening)
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+PR=2668 HEAD=88c469c7eddca86e4f3d0d0dda98d1cde4541ad9 AUTHOR=tvofi

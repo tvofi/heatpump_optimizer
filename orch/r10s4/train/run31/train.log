@@ -1,0 +1,37 @@
+TRAIN pid=69634 queue=1 (#2633)
+TRAIN HOLD refs/heads/train-hold 88b727e2: the record beat waits
+TRAIN HOLD refs/heads/train-hold 7dd6fcb5: the record beat waits
+TRAIN HOLD refs/heads/train-hold c9865d9d: the record beat waits
+#2633 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-flow-arch-planner held fix/r10-flow-arch-planner, clean at origin/fix/r10-flow-arch-planner; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-flow-arch-planner switch fix/r10-flow-arch-planner)
+#2633 recarry START (branch fix/r10-flow-arch-planner)
+#2633 recarry: main merged, head 8fc8cc17; app_push: RECARRY: prepr SKIPPED: HEAD 8fc8cc17 is the clean merge of the live head 3dc9ae19 and origin/main's 4200ea4c, and the body is the live one
+TRAIN HOLD refs/heads/train-hold fc920666: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 2, t+242s, required: 14, concluded: 10/14)
+TRAIN HOLD refs/heads/train-hold f30a98c0: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 3, t+485s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold e5e9d8a6: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 4, t+727s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold ae88f7b8: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 5, t+969s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 59bb56ce: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 6, t+1211s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold fe103552: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 7, t+1454s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 3582d860: the record beat waits
+beat: waiting CI at 8fc8cc17 (poll 8, t+1696s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold f915fd09: the record beat waits
+#2633 8fc8cc17 ci red=[]
+#2633 policy head lands under mandate 6329234399 (scope all, from 2026-10-21T23:45Z until 2026-11-04T18:14Z)
+#2633 the owner's approval is at the head: 10 budget raise(s), first .claude/workflows/policy_budgets.json: corpus_tokens: 62892 -> 66434 (a cap went up): an agent approved this head 8fc8cc177e04 under tvofi's account, declared as an agent's, under mandate 6329234399 (scope all, from 2026-10-21T23:45Z until 2026-11-04T18:14Z)
+#2633 approved (owner)
+#2633 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2633 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+released /Users/timmalmstrom/hpo-orch/r10s4/train/run31/wt/2633
+TRAIN HOLD released
+TRAIN STOPPED #2633 merge: not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.

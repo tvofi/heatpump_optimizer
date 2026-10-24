@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor GUARD_OFF ab83f766",
+  "killed_by": "tests/entities.py",
+  "old": "        if not ok.get(\"upper_floor_temperature\"):",
+  "reason": "the #1495 mold-floor breach sensor's seed-room gate. `if False:` compares ThermalState's 21.0 degC constructor seed as if measured: the arm `a seeded (not measured) room publishes no floor` fails with floor=21.0 reading_ok=False room=21.0. rc=0 failed=0 -> rc=1 failed=1. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+}

@@ -1,0 +1,6 @@
+Re-review of PR #2528 (R10-PREPR-CLOSURES, branch fix/r10-prepr-closures) at head 10f85c3e: the fixer's round 3 plus a main merge. Round 2 was blocked at the probe ref probe/rev-2528-b5c87533 (read verdict.md there). Judge only what was open; do not re-litigate the items the round-2 reviewer verified (M0, M3wd, M3setm, M4sub, M1, M2, M6, the cheap-checks figures). Verify with the finder's harness:
+(1) Item 61eab2a5 / M7: the sleeper now forks a child, and every reap arm requires that child gone, read by `ps -o stat=` not Z (never kill -0). Build your own probe, modelled on the round-2 ev/lane-*.diff. M7 (`kill -TERM -- -"$rpid"` -> `kill -TERM "$rpid"`) must now fail, and the unmutated run must pass.
+(2) Item 3fc47a16 / M9: step 6b's own call site is driven or statically pinned. Putting prepr.sh's 6b back to `CLOSURES_LINE=$(closures_line "$BASE")` must fail.
+(3) Item 11113f3e: the sibling-seam carry is routed to a live owner. carry_audit check --body exits 0.
+(4) Every figure the change touches is re-measured at this head. ## Red checks answers every red check at this head (nightly-status grades main; main's ci-ratchet red is runner-speed variance owned by R10-CI-LAYOUT). merge-tree is clean.
+Standing rule 19 applies to every observation in your verdict. Follow dev/governance/roles/fix-review.md. First line `Fix review: merge <head>` or blocked.

@@ -1,0 +1,1 @@
+Ordering (tvofi ruling 2026-10-19, ci-ratchet folded into R10-CI-LAYOUT): stamp.py needs a green Tests push run on HEAD and main is red on ci-ratchet until R10-CI-LAYOUT lands, so this stamp runs after R10-CI-LAYOUT merges.

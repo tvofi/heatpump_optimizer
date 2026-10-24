@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:heat_loss_refit CMP_BOUND efb6e360",
+  "killed_by": "tests/features.py",
+  "old": "        if start is None or utc_elapsed_seconds(s.when, start) > 0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: CMP_BOUND (`if start is None or utc_elapsed_seconds(s.when, start) >= 0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

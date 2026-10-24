@@ -1,0 +1,32 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b6/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b6 pid=95612 start=2026-10-15T20:25:02Z
+BATCH 20261015-202502 pid=95631 base=main queue=1 (#2290) --overlap --skip-bad
+OVERLAP: main at 74cf47b9c402 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+tools/audit/seat/train.sh: line 199: 95631 Terminated: 15          python3 -u tools/audit/seat/merge_train.py batch "$queue" --repo "$repo" --state-dir "$state" --min-runs "$minruns" ${ignores[@]+"${ignores[@]}"} ${skipbad:+--skip-bad} ${overlap:+--overlap} ${mandate:+--mandate "$mandate"}
+TRAIN_RC=143 end=2026-10-15T20:25:15Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b6/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b6 pid=98194 start=2026-10-15T20:25:21Z
+BATCH 20261015-202521 pid=98200 base=main queue=1 (#2290) --overlap --skip-bad
+OVERLAP: main at 74cf47b9c402 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2290 serial: grader
+OVERLAP: recarrying #2290 up front, their pull_request runs fire together
+#2290 overlap: recarry start
+#2290 recarry START (branch fix/r10-services-guard)
+#2290 recarry: main merged, head 1d90f8d6; app_push: RECARRY: prepr SKIPPED: HEAD 1d90f8d6 is the clean merge of the live head 6561cd84 and origin/main's 74cf47b9, and the body is the live one
+serial: #2290
+beat: waiting CI at 1d90f8d6 (poll 2, t+241s, required: 14, concluded: 4/14)
+beat: waiting CI at 1d90f8d6 (poll 3, t+482s, required: 14, concluded: 10/14)
+beat: waiting CI at 1d90f8d6 (poll 4, t+726s, required: 14, concluded: 11/14)
+beat: waiting CI at 1d90f8d6 (poll 5, t+967s, required: 14, concluded: 11/14)
+beat: waiting CI at 1d90f8d6 (poll 6, t+1208s, required: 14, concluded: 12/14)
+beat: waiting CI at 1d90f8d6 (poll 7, t+1449s, required: 14, concluded: 12/14)
+beat: waiting CI at 1d90f8d6 (poll 8, t+1690s, required: 14, concluded: 13/14)
+#2290 1d90f8d6 ci red=[]
+#2290 approved (app)
+#2290 MERGED d8c13ac5bddfafad52ed385fca5a9d170608feba
+#2290 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+SKIP REPORT: 0 skipped of 1
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-15T21:00:08Z

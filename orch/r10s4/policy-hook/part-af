@@ -1,0 +1,172 @@
+hon, which on 3.11 refuses
+  main's own nested-quote f-strings under `no-copies` — the child python
+  unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
+  lines in real time), a pidfile refusing a second live train on the same
+  state dir, log and exit code under the state dir (`train.log`, `rc`), and
+  `--skip-bad`/`--overlap`/`--approval-carry`/`--bot-prs`/`--pre-flight`/
+  `--free-holders`/`--main-moved-tries N` passed straight through, each only
+  when given (a `0` default once passed `--skip-bad --overlap` on every
+  launch), and the child run from the repository root when `--checkout` is
+  absent (it once resolved to `tools/`). Foreground: the caller
+  detaches and owns the schedule. When: every merge queue — the per-session
+  scratch drivers this replaces duplicated the invocation, and one session's
+  copy ran prepr under the wrong interpreter and refused a clean branch.
+  Refusal: a live pidfile (take over only by removing it after checking the
+  pid is dead). `--self-test` drives the five refusals and the child argv
+  shape offline (missing required arg, live pidfile, unknown argument, the
+  `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
+  launch without `--checkout`, and a bare launch's argv carrying no flag.
+- `state_docs.py` — one call regenerates the three state docs
+  (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
+  their outputs to the orphan ref `handoff/audit-r<N>-plan` at
+  `handoff/round<N>/state/`, N the roster's round, and mirrors them to
+  `--mirror`. When: every state
+  beat — it replaces the five hand commands (worktree, copy, commit, push,
+  mirror) and runs the generators instead of copying their logic. Dry run by
+  default: without `--push` nothing remote is written. Refusals: any path
+  outside the three state docs (the write set is checked before a commit
+  exists to push; every other path at the ref — a round's evidence — is
+  carried untouched), a first commit that would not be exactly the three
+  files, and an already-current tip, which is reported and left alone. The
+  commit is plumbing over a temp index, so the calling checkout's index is
+  never touched.
+  `state_docs.py beat` is the same instrument on a loop, and it lives here
+  rather than in a session's scratch for decision 0013's reason — an
+  instrument the programme runs belongs where a later session can test it. A
+  pass reads `--watch-ref` and the roster ref at origin (O17: a roster edit
+  moves the state docs as a merge does); when either has moved it refreshes
+  the roster ref (so resume fields other seats wrote are visible),
+  regenerates and pushes, and when neither has it writes nothing at all.
+  With no `--roster-ref` the roster ref is `roster_lib.default_roster_ref`'s. When:
+  continuously beside a merge train, since it takes no lock and cancels
+  nothing — the state docs are regenerated rather than rebuilt at session
+  end. Refusal, and the one that saves you: the tip is recorded ONLY on a
+  regeneration that returned 0, so a push the remote rejected is retried on
+  the next pass instead of silently dropping that merge from the record.
+  `--once` is one pass and returns that pass's code; without `--tip-file` a
+  `--once` caller regenerates every time, so give it one to keep the loop's
+  memo on disk. `--self-test` drives all three arms offline.
+- `sweep_render.py` — renders the orchestrator sweep from
+  `sweep_template.md` and a session's JSON overlay (stdout or `--out`). The
+  template's `## Placeholders` table is the one registry of names. When: a
+  session or round sets up its recurring sweep -- render it, never hand-copy
+  the last session's prompt; the overlay stays out of the tree. Refusal: an
+  unfilled, empty or non-scalar value, an undeclared placeholder or overlay
+  key, a declared name the sweep never uses, a cited `tools/`, `tests/`,
+  `dev/` or `.github/` path that is not in the tree, and a home directory
+  (`ref_privacy.py`'s `HOME_DIR`) in the rendered text that no overlay value
+  supplied -- each exits 1 and writes nothing. `--self-test` renders the
+  tracked template and drives every refusal beside its null control.
+- `sweep_template.md` — the orchestrator's recurring sweep, steps in order,
+  each naming the instrument it runs by tree path and the rule file
+  (`orchestrator.md`, `nudge.md`, `CLAUDE.md`) it carries out; a usage guide
+  that restates no policy. When: read through `sweep_render.py`. Refusal: none
+  of its own -- the renderer's.
+- `tmp_paths.py` — refuses a tracked script, workflow or decision record that
+  depends on a temp or machine path (`--check`, `--self-test`). When: after
+  touching anything under `tools/`, `tests/`, `.claude/`, or before pushing.
+  Refusal: every match on its own line — a `/tmp` state name, a `$TMPDIR`
+  with a fixed name, a home path, an instrument run from `~/`; the 2026-10-03
+  temp cleanup deleted three tracked tools' state and one decision's design
+  note. It also refuses a temp, home or seat-directory path on a
+  `tests/mutation_ledger/` line the diff adds (a triage citing a probe no
+  other seat can run); main's stock is not charged.
+- `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
+  origin/main (merge), adds the PR's own delivery row when the head lacks
+  it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
+  `hpo-author`. When: updating a PR after review prep or a main merge.
+  Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
+  silently; no open PR at the branch stops before any push. Up front, each an
+  `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a
+  code sha other than `-` that is not 40-hex, names no commit, or is not an
+  ancestor of `origin/handoff/<topic>` (the topic `HANDOFF_TOPIC`, else the
+  branch less `fix/`, then less `-pr`), naming a `handoff-body/<topic>` tip as
+  the BODY sha; a missing `handoff/<topic>`; no body file. The body is a file
+  here, so a missing body ref is no refusal. Any later stop prints
+  `update_pr: STOPPED: ...`, and a refused push names its log.
+- `wt_sync.sh` — snapshots every worktree whose state is not already on
+  origin (unpushed commits, uncommitted or untracked files) to
+  `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is
+  `ref_privacy.py slug`'s, never a host path (#2310). When: loop it
+  detached so a crashed seat is recoverable from its branch. Refusal: it
+  never touches the worktree or its index — a snapshot, not a save; a
+  worktree whose snapshot would name the host is skipped with the guard's
+  reason.
+- `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
+  venv-ci `seat_venv.sh` builds, under `$HPO_STATE_DIR` first and the default
+  state root `~/.local/state/hpo` second, and refuses naming that build command
+  when neither holds one; exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
+  under the same two roots, only when that interpreter exists and the variable
+  is unset. When: a seat's PATH needs a pinned interpreter, and the scoped gate
+  should check the mypy census.
+
+===== tools/audit/seat/sweep_template.md =====
+# The orchestrator sweep, as a template
+
+This is a usage guide, not policy, in the sense `tools/audit/seat/INSTRUMENTS.md`
+states for itself: it adds no obligation. It orders the recurring sweep a
+Claude Code orchestrator session runs on a timer, names the instrument each step
+runs by its tree path, and cites the rule file each step carries out. The role
+is `dev/governance/roles/orchestrator.md`; the turn it names is
+`dev/governance/roles/nudge.md`, which binds a Cursor orchestrator and is the
+reference for any other agent's timer. Where this file and either of those
+disagree, they are the rule and this file is the bug.
+
+Render it, never hand-copy it:
+
+    python3 -I tools/audit/seat/sweep_render.py --overlay <overlay.json> [--out <prompt.txt>]
+
+The overlay is one JSON object holding every placeholder below, and nothing
+else. It is the session's, so it stays out of the tree: it carries the dated
+mandate and the host's own paths, which `nudge.md` keeps out of tracked text
+for the same reason ("a date and a seat id in this file outlive the session
+that measured them"). The renderer refuses a placeholder the overlay leaves
+unfilled, an overlay key or a placeholder this table does not declare, a
+declared placeholder the sweep never uses, and a home-directory path in the
+rendered text that no overlay value supplied.
+
+## Placeholders
+
+| name | what the session supplies |
+|---|---|
+| `round` | the round number, as the `handoff/r<N>-*` refs spell it |
+| `repo` | the repository as `<owner>/<name>` |
+| `mandate` | the comment id of the owner's mandate in force on #201 |
+| `seat_root` | the directory the session's seat worktrees live under |
+| `orch_scratch` | the orchestration scratch directory (not a worktree) |
+| `orch_checkout` | the orchestrator's own checkout, fetched before every re-read |
+| `seat_ledger` | the session's seat ledger file, updated every sweep |
+| `local_seat_cap` | the most local seats the session runs at once |
+| `cloud_above_cap` | whether cloud seats count above that cap (`yes` or `no`) |
+| `plan_generator` | the command that regenerates the plan artifact |
+| `plan_artifact` | the plan artifact's path, republished at the same path |
+| `state_mirror` | the directory `state_docs.py --mirror` writes |
+| `tick_alive` | the tick seat's liveness file, touched every pass |
+| `tick_log` | the tick seat's log |
+| `tick_brief` | the tick seat's brief, the prompt a restarted tick seat receives |
+| `tick_stale_min` | minutes after which a silent tick seat is dead |
+| `transcript` | the session transcript `policy_reread_check.py` reads |
+| `policy_stamp` | the policy re-read stamp `policy_reread_check.py` reads and writes |
+| `disk_floor_gib` | free GiB on `/` below which finished worktrees are cleaned |
+
+<!-- sweep:begin -->
+ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} first. Run each instrument from its path in the tree, from {{orch_checkout}}, with `tools/audit/seat/shims` first on PATH. Then, briefly:
+
+(0) Policy re-read. Run `python3 -I tools/audit/seat/policy_reread_check.py --transcript {{transcript}} --stamp {{policy_stamp}}`. On OWED: `git -C {{orch_checkout}} fetch origin`, then read `CLAUDE.md`, every policy file its index names, and `tools/audit/seat/INSTRUMENTS.md` with `git -C {{orch_checkout}} show origin/main:<path>`; act on any delta against current practice; then `python3 -I tools/audit/seat/policy_reread_check.py --stamp {{policy_stamp}} --write-stamp`, and log the re-read in {{seat_ledger}}.
+
+(1) Seats. Run at most {{local_seat_cap}} local seats; cloud seats count above that cap: {{cloud_above_cap}}. Below the cap, resume the next queued seat from {{seat_ledger}}. Seat worktrees live under {{seat_root}}, each named absolute in its brief (`dev/governance/roles/orchestrator.md` section 5). A handed-off seat is not resumed and an unblocked roster group gets a fixer (`dev/governance/roles/nudge.md` steps 14 and 16).
+
+(2) Handoffs. Compare `git ls-remote --heads origin 'handoff/r{{round}}-*'` with the open pull-request heads, and run `tools/audit/seat/bus.sh orphans`. A handoff with no pull request gets `tools/audit/seat/open_pr.sh`; one ahead of its pull request gets `tools/audit/seat/update_pr.sh`; each runs detached under `tools/audit/seat/daemonize.py`, then `tools/pr/approve_held_runs.sh` on that branch, then `tools/audit/seat/bus.sh dispatch` and a reviewer seat at the printed head (`dev/governance/roles/orchestrator.md` section 5b; `dev/governance/roles/nudge.md` steps 1, 2 and 8).
+
+(3) Merges. Verdicted pull requests go to one batch through `tools/audit/seat/train.sh --repo {{repo}} --mandate {{mandate}} --overlap`, its queue and `--state-dir` under {{orch_scratch}}, detached under `tools/audit/seat/daemonize.py`, never a second live train (`dev/governance/roles/nudge.md` step 3; `dev/governance/roles/orchestrator.md` section 11). Budget-file and policy heads stay off the train and merge directly under mandate {{mandate}} (`dev/governance/roles/nudge.md` steps 5 and 7; `CLAUDE.md` rule 2). A record or autofix pull request merges behind `tools/audit/seat/record_row.py --automerge-check` (`dev/governance/roles/nudge.md` step 6).
+
+(4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), the finished seat's worktrees under {{seat_root}} and its scratch removed, `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, and the plan artifact regenerated with `{{plan_generator}}` and republished at {{plan_artifact}}.
+
+(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`).
+
+(6) Verdicts and CI. Read any moved `review/*` or `probe/*` refs and the cloud runs; confirm each verdict at its exact head with `tools/audit/seat/bus.sh confirm` (`dev/governance/roles/nudge.md` step 1). A red required check at an open head goes back to its fixer with the line `tools/audit/seat/failure_logs.sh` prints (`dev/governance/roles/nudge.md` steps 4 and 15).
+
+(7) Disk. If `df -h /` shows under {{disk_floor_gib}} GiB free, collect finished worktrees with `tools/audit/worktree_gc.sh {{repo}}`.
+
+Keep the turn short; update {{seat_ledger}}.
+<!-- sweep:end -->

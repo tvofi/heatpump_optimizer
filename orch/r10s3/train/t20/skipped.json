@@ -1,0 +1,13 @@
+[
+  {
+    "pr": 2488,
+    "phase": "recarry",
+    "reason": "could not make a worktree at /Users/timmalmstrom/hpo-orch/r10s3/train/t20/wt/2488: branch fix/r10-handoff-archive is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/r10-handoff-archive/wt. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/r10-handoff-archive/wt (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-handoff-archive/wt status)",
+    "class": "HOLDER"
+  },
+  {
+    "pr": 2487,
+    "phase": "post-merge",
+    "reason": "after #2487 main is 990e90af9bcd, whose tree is not proof 26d0fdf76942's; read that merge before anything else lands"
+  }
+]

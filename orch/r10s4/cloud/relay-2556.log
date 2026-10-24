@@ -1,0 +1,10 @@
+remote: 
+remote: Create a pull request for 'review/2556' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/review/2556        
+remote: 
+remote: GitHub found 27 vulnerabilities on tvofi/heatpump_optimizer's default branch (3 critical, 12 high, 8 moderate, 4 low). To find out more, visit:        
+remote:      https://github.com/tvofi/heatpump_optimizer/security/dependabot        
+remote: 
+review/2556 5f8ae732257c834ca5d641350a1e82efe8734766
+cloud_relay: POSTED #2556 5f8ae732257c834ca5d641350a1e82efe8734766
+cloud_relay: relayed refs/heads/probe/rev-2556-8050f845 0ef3b20a2b2092d005741d1b83f43e7e92653169; next: bus.sh confirm 2556 <review commit>

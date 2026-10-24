@@ -1,0 +1,2 @@
+===== daemonize pid=76425 2026-10-20T19:36:59Z argv: bash tools/audit/seat/open_pr.sh r10-train-hold ddfbf8ac730f5e9b2c6e5ca1bc142fff4e764cd0 fix(train): price the hold by refresh gap and treat 422 as absence R10-TRAIN-HOLD 2302
+open_pr: open-PR cap: 5 open < 6

@@ -1,0 +1,3 @@
+===== daemonize pid=27114 2026-10-18T16:49:03Z argv: bash tools/audit/seat/update_pr.sh fix/r10-diag-replay-pr - /Users/timmalmstrom/hpo-orch/r10s3/orch/b2399-row/BODY.md
+  REFUSE   ancestry reds          RED UNANSWERED (CodeQL coverage-ratchet mutation validate-hacs):   ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s3/orch/b2399-row/BODY.md: check `CodeQL` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

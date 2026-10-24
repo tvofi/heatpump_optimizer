@@ -1,0 +1,1 @@
+Source: #2368 Friction. `dev/governance/roles/fixer.md: cost: a label-triggered workflow added by a branch never runs for a label applied before the file reached the head (#2368: labelled at 74f23814e, workflow arrived at c3a25d2ae, zero runs), and nothing in the seat's brief or the job says the label must go on after; fixed for kernel-points by its synchronize arm.`

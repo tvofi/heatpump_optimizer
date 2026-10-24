@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_means_batch GUARD_OFF c58ef9ab",
+  "old": "    if per_window <= 1:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the unwindowed fast path. For per_window == 1 every window holds exactly one step, so the windowed means the fall-through computes equal their own single element and concatenate back to the input values -- measured byte-identical on the grid's 15-minute-window arms, which drive exactly this case. Equivalent; only allocation differs. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

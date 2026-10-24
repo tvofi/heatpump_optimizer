@@ -1,0 +1,126 @@
+{
+  "dimension": "D2",
+  "baseline_sha": "17f1c55fa",
+  "findings": [
+    {
+      "id": "D-1",
+      "step": "D2.M1",
+      "stop_rule_class": "bug",
+      "class_guess": "new",
+      "title": "_space_demand_kw uses lower_floor_heat_loss without the learned ratio: 43.7 % low on the test house; feeds the wood\u2026",
+      "claim": "HeatPumpOptimizerCoordinator._space_demand_kw uses lower_floor_heat_loss without the learned ratio.",
+      "instrumented_symbol": "coordinator:HeatPumpOptimizerCoordinator._space_demand_kw",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py",
+        "value": "43.7 % low on the test house (owner install figure cited by commit 2c42ba4a0)",
+        "baseline_sha": "17f1c55fa",
+        "machine": "macOS arm64, Python 3.11",
+        "thread_factor": 1.0,
+        "contention_note": "load1 18-35; no figure depends on timing",
+        "cpu_or_wall": "ratio"
+      },
+      "perturbation": {
+        "change": "--ratio 1.0",
+        "expected_direction": "to_zero"
+      },
+      "null_control": {
+        "command": "reparam_sites.py --ratio 1.0",
+        "value": "0"
+      },
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "proposed_fix_scope": "G1: use lower_floor_heat_loss_learned in _space_demand_kw",
+      "missing_in_source": [
+        "severity",
+        "metric_definition",
+        "phenomenon_property",
+        "seam_rule",
+        "evidence.harness_path (tools/audit/round10/study-reseed/ is outside the schema's harness_path pattern)",
+        "evidence.unit",
+        "evidence.tolerance",
+        "evidence.load1 (range only)"
+      ],
+      "title_original": "_space_demand_kw uses lower_floor_heat_loss without the learned ratio: 43.7 % low on the test house; feeds the wood detector"
+    },
+    {
+      "id": "D-2",
+      "step": "D2.M5",
+      "stop_rule_class": "bug",
+      "class_guess": "new",
+      "title": "sysid _zone_heat_loss and adoption_decision omit the lower-floor ratio: a perfect experiment adopts 43.7 % high (test\u2026",
+      "claim": "sysid._zone_heat_loss and adoption_decision leave out the lower-floor ratio.",
+      "instrumented_symbol": "sysid:_zone_heat_loss, sysid:adoption_decision",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py",
+        "value": "a perfect experiment adopted 43.7 % too high on the test house (owner figure cited by commit 2c42ba4a0)",
+        "baseline_sha": "17f1c55fa",
+        "machine": "macOS arm64, Python 3.11",
+        "thread_factor": 1.0,
+        "contention_note": "load1 18-35; no figure depends on timing",
+        "cpu_or_wall": "ratio"
+      },
+      "perturbation": {
+        "change": "--ratio 1.0",
+        "expected_direction": "to_zero"
+      },
+      "null_control": {
+        "command": "reparam_sites.py --ratio 1.0",
+        "value": "0"
+      },
+      "files": [
+        "custom_components/heatpump_optimizer/sysid.py"
+      ],
+      "proposed_fix_scope": "G1: use lower_floor_heat_loss_learned in sysid._zone_heat_loss and adoption_decision",
+      "missing_in_source": [
+        "severity",
+        "metric_definition",
+        "phenomenon_property",
+        "seam_rule",
+        "evidence.harness_path (outside the schema's pattern)",
+        "evidence.unit",
+        "evidence.tolerance",
+        "evidence.load1 (range only)"
+      ],
+      "title_original": "sysid _zone_heat_loss and adoption_decision omit the lower-floor ratio: a perfect experiment adopts 43.7 % high (test house)"
+    },
+    {
+      "id": "D-3",
+      "step": "D12.M2",
+      "stop_rule_class": "bug",
+      "class_guess": "new",
+      "title": "Lower-floor ratio has no anchor: an options edit of the lower-floor nameplate double-applies it, total kept, zone\u2026",
+      "claim": "the lower-floor ratio has no anchor, so changing the lower-floor nameplate through options double-applies it.",
+      "instrumented_symbol": "coordinator:_apply_learner_payloads, _async_load_thermal_learning",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py",
+        "value": "per-zone heat loss after reload: upper -36.8 %, lower +21.5 %; total within 0.1 % (figures cited by commit 2c42ba4a0)",
+        "baseline_sha": "17f1c55fa",
+        "machine": "macOS arm64, Python 3.11",
+        "thread_factor": 1.0,
+        "contention_note": "load1 18-35; no figure depends on timing",
+        "cpu_or_wall": "ratio"
+      },
+      "perturbation": {
+        "change": "--ratio 1.0",
+        "expected_direction": "to_zero"
+      },
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/store.py"
+      ],
+      "proposed_fix_scope": "G2: store a lower_floor_loss_anchor and extend the re-anchor law to the ratio",
+      "missing_in_source": [
+        "severity",
+        "metric_definition",
+        "phenomenon_property",
+        "seam_rule",
+        "evidence.harness_path (outside the schema's pattern)",
+        "evidence.unit",
+        "evidence.tolerance",
+        "evidence.load1 (range only)"
+      ],
+      "title_original": "Lower-floor ratio has no anchor: an options edit of the lower-floor nameplate double-applies it, total kept, zone split wrong"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+OK body_file=/Users/timmalmstrom/hpo-orch/r10s3/orch/beat/post-2384/body.md chars=591 sha=fa813953f97593b1
+WROTE id=6252043567 url=https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6252043567
+READBACK id=6252043567 live_len=591 want_len=591 live_sha=fa813953f97593b1 want_sha=fa813953f97593b1 identical=True

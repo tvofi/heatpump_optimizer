@@ -1,0 +1,8 @@
+[
+  {
+    "pr": 2293,
+    "phase": "recarry",
+    "reason": "#2293 could not make a worktree at /Users/timmalmstrom/hpo-orch/train-b9/wt/2293: branch fix/r10-archscore-coverage is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage status)",
+    "class": "HOLDER"
+  }
+]

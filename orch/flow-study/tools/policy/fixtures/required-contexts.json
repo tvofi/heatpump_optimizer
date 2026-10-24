@@ -1,0 +1,158 @@
+{
+  "_comment": [
+    "The recorded shape of main's live required-status-check contexts, for the",
+    "required-contexts class in policy_lint.mjs (#957). The linter asks the",
+    "endpoint named below -- a clone whose origin is a local path or a fork",
+    "still asks THIS repository, because the corpus's claims are about it --",
+    "reads the branch endpoint AND the ruleset objects (bypass-aware; the",
+    "branch endpoint alone is not) and reddens on any name OR ruleset id the",
+    "live set and this shape disagree on, so the next ruleset change reddens",
+    "the tree within one push. `rulesets` records the ids the derivation READ",
+    "the contexts out of -- the branch endpoint's required_status_checks rule's",
+    "ruleset_id -- and a fixture naming none fires rather than skipping (#1300).",
+    "When it reddens: re-record THIS file by hand from the API, never by copying",
+    "the linter's message, and re-read every assertion site against the new",
+    "list. An unreachable or rate-limited API must NOT redden this class",
+    "(policy-docs is itself a required context; a transient outage must not",
+    "block every merge), which is why a failed fetch is a printed skip, never a",
+    "finding.",
+    "The default-branch boundary spans TWO rulesets, and only the second is",
+    "recorded here: `main-protect` 22628467 carries deletion and",
+    "non-fast-forward (the push surface, no required context -- naming it here",
+    "was the #1300 defect, because the drift check then compared contexts",
+    "against a ruleset that supplies none), while `main-protect-checks`",
+    "23698884 carries the required contexts, the `pull_request` review rule and",
+    "the deploy key's `always` bypass -- everything this file is about."
+  ],
+  "branch_endpoint": "repos/tvofi/heatpump_optimizer/rules/branches/main",
+  "rulesets": [
+    23698884
+  ],
+  "contexts": [
+    "Analyze (actions)",
+    "Analyze (javascript-typescript)",
+    "Analyze (python)",
+    "briefs",
+    "browser",
+    "budget-raise-gate",
+    "closure-scope",
+    "closures",
+    "env-matrix",
+    "fast (3.14)",
+    "hassfest",
+    "mutation",
+    "policy-docs",
+    "pr-contract",
+    "typing",
+    "validate-hacs",
+    "wave-script"
+  ],
+  "ruleset_objects": {
+    "23698884": {
+      "id": 23698884,
+      "target": "branch",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "~DEFAULT_BRANCH"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": false,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {
+                "context": "fast (3.14)"
+              },
+              {
+                "context": "browser"
+              },
+              {
+                "context": "briefs"
+              },
+              {
+                "context": "closure-scope"
+              },
+              {
+                "context": "closures"
+              },
+              {
+                "context": "typing"
+              },
+              {
+                "context": "hassfest"
+              },
+              {
+                "context": "validate-hacs"
+              },
+              {
+                "context": "policy-docs"
+              },
+              {
+                "context": "wave-script"
+              },
+              {
+                "context": "pr-contract"
+              },
+              {
+                "context": "env-matrix"
+              },
+              {
+                "context": "Analyze (actions)"
+              },
+              {
+                "context": "Analyze (javascript-typescript)"
+              },
+              {
+                "context": "Analyze (python)"
+              },
+              {
+                "context": "mutation"
+              },
+              {
+                "context": "budget-raise-gate",
+                "integration_id": 15368
+              }
+            ]
+          }
+        },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 1,
+            "dismiss_stale_reviews_on_push": false,
+            "required_reviewers": [],
+            "require_code_owner_review": true,
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": false,
+            "require_extra_approval_for_unattributed_changes": true,
+            "allowed_merge_methods": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
+        }
+      ],
+      "bypass_actors": [
+        {
+          "actor_id": 5094721,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        },
+        {
+          "actor_id": null,
+          "actor_type": "DeployKey",
+          "bypass_mode": "always"
+        }
+      ]
+    }
+  },
+  "_ruleset_objects": "Each ruleset object as the API returns it, less RULESET_VOLATILE (counts.mjs), recorded by hand from GET repos/tvofi/heatpump_optimizer/rulesets/23698884 on 2026-09-27; bypass_actors re-recorded 2026-10-02 when tvofi added the hpo-ledger App (5094721, decision 0011 amendment, R9-F10.5) ahead of the deploy key. It records the ruleset as it stands, dismiss_stale_reviews_on_push false included: tvofi left that setting unchanged (round 9, D11-s1-01 refused)."
+}

@@ -1,0 +1,5 @@
+===== daemonize pid=37420 2026-10-24T08:09:37Z argv: bash tools/audit/seat/open_pr.sh r10-triage-s6-batch2 009b5c6ffbb71bc547f18f62973e737a9c1d0b1e Record proposal-triage rulings, s6 batch 2 (P45-P51) triage-s6-batch2
+open_pr: 2 open PRs; the cap gates dispatch, not opening
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 50af6174f53c -- repair before the handoff; the lines above name each arm's repair
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-triage-s6-batch2/p1.log

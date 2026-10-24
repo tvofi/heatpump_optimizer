@@ -1,0 +1,2229 @@
+{
+  "total_count": 27,
+  "jobs": [
+    {
+      "id": 117746425657,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvfOQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746425657",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746425657",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:54:13Z",
+      "completed_at": "2026-10-18T17:54:33Z",
+      "name": "closure-scope",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:13Z",
+          "completed_at": "2026-10-18T17:54:14Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:14Z",
+          "completed_at": "2026-10-18T17:54:27Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:27Z",
+          "completed_at": "2026-10-18T17:54:27Z"
+        },
+        {
+          "name": "Identify the diff and base the heavy lanes would judge",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:27Z",
+          "completed_at": "2026-10-18T17:54:28Z"
+        },
+        {
+          "name": "Restore fast's last green proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:54:28Z",
+          "completed_at": "2026-10-18T17:54:28Z"
+        },
+        {
+          "name": "Restore coverage's last green proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:54:28Z",
+          "completed_at": "2026-10-18T17:54:28Z"
+        },
+        {
+          "name": "Restore browser's last green proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:54:28Z",
+          "completed_at": "2026-10-18T17:54:29Z"
+        },
+        {
+          "name": "Decide whether fast may skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T17:54:29Z",
+          "completed_at": "2026-10-18T17:54:29Z"
+        },
+        {
+          "name": "Decide whether coverage may skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:54:29Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        },
+        {
+          "name": "Decide whether browser may skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T17:54:30Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        },
+        {
+          "name": "Run BASE=\"c8cc75ea90a3bb38dbc6b8dbb7d27d9cce74cdd0\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T17:54:30Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T17:54:30Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T17:54:30Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T17:54:30Z",
+          "completed_at": "2026-10-18T17:54:30Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746425657",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126148,
+      "runner_name": "GitHub Actions 1000126148",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746425788,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvfvA",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746425788",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746425788",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:53:59Z",
+      "completed_at": "2026-10-18T18:06:07Z",
+      "name": "mutation",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:00Z",
+          "completed_at": "2026-10-18T17:54:01Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:01Z",
+          "completed_at": "2026-10-18T17:54:08Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:08Z",
+          "completed_at": "2026-10-18T17:54:08Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:08Z",
+          "completed_at": "2026-10-18T17:54:22Z"
+        },
+        {
+          "name": "Drive the table over what this diff tested",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:54:22Z",
+          "completed_at": "2026-10-18T18:06:04Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T18:06:04Z",
+          "completed_at": "2026-10-18T18:06:05Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T18:06:05Z",
+          "completed_at": "2026-10-18T18:06:06Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T18:06:06Z",
+          "completed_at": "2026-10-18T18:06:06Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T18:06:06Z",
+          "completed_at": "2026-10-18T18:06:06Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746425788",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126145,
+      "runner_name": "GitHub Actions 1000126145",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746425823,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvf3w",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746425823",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746425823",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:54:12Z",
+      "completed_at": "2026-10-18T17:54:23Z",
+      "name": "nightly-status",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:13Z",
+          "completed_at": "2026-10-18T17:54:14Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:14Z",
+          "completed_at": "2026-10-18T17:54:16Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:16Z",
+          "completed_at": "2026-10-18T17:54:16Z"
+        },
+        {
+          "name": "Report the last scheduled run's conclusion",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:16Z",
+          "completed_at": "2026-10-18T17:54:20Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:54:20Z",
+          "completed_at": "2026-10-18T17:54:20Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T17:54:20Z",
+          "completed_at": "2026-10-18T17:54:20Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:54:20Z",
+          "completed_at": "2026-10-18T17:54:20Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746425823",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126149,
+      "runner_name": "GitHub Actions 1000126149",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746425981,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvgfQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746425981",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746425981",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:54:25Z",
+      "completed_at": "2026-10-18T17:55:25Z",
+      "name": "typing",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:25Z",
+          "completed_at": "2026-10-18T17:54:26Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:26Z",
+          "completed_at": "2026-10-18T17:54:28Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:28Z",
+          "completed_at": "2026-10-18T17:54:29Z"
+        },
+        {
+          "name": "Install the pinned toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:29Z",
+          "completed_at": "2026-10-18T17:55:06Z"
+        },
+        {
+          "name": "Run the ruler and ratchet its three numbers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:55:06Z",
+          "completed_at": "2026-10-18T17:55:22Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:55:22Z",
+          "completed_at": "2026-10-18T17:55:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T17:55:23Z",
+          "completed_at": "2026-10-18T17:55:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T17:55:23Z",
+          "completed_at": "2026-10-18T17:55:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T17:55:23Z",
+          "completed_at": "2026-10-18T17:55:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746425981",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126154,
+      "runner_name": "GitHub Actions 1000126154",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746426000,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvgkA",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746426000",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746426000",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:54:30Z",
+      "completed_at": "2026-10-18T17:55:02Z",
+      "name": "briefs",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:31Z",
+          "completed_at": "2026-10-18T17:54:32Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:32Z",
+          "completed_at": "2026-10-18T17:54:43Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:43Z",
+          "completed_at": "2026-10-18T17:54:46Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:46Z",
+          "completed_at": "2026-10-18T17:54:47Z"
+        },
+        {
+          "name": "Lint every wave roster's citations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:54:47Z",
+          "completed_at": "2026-10-18T17:55:00Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:55:00Z",
+          "completed_at": "2026-10-18T17:55:00Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T17:55:00Z",
+          "completed_at": "2026-10-18T17:55:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T17:55:00Z",
+          "completed_at": "2026-10-18T17:55:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746426000",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126159,
+      "runner_name": "GitHub Actions 1000126159",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746426539,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajviqw",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746426539",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746426539",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:53:54Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "recheck-gate",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746426539",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746426977,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvkYQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746426977",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746426977",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:53:54Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "mutation-ledger-push",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746426977",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746426998,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvkdg",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746426998",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746426998",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:53:54Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "mutation-ledger",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746426998",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746427105,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajvk4Q",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746427105",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746427105",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:53:54Z",
+      "started_at": "2026-10-18T17:53:54Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "mutation-nightly",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746427105",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746449882,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajw92g",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746449882",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746449882",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:54:00Z",
+      "started_at": "2026-10-18T17:54:00Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "slow",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746449882",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746462427,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbajxu2w",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746462427",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746462427",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T17:54:04Z",
+      "started_at": "2026-10-18T17:54:04Z",
+      "completed_at": "2026-10-18T17:53:54Z",
+      "name": "record-autofix",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746462427",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117746567945,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaj4LCQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746567945",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746567945",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:54:33Z",
+      "started_at": "2026-10-18T17:54:53Z",
+      "completed_at": "2026-10-18T18:10:06Z",
+      "name": "coverage",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:53Z",
+          "completed_at": "2026-10-18T17:54:54Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:54Z",
+          "completed_at": "2026-10-18T17:55:04Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:55:04Z",
+          "completed_at": "2026-10-18T17:55:04Z"
+        },
+        {
+          "name": "Key the per-script coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:55:04Z",
+          "completed_at": "2026-10-18T17:55:04Z"
+        },
+        {
+          "name": "Restore the base's per-script coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:55:04Z",
+          "completed_at": "2026-10-18T17:55:04Z"
+        },
+        {
+          "name": "Check the restored coverage is main's push run's",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-18T17:55:04Z",
+          "completed_at": "2026-10-18T17:55:04Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:55:04Z",
+          "completed_at": "2026-10-18T17:55:19Z"
+        },
+        {
+          "name": "Install the tracer",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T17:55:19Z",
+          "completed_at": "2026-10-18T17:55:20Z"
+        },
+        {
+          "name": "Install strace",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:55:20Z",
+          "completed_at": "2026-10-18T17:55:28Z"
+        },
+        {
+          "name": "Measure the tree",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T17:55:28Z",
+          "completed_at": "2026-10-18T18:10:02Z"
+        },
+        {
+          "name": "Summarize the per-script reuse",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T18:10:02Z",
+          "completed_at": "2026-10-18T18:10:02Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T18:10:02Z",
+          "completed_at": "2026-10-18T18:10:03Z"
+        },
+        {
+          "name": "Upload the composed closure recordings",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T18:10:03Z",
+          "completed_at": "2026-10-18T18:10:04Z"
+        },
+        {
+          "name": "Upload the coverage lane's CI metrics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T18:10:04Z",
+          "completed_at": "2026-10-18T18:10:04Z"
+        },
+        {
+          "name": "Stage this commit's per-script coverage",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-18T18:10:04Z",
+          "completed_at": "2026-10-18T18:10:04Z"
+        },
+        {
+          "name": "Save this commit's per-script coverage",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-18T18:10:04Z",
+          "completed_at": "2026-10-18T18:10:04Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T18:10:04Z",
+          "completed_at": "2026-10-18T18:10:04Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-18T18:10:04Z",
+          "completed_at": "2026-10-18T18:10:05Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T18:10:05Z",
+          "completed_at": "2026-10-18T18:10:05Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746567945",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126173,
+      "runner_name": "GitHub Actions 1000126173",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746567958,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaj4LFg",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746567958",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746567958",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:54:33Z",
+      "started_at": "2026-10-18T17:56:10Z",
+      "completed_at": "2026-10-18T17:59:02Z",
+      "name": "nightly-ha (stable)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:56:11Z",
+          "completed_at": "2026-10-18T17:56:13Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:56:13Z",
+          "completed_at": "2026-10-18T17:56:16Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:56:16Z",
+          "completed_at": "2026-10-18T17:56:16Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:56:16Z",
+          "completed_at": "2026-10-18T17:56:32Z"
+        },
+        {
+          "name": "Pull the Home Assistant image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:56:32Z",
+          "completed_at": "2026-10-18T17:57:40Z"
+        },
+        {
+          "name": "Run the integration inside Home Assistant",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:57:40Z",
+          "completed_at": "2026-10-18T17:59:00Z"
+        },
+        {
+          "name": "Verify the floor-names snapshot in Home Assistant itself",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T17:59:00Z",
+          "completed_at": "2026-10-18T17:59:00Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T17:59:00Z",
+          "completed_at": "2026-10-18T17:59:00Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T17:59:00Z",
+          "completed_at": "2026-10-18T17:59:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T17:59:00Z",
+          "completed_at": "2026-10-18T17:59:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746567958",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126206,
+      "runner_name": "GitHub Actions 1000126206",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746567965,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaj4LHQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746567965",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746567965",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:54:33Z",
+      "started_at": "2026-10-18T17:54:49Z",
+      "completed_at": "2026-10-18T17:57:25Z",
+      "name": "nightly-ha (2025.2.0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:54:50Z",
+          "completed_at": "2026-10-18T17:54:51Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:54:51Z",
+          "completed_at": "2026-10-18T17:54:55Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:54:55Z",
+          "completed_at": "2026-10-18T17:54:55Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:54:55Z",
+          "completed_at": "2026-10-18T17:55:12Z"
+        },
+        {
+          "name": "Pull the Home Assistant image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:55:12Z",
+          "completed_at": "2026-10-18T17:56:03Z"
+        },
+        {
+          "name": "Run the integration inside Home Assistant",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:56:03Z",
+          "completed_at": "2026-10-18T17:57:19Z"
+        },
+        {
+          "name": "Verify the floor-names snapshot in Home Assistant itself",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:57:19Z",
+          "completed_at": "2026-10-18T17:57:22Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T17:57:22Z",
+          "completed_at": "2026-10-18T17:57:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T17:57:23Z",
+          "completed_at": "2026-10-18T17:57:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T17:57:23Z",
+          "completed_at": "2026-10-18T17:57:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746567965",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126171,
+      "runner_name": "GitHub Actions 1000126171",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746568021,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaj4LVQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746568021",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746568021",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:54:33Z",
+      "started_at": "2026-10-18T17:56:11Z",
+      "completed_at": "2026-10-18T18:23:41Z",
+      "name": "fast (3.14)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:56:12Z",
+          "completed_at": "2026-10-18T17:56:13Z"
+        },
+        {
+          "name": "Report the lane-skip decision this run stands on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:56:13Z",
+          "completed_at": "2026-10-18T17:56:13Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:56:13Z",
+          "completed_at": "2026-10-18T17:56:23Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:56:23Z",
+          "completed_at": "2026-10-18T17:56:24Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:56:24Z",
+          "completed_at": "2026-10-18T17:56:25Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:56:25Z",
+          "completed_at": "2026-10-18T17:56:43Z"
+        },
+        {
+          "name": "Resolve the golden comparison ref",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:56:43Z",
+          "completed_at": "2026-10-18T17:56:43Z"
+        },
+        {
+          "name": "Key the drift baseline cache",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T17:56:43Z",
+          "completed_at": "2026-10-18T17:56:44Z"
+        },
+        {
+          "name": "Restore the drift baseline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:56:44Z",
+          "completed_at": "2026-10-18T17:56:44Z"
+        },
+        {
+          "name": "Key the warmed drift baseline",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-18T17:56:44Z",
+          "completed_at": "2026-10-18T17:56:44Z"
+        },
+        {
+          "name": "Decide the gate scope",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T17:56:44Z",
+          "completed_at": "2026-10-18T17:56:44Z"
+        },
+        {
+          "name": "Run the suite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T17:56:44Z",
+          "completed_at": "2026-10-18T18:23:38Z"
+        },
+        {
+          "name": "Upload the fast lane's CI metrics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T18:23:38Z",
+          "completed_at": "2026-10-18T18:23:38Z"
+        },
+        {
+          "name": "Save the warmed drift baseline",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-10-18T18:23:38Z",
+          "completed_at": "2026-10-18T18:23:38Z"
+        },
+        {
+          "name": "Post Restore the drift baseline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-18T18:23:38Z",
+          "completed_at": "2026-10-18T18:23:39Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-18T18:23:39Z",
+          "completed_at": "2026-10-18T18:23:39Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-18T18:23:39Z",
+          "completed_at": "2026-10-18T18:23:39Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-18T18:23:39Z",
+          "completed_at": "2026-10-18T18:23:39Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-18T18:23:39Z",
+          "completed_at": "2026-10-18T18:23:39Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746568021",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126207,
+      "runner_name": "GitHub Actions 1000126207",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117746568053,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaj4LdQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117746568053",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117746568053",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T17:54:33Z",
+      "started_at": "2026-10-18T17:56:13Z",
+      "completed_at": "2026-10-18T18:00:09Z",
+      "name": "browser",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T17:56:14Z",
+          "completed_at": "2026-10-18T17:56:14Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T17:56:14Z",
+          "completed_at": "2026-10-18T17:56:17Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T17:56:17Z",
+          "completed_at": "2026-10-18T17:56:17Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T17:56:17Z",
+          "completed_at": "2026-10-18T17:56:18Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T17:56:18Z",
+          "completed_at": "2026-10-18T17:56:34Z"
+        },
+        {
+          "name": "Cache the lane's Chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T17:56:34Z",
+          "completed_at": "2026-10-18T17:56:38Z"
+        },
+        {
+          "name": "Install playwright and Chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T17:56:38Z",
+          "completed_at": "2026-10-18T17:56:39Z"
+        },
+        {
+          "name": "Write the plan payload",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T17:56:39Z",
+          "completed_at": "2026-10-18T17:56:41Z"
+        },
+        {
+          "name": "Run the layout lane",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T17:56:41Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        },
+        {
+          "name": "Post Cache the lane's Chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T18:00:07Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T18:00:07Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-18T18:00:07Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T18:00:07Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T18:00:07Z",
+          "completed_at": "2026-10-18T18:00:07Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117746568053",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126208,
+      "runner_name": "GitHub Actions 1000126208",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117749153836,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbamWALA",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117749153836",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117749153836",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:06:08Z",
+      "started_at": "2026-10-18T18:06:08Z",
+      "completed_at": "2026-10-18T18:06:08Z",
+      "name": "mutation-pin-plan",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117749153836",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117749154284,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbamWB7A",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117749154284",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117749154284",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:06:08Z",
+      "started_at": "2026-10-18T18:06:08Z",
+      "completed_at": "2026-10-18T18:06:08Z",
+      "name": "mutation-pins",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117749154284",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117749155026,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbamWE0g",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117749155026",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117749155026",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:06:08Z",
+      "started_at": "2026-10-18T18:06:08Z",
+      "completed_at": "2026-10-18T18:06:08Z",
+      "name": "mutation-autofix",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117749155026",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117750041646,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbanMMLg",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117750041646",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117750041646",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:10:07Z",
+      "started_at": "2026-10-18T18:10:09Z",
+      "completed_at": "2026-10-18T18:28:26Z",
+      "name": "closures",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:10:10Z",
+          "completed_at": "2026-10-18T18:10:12Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:10:12Z",
+          "completed_at": "2026-10-18T18:10:23Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:10:23Z",
+          "completed_at": "2026-10-18T18:10:23Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:10:23Z",
+          "completed_at": "2026-10-18T18:10:23Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T18:10:23Z",
+          "completed_at": "2026-10-18T18:10:39Z"
+        },
+        {
+          "name": "Install strace",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T18:10:39Z",
+          "completed_at": "2026-10-18T18:10:48Z"
+        },
+        {
+          "name": "Fast arm -- re-derive the skip case and refuse anything else",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T18:10:48Z",
+          "completed_at": "2026-10-18T18:10:48Z"
+        },
+        {
+          "name": "Consume the batch proof's recordings when the tree is byte-identical",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-18T18:10:48Z",
+          "completed_at": "2026-10-18T18:10:48Z"
+        },
+        {
+          "name": "Fetch this run's composed recordings",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T18:10:48Z",
+          "completed_at": "2026-10-18T18:10:49Z"
+        },
+        {
+          "name": "Verify and stage the composed recordings",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T18:10:49Z",
+          "completed_at": "2026-10-18T18:10:49Z"
+        },
+        {
+          "name": "Re-record the closures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T18:10:49Z",
+          "completed_at": "2026-10-18T18:28:18Z"
+        },
+        {
+          "name": "Fail if tests/closures.json under-approximates",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T18:28:18Z",
+          "completed_at": "2026-10-18T18:28:18Z"
+        },
+        {
+          "name": "Fail if a test file re-implements a production symbol",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T18:28:18Z",
+          "completed_at": "2026-10-18T18:28:20Z"
+        },
+        {
+          "name": "Write the recordings' tree hash",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-10-18T18:28:20Z",
+          "completed_at": "2026-10-18T18:28:20Z"
+        },
+        {
+          "name": "Upload closure recordings",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T18:28:20Z",
+          "completed_at": "2026-10-18T18:28:22Z"
+        },
+        {
+          "name": "Upload the closures lane's CI metrics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T18:28:22Z",
+          "completed_at": "2026-10-18T18:28:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-18T18:28:23Z",
+          "completed_at": "2026-10-18T18:28:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T18:28:23Z",
+          "completed_at": "2026-10-18T18:28:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-18T18:28:23Z",
+          "completed_at": "2026-10-18T18:28:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T18:28:23Z",
+          "completed_at": "2026-10-18T18:28:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117750041646",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126252,
+      "runner_name": "GitHub Actions 1000126252",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117750041671,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbanMMRw",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117750041671",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117750041671",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:10:07Z",
+      "started_at": "2026-10-18T18:10:09Z",
+      "completed_at": "2026-10-18T18:10:16Z",
+      "name": "coverage-ratchet",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:10:10Z",
+          "completed_at": "2026-10-18T18:10:11Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:10:11Z",
+          "completed_at": "2026-10-18T18:10:13Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:10:13Z",
+          "completed_at": "2026-10-18T18:10:13Z"
+        },
+        {
+          "name": "Run actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:10:13Z",
+          "completed_at": "2026-10-18T18:10:14Z"
+        },
+        {
+          "name": "Ratchet the floor and the pragma count with the base's grader",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T18:10:14Z",
+          "completed_at": "2026-10-18T18:10:15Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T18:10:15Z",
+          "completed_at": "2026-10-18T18:10:15Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T18:10:15Z",
+          "completed_at": "2026-10-18T18:10:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T18:10:15Z",
+          "completed_at": "2026-10-18T18:10:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117750041671",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126251,
+      "runner_name": "GitHub Actions 1000126251",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117750041703,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbanMMZw",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117750041703",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117750041703",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:10:07Z",
+      "started_at": "2026-10-18T18:10:09Z",
+      "completed_at": "2026-10-18T18:10:22Z",
+      "name": "graders-head-copy",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:10:10Z",
+          "completed_at": "2026-10-18T18:10:11Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:10:11Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "Name the pinned graders this pull request changes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "Run actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "The pull request's delivery_status.py, as `delivery-status` runs it",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "The pull request's policy_lint.mjs, under the Actions token",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "The pull request's field_coverage.mjs, under the Actions token",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:19Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T18:10:19Z",
+          "completed_at": "2026-10-18T18:10:20Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-18T18:10:20Z",
+          "completed_at": "2026-10-18T18:10:20Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T18:10:20Z",
+          "completed_at": "2026-10-18T18:10:20Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117750041703",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126253,
+      "runner_name": "GitHub Actions 1000126253",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117753163433,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaqKuqQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117753163433",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117753163433",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:23:41Z",
+      "started_at": "2026-10-18T18:25:23Z",
+      "completed_at": "2026-10-18T18:25:27Z",
+      "name": "lane-proofs",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:25:24Z",
+          "completed_at": "2026-10-18T18:25:24Z"
+        },
+        {
+          "name": "Record fast's green run at this base and diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:25Z"
+        },
+        {
+          "name": "Save fast's proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:25Z"
+        },
+        {
+          "name": "Record coverage's green run at this base and diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:25Z"
+        },
+        {
+          "name": "Save coverage's proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:25Z"
+        },
+        {
+          "name": "Record browser's green run at this base and diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:25Z"
+        },
+        {
+          "name": "Save browser's proof",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T18:25:25Z",
+          "completed_at": "2026-10-18T18:25:26Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T18:25:26Z",
+          "completed_at": "2026-10-18T18:25:26Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117753163433",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126421,
+      "runner_name": "GitHub Actions 1000126421",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117753164682,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaqKzig",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117753164682",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117753164682",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:23:41Z",
+      "started_at": "2026-10-18T18:23:41Z",
+      "completed_at": "2026-10-18T18:23:41Z",
+      "name": "claims-autofix",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117753164682",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117754223249,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbarLakQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117754223249",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117754223249",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:28:26Z",
+      "started_at": "2026-10-18T18:30:19Z",
+      "completed_at": "2026-10-18T18:30:34Z",
+      "name": "composed-proof",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:30:19Z",
+          "completed_at": "2026-10-18T18:30:20Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:30:20Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Decide whether this run has proving to do",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Install pinned test dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Install strace",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "The self-sufficient proof (all three executions, this head)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Compute this checkout's tree",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Fetch the nightly's composed recordings",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Fetch the nightly's bare recordings",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Compare read sets on the nightly's one tree",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:31Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T18:30:31Z",
+          "completed_at": "2026-10-18T18:30:32Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T18:30:32Z",
+          "completed_at": "2026-10-18T18:30:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T18:30:32Z",
+          "completed_at": "2026-10-18T18:30:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117754223249",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126461,
+      "runner_name": "GitHub Actions 1000126461",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117754224318,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbarLevg",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117754224318",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117754224318",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:28:26Z",
+      "started_at": "2026-10-18T18:28:26Z",
+      "completed_at": "2026-10-18T18:28:26Z",
+      "name": "ci-ratchet",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117754224318",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117754224753,
+      "run_id": 39151673429,
+      "workflow_name": "Tests",
+      "head_branch": "fix/r10-diag-replay-pr",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39151673429",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbarLgcQ",
+      "head_sha": "b931d0f44a3feffca7b10acb1ad64c6c5476f93d",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117754224753",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39151673429/job/117754224753",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T18:28:26Z",
+      "started_at": "2026-10-18T18:28:26Z",
+      "completed_at": "2026-10-18T18:28:26Z",
+      "name": "closures-autofix",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117754224753",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

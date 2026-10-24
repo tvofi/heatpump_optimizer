@@ -1,0 +1,49 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run3/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run3 pid=80854 start=2026-10-23T17:49:27Z
+BATCH 20261023-174927 pid=80862 base=main queue=2 (#2665 #2669) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 91453efd: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+OVERLAP: main at c5e1be1967de is still running (Analyze (python), browser, closures, env-matrix, fast (3.14)): a wait, not red; --overlap does not wait
+PARK #2669 recarry: fix/r10-policy-lint-family is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-policy-lint-family/wt; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree
+PRE-FLIGHT: 1 of 2 admitted
+#2665 serial: grader, workflow
+OVERLAP: recarrying #2665 up front, their pull_request runs fire together
+#2665 overlap: recarry start
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+TRAIN HOLD refs/heads/train-hold d9c907b5: the record beat waits
+#2665 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b-pre2/wt held fix/r10-ci-layout-p2b-pre2, clean at origin/fix/r10-ci-layout-p2b-pre2; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-ci-layout-p2b-pre2/wt switch fix/r10-ci-layout-p2b-pre2)
+#2665 recarry START (branch fix/r10-ci-layout-p2b-pre2)
+#2665 recarry: main merged, head b859929d; app_push: RECARRY: prepr SKIPPED: HEAD b859929d is the clean merge of the live head 29b08d04 and origin/main's c5e1be19, and the body is the live one
+serial: #2665
+TRAIN HOLD refs/heads/train-hold 3ed01030: the record beat waits
+beat: waiting CI at b859929d (poll 2, t+242s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold e2ca9f5c: the record beat waits
+beat: waiting CI at b859929d (poll 3, t+484s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 418d9ab2: the record beat waits
+beat: waiting CI at b859929d (poll 4, t+726s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold bffec03a: the record beat waits
+beat: waiting CI at b859929d (poll 5, t+969s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold a0f82eeb: the record beat waits
+beat: waiting CI at b859929d (poll 6, t+1211s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold da843dc6: the record beat waits
+beat: waiting CI at b859929d (poll 7, t+1453s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 001ef2cc: the record beat waits
+beat: waiting CI at b859929d (poll 8, t+1695s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 2db4e343: the record beat waits
+beat: waiting CI at b859929d (poll 9, t+1937s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 4533a827: the record beat waits
+#2665 b859929d ci red=[]
+#2665 approved (mandate)
+#2665 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2665 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+SKIP #2665 merge: #2665 not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+released /Users/timmalmstrom/hpo-orch/r10s5/train/run3/wt/2665
+SKIP REPORT: 2 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-23T18:31:30Z

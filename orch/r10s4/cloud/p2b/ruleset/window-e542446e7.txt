@@ -1,0 +1,78 @@
+DISABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the live six keys with enforcement disabled
+--- live
++++ disable
+@@ -19,7 +19,7 @@
+       ]
+     }
+   },
+-  "enforcement": "active",
++  "enforcement": "disabled",
+   "name": "main-protect-checks",
+   "rules": [
+     {
+ENABLE PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884): the rollback copy with [gate] and its own enforcement
+--- live
++++ enable
+@@ -27,55 +27,7 @@
+         "do_not_enforce_on_create": false,
+         "required_status_checks": [
+           {
+-            "context": "fast (3.14)"
+-          },
+-          {
+-            "context": "browser"
+-          },
+-          {
+-            "context": "briefs"
+-          },
+-          {
+-            "context": "closure-scope"
+-          },
+-          {
+-            "context": "closures"
+-          },
+-          {
+-            "context": "typing"
+-          },
+-          {
+-            "context": "hassfest"
+-          },
+-          {
+-            "context": "validate-hacs"
+-          },
+-          {
+-            "context": "policy-docs"
+-          },
+-          {
+-            "context": "wave-script"
+-          },
+-          {
+-            "context": "pr-contract"
+-          },
+-          {
+-            "context": "env-matrix"
+-          },
+-          {
+-            "context": "Analyze (actions)"
+-          },
+-          {
+-            "context": "Analyze (javascript-typescript)"
+-          },
+-          {
+-            "context": "Analyze (python)"
+-          },
+-          {
+-            "context": "mutation"
+-          },
+-          {
+-            "context": "budget-raise-gate",
++            "context": "gate",
+             "integration_id": 15368
+           }
+         ],
+PRECONDITION staged-hash: PASS -- live b6d380ac9d90f05d staged b6d380ac9d90f05d
+PRECONDITION reds-at-head: FAIL -- pending: ['prelude', 'prelude', 'refresh', 'refresh']; reds: none (base-pinned and gate only)
+PRECONDITION caller-is-owner: PASS -- gh api user reads 'tvofi'
+PRECONDITION main-push-idle: PASS -- in progress: none
+PRECONDITION queue-drained: FAIL -- open besides #2662: [2661, 2659, 2657, 2656, 2654, 2653, 2632, 2620]
+WINDOW DRY-RUN REFUSED: nothing was written

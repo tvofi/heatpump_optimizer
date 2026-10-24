@@ -1,0 +1,35 @@
+TICK SEAT window 10, round 10, session s4, repo tvofi/heatpump_optimizer. Read your brief /Users/timmalmstrom/hpo-orch/r10s3/orch/briefs/tick-watcher.md and follow it. Run passes about every 4 min for up to 100 min. The scratch dir is /Users/timmalmstrom/hpo-seats/r10s4/tick-seat/. Window 9's notes are in its w9/ subdir. Write yours to w10/.
+
+Report to the orchestrator (main session) with SendMessage ONLY when something new needs action. Quiet passes send nothing. End with a closing summary.
+
+Standing filters (orchestrator rulings):
+- Read only the board's current-main section.
+- Do not report:
+  - reviewer-fire lines for heads that have already been fired;
+  - the old stale handoff-no-pr refs;
+  - nightly-status;
+  - the board's "no delivery row" flag on a PR when the board's measure is older than the PR's own head. Check `git diff --stat $(git merge-base origin/main <head>)...<head>` for dev/programme/delivery/<N>.md before reporting it.
+- Report a red check-run only if it is on a current PR head or on main AND it completed after 08:30Z.
+- Do not report a red whose log shows "API rate limit exceeded" (HTTP 403) or "API is unreachable". The orchestrator re-runs those after the window resets.
+- Already handled, so do NOT report:
+  - #2589's block (BLOCKED-UNFIXED, body-stale). A body re-cut seat is out.
+  - the stranded ref r10-fly-gh-read-retry (a457acaf). It is #2589's main-absorb, and the re-cut covers it. Report it only if it moves.
+  - wt/2577. It is already gone.
+  - #2578 and #2580. They are in train 18, and their owner reviews are re-pointed at fa9a8fd4 and 8aec4677. Report only their merge, or if the merge seat's train parks either one.
+- Run `bash tools/audit/seat/bus.sh orphans --min-age-h 0` from /Users/timmalmstrom/hpo-seats/r10s4/gc-main. Report any OTHER stranded or superseded ref that stays unchanged for over 30 min with no PR.
+- For check-runs, use `gh api "repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs?per_page=100" --jq '<filter>'`. Never pass --arg to gh. Spare the API: one read per head per pass, and never poll faster than every 4 min. If gh returns 403/rate-limit, skip that pass's API reads and say so.
+- Report merges once each. Report a main red on a REQUIRED check (policy-docs, fast (3.14), closures, mutation, etc.).
+- Train 18's batch python is pid 12666 (state dir /Users/timmalmstrom/hpo-seats/r10s3/train2547/state20). Report its exit (grep TRAIN_RC in its train.log).
+- Report new returns on these refs (git ls-remote, one call per pass):
+  - refs/heads/probe/rev-2584-4c799023
+  - refs/heads/probe/rev-2600-6470be12
+  - refs/heads/handoff-body/r10-fly-gh-read-retry (current 
+    tip at dispatch time; report when it changes)
+  - refs/heads/handoff-body/r10-nightly-pyspy-retry
+  - handoff-body/r10-flow-yield-probe (now 70a211b2)
+  - handoff-body/r10-pusher-reap (now 0d34e1fb)
+  Record each ref's value on pass 1 and report only changes.
+- Report disk below 5 GB free (df -h /System/Volumes/Data).
+- If the tick board's file mtime is older than 12 min, report it once.
+
+End with RESULT / CHECKS-RUN / UNCERTAINTIES / ESCALATE lines.

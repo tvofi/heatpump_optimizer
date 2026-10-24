@@ -1,0 +1,335 @@
+{
+ "dimension": "D1",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D1/s1/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D1.M1",
+   "depth": "deep",
+   "evidence": "store_gate.py: store.py read gate on a real asyncio loop with an executor-backed load, 4 scenarios, hung=0 misordered=0; perturbation --nofinally -> hung=2. The coordinator setup/reload/unload cycle is in D1-s2's cells (lead). No earlier-round files (round3..round8) were read."
+  },
+  {
+   "step": "D1.M2",
+   "depth": "deep",
+   "evidence": "fuzz.py: 2000 seeded mutants over 8 payloads through the real QuarantiningStore (orjson codec) plus loader plus 2 consumer cycles; directed naive_ts.py and snap_restore.py -> D1-s1-01, D1-s1-02"
+  },
+  {
+   "step": "D1.M3",
+   "depth": "deep",
+   "evidence": "clock_jump.py (clock ahead then corrected, Europe/Stockholm across the 2026-03-29 DST change) -> D1-s1-04; naive_ts.py drives the aware frozen clock for 21 days"
+  },
+  {
+   "step": "D1.M4",
+   "depth": "deep",
+   "evidence": "mid_solve.py: real _solve_snapshot plus a ThreadPoolExecutor reader while every loop-side writer of dhw_learning/comfort_learning runs -> changed_fields=0"
+  },
+  {
+   "step": "D1.M5",
+   "depth": "spot",
+   "evidence": "exceptions injected via M2 corruptions and followed to their guards (heartbeat DEBUG guard hides D1-s1-01/02); dhw async_load_profile and diagnostics guards not executed"
+  },
+  {
+   "step": "D1.M6",
+   "depth": "deep",
+   "evidence": "dhw_glitch.py: the one external-input consumer in these cells (DHW thermometer) driven with -127, 85 and 1e6 -> D1-s1-03"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D1.M3",
+   "what": "Not measured: accuracy lead scoring under clock jumps, ComfortLearner._decay with a future last_update, wear/ledger month keys under a jump to 1970 or a year ahead, sysid sample dt filtering (read only)"
+  },
+  {
+   "step": "D1.M5",
+   "what": "dhw_learning.async_load_profile swallows at DEBUG and a later save may overwrite an undecodable store (needs real HA corrupt-file semantics); diagnostics._coordinator_snapshot calls weather_stale_hours unguarded; sysid guards not executed"
+  },
+  {
+   "step": "D1.M1",
+   "what": "sysid and diagnostics have no lifecycle surface measured; the coordinator setup/reload/unload cycle is left to D1-s2"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D1-s1-01",
+   "scope": "D1-s1",
+   "step": "D1.M2",
+   "title": "A tz-naive persisted timestamp raises on every cycle at three sibling loader seams (snapshots, curve, comfort)",
+   "severity": "medium",
+   "claim": "With the stored timestamp written tz-naive, SnapshotRing.due, CurveLearner._step_down and ComfortLearner._decay raise TypeError on every call after load (21/21 heartbeats, 19/21 curve days, 21/21 comfort calls), and the #42 ring takes 0 snapshots instead of 3.",
+   "mechanism": "The loaders parse with datetime.fromisoformat and keep a naive value; consumers subtract it from an aware now. drift.Cusum.load (naive->UTC) and AccuracyTracker.from_dict lead_pending (drop naive) already guard the same leaf class; these three siblings do not. The heartbeat call site swallows at DEBUG, so the snapshot insurance, bias alarm and rollback stop permanently and silently; with comfort learning on, climate set_temperature raises after the write, and _record_quiet_comfort_period raises inside async_run_optimization's except-Exception (read, not reproduced end-to-end).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py",
+    "harness_path": "tools/audit/round9/D1/s1/naive_ts.py",
+    "value": "snapshot_raises=21 snapshot_taken=0 curve_raises=19 comfort_override_raises=21 comfort_quiet_raises=21 sibling_raises=0",
+    "unit": "count of raising consumer calls over 21 simulated days",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.18,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.due; heatpump_optimizer.curve_learning:CurveLearner.from_dict/_step_down; heatpump_optimizer.comfort_learning:ComfortLearner.from_dict/_decay (driven via coordinator _async_load_snapshots/_async_load_thermal_learning/_async_load_accuracy, _async_watch_learning_drift, record_setpoint_override, _record_quiet_comfort_period)",
+   "perturbation": {
+    "change": "--fix: each seam module's datetime.fromisoformat treats a naive stored time as UTC (the drift.Cusum.load rule, one line per loader)",
+    "expected_direction": "to_zero",
+    "observed_value": "all raises=0, snapshot_taken=3"
+   },
+   "metric_definition": "Per seam, count of consumer calls (one per simulated day, 21 days, aware clock) raising after the store was loaded with that seam's timestamp leaf tz-naive.",
+   "phenomenon_property": "No persisted timestamp reaches arithmetic against an aware clock without being normalised to aware at load.",
+   "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{snapshots,curve_learning,comfort_learning,accuracy,drift,wear,ledger,dhw_learning}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --aware",
+    "value": "all raises=0, snapshot_taken=3",
+    "note": "same payload with an aware timestamp"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --aware",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py --fix",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/fuzz.py (comfort 7, curve 1, snapshots.due 1 signatures; --fix-ts -> 0)"
+   ],
+   "proposed_fix_scope": "In SnapshotRing.due (or from_dict), CurveLearner.from_dict and ComfortLearner.from_dict, normalise a naive parsed time to UTC as drift.Cusum.load does (or drop it as accuracy lead_pending does); one line each.",
+   "files": [
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/curve_learning.py",
+    "custom_components/heatpump_optimizer/comfort_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P1"
+  },
+  {
+   "id": "D1-s1-02",
+   "scope": "D1-s1",
+   "step": "D1.M2",
+   "title": "A non-numeric snapshot temperature_bias makes best_restore raise and suppresses the accuracy_drift issue for good",
+   "severity": "medium",
+   "claim": "For 4/4 JSON-legal non-numeric bias leaves (\"0.3\", \"garbage\", [0.3], {\"v\":0.3}) the restore_learned_snapshot service raises and 10 out-of-band days end with no accuracy_drift repair issue; 0/4 with a numeric leaf.",
+   "mechanism": "SnapshotRing.from_dict only checks each snapshot is a dict; best_restore calls np.isfinite(bias), which raises TypeError on str/list/dict (QuarantiningStore passes finite numeric strings through). On the alarm day the heartbeat raises before _create_issue; the latch is already set so observe_bias never reports a change again.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py",
+    "harness_path": "tools/audit/round9/D1/s1/snap_restore.py",
+    "value": "service_raises=4 missing_issue=4",
+    "unit": "count of 4 bias-leaf variants",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.best_restore (via coordinator async_restore_learned_snapshot and _async_watch_learning_drift after _async_load_snapshots)",
+   "perturbation": {
+    "change": "--fix: best_restore's isfinite reads float(bias) under a (TypeError, ValueError, OverflowError) guard, skipping the snapshot",
+    "expected_direction": "to_zero",
+    "observed_value": "service_raises=0 missing_issue=0"
+   },
+   "metric_definition": "Of 4 non-numeric bias-leaf variants loaded via the real store: count where the restore service raises; count where 10 out-of-band days raise no accuracy_drift issue.",
+   "phenomenon_property": "Every snapshot leaf read by best_restore/due/observe_bias is type-validated at load or read under a guard, so no stored snapshot can make the #42 path raise.",
+   "seam_rule": "grep -n \"snap.get\\|snapshots\\[-1\\]\\[\" custom_components/heatpump_optimizer/snapshots.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --control",
+    "value": "service_raises=0 missing_issue=0",
+    "note": "bias leaf is the number 0.3"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --control",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/snap_restore.py --fix"
+   ],
+   "proposed_fix_scope": "snapshots.py: coerce bias with a guarded float() in best_restore (skip on failure), or validate accuracy.temperature_bias in from_dict.",
+   "files": [
+    "custom_components/heatpump_optimizer/snapshots.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P1"
+  },
+  {
+   "id": "D1-s1-03",
+   "scope": "D1-s1",
+   "step": "D1.M6",
+   "title": "One out-of-range DHW thermometer sample is booked as a physically impossible draw and inflates the published p90",
+   "severity": "medium",
+   "claim": "A single -127 C sample on day 4 folds a 42.218 kWh draw occurrence (control 1.073) and raises the published window p90 from 1.073 to 25.760 kWh; 1e6 folds 231757 kWh.",
+   "mechanism": "async_learn_dynamics feeds the raw drop into async_fold_draw_stats (intensity*dt*thermal mass) with no plausibility bound; the occurrence stays in the 40-occurrence reservoir, and p90 is published as dhw_draw_stats.p90_kwh and, with DHW quantile targets on, becomes the plan's readiness energy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "harness_path": "tools/audit/round9/D1/s1/dhw_glitch.py",
+    "value": "glitch-127_window_p90_kwh=25.760 (control 1.073); max_event 42.218 vs 1.073",
+    "unit": "kWh",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.dhw_learning:DhwProfileLearner.async_learn_dynamics / async_fold_draw_stats (read back via draw_stats.quantile)",
+   "perturbation": {
+    "change": "--guard: samples outside [0,100] C skipped at async_learn_dynamics entry",
+    "expected_direction": "down",
+    "observed_value": "-127 and 1e6 rows return to 1.073 kWh (85 C in-range spike unchanged: 8.747/5.677)"
+   },
+   "metric_definition": "After DAY+1 simulated days of 5-min ticks with one glitch sample on DAY, the largest folded occurrence and the window p90 (DrawStats.quantile 0.9), kWh.",
+   "phenomenon_property": "Energy attributed to a tick or occurrence never exceeds what the tank can physically deliver (thermal mass x usable delta), whatever the thermometer reports.",
+   "seam_rule": "grep -n \"temp_drop\\|energy_kwh\" custom_components/heatpump_optimizer/dhw_learning.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "value": "control_max_event_kwh=1.073 control_window_p90_kwh=1.073",
+    "note": "same series without the glitch sample (printed in the same run); --day 13 shows p90 unmoved once a window has >=11 occurrences"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 13",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/dhw_glitch.py --day 4 --guard"
+   ],
+   "proposed_fix_scope": "dhw_learning.py: cap the per-tick attributed drop/energy by the tank's physical capacity (or reject a tick whose |dT/dt| exceeds a physical bound) before async_learn_usage/async_fold_draw_stats.",
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D1-s1-04",
+   "scope": "D1-s1",
+   "step": "D1.M3",
+   "title": "A timestamp stored while the clock ran ahead is trusted verbatim and stretches stale timeouts by the clock error",
+   "severity": "low",
+   "claim": "After a clock that ran 30 days ahead is corrected, the open-window latch release, the weekly snapshot and the curve step first act on days 33/37/31 instead of 4/8/2 (365 days ahead: 369/373/366).",
+   "mechanism": "Cusum.release_if_starved, SnapshotRing.due and CurveLearner._step_down compare now with a persisted time and never question one in the future; the vent latch it pins freezes every learner.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30",
+    "harness_path": "tools/audit/round9/D1/s1/clock_jump.py",
+    "value": "cusum_release_day=33 snapshot_due_day=37 curve_step_day=31",
+    "unit": "day index of first action",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4 cloud container (8 vCPU Linux), Python 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats sharing box B4; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.drift:Cusum.load/release_if_starved; heatpump_optimizer.snapshots:SnapshotRing.due; heatpump_optimizer.curve_learning:CurveLearner._step_down",
+   "perturbation": {
+    "change": "--clamp: a stored time later than now is clamped to now at load",
+    "expected_direction": "down",
+    "observed_value": "4/8/2"
+   },
+   "metric_definition": "Per seam, first day index (1-day ticks, Europe/Stockholm across DST) at which the production call acts, for a stored stamp A days ahead of the corrected clock.",
+   "phenomenon_property": "A persisted timestamp later than now is clamped or treated as unknown, so no timeout outlives its design by the clock error.",
+   "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{drift,snapshots,curve_learning,comfort_learning}.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 0",
+    "value": "4/8/2",
+    "note": "no clock error: the designed timeouts"
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 0",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 365",
+    "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/clock_jump.py --ahead 30 --clamp"
+   ],
+   "proposed_fix_scope": "Clamp a loaded future timestamp to now (or treat as None) in Cusum.load, SnapshotRing.due and CurveLearner._step_down.",
+   "files": [
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/curve_learning.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Ledger, wear, drift CUSUM and DHW-profile loaders survive 250 mutants each through the real QuarantiningStore (orjson codec): no loader raise, no consumer raise, no non-finite output, <=1 WARNING per mutant",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/fuzz.py --seed 9 --n 250",
+   "value": "ledger/wear/cusum/dhw_profile: loader_raise=0 cycle1_raise=0 nonfinite_output=0 multi_log=0"
+  },
+  {
+   "claim": "AccuracySample.from_dict OverflowError on a 10**400 leaf is a stub artefact (tests/hastub Store decodes with stdlib json; real HA orjson refuses/float-converts)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/fuzz.py --stub-json vs default",
+   "value": "accuracy.loader_raise=19 (stub json) vs 0 (orjson)"
+  },
+  {
+   "claim": "Accuracy summary goes non-finite only from a finite 1e308 predicted_cost leaf (cost_accuracy overflow); publication scrub is outside these cells and not measured",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/fuzz.py --seed 9 --n 250",
+   "value": "accuracy.nonfinite_output=1 of 227 serialisable mutants"
+  },
+  {
+   "claim": "Solve-input fields from learners in these cells (DHW pattern, DHW cooling rate, comfort weight) are isolated from loop-side writers once _solve_snapshot is taken",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/mid_solve.py",
+   "value": "changed_fields=0 torn_reads=0 (--share: changed_fields=3)"
+  },
+  {
+   "claim": "QuarantiningStore.async_wait_for_read neither hangs nor misorders a writer under normal, cancelled, raising and overlapping reads on a real loop",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/store_gate.py",
+   "value": "hung=0 misordered=0 (--nofinally: hung=2)"
+  },
+  {
+   "claim": "Sibling naive-timestamp seams drift.Cusum.load and AccuracyTracker lead_pending already normalise/drop a naive leaf",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s1/naive_ts.py",
+   "value": "sibling_raises=0"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D1/s1/naive_ts.py",
+  "tools/audit/round9/D1/s1/fuzz.py",
+  "tools/audit/round9/D1/s1/snap_restore.py",
+  "tools/audit/round9/D1/s1/dhw_glitch.py",
+  "tools/audit/round9/D1/s1/clock_jump.py",
+  "tools/audit/round9/D1/s1/mid_solve.py",
+  "tools/audit/round9/D1/s1/store_gate.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization (:5096 _record_quiet_comfort_period)",
+   "what": "The learner feed is unguarded inside the solve's except-Exception: any learner raise is logged as 'Optimization failed', bumps _solve_failures (towards the solve_failures repair issue) and skips _command_valve_target."
+  },
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_async_update_data (:4677 _async_watch_learning_drift guard); _async_load_accuracy (:7270-7283)",
+   "what": "The heartbeat guard logs a permanent failure at DEBUG on every cycle. _async_load_accuracy runs its from_dict calls outside the try, so one raising parser aborts the rest of that store's load (dhw_accuracy, defrost, peaks, mode, comfort) in a fire-and-forget task."
+  },
+  {
+   "owner_seat": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_async_save_ledger / _async_save_thermal_learning / _async_save_price_model / _async_save_energy_totals",
+   "what": "Only the accuracy store's writer awaits QuarantiningStore.async_wait_for_read (:5153). The other stores' writers do not, although the loads are spawned fire-and-forget in __init__ (write-before-read clobber class, R6)."
+  },
+  {
+   "owner_seat": "D1-s3",
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "symbol": "DrawStats.fold / from_dict",
+   "what": "No physical bound on the energy of one occurrence: it accepts 231757 kWh (see D1-s1-03's harness)."
+  },
+  {
+   "owner_seat": "D1-s5",
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "symbol": "input reader (problem codes)",
+   "what": "No plausibility range for temperature readings, so the DS18B20 sentinel values -127 and 85 pass as ok readings to every learner."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/hastub/homeassistant/helpers/storage.py",
+   "symbol": "Store.async_save/async_load",
+   "what": "The stub codec is stdlib json: it decodes 10**400 as an exact int and 1e400 as inf, and it writes NaN tokens. Real HA's orjson refuses or converts these, so store-fuzz results over-report loader raises (19 of 250 accuracy mutants were stub-only)."
+  }
+ ]
+}

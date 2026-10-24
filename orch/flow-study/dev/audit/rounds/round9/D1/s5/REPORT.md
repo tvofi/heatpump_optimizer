@@ -1,0 +1,293 @@
+# Round 9 — D1-s5 (D1)
+
+Rendered by the box B5 thread from the JSON the seat returned (`tools/audit/round9/reports-B5.json`), because the seat's own write of this file was refused by its harness. The content is the seat's; nothing was added, verified or judged.
+
+- baseline: `1936d5ca72a06556eeed4e8e5bf3dea520e517e1`
+- exposure: none: no docs/, no GitHub, no earlier-round files read (the sibling seat directory tools/audit/round9/D1/s3 was listed by ls only, not opened)
+
+## Method and coverage
+
+### D1.M1 — spot
+
+These files contain no setup, unload, task or executor code. grep found config_flow.py:2464-2470 and 2950-2954 (async_update_entry + async_reload), which run through HA's config-entry state machine; a direct-call race there would be a stub artefact (brief trap). Not driven.
+
+### D1.M2 — deep
+
+store_domain_fuzz.py: 300 seeded mutants per store over six seeds, for PriceShapeModel.from_dict and PeakTracker.from_dict (the two loaders in these files). Each mutant is loaded through the real loader, runs one cycle (extend_price_series / observe+threshold_kw), then a next cycle. crash=0; silent_invalid 11 and 8 at seed 9.
+
+### D1.M3 — deep
+
+age_of_divergence.py drives inputs.age_of through coordinator._dhw_inlet_c and _indoor_humidity_value on 12 re-reporting cells, 6 future-stamp cells and a 12-cell control, against InputReader._age_minutes. Other InputReader paths were covered only by the parsers_sweep hostile-state arm.
+
+### D1.M4 — spot
+
+Read only: threshold_kw is copied into _opt_config on the loop side (coordinator.py:4837), and the solve thread reads no object from these files. No race harness, since these files have no seam for one.
+
+### D1.M5 — spot
+
+parsers_sweep.py --perturb shows the open_meteo #1519 guards are reached (open_meteo_raised goes 0 -> 1). The 4 except-Exception guards in config_flow were read, not injected.
+
+### D1.M6 — deep
+
+parsers_sweep.py covers Tibber, the price entity, Open-Meteo and InputReader with hostile payloads. price_huge_int.py and open_meteo_resolution.py back two findings. wood_fuel, external_heat and battery parsers were not driven.
+
+## Findings
+
+### D1-s5-01 — inputs.age_of ignores last_reported and accepts future stamps, diverging from InputReader's freshness rule
+
+- step: D1.M3; severity: medium; class: bug; class_guess: P2
+- instrumented symbol: `custom_components.heatpump_optimizer.inputs:age_of (via coordinator:_dhw_inlet_c and HeatPumpOptimizerCoordinator._indoor_humidity_value)`
+- metric: Cells where the value delivered through age_of (None vs a number) disagrees with InputReader._age_minutes' verdict on the identical State at the same instant and limit.
+
+A live sensor that re-reports an unchanged value is delivered as None (stale) by both age_of consumers once last_updated exceeds the limit, and a stamp ahead of the clock is delivered as fresh; InputReader judges the same State objects the opposite way in 13 of 18 cells.
+
+```json
+{
+  "id": "D1-s5-01",
+  "scope": "D1-s5",
+  "step": "D1.M3",
+  "title": "inputs.age_of ignores last_reported and accepts future stamps, diverging from InputReader's freshness rule",
+  "severity": "medium",
+  "claim": "A live sensor that re-reports an unchanged value is delivered as None (stale) by both age_of consumers once last_updated exceeds the limit, and a stamp ahead of the clock is delivered as fresh; InputReader judges the same State objects the opposite way in 13 of 18 cells.",
+  "mechanism": "age_of (inputs.py) reads last_updated/last_changed only and returns a negative timedelta for a future stamp, which callers compare as `age > limit` and so treat as fresh. InputReader._age_minutes prefers last_reported and returns None for a future stamp (#775). The fix was made in the reader and never ported to its sibling.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/age_of_divergence.py",
+    "harness_path": "tools/audit/round9/D1/s5/age_of_divergence.py",
+    "value": "reported_divergent=7/12; future_divergent=6/6; control_divergent=0/12",
+    "unit": "cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; shared fan-out box, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.09,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.inputs:age_of (via coordinator:_dhw_inlet_c and HeatPumpOptimizerCoordinator._indoor_humidity_value)",
+  "perturbation": {
+    "change": "age_of prefers last_reported and returns None for a negative age (the reader's rule); the harness applies it in memory with --perturb by patching coordinator.age_of",
+    "expected_direction": "to_zero",
+    "observed_value": "reported_divergent=0, future_divergent=0, control_divergent=0"
+  },
+  "metric_definition": "Cells where the value delivered through age_of (None vs a number) disagrees with InputReader._age_minutes' verdict on the identical State at the same instant and limit.",
+  "phenomenon_property": "Every freshness decision on a Home Assistant state must use the same stamp precedence (last_reported first) and the same future-stamp refusal as InputReader._age_minutes.",
+  "seam_rule": "grep -n \"age_of(\\|last_updated\\|last_changed\" custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/age_of_divergence.py",
+    "value": "control_divergent=0/12",
+    "note": "last_reported == last_updated (a sensor whose value changes on every write): both rules agree"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "P2",
+  "files": [
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "inputs.age_of: use the reader's stamp precedence and refuse a negative age (or delegate to one shared helper); add a test with last_reported != last_updated and a future stamp for both consumers."
+}
+```
+
+### D1-s5-02 — Learner-store loaders check finiteness but not the domain their own update path enforces (price shape, peak tracker)
+
+- step: D1.M2; severity: medium; class: bug; class_guess: P1
+- instrumented symbol: `custom_components.heatpump_optimizer.price_model:PriceShapeModel.from_dict (+ extend_price_series); custom_components.heatpump_optimizer.tariff:PeakTracker.from_dict (+ threshold_kw, billed_peak_kw)`
+- metric: Mutants whose loaded state makes the next cycle deliver a tail price <=0, non-finite or >1000x the known mean, non-finite sigma, or a negative/NaN threshold or billed peak, with no WARNING logged.
+
+Out of 300 seeded store mutants, 11 price-model and 8 peak-tracker mutants load silently (no WARNING) and make the next cycle deliver values no honest learner can produce: unpublished-step prices of 0 or more than 1000x the known mean, and a negative peak threshold or billed peak. 9 and 2 of them are still invalid one cycle later.
+
+```json
+{
+  "id": "D1-s5-02",
+  "scope": "D1-s5",
+  "step": "D1.M2",
+  "title": "Learner-store loaders check finiteness but not the domain their own update path enforces (price shape, peak tracker)",
+  "severity": "medium",
+  "claim": "Out of 300 seeded store mutants, 11 price-model and 8 peak-tracker mutants load silently (no WARNING) and make the next cycle deliver values no honest learner can produce: unpublished-step prices of 0 or more than 1000x the known mean, and a negative peak threshold or billed peak. 9 and 2 of them are still invalid one cycle later.",
+  "mechanism": "PriceShapeModel.from_dict rejects only non-finite bins, but observe_day/observe_day_quarters clip bins to [SHAPE_MIN,SHAPE_MAX] and [QUARTER_FACTOR_MIN,QUARTER_FACTOR_MAX] and renormalise, so a finite 0, negative or 1e300 bin loads and prices the tail through extend_price_series (max(0, negative) = 0). PeakTracker._stored_peaks drops non-finite peaks but keeps negative ones, which observe() never records; threshold_kw/billed_peak_kw then go negative, and coordinator.py:6992 publishes that.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python -W ignore tools/audit/round9/D1/s5/store_domain_fuzz.py --n 300 --seed 9",
+    "harness_path": "tools/audit/round9/D1/s5/store_domain_fuzz.py",
+    "value": "price_model_silent_invalid=11 (next_still_invalid=9); peak_tracker_silent_invalid=8 (next_still_invalid=2); crash=0",
+    "unit": "mutants of 300 per store",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "seeded counts; contention-immune",
+    "tolerance": "exact (seeded)",
+    "load1": 1.21,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:PriceShapeModel.from_dict (+ extend_price_series); custom_components.heatpump_optimizer.tariff:PeakTracker.from_dict (+ threshold_kw, billed_peak_kw)",
+  "perturbation": {
+    "change": "--perturb wraps both loaders with the update path's domain gate, in memory: shape bins clipped to [SHAPE_MIN,SHAPE_MAX] and renormalised, quarter factors clipped, negative day counts set to 0, non-finite residual_var set to 0, negative peaks dropped, an out-of-domain open window reset",
+    "expected_direction": "to_zero",
+    "observed_value": "price_model_silent_invalid=0, peak_tracker_silent_invalid=0"
+  },
+  "metric_definition": "Mutants whose loaded state makes the next cycle deliver a tail price <=0, non-finite or >1000x the known mean, non-finite sigma, or a negative/NaN threshold or billed peak, with no WARNING logged.",
+  "phenomenon_property": "A persisted learner state must be loaded into the domain its own update path can produce (the same clip and sign gates), or be reset with one log line; checking finiteness alone is not enough.",
+  "seam_rule": "grep -n \"def from_dict\\|def apply_payload\\|def _stored_peaks\" custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python -W ignore tools/audit/round9/D1/s5/store_domain_fuzz.py",
+    "value": "price_model_control_invalid=0, peak_tracker_control_invalid=0",
+    "note": "the unmutated healthy payload delivers no invalid value"
+  },
+  "leave_one_out": {
+    "cells": 6,
+    "min": 8,
+    "max": 13,
+    "drop_most_favourable": 8
+  },
+  "reproduction_steps": [
+    "seeds 1,2,3,4,5,9 give price_model 8,10,8,9,13,11 and peak_tracker 2,5,3,0,5,8 (the leave_one_out block is the price_model arm)"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P1",
+  "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/tariff.py"
+  ],
+  "proposed_fix_scope": "PriceShapeModel.from_dict: apply observe_*'s clip ranges and renormalisation, clamp days/quarter_days to >=0, and drop non-finite residual_var, with one WARNING on repair. _stored_peaks: drop negative peaks like non-finite ones. Validate _window_samples/_window_factor ranges."
+}
+```
+
+### D1-s5-03 — One huge JSON integer drops a whole price fetch (entity and Tibber) or Open-Meteo refresh instead of one row
+
+- step: D1.M6; severity: low; class: bug; class_guess: P2
+- instrumented symbol: `custom_components.heatpump_optimizer.price_model:_raw_value (via pull_prices, prices_from_tibber_payload); custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh)`
+- metric: Rows delivered by the production parser for a payload of valid rows plus one huge-integer row; a raise counts as 0 rows.
+
+With 24 valid price rows plus one row whose value is 10**400, pull_prices (entity source) and prices_from_tibber_payload raise OverflowError and deliver 0 rows, and the Open-Meteo refresh keeps 0 of 72 good samples. Every other malformed value, including the string '1e999', drops only its own row.
+
+```json
+{
+  "id": "D1-s5-03",
+  "scope": "D1-s5",
+  "step": "D1.M6",
+  "title": "One huge JSON integer drops a whole price fetch (entity and Tibber) or Open-Meteo refresh instead of one row",
+  "severity": "low",
+  "claim": "With 24 valid price rows plus one row whose value is 10**400, pull_prices (entity source) and prices_from_tibber_payload raise OverflowError and deliver 0 rows, and the Open-Meteo refresh keeps 0 of 72 good samples. Every other malformed value, including the string '1e999', drops only its own row.",
+  "mechanism": "price_model._raw_value and open_meteo._parse_block wrap float(raw) in except (TypeError, ValueError); float() of an int too large for a double raises OverflowError, which escapes the per-row drop. Price rows propagate to the coordinator's fetch-failed path, which fires again every cycle while the attribute persists. Open-Meteo rows reach the #1519 fence, which discards the whole series. The sibling tariff._stored_peaks already catches OverflowError ('a huge JSON int').",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/price_huge_int.py",
+    "harness_path": "tools/audit/round9/D1/s5/price_huge_int.py",
+    "value": "entity_huge_int_rows=0, tibber_huge_int_rows=0, open_meteo_huge_int_rows=0 (controls 24, 24, 72)",
+    "unit": "rows delivered",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; contention-immune",
+    "tolerance": "exact",
+    "load1": 1.04,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:_raw_value (via pull_prices, prices_from_tibber_payload); custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh)",
+  "perturbation": {
+    "change": "add OverflowError to the except tuple at both float() sites (--perturb patches _raw_value and open_meteo's float in memory)",
+    "expected_direction": "up",
+    "observed_value": "entity 24, tibber 24, open_meteo 72"
+  },
+  "metric_definition": "Rows delivered by the production parser for a payload of valid rows plus one huge-integer row; a raise counts as 0 rows.",
+  "phenomenon_property": "Every per-row numeric parse of external input must drop the row on any conversion failure, OverflowError included, and never fail the whole payload.",
+  "seam_rule": "grep -n -A3 \"float(raw\\|float(raw_v\\|float(total\" custom_components/heatpump_optimizer/price_model.py custom_components/heatpump_optimizer/open_meteo.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/price_huge_int.py",
+    "value": "entity_control_rows=24, tibber_control_rows=24, open_meteo_control_rows=72",
+    "note": "the hostile row as the string '1e999' (float -> inf) is dropped alone"
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "P2",
+  "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/open_meteo.py"
+  ],
+  "proposed_fix_scope": "Catch OverflowError in price_model._raw_value and open_meteo._parse_block (and apply_price_adjustments), with a huge-int row in the parser tests."
+}
+```
+
+### D1-s5-04 — One off-grid timestamp collapses Open-Meteo's inferred resolution and erases the whole solar horizon
+
+- step: D1.M6; severity: low; class: bug; class_guess: new
+- instrumented symbol: `custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh and irradiance_for)`
+- metric: Quarter-hour steps of a 48 h horizon, inside the served coverage, for which irradiance_for delivers None after one refresh.
+
+One extra hourly sample stamped 1 or 5 minutes off the grid makes OpenMeteoSolar.irradiance_for return None for 192 of 192 quarter-hour steps; 30 minutes off gives 94 of 192. The refresh reports success with no WARNING.
+
+```json
+{
+  "id": "D1-s5-04",
+  "scope": "D1-s5",
+  "step": "D1.M6",
+  "title": "One off-grid timestamp collapses Open-Meteo's inferred resolution and erases the whole solar horizon",
+  "severity": "low",
+  "claim": "One extra hourly sample stamped 1 or 5 minutes off the grid makes OpenMeteoSolar.irradiance_for return None for 192 of 192 quarter-hour steps; 30 minutes off gives 94 of 192. The refresh reports success with no WARNING.",
+  "mechanism": "_parse_block sets resolution = min(positive gaps), so one stray sample shrinks every sample's averaging span to that gap. mean_over then covers less than 50% of each 15-min step and returns None. The humidity and snowfall series use the same parser.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "harness_path": "tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "value": "stray_1min_none_steps=192; stray_5min_none_steps=192; stray_30min_none_steps=94; healthy_none_steps=0",
+    "unit": "steps of 192",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container box B5, Linux x86_64, Python 3.14 venv",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; contention-immune",
+    "tolerance": "exact",
+    "load1": 1.13,
+    "thread_factor": 1
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.open_meteo:_parse_block (via OpenMeteoSolar.async_refresh and irradiance_for)",
+  "perturbation": {
+    "change": "take the median positive gap instead of the minimum in _parse_block (one-line edit; --perturb patches it in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 in every arm"
+  },
+  "metric_definition": "Quarter-hour steps of a 48 h horizon, inside the served coverage, for which irradiance_for delivers None after one refresh.",
+  "phenomenon_property": "A resolution inferred from external timestamps must be robust to a single irregular sample; one stray stamp must not change the coverage of every other sample.",
+  "seam_rule": "grep -n \"resolution = \\|min(gaps)\" custom_components/heatpump_optimizer/open_meteo.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/open_meteo_resolution.py",
+    "value": "healthy_none_steps=0",
+    "note": "the same payload without the stray sample"
+  },
+  "leave_one_out": {
+    "cells": 5,
+    "min": 192,
+    "max": 192,
+    "drop_most_favourable": 192
+  },
+  "stop_rule_class": "bug",
+  "class_guess": "new",
+  "files": [
+    "custom_components/heatpump_optimizer/open_meteo.py"
+  ],
+  "proposed_fix_scope": "Infer the resolution from the modal or median gap, or drop samples off the dominant grid, in _parse_block; test with one stray stamp."
+}
+```
+
+## Non-findings
+
+- InputReader.read/read_power_kw/read_bool deliver no non-finite value and never raise on hostile string states (nan, inf, 1e999, words, Arabic-Indic digits, 1e308) across 6 units — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/parsers_sweep.py` → input_reader_raised=0/102, input_reader_nonfinite_delivered=0 (an int state of 10**400 raised OverflowError, but HA states are always strings, so that is a stub artefact and was excluded)
+- prices_from_entity_attributes drops every malformed or non-finite row, including under NaN/inf VAT and surcharge — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/parsers_sweep.py` → entity_attrs_raised=0/15, nonfinite_delivered=0
+- OpenMeteoSolar.async_refresh never raises on 12 hostile bodies and delivers no non-finite irradiance; the #1519 guards are reached — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/parsers_sweep.py [--perturb]` → open_meteo_raised=0/12 baseline, 1/12 with guards removed; nonfinite_delivered=0
+- prices_from_tibber_payload's 4/11 wrong-shape raises (AttributeError on data:null etc.) are caught by the coordinator's broad except in _fetch_tibber_prices, which logs once and fails the update, as documented — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/parsers_sweep.py` → tibber_payload_raised=4/11, nonfinite_delivered=0
+- No store mutant crashes the PriceShapeModel or PeakTracker loader or its next cycle, and the healthy payloads deliver no invalid values — `PYTHONPATH=tests/hastub /home/claude/venv314/bin/python -W ignore tools/audit/round9/D1/s5/store_domain_fuzz.py` → crash=0 of 600; control_invalid=0 for both stores
+
+## Harnesses
+
+- `tools/audit/round9/D1/s5/age_of_divergence.py`
+- `tools/audit/round9/D1/s5/store_domain_fuzz.py`
+- `tools/audit/round9/D1/s5/price_huge_int.py`
+- `tools/audit/round9/D1/s5/open_meteo_resolution.py`
+- `tools/audit/round9/D1/s5/parsers_sweep.py`
+
+## Unfinished
+
+- D1.M5: Inject exceptions into config_flow's except-Exception guards (config_flow.py:458, 641, 1206, 2085) and check that each logs once and recovers.
+- D1.M6: Hostile-payload drive of the state parsing in wood_fuel.py, external_heat.py and battery.py.
+- D1.M1: No real-loop lifecycle harness: these files hold no lifecycle code. The config_flow reload path is only checked by reading it.
+- D1.M2: REPORT.md was not written: the harness refused the Write of tools/audit/round9/D1/s5/REPORT.md ('subagents return findings as text'), so this JSON is the report. report_path names where it belongs.
+
+## Leads
+
+- owner D1-s2: `custom_components/heatpump_optimizer/coordinator.py` `HeatPumpOptimizerCoordinator (price_sensor attributes at ~6992, peak_threshold_kw)` — Publishes peak_threshold_kw as round(threshold_kw, 2) with no sign check. A negative threshold loaded from a corrupt peak store (D1-s5-02) is published as-is.
+- owner D1-s2: `custom_components/heatpump_optimizer/coordinator.py` `solar_radiation horizon build from OpenMeteoSolar.irradiance_for` — Not measured: what the plan uses when irradiance_for returns None for every step (D1-s5-04) — zero solar, the weather entity, or something else — and whether that is logged.
+- owner D1-s4: `custom_components/heatpump_optimizer/optimizer.py` `HeatPumpOptimizer._stash_price_horizon` — Clips sigma at 0 from below but not from above or for inf. price_model.from_dict turns an inf residual_var into inf through max(0.0, v), so sigma is inf and with price_risk_lambda > 0 the unpublished prices become inf. Not hit by this seat's fuzz sample; unmeasured.

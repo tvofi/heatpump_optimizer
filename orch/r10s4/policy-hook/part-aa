@@ -1,0 +1,580 @@
+BINDING POLICY CORPUS (verbatim, origin/main 6961f06637, injected by the orchestrator SessionStart hook; CLAUDE.md is loaded separately).
+
+===== .claude/skills/steward/SKILL.md =====
+---
+name: steward
+description: Driving a pull request in this repository to green, where the general rules would act wrongly
+---
+
+# Stewarding a pull request here
+
+Read this before acting on a CI failure or a review comment. It states only
+where this repository differs from the general rules; everything not named
+here is unchanged, and nothing here loosens a prohibition.
+
+The difference is worth reading because two of these have a wrong default: one
+tells you to push a fix that the repository forbids you to write, and one
+leaves you waiting on a run that will never start.
+
+## S1 A red claim, closure or pin check is a bot's job, not yours
+
+IF `fast` fails with `INHERITED CLAIMS`, `closures` prints `UNDER-SCOPED`, or
+`mutation` refuses unpinned sites, THEN wait for the autofix job's commit and push nothing.
+
+The repairs already exist as jobs. A branch that touches no fixture inherits
+the baseline's claim list through the merge, and the repair is to empty it —
+which the bot does, and which you must not do by hand.
+
+**Read the job's summary line, not its tick.** The job reports its own status
+and goes red exactly when the repair did not happen: `autofix_repair_failed`
+in `tests/closure.py` decides that, and prints the remedy beside it. Green
+covers both "repaired, commit coming" and "nothing was owed", and the
+conclusion alone cannot tell them apart.
+
+Once the job has gone red it has told you no commit is coming, and the rule
+against repairing it yourself stops applying.
+
+EXAMPLE BAD: emptying the claim file and pushing while the job is still
+running. GOOD: reading the summary, seeing `changed`, and waiting for it.
+
+## S2 A conflicted pull request is not red — it cannot run
+
+IF the pull request is `DIRTY`, THEN no workflow fired and there is no result
+to read. Merge `origin/main` locally and push; the merge driver for the claim
+files runs only in a clone that installed it, and a runner is not one.
+
+This happens without anyone touching your branch: a merge to the default
+branch that moves a claim file flips every open pull request at once.
+
+Confirm a conflict is real before treating it as one:
+
+    git merge-tree --write-tree origin/main HEAD
+
+Install the driver once per clone; a worktree shares its checkout's config.
+
+    python3 tests/env_drift.py --install-merge-driver
+
+## S3 Key on the mode line, never the count
+
+IF the scoped selection prints a mode line, THEN act on the mode. Both modes
+can print zero, and they mean opposite things. A push to the default branch
+prints no mode line at all, because the forced full run never calls the code
+that would.
+
+## S4 Never move a version
+
+IF your change would touch `VERSION`, the integration manifest version, or the
+release-notes heading, THEN stop. Versions are assigned after the merge by
+`tools/release/stamp.py`, which refuses a branch that moved one.
+
+## S5 Leave the claim files alone unless you are claiming
+
+IF your branch moves no fixture, THEN both claim files stay byte-identical to
+the default branch. A branch that does not touch them cannot conflict with
+another branch over them, and the guard that catches an inherited list is
+satisfied by an empty one.
+
+## S6 Take no lease by hand for a gate run
+
+IF a local run selects `tests/stress.py`, THEN let `tests/run.sh` take the
+gate lease; it does, around that run alone. Holding it by hand is
+`.claude/rules/gate-scoping.md`'s; a `stress.py` run outside `run.sh` takes
+none, and `dev/audit/README.md` wraps it.
+
+## S7 Merge, never rebase, and never force-push
+
+IF you are updating a branch from the default branch, THEN merge. A rebase
+invalidates the head a reviewer measured and every checkout of it.
+
+## S8 A red check owes an answer in the body
+
+IF your branch turned any required check red, THEN name it in the body and
+answer it: the cheaper detector, or that none exists. An unanswered required
+check is a blocked verdict. Naming a trigger is not the analysis.
+
+`delivery-status` is not required. PENDING a row is ordinary; only OVERDUE is a stopped batch. Read its list, or `tests/delivery_status.py --emit`.
+
+## S9 Never re-gate an unchanged head
+
+IF a terminal result already exists at this head, THEN it is the result. Re-run
+a job only under the narrow conditions the general rules allow, and never to
+see whether it comes out differently.
+
+## S10 Create the commit, then write the body, then push, then confirm
+
+IF a fix also needs the pull-request body corrected, THEN create the commit
+first, write the body against the SHA it already has, push last, and check the
+head's own checks afterwards.
+
+`pr-contract` runs on `synchronize` and reads the body as it stood at push time.
+Push before correcting the body and the job measures the stale one.
+
+Both orders leave exactly one failed run. The difference is WHERE, and that is
+the whole reason for this order:
+
+* push, then edit — the failure lands on the commit that is your head, and the
+  pull request carries it while it is under review;
+* edit, then push — the body edit fires an `edited` run against the head of that
+  moment, which is the one you are abandoning, so the failure lands on a commit
+  that is never the head again.
+
+Measured here at two heads: an `edited` run failing on the outgoing commit
+within seconds of a `synchronize` run passing on the incoming one.
+
+A commit's SHA is assigned when the commit is MADE, not when it is pushed --
+a cherry-pick assigns it locally too -- so `## Head` can always be written
+before the push. What cannot is writing it before the commit exists.
+
+The race is detectable, not preventable, so confirm rather than assume: read
+the check runs on the head you just pushed, not on the pull request as a whole.
+A failure on an earlier commit is expected and harmless; one on the head is not.
+
+The same applies to a push you did not make. An autofix commit (S1) is a
+`synchronize` event, and your body then names the head before the bot's commit.
+`pr-contract` accepts it; fix `## Head` only if red.
+
+EXAMPLE BAD: push, then update the body, then explain the red run on your head.
+GOOD: commit, read the SHA, write the body, push, then read that head's checks.
+
+===== .github/PULL_REQUEST_TEMPLATE.md =====
+<!-- The headings below are what `pr-contract` requires: each is content or an
+explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
+`tools/pr/prepr.sh <this body>` before opening; the job re-checks what it can. -->
+
+Why this change, and what it measures.
+
+## Head
+
+The SHA you measured everything below at.
+
+## Mutation proof
+
+Break the fix and paste the checks that go red. Naming none proves nothing.
+
+## Null control
+
+What the unmodified tree does.
+
+## Figures
+
+`none`, or one line per figure the body states, with the command that printed it;
+name the instrument rather than restate what it prints. `pr-contract` refuses a
+command that does not resolve, and never re-runs one. Required check `arch-score`:
+a gate rise passes only explained under `## Architecture score`, one line per metric.
+
+## Red checks
+
+`none`, or each failing check by name, with the answer the root-cause rule
+requires: the cheaper detector and its standing cost, or the finding that none
+exists.
+
+## Forward-carry
+
+`none`, or per finding the path it lands in and `Carry: <dest>`.
+
+## Friction
+
+`none`, or one line per event: `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence> Carry: <dest>`.
+
+===== dev/governance/rules/brief-citations.md =====
+---
+description: Wave-brief citations must be linter-resolvable; do not leave them only in plan markdown
+paths:
+  - ".claude/workflows/*.json"
+  - "dev/programme/plan*.md"
+  - "dev/programme/HANDOVER.md"
+  - "dev/governance/**"
+---
+# Brief-linter citations
+
+`node tools/policy/brief_lint.mjs` lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `dev/programme/carries/carry-<N>.json`. It does not read the plan, the handover, or the role and dimension briefs.
+
+**Where they go.** New programme plans and wave briefs put load-bearing citations in `wave-*-groups.json` (or the linter's input set) in a form that script can resolve. Do not leave critical citations only in free-form markdown. Extending the plan format means extending the linter in the same PR. Do not weaken the linter to fit a citation.
+
+`resume.stage: done` skips a brief. `after:` must name a group in the same file.
+
+**What resolves**
+
+1. **Paths** (`dir/file.ext` or a unique basename) — in the tree, or in the same brief as a tag SHA (7–40 hex, at least one `a-f`) or `audit-round2-evidence` that actually carries them. A tag-only path without its tag is an error. Negation ("does not exist") is skipped.
+2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. Bare `:123` works only next to a `module.symbol`.
+3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/` or `tools/audit/round2/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
+4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).
+
+**VERSION** — `VERSION x.y.z` or `VERSION a -> b` must match the live `VERSION` file (arrow checks `b`). Do not pin a version a later stamp will invalidate.
+
+**When the symbol you must name does not exist yet.** A backticked identifier is a symbol citation, so a brief that names what a *planned* item will add fails the linter for doing its job. This bit three times in one session — twice on symbols the lane existed to introduce, once on a Home Assistant name absent from this tree at any tag. A tag citation does not rescue those: there is no tag at which they exist.
+
+Three remedies, in order of preference, and **weakening the linter is not among them**:
+
+1. **Do not backtick it.** Name it in prose — *the configuration-URL field*, *the repair notice's learn-more link*. The citation rule exists to check claims about the tree, and a symbol that is not in the tree yet is not such a claim.
+2. **Cite the artifact that does exist** — the issue, the upstream document, the file the symbol will land in.
+3. **Where it genuinely exists at a tag, cite the tag**, which is what tag citations are for.
+
+The linter's ref path also resolves at the cited tag, so verify a tag citation actually carries the symbol rather than assuming the tag rescues it.
+
+```
+# BAD — only in the plan, or a moved range with no live anchor
+tests/entities.py:6042-6062 "does not run ahead"
+
+# GOOD — in the group's brief, re-anchored, quoted phrase still at the range
+tests/entities.py:7305 "does not run ahead"
+```
+
+===== dev/governance/rules/ci-autofix.md =====
+---
+description: CI autofixes UNDER-SCOPED and INERT READS closures, inherited claims and killed mutants — do not duplicate
+paths:
+  - "tests/closures.json"
+  - "tests/golden/claimed_drift.txt"
+  - "tests/golden/card_claimed_drift.txt"
+  - "tests/mutation_budgets.json"
+  - "tests/mutation_ledger/**"
+  - ".github/workflows/**"
+---
+# Mechanical CI autofix (do not re-implement)
+
+Same-repo PRs have three jobs in `.github/workflows/tests.yml`. If `closures` is
+`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait** --
+a `DIRTY` head queues no run, so no bot commit comes. Do not open a parallel PR, do not
+Darwin `--single` an under-scope CI already recorded, and do not hand-empty claim files
+that match `origin/main`. Darwin can `--single` a **new** node script, or grow a node
+closure; it cannot replace a Linux node recording.
+
+**That wait holds only while the job reports it is
+repairing.** Each job pushes on `changed` alone and prints its status to the
+job summary (#523). `closures-autofix` goes red on `skip-failed-recording`,
+`skip-merge-failed`, `skip-still-fails`, `skip-unchanged`,
+`skip-classifier-disagrees` and `skip-manual-repair-owed` — a repair was owed
+and it did not happen. **A red autofix job means no bot commit comes.** The
+`--single` prohibition above, which assumes the bot will merge, lapses. Read the summary
+line, re-derive the script it names and commit `tests/closures.json`; Python
+lanes record through `sys.addaudithook`, so Darwin is sound for them — except
+the inert dimension, which is Linux-recorded (`strace`-only): the bot merges
+INERT READS from CI recordings too (#1886, R9-CI-1). One 6d predicts is not the
+wait: `prepr.sh` refuses it before the push, and
+`python3 tools/pr/ci_predict.py --apply-inert` writes the entry the Linux
+recording would — that commit is not a `--single`. On `skip-failed-recording` a
+script the check named (or its driven child) stopped while being recorded — fix it first; re-deriving would record the same truncation.
+
+**What green means, exactly — read the summary line, not the tick.** Green is
+`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
+repair was owed *to the bot*), or `skip-not-allowed` (it declined to
+classify). It runs the base's `tests/closure.py`: if that stops early
+(a PR moving a file out of INERT) where `closures` printed UNDER-SCOPED, the
+status is `skip-classifier-disagrees`; any other failed check (PHANTOM, NOT A
+FILE, an INERT pair) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` reddens on nothing it
+can return today — `apply_inherited_claims` has no failure status, and its
+`skip-not-inherited` is the ordinary answer for every unrelated `fast`
+failure — so its summary line is its only signal.
+
+**Three paths still end green unrepaired.**
+
+- **A committed phantom.** `check` fails the `closures` job when the committed
+  table lists a path that is not a file (#1310), but the autofix reports no
+  UNDER-SCOPED and stays green: a recording cannot drop a dead path. Repair the
+  table: `python3 tests/closure.py prune`.
+- **The loop guard.** After the bot pushes, the next run's head subject is
+  `ci: re-record closures`, so `autofix_allowed` returns false *before* any
+  classification runs: if that run is still UNDER-SCOPED the status is
+  `skip-not-allowed` and no second commit comes.
+- **A truncated recording masking the under-scope.** `check` never inspects a
+  recording's `rc`, and a script that exits early records only what it
+  reached — so where that truncation hides the *only* under-approximation,
+  `check` passes and the job is green on `skip-clean` — or on `changed`, since
+  an unnamed script's cut-short recording is left out (R9-CI-1). `skip-failed-recording`
+  fires only *after* UNDER-SCOPED is printed, deliberately: a failed
+  recording is common to unrelated `no-copies` and NOT-A-FILE failures, and
+  would send their reader to re-derive a closure that was never stale. The
+  script that failed normally reddens `fast` in the same run; one that fails
+  *only* under recording would not.
+
+  A failed recording can read files a clean run never does (`linecache`), so an
+  UNDER-SCOPED beside one may be an artefact: fix the script; the next push re-records.
+
+| Failure | Job | Commit subject | Code |
+|---|---|---|---|
+| `UNDER-SCOPED`, INERT READS | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
+| `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
+| unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
+
+Those subjects are loop guards. The job dispatches Tests/Hassfest/Validate and CodeQL at once; a
+`GITHUB_TOKEN` push's `pull_request` runs are held `action_required` (since 2026-10-15; run
+38781421410), so the contexts only that event writes are ABSENT at a bot head until one is
+approved: all three approve them, fail-soft while their secrets are absent, when an App push or
+body edit cures it. Absent is not green (`orchestrator.md` section 11). `recheck-gate` treats
+`ci:` as PR-like (not `slow`).
+
+When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage,
+golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
+not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
+
+## A driver-file conflict: one bot merges it, none autofixes it
+
+CI never runs on a `DIRTY` pull request, so no job is red to key on. Do not replace a driver
+with `merge=union`. Only `.github/workflows/merge-main.yml` pushes a resolution (tvofi,
+2026-10-08): `ci: merge main`, where `main`'s drivers resolve every conflicting file.
+
+===== dev/governance/rules/claim-files.md =====
+---
+description: Claim-file conflicts are prevented by the claimnotes merge driver, not repaired after the fact
+paths:
+  - "tests/golden/**"
+---
+# The two claim files
+
+Every branch writes a note into `tests/golden/claimed_drift.txt` and
+`tests/golden/card_claimed_drift.txt` at the same place, so every branch that
+merged `main` after another branch merged conflicted in both.
+`.gitattributes` now routes both files to the
+`claimnotes` merge driver in `tests/env_drift.py`. Install it once per clone;
+a worktree shares its checkout's config, so one install covers every worktree:
+
+```
+python3 tests/env_drift.py --install-merge-driver
+```
+
+The driver unions the note comments and **refuses** — leaving ordinary conflict
+markers and a non-zero exit — when both sides rewrote the bare claim list. The
+refusal is the point. A claim is value-bearing, and git's free `merge=union`
+would silently reinstate a claim the branch deleted, where the inherited-claims
+guard cannot see it: that guard fires only on a list *exactly* equal to the
+baseline's, and a unioned list carries the branch's own claim too.
+
+Two limits, both measured. Git never clones config, so an uninstalled driver
+falls back to the ordinary text merge — the same conflict as today, never worse.
+And git reads `.gitattributes` from the branch being merged **into**, so a branch
+cut before it landed conflicts once more before it is covered.
+
+**GitHub is one of those uninstalled clones, and that one is not free (#570).**
+`mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
+every open pull request flips to `DIRTY` the moment `main` touches a claim file.
+GitHub will not build a merge commit for a `DIRTY` pull request, and the
+`pull_request` workflows never fire — such a PR does not go red, it **cannot
+run**. A run already in flight survives; no new one queues. The merge-main bot
+(`ci-autofix.md`) merges `main` in where the drivers can; else merge locally. Before treating any conflict as real,
+confirm it:
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+**So a branch that claims nothing does not touch the claim files at all.** No
+check reads a note, and a file byte-identical to its fork point's claims
+nothing: it passes, the autofix leaves it, and its lines excuse no drift. A
+line excuses only the diff that wrote it, so lines `main` carries from earlier
+merges are inert until `stamp.py` empties them. Such a file cannot conflict and
+keeps the `claims-for:` line the stamp last wrote. Edit these files only when
+you are actually claiming drift; there a conflict is meaningful, and rare.
+
+Why no autofix job repairs this, and what the `claims-autofix` job does
+instead, are in `ci-autofix.md`.
+
+===== dev/governance/rules/comment-readback.md =====
+---
+description: Post a comment with the poster that reads it back, and never end a post without a read-back
+paths:
+  - "tools/pr/gh_comment.py"
+  - ".claude/workflows/web-fragments.md"
+  - ".claude/skills/steward/SKILL.md"
+  - ".github/PULL_REQUEST_TEMPLATE.md"
+---
+# Posting a comment, and proving it landed
+
+**Post an issue or pull-request comment by running the poster, and read back
+what landed.** The read-back is the obligation; the poster is how you get it without doing anything extra.
+
+```
+python3 tools/pr/gh_comment.py post   --repo O/R --issue N   --body-file F
+python3 tools/pr/gh_comment.py patch  --repo O/R --comment I --body-file F
+python3 tools/pr/gh_comment.py verify --repo O/R --comment I --body-file F
+```
+
+`post` and `patch` write, then fetch the comment off the API and exit non-zero
+unless what is on the record is byte-identical to the file. `verify` is the
+read-back on its own, for a comment written some other way — a client's own
+comment verb, or the mapping in `.claude/workflows/web-fragments.md` for a seat
+with no such binary. Either route is fine. Ending without a read-back is not.
+
+## Why this prescribes rather than prohibits
+
+The defect it replaces is a field flag whose two spellings differ by the case of
+one letter. The wrong one sends the literal string `@FILE` as the body, exits 0,
+and returns a well-formed comment object carrying an id and a URL, so nothing
+between typing it and believing it worked carries a signal.
+
+Four instances in one day. Three were in seats whose dispatch carried a
+specific, correct, written warning naming that exact flag, and none of the three
+complied — **0 of 3**. Across the same seats on the same day, the instruction
+*read your comment back* was complied with **4 of 4**. The root-cause seat
+(#541 comment 5625671141) attributes the gap to what compliance leaves behind: a
+warning is discharged inside one seat's head, while a read-back prints a line
+some other seat can read, and refuses to print a pass when it could not look.
+
+So "never write that flag" is the shape already measured at 0 of 3, and a fifth
+copy of it would be a fifth copy of the thing that did not work. What is
+required here is the artifact instead: a posted comment with a read-back beside
+it. Which flag you avoided is between you and your shell.
+
+## What a read-back is
+
+- **Byte-identity against the file you sent.** Not "the API returned an
+  object", not an id, not a URL: the defect returns all three, and a comparison
+  against them passes it.
+- **A read-back that could not run is a refusal, never a pass.** The secondary
+  rate limit does not appear in a rate-limit query, so a refused fetch is
+  indistinguishable from a clean one unless the exit status is read. Treating
+  one as a pass is the same defect one level up, reached through its own
+  countermeasure.
+- **The body comes from a file.** A body composed inline is a body nothing can
+  be compared against afterwards, and it is where the wrong flag gets reached
+  for in the first place.
+
+## What it does not cover
+
+The poster addresses issue comments and pull-request conversation comments,
+which share one API surface. A **pull-request body** is not one of them: that
+belongs to `tools/pr/push.sh`, which sequences the body against the commit it
+names and is where a body's own read-back is owed. Review comments and review
+bodies are a third surface with no wrapper here — read those back by fetching
+them and comparing, and say in the pull request that you did.
+
+===== dev/governance/rules/defect-root-cause.md =====
+---
+description: A defect that escapes to production, or that CI catches slowly, requires a root-cause countermeasure as well as a fix
+paths:
+  - "tools/audit/briefs/**"
+  - "dev/governance/**"
+  - ".github/workflows/**"
+  - "tests/**"
+---
+# Root-cause remediation
+
+A defect is not closed when its symptom is gone. Two more things are owed: the
+cause, and the **process** that let the cause reach a user or an expensive gate.
+
+## When this applies
+
+Either of:
+
+- the defect **reached a released version**; or
+- the defect **turned a PR red on a check that a cheaper detector could have
+  run.**
+
+The second trigger is a question, not a stopwatch: what separates is whether the
+same failure was reachable earlier and more cheaply than the gate that found it.
+Answer it by naming the cheaper detector and its standing cost, or by recording
+that none exists. A worked example of each:
+
+- **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
+  with a production symbol, after roughly fifteen minutes of CI. The same check
+  runs locally in **under a second** and existed already — it was simply in no
+  local path. Cheaper detector: an edit-time hook; built — sooner, not a
+  repair, and no autofix.
+- **Does not qualify.** A solver regression caught by the golden fixtures. The
+  cheapest detector that would have caught it *is* the gate that caught it.
+  Record the finding, build nothing.
+
+## What is owed
+
+1. **Fix the defect** under normal policy (`fixer.md`); nothing here replaces it.
+2. **In parallel, and in a separate seat**, establish the root cause and the
+   **process root cause**. A separate seat because the fixer is invested in the
+   fix; independence here is procedural, exactly as it is for `fix-review`.
+3. **Address the root cause.** Countermeasures include worker instructions, the
+   plan, testing procedure, a local check, a hook, a CI change. When the defect
+   was found late in CI, a cheaper and earlier detector is strongly preferred.
+4. **Address the process root cause when it pays for itself** — see the cost
+   test below.
+5. **A countermeasure is a change like any other**: reproduced, verified,
+   mutation-proven, independently reviewed.
+
+## The process root cause
+
+Every process failure is in exactly one of four states:
+
+- **(a) The process did not exist.**
+- **(b) The process existed and was not followed.**
+- **(c) The process was followed and did not produce the intended result.**
+- **(d) The process was sound and its preconditions changed underneath it.**
+
+Name the state. The countermeasure differs by state, and the most common
+mistake is treating (c) or (d) as (b) — writing a firmer instruction when the
+instruction was obeyed and wrong. A check half-ported out of its lane is **(c)**:
+#2073's step 6d ran and passed on every stale-pin PR while its unit read one of
+`mutation`'s two directions.
+
+For **(d)**, the countermeasure is rarely a new rule: it is making the process
+notice its own precondition change.
+
+Permanent countermeasures may change how plans, rosters and briefs are made;
+how worker instructions are written; or repository conventions and policy.
+**Repository rules and policy are changed only with the owner's approval**, and
+the request states which of the four states it addresses.
+
+## The cost test
+
+Implement a countermeasure when
+
+    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
+
+Both sides in the same unit: **wall-clock, per occurrence, over a release
+cycle**. State the numbers, do not assert the conclusion.
+
+- `cost(countermeasure, recurring)` is the standing cost — the seconds it adds
+  to every run, every session, forever — not the once-off cost of writing it.
+- `P(recurrence)` uses the **measured class frequency** where one exists;
+  otherwise state the estimate and its basis.
+
+**"No countermeasure" is a legitimate, recordable outcome.** Some defects are
+irreducible: the cheapest detector that would have caught them is the gate that
+did. Record that finding and stop. **Except an audit class**: three or more
+instances in one round, three over any three consecutive rounds, five while it
+is open (judged findings plus sweep seams marked `beyond_finding`), or any
+instance of a `barriered` class, owes a class-eliminating barrier (tvofi,
+2026-09-25); the cost test picks its form, and a seat finding none within the
+bound asks the owner. `fold_ledger.py check` lists each with no barrier and no
+RCA document.
+
+## The bound
+
+A countermeasure may not degrade architecture, functionality or quality, and may
+not add complexity worth more than the defect it prevents. It obeys the
+structural ratchet like any other change: if it needs a budget raised, that is
+the owner's decision, asked before the branch is pushed.
+
+## A detector must be shown to detect
+
+Any countermeasure that is a check, test, lane or hook is **demonstrated failing
+on the defect it was written for, and passing once the defect is fixed.** Both
+runs go in the report.
+
+A check that passes while the bug is present is worse than no check: it converts
+an open defect into a closed one. The shape keeps recurring here — a key-set
+check that supplied the value it asserted, an invariant green on a broken tree,
+an autofix successful while skipping its own repair — each caught by a control
+that assumed the check was lying, none by the check itself.
+
+A check over a structured input is registered in `field_coverage.mjs`: a governance
+check is in the derived set and registers its input or declares none.
+
+## Where it is recorded
+
+The analysis is `dev/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`:
+a class has no issue, and a body or comment can be deleted or its author
+retired. The qualifying defect's issue carries a short **Root cause** section:
+the state (a-d) with its evidence, the cost-test numbers, the countermeasure
+or the recorded refusal, and that path.
+
+## Enforcement
+
+The second trigger is the one with an observable moment, and it is enforced
+there. The moment is **a check that went red on a commit in the branch**; the
+checker is the **fix reviewer**, before returning `merge`.
+
+The fixer whose branch turned a check red names that check in the PR body, and
+answers the trigger's question there: the cheaper detector and its standing
+cost, or the recorded finding that none exists. Both answers are legitimate —
+the worked examples above are one of each — so the cost of a check that does not
+qualify is one line, which is what keeps the obligation from being argued away.
+
+The reviewer reads the PR

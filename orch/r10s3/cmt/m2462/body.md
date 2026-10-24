@@ -1,0 +1,1 @@
+Merged #2462 (R10-POLICY-INSTRUMENTS) as 3cfec97f under mandate 6175172275, after a round-3 merge verdict. orchestrator.md section 13 and nudge.md step 18 now point to tools/audit/seat/INSTRUMENTS.md before any hand-rolled loop, watcher, relay or helper. Caps are paid, with no raise. Roster stage: done. Leaves #201 open.

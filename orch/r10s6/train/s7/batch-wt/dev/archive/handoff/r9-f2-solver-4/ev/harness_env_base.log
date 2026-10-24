@@ -1,0 +1,10 @@
+tree f88e6af8b609c674ae7fa87838b9f13cf50aaecb
+python Python 3.14.7
+numpy 2.4.6 scipy 1.17.1
+coretype Sandybridge
+started 2026-09-29T23:15:20Z
+harness sha1 (evidence export of 79aa98ec):
+1693786192e920778d708de2754dadac331795f4 tools/audit/round9/D12/s2/onoff_switch.py
+9e6103c375f37a5e3857fa77e7a971e485acfaad tools/audit/round9/D8/s1/minpower.py
+e8c0f86e786fd5574852d1bbbadc165cc01b0987 tools/audit/round9/D8/s1/matrix.py
+75739b2688b3ea4c3e838258fe0f2e0f0c172ff1 tools/audit/round9/D0/s2/race.py

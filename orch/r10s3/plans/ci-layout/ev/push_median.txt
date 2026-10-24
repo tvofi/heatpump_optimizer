@@ -1,0 +1,2 @@
+# main push Tests wall (created -> last attempt-1 job end), measure.txt section E: [3626, 3107, 3568, 3310, 4018, 3610, 2655, 3518, 3346, 3496]
+median 3507.0 min 2655 max 4018 n 10

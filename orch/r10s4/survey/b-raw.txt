@@ -1,0 +1,118 @@
+=== audit-r10-roster
+tip=9c02a6ac age: 5 hours ago (2026-10-21 04:39:22 +0200)
+body=yes tip=c025e447
+1:Roster for round 10, fourth landing: brings main's `dev/programme/rosters/wave-r10-groups.json` up to the roster branch tip, so that open pull requests' carries resolve against the tree's roster (fi
+3:## Head
+5:The authored code head is `7e8e5e5ab97479a1d63fde668c6011334be492db` (`handoff/audit-r10-roster`). `git diff --name-only origin/main...7e8e5e5a` lists exactly one file, `dev/programme/rosters/wave-r
+roster: 
+in main: no
+behind main: 1011 ahead: 117
+ 3 files changed, 337 insertions(+), 68 deletions(-)
+PRs: #2475 MERGED head=ca879107
+#2471 MERGED head=3451d972
+#2467 MERGED head=d4f8914e
+#2417 MERGED head=954a7b20
+#2384 MERGED head=faf04b0e
+#2380 MERGED head=cdbca726
+#2377 MERGED head=364def1d
+#2356 MERGED head=1627e3ff | 
+=== r10-earlycutoff-coverage
+tip=ecaf178c age: 5 days ago (2026-10-16 19:33:28 +0200)
+body=yes tip=d7830d26
+1:Why this change, and what it measures.
+4:the code `#2329` (`fix/r10-registry-leak`) added: `detach` drops the room
+5:listener **and** the wiring that reaches the coordinator (`held.wiring = None`),
+roster: 
+in main: no
+behind main: 1607 ahead: 1
+ 1 file changed, 52 insertions(+)
+PRs:  | 
+=== r10-merge-pr-mandate
+tip=6219325c age: 3 days ago (2026-10-18 17:16:56 +0000)
+body=yes tip=ef8aaecc
+1:Group R10-MERGE-PR-MANDATE. No issue is filed, so this body closes none.
+3:On 2026-10-18 at 16:43Z, `tools/audit/seat/merge_pr.sh 2401 <sha> <evidence> owner` printed `MANDATE EXPIRED` and stopped. The mandate in force (#201 comment 6175172275, scope `all`, valid until 202
+25:## Head
+roster: R10-MERGE-PR-MANDATE stage=in-progress commit=6219325c
+in main: no
+behind main: 1038 ahead: 3
+ 5 files changed, 171 insertions(+), 13 deletions(-)
+PRs:  | 
+=== r10-night-folds
+tip=b4d0dd97 age: 16 hours ago (2026-10-20 17:36:21 +0200)
+body=yes tip=9634d69c
+1:The heat-loss learners absorb solar-aperture error. The replay nets the modelled
+2:solar term out only to the accuracy of the aperture, and solar gain correlates
+3:with the conductive term through the time of day and the outdoor temperature —
+roster: R10-NIGHT-FOLDS stage=in-progress commit=
+in main: no
+behind main: 106 ahead: 8
+ 12 files changed, 644 insertions(+), 46 deletions(-)
+PRs:  | 
+=== r10-pre-edit-hook
+tip=6d0df376 age: 5 days ago (2026-10-16 06:45:05 +0200)
+body=yes tip=753b8d70
+1:The pre-edit hook decided its RELEASE_NOTES heading rule from the top-level new_string, content and new_source fields. MultiEdit, which the matcher admits, carries its text in edits[*].new_string, s
+3:Closes #2220.
+5:## Head
+roster: R10-PRE-EDIT-HOOK stage=done commit=0570b86e
+in main: no
+behind main: 1668 ahead: 2
+warning: origin/main...6d0df376aca755d3c6fd2a67be4d9623f92c555f: multiple merge bases, using dec1a264553463414d170a2a14dc53008b31e5b6
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+PRs: #2323 MERGED head=8fef39fc | 
+=== r10-rca-handoff-slip
+tip=5c500b79 age: 13 hours ago (2026-10-20 20:30:55 +0200)
+body=yes tip=90df761f
+1:record: RCA for the orphaned-handoff class (N-orphaned-handoff)
+3:Class `N-orphaned-handoff`, round 10. Document only: `dev/audit/rca/N-orphaned-handoff.md` (257 lines). No policy, code, roster or config change in this handoff.
+5:What it establishes:
+roster: 
+in main: no
+behind main: 84 ahead: 1
+ 1 file changed, 257 insertions(+)
+PRs:  | 
+=== r10-rca-harness-friction
+tip=d1611efe age: 2 days ago (2026-10-19 02:15:30 +0200)
+body=yes tip=a32fbfd1
+1:R10-RCA-HARNESS-FRICTION: the root-cause analysis for four friction issues the governance cron filed in `v7.0.0..origin/main`: #2331 (`harness`), #2353 (`class-open`), #2409 (`mutation-vacuous`) and
+3:Cause: a contract step that defines a block class does not teach the word `VERDICT_CLASSES` carries for it, so one obligation keys under several friction words. `fix-review.md` step 6 taught `blocke
+5:The commits:
+roster: R10-RCA-FRICTION stage=in-progress commit=d1611efe
+in main: no
+behind main: 905 ahead: 9
+ 10 files changed, 763 insertions(+), 6 deletions(-)
+PRs:  | 
+=== r10-replay-cap
+tip=38aec7bf age: 12 hours ago (2026-10-20 22:08:34 +0200)
+body=yes tip=9f6cec59
+1:# Summary
+3:The nightly `slow` lane's replay check went red on 2026-10-20: `loop_cpu_ratio
+5:re-centred this cap at 0.111 from twelve pre-era local runs; the nightly
+roster: 
+in main: no
+behind main: 78 ahead: 1
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+PRs:  | 
+=== r10-roster-ops
+tip=4e2223a5 age: 12 hours ago (2026-10-20 21:49:13 +0200)
+body=yes tip=474c298b
+1:R10-ROSTER-OPS. `tools/audit/seat/roster_edit.py` gains `set-after <group> <G1,G2,...|->` and `drop-carry <group> <index|--match TEXT>`, so the orchestrator applies a replan or drops a stale carry t
+3:Decisions, for the reviewer to judge:
+10:## Head
+roster: R10-ROSTER-OPS stage=in-progress commit=9969e3ca
+in main: no
+behind main: 87 ahead: 5
+ 5 files changed, 436 insertions(+), 8 deletions(-)
+PRs: #2513 OPEN head=716a34f2 | 
+=== r10-roster-sync
+tip=a6d8a78e age: 12 hours ago (2026-10-20 22:16:01 +0200)
+body=yes tip=89aac9b9
+1:The roster's `resume.stage` is a human claim and nothing compared it with the
+2:repository: twelve complete handoffs sat unopened for up to 96 h while the
+3:roster recorded stale stages. `roster_sync.py` is that comparison, run every
+roster: 
+in main: no
+behind main: 87 ahead: 7
+ 7 files changed, 1250 insertions(+), 24 deletions(-)
+PRs:  | 

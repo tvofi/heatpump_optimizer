@@ -1,0 +1,7 @@
+{
+  "note": "D13 round-6 perturbation fixture: the in-force list (.claude/workflows/cfr_exclusions.json, which excludes only `record`) plus `nightly-status`, the job that fails at the pull-request heads where merges are gated and that the in-force list leaves in the change-failure rate. Read with D13_EXCLUDE=. A test file, not policy.",
+  "excluded_jobs": {
+    "record": "in force at the baseline: red at every merge head as a protocol beat",
+    "nightly-status": "PERTURBED IN: fails at 7 of 67 pull-request heads and at no merge commit"
+  }
+}

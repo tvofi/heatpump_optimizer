@@ -1,0 +1,89 @@
+##### 2513
+head 716a34f28571ff1dc47369075dad51afa31b8a44
+instrument-self-tests	118922764973	118922764973	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2513/instrument-self-tests-118922764973.log
+    3634:2026-10-20T22:30:15.8878980Z ##[error]Process completed with exit code 1.
+nightly-status	118922765784	118922765784	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2513/nightly-status-118922765784.log
+    166:2026-10-20T22:28:16.3733921Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head 716a34f28571ff1dc47369075dad51afa31b8a44)
+##### 2519
+head dfba527648fecbedcbe24ffbc5df9622fa594e02
+nightly-status	119104999956	119104999956	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2519/nightly-status-119104999956.log
+    167:2026-10-21T07:51:59.1570390Z ##[error]Process completed with exit code 1.
+failing checks: 1 (+0 without a job to read);  logs read: 1 of 1 (head dfba527648fecbedcbe24ffbc5df9622fa594e02)
+##### 2521
+head 35ae9daed31b2c2d5024c938d0b8485d50be093b
+nightly-status	118933870318	118933870318	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2521/nightly-status-118933870318.log
+    166:2026-10-20T22:56:43.7302719Z ##[error]Process completed with exit code 1.
+pr-contract	118961020082	118961020082	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2521/pr-contract-118961020082.log
+    2128:2026-10-21T00:13:14.7432862Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head 35ae9daed31b2c2d5024c938d0b8485d50be093b)
+##### 2524
+head 50571afa92c3716999226049641eae2279d94938
+nightly-status	118935751055	118935751055	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2524/nightly-status-118935751055.log
+    166:2026-10-20T23:01:43.8732731Z ##[error]Process completed with exit code 1.
+pr-contract	118942371538	118942371538	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2524/pr-contract-118942371538.log
+    2090:2026-10-20T23:19:36.6068803Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head 50571afa92c3716999226049641eae2279d94938)
+##### 2525
+head 00118887ce1f500825c90073f70910e0fe7a815b
+env-matrix	118935037248	118935037248	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2525/env-matrix-118935037248.log
+    1958:2026-10-20T23:00:41.3260942Z ##[error]Process completed with exit code 1.
+nightly-status	118935038860	118935038860	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2525/nightly-status-118935038860.log
+    166:2026-10-20T22:59:53.5472481Z ##[error]Process completed with exit code 1.
+policy-docs	118935037251	118935037251	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2525/policy-docs-118935037251.log
+    2051:2026-10-20T23:00:08.6896559Z ##[error]Process completed with exit code 1.
+pr-contract	118946213120	118946213120	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2525/pr-contract-118946213120.log
+    2023:2026-10-20T23:30:16.8727685Z ##[error]Process completed with exit code 1.
+failing checks: 4 (+0 without a job to read);  logs read: 4 of 4 (head 00118887ce1f500825c90073f70910e0fe7a815b)
+##### 2526
+head baa75f58ae7f9c00334d92da24d3285e1b047277
+nightly-status	118945801106	118945801106	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2526/nightly-status-118945801106.log
+    166:2026-10-20T23:28:55.1333857Z ##[error]Process completed with exit code 1.
+failing checks: 1 (+0 without a job to read);  logs read: 1 of 1 (head baa75f58ae7f9c00334d92da24d3285e1b047277)
+##### 2527
+head 3ce0b78f89d9cd4cc5f4783591adac37c4b42573
+fast (3.14)	119088663302	119088663302	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2527/fast--3.14--119088663302.log
+    14560:2026-10-21T07:36:01.1720441Z ##[error]Process completed with exit code 1.
+nightly-status	119088425084	119088425084	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2527/nightly-status-119088425084.log
+    166:2026-10-21T07:08:37.4358588Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head 3ce0b78f89d9cd4cc5f4783591adac37c4b42573)
+##### 2528
+head a4f01a42154341293aaed52642434c12fab3322b
+nightly-status	118951102017	118951102017	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2528/nightly-status-118951102017.log
+    166:2026-10-20T23:43:59.2761046Z ##[error]Process completed with exit code 1.
+pr-contract	118961722686	118961722686	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2528/pr-contract-118961722686.log
+    2100:2026-10-21T00:15:11.2470165Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head a4f01a42154341293aaed52642434c12fab3322b)
+##### 2529
+head e9d54acdf75741a4c5cb33c3540e18ad609d5fcd
+instrument-self-tests	118942907792	118942907792	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2529/instrument-self-tests-118942907792.log
+    4378:2026-10-20T23:25:18.1355160Z ##[error]Process completed with exit code 1.
+nightly-status	118942907937	118942907937	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2529/nightly-status-118942907937.log
+    166:2026-10-20T23:21:45.4433694Z ##[error]Process completed with exit code 1.
+policy-docs	118942907589	118942907589	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2529/policy-docs-118942907589.log
+    2243:2026-10-20T23:25:01.7135937Z ##[error]Process completed with exit code 1.
+pr-contract	118965591639	118965591639	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2529/pr-contract-118965591639.log
+    2027:2026-10-21T00:26:57.2631920Z ##[error]Process completed with exit code 1.
+failing checks: 4 (+0 without a job to read);  logs read: 4 of 4 (head e9d54acdf75741a4c5cb33c3540e18ad609d5fcd)
+##### 2531
+head fddca8122bf61800022c7ee848188a6c235b2047
+nightly-status	118951336570	118951336570	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2531/nightly-status-118951336570.log
+    166:2026-10-20T23:44:47.7690532Z ##[error]Process completed with exit code 1.
+pr-contract	118973391411	118973391411	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2531/pr-contract-118973391411.log
+    2026:2026-10-21T00:50:43.9334612Z ##[error]Process completed with exit code 1.
+    2102:2026-10-21T00:50:44.7694378Z ##[error]Process completed with exit code 1.
+failing checks: 2 (+0 without a job to read);  logs read: 2 of 2 (head fddca8122bf61800022c7ee848188a6c235b2047)
+##### 2534
+head b01e700472f0103510eb2589a8c761df53e30afc
+nightly-status	118981435442	118981435442	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2534/nightly-status-118981435442.log
+    166:2026-10-21T01:15:36.2356320Z ##[error]Process completed with exit code 1.
+pr-contract	118995481961	118995481961	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2534/pr-contract-118995481961.log
+    2036:2026-10-21T02:01:33.8388618Z ##[error]Process completed with exit code 1.
+typing	118981576305	118981576305	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2534/typing-118981576305.log
+    329:2026-10-21T01:16:03.7432965Z ##[error]Process completed with exit code 1.
+failing checks: 3 (+0 without a job to read);  logs read: 3 of 3 (head b01e700472f0103510eb2589a8c761df53e30afc)
+##### 2542
+head c2bbc47356bef265595c933a22ef2b7e05310912
+nightly-status	119102617890	119102617890	/Users/timmalmstrom/hpo-orch/r10s4/survey/logs/2542/nightly-status-119102617890.log
+    167:2026-10-21T07:45:50.1548044Z ##[error]Process completed with exit code 1.
+failing checks: 1 (+0 without a job to read);  logs read: 1 of 1 (head c2bbc47356bef265595c933a22ef2b7e05310912)

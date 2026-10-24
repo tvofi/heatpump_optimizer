@@ -1,0 +1,60 @@
+===== daemonize pid=3773 2026-10-21T19:17:05Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/pr/app_push.sh tvofi/heatpump_optimizer /Users/timmalmstrom/.local/state/hpo/pr/r10-flow-design-policy/wt fix/r10-flow-design-policy /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/2586.new.md
+  ok       body path              not directly in a shared root
+  ok       merge-base             57f0c9c77cfd5958e0a2443e158bea8326bedae2
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       heavy slot             taken slot=0 label=prepr-3864 expires_at=2026-10-21T19:47:07.726815+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 57f0c9c77cfd
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 57f0c9c77cfd5958e0a2443e158bea8326bedae2 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 57f0c9c77cfd (a data-file read is not seen)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 57f0c9c77cfd
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             8:every
+             14:both
+             15:both
+             25:never
+             30:both
+             53:both
+             58:always
+             65:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             11 i
+             53 a
+             47 n
+             11 a
+             48 g
+             43 p
+             41 p
+             43 p
+  ok       policy corpus -- current with origin/main (6 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/2586.new.md -- 3 budget raise(s), budget-raise-gate red until tvofi approves at the head: .claude/workflows/policy_budgets.json: corpus_tokens: 61026 -> 62423 (a cap went up)
+  ok       figures                FIGURES: 16 resolved, 0 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  ok       push order             origin/fix/r10-flow-design-policy is at d3e34be53 -- local mirror, unfetched
+  ok       ancestry reds          the body answers every red this branch pushed (budget-raise-gate nightly-status)
+
+PRE-PR: d3e34be538b02f1186419a3e7e4220bdf269803d 00000000000000000000000000
+Everything up-to-date
+app_push: PUSHED d3e34be538b02f1186419a3e7e4220bdf269803d to tvofi/heatpump_optimizer:fix/r10-flow-design-policy as the App; pull request #2586 is open at d3e34be538b02f1186419a3e7e4220bdf269803d with the body read back: 

@@ -1,0 +1,6 @@
+CELL climate °C delivered=45.0 readback_c=45.0 ok
+CELL number °C delivered=45.0 readback_c=45.0 ok
+CELL climate °F delivered=45.0 readback_c=7.2 MISDELIVERED
+CELL number °F delivered=45.0 readback_c=7.2 MISDELIVERED
+RESULT misdelivered=2
+RESULT null_misdelivered=0

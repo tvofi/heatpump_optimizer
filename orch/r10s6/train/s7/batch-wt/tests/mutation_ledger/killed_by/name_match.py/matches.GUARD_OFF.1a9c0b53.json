@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:matches GUARD_OFF 1a9c0b53",
+  "killed_by": "tests/features.py",
+  "old": "        if best >= threshold and best - runner_up >= margin:",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

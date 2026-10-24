@@ -1,0 +1,20 @@
+== seams rule at head
+tools/audit/seat/INSTRUMENTS.md:218:  `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
+tools/audit/seat/INSTRUMENTS.md:560:  pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
+tools/audit/seat/cloud_relay.sh:4:# cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]
+tools/audit/seat/tick_loop.sh:7:#   1. `cloud_relay.sh pass`, when the tree carries cloud_relay.sh (#2419). Before
+tools/audit/seat/tick_loop.sh:60:  python3 -I -c "$RELAY_HOLDER" "$r" bash "$relay" pass </dev/null >/dev/null 2>&1 & hp=$!
+tools/audit/seat/tick_loop.sh:100:  ck "--once: one pass, cloud_relay.sh pass first, then the tick with its args; one banner" $?
+== broader: any caller of cloud_relay.sh
+.github/workflows/governance.yml:501:          bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
+.github/workflows/governance.yml:502:          grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
+tools/audit/seat/cloud_dispatch.py:100:            f"there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else; this builds one "
+tools/audit/seat/orchestrator_tick.py:264:        # cloud_relay.sh's own default log (#2419): POSTED/OWED lines.
+tools/audit/seat/orchestrator_tick.py:696:        cloud_relay.sh's log with no later POSTED for the same PR (the round-10
+tools/audit/seat/orchestrator_tick.py:3372:        # ---- OWED from cloud_relay.sh's log (2026-10-18) ----
+tools/audit/seat/tick_loop.sh:7:#   1. `cloud_relay.sh pass`, when the tree carries cloud_relay.sh (#2419). Before
+tools/audit/seat/tick_loop.sh:73:  relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
+tools/audit/seat/tick_loop.sh:100:  ck "--once: one pass, cloud_relay.sh pass first, then the tick with its args; one banner" $?
+tools/audit/seat/tick_loop.sh:104:  ck "null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks" $?
+tools/audit/seat/update_pr.sh:13:# having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
+tools/audit/seat/update_pr.sh:29:# orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by

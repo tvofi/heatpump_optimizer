@@ -1,0 +1,183 @@
+rule                               tier      status      declared
+action-setup                       bronze    done        done
+    cmd: ast: async_setup in __init__.py calls _async_register_services; grep -c 'hass.services.async_register' custom_components/heatpump_optimizer/*.py
+    res: async_setup registers=True; async_register call sites=13
+appropriate-polling                bronze    done        done
+    cmd: grep -n 'update_interval=timedelta(' coordinator.py; grep DEFAULT_OPTIMIZATION_INTERVAL const.py
+    res: update_interval set from config; default=30 min (iot_class=cloud_polling)
+brands                             bronze    done        done
+    cmd: ls custom_components/heatpump_optimizer/brand
+    res: brand assets in-repo: ['icon.png', 'logo.png'] (a custom integration cannot be in home-assistant/brands; adapted check)
+common-modules                     bronze    done        done
+    cmd: ast/grep: entity.py defines HeatPumpOptimizerEntity(CoordinatorEntity); count platform modules importing it
+    res: entity.py+coordinator.py present=True; base class=True; platform modules using it=6/6
+config-flow                        bronze    done        done
+    cmd: python: manifest.json config_flow; count strings.json config/options step fields with no matching data_description entry
+    res: config_flow=True; steps=36; input fields=270; fields without a data_description=0
+config-flow-test-coverage          bronze    todo        done   <-- MISMATCH
+    cmd: coverage json -> custom_components/heatpump_optimizer/config_flow.py (the rule is FULL coverage of the config flow)
+    res: config_flow.py statement coverage=97.2%, statements=756, missed=21
+dependency-transparency            bronze    done        done
+    cmd: python: manifest.json requirements
+    res: requirements=['numpy>=1.24.0', 'scipy>=1.10.0', 'threadpoolctl>=3.5.0']; all three are OSI-licensed, on PyPI, built in public CI, tagged; exact-pin count=0/3 (the rule text does not require ==)
+docs-actions                       bronze    done        done
+    cmd: yaml: services.yaml keys; json: strings.json services; grep '## Services' README.md
+    res: services.yaml=12; strings.json services=12; README '## Services' section present
+docs-triggers                      bronze    done        done
+    cmd: grep -c 'async_get_triggers|TRIGGER_SCHEMA|device_trigger' package
+    res: trigger definitions=0 -> vacuous
+docs-conditions                    bronze    done        done
+    cmd: grep -c 'async_get_conditions|CONDITION_SCHEMA|device_condition' package
+    res: condition definitions=0 -> vacuous
+docs-high-level-description        bronze    done        done
+    cmd: grep -c '## What it does' README.md
+    res: README '## What it does' present=True
+docs-installation-instructions     bronze    done        done
+    cmd: grep -c '## Installation' README.md
+    res: README '## Installation' present=True
+docs-removal-instructions          bronze    done        done
+    cmd: grep -c '### Removal' README.md
+    res: README '### Removal' present=True
+entity-event-setup                 bronze    done        done
+    cmd: ast: entity classes in the 6 platform modules subscribing to events
+    res: entity classes subscribing directly=0 (package-wide event subscriptions=4, all in coordinator.py, released via entry.async_on_unload) -> vacuous for the entity lifecycle rule
+entity-unique-id                   bronze    done        done
+    cmd: grep -c '_attr_unique_id =' package
+    res: _attr_unique_id assignment sites=9; every one is f'{entry.entry_id}_...'
+has-entity-name                    bronze    done        done
+    cmd: grep '_attr_has_entity_name = True' entity.py
+    res: set once on the shared base HeatPumpOptimizerEntity=True
+runtime-data                       bronze    done        done
+    cmd: ast/grep: entry.runtime_data sites; the two HeatPumpOptimizerConfigEntry alias definitions
+    res: runtime_data writes=1, reads=11; __init__.py alias='ConfigEntry'; coordinator.py alias='ConfigEntry[HeatPumpOptimizerCoordinator]'; root alias parametrized=False
+test-before-configure              bronze    done        done
+    cmd: grep 'validate_tibber_token' config_flow.py
+    res: config flow validates the credential before creating the entry=True
+test-before-setup                  bronze    done        done
+    cmd: grep 'async_config_entry_first_refresh' __init__.py; grep -c 'raise UpdateFailed' package
+    res: first refresh in async_setup_entry=True; UpdateFailed raise sites=4 (first refresh converts to ConfigEntryNotReady)
+unique-config-entry                bronze    done        done
+    cmd: grep 'async_set_unique_id' and '_abort_if_unique_id_configured' config_flow.py
+    res: both present=True (unique id = entry_identity(self._data))
+action-exceptions                  silver    done        done
+    cmd: grep -c 'raise ServiceValidationError' services.py; grep -c 'raise HomeAssistantError' package
+    res: ServiceValidationError raise sites in services.py=14; HomeAssistantError raise sites package-wide=6
+config-entry-unloading             silver    done        done
+    cmd: grep 'async_unload_platforms' and 'async_shutdown' __init__.py
+    res: async_unload_entry unloads platforms=True, shuts the coordinator down=True
+docs-configuration-parameters      silver    done        done
+    cmd: wc -l docs/configuration.md; grep -c '^|' docs/configuration.md
+    res: docs/configuration.md=764 lines, 308 table rows; linked from README
+docs-installation-parameters       silver    done        done
+    cmd: grep '## Quick start' README.md; docs/configuration.md setup pages
+    res: README '## Quick start — the first 30 minutes' walks every config-flow field; docs/configuration.md repeats them in tables
+entity-unavailable                 silver    done        done
+    cmd: grep -c 'def available(self) -> bool' package
+    res: available() overrides=18, plus CoordinatorEntity's last_update_success default
+integration-owner                  silver    done        done
+    cmd: python: manifest.json codeowners
+    res: codeowners=['@tvofi']
+log-when-unavailable               silver    done        done
+    cmd: ast/grep: outage-latch helpers in coordinator.py
+    res: latch helpers=['_detect_outage', '_outage_dhw_hold', '_outage_recovery_active', '_tibber_fetch_failed', '_tibber_fetch_recovered', '_weather_fetch_failed', '_weather_fetch_recovered']; latch field references=20; first failure ERROR, later failures DEBUG, recovery INFO
+parallel-updates                   silver    done        done
+    cmd: grep -n '^PARALLEL_UPDATES' on the 6 platform modules
+    res: set in 6/6 platform modules: sensor=0, binary_sensor=0, button=1, climate=1, switch=1, datetime=1
+reauthentication-flow              silver    done        done
+    cmd: grep 'async_step_reauth' config_flow.py; 'async_start_reauth' coordinator.py
+    res: flow step present and reachable (coordinator starts it on a refused token)=True
+test-coverage                      silver    done        todo   <-- MISMATCH
+    cmd: coverage json -> per-module statement coverage of the package
+    res: package=97.18%; modules below 95%=0
+devices                            gold      done        done
+    cmd: grep 'DeviceInfo(' coordinator.py
+    res: one DeviceInfo built on the coordinator, served to every entity via HeatPumpOptimizerEntity.device_info=True
+diagnostics                        gold      done        done
+    cmd: grep 'async_get_config_entry_diagnostics' diagnostics.py
+    res: present=True; redacts the Tibber token and the solar location
+discovery                          gold      exempt      exempt
+    cmd: grep -c 'async_step_(dhcp|zeroconf|ssdp|bluetooth|usb|mqtt|homekit)' package
+    res: discovery steps=0; the service is a cloud API (Tibber) plus user-picked HA entities -- nothing on the network to discover
+discovery-update-info              gold      exempt      exempt
+    cmd: same command as discovery
+    res: discovery steps=0; no network address is stored, so there is nothing to update
+docs-data-update                   gold      done        done
+    cmd: grep -i 'optimization interval|30 min' README.md docs/*.md
+    res: docs/how-it-works.md:47 and README.md:340 state the 30-minute poll/solve cycle and what is fetched each time
+docs-examples                      gold      todo        todo
+    cmd: grep -ci 'blueprint' README.md docs/*.md; grep -c '```yaml' docs/automations.md
+    res: blueprint links=0 (the rule asks for blueprints, not inline YAML); automation YAML examples in docs/automations.md=3
+docs-known-limitations             gold      todo        done   <-- MISMATCH
+    cmd: grep -ciE '^#{1,4}.*known limitation' README.md docs/*.md; grep -ci 'limitation' README.md docs/*.md
+    res: 'Known limitations' headings=0; the word 'limitation' anywhere in the user documentation=0
+docs-supported-devices             gold      done        done
+    cmd: grep '## Supported heat pumps and controls' README.md
+    res: README section names the pump families, the ECL110 controller and the generic entity-driven path
+docs-supported-functions           gold      done        done
+    cmd: grep '## Entities' README.md
+    res: README '## Entities' enumerates sensors, binary sensors, buttons, switches, climate and datetime, plus '## Services'
+docs-troubleshooting               gold      done        done
+    cmd: grep '## Troubleshooting' README.md
+    res: README '## Troubleshooting' present
+docs-use-cases                     gold      done        done
+    cmd: grep '## What it does' README.md
+    res: README '## What it does' gives the use cases; docs/automations.md adds three worked ones
+dynamic-devices                    gold      exempt      exempt
+    cmd: grep -c 'device_registry async_get_or_create' package
+    res: device-registry create sites=0; the integration has exactly one static device per config entry
+entity-category                    gold      done        done
+    cmd: grep -c '_attr_entity_category =' package
+    res: EntityCategory assignments=22 (all DIAGNOSTIC)
+entity-device-class                gold      done        done
+    cmd: grep -c '_attr_device_class =' package
+    res: device-class assignments=33
+entity-disabled-by-default         gold      done        done
+    cmd: grep -c '_attr_entity_registry_enabled_default = False' package
+    res: entities disabled by default=6
+entity-translations                gold      done        done
+    cmd: json: strings.json entity.* counts; grep -c translation_key package
+    res: translated entity names=73 over ['binary_sensor', 'button', 'datetime', 'sensor', 'switch']; translation_key sites in code=46; climate uses _attr_name=None (device name)
+exception-translations             gold      done        done
+    cmd: json: strings.json exceptions; grep -c translation_domain= and 'raise (ServiceValidationError|HomeAssistantError)' package
+    res: strings.json exceptions=21; translation_domain= sites=21; raise sites=21
+icon-translations                  gold      done        done
+    cmd: json: icons.json entity.* counts; grep -c '_attr_icon =' package
+    res: icons.json entity icons=69; _attr_icon pins left=0; icons.json has no services section (the rule covers entity icons)
+reconfiguration-flow               gold      done        done
+    cmd: grep 'async_step_reconfigure' config_flow.py
+    res: present=True; aborts with reconfigure_successful
+repair-issues                      gold      done        done
+    cmd: grep -cE '(?<![\w.])_?create_issue\(' package; json: strings.json issues; grep 'async_create_fix_flow' repairs.py
+    res: issue create sites=16; strings.json issues=17; repairs.async_create_fix_flow=True
+stale-devices                      gold      exempt      exempt
+    cmd: grep -c 'async_remove_device|device_registry.async_remove' package
+    res: device removal sites=0; the single device's lifetime is the config entry's, so Home Assistant removes it with the entry
+async-dependency                   platinum  done        done
+    cmd: grep -c 'requests.get|requests.post|urllib.request.urlopen' package; grep -c async_add_executor_job package
+    res: blocking HTTP call sites=0; aiohttp is the only HTTP client; async def count=181; async_add_executor_job sites=5 (the CPU-bound solve, not I/O)
+inject-websession                  platinum  done        done
+    cmd: grep -c async_get_clientsession package; grep -c 'aiohttp.ClientSession(' package
+    res: async_get_clientsession sites=6; own ClientSession constructions=0
+strict-typing                      platinum  done        done
+    cmd: mypy 2.3.1 --strict against the package with homeassistant-stubs 2025.4.4 on Python 3.13.1 (arm B) and with tests/hastub (arm A)
+    res: arm B (real stubs) errors=0; arm A (tests/hastub) errors=542, of which 470 are LOCATED in the package but CAUSED by the untyped stub; py.typed marker: not owed by a custom integration (no library is published)
+
+RESULT bronze_done=19 rules
+RESULT bronze_todo=1 rules
+RESULT bronze_total=20 rules
+RESULT silver_done=10 rules
+RESULT silver_total=10 rules
+RESULT gold_done=15 rules
+RESULT gold_exempt=4 rules
+RESULT gold_todo=2 rules
+RESULT gold_total=21 rules
+RESULT platinum_done=3 rules
+RESULT platinum_total=3 rules
+RESULT rules_total=54 rules
+RESULT declared_mismatch=3 rules
+RESULT mismatch_config_flow_test_coverage=executed:todo/declared:done
+RESULT mismatch_test_coverage=executed:done/declared:todo
+RESULT mismatch_docs_known_limitations=executed:todo/declared:done
+RESULT runtime_data_root_alias_parametrized=False
+RESULT load1=6.57
+RESULT thread_factor=n/a (counts, not timings)

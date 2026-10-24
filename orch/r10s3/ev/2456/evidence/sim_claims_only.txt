@@ -1,0 +1,2 @@
+claims hygiene: HEAD^1 ok
+exit=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.apply_cooling_rate CLAMP_DROP e08bcac5",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            np.clip(rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)",
+  "reason": "Recorded by `mutation_table.py --drain` against 1005e27a6fe2b60ded9fa530e03513c5c35c4ead: CLAMP_DROP (`(rate)`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,156 @@
+import json, re, html, datetime as dt
+B = "/Users/timmalmstrom/hpo-orch/r10s3/"
+R = json.load(open(B + "plan-roster.json"))
+EDGES = json.load(open(B + "REPLAN-EDGES.json"))
+ISS = {i["number"]: i["title"] for i in json.load(open(B + "plan-issues.json"))}
+NOW = dt.datetime(2026, 10, 17, 21, 30)
+
+groups = {g["group"]: g for g in R["groups"]}
+# the owner's final docs stage
+groups["R10-ARCH-DOCS"] = {"group": "R10-ARCH-DOCS", "kind": "docs", "size": "M", "issues": [], "fixes": [],
+    "brief": "Last stage (owner ruling): architecture.md and the dev README, in words and diagrams in the repo's own visual language; the agentic process, CI shape and requirements.",
+    "resume": {"stage": "not-started"}}
+groups["R10-N-LOG-FLOOD"] = {"group": "R10-N-LOG-FLOOD", "kind": "defect", "size": "S", "issues": [2337], "fixes": [2337],
+    "brief": "Eight unlatched log sites: the arbiter latch keyed on hass and the ledger rows normalised (#2351).",
+    "resume": {"stage": "in-review"}}
+
+PR = {"R10-DEEPLINK-CENSUS": "#2345", "R10-N-LOG-FLOOD": "#2351", "R10-PUMP-MODEL": "opening"}
+LIVE = {  # session-3 seats, measured from the ledger
+ "R10-VENT-DETECTOR": "fixing", "R10-I5-DOCS": "fixing", "R10-ARCHSCORE-COVERAGE": "fixing (p4/p5)",
+ "R10-REF-PRIVACY": "fixing (scrub + bus arm)", "R10-DEEPLINK-CENSUS": "fixing (r9 resume)", "R10-N-LOG-FLOOD": "fixing (resume)",
+ "R10-PUMP-MODEL": "fixing (main merge, then D2)", "R10-LEAF-IMPORTS": "fixing", "R10-SAV-BASELINE": "fixing",
+ "R10-RATIO-ANCHOR": "fixing (merge after NIGHT-FOLDS)", "R10-SENSOR-PAYLOAD": "fixing",
+ "R10-TICK-ORCH": "fixing (arms a, c)", "R10-D15-GRADER": "fixing", "R10-TRAIN-HOLD": "fixing (resume)"}
+MERGED = {"R10-FAHRENHEIT": 2285, "R10-FEEDS": 2336, "R10-RATIO-SITES": 2347, "R10-TARIFF": 2282, "R10-DEEPLINK": 2283,
+ "R10-UX-SETUP": 2346, "R10-REGISTRY-LEAK": 2329, "R10-SERVICES-GUARD": 2290, "R10-I1": 2284, "R10-PRE-EDIT-HOOK": 2323,
+ "R10-POLICY-LINT-STATS": 2294, "R10-GATE-YIELD": 2275, "R10-STALE-PATHS": 2289, "R10-STRUCTURE-BLIND": 2340,
+ "R10-TICK-TRAIN": 2305, "R10-PREPR-CAP": 2341, "R10-REPLAY-LOOPNORM": 2339, "R10-STALE-PATHS-2": 2344, "R10-TICK-ORCH": 2360, "R10-D15-GRADER": 2374, "R10-REF-PRIVACY": 2366, "R10-LEAF-IMPORTS": 2371, "R10-DEEPLINK-CENSUS": 2345, "R10-STORE": 2375}
+
+edges = {g: list(EDGES.get(g, groups[g].get("after", []))) for g in groups}
+for g in groups:
+    if g in MERGED: edges[g] = []
+edges["R10-N-LOG-FLOOD"] = []
+edges["R10-ARCH-DOCS"] = [g for g in groups if g not in MERGED and g != "R10-ARCH-DOCS"]
+for g in edges: edges[g] = [a for a in edges[g] if a in groups and a not in MERGED]
+
+HOURS = {"S": 5, "M": 8, "L": 11, "XL": 14}
+fin, start = {}, {}
+def finish(g):
+    if g in fin: return fin[g]
+    if g in MERGED: fin[g] = NOW; return NOW
+    s = max([finish(a) for a in edges[g]] + [NOW])
+    h = HOURS.get(groups[g].get("size", "M"), 8)
+    if g in LIVE: h = h * 0.7
+    start[g] = s; fin[g] = s + dt.timedelta(hours=h); return fin[g]
+for g in groups: finish(g)
+end = max(fin.values())
+# critical path: walk back from the latest finisher
+crit, cur = [], max((g for g in groups if g not in MERGED), key=lambda g: fin[g])
+while cur:
+    crit.append(cur)
+    deps = edges[cur]
+    cur = max(deps, key=lambda a: fin[a]) if deps else None
+crit = set(crit)
+
+def lane(g):
+    x = groups[g]; k = x.get("kind")
+    if g in ("R10-ARCH-DOCS", "R10-I5-DOCS"): return "Docs"
+    if k in ("instrument", "policy") or g.startswith(("R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE", "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE", "R10-STRUCTURE", "R10-BRIEFS")): return "Instruments"
+    if "REPLAY" in g: return "Replay"
+    if g in ("R10-VENT-DETECTOR", "R10-NIGHT-FOLDS", "R10-TRUST-RELATIVE", "R10-RATIO-ANCHOR", "R10-RATIO-SITES", "R10-LEARNER-ETA", "R10-HEAT-METER", "R10-COP-GATE"): return "Learners"
+    if k == "owner" or g in ("R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-DEEPLINK-CENSUS"): return "Product UX"
+    return "Core model"
+LANES = ["Learners", "Core model", "Product UX", "Replay", "Instruments", "Docs"]
+
+def status(g):
+    if g in MERGED: return ("done", f"merged #{MERGED[g]}")
+    if g in LIVE: return ("live", LIVE[g])
+    blk = [a for a in edges[g] if a not in MERGED]
+    return ("blocked", "waiting") if blk else ("ready", "ready")
+
+def desc(g):
+    b = groups[g].get("brief", "")
+    b = re.split(r"(?<=[.])\s", b.replace("\n", " "), 1)[0]
+    return (b[:170] + "…") if len(b) > 170 else b
+
+# stamps: cut a patch stamp after each ~5 production groups land, by ETA
+prod = sorted([g for g in groups if g not in MERGED and lane(g) in ("Learners", "Core model", "Product UX")], key=lambda g: fin[g])
+stamps = [("v7.0.1", NOW + dt.timedelta(hours=2), "9 production groups merged since v7.0.0")]
+for i in range(5, len(prod) + 1, 5):
+    stamps.append((f"v7.0.{len(stamps)+1}", fin[prod[i-1]] + dt.timedelta(hours=1), ", ".join(p[4:] for p in prod[i-5:i])))
+if len(prod) % 5:
+    stamps.append((f"v7.0.{len(stamps)+1}", fin[prod[-1]] + dt.timedelta(hours=1), ", ".join(p[4:] for p in prod[-(len(prod)%5):])))
+stamps.append(("v7.1.0", end + dt.timedelta(hours=2), "programme closure (docs stage landed)"))
+
+rows = []
+for g in sorted(groups, key=lambda g: (status(g)[0] == "done", fin[g], g)):
+    st, sl = status(g)
+    iss = groups[g].get("issues", []); fx = set(groups[g].get("fixes", []))
+    rows.append(dict(g=g, lane=lane(g), st=st, sl=sl, pr=f"#{MERGED[g]}" if g in MERGED else PR.get(g, "—"),
+        iss=[(n, n in fx, n in ISS) for n in iss], blk=[a for a in edges[g] if a not in MERGED],
+        d=desc(g), eta=None if g in MERGED else fin[g].strftime("%a %d %b %H:%M"), crit=g in crit,
+        s=None if g in MERGED else start[g], f=fin[g]))
+
+# swimlane svg
+open_rows = [r for r in rows if r["st"] != "done"]
+span_h = (end - NOW).total_seconds() / 3600
+W, LW, RH = 1180, 120, 24
+px = lambda t: LW + (t - NOW).total_seconds() / 3600 / span_h * (W - LW - 20)
+lane_rows = {l: [] for l in LANES}
+for r in open_rows:
+    rows_l = lane_rows[r["lane"]]
+    for track in rows_l:
+        if all(r["s"] >= o["f"] or r["f"] <= o["s"] for o in track): track.append(r); break
+    else: rows_l.append([r])
+y, parts, ypos = 34, [], {}
+for t in range(0, int(span_h) + 1, 12):
+    x = px(NOW + dt.timedelta(hours=t))
+    lab = (NOW + dt.timedelta(hours=t)).strftime("%a %Hh")
+    parts.append(f'<line x1="{x:.1f}" y1="22" x2="{x:.1f}" y2="__H__" class="grid"/><text x="{x:.1f}" y="14" class="tick">{lab}</text>')
+for l in LANES:
+    tracks = lane_rows[l] or [[]]
+    h = len(tracks) * (RH + 6) + 10
+    parts.append(f'<rect x="0" y="{y}" width="{W}" height="{h}" class="lane"/><text x="10" y="{y+18}" class="lanelab">{l}</text>')
+    for i, track in enumerate(tracks):
+        for r in track:
+            x0, x1 = px(r["s"]), px(r["f"]); yy = y + 6 + i * (RH + 6)
+            ypos[r["g"]] = (x0, x1, yy + RH / 2)
+            cls = "bar " + r["st"] + (" crit" if r["crit"] else "")
+            name = r["g"][4:]
+            parts.append(f'<g><title>{r["g"]}: {html.escape(r["sl"])}, ETA {r["eta"]}</title><rect x="{x0:.1f}" y="{yy}" width="{max(x1-x0,4):.1f}" height="{RH}" rx="3" class="{cls}"/>'
+                         f'<text x="{x0+5:.1f}" y="{yy+16}" class="barlab">{name}</text></g>')
+    y += h + 4
+# critical path connectors
+arrows = []
+for r in open_rows:
+    if not r["crit"]: continue
+    for a in r["blk"]:
+        if a in crit and a in ypos and r["g"] in ypos:
+            ax, ay = ypos[a][1], ypos[a][2]; bx, by = ypos[r["g"]][0], ypos[r["g"]][2]
+            arrows.append(f'<path d="M{ax:.1f},{ay:.1f} C{ax+18:.1f},{ay:.1f} {bx-18:.1f},{by:.1f} {bx:.1f},{by:.1f}" class="critline"/>')
+for name, t, _ in stamps:
+    x = px(t)
+    if x <= W - 10:
+        parts.append(f'<line x1="{x:.1f}" y1="22" x2="{x:.1f}" y2="{y}" class="stampline"/><text x="{x+3:.1f}" y="{y+14}" class="stamplab">{name}</text>')
+svg = f'<svg viewBox="0 0 {W} {y+22}" width="{W}" role="img" aria-label="Swimlanes">' + "".join(parts).replace("__H__", str(y)) + "".join(arrows) + "</svg>"
+
+def chip(n, closer, open_):
+    t = html.escape(ISS.get(n, ""))
+    c = "chip" + (" closer" if closer else "") + ("" if open_ else " closed")
+    return f'<span class="{c}" title="{t}">#{n}</span>'
+trs = []
+for r in rows:
+    trs.append(f'<tr class="{r["st"]}" data-st="{r["st"]}"><td class="g">{"<span class=\"cp\" title=\"critical path\">◆</span>" if r["crit"] else ""}{r["g"][4:]}<div class="lanec">{r["lane"]}</div></td>'
+               f'<td class="d">{html.escape(r["d"])}</td><td><span class="pill {r["st"]}">{html.escape(r["sl"])}</span></td><td class="mono">{r["pr"]}</td>'
+               f'<td>{"".join(chip(*i) for i in r["iss"]) or "—"}</td><td class="blk">{", ".join(b[4:] for b in r["blk"]) or "—"}</td><td class="mono">{r["eta"] or "—"}</td></tr>')
+stamp_rows = "".join(f'<tr><td class="mono">{n}</td><td class="mono">{t.strftime("%a %d %b %H:%M")}</td><td>{html.escape(c)}</td></tr>' for n, t, c in stamps)
+counts = {k: sum(1 for r in rows if r["st"] == k) for k in ("done", "live", "ready", "blocked")}
+open_iss = len(ISS) - 1
+data = dict(svg=svg, trs="".join(trs), stamps=stamp_rows, end=end.strftime("%a %d %b %H:%M"), crit=" → ".join(g[4:] for g in sorted(crit, key=lambda g: fin[g])),
+            counts=counts, total=len(rows), open_iss=open_iss, now=NOW.strftime("%d %b %H:%M"))
+tpl = open(B + "plan/tpl.html").read()
+for k, v in data.items():
+    tpl = tpl.replace("{{" + k + "}}", str(v) if not isinstance(v, dict) else "")
+for k, v in counts.items(): tpl = tpl.replace("{{n_" + k + "}}", str(v))
+open(B + "plan/round-10-plan.html", "w").write(tpl)
+print(data["end"], data["crit"], counts)

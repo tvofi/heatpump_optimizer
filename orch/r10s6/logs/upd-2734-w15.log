@@ -1,0 +1,2 @@
+===== daemonize pid=34788 2026-10-24T14:11:53Z argv: bash tools/audit/seat/update_pr.sh triage/s6-batch4 - /Users/timmalmstrom/hpo-orch/r10s6/scratch/body-2734.md
+branch triage/s6-batch4 checked out elsewhere: /Users/timmalmstrom/hpo-seats/r10s6/triage/wt                                                58f2e7513 [triage/s6-batch4]

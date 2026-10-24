@@ -1,0 +1,7 @@
+===== daemonize pid=88852 2026-10-20T00:17:16Z argv: bash tools/audit/seat/merge_pr.sh 2467 d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd /Users/timmalmstrom/hpo-orch/r10s3/ev/2467r2 owner --mandate 6175172275 --ready
+✓ Pull request tvofi/heatpump_optimizer#2467 is marked as "ready for review"
+READBACK id=6280266788 live_len=1208 want_len=1208 live_sha=3a393994cbe67109 want_sha=3a393994cbe67109 identical=True
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged dc84fd123e02b3cf85b9d8e4aad541b4dae052fd
+worktree_gc: summary -- eligible 4, removed 4, kept 87

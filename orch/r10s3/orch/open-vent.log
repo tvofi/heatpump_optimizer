@@ -1,0 +1,3 @@
+===== daemonize pid=97505 2026-10-18T10:09:52Z argv: bash tools/audit/seat/open_pr.sh r10-vent-detector 420f05f95924bbc4bd2b928fe0200dcf41999154 R10-VENT-DETECTOR: vent bias window and probe companion R10-VENT-DETECTOR 2241
+  REFUSE   ancestry reds          RED UNANSWERED (mutation):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-vent-detector/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

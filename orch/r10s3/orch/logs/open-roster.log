@@ -1,0 +1,2 @@
+===== daemonize pid=66814 2026-10-18T17:05:27Z argv: bash tools/audit/seat/open_pr.sh audit-r10-roster 97344315ab5fc426540ffb32a2da66f8fdb30c19 roster(r10): forward-carries from #2411 and #2406 reviews R10-ROSTER
+PR=2417 HEAD=c83ae12acc074a16af424879b09b151d07726e52 AUTHOR=tvofi

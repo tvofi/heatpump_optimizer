@@ -1,0 +1,6 @@
+===== daemonize pid=5671 2026-10-24T09:38:17Z argv: bash tools/audit/seat/open_pr.sh r10-policy-gate-scoping aa44f4bcc8261cc3fa170b6a47e85e6ce4cde7ca R10 policy: gate scoping policy-gate-scoping
+open_pr: 6 open PRs; the cap gates dispatch, not opening
+  REFUSE   'Closes #2381' closes #2381; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-policy-gate-scoping/p1.log

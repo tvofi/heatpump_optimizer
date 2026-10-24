@@ -1,0 +1,2 @@
+===== daemonize pid=90575 2026-10-21T21:35:35Z argv: bash tools/audit/seat/update_pr.sh fix/r10-flow-yield-probe ce0d6d261cd8e34c44f18f8807f90aed8b508b65 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2579.md
+HEAD=816b1e20fdfd0a4b99bcc2b81361b70bd3007acb

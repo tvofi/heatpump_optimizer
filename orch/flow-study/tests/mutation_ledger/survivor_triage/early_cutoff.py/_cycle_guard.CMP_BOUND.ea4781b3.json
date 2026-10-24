@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_cycle_guard CMP_BOUND ea4781b3",
+  "old": "    if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(since) < MIN_ON:",
+  "reason": "Equivalent (CMP_BOUND, the clock-skew bound `as_utc(since) > utc` -> `>=`): the two differ only when dt_util.as_utc(since) == utc exactly, and there the third conjunct utc - dt_util.as_utc(since) == 0 < MIN_ON already makes the line return \"min_on\", so mutant and original return the same value on every input; no check can separate them. The line's OTHER bound (`utc - as_utc(since) < MIN_ON` -> `<=`) is not equivalent: CI shard 4 at a15508b7a measured both bounds surviving every driver, and the exact-MIN_ON check added in this diff (\"the min_on guard is a strict < (a switch on exactly MIN_ON is not held)\", tests/features.py round 6) kills that one; the anchor is shared, so this row is the only disposition the ledger can hold for it. The surviving twin is only the clock-skew one.",
+  "verdict": "equivalent"
+}

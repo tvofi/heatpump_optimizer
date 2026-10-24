@@ -1,0 +1,40 @@
+TICK SEAT window 17, round 10, session s4, repo tvofi/heatpump_optimizer. Read your brief /Users/timmalmstrom/hpo-orch/r10s3/orch/briefs/tick-watcher.md and follow it. Run passes about every 4 min for up to 70 min. The scratch dir is /Users/timmalmstrom/hpo-seats/r10s4/tick-seat/. Window 16 notes are in w16/ (read w15/standing-filters.txt and w16/pass-14.txt first). Write yours to w17/.
+
+Report to the orchestrator (main session) with SendMessage ONLY when something new needs action. Quiet passes send nothing. End with a closing summary.
+
+Standing filters (orchestrator rulings):
+- Read only the board's current-main section.
+- Do not report:
+  - reviewer-fire lines for heads that have already been fired;
+  - nightly-status;
+  - the board's "no delivery row" flag on a PR when the board's measure is older than the PR's own head;
+  - record/autofix PRs (#2610 and later). Report only their merge.
+- Report a red check-run only if it is on a current PR head or on main, AND it completed after 12:50Z. Do not report one whose log shows "API rate limit exceeded" (HTTP 403) or "API is unreachable".
+- Already handled, so do NOT report:
+  - stranded ref r10-fly-gh-read-retry a457acaf. It holds no commit outside main.
+  - stranded ref audit-r10-roster (roster batch 13, held until the trains drain). Its moves are the orchestrator's own carries: do not report them.
+- Run `bash tools/audit/seat/bus.sh orphans --min-age-h 0` from /Users/timmalmstrom/hpo-seats/r10s4/gc-main. Report any OTHER stranded or superseded ref that stays unchanged for over 30 min with no PR.
+- For check-runs, use `gh api "repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs?per_page=100" --jq '<filter>'`. Never pass --arg to gh. Spare the API: one read per head per pass, never faster than every 4 min, and only for heads that changed since your last read. If gh returns 403 or a rate limit, skip that pass's API reads and say so.
+- Report merges once each, with the merge SHA. PRIORITY: the queue29 train (batch pid 68195; #2589, #2584, #2580, #2606, #2605). Report each merge, and the train's exit with its TRAIN_RC. Report a main red on a REQUIRED check. Report main's Tests run (fast, closures) once it concludes on main's current head.
+- Read check-runs once for each queue29 head, and again whenever a head moves. Report a red on a required check.
+- Report new returns on these refs (git ls-remote, one call per pass). Record each value on pass 1 and report only changes:
+  - refs/heads/handoff-body/r10-flow-yield-probe (#2579 round-7 fixer)
+  - refs/heads/handoff-body/r10-ci-layout-p2 (R10-CI-LAYOUT-P2 fixer)
+  - refs/heads/handoff-body/r10-solver (R10-SOLVER fixer)
+  - refs/heads/handoff-body/r10-pusher-reap
+  - refs/heads/handoff/r10-pusher-reap
+- Report open PR head moves (gh pr list --json number,headRefOid, once per pass).
+- Report disk below 5 GB free (df -h /System/Volumes/Data).
+- If the tick board's file mtime is older than 12 min, report it once.
+
+End with RESULT / CHECKS-RUN / UNCERTAINTIES / ESCALATE lines.
+
+Additions for window 17:
+- P2a units: u0b, u6lib, up and u9c are back. Report only u0a's first appearance, as "P2a unit returned: u0a". Never report r10-ci-layout-p2a-* as orphans.
+- Also watch refs/heads/handoff-body/r10-solver (the SOLVER fixer's return). Report its first appearance.
+- Report train pid 68195's exit with its last log lines, if you can find the train log under /Users/timmalmstrom/hpo-seats/r10s4.
+Additions for window 17:
+- All five P2a units are back; never report r10-ci-layout-p2a-* orphans. Report the first appearance of refs/heads/handoff-body/r10-ci-layout-p2a (the integration seat's return).
+- Watch these returns, and report each first move: handoff-body/r10-flow-relay-hold (now 7b0ad1ea), handoff-body/r10-pusher-reap (now 4e0924dc), handoff-body/r10-prepr-closures (now aca933b3), probe/rev-2612-b73e3ccc (absent).
+- OWED-REVIEW level, every pass: for each open non-draft-or-draft PR (gh pr list once), if neither a probe/rev-<N>-* ref nor review/<N> was written after the PR head's commit time, list it as "REVIEW OWED #N <head8>". Report only changes from the previous pass.
+- The roster batch-13 PR is coming; report its number when it opens.

@@ -1,0 +1,13 @@
+custom_components/heatpump_optimizer/accuracy.py
+custom_components/heatpump_optimizer/const.py
+custom_components/heatpump_optimizer/coordinator.py
+custom_components/heatpump_optimizer/store.py
+custom_components/heatpump_optimizer/thermal_model.py
+dev/audit/harnesses/r10_night_folds_alternatives.py
+dev/audit/harnesses/r10_night_folds_learners.py
+dev/audit/harnesses/r10_vent_sun_transient.py
+dev/programme/delivery/2563.md
+tests/closures.json
+tests/features.py
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_internal_gains.GUARD_OFF.47d9953d.json
+tests/structure_budgets.json

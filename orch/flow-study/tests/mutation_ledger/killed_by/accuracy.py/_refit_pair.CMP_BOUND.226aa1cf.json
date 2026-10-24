@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_refit_pair CMP_BOUND 226aa1cf",
+  "killed_by": "tests/features.py",
+  "old": "    if delta_t < min_delta or abs(residual) > max_residual:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: CMP_BOUND (`if delta_t <= min_delta or abs(residual) > max_residual:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

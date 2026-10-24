@@ -1,0 +1,8 @@
+===== daemonize pid=28891 2026-10-19T01:48:55Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-carry-enforce bd68cf756ab63a475d37d30fcdf60b35d85a6214 /Users/timmalmstrom/hpo-orch/r10s3/upd/2404-rc.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (775 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+HEAD=b419463b18a2a7da70c77b23e912769e4af6afe8
+===== daemonize pid=77163 2026-10-19T05:12:53Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-carry-enforce 74201dd56bec5ed4b98a09557c1569f0c4e6a13a /Users/timmalmstrom/hpo-orch/r10s3/upd/b2404/BODY.md
+HEAD=519bb4db971b5d49736fcacdd57d57bff8f6c630

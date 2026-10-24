@@ -1,0 +1,39 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s3/train/t16/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s3/train/t16 pid=65277 start=2026-10-18T18:20:27Z
+BATCH 20261018-182027 pid=65410 base=main queue=3 (#2379 #2394 #2416) --overlap --skip-bad
+OVERLAP: main at 106af95a33f8 is not green (Analyze (python), closures, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2379 policy: budget files changed (tests/structure_budgets.json): the owner's review does not sit at this head (no decisive review by tvofi (id 70032254) on this pull request); a raise is the owner's (0013)
+PRE-FLIGHT: 2 of 3 admitted
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2394 serial: grader
+#2416 serial: workflow
+OVERLAP: recarrying #2394, #2416 up front, their pull_request runs fire together
+#2394 overlap: recarry start
+#2394 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-autofix-inert-route held fix/r10-ci-autofix-inert-route, clean at origin/fix/r10-ci-autofix-inert-route; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ci-autofix-inert-route switch fix/r10-ci-autofix-inert-route)
+#2394 recarry START (branch fix/r10-ci-autofix-inert-route)
+#2394 recarry: main merged, head 8d4e8be0; app_push: RECARRY: prepr SKIPPED: HEAD 8d4e8be0 is the clean merge of the live head 7bda397d and origin/main's 106af95a, and the body is the live one
+#2416 overlap: recarry start
+#2416 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-sweep-template/wt held fix/r10-sweep-template-pr, clean at origin/fix/r10-sweep-template-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-sweep-template/wt switch fix/r10-sweep-template-pr)
+#2416 recarry START (branch fix/r10-sweep-template-pr)
+#2416 recarry: main merged, head 319769bb; app_push: RECARRY: prepr SKIPPED: HEAD 319769bb is the clean merge of the live head c5bc2f14 and origin/main's 106af95a, and the body is the live one
+serial: #2394, #2416
+beat: waiting CI at 8d4e8be0 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 8d4e8be0 (poll 3, t+483s, required: 14, concluded: 11/14)
+beat: waiting CI at 8d4e8be0 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at 8d4e8be0 (poll 5, t+965s, required: 14, concluded: 12/14)
+beat: waiting CI at 8d4e8be0 (poll 6, t+1206s, required: 14, concluded: 12/14)
+beat: waiting CI at 8d4e8be0 (poll 7, t+1447s, required: 14, concluded: 13/14)
+#2394 8d4e8be0 ci red=[]
+#2394 policy head lands under mandate 6175172275 (scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z)
+#2394 approved (mandate)
+#2394 MERGED 3d46d694d7a2551e5c9cba77cdc23b9a2a7b9a4b
+#2394 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2416 319769bb ci red=[]
+#2416 approved (mandate)
+#2416 MERGED fd64a23e9818c45adb5788115a8d41131ba8aa5a
+#2416 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2394' is not a working tree); remove it by hand
+NOT released /Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s3/train/t16/wt/2416' is not a working tree); remove it by hand
+SKIP REPORT: 1 skipped of 3
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-18T18:54:33Z

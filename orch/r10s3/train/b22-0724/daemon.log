@@ -1,0 +1,1 @@
+tools/audit/seat/train.sh: line 251: 98124 Terminated: 15          ( cd "$checkout" || exit 2; python3 -u tools/audit/seat/merge_train.py batch "$queue" --repo "$repo" --state-dir "$state" --min-runs "$minruns" ${ignores[@]+"${ignores[@]}"} ${skipbad:+--skip-bad} ${overlap:+--overlap} ${mandate:+--mandate "$mandate"} ${opts[@]+"${opts[@]}"} ) >> "$log" 2>&1

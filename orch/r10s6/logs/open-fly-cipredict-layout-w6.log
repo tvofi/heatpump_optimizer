@@ -1,0 +1,3 @@
+===== daemonize pid=24359 2026-10-24T12:38:20Z argv: bash tools/audit/seat/open_pr.sh r10-fly-cipredict-layout 6965c36b492af09aec9b7161802b4f877a6a9766 R10-FLY-CIPREDICT-LAYOUT: ci_predict: pin the layout arm to HEAD, not the index, and its repair  R10-FLY-CIPREDICT-LAYOUT
+open_pr: 8 open PRs; the cap gates dispatch, not opening
+PR=2707 HEAD=cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68 AUTHOR=tvofi

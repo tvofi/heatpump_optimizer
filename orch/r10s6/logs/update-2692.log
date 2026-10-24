@@ -1,0 +1,2 @@
+===== daemonize pid=11002 2026-10-24T09:39:32Z argv: bash tools/audit/seat/update_pr.sh fix/r10-replay-scoped 799830bb54ecf6556f988e674150306968f471b9 /Users/timmalmstrom/.local/state/hpo/pr/r10-replay-scoped/body.md
+update_pr: BUSY: another open_pr.sh or update_pr.sh run (pid 48070) holds fix/r10-replay-scoped's worktree /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-replay-scoped; nothing was changed, run again when it ends

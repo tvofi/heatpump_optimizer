@@ -1,0 +1,6 @@
+===== daemonize pid=36226 2026-10-21T21:08:43Z argv: bash tools/audit/seat/update_pr.sh fix/r10-advisor b11f008c52fff8b30ff47a142700e7f36fca26b3 /Users/timmalmstrom/hpo-seats/r10s4/bodyfix/body-2572.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (800 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+HEAD=4b215f4be037df2d519b7d189663fd04d3e37c5b

@@ -1,0 +1,7 @@
+===== daemonize pid=12790 2026-10-19T03:32:44Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/update_pr.sh fix/r10-train-raise-hold-pr 35c0b69fba7cb165d00bd3493c8a246815323e90 /Users/timmalmstrom/hpo-orch/r10s3/upd/2421-r2.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (778 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+HEAD=e9c0092e27e91e4b1d23178fc75774e5798dcc22

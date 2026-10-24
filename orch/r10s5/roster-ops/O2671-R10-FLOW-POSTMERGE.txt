@@ -1,0 +1,1 @@
+`postmerge-owed` is an event kind in ledger.py's table: the after-merge step opens it (`ledger.py open postmerge-owed <pr> <merge-sha40> <why>`) and its later success closes it (`ledger.py close postmerge-owed <pr> <merge-sha40> <how>`); no other closer exists for it.

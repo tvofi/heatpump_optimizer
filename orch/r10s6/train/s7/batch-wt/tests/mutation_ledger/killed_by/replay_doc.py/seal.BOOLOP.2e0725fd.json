@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:seal BOOLOP 2e0725fd",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    leaked = sorted({s for s in dropped if len(s) >= 6 and s in blob})",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`leaked = sorted({s for s in dropped if len(s) >= 6 or s in blob})`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,13 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train pid=74144 start=2026-10-21T10:56:49Z
+BATCH 20261021-105650 pid=74162 base=main queue=1 (#2513) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 6ef12543: the record beat waits
+BOT #2552 pending at 72e7b3a8: AUTOMERGE PENDING #2552: pending: wave-script; not merged
+OVERLAP: main at 265d3bf1acc1 is not green (Analyze (javascript-typescript), Analyze (python), browser, closures, env-matrix, fast (3.14)) before admission; --overlap logs it and does not wait
+PARK #2513 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2513); first: review 6314156311 item 3b97e1aa (unrouted): 1. Mutation proof re-run: 19/19 plants killed by FAIL lines; 8 plants of my own, 5 killed (2 by trac
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s3/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-21T10:57:09Z

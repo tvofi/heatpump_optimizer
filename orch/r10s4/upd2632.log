@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/closures.json
+Auto-merging tests/closures.json
+  REFUSE   'Closes #2237' closes #2237; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-loop-cpu.log

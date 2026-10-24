@@ -1,0 +1,10 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run14/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run14 pid=76433 start=2026-10-24T01:42:53Z
+BATCH 20261024-014253 pid=76444 base=main queue=0 (empty) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 822d2498: the record beat waits
+BOT #2682 MERGED 5c1980cbac23fbb68c271d5da81a46e77cb5e1cd
+OVERLAP: main at 5c1980cbac23 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 0 of 0 admitted
+SKIP REPORT: 0 skipped of 0
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T01:43:09Z

@@ -1,0 +1,1 @@
+Merged #2688 (triage s6 batch 1) at 2cdf7adca, train s7, batch proof green. It closes no issues; the closing references read back empty. Its one accepted ruling, s6-batch1.md#P43, is queued as a carry to R10-FLY-CARRY-DISPOSITION. #2689 is next in the same train, then record #2702.

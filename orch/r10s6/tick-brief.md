@@ -1,0 +1,1 @@
+The tick seat's restart brief is the original s6 tick prompt: standing-tick.md contract, read r10s6/tick.txt (tick_loop pid 46508), report OWED/NEW lines to r10s6/tick-owed.txt and SendMessage main; window 110 min.

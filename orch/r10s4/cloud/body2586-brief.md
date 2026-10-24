@@ -1,0 +1,10 @@
+Body-only repair of PR #2586 (topic r10-flow-design-policy, branch fix/r10-flow-design-policy, R10-FLOW-DESIGN-POLICY). Code is final; change no code. Handoff code SHA d8fe765384ddee5c548b4a95187aebf8c78e2a3f (PR head currently e4f021a5feb25503025f6e09ae63f866fa5d2025; use the PR head if it differs from the handoff and keep the body's `## Head` true). Current body: refs/heads/handoff-body/r10-flow-design-policy (8cdf3b31f).
+
+Failure: budget-raise-gate (run 119555488319) refuses: a mandated approval is on this head, but `## Raise justification` lacks a `Payments tried:` line. Read tools/policy/budget_raise_gate.py on origin/main for the exact grammar: JUSTIFICATION_HEADING "## Raise justification"; JUSTIFICATION_PAID needs a line starting (optionally after "- ") with "Payments tried:" followed on the SAME line by non-space text; JUSTIFICATION_SCORE needs "Architecture score: dS <signed number> IMPROVES|NULL|WORSENS".
+The raises are dev/governance/config/policy_budgets.json: corpus_tokens 61026 -> 62892, plus pinned files_tokens for design-review.md (778) and designer.md (878).
+
+Write a TRUE "Payments tried:" line: the trims actually tried on other policy files and what tools/audit/archscore/ read before and after, taken from the PR body, the commit messages and the budget rows' reasons. Invent none; if the fixer tried none, say so plainly with the reason the two new role files force the raise. Include an "Architecture score: dS <n> <verdict>" line with the real figure (run tools/audit/archscore/ before and after against the base if the body has none).
+
+Standing rule 19 applies to every observation. PREPR_SKIP_CLOSURES=1.
+Run the policy linter (node tools/policy/policy_lint.mjs; read its usage) and prepr's pr-body step on your body to 0 errors, and carry_audit --roster-ref origin/handoff/audit-r10-roster check --body to 0 unrouted.
+Return with bash tools/audit/seat/body_push.sh <topic> <body.md>. Push no code. If body_push.sh insists on a code push, report that instead.

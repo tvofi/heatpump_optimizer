@@ -1,0 +1,29 @@
+# cells=75 entities_per_cell=[74]
+RESULT arm=naive_stub_clock arm
+RESULT orjson_mode=real mode
+RESULT cells=75 count
+RESULT entities_per_cell=74 count
+RESULT entity_cells=5550 count
+RESULT state_write_raises=0 entity_cells
+RESULT entity_category_declared=1500 entity_cells
+RESULT unknown_with_data=0 entity_cells
+RESULT enum_state_not_in_options=0 entity_cells
+RESULT enum_missing_options_attr=0 entity_cells
+RESULT measurement_non_numeric=0 entity_cells
+RESULT timestamp_naive=75 entity_cells
+RESULT unit_device_class_mismatch=0 entity_cells
+RESULT unit_without_device_class_unlisted=0 entity_cells
+RESULT device_state_class_impossible=0 entity_cells
+RESULT attrs_numpy=0 entity_cells
+RESULT attrs_nan=0 entity_cells
+RESULT attrs_unserialisable=0 entity_cells
+RESULT stale_between_cycles=0 entity_cells
+RESULT stale_dict_source_undecided=542 entity_cells
+RESULT state_string_over_255=0 entity_cells
+RESULT attrs_recorded_over_16k=0 entity_cells
+RESULT attrs_recorder_unserialisable=0 entity_cells
+RESULT never_alive_enabled_default=12 entity_cells
+RESULT never_available_enabled_default=6 entity_cells
+# detail written to tools/audit/round4/D8/matrix_detail_naive.json
+RESULT load1=4.85 load
+exit=0

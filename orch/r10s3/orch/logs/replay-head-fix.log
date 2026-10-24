@@ -1,0 +1,26 @@
+===== daemonize pid=22749 2026-10-20T19:57:37Z argv: bash tools/pr/app_push.sh tvofi/heatpump_optimizer /Users/timmalmstrom/hpo-seats/r10s3/r10-replay-lane/wt handoff/r10-replay-lane /Users/timmalmstrom/hpo-orch/r10s3/orch/body/r10-replay-lane.md
+  ok       body path              not directly in a shared root
+  ok       merge-base             4e5801eb50644df94ccf18650afbb2cc99e854b4
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=1 label=prepr-22884 expires_at=2026-10-20T20:51:52.359585+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  skip     mutants                the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  skip     field coverage         the diff changes no file field coverage reads -- no hit in its declared path list nor in the measured closure(s) of tests/structure.py; the closure table maps all 2 changed file(s), so no read is reached
+  ok       agreement lane         AGREEMENT ok
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 4e5801eb5064
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  ok       wave-script            198 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 4e5801eb50644df94ccf18650afbb2cc99e854b4 ok
+tools/pr/app_push.sh: line 394: 22883 Terminated: 15          ( cd "$wt" && bash "$prepr" "$body" "$@" )
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

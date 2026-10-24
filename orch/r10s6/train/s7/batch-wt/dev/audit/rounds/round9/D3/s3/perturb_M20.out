@@ -1,0 +1,6 @@
+tests/features.py: base rc=0 failed=0; mutant rc=1 failed=3; checks=['a failed write raises a non-persistent repair naming the switch  [issues=[] owned=[]]', "a failed OFF at the close is retried on the next idle cycle, once  [raised=0 writes=[('turn_on', 'switch.pump_disinfection'), ('turn_off', 'switch.pump_disinfection'), ('turn_off', 'switch.pump_disinfection')] owned=[]]"]
+RESULT features_py_killed=1
+RESULT kills=1 scripts
+RESULT load1=3.28
+RESULT thread_factor=1.00 (counts only; drivers run in subprocesses)
+RESULT swapins=0

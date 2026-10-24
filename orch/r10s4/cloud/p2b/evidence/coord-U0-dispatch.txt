@@ -1,0 +1,9 @@
+U0 live, dispatch arm (coordinator, ci_probe.py push+dispatch; log ci_probe.log), 2026-10-23.
+ref ci-probe/u0c = 65f112ec5 (U0c probe cut: prelude + probe + refresh + gate)
+| perturbation | ref / sha | run | probe / probe | gate | gate's verdict line |
+| baseline | ci-probe/u0c 65f112ec5 | 39906668206 | success | success | PASS |
+| forced red (run: false) | ci-probe/u0c-red e7b31fa21 | 39906719105 | failure | failure | FAIL probe / probe: failure (this run) |
+| if: false | ci-probe/u0c-skip 460f527af | 39906725557 | skipped | failure | FAIL probe / probe: SKIPPED (this run) |
+| unit removed | ci-probe/u0c-absent 4173d168f | 39906732394 | (absent) | failure | FAIL probe / probe: ABSENT (this run) |
+M-1 (dispatch half): every display_title reads "CI code pr=- base=- sha=<head>" = run-name. Cancelled while queued: run 39906859425, in_progress - CI code pr=- base=- sha=65f112ec51dfa1f3d1617dda2bac74adab394eda.
+Logs: gate-<job>.log; jobs: u0c-run-<run>-jobs.tsv.

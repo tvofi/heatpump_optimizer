@@ -1,0 +1,57 @@
+CELL winter_typical|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=60.104278 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 23.280->23.280 step0 6.000->6.000 win_cand=0 cand_spread=0.000e+00 max_nit=4 budget_nits=None
+CELL winter_typical|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=23.403094 seeds=+4.265e-04 best=seeds gap=4.265e-04 e2e=4.265e-04 feas=True cost 17.832->17.836 step0 0.000->0.000 win_cand=0 cand_spread=3.472e-03 max_nit=24 budget_nits=None
+CELL winter_typical|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=3 budget_nits=None
+CELL winter_typical|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=3.318075 seeds=+6.261e-04 best=seeds gap=6.261e-04 e2e=6.261e-04 feas=True cost 1.778->1.809 step0 0.000->0.000 win_cand=3 cand_spread=7.740e-03 max_nit=13 budget_nits=None
+CELL winter_typical|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6.708990 seeds=+9.474e-04 best=seeds gap=9.474e-04 e2e=9.474e-04 feas=True cost 5.092->4.658 step0 0.000->0.000 win_cand=3 cand_spread=1.529e-02 max_nit=33 budget_nits=None
+CELL winter_extreme|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=80.740556 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 41.400->41.400 step0 6.000->6.000 win_cand=0 cand_spread=0.000e+00 max_nit=5 budget_nits=None
+CELL winter_extreme|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=33.221603 seeds=-9.582e-05 best=seeds gap=-9.582e-05 e2e=0.000e+00 feas=True cost 26.789->26.789 step0 0.000->0.000 win_cand=3 cand_spread=1.365e-02 max_nit=20 budget_nits=None
+CELL winter_extreme|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=3 budget_nits=None
+CELL winter_extreme|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=4.429317 seeds=-1.216e-04 best=seeds gap=-1.216e-04 e2e=0.000e+00 feas=True cost 2.745->2.745 step0 0.000->0.000 win_cand=3 cand_spread=6.959e-03 max_nit=17 budget_nits=None
+CELL winter_extreme|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=9.446429 seeds=+1.350e-03 best=seeds gap=1.350e-03 e2e=1.350e-03 feas=True cost 7.400->7.345 step0 0.582->2.297 win_cand=2 cand_spread=3.942e-03 max_nit=15 budget_nits=None
+CELL summer_typical|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=19.510791 seeds=+5.463e-16 best=seeds gap=5.463e-16 e2e=5.463e-16 feas=True cost 12.560->12.560 step0 6.000->6.000 win_cand=2 cand_spread=5.142e-09 max_nit=24 budget_nits=None
+CELL summer_typical|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=7.554897 seeds=-3.801e-04 best=seeds gap=-3.801e-04 e2e=0.000e+00 feas=True cost 5.711->5.711 step0 0.081->0.081 win_cand=3 cand_spread=2.958e-03 max_nit=17 budget_nits=None
+CELL summer_typical|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=2 budget_nits=None
+CELL summer_typical|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=1.662575 seeds=+1.469e-15 best=seeds gap=1.469e-15 e2e=1.469e-15 feas=True cost 0.428->0.428 step0 0.000->0.000 win_cand=3 cand_spread=3.197e-03 max_nit=28 budget_nits=None
+CELL summer_typical|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=2.698466 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 1.080->1.080 step0 0.000->0.000 win_cand=0 cand_spread=1.538e-03 max_nit=30 budget_nits=None
+CELL summer_negative|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=12.959239 seeds=+6.892e-04 best=seeds gap=6.892e-04 e2e=6.892e-04 feas=True cost 10.801->10.684 step0 6.000->6.000 win_cand=0 cand_spread=1.724e-02 max_nit=21 budget_nits=None
+CELL summer_negative|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=0.623778 seeds=+3.509e-03 best=seeds gap=3.509e-03 e2e=3.509e-03 feas=True cost -0.701->-0.646 step0 0.000->0.000 win_cand=1 cand_spread=5.406e-02 max_nit=28 budget_nits=None
+CELL summer_negative|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=2 budget_nits=None
+CELL summer_negative|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=0.673817 seeds=-1.355e-03 best=seeds gap=-1.355e-03 e2e=0.000e+00 feas=True cost -0.609->-0.609 step0 0.000->0.000 win_cand=2 cand_spread=1.853e-02 max_nit=11 budget_nits=None
+CELL summer_negative|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=0.305809 seeds=+1.144e-01 best=seeds gap=1.144e-01 e2e=1.144e-01 feas=True cost -1.617->-1.518 step0 0.000->0.000 win_cand=0 cand_spread=1.132e-01 max_nit=16 budget_nits=None
+CELL shoulder|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=48.763590 seeds=+5.406e-03 best=seeds gap=5.406e-03 e2e=5.406e-03 feas=True cost 37.872->42.359 step0 3.177->5.575 win_cand=1 cand_spread=1.149e-02 max_nit=11 budget_nits=None
+CELL shoulder|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=17.999621 seeds=+2.317e-04 best=seeds gap=2.317e-04 e2e=2.317e-04 feas=True cost 14.625->14.728 step0 0.000->0.000 win_cand=1 cand_spread=2.473e-04 max_nit=14 budget_nits=None
+CELL shoulder|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=2 budget_nits=None
+CELL shoulder|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=2.899545 seeds=+9.462e-03 best=seeds gap=9.462e-03 e2e=9.462e-03 feas=True cost 1.683->1.841 step0 0.000->0.000 win_cand=1 cand_spread=2.995e-02 max_nit=19 budget_nits=None
+CELL shoulder|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=5.729550 seeds=+6.140e-03 best=seeds gap=6.140e-03 e2e=6.140e-03 feas=True cost 3.638->4.754 step0 0.000->0.000 win_cand=2 cand_spread=3.500e-02 max_nit=8 budget_nits=None
+CELL winter_narrow|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=103.136226 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 74.925->74.925 step0 6.000->6.000 win_cand=0 cand_spread=0.000e+00 max_nit=12 budget_nits=None
+CELL winter_narrow|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=45.040775 seeds=+4.131e-05 best=seeds gap=4.131e-05 e2e=4.131e-05 feas=True cost 28.997->29.311 step0 0.001->0.031 win_cand=2 cand_spread=4.777e-03 max_nit=14 budget_nits=None
+CELL winter_narrow|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=3 budget_nits=None
+CELL winter_narrow|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=5.189965 seeds=+7.173e-04 best=seeds gap=7.173e-04 e2e=7.173e-04 feas=True cost 2.825->2.834 step0 0.000->0.000 win_cand=3 cand_spread=4.173e-03 max_nit=6 budget_nits=None
+CELL winter_narrow|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=11.551985 seeds=+4.657e-03 best=seeds gap=4.657e-03 e2e=4.657e-03 feas=True cost 6.995->7.318 step0 0.000->0.000 win_cand=1 cand_spread=3.134e-02 max_nit=8 budget_nits=None
+CELL winter_moderate|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=75.905083 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 41.100->41.100 step0 6.000->6.000 win_cand=0 cand_spread=0.000e+00 max_nit=8 budget_nits=None
+CELL winter_moderate|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=32.087707 seeds=-1.217e-04 best=seeds gap=-1.217e-04 e2e=0.000e+00 feas=True cost 23.777->23.777 step0 0.000->0.000 win_cand=3 cand_spread=2.722e-03 max_nit=18 budget_nits=None
+CELL winter_moderate|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=3 budget_nits=None
+CELL winter_moderate|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=3.997042 seeds=+8.873e-04 best=seeds gap=8.873e-04 e2e=8.873e-04 feas=True cost 2.042->2.062 step0 0.000->0.000 win_cand=3 cand_spread=3.351e-03 max_nit=6 budget_nits=None
+CELL winter_moderate|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=8.565219 seeds=+5.667e-03 best=seeds gap=5.667e-03 e2e=5.667e-03 feas=True cost 5.202->5.240 step0 0.007->0.000 win_cand=2 cand_spread=1.326e-02 max_nit=13 budget_nits=None
+CELL flat|winter_cold|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=82.463314 seeds=-3.843e-05 best=seeds gap=-3.843e-05 e2e=0.000e+00 feas=True cost 68.990->68.990 step0 6.000->6.000 win_cand=0 cand_spread=2.511e-02 max_nit=16 budget_nits=None
+CELL flat|winter_mild|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=37.486915 seeds=+5.679e-04 best=seeds gap=5.679e-04 e2e=5.679e-04 feas=True cost 28.424->29.456 step0 0.486->4.913 win_cand=1 cand_spread=6.140e-03 max_nit=10 budget_nits=None
+CELL flat|summer_warm|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=6435.620174 seeds=+0.000e+00 best=seeds gap=0.000e+00 e2e=0.000e+00 feas=True cost 0.000->0.000 step0 0.000->0.000 win_cand=0 cand_spread=0.000e+00 max_nit=2 budget_nits=None
+CELL flat|summer_cool|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=4.449685 seeds=+4.388e-04 best=seeds gap=4.388e-04 e2e=4.388e-04 feas=True cost 2.702->2.519 step0 0.000->0.000 win_cand=2 cand_spread=2.273e-03 max_nit=11 budget_nits=None
+CELL flat|shoulder|dhw=0|tz=0 calls=1 maxiter=200 ncand=4 J_prod=9.613915 seeds=+6.648e-03 best=seeds gap=6.648e-03 e2e=6.648e-03 feas=True cost 6.836->7.285 step0 0.000->0.000 win_cand=2 cand_spread=6.274e-03 max_nit=9 budget_nits=None
+RESULT cells=40 count
+RESULT cells_gap_gt_1e-3=9 count
+RESULT cells_gap_gt_1e-4=18 count
+RESULT gap_mean=4.0168e-03 ratio
+RESULT gap_max=1.1437e-01 ratio
+RESULT gap_min=-1.3546e-03 ratio
+RESULT gap_mean_drop_best=1.1872e-03 ratio
+RESULT arm_seeds_cells_gt_1e-4=18 count
+RESULT arm_seeds_max=1.1437e-01 ratio
+RESULT lbfgsb_runs=320 count
+RESULT lbfgsb_runs_hit_maxiter=0 count
+RESULT lbfgsb_runs_pgtol=107 count
+RESULT lbfgsb_median_nit=2 count
+RESULT lbfgsb_max_nit=33 count
+RESULT thread_factor=1.000
+RESULT load1=15.76
+RESULT swapins=0

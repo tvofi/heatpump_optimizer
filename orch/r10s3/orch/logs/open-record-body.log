@@ -1,0 +1,3 @@
+===== daemonize pid=87795 2026-10-20T13:11:57Z argv: bash tools/audit/seat/open_pr.sh r10-record-body 634c56e1bfcdf03956e22b42699626d4c8536f39 fix(record): the generated record body answers the main-state reporters (R10-RECORD-BODY) record-autofix
+open_pr: open-PR cap: 2 open < 6
+PR=2486 HEAD=f851f243976a2a5e67b9813de47ae32b9b7814cd AUTHOR=tvofi

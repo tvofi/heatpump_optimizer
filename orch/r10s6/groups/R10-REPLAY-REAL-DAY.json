@@ -1,0 +1,49 @@
+{
+ "lane": "RP",
+ "kind": "owner",
+ "class": "owner",
+ "severity": "medium",
+ "size": "M",
+ "issues": [
+  2272
+ ],
+ "fixes": [
+  2272
+ ],
+ "findings": [],
+ "wave": 5,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "code-owned: tests/replay.py (mandated approval under 6329234399)",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "group": "R10-REPLAY-REAL-DAY",
+ "after": [
+  "R10-REPLAY-SCOPED",
+  "R10-DIAG-REDACT"
+ ],
+ "files": [
+  "tests/replay.py",
+  "tests/closures.json",
+  "tests/entities.py"
+ ],
+ "carry": [
+  "From #2514 (R10-REPLAY-LANE, merged 0280e6e), body: the group's headline item, a real recorded day, is not in the tree; tests/replay/ holds only synthetic-dhw-only.json (git ls-tree origin/main tests/replay/). It must be produced on the owner's Home Assistant box with `python3 tools/replay/export.py --config-dir /config --days 1 --out /config/hpo-replay-<day>.json`, checked with `export.py --check`, then committed as tests/replay/<day>.json.",
+  "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-replay-real-day"
+ },
+ "brief": "#2272's headline item, a real recorded day as a replay fixture gated nightly, never landed: R10-REPLAY-LANE (#2514) and R10-REPLAY-CAP (#2548) delivered the ruler and the budget only. Owner step first: the export is run on the owner's box (the first carry has the command); the fixer commits it only after R10-DIAG-REDACT's redaction holds on the exported document, because a real day is owner data. Record its cost budget from at least two runner classes, never one environment (the #2548 carry R10-REPLAY-LANE recorded). Closes #2272."
+}

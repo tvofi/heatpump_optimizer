@@ -1,0 +1,3 @@
+===== daemonize pid=52053 2026-10-18T21:32:39Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-openpr-silent ee93af58ae94e93ab9e197b0a66e3d7e291644aa R10-OPENPR-SILENT: open_pr/update_pr refuse loudly; open-PR cap; tick level lines R10-OPENPR-SILENT
+  REFUSE   ancestry reds          RED UNANSWERED (delivery-status wave-script):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-openpr-silent/body.md: check `wave-script` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

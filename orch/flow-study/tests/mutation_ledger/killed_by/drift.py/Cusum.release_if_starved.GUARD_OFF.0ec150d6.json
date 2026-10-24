@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.release_if_starved GUARD_OFF 0ec150d6",
+  "killed_by": "tests/features.py",
+  "old": "        if utc_elapsed_seconds(now, self.last_fed) < max_gap_hours * 3600.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 90335cbd6ee6a0e4423cd1effc2c8c962e2ac0a0: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

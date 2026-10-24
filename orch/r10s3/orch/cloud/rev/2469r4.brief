@@ -1,0 +1,27 @@
+Round 4 of R10-UPDATE-PR-LOCK, at head 98fe31c2 (code c9dd299c). Under the three-round rule this is a minimal re-cut, not a repair.
+
+Round 3 at 89f329f6 was blocked mutant-survives: reverting the background push or the holder's killpg left pr_args at 56/0.
+
+The re-cut REMOVES these mechanisms rather than pinning them:
+- the background push;
+- the holder's killpg and the stop handshake;
+- the holder's watch on its parent pid;
+- the zombie filter;
+- prepr step 7a2.
+
+The body claims ten remaining mechanisms. Each one is listed with a mutant or revert that fails a named self-test arm: lock/BUSY 75, the EXIT trap, the TERM/INT/HUP trap, the group drain, the run leading its own group, the holder in its own group, the shell holding no lock fd, the relay body directory, the relay cleanup, and the relay retry on rc 75.
+
+Figures: pr_args 58/0 over 4 runs, with main's update_pr giving 5 failed; cloud_relay 74/0.
+
+Disclosed: `kill <pid>` of a daemonized update now takes effect only after its push ends.
+
+Not in scope, and carried to R10-ROSTER-OPS by the orchestrator (roster 25e9cdee): the `ps` dependency of the leader check and the holder.
+
+Verify:
+- that every claimed mechanism's mutant fails its arm, and that no claimed mechanism lacks one;
+- that the removed mechanisms are truly gone;
+- the arms for flakiness;
+- CI on this head, from the check-runs API;
+- the merge with origin/main.
+
+Say that this is round 4.

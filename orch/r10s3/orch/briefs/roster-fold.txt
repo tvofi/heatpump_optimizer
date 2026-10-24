@@ -1,0 +1,20 @@
+ROSTER-FOLD seat (round 10) for tvofi/heatpump_optimizer. You do the orchestrator's roster carries, using its instrument only.
+Read CLAUDE.md, dev/governance/roles/orchestrator.md (roster sections) and tools/audit/seat/INSTRUMENTS.md (roster_edit.py) from origin/main. Work in a new worktree /Users/timmalmstrom/hpo-seats/r10s3/rosterfold/wt, made with `git -C /Users/timmalmstrom/heatpump_optimizer worktree add ... origin/handoff/audit-r10-roster`. Never run mutating git in /Users/timmalmstrom/heatpump_optimizer itself. Put the seat_venv.sh shims first on PATH.
+Every edit goes through `python3 tools/audit/seat/roster_edit.py <verb> GROUP ... --worktree <wt> --push`, never a hand edit. A carry text is always `@/absolute/file` (write each text to a file under /Users/timmalmstrom/hpo-seats/r10s3/rosterfold/carries/). Read each group's carry back after pushing. If roster_edit or its lint refuses, report it; never work around it.
+Do these, in order:
+1. PRIORITY, blocking #2411's merge: the carries in /Users/timmalmstrom/hpo-orch/r10s3/orch/briefs/carry2411.md (#2411's ## Forward-carry), each to its named destination:
+   (a) The entities.py --anchor vacuous-kill finding goes to the mutation instrument's owner. No group owns tests/mutation_table.py or the R9-F10.13 block, so append-group R10-MUTATION-ANCHOR: a brief that fixes the vacuous kill soundly and measures how many of the 123 entities.py pins are vacuous. Put the finding's full text, its control and its re-measure in the brief.
+   (b) Append-group R10-COMFORT-BASELINE for the month row's flat-price null, its three terms and the summer_dhw_only limit.
+   (c) The R10-ADVISOR carry, and the R10-SCORES/R10-ADVISOR row-semantics carry, as append-carry to those groups.
+   (d) The stamp carry (restore the 19 suspended may-drift entries) to the stamp/web-stamp group, or the closure group if no stamp group exists.
+   Then report the roster ref sha.
+2. Then the owed fold:
+   - append-group R10-N-LOG-FLOOD;
+   - append-group R10-POLICY-LINT-FAMILY (#2410, policy_lint family double-count, sequenced after #2406 and #2408);
+   - append-group R10-DEAD-RATE-LIMIT (HOUSE_LOSS_MAX_STEP can no longer bind; coordinator.py's two call sites and 3 harnesses; after R10-TRUST-RELATIVE);
+   - append-group R10-MERGE-SUBJECT-HARDEN (in agreement.mjs, a subject ending "(#N)" passes too easily, and the --subject writer scan is line-based);
+   - append-carry the detector.patch (from the R10-RCA-FRICTION seat: /Users/timmalmstrom/hpo-seats/r10s3/rca-friction/) to the first group that edits check-wave-script.mjs after #2390;
+   - append-carry "prepr.sh should run tests/throwaway_git.py --check" and "pin for --record-known-bad in policy_lint_mutants.mjs" to the instrument group that owns prepr / policy_lint_mutants;
+   - append-carry "fold merge_pr.sh and the other self-tests into governance.yml" and "governance.yml's wave-script restore list omits stamp.py/delivery_status.py" to R10-CI-LAYOUT (append-group it first if absent: CI consolidation; design on probe/design-ci-* with rulings in /Users/timmalmstrom/hpo-orch/r10s3/design-ci/RULINGS.md; NOT dispatchable until a design review approves).
+3. List anything you could not place, and why.
+Return: the roster ref sha after each push, and a table of group / verb / readback ok. No PRs, no comments. No host paths in any roster text: convert scratch paths to tree paths, or inline the text.

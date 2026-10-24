@@ -1,0 +1,6 @@
+roster_edit: LINT GATE REFUSED the push
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 1 error(s) across 1 file(s)
+the commit is local at handoff/audit-r10-roster ce0875173082; nothing pushed
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster

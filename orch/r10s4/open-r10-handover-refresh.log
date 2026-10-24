@@ -1,0 +1,5 @@
+open_pr: OVER-CAP: 12 open >= 6, overridden: tvofi 2026-10-21: the soft cap gates new group dispatch only; an owed handoff opens
+  REFUSE   layout guard           new-reference: dev/programme/HANDOVER.md cites retired path docs/HANDOVER.md: `CORPUS_EXCLUDED` still spells its pre-move path, `docs/HANDOVER.md`. The -- re-point the citation to its new path in tests/layout.json, or the fast job refuses it
+  REFUSE   pr-body                PR-BODY: 1 error(s) in /Users/timmalmstrom/.local/state/hpo/pr/r10-handover-refresh/body.md -- no budget leaf raised over 6961f0663...e47dd3e3d
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+open_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/r10-handover-refresh/p1.log

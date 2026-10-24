@@ -1,0 +1,4 @@
+===== daemonize pid=45451 2026-10-18T17:45:54Z argv: bash tools/audit/seat/update_pr.sh fix/r10-roster-fastpath a9a26cc41359af7475c88595f089ed4fad62a152 /Users/timmalmstrom/hpo-orch/r10s3/orch/b2406-c/BODY.md
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/handoff_push.sh
+HEAD=d1becac2b30830c9fb20bda298056cc8577fb793

@@ -1,0 +1,8 @@
+# Tests pull_request runs (= code heads pushed) and all PR-event runs per UTC hour; raw/allruns_0400_1000.json (04Z is truncated by the listing's 1000-row cap: oldest rows cut)
+oldest row in listing: 2026-10-19T04:06:02Z
+2026-10-19T04Z tests_pr_runs=  4 pr_event_runs=  37 workflow_run_runs=  55
+2026-10-19T05Z tests_pr_runs= 10 pr_event_runs= 108 workflow_run_runs= 117
+2026-10-19T06Z tests_pr_runs=  9 pr_event_runs= 109 workflow_run_runs= 126
+2026-10-19T07Z tests_pr_runs= 11 pr_event_runs= 122 workflow_run_runs= 120
+2026-10-19T08Z tests_pr_runs=  1 pr_event_runs=  21 workflow_run_runs=  70
+2026-10-19T09Z tests_pr_runs=  0 pr_event_runs=   9 workflow_run_runs=  10

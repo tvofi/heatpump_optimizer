@@ -1,0 +1,2 @@
+===== daemonize pid=90768 2026-10-24T12:22:21Z argv: bash tools/audit/seat/open_pr.sh r10-flow-autotrain b3dceb5cafc873698ab7e0967bfd624ff749b1ec Flow autotrain: the pitch's train automation R10-FLOW-AUTOTRAIN
+open_pr: 8 open PRs; the cap gates dispatch, not opening

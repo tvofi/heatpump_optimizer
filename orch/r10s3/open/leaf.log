@@ -1,0 +1,3 @@
+===== daemonize pid=93858 2026-10-18T00:53:30Z argv: bash tools/audit/seat/open_pr.sh r10-leaf-imports 1aefeeba436dd14df7656d50f2dcb94e8c03fd87 R10-LEAF-IMPORTS: leaf modules stop importing the solver R10-LEAF-IMPORTS
+  REFUSE   ci predict             CI PREDICT: 1 predicted red(s) on closures against 0b1ddb7fd36d -- repair before the handoff; who repairs which is ci-autofix.md's
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,5 @@
+===== daemonize pid=57954 2026-10-19T09:33:35Z argv: bash tools/audit/seat/open_pr.sh r10-deeplink-handlers 04c7314202e357bfdd1d4816be16d4adf34772d3 R10-DEEPLINK-HANDLERS: the link census drives every handler the card registers R10-DEEPLINK-HANDLERS
+Auto-merging dev/programme/rosters/wave-r10-groups.json
+CONFLICT (content): Merge conflict in dev/programme/rosters/wave-r10-groups.json
+Auto-merging tests/card.mjs
+Automatic merge failed; fix conflicts and then commit the result.

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_dhw_step CLAMP_DROP 6d5b3ca5",
+  "killed_by": "tests/features.py",
+  "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
+  "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+}

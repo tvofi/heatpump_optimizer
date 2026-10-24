@@ -1,0 +1,2 @@
+===== daemonize pid=78264 2026-10-19T13:46:47Z argv: bash tools/audit/seat/open_pr.sh r10-deeplink-handlers 68a94415f0db23c72199b20ef71b1d5f63742c77 fix(card): deep-link handlers (R10-DEEPLINK-HANDLERS) R10-DEEPLINK-HANDLERS 2317
+fatal: '/Users/timmalmstrom/.local/state/hpo/pr/r10-deeplink-handlers/wt' already exists

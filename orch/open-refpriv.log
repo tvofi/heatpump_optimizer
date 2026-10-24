@@ -1,0 +1,2 @@
+  REFUSE   ancestry reds          RED UNANSWERED (instrument-self-tests):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-ref-privacy/body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

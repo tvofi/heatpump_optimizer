@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:roll_receipts BOOLOP eabf182e",
+  "killed_by": "tests/features.py",
+  "old": "    closed = sorted(k for k in ledger.months if k < current and k not in reports)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: BOOLOP (`closed = sorted(k for k in ledger.months if k < current or k not in reports)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

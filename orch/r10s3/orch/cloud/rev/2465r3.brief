@@ -1,0 +1,11 @@
+Round 3 of R10-SETPOINT-BOOST, at the same head as round 2: afabd5b6. The code and body are unchanged.
+
+Round 2 was blocked carry-missing because the R10-CEILING-PROBE items routed by Carry: lines were absent from that group's brief on origin/main. Roster PR #2471 merged as d68999cf and adds the three CEILING-PROBE items to that brief on main: the floor-only mapping and the set-point-to-draw gain, reaching the real maximum, and idle draw absorbing compressor draw.
+
+Re-check:
+- the carry-missing finding against origin/main now;
+- carry_audit: it should route 6/6 with 0 bad destinations against origin/main;
+- pr-contract on this head;
+- that this head still merges with origin/main.
+
+Round 2 found nothing else blocking. Say that this is round 3, and keep the review delta-scoped unless something contradicts round 2. The owner's export is private.

@@ -1,0 +1,12 @@
+===== daemonize pid=89628 2026-10-24T12:30:43Z argv: bash tools/audit/seat/update_pr.sh fix/r10-ratio-anchor - /Users/timmalmstrom/hpo-orch/r10s6/repair/ra/body.md
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18217 + both deltas = 18206
+  max_class_loc: 8457 + both deltas = 8446
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/const.py
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
+app_push: ROW-ONLY: prepr RUNS: HEAD has 2 parent(s), not one commit on the live head
+HEAD=3383fb2acfcfaabef1ebeb635253c8140a45ebd5

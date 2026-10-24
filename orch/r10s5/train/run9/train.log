@@ -1,0 +1,16 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s5/train/run9/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s5/train/run9 pid=716 start=2026-10-23T21:25:40Z
+BATCH 20261023-212540 pid=813 base=main queue=1 (#2672) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d7904e69: the record beat waits
+BOT #2653 not merged at fafcf2d3 (OPEN null)
+PRE-FLIGHT: 1 of 1 admitted
+#2672 admitted at 4547d59d
+#2672 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2672 approved (app)
+#2672 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2672 MERGED f046076aded786f271edba6f27a2a1d4b4a515d7
+#2672 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2672 main f046076a tree == proof 172fc334
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-23T21:27:54Z

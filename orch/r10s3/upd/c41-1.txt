@@ -1,0 +1,1 @@
+Source: #2441 Forward-carry. R10-RCA-STRUCTURE-BLIND's ledger row `R10-N-structure-blind` in `bugclasses.json` still reads `card language arm carried to #2259 item 2 (#2373)`, with `landed: null`. It is a record, left as written. The record step at this PR's merge should name this PR as the arm's landing.

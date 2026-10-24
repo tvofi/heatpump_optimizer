@@ -1,0 +1,100 @@
+CELL one|nodhw|summer_typical|winter_cold       f  19.51079 ->  19.51079 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 6.00->6.00 kWh 55.57->55.57 energySEK 12.560->12.560
+CELL one|dhw|summer_typical|winter_cold         f  22.30773 ->  22.30773 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 1.20->1.20 kWh 54.47->54.47 energySEK 14.986->14.986
+CELL two|nodhw|summer_typical|winter_cold       f  24.97376 ->  24.97376 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 2.56->2.56 kWh 66.75->66.75 energySEK 16.282->16.282
+CELL two|dhw|summer_typical|winter_cold         f  28.11521 ->  28.10998 gap +0.0186% (+0.0052 SEK) viol 0.0000->0.0000 step0 1.07->1.05 kWh 66.98->66.93 energySEK 19.441->19.412
+CELL one|nodhw|summer_typical|winter_mild       f   7.55490 ->   7.54987 gap +0.0666% (+0.0050 SEK) viol 0.0000->0.0000 step0 0.08->0.00 kWh 30.37->30.35 energySEK 5.711->5.719
+CELL one|dhw|summer_typical|winter_mild         f   9.47563 ->   9.47563 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 30.33->30.33 energySEK 7.564->7.564
+CELL two|nodhw|summer_typical|winter_mild       f   8.67069 ->   8.67069 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 32.29->32.29 energySEK 6.570->6.570
+CELL two|dhw|summer_typical|winter_mild         f  10.61638 ->  10.61638 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 32.13->32.13 energySEK 8.465->8.465
+CELL one|nodhw|summer_typical|summer_cool       f   1.66258 ->   1.66258 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.38->2.38 energySEK 0.428->0.428
+CELL one|dhw|summer_typical|summer_cool         f   3.41041 ->   3.41041 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.27->2.27 energySEK 2.153->2.153
+CELL two|nodhw|summer_typical|summer_cool       f   1.72275 ->   1.72274 gap +0.0004% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 3.02->3.01 energySEK 0.544->0.542
+CELL two|dhw|summer_typical|summer_cool         f   3.46781 ->   3.46781 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 3.00->3.00 energySEK 2.286->2.286
+CELL one|nodhw|summer_typical|shoulder          f   2.69847 ->   2.69847 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 6.00->6.00 energySEK 1.080->1.080
+CELL one|dhw|summer_typical|shoulder            f   4.54891 ->   4.54891 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.90->5.90 energySEK 2.904->2.904
+CELL two|nodhw|summer_typical|shoulder          f   3.29489 ->   3.29487 gap +0.0004% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 8.36->8.36 energySEK 1.578->1.578
+CELL two|dhw|summer_typical|shoulder            f   5.13712 ->   5.13712 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 8.35->8.35 energySEK 3.417->3.417
+CELL one|nodhw|summer_negative|winter_cold      f  12.95924 ->  12.95924 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 6.00->6.00 kWh 69.60->69.60 energySEK 10.801->10.801
+CELL one|dhw|summer_negative|winter_cold        f  15.41623 ->  15.41623 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 1.20->1.20 kWh 69.95->69.95 energySEK 13.379->13.379
+CELL two|nodhw|summer_negative|winter_cold      f  17.22172 ->  17.22172 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 82.23->82.23 energySEK 14.589->14.589
+CELL two|dhw|summer_negative|winter_cold        f  19.68472 ->  19.68015 gap +0.0232% (+0.0046 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 82.41->81.99 energySEK 17.118->16.990
+CELL one|nodhw|summer_negative|winter_mild      f   0.62378 ->   0.62340 gap +0.0613% (+0.0004 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 31.26->31.48 energySEK -0.701->-0.635
+CELL one|dhw|summer_negative|winter_mild        f   2.13423 ->   2.13423 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 31.21->31.21 energySEK 0.890->0.890
+CELL two|nodhw|summer_negative|winter_mild      f   1.93595 ->   1.93595 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 32.71->32.71 energySEK -0.267->-0.267
+CELL two|dhw|summer_negative|winter_mild        f   3.37638 ->   3.36991 gap +0.1918% (+0.0065 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 32.87->32.96 energySEK 1.389->1.416
+CELL one|nodhw|summer_negative|summer_cool      f   0.67382 ->   0.67382 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.07->5.07 energySEK -0.609->-0.609
+CELL one|dhw|summer_negative|summer_cool        f   1.59909 ->   1.59909 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.09->5.09 energySEK 0.313->0.313
+CELL two|nodhw|summer_negative|summer_cool      f   0.46452 ->   0.46452 gap +0.0003% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.42->5.42 energySEK -0.651->-0.651
+CELL two|dhw|summer_negative|summer_cool        f   1.39063 ->   1.39063 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.41->5.41 energySEK 0.274->0.274
+CELL one|nodhw|summer_negative|shoulder         f   0.30581 ->   0.30581 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 13.47->13.47 energySEK -1.617->-1.617
+CELL one|dhw|summer_negative|shoulder           f   1.19113 ->   1.19110 gap +0.0027% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 13.35->13.41 energySEK -0.701->-0.715
+CELL two|nodhw|summer_negative|shoulder         f   0.21236 ->   0.21190 gap +0.2145% (+0.0005 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 12.76->12.66 energySEK -1.531->-1.519
+CELL two|dhw|summer_negative|shoulder           f   1.10860 ->   1.10529 gap +0.2988% (+0.0033 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 12.69->12.65 energySEK -0.637->-0.633
+CELL one|nodhw|shoulder|winter_cold             f  48.76359 ->  48.52222 gap +0.4950% (+0.2414 SEK) viol 0.0000->0.0000 step0 3.18->5.42 kWh 59.34->60.98 energySEK 37.872->39.181
+CELL one|dhw|shoulder|winter_cold               f  54.79011 ->  54.78728 gap +0.0052% (+0.0028 SEK) viol 0.0000->0.0000 step0 6.00->6.00 kWh 60.19->61.80 energySEK 44.805->46.095
+CELL two|nodhw|shoulder|winter_cold             f  58.95520 ->  58.95520 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 1.52->1.52 kWh 75.59->75.59 energySEK 50.874->50.874
+CELL two|dhw|shoulder|winter_cold               f  65.32019 ->  65.32019 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 3.62->3.62 kWh 75.32->75.32 energySEK 56.913->56.913
+CELL one|nodhw|shoulder|winter_mild             f  17.99962 ->  17.99925 gap +0.0021% (+0.0004 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 30.28->30.30 energySEK 14.625->14.642
+CELL one|dhw|shoulder|winter_mild               f  21.81296 ->  21.81296 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 29.57->29.57 energySEK 18.250->18.250
+CELL two|nodhw|shoulder|winter_mild             f  23.28653 ->  23.28653 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 31.44->31.44 energySEK 18.664->18.664
+CELL two|dhw|shoulder|winter_mild               f  27.04858 ->  27.04858 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 31.49->31.49 energySEK 22.373->22.373
+CELL one|nodhw|shoulder|summer_cool             f   2.89954 ->   2.89411 gap +0.1873% (+0.0054 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 3.28->2.94 energySEK 1.683->1.367
+CELL one|dhw|shoulder|summer_cool               f   6.14294 ->   6.07679 gap +1.0769% (+0.0662 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 3.50->3.53 energySEK 5.062->5.041
+CELL two|nodhw|shoulder|summer_cool             f   3.33893 ->   3.33893 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 4.03->4.03 energySEK 2.136->2.136
+CELL two|dhw|shoulder|summer_cool               f   6.56032 ->   6.55477 gap +0.0845% (+0.0055 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 4.24->4.22 energySEK 5.391->5.369
+CELL one|nodhw|shoulder|shoulder                f   5.72955 ->   5.72955 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 7.25->7.25 energySEK 3.638->3.638
+CELL one|dhw|shoulder|shoulder                  f   9.14101 ->   9.14101 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 8.36->8.36 energySEK 8.194->8.194
+CELL two|nodhw|shoulder|shoulder                f   6.88408 ->   6.88408 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 10.62->10.62 energySEK 5.360->5.360
+CELL two|dhw|shoulder|shoulder                  f  10.36120 ->  10.35403 gap +0.0692% (+0.0072 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 10.50->10.65 energySEK 8.866->8.844
+CELL one|nodhw|flat|winter_cold                 f  82.46331 ->  82.46331 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 6.00->6.00 kWh 57.49->57.49 energySEK 68.990->68.990
+CELL one|dhw|flat|winter_cold                   f  91.07140 ->  91.07140 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 1.20->1.20 kWh 56.35->56.35 energySEK 75.692->75.692
+CELL two|nodhw|flat|winter_cold                 f  99.67118 ->  99.67118 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 6.00->6.00 kWh 75.54->75.54 energySEK 90.647->90.647
+CELL two|dhw|flat|winter_cold                   f 107.88661 -> 107.79396 gap +0.0859% (+0.0927 SEK) viol 0.0000->0.0000 step0 0.82->0.37 kWh 75.41->74.80 energySEK 98.562->97.826
+CELL one|nodhw|flat|winter_mild                 f  37.48691 ->  37.47151 gap +0.0411% (+0.0154 SEK) viol 0.0000->0.0000 step0 0.49->0.26 kWh 23.69->24.84 energySEK 28.424->29.802
+CELL one|dhw|flat|winter_mild                   f  43.08642 ->  43.00517 gap +0.1886% (+0.0812 SEK) viol 0.0000->0.0000 step0 0.12->0.27 kWh 23.24->24.83 energySEK 33.444->35.354
+CELL two|nodhw|flat|winter_mild                 f  41.47330 ->  41.47330 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 29.27->29.27 energySEK 35.120->35.120
+CELL two|dhw|flat|winter_mild                   f  47.05412 ->  47.04105 gap +0.0278% (+0.0131 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 29.48->29.16 energySEK 40.938->40.553
+CELL one|nodhw|flat|summer_cool                 f   4.44968 ->   4.44968 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.25->2.25 energySEK 2.702->2.702
+CELL one|dhw|flat|summer_cool                   f   9.08851 ->   9.08849 gap +0.0003% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.17->2.17 energySEK 7.242->7.242
+CELL two|nodhw|flat|summer_cool                 f   5.18866 ->   5.18130 gap +0.1419% (+0.0074 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.36->2.28 energySEK 2.833->2.735
+CELL two|dhw|flat|summer_cool                   f   9.83996 ->   9.83781 gap +0.0219% (+0.0022 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 2.49->2.48 energySEK 7.618->7.610
+CELL one|nodhw|flat|shoulder                    f   9.61392 ->   9.61392 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.70->5.70 energySEK 6.836->6.836
+CELL one|dhw|flat|shoulder                      f  14.69765 ->  14.69765 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 5.78->5.78 energySEK 12.039->12.039
+CELL two|nodhw|flat|shoulder                    f  12.22780 ->  12.22780 gap +0.0000% (+0.0000 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 7.28->7.28 energySEK 8.732->8.732
+CELL two|dhw|flat|shoulder                      f  17.36577 ->  17.32364 gap +0.2426% (+0.0421 SEK) viol 0.0000->0.0000 step0 0.00->0.00 kWh 7.85->6.98 energySEK 14.522->13.477
+RESULT summer_typical_cells=16 count
+RESULT summer_typical_gap_max=0.0666 %
+RESULT summer_typical_gap_min=0.0000 %
+RESULT summer_typical_gap_mean=0.0054 %
+RESULT summer_typical_gap_mean_drop_most_favourable=0.0013 %
+RESULT summer_typical_gap_abs_max=0.0052 SEK
+RESULT summer_typical_cells_over_0p5pct=0 count
+RESULT summer_typical_viol_worse=0 count
+RESULT summer_negative_cells=16 count
+RESULT summer_negative_gap_max=0.2988 %
+RESULT summer_negative_gap_min=0.0000 %
+RESULT summer_negative_gap_mean=0.0495 %
+RESULT summer_negative_gap_mean_drop_most_favourable=0.0329 %
+RESULT summer_negative_gap_abs_max=0.0065 SEK
+RESULT summer_negative_cells_over_0p5pct=0 count
+RESULT summer_negative_viol_worse=0 count
+RESULT shoulder_cells=16 count
+RESULT shoulder_gap_max=1.0769 %
+RESULT shoulder_gap_min=0.0000 %
+RESULT shoulder_gap_mean=0.1200 %
+RESULT shoulder_gap_mean_drop_most_favourable=0.0562 %
+RESULT shoulder_gap_abs_max=0.2414 SEK
+RESULT shoulder_cells_over_0p5pct=1 count
+RESULT shoulder_viol_worse=0 count
+RESULT flat_cells=16 count
+RESULT flat_gap_max=0.2426 %
+RESULT flat_gap_min=0.0000 %
+RESULT flat_gap_mean=0.0469 %
+RESULT flat_gap_mean_drop_most_favourable=0.0338 %
+RESULT flat_gap_abs_max=0.0927 SEK
+RESULT flat_cells_over_0p5pct=0 count
+RESULT flat_viol_worse=0 count
+RESULT gap_max_all=1.0769 %
+RESULT thread_factor=1.000
+RESULT load1=3.45
+RESULT swapins=0

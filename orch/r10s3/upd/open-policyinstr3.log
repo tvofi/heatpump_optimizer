@@ -1,0 +1,3 @@
+===== daemonize pid=35520 2026-10-19T21:19:49Z argv: bash tools/audit/seat/open_pr.sh r10-policy-instruments 03f2edd98721ff8e2af800c47e5926e8bf936ebf policy: look up canonical instruments before hand-rolling (R10-POLICY-INSTRUMENTS) R10-POLICY-INSTRUMENTS
+open_pr: open-PR cap: 1 open < 6
+PR=2462 HEAD=774e53f751c2c13e67b957cd7d05fd22b98f1fee AUTHOR=tvofi

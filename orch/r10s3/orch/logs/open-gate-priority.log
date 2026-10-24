@@ -1,0 +1,3 @@
+===== daemonize pid=55006 2026-10-20T22:58:47Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh --over-cap owner 2026-10-20: the cap gates group dispatch, not opening; this is the critical-path lease priority the owner asked for r10-gate-priority 31529479c13d41831c7d677ff299559c4f55a040 ci(gate): critical-path groups take the lease queue first (R10-PREPR-CAP) R10-PREPR-CAP
+open_pr: OVER-CAP: 8 open >= 6, overridden: owner 2026-10-20: the cap gates group dispatch, not opening; this is the critical-path lease priority the owner asked for
+PR=2526 HEAD=baa75f58ae7f9c00334d92da24d3285e1b047277 AUTHOR=tvofi

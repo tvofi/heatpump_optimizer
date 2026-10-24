@@ -1,0 +1,24 @@
+TRAIN pid=25610 queue=1 (#2636)
+TRAIN HOLD refs/heads/train-hold a731d1b5: the record beat waits
+TRAIN HOLD refs/heads/train-hold 31c027ad: the record beat waits
+TRAIN HOLD refs/heads/train-hold 6f232ee1: the record beat waits
+#2636 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-no-footers/wt held fix/r10-fly-no-footers-pr, clean at origin/fix/r10-fly-no-footers-pr; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-no-footers/wt switch fix/r10-fly-no-footers-pr)
+#2636 recarry START (branch fix/r10-fly-no-footers-pr)
+#2636 recarry: main merged, head 4e1c57d5; app_push: RECARRY: prepr SKIPPED: HEAD 4e1c57d5 is the clean merge of the live head 328e222f and origin/main's a7cf60cf, and the body is the live one
+TRAIN HOLD refs/heads/train-hold cae025ce: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 2, t+244s, required: 14, concluded: 9/14)
+TRAIN HOLD refs/heads/train-hold 8ad6e709: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 3, t+486s, required: 14, concluded: 11/14)
+TRAIN HOLD refs/heads/train-hold 83f0dc5c: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 4, t+728s, required: 14, concluded: 12/14)
+TRAIN HOLD refs/heads/train-hold 7be6b09e: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 5, t+970s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold 0c8bbdbf: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 6, t+1212s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold a2c307df: the record beat waits
+beat: waiting CI at 4e1c57d5 (poll 7, t+1454s, required: 14, concluded: 13/14)
+TRAIN HOLD refs/heads/train-hold a12b6d9b: the record beat waits
+#2636 4e1c57d5 ci red=[]
+released /Users/timmalmstrom/hpo-orch/r10s4/train/run34/wt/2636
+TRAIN HOLD released
+TRAIN STOPPED #2636 carry: CARRY: no 328e222fe8d3b4fe92ad9e37724fcc62bad55da8 -> 4e1c57d5af1326cd61578d3bbf8751f7865a4ffb: the branch's own diff differs: b24cfe517bd95d30911c43184cf62e2ac781aa19..328e222fe8d3b4fe92ad9e37724fcc6

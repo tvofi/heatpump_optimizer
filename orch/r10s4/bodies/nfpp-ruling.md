@@ -1,0 +1,4 @@
+**Orchestrator ruling (mandate 6329234399), 2026-10-23T13:40Z, on the allow-list proposal above.** No allow-list is added. The impact table is settled by merge order and by retiring the affected PRs:
+- **#2632** merged at 7108101d7 before this PR. Its commits, including the borderline `86b3fe71d656`, are now ancestors of origin/main and leave `origin/main..HEAD` for every later PR. Nothing is owed.
+- **#2620** (three pre-cutoff, dismissed commits) is ordered to merge before this PR. Its approval is live at 87f6c34e, and the train holds this PR behind it. If #2620 cannot merge first, this PR waits; the guard is not weakened for it.
+- **`cc51e6626c91`** on #2662, #2657 and #2656 is the hole commit, and refusing it is correct. #2662 is replaced by the P2b re-cut (trailer-free 619ff2d55 in place of cc51e6626), and #2657/#2656 are cut-over probe PRs that close when Arm B ends. None of them is pushed through app_push.sh again after this lands.

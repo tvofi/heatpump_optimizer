@@ -1,0 +1,37 @@
+{
+ "lane": "RP",
+ "kind": "fix",
+ "class": "privacy",
+ "severity": "medium",
+ "size": "S",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "wave": 5,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": "mandated approval under 6329234399",
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "group": "R10-DIAG-REDACT",
+ "after": [],
+ "files": [
+  "custom_components/heatpump_optimizer/diagnostics.py"
+ ],
+ "carry": [],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-diag-redact"
+ },
+ "brief": "D15 production triage (2026-10-24) found that the diagnostics bundle exposes owner data that should be redacted. The full finding is the first carry. R10-DIAG-REPLAY, the group that held it, is done, so this S group owns the redaction. Controls: a test that fails on the unredacted field, and a null control that keeps every non-sensitive field byte-identical."
+}

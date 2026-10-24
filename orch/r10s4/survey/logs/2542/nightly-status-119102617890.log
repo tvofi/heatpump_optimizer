@@ -1,0 +1,182 @@
+﻿2026-10-21T07:45:44.3205084Z Current runner version: '2.338.0'
+2026-10-21T07:45:44.3240892Z ##[group]Runner Image Provisioner
+2026-10-21T07:45:44.3242167Z Hosted Compute Agent
+2026-10-21T07:45:44.3243259Z Version: 20261015.610
+2026-10-21T07:45:44.3244401Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+2026-10-21T07:45:44.3245659Z Build Date: 2026-10-14T17:06:54Z
+2026-10-21T07:45:44.3246855Z Worker ID: {178873fd-43da-4041-a3fa-4f940863d9ac}
+2026-10-21T07:45:44.3248013Z Region: eastus
+2026-10-21T07:45:44.3248961Z Cloud: Azure
+2026-10-21T07:45:44.3249920Z ##[endgroup]
+2026-10-21T07:45:44.3252746Z ##[group]Operating System
+2026-10-21T07:45:44.3253825Z Ubuntu
+2026-10-21T07:45:44.3254656Z 24.04.5
+2026-10-21T07:45:44.3255541Z LTS
+2026-10-21T07:45:44.3256399Z ##[endgroup]
+2026-10-21T07:45:44.3257487Z ##[group]Runner Image
+2026-10-21T07:45:44.3258603Z Image: ubuntu-24.04
+2026-10-21T07:45:44.3259539Z Version: 20261018.339.1
+2026-10-21T07:45:44.3262157Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-21T07:45:44.3264956Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+2026-10-21T07:45:44.3266628Z ##[endgroup]
+2026-10-21T07:45:44.3268570Z ##[group]GITHUB_TOKEN Permissions
+2026-10-21T07:45:44.3271580Z Actions: read
+2026-10-21T07:45:44.3272620Z Contents: read
+2026-10-21T07:45:44.3273581Z Metadata: read
+2026-10-21T07:45:44.3274438Z ##[endgroup]
+2026-10-21T07:45:44.3277530Z Secret source: Actions
+2026-10-21T07:45:44.3279232Z Cache mode: write
+2026-10-21T07:45:44.3280826Z Prepare workflow directory
+2026-10-21T07:45:44.3758328Z Prepare all required actions
+2026-10-21T07:45:44.3829744Z Getting action download info
+2026-10-21T07:45:44.5754050Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-21T07:45:44.6696558Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-21T07:45:44.8496548Z Complete job name: nightly-status
+2026-10-21T07:45:44.9275709Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-21T07:45:44.9276793Z with:
+2026-10-21T07:45:44.9277264Z   repository: tvofi/heatpump_optimizer
+2026-10-21T07:45:44.9281160Z   token: ***
+2026-10-21T07:45:44.9281610Z   ssh-strict: true
+2026-10-21T07:45:44.9282053Z   ssh-user: git
+2026-10-21T07:45:44.9282513Z   persist-credentials: true
+2026-10-21T07:45:44.9283003Z   clean: true
+2026-10-21T07:45:44.9283452Z   sparse-checkout-cone-mode: true
+2026-10-21T07:45:44.9283972Z   fetch-depth: 1
+2026-10-21T07:45:44.9284413Z   fetch-tags: false
+2026-10-21T07:45:44.9284866Z   show-progress: true
+2026-10-21T07:45:44.9285332Z   lfs: false
+2026-10-21T07:45:44.9285747Z   submodules: false
+2026-10-21T07:45:44.9286202Z   set-safe-directory: true
+2026-10-21T07:45:44.9286715Z   allow-unsafe-pr-checkout: false
+2026-10-21T07:45:44.9287497Z ##[endgroup]
+2026-10-21T07:45:45.0503332Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-21T07:45:45.0505897Z ##[group]Getting Git version info
+2026-10-21T07:45:45.0507149Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-21T07:45:45.0508373Z [command]/usr/bin/git version
+2026-10-21T07:45:45.0596262Z git version 2.55.0
+2026-10-21T07:45:45.0620540Z ##[endgroup]
+2026-10-21T07:45:45.0637048Z Temporarily overriding HOME='/home/runner/work/_temp/305a4a90-5068-4beb-b698-653f9f3a437a' before making global git config changes
+2026-10-21T07:45:45.0639425Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T07:45:45.0644184Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-21T07:45:45.0699603Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-21T07:45:45.0704462Z ##[group]Initializing the repository
+2026-10-21T07:45:45.0708806Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-21T07:45:45.0814815Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-21T07:45:45.0816028Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-21T07:45:45.0817315Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-21T07:45:45.0818415Z hint: call:
+2026-10-21T07:45:45.0818843Z hint:
+2026-10-21T07:45:45.0819371Z hint: 	git config --global init.defaultBranch <name>
+2026-10-21T07:45:45.0820341Z hint:
+2026-10-21T07:45:45.0821416Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-21T07:45:45.0822410Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-21T07:45:45.0823403Z hint:
+2026-10-21T07:45:45.0823859Z hint: 	git branch -m <name>
+2026-10-21T07:45:45.0824344Z hint:
+2026-10-21T07:45:45.0824991Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-21T07:45:45.0826156Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-21T07:45:45.0829275Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-21T07:45:45.0877744Z ##[endgroup]
+2026-10-21T07:45:45.0878569Z ##[group]Disabling automatic garbage collection
+2026-10-21T07:45:45.0882395Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-21T07:45:45.0916477Z ##[endgroup]
+2026-10-21T07:45:45.0924106Z ##[group]Setting up auth
+2026-10-21T07:45:45.0924887Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T07:45:45.0959238Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T07:45:45.1374668Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T07:45:45.1411270Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-21T07:45:45.1656116Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T07:45:45.1693027Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T07:45:45.1944006Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-21T07:45:45.1987317Z ##[endgroup]
+2026-10-21T07:45:45.1988781Z ##[group]Fetching the repository
+2026-10-21T07:45:45.1998224Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +73150693a09912250771101b7ee54a51341cea7d:refs/remotes/pull/2542/merge
+2026-10-21T07:45:46.8534324Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-21T07:45:46.8539000Z  * [new ref]         73150693a09912250771101b7ee54a51341cea7d -> pull/2542/merge
+2026-10-21T07:45:46.8543263Z ##[endgroup]
+2026-10-21T07:45:46.8544917Z ##[group]Determining the checkout info
+2026-10-21T07:45:46.8546828Z ##[endgroup]
+2026-10-21T07:45:46.8547994Z [command]/usr/bin/git sparse-checkout disable
+2026-10-21T07:45:46.8607878Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-21T07:45:46.8640552Z ##[group]Checking out the ref
+2026-10-21T07:45:46.8644906Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2542/merge
+2026-10-21T07:45:47.4585356Z Note: switching to 'refs/remotes/pull/2542/merge'.
+2026-10-21T07:45:47.4586171Z 
+2026-10-21T07:45:47.4586483Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-21T07:45:47.4587196Z changes and commit them, and you can discard any commits you make in this
+2026-10-21T07:45:47.4587891Z state without impacting any branches by switching back to a branch.
+2026-10-21T07:45:47.4588318Z 
+2026-10-21T07:45:47.4588617Z If you want to create a new branch to retain commits you create, you may
+2026-10-21T07:45:47.4589881Z do so (now or later) by using -c with the switch command. Example:
+2026-10-21T07:45:47.4590743Z 
+2026-10-21T07:45:47.4590960Z   git switch -c <new-branch-name>
+2026-10-21T07:45:47.4591231Z 
+2026-10-21T07:45:47.4591403Z Or undo this operation with:
+2026-10-21T07:45:47.4591639Z 
+2026-10-21T07:45:47.4591781Z   git switch -
+2026-10-21T07:45:47.4591984Z 
+2026-10-21T07:45:47.4592416Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-21T07:45:47.4600998Z 
+2026-10-21T07:45:47.4601488Z HEAD is now at 7315069 Merge c2bbc47356bef265595c933a22ef2b7e05310912 into df6ca4bc6858f2796f694035e6f53e46e237e33b
+2026-10-21T07:45:47.4622311Z ##[endgroup]
+2026-10-21T07:45:47.4667212Z [command]/usr/bin/git log -1 --format=%H
+2026-10-21T07:45:47.4693165Z 73150693a09912250771101b7ee54a51341cea7d
+2026-10-21T07:45:47.4989416Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-10-21T07:45:47.4989991Z with:
+2026-10-21T07:45:47.4990518Z   python-version: 3.13
+2026-10-21T07:45:47.4990806Z   check-latest: false
+2026-10-21T07:45:47.4993285Z   token: ***
+2026-10-21T07:45:47.4993554Z   update-environment: true
+2026-10-21T07:45:47.4993859Z   allow-prereleases: false
+2026-10-21T07:45:47.4994165Z   freethreaded: false
+2026-10-21T07:45:47.4994427Z ##[endgroup]
+2026-10-21T07:45:47.6427617Z ##[group]Installed versions
+2026-10-21T07:45:47.6522619Z Successfully set up CPython (3.13.16)
+2026-10-21T07:45:47.6523426Z ##[endgroup]
+2026-10-21T07:45:47.6676351Z ##[group]Run set -euo pipefail
+2026-10-21T07:45:47.6676832Z [36;1mset -euo pipefail[0m
+2026-10-21T07:45:47.6677372Z [36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"[0m
+2026-10-21T07:45:47.6677926Z [36;1mgit checkout "$PINNED" -- \[0m
+2026-10-21T07:45:47.6678257Z [36;1m  'tests/nightly_status.py'[0m
+2026-10-21T07:45:47.6678812Z [36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"[0m
+2026-10-21T07:45:47.6679444Z [36;1mpython -I -S tests/nightly_status.py[0m
+2026-10-21T07:45:47.6867743Z shell: /usr/bin/bash -e {0}
+2026-10-21T07:45:47.6868189Z env:
+2026-10-21T07:45:47.6868573Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-21T07:45:47.6869193Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+2026-10-21T07:45:47.6869769Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-21T07:45:47.6870580Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-21T07:45:47.6871041Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-21T07:45:47.6871487Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+2026-10-21T07:45:47.6874268Z   GITHUB_TOKEN: ***
+2026-10-21T07:45:47.6874585Z   PINNED: df6ca4bc6858f2796f694035e6f53e46e237e33b
+2026-10-21T07:45:47.6874946Z ##[endgroup]
+2026-10-21T07:45:50.1429895Z NIGHTLY FAILED: slow failed 1 night ago.
+2026-10-21T07:45:50.1431196Z   scheduled run 39387919507, 2026-10-20T07:39:11+00:00, head 0c298f6, run conclusion 'failure'
+2026-10-21T07:45:50.1432080Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/39387919507
+2026-10-21T07:45:50.1433106Z   (run 39563978649 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+2026-10-21T07:45:50.1434250Z   failing jobs:
+2026-10-21T07:45:50.1435197Z     slow  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/39387919507/job/118512165515
+2026-10-21T07:45:50.1436146Z 
+2026-10-21T07:45:50.1438121Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+2026-10-21T07:45:50.1440508Z 
+2026-10-21T07:45:50.1441153Z A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+2026-10-21T07:45:50.1442659Z     gh workflow run tests.yml --ref main
+2026-10-21T07:45:50.1444393Z and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+2026-10-21T07:45:50.1447876Z If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+2026-10-21T07:45:50.1548044Z ##[error]Process completed with exit code 1.
+2026-10-21T07:45:50.1719444Z Post job cleanup.
+2026-10-21T07:45:50.2552165Z [command]/usr/bin/git version
+2026-10-21T07:45:50.2591478Z git version 2.55.0
+2026-10-21T07:45:50.2627849Z Temporarily overriding HOME='/home/runner/work/_temp/66a0a228-c3e7-4cf8-829b-89b55d639da5' before making global git config changes
+2026-10-21T07:45:50.2628875Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T07:45:50.2633885Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-21T07:45:50.2672551Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T07:45:50.2711245Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T07:45:50.2959671Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T07:45:50.2984164Z http.https://github.com/.extraheader
+2026-10-21T07:45:50.2995588Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-21T07:45:50.3028593Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-21T07:45:50.3275500Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T07:45:50.3310771Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T07:45:50.3751888Z Cleaning up orphan processes

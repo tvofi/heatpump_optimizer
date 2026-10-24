@@ -1,0 +1,2 @@
+===== daemonize pid=86911 2026-10-20T22:23:01Z argv: env PREPR_SKIP_CLOSURES=1 bash tools/audit/seat/open_pr.sh r10-wip-cap 80fe9ac08ef9e8b9f90baf814d79a38d56d4041a ci: the soft cap gates group dispatch, not opening (R10-OPENPR-SILENT) R10-OPENPR-SILENT
+open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)

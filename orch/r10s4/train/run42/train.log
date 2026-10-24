@@ -1,0 +1,11 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s4/train/run42/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s4/train/run42 pid=22359 start=2026-10-23T09:20:57Z
+BATCH 20261023-092057 pid=22364 base=main queue=1 (#2647) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold e79acad7: the record beat waits
+PARK #2647 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2647); first: review 6360129434 item acaa22e8 (unrouted): - **The whole range.** Run against only origin/main, the guard refuses `co-author-trailer` on `ff6cf
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s4/gc-main/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-23T09:21:12Z

@@ -1,0 +1,50 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/r10s6/train/queue1.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/r10s6/train/s4 pid=62964 start=2026-10-24T10:07:00Z
+BATCH 20261024-100700 pid=63028 base=main queue=1 (#2683) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 65894a16: the record beat waits
+BOT #2694 MERGED 145bfe197b9e7c09eb90bedadec44c6bc19d679d
+OVERLAP: main at 145bfe197b9e is still running (gate): a wait, not red; --overlap does not wait
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2683 serial: bot-head, budget, grader
+OVERLAP: recarrying  up front, their pull_request runs fire together
+serial: #2683
+TRAIN HOLD refs/heads/train-hold 882f797a: the record beat waits
+#2683 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/wt held fix/r10-input-staleness, clean at origin/fix/r10-input-staleness; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-input-staleness/wt switch fix/r10-input-staleness)
+#2683 recarry START (branch fix/r10-input-staleness)
+#2683 recarry: main merged, head 229c6643; app_push: RECARRY: prepr SKIPPED: HEAD 229c6643 is the clean merge of the live head 8d965647 and origin/main's 145bfe19, and the body is the live one
+TRAIN HOLD refs/heads/train-hold 2a5c309f: the record beat waits
+beat: waiting CI at 229c6643 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5935805f: the record beat waits
+beat: waiting CI at 229c6643 (poll 3, t+485s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 549bcdf7: the record beat waits
+beat: waiting CI at 229c6643 (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold b240e6ef: the record beat waits
+beat: waiting CI at 229c6643 (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 110874e5: the record beat waits
+beat: waiting CI at 229c6643 (poll 6, t+1211s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold a9d4ff9a: the record beat waits
+beat: waiting CI at 229c6643 (poll 7, t+1453s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 6916699a: the record beat waits
+beat: waiting CI at 229c6643 (poll 8, t+1696s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold f4f565ee: the record beat waits
+beat: waiting CI at 229c6643 (poll 9, t+1938s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 62cdd032: the record beat waits
+beat: waiting CI at 229c6643 (poll 10, t+2180s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 49daa80b: the record beat waits
+beat: waiting CI at 229c6643 (poll 11, t+2423s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9a4c17ee: the record beat waits
+beat: waiting CI at 229c6643 (poll 12, t+2670s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 36d4558a: the record beat waits
+beat: waiting CI at 229c6643 (poll 13, t+2913s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 14c2f0ee: the record beat waits
+#2683 229c6643 ci red=[]
+#2683 229c6643 platform gate=green: 2 required gate run(s) pass
+#2683 approved (app)
+#2683 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2683 MERGED d0ae3ca9f480d778fdb3643f30324a92f038b44c
+#2683 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2234,"state":"CLOSED"}]}}}}}
+NOT released /Users/timmalmstrom/hpo-orch/r10s6/train/s4/wt/2683 (rc=128: fatal: '/Users/timmalmstrom/hpo-orch/r10s6/train/s4/wt/2683' is not a working tree); remove it by hand
+SKIP REPORT: 0 skipped of 1
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T11:03:14Z

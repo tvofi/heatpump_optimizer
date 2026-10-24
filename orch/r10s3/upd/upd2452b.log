@@ -1,0 +1,5 @@
+===== daemonize pid=78790 2026-10-19T22:13:59Z argv: bash tools/audit/seat/update_pr.sh fix/r10-deeplink-handlers 8b3ea42cbd45fcb30fefe03d2e74a79876f5c1c0 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-round-10-orchestration-eaa727/9d5c75e8-1167-40ab-8487-67826f2ebc1f/scratchpad/2452r2/BODY.md
+  REFUSE   'Closes #2317' closes #2317; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-deeplink-handlers.log

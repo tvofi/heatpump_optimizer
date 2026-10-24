@@ -1,0 +1,161 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117779459209,
+      "run_id": 39162550918,
+      "workflow_name": "PR contract",
+      "head_branch": "fix/r10-carry-enforce",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39162550918",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOT-9fds8AAAAbbDPsiQ",
+      "head_sha": "03f1681a3e684854b5b934020ec5d44612b2ffd2",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117779459209",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39162550918/job/117779459209",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-18T20:19:47Z",
+      "started_at": "2026-10-18T20:19:50Z",
+      "completed_at": "2026-10-18T20:20:22Z",
+      "name": "pr-contract",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:19:51Z",
+          "completed_at": "2026-10-18T20:19:52Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:19:52Z",
+          "completed_at": "2026-10-18T20:20:03Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:20:03Z",
+          "completed_at": "2026-10-18T20:20:04Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:20:04Z",
+          "completed_at": "2026-10-18T20:20:04Z"
+        },
+        {
+          "name": "Name the pull request a queue entry carries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:20:04Z",
+          "completed_at": "2026-10-18T20:20:04Z"
+        },
+        {
+          "name": "Read the body off the API, not the event payload",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:20:04Z",
+          "completed_at": "2026-10-18T20:20:06Z"
+        },
+        {
+          "name": "List the paths this pull request changes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:20:06Z",
+          "completed_at": "2026-10-18T20:20:06Z"
+        },
+        {
+          "name": "List the red checks at this head",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:20:06Z",
+          "completed_at": "2026-10-18T20:20:07Z"
+        },
+        {
+          "name": "Check the body against the contract",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 9,
+          "started_at": "2026-10-18T20:20:07Z",
+          "completed_at": "2026-10-18T20:20:18Z"
+        },
+        {
+          "name": "Every figure's command resolves at this head",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:20:18Z",
+          "completed_at": "2026-10-18T20:20:18Z"
+        },
+        {
+          "name": "Pre-flight the body for unmeasured claims",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:20:18Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        },
+        {
+          "name": "Refuse a version, manifest-version or notes-heading edit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T20:20:19Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        },
+        {
+          "name": "Every finding the body records names its destination",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T20:20:19Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 25,
+          "started_at": "2026-10-18T20:20:19Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-18T20:20:19Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-18T20:20:19Z",
+          "completed_at": "2026-10-18T20:20:19Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117779459209",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126861,
+      "runner_name": "GitHub Actions 1000126861",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

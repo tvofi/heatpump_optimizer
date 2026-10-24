@@ -1,0 +1,32 @@
+last-finishing job per PR run: {'composed-proof': 17, 'closures': 1, 'mutation-autofix': 1, 'lane-proofs': 1}
+seconds the run ran past its last required tests.yml job (non-cancelled):
+       16  composed-proof  run 39148592346
+       17  composed-proof  run 39153372062
+       17  composed-proof  run 39153812016
+       17  composed-proof  run 39158277850
+       18  composed-proof  run 39150747003
+       18  composed-proof  run 39152091270
+       19  composed-proof  run 39153860761
+       21  composed-proof  run 39155370055
+       22  composed-proof  run 39148193627
+       23  composed-proof  run 39158231320
+       28  composed-proof  run 39151687395
+       84  composed-proof  run 39150736179
+      128  composed-proof  run 39151673429
+      189  composed-proof  run 39154182950
+      856  composed-proof  run 39151671544
+     1223  composed-proof  run 39153364517
+     1245  composed-proof  run 39150084062
+     1248  mutation-autofix  run 39148893518
+queue latency after the last need completed (s): job n median max
+  browser                20    7.0    166
+  closures               20    3.0    143
+  composed-proof         20    3.0    113
+  coverage               20    7.5    139
+  coverage-ratchet       20    3.0    112
+  fast (3.14)            20    9.0    138
+  graders-head-copy      20    3.0    119
+  lane-proofs            20    3.0    102
+  mutation-autofix        2   44.5     86
+  mutation-pin-plan       2    3.5      4
+  mutation-pins (1)       2    3.0      3

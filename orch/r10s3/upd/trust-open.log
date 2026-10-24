@@ -1,0 +1,9 @@
+===== daemonize pid=37791 2026-10-19T06:31:11Z argv: bash /Users/timmalmstrom/hpo-seats/r10s3/orch-wt/tools/audit/seat/open_pr.sh r10-trust-relative 06bbc1ec6 R10-TRUST-RELATIVE: learner trust region relative to the parameter, not fixed multiplier units R10-TRUST-RELATIVE
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (781 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+  REFUSE   ancestry reds          RED UNANSWERED (mutation):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-trust-relative/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

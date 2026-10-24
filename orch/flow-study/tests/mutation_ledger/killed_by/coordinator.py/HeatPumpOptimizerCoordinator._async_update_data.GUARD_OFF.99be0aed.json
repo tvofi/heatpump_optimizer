@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_update_data GUARD_OFF 99be0aed",
+  "killed_by": "tests/features.py",
+  "old": "            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0454645fe03c5dc7601b5dee208b120d87ce9f3e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

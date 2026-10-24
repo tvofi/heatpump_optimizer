@@ -1,0 +1,96 @@
+  one|winter_typical|winter_cold|dhw=0   prod=   60.1043 race=   60.1043 polish=   60.1043 best=   60.1043 gap= 0.000%  energy= 36.00 step0 6.000->6.000
+  one|winter_typical|winter_mild|dhw=0   prod=   23.4031 race=   23.3927 polish=   23.4031 best=   23.3927 gap= 0.044%  energy= 27.21 step0 0.000->0.000
+  one|winter_typical|summer_warm|dhw=0   prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|winter_typical|summer_cool|dhw=0   prod=    3.3181 race=    3.3069 polish=    3.3181 best=    3.3069 gap= 0.338%  energy=  2.46 step0 0.000->0.000
+  one|winter_typical|shoulder|dhw=0      prod=    6.7218 race=    6.7050 polish=    6.7218 best=    6.7050 gap= 0.251%  energy=  7.01 step0 2.079->0.069
+  one|winter_extreme|winter_cold|dhw=0   prod=   80.7406 race=   80.7406 polish=   80.7406 best=   80.7406 gap= 0.000%  energy= 42.00 step0 6.000->6.000
+  one|winter_extreme|winter_mild|dhw=0   prod=   33.3028 race=   33.2223 polish=   33.3028 best=   33.2223 gap= 0.242%  energy= 27.09 step0 0.596->0.000
+  one|winter_extreme|summer_warm|dhw=0   prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|winter_extreme|summer_cool|dhw=0   prod=    4.4293 race=    4.4293 polish=    4.4293 best=    4.4293 gap= 0.000%  energy=  2.48 step0 0.000->0.000
+  one|winter_extreme|shoulder|dhw=0      prod=    9.4464 race=    9.4101 polish=    9.4464 best=    9.4101 gap= 0.385%  energy=  6.96 step0 0.582->0.000
+  one|summer_typical|winter_cold|dhw=0   prod=   19.5108 race=   19.5108 polish=   19.5108 best=   19.5108 gap= 0.000%  energy= 55.57 step0 6.000->6.000
+  one|summer_typical|winter_mild|dhw=0   prod=    7.5535 race=    7.5514 polish=    7.5535 best=    7.5514 gap= 0.027%  energy= 30.35 step0 0.001->0.000
+  one|summer_typical|summer_warm|dhw=0   prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|summer_typical|summer_cool|dhw=0   prod=    1.6635 race=    1.6626 polish=    1.6626 best=    1.6626 gap= 0.055%  energy=  2.40 step0 0.000->0.000
+  one|summer_typical|shoulder|dhw=0      prod=    2.6985 race=    2.6985 polish=    2.6985 best=    2.6985 gap= 0.000%  energy=  6.00 step0 0.000->0.000
+  one|summer_negative|winter_cold|dhw=0  prod=   12.9592 race=   13.0323 polish=   12.9592 best=   12.9592 gap= 0.000%  energy= 69.60 step0 6.000->6.000
+  one|summer_negative|winter_mild|dhw=0  prod=    0.6223 race=    0.6223 polish=    0.6223 best=    0.6223 gap= 0.000%  energy= 31.22 step0 0.000->0.000
+  one|summer_negative|summer_warm|dhw=0  prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|summer_negative|summer_cool|dhw=0  prod=    0.6694 race=    0.6603 polish=    0.6694 best=    0.6603 gap= 1.358%  energy=  5.04 step0 0.000->0.000
+  one|summer_negative|shoulder|dhw=0     prod=    0.2865 race=    0.2545 polish=    0.2721 best=    0.2545 gap=11.173%  energy= 12.82 step0 0.000->0.000
+  one|shoulder|winter_cold|dhw=0         prod=   48.8137 race=   48.4441 polish=   48.3810 best=   48.3810 gap= 0.887%  energy= 62.12 step0 4.552->3.575
+  one|shoulder|winter_mild|dhw=0         prod=   18.0013 race=   17.9971 polish=   18.0013 best=   17.9971 gap= 0.023%  energy= 30.21 step0 0.000->0.000
+  one|shoulder|summer_warm|dhw=0         prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|shoulder|summer_cool|dhw=0         prod=    2.8939 race=    2.8889 polish=    2.8939 best=    2.8889 gap= 0.174%  energy=  2.56 step0 0.000->0.000
+  one|shoulder|shoulder|dhw=0            prod=    5.5915 race=    5.5893 polish=    5.5915 best=    5.5893 gap= 0.039%  energy=  8.30 step0 0.000->0.000
+  one|winter_narrow|winter_cold|dhw=0    prod=  103.1362 race=  103.1362 polish=  103.1362 best=  103.1362 gap= 0.000%  energy= 51.00 step0 6.000->6.000
+  one|winter_narrow|winter_mild|dhw=0    prod=   45.0135 race=   44.9873 polish=   45.0135 best=   44.9873 gap= 0.058%  energy= 20.96 step0 0.000->0.077
+  one|winter_narrow|summer_warm|dhw=0    prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|winter_narrow|summer_cool|dhw=0    prod=    5.1900 race=    5.1865 polish=    5.1900 best=    5.1865 gap= 0.066%  energy=  1.95 step0 0.000->0.000
+  one|winter_narrow|shoulder|dhw=0       prod=   11.5918 race=   11.4647 polish=   11.5918 best=   11.4647 gap= 1.096%  energy=  5.04 step0 0.000->0.016
+  one|winter_moderate|winter_cold|dhw=0  prod=   75.9051 race=   75.9051 polish=   75.9051 best=   75.9051 gap= 0.000%  energy= 42.00 step0 6.000->6.000
+  one|winter_moderate|winter_mild|dhw=0  prod=   32.1212 race=   32.0931 polish=   32.1212 best=   32.0931 gap= 0.087%  energy= 23.53 step0 0.000->0.000
+  one|winter_moderate|summer_warm|dhw=0  prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|winter_moderate|summer_cool|dhw=0  prod=    3.9970 race=    3.9969 polish=    3.9970 best=    3.9969 gap= 0.005%  energy=  1.94 step0 0.000->0.000
+  one|winter_moderate|shoulder|dhw=0     prod=    8.5652 race=    8.5425 polish=    8.5652 best=    8.5425 gap= 0.265%  energy=  4.98 step0 0.007->0.021
+  one|flat|winter_cold|dhw=0             prod=   82.4633 race=   82.4633 polish=   82.4633 best=   82.4633 gap= 0.000%  energy= 57.49 step0 6.000->6.000
+  one|flat|winter_mild|dhw=0             prod=   37.4692 race=   37.4195 polish=   37.4692 best=   37.4195 gap= 0.133%  energy= 25.41 step0 5.639->5.383
+  one|flat|summer_warm|dhw=0             prod= 6435.6202 race= 6435.6202 polish= 6435.6202 best= 6435.6202 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  one|flat|summer_cool|dhw=0             prod=    4.4497 race=    4.4457 polish=    4.4497 best=    4.4457 gap= 0.089%  energy=  2.25 step0 0.000->0.000
+  one|flat|shoulder|dhw=0                prod=    9.6139 race=    9.6126 polish=    9.6139 best=    9.6126 gap= 0.013%  energy=  5.70 step0 0.000->0.000
+  two|winter_typical|winter_cold|dhw=0   prod=   77.8842 race=   77.6607 polish=   77.8842 best=   77.6607 gap= 0.287%  energy= 67.86 step0 6.000->6.000
+  two|winter_typical|winter_mild|dhw=0   prod=   29.6815 race=   29.7024 polish=   29.6523 best=   29.6523 gap= 0.099%  energy= 26.82 step0 0.000->0.005
+  two|winter_typical|summer_warm|dhw=0   prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|winter_typical|summer_cool|dhw=0   prod=    3.8235 race=    3.8141 polish=    3.8235 best=    3.8141 gap= 0.248%  energy=  3.23 step0 0.000->0.000
+  two|winter_typical|shoulder|dhw=0      prod=    8.3270 race=    8.3175 polish=    8.3270 best=    8.3175 gap= 0.114%  energy=  8.88 step0 0.000->0.000
+  two|winter_extreme|winter_cold|dhw=0   prod=  111.5768 race=  111.4921 polish=  111.5260 best=  111.4921 gap= 0.076%  energy= 71.30 step0 6.000->6.000
+  two|winter_extreme|winter_mild|dhw=0   prod=   41.1351 race=   41.0242 polish=   41.0035 best=   41.0035 gap= 0.320%  energy= 27.23 step0 1.253->1.249
+  two|winter_extreme|summer_warm|dhw=0   prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|winter_extreme|summer_cool|dhw=0   prod=    5.1854 race=    5.1799 polish=    5.1854 best=    5.1799 gap= 0.108%  energy=  2.85 step0 0.000->0.000
+  two|winter_extreme|shoulder|dhw=0      prod=   11.7769 race=   11.7570 polish=   11.7769 best=   11.7570 gap= 0.169%  energy=  8.83 step0 0.000->0.000
+  two|summer_typical|winter_cold|dhw=0   prod=   25.0242 race=   25.0022 polish=   25.0242 best=   25.0022 gap= 0.088%  energy= 67.11 step0 4.740->3.507
+  two|summer_typical|winter_mild|dhw=0   prod=    8.6707 race=    8.6707 polish=    8.6706 best=    8.6706 gap= 0.001%  energy= 32.28 step0 0.000->0.000
+  two|summer_typical|summer_warm|dhw=0   prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|summer_typical|summer_cool|dhw=0   prod=    1.7228 race=    1.7227 polish=    1.7227 best=    1.7227 gap= 0.003%  energy=  3.01 step0 0.000->0.000
+  two|summer_typical|shoulder|dhw=0      prod=    3.2949 race=    3.2949 polish=    3.2948 best=    3.2948 gap= 0.001%  energy=  8.37 step0 0.000->0.000
+  two|summer_negative|winter_cold|dhw=0  prod=   17.2138 race=   17.2138 polish=   17.2138 best=   17.2138 gap= 0.000%  energy= 82.04 step0 0.011->0.011
+  two|summer_negative|winter_mild|dhw=0  prod=    1.9463 race=    1.9343 polish=    1.9285 best=    1.9285 gap= 0.914%  energy= 32.72 step0 0.000->0.000
+  two|summer_negative|summer_warm|dhw=0  prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|summer_negative|summer_cool|dhw=0  prod=    0.4645 race=    0.4645 polish=    0.4645 best=    0.4645 gap= 0.001%  energy=  5.42 step0 0.000->0.000
+  two|summer_negative|shoulder|dhw=0     prod=    0.2160 race=    0.2160 polish=    0.2160 best=    0.2160 gap= 0.000%  energy= 12.74 step0 0.000->0.000
+  two|shoulder|winter_cold|dhw=0         prod=   59.0586 race=   58.9571 polish=   58.9624 best=   58.9571 gap= 0.172%  energy= 75.39 step0 1.640->2.042
+  two|shoulder|winter_mild|dhw=0         prod=   23.3231 race=   23.3028 polish=   23.3231 best=   23.3028 gap= 0.087%  energy= 31.49 step0 0.000->0.000
+  two|shoulder|summer_warm|dhw=0         prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|shoulder|summer_cool|dhw=0         prod=    3.3421 race=    3.3366 polish=    3.3351 best=    3.3351 gap= 0.209%  energy=  4.24 step0 0.000->0.000
+  two|shoulder|shoulder|dhw=0            prod=    6.8941 race=    6.8984 polish=    6.8906 best=    6.8906 gap= 0.051%  energy= 10.33 step0 0.000->0.000
+  two|winter_narrow|winter_cold|dhw=0    prod=  124.2629 race=  124.1001 polish=  123.9660 best=  123.9660 gap= 0.239%  energy= 74.54 step0 5.989->5.997
+  two|winter_narrow|winter_mild|dhw=0    prod=   50.6730 race=   50.6676 polish=   50.6636 best=   50.6636 gap= 0.019%  energy= 27.70 step0 0.000->0.002
+  two|winter_narrow|summer_warm|dhw=0    prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|winter_narrow|summer_cool|dhw=0    prod=    6.0842 race=    6.0751 polish=    6.0842 best=    6.0751 gap= 0.149%  energy=  2.51 step0 0.000->0.000
+  two|winter_narrow|shoulder|dhw=0       prod=   14.4830 race=   14.4830 polish=   14.4830 best=   14.4830 gap= 0.000%  energy=  6.31 step0 0.000->0.000
+  two|winter_moderate|winter_cold|dhw=0  prod=   95.3390 race=   95.1834 polish=   95.3289 best=   95.1834 gap= 0.163%  energy= 71.89 step0 6.000->5.997
+  two|winter_moderate|winter_mild|dhw=0  prod=   38.1620 race=   38.1245 polish=   38.1620 best=   38.1245 gap= 0.098%  energy= 27.63 step0 0.400->0.313
+  two|winter_moderate|summer_warm|dhw=0  prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|winter_moderate|summer_cool|dhw=0  prod=    4.6783 race=    4.6633 polish=    4.6783 best=    4.6633 gap= 0.321%  energy=  2.48 step0 0.000->0.000
+  two|winter_moderate|shoulder|dhw=0     prod=   10.9202 race=   10.9163 polish=   10.9202 best=   10.9163 gap= 0.035%  energy=  7.35 step0 0.000->0.000
+  two|flat|winter_cold|dhw=0             prod=  100.0011 race=   99.9249 polish=   99.9375 best=   99.9249 gap= 0.076%  energy= 74.99 step0 5.478->6.000
+  two|flat|winter_mild|dhw=0             prod=   41.4947 race=   41.4936 polish=   41.4947 best=   41.4936 gap= 0.003%  energy= 29.33 step0 0.000->0.000
+  two|flat|summer_warm|dhw=0             prod=10597.9676 race=10597.9676 polish=10597.9676 best=10597.9676 gap= 0.000%  energy=  0.00 step0 0.000->0.000
+  two|flat|summer_cool|dhw=0             prod=    5.1895 race=    5.1917 polish=    5.1895 best=    5.1895 gap= 0.000%  energy=  2.37 step0 0.000->0.000
+  two|flat|shoulder|dhw=0                prod=   12.2324 race=   12.2289 polish=   12.2324 best=   12.2289 gap= 0.029%  energy=  7.19 step0 0.000->0.000
+
+RESULT cells=80
+RESULT gap_max=11.1729 %
+RESULT gap_min=0.0000 %
+RESULT gap_median=0.0279 %
+RESULT n_cells_gap_gt_0.1pct=24
+RESULT n_cells=80
+RESULT gap_loo_range=0.0000..11.1729 %
+  worst five (leave-one-out: range with the most favourable cell dropped)
+    one|summer_negative|shoulder|dhw=0     gap=11.173% prod=0.2865 best=0.2545 viol prod/ch = 0.000000/0.000000 race_feasible=True polish_feasible=True polish_gap=5.041%
+    one|summer_negative|summer_cool|dhw=0  gap= 1.358% prod=0.6694 best=0.6603 viol prod/ch = 0.000000/0.000000 race_feasible=True polish_feasible=True polish_gap=0.000%
+    one|winter_narrow|shoulder|dhw=0       gap= 1.096% prod=11.5918 best=11.4647 viol prod/ch = 0.000000/0.000000 race_feasible=True polish_feasible=True polish_gap=0.000%
+    two|summer_negative|winter_mild|dhw=0  gap= 0.914% prod=1.9463 best=1.9285 viol prod/ch = 0.000000/0.000000 race_feasible=True polish_feasible=True polish_gap=0.914%
+    one|shoulder|winter_cold|dhw=0         gap= 0.887% prod=48.8137 best=48.3810 viol prod/ch = 0.000000/0.000000 race_feasible=True polish_feasible=True polish_gap=0.887%
+RESULT wall_s=658.5 provisional=1
+RESULT load1=12.08

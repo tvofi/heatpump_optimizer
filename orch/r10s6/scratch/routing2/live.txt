@@ -1,0 +1,213 @@
+## R10-RATIO-ANCHOR [in-progress] lane=LR size=M iss=[2239] fix=[] after=[] pr=2698 carries=3
+  files: custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/store.py,custom_components/heatpump_optimizer/sysid.py,custom_components/heatpump_optimizer/config_flow.py
+  brief: D-3 (D12-s2-71, medium, verified): the lower-floor learned ratio has no re-anchor, so a nameplate edit or a snapshot restore misattributes the change, upper -36.8 % and lower +21.5 % after an options reseed. The owner's install is two-zone, so this bites directly. Re-anchor the stored ratio (the thermal-learning domain in custom
+## R10-CONFIG-NOTICES [in-progress] lane=PS size=S iss=[2232] fix=[] after=[] pr=None carries=0
+  files: custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/setpoint_check.py
+  brief: ARCH2-s2 P1: a config-notices owner in custom_components/heatpump_optimizer/setpoint_check.py instead of coordinator fields written from several places (`dev/audit/rounds/round10/D7/arch2-s2/P1_config_notices_owned.patch` at fabaf4664). Verified low hygiene; the revert arm reads 0.  ARCHITECT NOTE (orchestrator.md section 5, bin
+## R10-PARAMS-OWNER [not-started] lane=AR size=XL iss=[2232, 2249] fix=[2232] after=['R10-ARCHSCORE-COVERAGE', 'R10-SERVICES-GUARD', 'R10-LIVESTATE', 'R10-NIGHT-FOLDS', 'R10-RATIO-ANCHOR'] pr=None carries=11
+  files: custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/dhw_learning.py,custom_components/heatpump_optimizer/legionella.py,custom_components/heatpump_optimizer/sysid.p
+  brief: ARCH2-s1: a single owner of the thermal parameters with copy-on-write (`dev/audit/rounds/round10/D7/arch2-s1/P1_thermal_params_single_owner.patch` at 2c30ada11). It fixes D7-s1-82: the set_thermal_parameters service exposes a torn, unclamped parameter set across its await (the catch-up judge rated it LOW: the solve copy is never
+## R10-ARCH-SHAPES [not-started] lane=AR size=L iss=[2236, 2238, 2239] fix=[2236, 2239] after=['R10-SENSOR-PAYLOAD', 'R10-FREQ-DEFROST', 'R10-LIVESTATE', 'R10-INPUT-STALENESS'] pr=None carries=8
+  files: custom_components/heatpump_optimizer/dhw_draws.py,custom_components/heatpump_optimizer/dhw_schedule.py,custom_components/heatpump_optimizer/pump_arbiter.py,custom_components/heatpump_optimizer/quiet_w
+  brief: Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. ARCH2-s3 patch 03 (a state power-kW reader in custom_components/heatpump_optimizer/inputs.py) at 1d1974df4 is its fix prototype. Then the duplicated-shape owners from ARCH-s2 at 01d9d0be
+## R10-LEARNER-ETA [in-progress] lane=LR size=M iss=[2260] fix=[] after=[] pr=None carries=2
+  files: custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/payload.py
+  brief: G-ID-4. The study found no honest ETA while a learner is settling: count ETAs are 13-37 days early. Add a payload field per learner with progress, phase and what it is waiting for (colder or sunnier weather), and a day count only for counting gates. The Health copy renders it in R10-UX-HEALTH. Harness `dev/audit/rounds/round10/s
+## R10-HEAT-METER [not-started] lane=LR size=XL iss=[2261] fix=[] after=['R10-LEARNER-ETA', 'R10-INPUT-STALENESS', 'R10-UX-SETUP', 'R10-RATIO-ANCHOR', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-THERMAL-POWER-OPTION'] pr=None carries=8
+  files: custom_components/heatpump_optimizer/const.py,custom_components/heatpump_optimizer/config_flow.py,custom_components/heatpump_optimizer/strings.json,custom_components/heatpump_optimizer/coordinator.py,
+  brief: Owner request (tvofi, 2026-10-15). Main has no delivered-heat energy input: the only heat-output path is `CONF_FLOW_METER_ENTITY` (`read_heat_output_kw` in custom_components/heatpump_optimizer/flow_meter.py), used only without a power and a frequency signal. Add an optional delivered-heat energy entity (total_increasing kWh); re
+## R10-COP-GATE [not-started] lane=LR size=M iss=[2262] fix=[] after=['R10-HEAT-METER', 'R10-SENSOR-PAYLOAD'] pr=None carries=4
+  files: custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/sensor.py
+  brief: From STUDY R10-IDENT Q2: no bin of the COP gate reaches 20 within 120 days, because 59 of 138 rows fall under the duty floor, and the sample definition assumes the draw follows the plan (owner slope 0.37), so COP is not observable without a heat meter. This is NOT a gate loosening: add an honest "COP not measurable here" state a
+## R10-UX-HEALTH [not-started] lane=UI size=L iss=[2253, 2263] fix=[] after=['R10-SCORES', 'R10-COP-GATE', 'R10-HEAT-METER'] pr=None carries=10
+  files: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js,custom_components/heatpump_optimizer/strings.json,custom_components/heatpump_optimizer/translations/en.json
+  brief: Owner-reported Health tab (tvofi, 2026-10-14): (1) mixed casing, the integration's role labels next to the user's raw entity friendly names; every row shows the translated role label, and a check fails any input row whose label does not come from custom_components/heatpump_optimizer/strings.json. (2) The list fills only the left
+## R10-CONFIGFLOW-PAGES [not-started] lane=AR size=L iss=[2238] fix=[2238] after=['R10-HEAT-METER'] pr=None carries=5
+  files: custom_components/heatpump_optimizer/config_flow.py
+  brief: Bug first: D7-s2-56 (the catch-up judge re-classed it a bug): a cleared entity slot re-renders as the stored entity on a rejected options form (9 of 9 slots; 0 patched; null 0). Then ARCH-s2 patch 04 (the suggested-optional helper) and patch 08 (the options page template) at 01d9d0be2, and ARCH2-s5 F1 (wizard selectors taken fro
+## R10-REPLAY-SCOPED [in-progress] lane=RP size=S iss=[2273] fix=[] after=['R10-REPLAY-LANE', 'R10-TICK-ORCH', 'R10-TRAIN-HOLD', 'R10-REF-PRIVACY'] pr=2692 carries=1
+  files: tests/replay.py,.github/workflows/tests.yml,tests/closures.json
+  brief: Owner (tvofi, 2026-10-15) on a per-PR timed replay: "Hard no, only when relevant." Run the timed replay lane on a pull request only when its diff reaches the replay cost files (`COST_FILES`, the optimizer, tests/replay.py), selected by the closure mechanism. Nightly stays the full run.  Forward-carried (finding-propagation.md): 
+## R10-ARCH-DOCS [not-started] lane=DOCS size=L iss=[2395] fix=[2395] after=['R10-RATIO-ANCHOR', 'R10-INPUT-STALENESS', 'R10-CONFIG-NOTICES', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-LEARNER-ETA', 'R10-HEAT-METER', 'R10-COP-GATE', 'R10-UX-HEALTH', 'R10-CONFIGFLOW-PAGES', 'R10-REPLAY-SCOPED', 'R10-POLICY-FIXER-MD', 'R10-POLICY-GATE-SCOPING', 'R10-RCA-HEADMOVED', 'R10-SAV-COMFORT', 'R10-MUTATION-ANCHOR', 'R10-MERGE-SUBJECT-HARDEN', 'R10-CEILING-PROBE', 'R10-DEMAND-OVERBOOK', 'R10-BUFFER-STORE', 'R10-COP-PARTLOAD', 'R10-UPDATE-PR-SIGNALS', 'R10-CARD-VOICE', 'R10-THERMAL-POWER-OPTION', 'R10-LEARNER-DEFAULT', 'R10-MUTANT-SKIP', 'R10-CI-LAYOUT-P2', 'R10-FLOW-BOARD', 'R10-FLOW-DESIGN-STAGES', 'R10-FLOW-JIDOKA', 'R10-FLOW-MQ-PROBE', 'R10-FLOW-POSTMERGE', 'R10-FLOW-RECORD-PITCH', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-WIP', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-BODY-ONLY', 'R10-FLY-OPENPR-ATOMIC', 'R10-FLY-ROW-HEAD-CARRY', 'R10-FLOW-AUDIT-PLAN', 'R10-FLY-RELAY-REVIEW-FF', 'R10-FLY-CAP-LINE', 'R10-FLY-CARRY-DISPOSITION', 'R10-FLY-ORPHANS-REWRITTEN', 'R10-FLY-CARRY-DOC-CONTEXT', 'R10-FLY-DEPGRAPH-STALE', 'R10-FLOW-TOOLKIT-MODEL', 'R10-FLY-STAMP-CHECK-NOTES', 'R10-FLY-MANDATE-REVOKE-GUARD', 'R10-RCA-FRICTION-RESIDUE', 'R10-TRAIN-OVERLAP-GRADE', 'R10-NIGHTLY-HB-RESPAWN', 'R10-FLY-PRUNE-REFS', 'R10-ORCH-LEDGER', 'R10-ORCH-DISPATCH-REG', 'R10-ORCH-BEATD', 'R10-ORCH-PLANPAGE', 'R10-ORCH-ROSTER-SCHEMA', 'R10-FLY-WORKTREE-GC', 'R10-FLY-DAEMONIZE-ARGV', 'R10-FLY-CIPREDICT-LAYOUT', 'R10-FLY-CLOUD-SETUP-TOOLCHAIN', 'R10-FLY-YIELD-GUARD', 'R10-FLY-ENVMATRIX-NOREMOTE', 'R10-STRUCTURE-ALIAS', 'R10-ORCH-REVIEW-PACKET', 'R10-POLICY-ROLE-PACK', 'R10-ARCH-DOCS-FIRST', 'R10-IMMERSION-LATCH', 'R10-DIAG-REDACT'] pr=None carries=7
+  files: docs/architecture.md,README.md
+  brief: R10-ARCH-DOCS is the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Its scope was changed by the owner (tvofi, 2026-10-22): the documentation and visualisation are now written early by R10-ARCH-DOCS-FIRST against the protected final shape at programme end. This stage verifies, adjusts 
+## R10-POLICY-FIXER-MD [in-progress] lane=RP size=S iss=[2378] fix=[2378] after=['R10-RCA-FRICTION', 'R10-BRIEFS-FOLD'] pr=None carries=12
+  files: dev/governance/roles/fixer.md,dev/governance/roles/fix-review.md
+  brief: # Fixer brief O10-policy-fixer-md: dispose recurring friction #2378 (finding sweep L20, F-POL, P16, P23, P38). POLICY: tvofi approves at merge (mandate 6175172275); canon is dev/governance/roles/fixer.md and fix-review.md (.claude/rules, .cursor/rules regenerate); files sit at zero headroom, so every added line is paid by cuttin
+## R10-POLICY-GATE-SCOPING [in-progress] lane=RP size=S iss=[2381] fix=[2381] after=['R10-TICK-DRIVERS'] pr=None carries=2
+  files: dev/governance/rules/gate-scoping.md
+  brief: # Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). POLICY: tvofi approves at merge. Issue #2381 [policy] recurring friction: .claude/rules/gate-scoping.md (3 PRs). Files: dev/governance/rules/gate-scoping.md (canon; .claude/rules and .cursor/rules regenerate via rules_sync), tests/p
+## R10-RCA-HEADMOVED [not-started] lane=RP size=S iss=[2389] fix=[] after=['R10-RCA-FRICTION'] pr=None carries=1
+  files: 
+  brief: ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). Issue #2389: recurring friction, head-moved rework (9 PRs against the 3-instance threshold). ORDER: after O10-rca-friction-2331-2353 (same friction family; read its output first). Contract: dev/governance/roles/root-cause.md + defect-root-cause.md. Reproduce from 
+## R10-SAV-COMFORT [in-progress] lane=SV size=M iss=[2492] fix=[] after=['R10-SAV-BASELINE'] pr=None carries=5
+  files: custom_components/heatpump_optimizer/optimizer.py,custom_components/heatpump_optimizer/ledger.py
+  brief: Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. (1) The month row's comfort-matched null: the flat-price null must separate comfort, COP timing and stored heat, not be driven to 0. (2) The summer_dhw_only start-bound limit: the start-of-horizon settlement is capped by the thermostat's space-h
+## R10-MUTATION-ANCHOR [in-progress] lane=IN size=M iss=[2493, 2660] fix=[] after=[] pr=None carries=2
+  files: tests/mutation_table.py,tests/entities.py
+  brief: Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. Seams: tests/mutation_table.py (the mutation instrument) and the R9-F10.13 block of tests/entities.py; the pins live under tests/mutation_ledger/killed_by. Deliverables: 
+## R10-MERGE-SUBJECT-HARDEN [in-progress] lane=IN size=S iss=[2494] fix=[] after=[] pr=2697 carries=3
+  files: tools/policy/agreement.mjs,tests/closure.py
+  brief: Two review findings on #2423 (R10-MERGE-SUBJECT) that were recorded, not fixed, in tools/policy/agreement.mjs. (1) A merge subject ending `(#N)` passes too easily (the title `(#N)` laxity the #2423 review named): measure which subjects the end-anchored rule accepts that the host's own `<title> (#N)` shape would not, then tighten
+## R10-CEILING-PROBE [not-started] lane=IN size=M iss=[2498] fix=[] after=['R10-SETPOINT-BOOST', 'R10-CI-LAYOUT', 'R10-NIGHT-FOLDS'] pr=None carries=1
+  files: custom_components/heatpump_optimizer/sysid.py,custom_components/heatpump_optimizer/draw_range.py
+  brief: Ordered by tvofi 2026-10-19: fold a deliberate ceiling-set-point probe into the cheap-night system-identification experiment (sysid.py, gated on mild outdoor temperature, cheap price, night window). Purpose: set-point-driven installs never command the ceiling, so the metered draw window is censored at the top and the plugin cann
+## R10-DEMAND-OVERBOOK [in-progress] lane=IN size=M iss=[2499] fix=[] after=['R10-SETPOINT-BOOST'] pr=None carries=0
+  files: custom_components/heatpump_optimizer/coordinator.py
+  brief: Found by R10-SETPOINT-BOOST's demand analysis (tvofi 2026-10-19: the planner fills the whole day with heating; fixes must work on every install, without a heat meter). The plan books about 38 kWh/day electric for space while the metered October average is about 8.6 kWh/day for space plus hot water, roughly 8x over-booked. The le
+## R10-BUFFER-STORE [queued] lane=IN size=M iss=[2500] fix=[] after=['R10-SETPOINT-BOOST'] pr=None carries=2
+  files: custom_components/heatpump_optimizer/optimizer.py
+  brief: Found by R10-SETPOINT-BOOST's census: with a 750 L manual-valve buffer configured, the planner publishes the same plans as with no buffer, and the tank stays at its start temperature, so the buffer is never used as a heat store for cheap windows. This affects the owner's install type. Root-cause on synthetic installs, then make 
+## R10-COP-PARTLOAD [queued] lane=IN size=M iss=[2501] fix=[] after=['R10-SETPOINT-BOOST'] pr=None carries=0
+  files: custom_components/heatpump_optimizer/optimizer.py
+  brief: Found by R10-SETPOINT-BOOST's demand analysis. The COP model keys only on outdoor temperature and the tank/weather-curve flow; it has no power (part-load) dependence and no burst term. So the planner cannot weigh tvofi's hypotheses (2026-10-19): power near the floor is suboptimal under price swings, and a short high-power burst 
+## R10-UPDATE-PR-SIGNALS [in-progress] lane=IN size=S iss=[2502] fix=[] after=[] pr=None carries=4
+  files: tools/audit/seat/update_pr.sh,tools/audit/seat/pr_args.sh,tools/audit/seat/cloud_relay.sh,tools/audit/seat/INSTRUMENTS.md
+  brief: Signal-safe update_pr.sh: a TERM, INT, HUP or SIGKILL of a running update must not free the branch lock while its push still runs. Split from #2469 round 4, whose SIGKILL arm failed 7/7 in the cloud container because PID 1 reaps orphans late and the holder counted the zombie. Every arm must be deterministic across containers: wa
+## R10-CARD-VOICE [not-started] lane=UI size=M iss=[2506] fix=[] after=['R10-DEEPLINK-HANDLERS'] pr=None carries=6
+  files: 
+  brief: The card's setup page, to the owner's chosen design. tvofi chose prototype 1, the type badge, from the five in probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40: a small type disc on each box's outer corner, the wood tank's disc a spring, and the coil pipe the one accent pipe. Read the prototype from the ref and
+## R10-THERMAL-POWER-OPTION [in-progress] lane=SW size=M iss=[2507] fix=[] after=[] pr=None carries=0
+  files: 
+  brief: Fold (e) of #1955, added by tvofi on 2026-10-04 and left unbuilt when the issue closed. #2006 (merged 2026-10-07) implemented (a)-(d) only: it projects sub-minimum planned levels to p_min, couples the heating flow set-point to the planned level, freezes the house-heat-loss learner without measured power, and refuses a duty-cycle
+## R10-LEARNER-DEFAULT [not-started] lane=LR size=S iss=[2508] fix=[] after=[] pr=None carries=1
+  files: 
+  brief: Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays a
+## R10-MUTANT-SKIP [in-progress] lane=IN size=M iss=[2509] fix=[] after=[] pr=None carries=0
+  files: 
+  brief: Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothing in round 10 names it (found by the 2026-10-20 slip screen). The option, verbatim: skipping a driver on a mutant line it never executes. In practice the mutation lane runs
+## R10-CI-LAYOUT-P2 [carries-open] lane=IN size=XL iss=[2495] fix=[2495] after=['R10-CI-LAYOUT-P1'] pr=2673 carries=27
+  files: .github/workflows/tests.yml,.github/workflows/governance.yml,.github/workflows/ci.yml
+  brief: Child group of R10-CI-LAYOUT (copied from R10-CI-LAYOUT's brief and issue #2495, tvofi/heatpump_optimizer): this group is PR 2 of the four-PR sequence PR 0, PR G, PR 1, PR 2, and nothing else; PR 1 must merge first (after: R10-CI-LAYOUT-P1). The other carries of R10-CI-LAYOUT stay on that group and are read there. The group's fi
+## R10-FLOW-BOARD [not-started] lane=IN size=S iss=[] fix=[] after=['R10-PLAN-ARTIFACT'] pr=None carries=6
+  files: tools/audit/merge_throughput.py,tools/audit/seat/state_docs.py,tools/audit/seat/INSTRUMENTS.md,.github/workflows/governance.yml
+  brief: Flow board (Lean study K1). Today nothing measures throughput against the owner's demand of one roster group merged per hour, so no flow change can show it worked. Extend tools/audit/merge_throughput.py with a flow subcommand rather than adding a file: read the first-parent log of origin/main, the review and verdict bus refs (to
+## R10-FLOW-DESIGN-STAGES [not-started] lane=IN size=M iss=[] fix=[] after=[] pr=None carries=9
+  files: tools/audit/seat/roster_edit.py,tools/audit/seat/bus.sh,tools/audit/seat/cloud_dispatch.py,tools/audit/seat/orchestrator_tick.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Mechanise the two design steps (owner ruling, 2026-10-21). (1) Roster stages design and design-review, accepted by roster_edit.py set-stage and shown by the tick board. (2) Bus refs design/<group-topic> for the design note and design-verdict/<group-topic> for the reviewer's verdict, written through bus.sh like review/<N> and ver
+## R10-FLOW-JIDOKA [in-progress] lane=IN size=S iss=[] fix=[] after=['R10-PREPR-CAP'] pr=None carries=14
+  files: tools/pr/prepr.sh,tools/policy/fixtures/policy-rot/prepr
+  brief: Error-proofing before handoff (Lean study K2). Of 133 blocked fix reviews in round 10, 25 were carry-missing: a finding with no destination, a fact tools/audit/carry_audit.py checks offline with its check subcommand and --body, and which pr-contract.yml already runs after the push. Add one prepr step that runs that same check on
+## R10-FLOW-MQ-PROBE [not-started] lane=IN size=M iss=[] fix=[] after=['R10-CI-LAYOUT-P2'] pr=None carries=3
+  files: .github/workflows/tests.yml,.github/workflows/pr-contract.yml
+  brief: Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: tests.yml refuses a queue commit with no second parent and pins its base to the queue base, and pr-contract.yml derives the pull request from the queue ref. A queue would test the merged result once per pitch while the reviewed head stays unchan
+## R10-FLOW-POSTMERGE [not-started] lane=IN size=S iss=[] fix=[] after=['R10-ROSTER-OPS'] pr=None carries=7
+  files: tools/audit/seat/merge_pr.sh,tools/audit/seat/merge_train.py,tools/audit/seat/INSTRUMENTS.md
+  brief: After-merge bookkeeping without an agent (Lean flow study, mechanisation). nudge.md step 12 has the orchestrator run four mechanical things after every merge: the worktree collector, one #201 comment through tools/pr/gh_comment.py with a byte-identical read-back, the roster stage, and the state docs. merge_pr.sh already runs too
+## R10-FLOW-RECORD-PITCH [not-started] lane=IN size=S iss=[] fix=[] after=['R10-CI-LAYOUT-P2', 'R10-FLOW-PULL', 'R10-FLOW-MQ-PROBE'] pr=None carries=6
+  files: .github/workflows/tests.yml,tools/audit/seat/record_row.py
+  brief: Records in the pitch (Lean study K6). In round 10, record pull requests were about half of every merge to main, and each one moves main under every open head. The record-autofix beat merges its own pull request whenever record_row.py --automerge-check passes and no young train-hold ref exists. Add a pitch bound to that automerge
+## R10-FLOW-ROSTER-FREEZE [not-started] lane=IN size=S iss=[] fix=[] after=['R10-ROSTER-OPS', 'R10-FLOW-RELAY-HOLD'] pr=None carries=6
+  files: tools/audit/seat/cloud_relay.sh,tools/audit/carry_audit.py,tools/audit/seat/INSTRUMENTS.md
+  brief: The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). Every roster_edit.py push lands on handoff/audit-r10-roster and the relay carries it into the open roster pull request, so a review of that pull request comes back head-moved or body-stale: #2559 lost five reviewer round
+## R10-FLOW-WIP [not-started] lane=IN size=S iss=[] fix=[] after=['R10-FLOW-PULL'] pr=None carries=6
+  files: tools/audit/seat/pr_cap.py,tools/audit/seat/orchestrator_tick.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Lane caps and the work the cap cannot see (Lean study K4). pr_cap.py's dispatch-gate counts roster groups whose resume stage is in-progress against HPO_WIP_CAP. It does not see an open pull request no roster group owns (a fly-in), nor a handoff no pull request carries (bus.sh orphans prints those). Add both to the count, and add
+## R10-FLOW-AUTOTRAIN [in-progress] lane=IN size=M iss=[] fix=[] after=['R10-FLOW-PULL', 'R10-TICK-RELAY-DECOUPLE'] pr=None carries=7
+  files: tools/audit/seat/merge_train.py,tools/audit/seat/train.sh,tools/audit/seat/tick_loop.sh,tools/audit/seat/INSTRUMENTS.md
+  brief: The merge pitch as a mechanism, not an agent's turn (Lean flow study, mechanisation). Today the orchestrator builds every train queue by hand: merge_train.py documents the queue schema in its docstring and nothing writes one, so a pitch happens only when an agent's turn assembles pull request numbers, verdict heads and comment i
+## R10-FLOW-BODY-ONLY [not-started] lane=IN size=S iss=[] fix=[] after=['R10-UPDATE-PR-SIGNALS', 'R10-FLOW-BODY-PATCH'] pr=None carries=9
+  files: tools/audit/seat/update_pr.sh,tools/audit/seat/cloud_relay.sh,tools/audit/seat/pr_args.sh,tools/audit/seat/INSTRUMENTS.md
+  brief: Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into the head unconditionally, in the step after it takes the handoff code head, and has no flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: observed 2026-10-21 on #2513, #2544, #2548, #2529 and #2549, 
+## R10-FLY-OPENPR-ATOMIC [not-started] lane=F size=S iss=[] fix=[] after=['R10-UPDATE-PR-SIGNALS'] pr=None carries=4
+  files: tools/audit/seat/open_pr.sh
+  brief: open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: re
+## R10-FLY-ROW-HEAD-CARRY [not-started] lane=F size=M iss=[] fix=[] after=['R10-CI-LAYOUT-P2', 'R10-FLY-OPENPR-ATOMIC', 'R10-FLOW-MQ-PROBE'] pr=None carries=1
+  files: .github/workflows/tests.yml,.github/workflows/codeql.yml,.github/workflows/hassfest.yml,.github/workflows/validate.yml
+  brief: adopt one arm only, as new fly-in R10-FLY-ROW-HEAD-CARRY (S/M, lane F, code-owned .github/workflows/*: cite mandate approval 6319294694), with after-edges R10-CI-LAYOUT-P2 and R10-FLY-OPENPR-ATOMIC. The arm: carry the previous head's completed Tests, CodeQL, Hassfest and Validate results to a head whose diff from that head is ex
+## R10-FLOW-AUDIT-PLAN [not-started] lane=IN size=M iss=[] fix=[] after=['R10-FLOW-ARCH-PLANNER', 'R10-FLOW-TOOLKIT-MEASURE'] pr=None carries=3
+  files: .claude/workflows/audit-verify.js,tools/audit/seat/INSTRUMENTS.md
+  brief: Mechanise P3 for round 11 (owner, 2026-10-21). (1) A workflow that runs the architect/planner seat and then the architecture-plan reviewer between audit-verify and the fix wave, taking audit-verify's class-grouped draft roster as input and producing the round's roster draft, the ADRs and the move plan on a plan ref. (2) A move l
+## R10-FLY-RELAY-REVIEW-FF [carries-open] lane=F size=S iss=[] fix=[] after=['R10-TICK-OWED-LEVEL', 'R10-FLOW-RELAY-HOLD', 'R10-FLOW-ANDON', 'R10-UPDATE-PR-SIGNALS'] pr=2664 carries=9
+  files: tools/audit/seat/cloud_relay.sh,tools/audit/seat/bus.sh,tools/audit/seat/tick_loop.sh
+  brief: When a review/<N> push is refused as non-fast-forward, cloud_relay.sh fetches the ref, re-applies the same verdict commit on the fresh tip and pushes; it never forces. If the fresh tip already carries the same verdict for the same head it skips; it logs either case. After any push it reports the remote tip (git ls-remote origin 
+## R10-FLY-CAP-LINE [not-started] lane=F size=S iss=[] fix=[] after=[] pr=None carries=1
+  files: tools/audit/seat/orchestrator_tick.py
+  brief: The tick's 'at the cap: do not dispatch' line names its exceptions: expedites (rule 16) and the next chain link (rule 15), instead of reading as 'hold lane dispatches' only.
+## R10-FLY-CARRY-DISPOSITION [not-started] lane=F size=S iss=[] fix=[] after=['R10-FLY-ORPHANS-REWRITTEN'] pr=None carries=7
+  files: tools/audit/carry_audit.py,tools/audit/seat/bus.sh
+  brief: Let the orchestrator add 'Carry: dismissed: <reason>' or 'Carry: <group>' under its own identity, keyed to the verdict's head SHA and read back, without a review. Touches carry_audit.py, so it is reviewed after #2571 (merged 94612a9b2). Evidence: the four markers-only re-reads (#2547, #2580, #2578, #2569) dismissed every item an
+## R10-FLY-ORPHANS-REWRITTEN [not-started] lane=F size=S iss=[] fix=[] after=['R10-TICK-OWED-LEVEL', 'R10-FLOW-RELAY-HOLD', 'R10-UPDATE-PR-SIGNALS'] pr=None carries=3
+  files: tools/audit/seat/bus.sh,tools/audit/seat/cloud_relay.sh
+  brief: bus.sh orphans treats a handoff whose patch is already on main (git apply --reverse --check passes on origin/main, forward apply fails) as landed-rewritten/superseded, not stranded. bus.sh content_superseded's M arm requires a byte-identical blob and misses a file that moved on. Evidence: r10-earlycutoff-coverage listed 121.8 h 
+## R10-FLY-CARRY-DOC-CONTEXT [not-started] lane=F size=S iss=[] fix=[] after=['R10-FLY-GH-READ-RETRY', 'R10-FLOW-MQ-PROBE'] pr=None carries=1
+  files: tools/pr/app_approve.sh
+  brief: P17: app_approve.sh carry condition (3): a context-only line difference introduced by main carries in *.md files, where only ' '-prefixed context lines may differ and their count must be unchanged; +/- lines byte-identical; code files strict. Fixture controls: md-context yes / py-context no / +line no. Evidence #2547 90bab078->7
+## R10-FLY-DEPGRAPH-STALE [in-progress] lane=F size=S iss=[] fix=[] after=[] pr=None carries=1
+  files: tests/requirements-typing.txt,tests/requirements-ci.txt
+  brief: Owner question 2026-10-21: 27 open Dependabot alerts (aiohttp x16, Pillow/pillow x9, uv x1, certifi x1; manifests tests/requirements-typing.txt and tests/requirements-ci.txt). origin/main already pins the patched versions: aiohttp 3.14.5 (first patched 3.14.4, bumped by #2487 on 2026-10-20), pillow 13.0.0, uv 0.13.4, certifi 202
+## R10-FLOW-TOOLKIT-MODEL [not-started] lane=IN size=M iss=[] fix=[] after=['R10-ORCH-PLANPAGE', 'R10-FLOW-TOOLKIT-MEASURE'] pr=None carries=7
+  files: tools/plan/replan.py,tools/audit/seat/roster_lib.py,tools/audit/seat/roster_edit.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Land the Lean flow study's projection model on main as part of the one plan model, not beside it (owner, 2026-10-21). Extend the plan model R10-ORCH-MACHINERY part (3) extracts (plan-model(), from R10-PLAN-ARTIFACT's code) with: (1) --project: an hourly simulation of the roster with lanes and caps, a lead per size ramping to a t
+## R10-ROUND-PLAYBOOK [not-started] lane=C size=M iss=[] fix=[] after=['R10-FLOW-ARCH-PLANNER', 'R10-FLOW-AUDIT-PLAN', 'R10-ORCH-LEDGER', 'R10-ORCH-DISPATCH-REG', 'R10-ORCH-BEATD', 'R10-ORCH-PLANPAGE', 'R10-HANDOVER-REFRESH', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-MAIN-GATE', 'R10-FLOW-DISPATCH', 'R10-CI-LAYOUT-P2', 'R10-FLY-RELAY-REVIEW-FF', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-BODY-ONLY', 'R10-ARCH-DOCS'] pr=None carries=1
+  files: dev/audit/README.md,CLAUDE.md
+  brief: Owner request (tvofi, 2026-10-21): an audit programme playbook that lets a fresh orchestrator run round 11 onwards from the tree alone, written from round 10's final shape at its completion. Deliver it as dev/audit/README.md (the file CLAUDE.md already indexes as how a round is run), not as a second document. The phase sequence 
+## R10-FLY-STAMP-CHECK-NOTES [not-started] lane=F size=S iss=[] fix=[] after=[] pr=None carries=0
+  files: tools/release/stamp.py
+  brief: stamp.py --check-notes FILE [--bump patch|minor|major] derives the last v* tag and the next version as main() does, runs rule 4 alone (rule4_problem over parse_window of the last tag..origin/main; no rule 1, no rule 2, no writes), prints `rule 4: OK` or the problem, and exits 0 or 2. main() runs rule 4 only after rule 1 (HEAD eq
+## R10-FLY-MANDATE-REVOKE-GUARD [not-started] lane=F size=S iss=[] fix=[] after=[] pr=None carries=0
+  files: tools/pr/gh_comment.py
+  brief: tools/pr/gh_comment.py imports its revoke pattern and MANDATE_GRAMMAR from tools/policy/budget_raise_gate.py (one definition, not a copy) and refuses an owner-account post to tvofi/heatpump_optimizer#201 whose body matches `revok` and names the id of a #201 comment carrying the MANDATE grammar, unless `--withdraw-mandate <id>` n
+## R10-RCA-FRICTION-RESIDUE [queued] lane=C size=S iss=[2428, 2429, 2436, 2437, 2438, 2593, 2597] fix=[] after=[] pr=None carries=2
+  files: dev/audit/rca/harness-friction/blocked_rounds.tsv
+  brief: Root-cause record for the five recurring-friction keys that #2561's record (R10-RCA-HARNESS-FRICTION) left unmeasured: carry-missing #2428 (12/15), other #2436 (3/3; literal `other:` verdicts #2294, #2404, #2406), root-cause-unanswered #2437 (7 blocks, 4 checks, none on 3 or more PRs), and the PR-body friction rule ids ci-autofi
+## R10-TRAIN-OVERLAP-GRADE [queued] lane=F size=M iss=[] fix=[] after=[] pr=None carries=6
+  files: tools/audit/seat/merge_train.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a
+## R10-NIGHTLY-HB-RESPAWN [queued] lane=F size=S iss=[] fix=[] after=['R10-NIGHTLY-PYSPY-RETRY'] pr=None carries=0
+  files: tests/nightly_ha.py
+  brief: Owner of the residual left by R10-NIGHTLY-PYSPY-RETRY (#2605; verdict review/2605 f00094d17, finding 2). Real Home Assistant's py-spy hang is per process, not per sample. A held spin hung 3 of 3 tries, and a fresh-spin retry rescued 0 of 2 (F7). So the heartbeat lane's `stable` false-red rate stays at about 6.7 % per dev/audit/r
+## R10-FLY-PRUNE-REFS [not-started] lane=IN size=S iss=[] fix=[] after=[] pr=None carries=5
+  files: tools/audit/seat/prune_refs.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Fly-in from the s4 branch-pruning seat (owner request, tvofi 2026-10-22): two defects in tools/audit/seat/prune_refs.py, which no roster group owned. Fix both in one PR, with the fixtures and controls in the carries; self-test through tests/throwaway_git.py, never a hand-built git init. Spare the API.
+## R10-ORCH-LEDGER [carries-open] lane=IN size=L iss=[2505] fix=[] after=['R10-ROSTER-OPS', 'R10-CI-LAYOUT', 'R10-TICK-OWED-LEVEL', 'R10-FLOW-MAIN-GATE', 'R10-CI-LAYOUT-P1'] pr=2671 carries=8
+  files: tools/audit/seat/cloud_relay.sh,tools/audit/seat/orchestrator_tick.py
+  brief: Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref
+## R10-ORCH-DISPATCH-REG [not-started] lane=IN size=S iss=[2505] fix=[] after=['R10-ORCH-LEDGER'] pr=None carries=6
+  files: tools/audit/seat/bus.sh
+  brief: Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref
+## R10-ORCH-BEATD [not-started] lane=IN size=L iss=[2505] fix=[] after=['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD', 'R10-ORCH-REVIEW-PACKET'] pr=None carries=18
+  files: tools/audit/seat/daemonize.py,tools/audit/seat/tick_loop.sh
+  brief: Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref
+## R10-ORCH-PLANPAGE [not-started] lane=IN size=M iss=[2505] fix=[] after=['R10-ORCH-BEATD'] pr=None carries=5
+  files: tools/audit/seat/plan_page.py,tools/audit/seat/state_docs.py
+  brief: Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref
+## R10-ORCH-ROSTER-SCHEMA [not-started] lane=IN size=M iss=[2505] fix=[] after=['R10-ROSTER-OPS', 'R10-CI-LAYOUT', 'R10-TICK-OWED-LEVEL', 'R10-FLOW-MAIN-GATE', 'R10-CI-LAYOUT-P1'] pr=None carries=7
+  files: tools/audit/seat/roster_lib.py,tools/audit/seat/roster_sync.py,tools/audit/seat/roster_edit.py
+  brief: Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref
+## R10-FLY-WORKTREE-GC [not-started] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=1
+  files: tools/audit/worktree_gc.sh
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. worktree_gc.sh must leave alone a worktree holding an unpushed commit, as its header pr
+## R10-FLY-DAEMONIZE-ARGV [not-started] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=1
+  files: tools/audit/seat/daemonize.py
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. daemonize.py runs its self-test when --self-test appears anywhere in argv; restrict it 
+## R10-FLY-CIPREDICT-LAYOUT [in-progress] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=4
+  files: tools/pr/ci_predict.py
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. ci_predict.py must run the layout guard (the carry has the control). Follow dev/governa
+## R10-FLY-CLOUD-SETUP-TOOLCHAIN [in-progress] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=6
+  files: tools/audit/seat/cloud-setup.sh
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The cloud seat's non-login shell lacks the toolchain the payload says is on PATH; fix t
+## R10-FLY-YIELD-GUARD [in-progress] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=3
+  files: dev/audit/rounds/round10/D13/yield-probe.md
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The yield-probe guardrail (threshold, extended class list, seat-family arm, planted-def
+## R10-FLY-ENVMATRIX-NOREMOTE [in-progress] lane=IN size=XS iss=[2505] fix=[] after=[] pr=None carries=1
+  files: .github/workflows/governance.yml
+  brief: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The env-matrix no-remote arm went red in CI and held locally; reproduce it in CI's shap
+## R10-STRUCTURE-ALIAS [in-progress] lane=FLY size=S iss=[] fix=[] after=[] pr=None carries=2
+  files: tests/structure.py,tests/structure_budgets.json
+  brief: seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) and a bare getter that returns a tuple of state reads pays (rule 14, planted as `_cop_state()`, -2). Count distinct (seam, attribute) pairs reached, including through a calle
+## R10-ORCH-REVIEW-PACKET [not-started] lane=IN size=M iss=[] fix=[] after=['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD'] pr=None carries=3
+  files: tools/audit/seat/bus.sh,tools/audit/seat/review_packet.py,dev/governance/roles/fix-review.md,tools/audit/seat/INSTRUMENTS.md
+  brief: Reviewer reads a script-built review packet (owner ruling tvofi 2026-10-24, card 8). A fix reviewer spends much of its run gathering the same facts with gh reads, file reads, gate output and waits. Change: bus.sh dispatch renders, at the frozen head, a packet file (a new module beside bus.sh) holding: the three-dot diff against 
+## R10-POLICY-ROLE-PACK [not-started] lane=IN size=M iss=[] fix=[] after=['R10-POLICY-FIXER-MD', 'R10-FLOW-DESIGN-STAGES'] pr=None carries=4
+  files: .claude/hooks/session-start.sh,tools/policy/role_pack.py,tools/audit/seat/INSTRUMENTS.md
+  brief: Per-role policy pack from the SessionStart hook (owner ruling tvofi 2026-10-24, recommendation (b) of the token pre-study). Today every seat opens by re-reading CLAUDE.md, its role contract and tools/audit/seat/INSTRUMENTS.md with tool calls, which re-sends the same text in each seat's context. Change: a new module under tools/p
+## R10-CLOSEOUT-CLEANUP [not-started] lane=C size=M iss=[] fix=[] after=['R10-FLY-PRUNE-REFS', 'R10-FLY-WORKTREE-GC', 'R10-ARCH-DOCS', 'R10-ROUND-PLAYBOOK'] pr=None carries=0
+  files: tools/audit/seat/prune_refs.py,tools/audit/worktree_gc.sh,tools/audit/seat/INSTRUMENTS.md
+  brief: Programme-closeout work, and it runs LAST: after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, after the roster and the state docs have moved into main, and before the closure stamp. Owner request (tvofi, 2026-10-24): the programme must contain a group that cleans up after itself and drives the open branches down to the owne
+## R10-IMMERSION-LATCH [queued] lane=IN size=S iss=[] fix=[] after=[] pr=None carries=0
+  files: custom_components/heatpump_optimizer/coordinator.py
+  brief: Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch
+## R10-DIAG-REDACT [not-started] lane=RP size=S iss=[] fix=[] after=[] pr=None carries=1
+  files: custom_components/heatpump_optimizer/diagnostics.py
+  brief: D15 production triage (2026-10-24) found that the diagnostics bundle exposes owner data that should be redacted. The full finding is the first carry. R10-DIAG-REPLAY, the group that held it, is done, so this S group owns the redaction. Controls: a test that fails on the unredacted field, and a null control that keeps every non-s

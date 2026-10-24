@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_inlet_reference BOOLOP 0486e863",
+  "killed_by": "tests/features.py",
+  "old": "        if cached is not None and cached[0] == key:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: BOOLOP (`if cached is not None or cached[0] == key:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

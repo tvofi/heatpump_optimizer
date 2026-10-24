@@ -1,0 +1,8 @@
+SEAM C config_flow.py:1684 <module> FLAG
+SEAM C config_flow.py:1731 <module> FLAG
+SEAM C config_flow.py:1734 <module> FLAG
+SEAM C coordinator.py:10410 _narrative_view FLAG
+SEAM T coordinator.py:7018 _command_valve_target FLAG
+SEAM T coordinator.py:7025 _command_valve_target FLAG
+SEAM T pump_arbiter.py:561 _write FLAG
+RESULT flagged=7 seams=12

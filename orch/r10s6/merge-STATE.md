@@ -1,0 +1,7 @@
+# merge seat window 3 handoff (written 2026-10-24 ~14:05Z)
+Queue: merge-queue.txt has 10 lines; last handled = 13:51:03Z (#2696 + record #2713). No later line.
+Live train: none (s11 TRAIN_RC=0). Window 3 merges: #2703 9586fce08, #2691 36db48e72, #2705 bf9f8aa16 (record, CI automerge), #2696 e97f5749b. All read back on GitHub, closingIssues empty. state_docs pushed after each.
+Invocation shape: queue json in train/queueN.json ('[]' = bot sweep only), cd /Users/timmalmstrom/hpo-seats/r10s6/orch-wt, PATH=$PWD/tools/audit/seat/shims:$PATH, nohup tools/audit/seat/train.sh --queue ... --repo tvofi/heatpump_optimizer --state-dir train/sN --mandate 6329234399 --overlap --skip-bad --bot-prs --pre-flight --approval-carry --free-holders > train/sN.log 2>&1 &. Next free: s12, queue10.json. A draft PR is marked ready by the train itself.
+OWED: #2713 (record PR, head f4210a5e) was OPEN/BLOCKED, gate pending at write time (fresh CI on new main, runs queued). Record PRs automerge by CI behind record_row.py's guard (as #2705 did); if still open when gate is green, run a bot sweep (empty queue + --bot-prs) and read back. No set-stage (record PR).
+Watchers: queue watcher bomt0b3cg (stop on handoff). #2678 Dependabot still OPEN/BLOCKED, not acted on.
+Notes: #2691 title names R10-HANDOFF-PREPR-BOUNCE, #2696 'R10 rca ci ratchet run name': no set-stage queued; main told for #2691. Duplicate-monitor trap: stop old monitors before re-arming.

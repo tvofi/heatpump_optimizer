@@ -1,0 +1,327 @@
+===== daemonize pid=54912 2026-10-24T08:14:41Z argv: python3 -u /Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py beat --apply --push --checkout /Users/timmalmstrom/hpo-seats/r10s6/orch-wt --mirror /Users/timmalmstrom/hpo-orch/state --watch-ref main --tip-file /Users/timmalmstrom/hpo-orch/r10s5/state-beat.tip
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 48366 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3250 bytes
+pushed handoff/audit-r10-plan at 68835ccc3f296aa6f7b687dda3f76fa3be1f5939
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 2f3b013df74a unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 48366 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3386 bytes
+pushed handoff/audit-r10-plan at ef5a85ba4519dc9e199d35ce7f6333975fcf93db
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 48366 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3386 bytes
+already current: handoff/audit-r10-plan at ef5a85ba4519 carries these bytes; nothing to commit or push
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 50af6174f53c and origin/handoff/audit-r10-roster at 0b19947d0ebb unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: R10-REPLAY-SCOPED: record PR #2692 for stage in-progress
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 0590aac612cfede2b5bbf409be098edd09dbe603
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 48366 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3427 bytes
+pushed handoff/audit-r10-plan at 5e3a4602ccb93aa80f86eaa4c943cc715b027aff
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49040 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3427 bytes
+pushed handoff/audit-r10-plan at 61d74a5f9f1a56d0aaf3d90b75c49457b318a71d
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7030 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49129 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3427 bytes
+pushed handoff/audit-r10-plan at b4326cd839b54f5f7b87201a07cffedc760a4d09
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 6978 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49164 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3313 bytes
+pushed handoff/audit-r10-plan at f14cc234abdad9e2c34459b0e807806e07835f38
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 6978 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49164 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3357 bytes
+pushed handoff/audit-r10-plan at a4bf5e6d23e55e6f98e14de55e95a603843c3a4d
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3362 bytes
+pushed handoff/audit-r10-plan at 9cecbd46eb0605d257fecc75b7da56d89eecd03a
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3362 bytes
+already current: handoff/audit-r10-plan at 9cecbd46eb06 carries these bytes; nothing to commit or push
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 0c36407610e3 and origin/handoff/audit-r10-roster at 7cad554c77cd unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3362 bytes
+pushed handoff/audit-r10-plan at f04debe2b9c33796af7e243ff5504897229d4e26
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3416 bytes
+pushed handoff/audit-r10-plan at cb69ffe4afcc9931f7ef2a600a02ea96f3f3242b
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: R10-MERGE-SUBJECT-HARDEN: record PR #2697 for stage in-progress
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 0752382012732d92b0faa0fbad1da3b5acca3898
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3464 bytes
+pushed handoff/audit-r10-plan at b1d8fbfa482ad0d47c0dbb3f39121fb00f9bdb7e
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3464 bytes
+already current: handoff/audit-r10-plan at b1d8fbfa482a carries these bytes; nothing to commit or push
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: R10-RATIO-ANCHOR: record PR #2698 for stage in-progress
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 8888e1f321f2c4d795bb564733772c4f5727520b
+beat: fetched origin/handoff/audit-r10-roster
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 7003 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 49154 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 3504 bytes
+already current: handoff/audit-r10-plan at 03bcf205d17c carries these bytes; nothing to commit or push
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> /Users/timmalmstrom/hpo-orch/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> /Users/timmalmstrom/hpo-orch/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> /Users/timmalmstrom/hpo-orch/state/RESUME-CURRENT.md
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 145bfe197b9e and origin/handoff/audit-r10-roster at 8888e1f321f2 unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 145bfe197b9e and origin/handoff/audit-r10-roster at 8888e1f321f2 unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+roster_sync: SKIP R10-CI-LAYOUT-P2: stage carries-open is a human disposition (PR #2673 MERGED); left alone
+roster_sync: SKIP R10-FLY-RELAY-REVIEW-FF: stage carries-open is a human disposition (PR #2664 MERGED); left alone
+roster_sync: SKIP R10-ORCH-LEDGER: stage carries-open is a human disposition (PR #2671 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r10-roster; nothing written
+beat: main at 145bfe197b9e and origin/handoff/audit-r10-roster at 8888e1f321f2 unchanged; nothing written
+roster_sync: pull requests: 1000 read from tvofi/heatpump_optimizer (--limit 1000); WINDOW FULL: older pull requests are not measured, so a branch whose pull request predates it makes no change
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py", line 1072, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py", line 463, in main
+    return beat(parser(beat_mode=True).parse_args(argv[1:]))
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py", line 385, in beat
+    rc, tip = beat_pass(a, recorded)
+              ~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py", line 325, in beat_pass
+    rc = sync_pass(a)
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/state_docs.py", line 303, in sync_pass
+    return roster_sync.main(argv)
+           ~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/roster_sync.py", line 567, in main
+    return sync(a)
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/roster_sync.py", line 442, in sync
+    roster_edit.fetch_origin(a.checkout)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/roster_edit.py", line 486, in fetch_origin
+    run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         "+refs/heads/*:refs/remotes/origin/*"])
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/tools/audit/seat/roster_edit.py", line 147, in run
+    raise Refuse(f"{' '.join(cmd)} (in {cwd or '.'}) failed: "
+                 f"{(r.stderr or r.stdout).strip()[:400]}")
+roster_edit.Refuse: git -C /Users/timmalmstrom/hpo-seats/r10s6/orch-wt fetch -q origin +refs/heads/*:refs/remotes/origin/* (in .) failed: error: cannot lock ref 'refs/remotes/origin/train-hold': is at 36d4558aed53de18cbefc515224fa31e55859d5b but expected 9a4c17eefac79ee0642310369af867e1bef05844
