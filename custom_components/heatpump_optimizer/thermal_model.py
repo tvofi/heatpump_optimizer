@@ -2092,7 +2092,7 @@ def reanchor_heat_loss(
     if a and not scale_bounds[0] <= new_scale <= scale_bounds[1]:
         again = reanchor_heat_loss(then, now, scale, ratio, (0.0, b), **bounds)
         return again[0], again[1], True, again[3]
-    if l_now <= 0 or new_scale <= 0:
+    if l_now <= 0:
         return new_scale, ratio, False, False
     new_ratio = (1.0 - b) + b * lower / (l_now * new_scale)
     if b and not ratio_bounds[0] <= new_ratio <= ratio_bounds[1]:
