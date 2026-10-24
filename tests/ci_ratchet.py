@@ -108,12 +108,19 @@ LANES = ("closures", "coverage")
 # The list is read per lane by name, never repo-wide: from d5dc3e26 the
 # unfiltered listing timed out server-side (~10 s, 0 bytes, "unexpected end
 # of JSON input") on every attempt of every push run (CI job 120763639214),
-# while the name-filtered listing answered in under a second.
+# while the name-filtered listing answered in under a second. The window is
+# therefore what tests.yml's gather step has always said it is -- the newest
+# copy per lane per run of each lane's newest WINDOW_PER_LANE runs that are not
+# this one -- rather than whatever ci-metrics artifacts the newest 100 of ANY
+# name happened to hold. A lane listing that carries another name means the
+# server ignored the filter; that refuses like any other failed fetch.
 ARTIFACTS_URL = "repos/{repo}/actions/artifacts?name=ci-metrics-{lane}&per_page={n}"
 WINDOW_LIMIT = 45          # the list the step has always downloaded from
 WINDOW_LANES = ("fast", *LANES)
-# Per lane: the newest WINDOW_LIMIT / lanes runs, plus this run's own copy.
-WINDOW_PER_LANE = WINDOW_LIMIT // len(WINDOW_LANES) + 1
+WINDOW_PER_LANE = WINDOW_LIMIT // len(WINDOW_LANES)    # runs kept per lane
+# The listing page per lane: twice the runs kept, so this run's own copy and a
+# re-run's second copy of one (run, lane) never shorten the window.
+WINDOW_FETCH_PER_LANE = 2 * WINDOW_PER_LANE
 FETCH_ATTEMPTS = 4         # the list call's attempts, in total
 FETCH_DELAY = 2.0          # seconds before the second attempt; doubles
 EXPIRED_HTTP = ("404", "410")
@@ -170,9 +177,27 @@ def _listing(body, run_id) -> list:
     return data["artifacts"]
 
 
-def window_entries(payloads, run_id, limit: int = WINDOW_LIMIT) -> list[dict]:
+def _lane_listing(body, run_id, lane: str) -> list:
+    """One lane's name-filtered listing, refused if it carries another name:
+    the server ignoring `name=` would hand back the newest artifacts of every
+    name, a short window that would grade as if whole."""
+    want = f"ci-metrics-{lane}"
+    artifacts = _listing(body, run_id)
+    stray = sorted({str(a.get("name")) for a in artifacts
+                    if isinstance(a, dict) and a.get("name") != want})
+    if stray:
+        raise _refusal(f"the {want} artifacts fetch carried other names "
+                       f"({', '.join(stray[:5])}); the name filter was not "
+                       "applied, refusing to read that as the lane's window")
+    return artifacts
+
+
+def window_entries(payloads, run_id, limit: int = WINDOW_LIMIT,
+                   per_name: int | None = None) -> list[dict]:
     """The recent ci-metrics window from one artifacts-list response, or from
-    several (one per lane); any one that is not a whole listing refuses."""
+    several (one per lane); any one that is not a whole listing refuses.
+    `per_name` keeps each artifact name's newest that many runs, so a cut
+    never drops one lane's newest runs to keep another's oldest."""
     if payloads is None or isinstance(payloads, str):
         payloads = [payloads]
     artifacts = [a for body in payloads for a in _listing(body, run_id)]
@@ -203,6 +228,15 @@ def window_entries(payloads, run_id, limit: int = WINDOW_LIMIT) -> list[dict]:
             continue
         seen.add(key)
         unique.append(row)
+    if per_name is not None:
+        # `unique` is newest first here, so each name keeps its newest runs.
+        kept: dict[str, int] = {}
+        capped = []
+        for row in unique:
+            if kept.get(row["name"], 0) < per_name:
+                kept[row["name"]] = kept.get(row["name"], 0) + 1
+                capped.append(row)
+        unique = capped
     # jq's unique_by sorts by its key before keeping the first of each group,
     # so the list the step received was ordered by (run, name) ascending; the
     # --limit cut below is taken in that order.
@@ -224,7 +258,8 @@ def fetch_window(repo, run_id, *, runner=None, sleep=None,
     wait = sleep or time.sleep
     bodies = []
     for lane in WINDOW_LANES:
-        url = ARTIFACTS_URL.format(repo=repo, lane=lane, n=WINDOW_PER_LANE)
+        url = ARTIFACTS_URL.format(repo=repo, lane=lane,
+                                   n=WINDOW_FETCH_PER_LANE)
         failure = "no attempt ran"
         for attempt in range(1, attempts + 1):
             try:
@@ -241,7 +276,7 @@ def fetch_window(repo, run_id, *, runner=None, sleep=None,
                     failure = "gh exited 0 and returned 0 bytes"
                 else:
                     try:
-                        _listing(body, run_id)
+                        _lane_listing(body, run_id, lane)
                         bodies.append(body)
                         break
                     except SystemExit as exc:
@@ -255,7 +290,7 @@ def fetch_window(repo, run_id, *, runner=None, sleep=None,
                            f"{attempts} attempt(s): {failure}. This is a "
                            "refusal, not an empty window: the recent-window "
                            "metrics are unknown, so the ratchet cannot grade")
-    return window_entries(bodies, run_id)
+    return window_entries(bodies, run_id, per_name=WINDOW_PER_LANE)
 
 
 def download_artifacts(entries, out_dir, repo, *, runner=None) -> list[dict]:
@@ -415,7 +450,15 @@ def script_runs(run: list[dict]) -> int:
 # its last `tests / *` job's completion, so a unit or gate finishing later
 # moves nothing; a pre-umbrella Tests run counts as it always did, so the
 # window stays continuous across the cut-over and an old run reads the same.
+#
+# A run's workflow is its `.path`, never its `.name`: the API's `.name` is the
+# run's display title, and ci.yml's `run-name:` makes that `CI code pr=- base=-
+# sha=<sha>`. Keyed on `.name == "CI"`, every umbrella run read as another
+# workflow's; once the newest PUSH_WINDOW push runs were all umbrella runs
+# (from d5dc3e26) the window held no measurable run and the grade refused on
+# every push (CI job 120791448344).
 PUSH_RUNS = ("ci.yml", "tests.yml")
+PUSH_RUN_KIND = {"ci.yml": "CI", "tests.yml": "Tests"}
 PUSH_RUNS_URL = "repos/{repo}/actions/workflows/{wf}/runs?event=push&branch=main&per_page={n}"
 JOBS_URL = "repos/{repo}/actions/runs/{run}/jobs?per_page=100"
 PUSH_WINDOW = 8
@@ -426,14 +469,23 @@ def _at(stamp: str) -> datetime:
     return datetime.fromisoformat(stamp.replace("Z", "+00:00"))
 
 
+def run_kind(r: dict) -> "str | None":
+    """'CI' for an umbrella run, 'Tests' for a pre-umbrella one, else None:
+    read from the run's workflow file (`.path`, which a ref suffix may
+    follow), the one field `run-name:` does not rewrite."""
+    path = str(r.get("path") or "").split("@")[0]
+    return PUSH_RUN_KIND.get(path.rsplit("/", 1)[-1]) if path else None
+
+
 def run_minutes(r: dict) -> "float | None":
     """One completed push run's tests wall in minutes; None for a run that
     is neither the umbrella's nor a pre-umbrella Tests run, or not completed.
     A CI run without its jobs, or with no completed `tests / *` job, refuses:
     its wall is unknown, never its run's."""
-    if r.get("status") != "completed" or r.get("name") not in ("CI", "Tests"):
+    kind = run_kind(r)
+    if r.get("status") != "completed" or kind is None:
         return None
-    if r["name"] == "Tests":
+    if kind == "Tests":
         end = _at(r["updated_at"])
     else:
         jobs = r.get("jobs")
@@ -469,11 +521,11 @@ def gather_runs(out_file, *, repo=None, runner=None) -> int:
         runs += json.loads(api(PUSH_RUNS_URL.format(repo=repo, wf=wf, n=PUSH_WINDOW))).get("workflow_runs") or []
     runs = sorted(runs, key=lambda r: r.get("created_at") or "", reverse=True)[:PUSH_WINDOW]
     for r in runs:
-        if r.get("name") == "CI":
+        if run_kind(r) == "CI":
             r["jobs"] = [json.loads(x) for x in api(
                 "--paginate", "--jq", ".jobs[]", JOBS_URL.format(repo=repo, run=r["id"])).splitlines() if x.strip()]
     Path(out_file).write_text(json.dumps({"workflow_runs": runs}))
-    print(f"push runs: {len(runs)} ({sum(r.get('name') == 'CI' for r in runs)} CI)")
+    print(f"push runs: {len(runs)} ({sum(run_kind(r) == 'CI' for r in runs)} CI)")
     return len(runs)
 
 
@@ -625,12 +677,23 @@ def self_test() -> int:
        [e["id"] for e in cut or []] == [7, 3], msg or f"got {cut}")
 
     # --- the retry ----------------------------------------------------------
+    def served(body, url):
+        """What the server answers a name-filtered list call from `body`:
+        only the artifacts carrying the URL's name."""
+        if "name=" not in url:
+            return body
+        want = url.split("name=")[1].split("&")[0]
+        return json.dumps({"artifacts": [a for a in json.loads(body)["artifacts"]
+                                         if a.get("name") == want]})
+
     def stub(sequence):
         calls, slept = [], []
 
         def run(argv, **_kw):
             calls.append(argv)
             rc, out, err = sequence[min(len(calls), len(sequence)) - 1]
+            if out:
+                out = served(out, argv[-1])
             return subprocess.CompletedProcess(argv, rc, out, err)
         return run, calls, slept
 
@@ -683,6 +746,45 @@ def self_test() -> int:
     ck("one lane's spent attempts refuse naming that lane (not a two-lane window)",
        "ci-metrics-closures" in msg and "after 2 attempt(s)" in msg, msg or "no refusal")
 
+    # A server that ignores `name=` hands every lane the same mixed listing:
+    # read as three windows that would triple-count, and as a short one. The
+    # stub above (`stub`, filtering by name) is this arm's null control.
+    runner, calls, slept = stub([(0, good, "")])
+    unfiltered = lambda argv, **kw: subprocess.CompletedProcess(argv, 0, good, "")
+    msg = refused(lambda: fetch_window("o/r", "77", runner=unfiltered,
+                                       sleep=lambda _s: None, attempts=1))
+    ck("a lane listing carrying another name refuses (the filter was ignored)",
+       "ci-metrics-fast artifacts fetch carried other names" in msg
+       and "ci-metrics-closures" in msg, msg or "no refusal")
+    entries, msg = safe(lambda: fetch_window("o/r", "77", runner=runner,
+                                             sleep=slept.append))
+    ck("and the same listing, name-filtered, is a window (the null control)",
+       [e["id"] for e in entries or []] == [7, 3, 1], msg or f"got {entries}")
+    triple, msg = safe(lambda: window_entries([good, good, good], "77"))
+    ck("one listing read three times still counts each (run, name) once",
+       [e["id"] for e in triple or []] == [7, 3, 1], msg or f"got {triple}")
+
+    # The cut keeps each lane's NEWEST runs. Every lane lists one more run
+    # than it keeps and this run's copy is absent (an upload not yet listed):
+    # the union cut in (run, name) order alone would keep run 1 and drop each
+    # lane's newest run.
+    many = json.dumps({"artifacts": [
+        _art(1000 * k + r, f"ci-metrics-{lane}", r,
+             f"2026-10-20T{r:02d}:00:00Z")
+        for k, lane in enumerate(WINDOW_LANES)
+        for r in range(1, WINDOW_PER_LANE + 2)]})
+    runner, calls, slept = stub([(0, many, "")])
+    entries, msg = safe(lambda: fetch_window("o/r", "77", runner=runner,
+                                             sleep=slept.append))
+    by_lane = {lane: sorted(e["run"] for e in entries or []
+                            if e["name"] == f"ci-metrics-{lane}")
+               for lane in WINDOW_LANES}
+    ck("each lane keeps its newest WINDOW_PER_LANE runs, not the union's oldest",
+       all(runs == list(range(2, WINDOW_PER_LANE + 2))
+           for runs in by_lane.values())
+       and calls and f"per_page={WINDOW_FETCH_PER_LANE}" in calls[0][-1],
+       msg or f"runs per lane {by_lane}")
+
     # --- the expired-artifact download --------------------------------------
     zips = {11: _zip_of("ci-metrics-fast.tsv", "fast\tmode\tfull\t0\t0\tpush\t1\n"),
             12: _zip_of("ci-metrics-closures.tsv", "closures\ta.py\tfull\t0\t1\tpush\t1\n"),
@@ -721,9 +823,13 @@ def self_test() -> int:
               {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z"},
               {"name": "gate", "completed_at": other_end},
               {"name": "codeql / Analyze (python)", "completed_at": other_end}]
-        return {"id": rid, "name": "CI", "status": "completed", "created_at": created,
+        # `.name` as the API returns it under ci.yml's run-name, not "CI".
+        return {"id": rid, "name": f"CI code pr=- base=- sha={rid:040d}",
+                "path": ".github/workflows/ci.yml", "status": "completed",
+                "created_at": created,
                 "updated_at": other_end, **({"jobs": js} if jobs else {})}
-    tests_run = {"id": 1, "name": "Tests", "status": "completed",
+    tests_run = {"id": 1, "name": "Tests", "path": ".github/workflows/tests.yml",
+                 "status": "completed",
                  "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z"}
     m, msg = safe(lambda: run_minutes(ci_run(2, "2026-10-22T00:00:00Z", "2026-10-22T00:40:00Z")))
     ck("a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)",
@@ -731,7 +837,8 @@ def self_test() -> int:
     ck("a pre-umbrella Tests push run is measured as before: created to updated (the null: 50)",
        run_minutes(tests_run) == 50.0)
     ck("another workflow's run, or one not completed, is not in the window",
-       run_minutes({**tests_run, "name": "Card"}) is None
+       run_minutes({**tests_run, "name": "Card", "path": ".github/workflows/card.yml"}) is None
+       and run_minutes({**tests_run, "path": None}) is None
        and run_minutes({**tests_run, "status": "in_progress"}) is None)
     for label, r in (("carries no jobs", ci_run(3, "2026-10-22T00:00:00Z", "x", jobs=False)),
                      ("has no completed tests job", {**ci_run(4, "2026-10-22T00:00:00Z", None),
@@ -749,6 +856,18 @@ def self_test() -> int:
                                                                      "2026-10-22T00:40:00Z")]}))
         cp, msg = safe(lambda: critical_path_minutes(f))
         ck("a window across the cut-over is the median of both kinds (45)", cp == 45.0, msg or f"got {cp}")
+        # The red this pins (CI job 120791448344): a window of umbrella runs
+        # alone, each titled by run-name, is measured -- not "no runs".
+        f.write_text(json.dumps({"workflow_runs": [
+            ci_run(i, "2026-10-22T00:00:00Z", f"2026-10-22T00:{30 + i:02d}:00Z")
+            for i in range(1, 9)]}))
+        cp, msg = safe(lambda: critical_path_minutes(f))
+        ck("an all-umbrella window, titled `CI code ...` by run-name, is measured "
+           "by workflow path (34.5)", cp == 34.5, msg or f"got {cp}")
+        ck("a ci.yml run is kind CI whatever its title, a ref suffix included",
+           run_kind({"name": "anything", "path": ".github/workflows/ci.yml@refs/heads/main"}) == "CI"
+           and run_kind({"name": "CI", "path": ".github/workflows/card.yml"}) is None,
+           "keyed on .name, not .path")
 
         listings = {"ci.yml": [ci_run(i, f"2026-10-22T0{i}:00:00Z", "2026-10-22T09:00:00Z", jobs=False)
                                for i in range(1, 6)],
@@ -767,8 +886,8 @@ def self_test() -> int:
         n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh))
         got = json.loads(f.read_text())["workflow_runs"] if n else []
         ck("--gather-runs keeps the newest 8 push runs of ci.yml and tests.yml together, jobs on each CI run only",
-           n == 8 and [r["name"] for r in got].count("CI") == 5
-           and all(("jobs" in r) == (r["name"] == "CI") for r in got)
+           n == 8 and [run_kind(r) for r in got].count("CI") == 5
+           and all(("jobs" in r) == (run_kind(r) == "CI") for r in got)
            and sum("/jobs?" in a[-1] for a in reads) == 5, msg or f"n={n}")
         msg = refused(lambda: gather_runs(f, repo="o/r", runner=lambda argv, **_kw: subprocess.CompletedProcess(
             argv, 1, "", "gh: HTTP 502")))
