@@ -1,0 +1,10 @@
+Triage (s4, 2026-10-23 07:10Z, RemoteTrigger payload echo, accepted, narrowed), verbatim:
+A stub that pins the pushed commit, not the ref name.
+
+Measured facts: tools/audit/seat/cloud_dispatch.py already publishes dispatch/<role>-<topic> (PAYLOAD.json and PROMPT.md), but render() (:171-:205) still builds the event message from _prompt(..., brief), with the brief inlined (:167-168, "snapshotted when this payload was rendered"). Each trigger update resends the whole ccr, so the 11 KB brief is echoed in every update and run; the proposer's measure (~35k tokens per fire, ~140k for 4) is the orchestrator's observation, not re-measured from git.
+Constraint 1: the inlined brief is deliberate ("a brief edited afterwards reaches no running seat"), so a stub that names only brief/<topic> would let a later push change a running seat's brief. The stub must name the dispatch commit SHA (git fetch origin dispatch/<role>-<topic>, then read PROMPT.md at that SHA), which keeps the snapshot; never a moving ref.
+Constraint 2: the stub keeps the first-line grammar, role, head, nonce, pr, topic and FOOTER_BAN inline (a reviewer's verdict is matched to its dispatch by nonce); only the brief body moves.
+Constraint 3: the host-path refusal (HOME regex) must still run on the published PROMPT.md, since it is what the seat reads.
+Constraint 4: the seat needs git read access to origin; the ccr already lists the repository as a source and allows Bash, but one fire on the stub path must prove the seat reads the brief before the mode becomes the default.
+Order: after DESIGN-STAGES, or put the stub in the same render change, so two PRs do not both edit render(). R10-FLOW-DISPATCH owns this file but is done, so it is not the destination.
+Cost: S-M, about 40-70 lines in cloud_dispatch.py (a --stub flag or default, SHA from the dispatch push) plus self-test rows: stub payload under 1 KB with the brief absent, the SHA present, a host path in the brief still refused, and a null control that the inlined mode is byte-identical to today's. About 30k tokens saved per fire by the proposer's figures.

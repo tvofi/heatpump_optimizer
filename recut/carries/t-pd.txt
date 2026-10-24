@@ -1,0 +1,6 @@
+Triage P-D (s4, 2026-10-23 03:45Z, accepted), verbatim:
+open_pr.sh's exit trap must detach or remove its PR worktree on success and on STOPPED.
+
+Measured facts: open_pr.sh calls pr_exit_trap (pr_args.sh:162), which only runs pr_reap on the process tree; nothing detaches or removes $D/wt, so the branch stays checked out after a STOPPED run. merge_train --free-holders (merge_train.py free_holder) covers only a recarry whose holder is clean and at origin/<branch>; a fetch-race stop that leaves an unpushed or dirty tree is refused, which is the no-footers case. Moratorium 0012 is revoked (decision 0014, 2026-10-21), so it binds nothing here; this edits an existing instrument (no new policy file, lint class or rule).
+Constraint: detach, do not remove, on exit, since update_pr.sh and cloud_relay detach the same worktree under the branch lock (open_pr.sh line 32) and the lock must stay held to the end.
+Cost: S, about 10-20 lines in open_pr.sh (PR_AFTER_REAP detach, guarded by the branch lock) plus one self-test row and a mutant; no gate-budget raise expected.

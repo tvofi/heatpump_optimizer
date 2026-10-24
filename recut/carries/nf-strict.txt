@@ -1,0 +1,1 @@
+From #2643 (R10-FLY-NO-FOOTERS pre-PR, head fc0ab7733e05), the follow-up that makes it strict: after #2636 merges, move the `attribution` entry in tools/policy/field_coverage.mjs from the hooks registration's `pending` map to `ignore` (one line), or do it inside #2636, so that an unmatched entry is DEAD again. No settings change in #2643.

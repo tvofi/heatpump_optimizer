@@ -1,0 +1,48 @@
+{
+ "group": "R10-ORCH-LEDGER",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "size": "L",
+ "issues": [
+  2505
+ ],
+ "fixes": [],
+ "after": [
+  "R10-ROSTER-OPS",
+  "R10-CI-LAYOUT",
+  "R10-TICK-OWED-LEVEL",
+  "R10-FLOW-MAIN-GATE",
+  "R10-CI-LAYOUT-P1"
+ ],
+ "files": [
+  "tools/audit/seat/cloud_relay.sh",
+  "tools/audit/seat/orchestrator_tick.py"
+ ],
+ "carry": [
+  "From #2545 (item 3985dac8): the brief's ledger-extension controls, which are the ecaf178c content-covered close with a positive case and a null case, and the section 5.6 exit-code red case (143 passes).",
+  "Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the approved design's beat and ledger must own, and they land first, so build them in: (0) The beat and every job it runs are detached processes, never an agent loop: in the live run of 2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed. beatd.py runs under daemonize.py and an operating-system supervisor that restarts it (launchd on the orchestrator's Mac, a user systemd unit elsewhere); an agent only reads beatd status and the journal, and never hosts a job. Jobs run concurrently: one job's run never delays another job's schedule, so a long handoff update (9 min observed on 2026-10-21) never leaves the tick board stale; the tick reads independently of the relay, as R10-TICK-RELAY-DECOUPLE (#2549) already does for tick_loop.sh. The handoff job honours R10-FLOW-RELAY-HOLD's hold file. (1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the previous train ends; it only launches a detached train and reads the train-stop obligation, never waits on CI). (2) The ledger gains one event kind, postmerge-owed (producer: R10-FLOW-POSTMERGE's after-merge step; closer: that step's later success or an orchestrator disposition), because the design refuses an OWED shape with no ledger kind. (3) The handoff job carries R10-FLOW-BODY-ONLY's body-only path unchanged and writes a disposition for the handoff-body ref it applies; it also does not move any pull request head while that pull request has a live reviewer in workers.json, which generalises R10-FLOW-ROSTER-FREEZE's predicate from the roster pull request to every head (fixer.md's freeze, made mechanical). (4) The seats job reads the dispatch records R10-FLOW-DISPATCH writes through bus.sh dispatch, which also gives the folded dispatch reason the round-3 review's N11-R found has no backing state. (4b) The ledger's verdict-unposted obligation closes only on a read-back: the posted pull request comment fetched and its first line matching the verdict and head, as comment-readback.md requires; a relayed claim that a verdict was posted is not a close (revision 8, observed live). (5) Is-main-red has one owner, the classifier #2570 and R10-FLOW-MAIN-GATE share; the tick and the sweep do not grow a third. (6) The plan page: if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page, keeps the UNAVAILABLE page and the five mutation fixtures, and renders R10-FLOW-BOARD's flow section from the same model. (7) Inventory row M43 is stale: pr_cap.py gates dispatch, not opening, since #2525. Owner rulings (2026-10-21): the amendments are approved in this brief and the fix reviewer checks them against STUDY K17 at build (R12); the stranded-handoff aging defaults are 4 h to a DISPATCH line and 12 h to an owner flag (R14), built behind the switch the brief already asks for.",
+  "Fold (s4, assessor decision on P16): the REVIEW OWED level line is a ledger kind review-owed here: a level line 'REVIEW OWED: #N <head12>' per open non-draft PR whose head has no 'Fix review:' comment naming it and no live dispatch; the tick-seat prompt echoes flagged lines as a level. orchestrator_tick.py joins this group's files; after-edges R10-TICK-OWED-LEVEL (#2547), R10-FLOW-MAIN-GATE (#2584) and R10-CI-LAYOUT-P1 (#2585). Control: fixture PR set (reviewed, dispatched, neither) -> exactly one line.",
+  "\u00a71's remaining cause, the `handoff-no-pr` level closed only by an open PR, a disposition or a vanished ref, is stated in `R10-FLY-ORPHANS-REWRITTEN`'s brief on `origin/handoff/audit-r10-roster` `743463c61` (\"cloud_relay.sh classifies handoff-no-pr from its own rules\"). `R10-ORCH-MACHINERY`'s obligations ledger replaces the relay's log scan and the tick's OWED scan, so it must keep the grammar `b38c6431a` landed. That group is the destination here because `R10-FLY-ORPHANS-REWRITTEN` is not yet on main's roster, which pr-contract's carry step reads. Carry text for the orchestrator to land: \"The relay's event keying and level file landed by b38c6431a (events keyed on their PR and cleared by its POSTED; levels a rewritten <log>.level) must survive the ledger. Control: `python3 -I dev/audit/harnesses/r10_relay_owed_class_reach.py` prints `events_uncleared=0` and `level_lines` equal to `level_items` before and after; reverting either half moves it (`events_uncleared=4`, or `level_lines=4` for 2 items). (from #2545, dev/audit/rca/N-orphaned-handoff.md \u00a71, \u00a75.1)\" Carry: R10-ORCH-MACHINERY",
+  "\u00a75's ledger-extension controls (the `ecaf178c` content-covered close with a positive case and a null case, and the \u00a75.6 exit-code red case) are landed in `R10-ORCH-MACHINERY`'s carry at `743463c61`. Carry: R10-ORCH-MACHINERY (item 3985dac8)"
+ ],
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "resume": {
+  "stage": "not-started",
+  "branch": null
+ },
+ "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern A, the obligations ledger (note section 3 row A). Design: one revision pass, re-measured at current main against 09174d94e (carry 20 premise: the approved design stands); no full new design. The design was read 1503 commits before the note's base, so re-measure its premises (cloud_relay.sh, orchestrator_tick.py, tick_loop.sh, state_docs.py, roster_lib.py, roster_sync.py, plan_page.py all moved) before building. Scope: (1) An obligations ledger replacing the relay's log scan and the tick's OWED scan: keyed by kind, subject and sha; a disposal written by the producer; a moved subject closes the old entry and opens one; an unclassifiable ref is a refusal; an obligation with no ledger kind is a refusal; a missing store is a first run and an unreadable one prints UNREADABLE, never a clean board. Its import must classify the three prefixes the relay actually writes (probe, handoff, handoff-body) and take the last disposition per ref. Corrections from the round-3 review that bind the implementation: the folded approve-held-runs and dispatch reasons have no backing state in the relay's failure file today, so either that file's format gains a reason field or they become their own derived kinds; an instrument is wired in the same pull request that lands it, and the reason is that pr-contract makes the body answer a red on the wiring check (not that the check is required); and the two remaining figure corrections in the review's round-3 findings are carried into whatever the body states. Ledger extension owed (round-10 orphaned-handoff RCA, accepted 2026-10-20; the record lands under dev/audit/rca/): the obligations ledger's handoff-no-pr kind carries an age -- at 24 h a stranded handoff becomes a DISPATCH line naming its group and opener, oldest first; at 48 h it raises an owner flag. It records an opener attempt (the 11:50Z openers ended Terminated: 15 with no retry), closes a ref whose change main already carries by content rather than only by ancestry, and adds the design-to-build dispatch as its own kind: an approved design ref owes a build dispatch, not a pull request. The aging thresholds are policy and belong to tvofi: build the mechanics behind a switch and leave the defaults for approval. An unreadable store prints UNREADABLE, never a clean board and never a silent finding. Landing order: A, then R10-ORCH-DISPATCH-REG, then R10-ORCH-BEATD, then R10-ORCH-PLANPAGE. Carry 13 is copied here whole; parts (2) and (4b) are this group's, the rest belong to its siblings. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+}

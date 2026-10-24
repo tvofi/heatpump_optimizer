@@ -1,0 +1,5 @@
+Triage P-A cleanup (s4, batch 3, 2026-10-22): VERDICT: ACCEPT NARROWED -> R10-FLOW-DESIGN-STAGES (not-started, M, no `after`, files already include
+Ref-family cleanup cost (the question asked): a stub adds no new ref, since it reuses `dispatch/*`. But
+prune_refs.py has no `dispatch/` or `brief/` rule (grep: only handoff/, verdict/, ci-probe/, archive/), so these refs are
+residue that nothing deletes. 19 dispatch refs now, about 35 a day at the 10-22 rate, and 1 `brief/*` ref. R10-FLY-PRUNE-REFS
+carry (ii) already guards "dispatch/* younger than 24h", which presumes a delete rule that is not there.

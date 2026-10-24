@@ -1,0 +1,36 @@
+{
+ "group": "R10-STRUCTURE-ALIAS",
+ "lane": "FLY",
+ "kind": "instrument",
+ "class": "instrument",
+ "size": "S",
+ "issues": [],
+ "fixes": [],
+ "after": [],
+ "files": [
+  "tests/structure.py",
+  "tests/structure_budgets.json"
+ ],
+ "carry": [
+  "From #2620's round-3 review (comment 6359101698, item 931a23da; verdict on probe/rev-2620-654004be, head 72fbab2a719c), verbatim, section (a) and the first Findings bullet:\n\n- **Alias plant (O19).** At the head I planted `prices = self._prices` in `_raise_cop_issue`. That alone moves `seam_cut_total` to 705 (-2) with nothing improved (ev/plant_p2.diff, ev/structure_p2.txt). The instrument still counts occurrences, so the O19 carry stands and is live. This diff did not pay that way.\n\n- **Plant of the diff's own kind (rule 14).** I wrapped the same two reads in a bare getter, `_cop_state()` in `learning`, which returns `(self._cop_baseline, self._cop_health_cusum)`, and left the count logic in `views`. That also reads 707 (ev/plant_p3.diff, ev/structure_p3.txt). The instrument therefore cannot tell a narrowed interface from a raw-state getter. The diff's change is not that shape:\n  - `_cop_watch` returns derived values (the watched count and the clipped Cusum share), not state.\n  - It deletes a duplicated count that had divergent guards (`_learning_view` had `np.isfinite` and `_scores_view` did not).\n  - It shortens the class by 10 lines (11 with the one-line comment). Per rule 14 this is an instrument finding, not a block (see Findings).\n\n- **The seam-cut instrument also rewards a raw-state getter.** `tests/structure.py`'s `seam_metrics` counts a `self.<method>()` call as one cross-seam edge. So replacing k cross-seam attribute reads with one call to a getter that returns the same state lowers `seam_cut_total` by 2(k-1), with nothing encapsulated. My `_cop_state()` plant gave -2. This is the same class as O19, the alias, by another route. O19's fix needs to cover it too: either count the distinct (seam, attribute) pairs reached through the callee, or refuse a callee whose only body is a tuple of state reads. Add a null control: a getter planted on a clean tree must not move the figure."
+ ],
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "budget: a measurement change may move a ratchet metric",
+ "rca": [],
+ "architect_note": "",
+ "resume": {
+  "stage": "not-started",
+  "branch": null
+ },
+ "brief": "seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) and a bare getter that returns a tuple of state reads pays (rule 14, planted as `_cop_state()`, -2). Count distinct (seam, attribute) pairs reached, including through a callee, or refuse a callee whose only body is a tuple of state reads. A failing test first: plant the alias and the getter on a clean tree; neither may move the figure, and that plant is also the null control. Use the finder's harness, the plants plant_p2.diff and plant_p3.diff in the ev/ directory of probe/rev-2620-654004be. Any budget re-record the metric change forces goes in the commit message, per CLAUDE.md rule 2, and a raise needs the owner's confirmation before the branch is pushed. Follow dev/governance/roles/fixer.md."
+}

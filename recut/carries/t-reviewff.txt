@@ -1,0 +1,29 @@
+Triage P-B (s4, batch 3, 2026-10-22, accepted), verbatim:
+## P-B tick_loop.sh runs stale code: freshness check
+
+VERDICT: ACCEPT -> R10-FLY-RELAY-REVIEW-FF (not-started, S, files include tools/audit/seat/tick_loop.sh and cloud_relay.sh),
+plus a forward-carry to R10-ORCH-MACHINERY's design (finding-propagation) because the same hazard moves to beatd.py.
+
+Measured facts (origin/main tools/audit/seat/tick_loop.sh):
+- It does no self-check at all. No `git` call, no SHA, no version in the banner or the heartbeat message. Each pass runs
+  `$HERE/cloud_relay.sh pass` and `$HERE/orchestrator_tick.py` from whatever checkout it started in; only `tick_loop.sh` itself is
+  read once. So a checkout never updates and every fix to those files is invisible to a running loop.
+- The stale checkout 16a8240f1 (2026-10-22 08:11 +0200) is 506 commits behind origin/main fef4a1351; 119 touch tools/audit/seat and
+  28 touch cloud_relay.sh, tick_loop.sh or orchestrator_tick.py. The hold check landed in cfa89d24f (R10-FLOW-RELAY-HOLD).
+  A path filter on tools/audit/seat therefore cuts the restart rate from 506 to 119 candidates.
+- Ownership: no group owns it. R10-RCA-ORCH-CONTINUITY and R10-FLOW-ANDON (tick_loop.sh, both done) cover liveness (heartbeat), not
+  code freshness, so the heartbeat reads healthy while the code is old. R10-ORCH-MACHINERY (L, not-started) moves the relay to a
+  launchd-supervised beat; its brief has no clause on which checkout the beat runs, so the hazard would carry over. FLY-RELAY-REVIEW-FF
+  and R10-FLOW-AUTOTRAIN are the not-started groups on tick_loop.sh; REVIEW-FF is S and sits on the relay_start lines.
+Design (narrower than the proposal):
+- Do not fast-forward by default. The loop is documented as a read-only driver, and orch-wt is a worktree other seats may share
+  (a dirty tree or a detached HEAD would make `merge --ff-only` fail or surprise).
+- Each pass: `git -C $HERE fetch -q origin main` (a git fetch, no API) and count `HEAD..origin/main -- tools/audit/seat`. Put
+  `code=<sha7> behind=<N>` in the TICK-PASS banner and the heartbeat message, so staleness shows off-host.
+- If behind>0 and the tree is clean and `merge --ff-only` succeeds: `bash -n` the new tick_loop.sh, then `exec bash "$0" "$@"`. Otherwise
+  print `TICK-STALE behind=N` and carry on (never exit: a stopped loop is worse than a stale one).
+Null control: a throwaway origin whose main did not move prints behind=0 and does not exec. Mutant: drop the path filter or the
+`bash -n` guard. Cost: S; one fetch per 300 s pass, 288 a day, no API.
+Binding constraints: tick_loop.sh is measured by the mutant file (new arm takes a per-file id, e.g. tick_loop-N); a new git call
+sites need no PUSHERS entry (fetch only). The exec guard matters: a broken main would crash-loop the driver, so the `bash -n`
+check and the single re-exec per pass are part of the carry.
