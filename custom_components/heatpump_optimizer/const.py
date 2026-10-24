@@ -1606,6 +1606,8 @@ INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
     CONF_INDOOR_HUMIDITY_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
 }
 
+INPUT_MAX_AGE_MINUTES['planted_on_change_entity'] = 30.0
+
 # Physical windows, degC, for every temperature key ``InputReader.read``
 # serves (D1-s5-52). A DS18B20 reports -127 for a lost bus and 85 for a
 # power-on reset; both are finite numbers in the right unit, and without a
