@@ -1,0 +1,8 @@
+if [ "$PIN_TOUCHED" -eq 0 ] || ! git diff --quiet "$BASE"...HEAD -- \
+     .claude/workflows/web-fix-wave.js \
+     .claude/workflows/check-wave-script.mjs \
+     tools/policy/check-wave-script.mjs \
+     '.claude/workflows/wave-*-groups.json' \
+     'tools/audit/briefs/*.md'; then
+  if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; else node tools/policy/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; fi
+ls: cannot access 'tools/audit/briefs': No such file or directory

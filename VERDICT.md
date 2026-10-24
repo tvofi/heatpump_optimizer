@@ -1,44 +1,69 @@
-Fix review: blocked fbbd3e61fe312f94b6c4c579b64236fcf9699248 policy-loosened: severity critical narrowed from a merge that can happen to one that happened, and step 4 departs from the owner's quoted words
+Fix review: merge d4b017368d585900b2705a39821cc78681fb4217
 
-bus-nonce: 349bfe5d53c6482114137e4323361dbc
+bus-nonce: e47408d9b3fa832194c541cd8e503990
 
-Round 1 of PR #2736 (policy(D11): mechanise-first). Reviewed at head fbbd3e61fe312f94b6c4c579b64236fcf9699248 in a detached worktree; that SHA was still the PR head and origin/main was still e97f5749b when I wrote this. Role contract: origin/main's fix-review.md. `git diff $(merge-base)...origin/main -- dev/governance/roles/` prints nothing, so my copy of the contract is current. I reviewed this as a policy change: the owner's wording governs, and every sentence the diff adds, cuts or rewrites was checked for a binding it adds, drops or loosens.
-
-## Block
-
-1. **The critical severity class is loosened, and the body does not say so.** Before: "`critical` — a merge to `main` *can happen* with no review or with a red required check". After: "`critical` — a merge to `main` with no review or a red required check". The old text made a latent gap critical, meaning a mechanism that *permits* an unreviewed or red merge. The new text reads as an actual merge that took place. Under it, a ruleset gap with no merge through it yet becomes `high` or lower. The body's list of cuts gives a reason for every other cut but not this one. Restore "can happen", or get the owner to approve the change explicitly.
-2. **Step 4 departs from the owner's quoted words in ways that loosen what they bind.** The quote is *"each operation or shape that is not clearly a one shot and could be mechanical should be mechanical and wired into the machinery ... only policy if no robust script could be built at a reasonable cost"*.
-   - Non-finding: "a policy kept because no robust script *exists*". The owner's test is whether one *could be built at a reasonable cost*. Read literally, the new text clears exactly the case the owner wants found: a policy that stands only because nobody has written the script yet.
-   - Finding: "an operation recurring by hand ... its recurrence count from a command run alone". The owner sets the burden the other way: anything *not clearly a one shot*. Requiring a counted recurrence leaves a gap. An operation seen once that is plainly repeatable is neither a finding (no recurrence count) nor a non-finding (not a true one-shot).
-   - "or shape" is dropped (the finding names only operations and prose steps). "and wired into the machinery" is dropped too: an instrument that exists but is unwired is filed only as "a conformance row", and is never a finding against the owner's "wired" requirement.
-3. **The source scope is narrowed, and the body does not say so.** "the repository's history" became "`main`'s history". D11 also audits branch-side mechanisms: claim, dispatch, probe and handoff refs, and the pre-merge heads that step 3's conformance sample reads, such as the first `pr-contract` run at the merged head. The cut list does not mention this.
+Round 2 of PR #2736 (policy(D11): mechanise-first). I reviewed head d4b017368d585900b2705a39821cc78681fb4217 in a detached worktree. It was still the PR head when I wrote this (`ev/heads_at_write.txt`). origin/main is now 73b69fe0a. It moved from the base e97f5749b by delivery rows only (`ev/main_moved.txt`). The role contract is origin/main's fix-review.md: `git diff $(merge-base)...origin/main -- dev/governance/roles/` prints nothing. I reviewed this as a policy change. I checked every sentence the three-dot diff adds, cuts or rewrites in D11.md for a binding it adds, drops or loosens.
 
 ## Findings
 
-- The owner quote in step 4 cannot be traced to any GitHub record. tvofi's #201 comments since 2026-10-24T07:00Z contain no such text (saved in `ev/owner_201_comments.txt`). No repo issue comment since 2026-10-24T00:00Z (68 comments, one page) and no issue or PR body updated since then contains "could be mechanical". The PR has no comments and no reviews. The body cites the quote as "tvofi 2026-10-24" with no link. I could not verify the quoted words against a source; the owner's approving review at the head is the only check left. Carry: dismissed: settled by the owner's approving review that this policy PR already owes before merge
-- Two of the body's "already stated elsewhere" justifications rely on files a D11 finder is not told to read. The #677 merge-enumerator trap is stated at `D13.md:74`, but a D11 seat reads D11.md and COMMON.md, and D11's own conformance sample enumerates merged PRs. The "derive the row count" rule is pointed to `writing-for-agents.md`, which the D11 brief never cites. The rules do exist in the tree, so this is a reach gap, not a falsehood. Carry: dismissed: the fixer can keep a one-clause pointer (`D13.md`'s fooled-before list) within the same cap when re-cutting for the Block
-- Step 3's detector-health bullet lost "name any that is dead". Step 1's "a mechanism whose control you cannot make fire is a finding" still covers it, so this is not a loosening. Carry: dismissed: covered by step 1's sentence at this head
-- `policy_lint.mjs --budgets` labels D11's row `tools/audit/briefs/D11.md`, a path that does not exist at this head. The file is `dev/governance/dimensions/D11.md`. This comes from the instrument, not from this PR. Carry: dismissed: pre-existing instrument label, not moved by this diff; outside this PR
+- **I could not verify the owner quote as verbatim.** The body names its source as the orchestrator's session chat on 2026-10-24 and says there is no GitHub record. I found none either:
+  - tvofi's 48 #201 comments from 2026-10-23T10:23Z to 2026-10-24T15:04Z contain no "mechani" or "one shot".
+  - `git log --all -S'could be mechanical'` finds only this PR's commits and the round-1 verdict refs.
+  - The two rounds quote the ruling differently. Round 1 (cf212c29e, fbbd3e61) has "operation or shape that is not clearly a one shot". This head has "that that [sic] is not clearly". Commit 715dd4193 calls the new text the verbatim correction.
+  - Only the holder of the chat can say which is true, and the orchestrator merges this under the mandate, not after an owner review. Nothing else in the quote moved between rounds.
+
+  Carry: dismissed: the quoted source is the orchestrator's own session chat, which it compares before merging under the mandate
+- **The body's root-cause answer for the round-1 `governance / wave-script` red stops short of the cause.** `tools/pr/prepr.sh:3082-3087` runs the wave-script step only when the diff touches certain paths, and one of them is `'tools/audit/briefs/*.md'`. That directory no longer exists: the briefs moved to `dev/governance/dimensions/`. So a diff that touches only a brief skips the local step, which CI runs unconditionally. `dev/audit/config/rotation.json` and `scopes.json` are not on the trigger list either (`ev/prepr_wave_trigger.txt`). The repair is a path fix in the N-move-stale-path class, not a new mechanisation proposal. The body's `Carry: proposal-triage` sits under `## Red checks`, which `carry_audit.py` does not read as a finding (`ev/carry_audit_body.txt`: 0 items), so nothing routes it. Step 11 is still met: the red is named and answered with a cheaper detector and its standing cost. Carry: R10-FLOW-JIDOKA
 
 ## Evidence
 
-- Head reviewed: fbbd3e61fe312f94b6c4c579b64236fcf9699248 (`ev/HEAD.txt`). The body's first `## Head` line names it. The bare SHA cf212c29e that follows is the previous code head, and the body says the head merges main into it.
-- Merge with origin/main e97f5749b: `git merge-tree --write-tree` gives tree 6bd067797b, rc=0, no conflict (`ev/merge_tree.txt`).
-- VERSION, the manifest and `RELEASE_NOTES.md` are untouched by the three-dot diff (`ev/diff_three_dot.txt`).
-- Figures re-derived with `node tools/policy/policy_lint.mjs --budgets`, at origin/main 9586fce08 and at the head (`ev/budgets_9586fce08.txt`, `ev/budgets_head.txt`):
-  - D11 lines: 99 → 100, cap 103.
-  - D11 tokens: 1497 → 1493, cap 1499.
-  - Corpus tokens: 66415 → 66411, cap 66434.
-  - Role policy: 10016, cap 9958 + band 500.
-  - All four match the body.
-  - The first-draft size of 6576 bytes is the drafter's own out-of-tree measurement and I could not re-derive it. The limit of 5997 bytes is consistent with 1499 × 4.
-- `node tools/policy/policy_lint.mjs` at the head: 0 errors across 50 policy files (`ev/policy_lint_head.txt`).
-- Mutation proof reproduced. Changing step 4 to name `tools/audit/seat/INSTRUMENTS.md` makes the lint exit with rc=1 and `ERROR [named-docs] tools/audit/seat/INSTRUMENTS.md: is named by tools/audit/briefs/D11.md but has no cap` (`ev/mutant_instruments_md.txt`). I restored the file afterwards.
-- Cut justifications I confirmed:
-  - `COMMON.md:20-22` states the earlier-findings wall and the D11 `exposure` record.
-  - Step 3's check-runs parenthetical survives, covering the checks-summary trap.
-  - `COMMON.md` item 3 defines a perturbation.
-  - The branch-rules fooled-before item keeps "probe it with both arms".
-  - The dropped "You get a worktree with `.git`" is supplied by `.claude/workflows/audit-find.js:53`.
-- CI on the head (`ev/check_runs.txt`, commit check-runs API): no run is red. arch-score and budget-raise-gate succeeded, prelude and refresh succeeded, and the lanes the diff does not reach were skipped. `pr-contract` was still queued, so the step 11 body check had not run. No red check was owed an answer.
-- Round: 1.
+- **Head.** Reviewed d4b017368d585900b2705a39821cc78681fb4217 (`ev/HEAD.txt`). The body's `## Head` names the same SHA.
+- **Merge.** `git merge-tree --write-tree origin/main` (73b69fe0a) gives tree b8f35532ae, rc=0, no conflict (`ev/merge_tree.txt`).
+- **Versions.** VERSION, the manifest and `RELEASE_NOTES.md` are untouched by the three-dot diff (`ev/version_untouched.txt`, `ev/diff_three_dot.txt`). The head commit carries no Co-Authored-By or Claude trailer.
+- **Critical severity line.** The `Severity:` paragraph through "hygiene." is byte-identical to origin/main (`diff` prints nothing). This settles round-1 Block item 1.
+- **Scope.** "the repository's history and GitHub's own records" is restored unchanged. This settles round-1 Block item 3.
+- **Step 5 against the quote.** Step 5 is the quote followed by two routing sentences:
+  - The quote keeps "or shape", "wired into the machinery" and the owner's test "could be built at a reasonable cost (tokens, time, complexity)".
+  - "A finding goes to `proposal-triage.md` as a mechanisation proposal, costed in its terms and D13's" adds routing only. It narrows no finding.
+  - "a non-finding records why no script could be built at that cost" restates the owner's test rather than a weaker "no script exists".
+  - No recurrence-count burden is left.
+  - This settles round-1 Block item 2.
+- **Cuts I confirmed against the text that carries them at this head:**
+  - "Record every such source under `exposure`": COMMON.md (".. or GitHub (D11), record it under `exposure`").
+  - "The audit register and earlier findings stay off-limits": COMMON.md ("do not look for earlier findings anywhere").
+  - "You get a worktree with `.git`": `.claude/workflows/audit-find.js` ISOLATED and its GitHub-reader list. COMMON.md also names D11 among the isolated-worktree briefs.
+  - The definition of a perturbation: COMMON.md item 3.
+  - "a ruleset read with both arms": the branch-rules fooled-before item.
+  - The checks-summary trap: step 3's "(the commit's check-runs listing, which keeps the red run a summary drops)".
+  - "A number about the document it sits in goes stale": step 1's "Derive the row count; never carry it from a document". `brief-citations.md` and `brief_lint.mjs` enforce the same rule for brief text. This was a fooled-before caution, not a binding.
+  - No cut removes a binding.
+- **Figures.** I re-derived all of them with `node tools/policy/policy_lint.mjs --budgets` at origin/main 73b69fe0a and at the head (`ev/budgets_main.txt`, `ev/budgets_head.txt`). The D11 row is byte-identical between main and the base. All match the body:
+
+  | figure | before | after | cap |
+  |---|---|---|---|
+  | D11 lines | 99 | 99 | 103 |
+  | D11 tokens | 1497 | 1499 | 1499 |
+  | Corpus tokens | 66415 | 66417 | 66434 (+500 band) |
+
+  The add-only variant's 6688 bytes and 109 lines are the drafter's out-of-tree draft, and I could not re-derive them. 5997 bytes is consistent with 1499 × 4.
+- **Lint and wave-script at the head.** `node tools/policy/policy_lint.mjs` reports 0 errors across 50 policy files (`ev/policy_lint_head.txt`). `node tools/policy/check-wave-script.mjs` reports 209 passed, 0 failed (`ev/wave_script_head.txt`). Main gives the same results (`ev/*_main.txt`).
+- **D11.M5 placement.** `scopes.json` D11 has steps M1–M5, and seat s3 holds `["M4","M5"]`. `rotation.json` D11 steps are M1–M5.
+- **Mutation proof.** Every mutant below was aimed at D11 only, and the tree was restored after each one. Everything also re-ran clean afterwards.
+
+  | mutant | result | evidence |
+  |---|---|---|
+  | rotation.json D11 without M5 | rc=1, "rotation.json D11 lacks D11.M5" | `ev/mutant_rotation_D11_noM5.txt` |
+  | scopes.json s3 seat without M5 | rc=1, "no D11 seat names D11.M5" | `ev/mutant_scopes_D11seat_noM5.txt` |
+  | scopes.json D11 steps without M5 | rc=1, "scopes.json D11 steps [M1..M4] != the brief's" | `ev/mutant_scopes_D11steps_noM5.txt` |
+  | D11.md step 5 unnumbered | rc=1, "rotation.json D11 names D11.M5, which the brief no longer has" | `ev/mutant_brief_noStep5.txt` |
+  | step 5 names `tools/audit/seat/INSTRUMENTS.md` | rc=1, `[named-docs] ... has no cap` and `[budgets]` 1508 > 1499 | `ev/mutant_instruments_md.txt` |
+  | quote cut to drop "(tokens, time, complexity)" | lint rc=0 | `ev/mutant_quote_trim_lint.txt` |
+
+  My first rotation and scopes mutants hit D2's block, not D11's. Their outputs are kept as `ev/mutant_*_noM5.txt` and were re-run targeted.
+- **No instrument pins the quote.** The quote-trim mutant passing shows that no check holds the quote's wording. Its fidelity rests on the comparison in the first finding.
+- **CI on the head** (`ev/check_runs.txt`, commit check-runs listing): no run is red.
+  - Succeeded: arch-score, budget-raise-gate, tests / briefs, prelude, refresh, cancel-superseded.
+  - Queued or running: wave-script, policy-docs and the others listed in the file.
+  - No `pr-contract` run was listed yet.
+  - The only red in the range is round 1's `governance / wave-script` at fbbd3e61, and the body names and answers it.
+- **Round.** This is round 2.
