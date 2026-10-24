@@ -122,8 +122,9 @@ const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /^\S(?:.*\S)? \(
 // the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // What a merge call may not carry: `gh pr merge`'s subject and body flags, and
-// the REST and MCP merge's commit_title and commit_message.
-const MERGE_CALL = /\bgh\s+pr\s+merge\b|"pr",\s*"merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
+// the REST and MCP merge's commit_title and commit_message. `gh pr merge` is a call
+// with any whitespace, or a shell continuation (`\` then a newline), between its words.
+const MERGE_CALL = /\bgh(?:\s|\\\r?\n)+pr(?:\s|\\\r?\n)+merge\b|"pr",\s*"merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
 const SUBJECT_ARG = /(?:^|[\s"'[,])(?:--subject|--title|-t|--body|--body-file|-b|-F)(?=[\s="',\]]|$)|\bcommit_(?:title|message)\b/
 
 function nonTemplateMerges(log) {
@@ -575,6 +576,9 @@ async function selfTest() {
   probes.push(['a --subject on a shell continuation line is refused, at the call line', ((r) => r.length === 1 && r[0].includes('tools/x:2:'))(
     wr('set -e\ngh pr merge 9 --merge \\\n  --subject "Merge pull request #9 (x)"\n'))])
   probes.push(['a --subject in an argv list split over lines is refused', wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--subject", s])\n').length === 1])
+  probes.push(['runs of whitespace inside "gh pr merge" are still a merge call: a --subject on "gh  pr<TAB>merge" is refused', wr('gh  pr\tmerge 9 --merge --subject "Merge pull request #9 (x)"\n').length === 1])
+  probes.push(['a shell continuation inside "gh pr merge" is still a merge call: its --subject is refused, at the call line', ((r) => r.length === 1 && r[0].includes('tools/x:1:'))(
+    wr('gh pr \\\n  merge 9 --merge --subject "Merge pull request #9 (x)"\n'))])
   probes.push(['an argv list broken between "pr" and "merge" is still a merge call', wr('cmd = ["gh", "pr",\n       "merge", n, "--subject", s]\n').length === 1])
   probes.push(["null control: a sibling argv in the call's own table is not the call's", !wr('for argv in ((["gh", "pr", "merge", "1"], False),\n             (["gh", "issue", "edit", "1", "--body", "x"], False)):\n').length])
   probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
