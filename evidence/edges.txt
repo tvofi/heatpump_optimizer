@@ -1,0 +1,2 @@
+e97f5749b edges 27 gate 10 pr-contract 9 pc-if ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}
+HEAD edges 19 gate 2 pr-contract 9 pc-if ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}
