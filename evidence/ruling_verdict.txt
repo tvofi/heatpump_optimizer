@@ -1,3 +1,0 @@
-P83 REJECT
-P99 None
-dev/programme/triage/s6-batch14.md#P83 is not an ACCEPT ruling (REJECT)

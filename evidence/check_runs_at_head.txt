@@ -1,0 +1,20 @@
+Check runs at 06cb984bdc0172bdd8eceda1ba55de0e67b4830e (PR #2755 get_check_runs, 52 rows, read after 19:36:46Z)
+
+Settling run 40125701658 (fired by the body edit at 19:31:39Z):
+  pr-contract / pr-contract  job 120967331018  success  19:35:19Z-19:35:51Z
+  gate                       job 120967474550  success  19:35:53Z-19:36:08Z
+  arch-score                 job 120966923732  success
+  budget-raise-gate          job 120966923604  success
+  prelude/refresh/cancel-superseded success; hassfest/codeql/validate/kernel-points/tests/governance skipped
+
+Run 40122938509, attempt 2 (re-run at 19:36):
+  gate                       job 120967611466  success  19:36:27Z-19:36:46Z
+  pr-contract / pr-contract  job 120967612416  failure  19:12:30Z-19:12:59Z  (copied from attempt 1, same timestamps as job 120962100585)
+  every other row success or skipped, copied from attempt 1
+
+Attempt-1 reds settled by the body edit:
+  pr-contract / pr-contract  job 120962100585  failure 19:12:30Z-19:12:59Z  (## Head named c130c242)
+  gate                       job 120962222537  failure 19:13:02Z-19:13:22Z  (only from pr-contract)
+
+Order: the last red to conclude was 19:13:22Z. pr-contract 120967331018 started at 19:35:19Z, after it, and read the re-taken body. It passed.
+No foreign check (any name other than pr-contract / gate) is red on this head.

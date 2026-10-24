@@ -1,9 +1,0 @@
-06cb984bdc0172bdd8eceda1ba55de0e67b4830e
-record: the delivery row for #2755
----
-c130c242c8a3883f1a6f400b546d192cee7523fa
-triage: s6 batch 14, re-rule P83 to REJECT (run log shows cloud runs resume on their own notifications)
----
-fe155d2839716d8a03f52e2c1457a076aecd4526
-triage: s6 batch 14, P83 (cloud pool run ends its turn behind a background job)
----
