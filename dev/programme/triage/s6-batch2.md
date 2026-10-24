@@ -118,25 +118,26 @@ with its pull request unmerged, then the root-cause seat names the process
 state; the schema choice belongs to the group that owns the stage set.
 
 ## P48: roster_edit.py has no op for `files` or `resume.pr`
-Verdict: REJECT
+Verdict: DEFER -> owned by R10-FLOW-TOOLKIT-MODEL (not-started; edits `roster_edit.py`); reopen when a widening names `coordinator.py`
 Source: s6 proposals.md item L (s5 measurement).
-Instances: 3 refused ops in 1 session -- `r10s5/roster-report.txt` lines 16
-(17:10Z, R10-LIVESTATE `files` += two files), 44 (21:19Z, six files) and 43
-(20:42Z, `set-resume R10-CI-LAYOUT-P2 pr=2673`: "invalid choice: 'pr'").
-Cost: S for `set-files add|remove` (about 25 lines, a fixture pair, a mutant
-in `roster_edit.py`, which `R10-FLOW-TOOLKIT-MODEL` and `R10-ORCH-ROSTER-SCHEMA`
-already edit); `resume.pr` stays derived.
-Binding: no instrument reads a roster group's `files` to decide anything --
-`rg -n "\"files\"|\['files'\]|get\('files'\)" tools/audit/seat tools/plan` finds
-only the merge train's per-pull-request file lists, never a group's -- so the
-widening is documentation, and it was recorded without loss as a `note` and a
-carry (`roster-report.txt` line 50, read back exact; the carry is what the
-fixer reads). The `resume.pr` half is moot: `roster_sync.norm_head` already
-strips `fix/` and `handoff/` prefixes, so the mapping the proposal asks for
-exists, and the stale `pr` is a derived field the next sync rewrites. A
-new op that nothing reads is added surface for a field no consumer needs.
-Reopen if an instrument starts keying on `files` (for example hot-file overlap
-between groups), at which point a stale list has a cost.
+Instances: 3 refused ops in 1 session, 2 of them `files` -- `r10s5/roster-report.txt`
+line 16 (17:10Z, R10-LIVESTATE `files` += two files), line 44 (21:19Z, six
+files) and line 43 (20:42Z, `set-resume R10-CI-LAYOUT-P2 pr=2673`: "invalid
+choice: 'pr'").
+Cost: S for `set-files add|remove` (about 25 lines, a fixture pair, a mutant, in
+`roster_edit.py`); `resume.pr` stays derived.
+Binding: a group's `files` has exactly one reader that decides anything,
+`tools/plan/replan.py` line 205 (`hot_files` plus `files`, tested for a
+path ending in `coordinator.py` to serialise coordinator groups); the six
+files of the refused widening name none, and both widenings were recorded
+without loss as a `note` and a carry (`roster-report.txt` line 50, read back
+exact). So the measured cost is two refused queue lines and a note, in one
+group. The `resume.pr` half is moot: `roster_sync.norm_head` already strips
+`fix/` and `handoff/` prefixes, so the mapping the proposal asks for exists,
+and the stale `pr` is a derived field the next sync rewrites. What would
+change the answer: a widening that adds `coordinator.py` (the planner then
+mis-serialises silently while the roster says otherwise), or a second reader
+of `files` (the 08:00Z hot-file overlap ruling may add one).
 
 ## P49: record-autofix opens a new record pull request after every record merge
 Verdict: ACCEPT (measure first) -> R10-FLOW-RECORD-PITCH (new carry; same workflow step)
@@ -186,15 +187,14 @@ Cost: M -- `cloud_dispatch.py --pool` writing `POOL.txt` and the atomic
 (`R10-FLY-PRUNE-REFS` is its owner and not yet landed), an INSTRUMENTS.md
 entry, fixtures for a claim race; plus a standing change of rule.
 Binding: (1) the saving, about 2.5k tokens per seat, is the same payload echo
-that P-A (`s4-batch3`, accepted, carried in `R10-FLOW-DESIGN-STAGES`)
+that P-A (s4, 2026-10-22, accepted narrowed, carried verbatim in `R10-FLOW-DESIGN-STAGES`)
 already removes by rendering a stub that names the pushed commit, and the pool
-is not needed once that lands. (2) A pooled run is not persistent, but
-`blocked-verdicts-go-to-the-fixer` and `fixer.md` return a blocked verdict to
-the original fixer session; a pooled fixer has none, so the owner's rule would
-need a new exception. (3) A pool routine fixes one model and effort: the
+is not needed once that lands. (2) A pooled run is not persistent, but a blocked verdict goes back to the
+original fixer session (the owner's standing rule, as the orchestrator applies it);
+a pooled fixer has none, so the rule would need a new exception. (3) A pool routine fixes one model and effort: the
 batch's own ledger line 15 records the reviewer pool running opus, "not the
-rendered sonnet", which breaks the model routing the owner set
-(`seat-model-effort`). The pattern remains available to an orchestrator as
+rendered sonnet", which breaks the per-seat model routing (sonnet
+where an oracle exists, opus for adversarial review). The pattern remains available to an orchestrator as
 session scratch, which is where it is today. Reopen only if the P-A stub
 lands and a per-seat fire still costs a measured, material share of a round.
 
@@ -207,7 +207,7 @@ turn with a `nohup` or untracked watcher, so nothing woke them, and each
 needed an orchestrator `SendMessage` (the proposal's count; the seats'
 reports are in `r10s6/*-report.txt`). The four contracts each carry a
 **Restart** line and nothing on how to wait: `rg -n -i 'wait|background'
-dev/governance/roles/standing-*.md` is empty of an instruction, so a seat
+dev/governance/roles/standing-*.md` prints one unrelated line (standing-tick.md:8), so a seat
 chooses its own pattern.
 Cost: S for the paragraph -- about 6 lines in each of four contracts, naming the
 pattern this seat uses itself (a `run_in_background` shell loop that touches
