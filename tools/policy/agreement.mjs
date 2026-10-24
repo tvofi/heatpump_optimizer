@@ -121,12 +121,38 @@ const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /^\S(?:.*\S)? \(
 // base, which is HEAD on the runner and never a commit on main. Reached only on
 // the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
-// What a merge call may not carry: `gh pr merge`'s subject and body flags, and
-// the REST and MCP merge's commit_title and commit_message. `gh pr merge` is a call
-// with any whitespace, or a shell continuation (`\` then a newline), between its words.
-const MERGE_CALL = /\bgh(?:\s|\\\r?\n)+pr(?:\s|\\\r?\n)+merge\b|"pr",\s*"merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
-const SUBJECT_ARG = /(?:^|[\s"'[,])(?:--subject|--title|-t|--body|--body-file|-b|-F)(?=[\s="',\]]|$)|\bcommit_(?:title|message)\b/
-
+// WHAT A MERGE CALL IS, by the spellings gh's argv and the Python, JS and shell
+// call forms accept for one call, built from named parts so no gap or word can
+// be narrowed alone:
+//  - a word is bare or quoted (`gh`, "gh", 'gh', `gh` in backticks), and ends
+//    at a non-word character, so `merged` is not `merge`;
+//  - a gap between words is any run of whitespace, `\`-newline continuations
+//    and argv commas (`gh pr \` + newline + `merge`, `["gh", "pr" , "merge"]`);
+//  - gh's options may stand in any gap, with or without a value
+//    (`gh --repo o/r pr merge`, `gh pr -R o/r merge`, `"pr", "--repo", r, "merge"`);
+//  - the program is `gh` on any path, or a shell variable (`$GH pr merge`); an
+//    argv whose program is a variable (`[GH, "pr", "merge"]`) is the quoted arm.
+// Plus the REST, MCP and GraphQL merges. What no lexical scan can read -- an argv
+// built across expressions, a word quoted or escaped inside itself, a gh alias --
+// is dispositioned in #2697's body; merges go through merge_pr.sh and
+// merge_train.py, which pass no subject.
+const QUOTE = '["\'`]'
+const GAP = String.raw`(?:\s|\\\n|,)+`
+const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\w-])`
+const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=[^\s,'"${'`'}\]]*)?${QUOTE}?` +
+  `(?:${GAP}(?!${word('(?:pr|merge)')})${QUOTE}?[^\\s,'"${'`'}\\]-][^\\s,'"${'`'}\\]]*${QUOTE}?)?`
+const OPTIONS = `(?:${GAP}${OPTION})*`
+const PROGRAM = String.raw`(?:(?<![\w$./-])${QUOTE}?(?:[\w./-]*\/)?gh${QUOTE}?(?![\w-])|${QUOTE}?\$\{?[A-Za-z_]\w*\}?${QUOTE}?)`
+const MERGE_CALL = new RegExp(`${PROGRAM}${OPTIONS}${GAP}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +
+  `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}(?![\\w-])` +
+  String.raw`|merge_pull_request|mergePullRequest|\/pulls\/\S+\/merge\b`)
+// What a merge call may not carry: `gh pr merge`'s subject and body flags, long
+// (`--subject x`, `--subject=x`) or short, alone or in a cluster after the
+// boolean method flags, value attached or not (`-t x`, `-tx`, `-mt x`, `-dmb x`,
+// `-mF f`; gh 2.98 parses each); and the REST, MCP and GraphQL merges'
+// commit_title/commit_message and commitHeadline/commitBody.
+const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\s"'${'`'}[,(])(?:--(?:subject|title|body|body-file)(?![\w-])|-[mrsd]*[tbF])` +
+  String.raw`|\bcommit_(?:title|message)\b|\bcommit(?:Headline|Body)\b`)
 function nonTemplateMerges(log) {
   return log.split('\n').filter(Boolean).map((l) => l.split('\t')).filter(([, parents, subject], i) =>
     parents.split(' ').length >= 2 && !(i === 0 && TEST_MERGE.test(subject)) && !TEMPLATE_SUBJECT.some((r) => r.test(subject)))
@@ -579,6 +605,58 @@ async function selfTest() {
   probes.push(['runs of whitespace inside "gh pr merge" are still a merge call: a --subject on "gh  pr<TAB>merge" is refused', wr('gh  pr\tmerge 9 --merge --subject "Merge pull request #9 (x)"\n').length === 1])
   probes.push(['a shell continuation inside "gh pr merge" is still a merge call: its --subject is refused, at the call line', ((r) => r.length === 1 && r[0].includes('tools/x:1:'))(
     wr('gh pr \\\n  merge 9 --merge --subject "Merge pull request #9 (x)"\n'))])
+  // Every spelling of one merge call that gh's argv and the Python, JS and shell
+  // call forms accept, one probe each; each must be refused at the call's line.
+  const S = '"Merge pull request #9 (x)"'
+  const SPELLINGS = [
+    ['a continuation between "gh" and "pr"', `gh \\\n  pr merge 9 --merge --subject ${S}\n`],
+    ['a continuation with no space before it', `gh pr\\\nmerge 9 --merge --subject ${S}\n`],
+    ['a continuation in every gap', `gh \\\n  pr \\\n  merge 9 \\\n  --subject ${S}\n`],
+    ['"merge" double-quoted', `gh pr "merge" 9 --merge --subject ${S}\n`],
+    ["'merge' single-quoted", `gh pr 'merge' 9 --merge --subject ${S}\n`],
+    ['"pr" double-quoted', `gh "pr" merge 9 --merge --subject ${S}\n`],
+    ['"gh" double-quoted', `"gh" pr merge 9 --merge --subject ${S}\n`],
+    ['an option and value between "pr" and "merge"', `gh pr -R o/r merge 9 --merge --subject ${S}\n`],
+    ['an option=value between "pr" and "merge"', `gh pr --repo=o/r merge 9 --merge --subject ${S}\n`],
+    ['an option before "pr"', `gh --repo o/r pr merge 9 --merge --subject ${S}\n`],
+    ['the program in a variable', `GH=gh\n$GH pr merge 9 --merge --subject ${S}\n`, 2],
+    ['the program in a braced, quoted variable', `"\${GH}" pr merge 9 --merge --subject ${S}\n`],
+    ['the program on a path', `/usr/local/bin/gh pr merge 9 --merge --subject ${S}\n`],
+    ['inside a command substitution', `out=$(gh pr merge 9 --merge --subject ${S})\n`],
+    ['a single-quoted argv', `run(['gh', 'pr', 'merge', n, '--subject', s])\n`],
+    ['a single-quoted argv split over lines', `run(['gh', 'pr',\n     'merge', n, '--subject', s])\n`],
+    ['whitespace before an argv comma', `run(["gh", "pr" , "merge", n, "--subject", s])\n`],
+    ['an argv option and value between "pr" and "merge"', `run(["gh", "pr", "--repo", repo, "merge", n, "--subject", s])\n`],
+    ['an argv whose program is a variable', `run([GH, "pr", "merge", n, "-t", s])\n`],
+    ['a tuple argv with no spaces', `run(("gh","pr","merge",n,"--subject",s))\n`],
+    ['os.spawnlp-style separate arguments', `os.spawnlp(os.P_WAIT, "gh", "gh", "pr", "merge", n, "--subject", s)\n`],
+    ['asyncio.create_subprocess_exec arguments', `await asyncio.create_subprocess_exec("gh", "pr", "merge", n, "-t", s)\n`],
+    ['a shell string in Python (shell=True, os.system, shlex.split)', `os.system(f"gh pr merge {n} --merge --subject '{s}'")\n`],
+    ["JS execFileSync's argv", `execFileSync('gh', ['pr', 'merge', n, '--subject', s])\n`],
+    ['a JS template literal', 'execSync(`gh pr merge ${n} --merge --subject "${s}"`)\n'],
+    ['--subject=value', `gh pr merge 9 --merge --subject=${S}\n`],
+    ['-t with its value attached', `gh pr merge 9 --merge -tSubject\n`],
+    ['-t clustered after the method flag', `gh pr merge 9 -mt ${S}\n`],
+    ['-b clustered after two boolean flags', `gh pr merge 9 -dmb body\n`],
+    ['-F clustered after the method flag', `gh pr merge 9 -mF body.txt\n`],
+    ['--body-file', `gh pr merge 9 --merge --body-file body.txt\n`],
+    ["the REST merge's commit_title", `gh api -X PUT repos/o/r/pulls/9/merge -f commit_title=x\n`],
+    ["the GraphQL merge's commitHeadline", `gh api graphql -f query='mutation { mergePullRequest(input: {pullRequestId: $id, commitHeadline: "x"}) { clientMutationId } }'\n`],
+  ]
+  for (const [what, src, line = 1] of SPELLINGS) {
+    probes.push([`spelling: ${what} is still a merge call, refused at its line`, ((r) => r.length === 1 && r[0].includes(`tools/x:${line}:`))(wr(src))])
+  }
+  // Null controls of the same parts: what the parts must not read as a writer.
+  const NOT_WRITERS = [
+    ['a word that only begins with "merge" is not the merge command', `gh pr merged 9 --subject ${S}\n`],
+    ['another pr subcommand, with -t of its own, is not a merge call', `gh pr view 9 --json title -t '{{.title}}'\n`],
+    ['a variable program running another pr subcommand is not a merge call', `$GH pr view 9 --body x\n`],
+    ['a backslash before CRLF is no continuation in bash: the next line is another command', `gh pr merge 9 --merge \\\r\n  --subject ${S}\n`],
+    ['a comment line after a continuation ends the command', `gh pr merge 9 --merge \\\n  # note\n  --subject x\n`],
+    ['-A takes a value, so "-Amt" is no -t', `gh pr merge 9 --merge -Amt@example.com\n`],
+    ['the boolean flags alone set no subject', `gh pr merge 9 -m -d --match-head-commit h --auto\n`],
+  ]
+  for (const [what, src] of NOT_WRITERS) probes.push([`null control: ${what}`, !wr(src).length])
   probes.push(['an argv list broken between "pr" and "merge" is still a merge call', wr('cmd = ["gh", "pr",\n       "merge", n, "--subject", s]\n').length === 1])
   probes.push(["null control: a sibling argv in the call's own table is not the call's", !wr('for argv in ((["gh", "pr", "merge", "1"], False),\n             (["gh", "issue", "edit", "1", "--body", "x"], False)):\n').length])
   probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
