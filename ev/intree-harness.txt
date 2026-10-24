@@ -1,0 +1,54 @@
+== base 
+scale=1.567 ratio=1.922 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.3681  (99.0 vs learned 156.7 W/K)
+RESULT reseed_both.lower_rel_err=0.2145  (329.2 vs learned 271.1 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (271.1 vs learned 271.1 W/K)
+RESULT snapshot.upper_rel_err=0.3681  (99.0 vs learned 156.7 W/K)
+RESULT snapshot.lower_rel_err=0.2145  (329.2 vs learned 271.1 W/K)
+RESULT meter_add.scale=1.5670 ratio=1.9220 samples=310/147
+== base --ratio 1.0
+scale=1.567 ratio=1.0 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_both.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT snapshot.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT snapshot.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT meter_add.scale=1.5670 ratio=1.0000 samples=310/147
+== base --scale 1.0 --ratio 1.0
+scale=1.0 ratio=1.0 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT reseed_both.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT snapshot.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT snapshot.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=310/147
+== head 
+scale=1.567 ratio=1.922 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_both.lower_rel_err=0.0000  (271.1 vs learned 271.1 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (271.1 vs learned 271.1 W/K)
+RESULT snapshot.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT snapshot.lower_rel_err=0.0000  (271.1 vs learned 271.1 W/K)
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=0/0
+== head --ratio 1.0
+scale=1.567 ratio=1.0 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_both.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT snapshot.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT snapshot.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K)
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=0/0
+== head --scale 1.0 --ratio 1.0
+scale=1.0 ratio=1.0 U=0.1 L=0.09
+RESULT reseed_both.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT reseed_both.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT reseed_split.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT reseed_split.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT snapshot.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
+RESULT snapshot.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K)
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=0/0
