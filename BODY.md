@@ -60,12 +60,21 @@ the lane's cost that the fold's wording implies.
 
 ## Head
 
-`a7e41d646087efadd230b22634808f52da83fb38`. The replay and the null drives ran
-against the production tree of the merge base `50af6174f53c`. This diff
-touches no production file:
-`git diff --stat 50af6174f53c a7e41d646 -- custom_components` prints nothing.
-A row is a function of the production and driver trees, so the matrix
-describes this head. Two runs used this branch before its last two edits:
+`46b17dd48ebbc08bf65bc59c0332d70265519b96`, a merge of `origin/main` at
+`73b69fe0a9fa` into the measured code head `a7e41d646087`. The merge changes
+none of this diff's files: `git diff a7e41d646 46b17dd48 -- tests/mutation_table.py dev/audit/harnesses`
+prints nothing; `tests/entities.py` merged without a conflict, main's own
+hunk beside the four new checks.
+
+The replay and the null drives ran against the production tree of the earlier
+merge base `50af6174f53c`. This diff touches no production file:
+`git diff --stat $(git merge-base origin/main HEAD)...HEAD -- custom_components`
+prints nothing. The merge brought main's own production edits
+(`const.py`, `coordinator.py`, `inputs.py`), so `matrix.tsv` describes the
+production tree at `50af6174f53c`, not at `73b69fe0a9fa`. That bounds the
+evidence, not the skip: the lane never reads `matrix.tsv`, it traces each run's
+own baseline, so a production edit cannot make a row it acts on stale.
+Two runs used this branch before its last two edits:
 - The lane A/B ran the branch's `tests/mutation_table.py` before the reach comment
   gained its one-run sentence. That delta is a comment.
 - The real drives ran `null_drive.py` before it inlined `repo_root` in place of
@@ -179,22 +188,29 @@ in `dhw_schedule.py`; the comment beside the tracer states that limit.
 
 ## Red checks
 
-`tests/entities.py` is red in this container on two checks, both present
-untouched at the merge base:
-- `gate-sweep.yml: on CI's completion, ...` (U0c)
-- `graders-head-copy's delivery_status step is red only when ...`
+`tests/entities.py` at this head, run on a macOS seat box under load (load
+average about 20), with `PYTHONPATH=tests/hastub`: `3 of 2429 ENTITY CHECKS FAILED`,
+all three in the heartbeat control's retry block, none in this diff:
+- `and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted`
+- `the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins`
+- `the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3`
 
-At `50af6174f53c` the result is `2 of 2425 ENTITY CHECKS FAILED`, the same two.
-At this head it is `2 of 2429 ENTITY CHECKS FAILED`, the same two, with the
-four new checks `ok`. Both run a workflow step under bash with a stand-in
-`python3` first on PATH, and here the real interpreter answers instead:
-`gate.py` prints `FAIL usage: ...` with and without the tracer. That is a
-container property, not this diff, so no cheaper detector is owed by this PR.
+The null control is the same command on a detached worktree of the merge base
+`73b69fe0a9fa`, on the same box minutes later: `4 of 2425 ENTITY CHECKS FAILED`,
+the same three plus `hb:positive_control survives one hung py-spy sample ...`.
+Head's red set is a subset of the base's, and the four new checks are `ok`.
+These are wall-clock and py-spy sampling checks this diff does not touch and
+main's merge did not touch, so no cheaper detector is owed by this PR.
+
+The two reds the earlier run named at `a7e41d646` in its own container,
+`gate-sweep.yml: on CI's completion, ...` and `graders-head-copy's delivery_status step ...`,
+are `ok` on this box at this head.
+
 `tests/harness_headers.py` at this head: `ALL 112 HARNESS HEADER CHECKS PASSED`. On the first run at this branch it went red, `1 of 112`, on `every inlined walk matches the canonical helper and no depth root remains`. The cause was this diff's two new harnesses taking `ROOT` from `parents[4]`; they now inline the canonical `repo_root`. The cheaper detector exists and was run: `harness_headers.inline_scan()`, in seconds, before the push.
 
 ## Forward-carry
 
-none: no stage that has not started changes what it must do because of this
+n/a: no stage that has not started changes what it must do because of this
 diff. The two facts a later editor of the lane needs are beside the code they
 bind, in the reach comment of `tests/mutation_table.py`: the tracer must stay
 inside the pinned program, and a row is one run's. R10-MUTATION-ANCHOR (the
