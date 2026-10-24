@@ -1,0 +1,6 @@
+170:          python3 -I tools/audit/seat/tmp_paths.py --check
+182:          python3 -I tools/audit/seat/ref_privacy.py --check
+227:          python3 -I tools/audit/seat/selftest_wiring.py --check
+549:          python3 -I tests/throwaway_git.py --check
+prepr steps: 29
+run_always: 4
