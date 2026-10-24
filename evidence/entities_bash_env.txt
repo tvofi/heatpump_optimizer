@@ -1,8 +1,0 @@
-== BASH_ENV=/etc/profile.d/hpo-toolchain.sh
-rc=1
-
-2 of 2425 ENTITY CHECKS FAILED
-== BASH_ENV=/tmp/claude-0/-home-user-heatpump-optimizer/b63ae904-a365-5294-9f90-1f7adbed6aaf/scratchpad/wt/../newprofile.sh
-rc=0
-
-ALL 2425 ENTITY CHECKS PASSED
