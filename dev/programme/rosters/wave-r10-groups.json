@@ -7411,7 +7411,10 @@
     "R10-FLOW-AUTOTRAIN",
     "R10-FLOW-MAIN-GATE",
     "R10-FLOW-DISPATCH",
-    "R10-CI-LAYOUT-P2"
+    "R10-CI-LAYOUT-P2",
+    "R10-FLY-RELAY-REVIEW-FF",
+    "R10-FLOW-ROSTER-FREEZE",
+    "R10-FLOW-BODY-ONLY"
    ],
    "carry": [],
    "architect_note": "",
