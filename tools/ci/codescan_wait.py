@@ -24,6 +24,8 @@ Exit 0 with the reds on stdout; 1 with `FAIL closed: <why>` (a rate limit includ
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
 import sys
 import time
@@ -221,6 +223,51 @@ def self_test() -> int:
     env = {"GITHUB_REPOSITORY": repo, "GITHUB_RUN_ID": "100"}
     check("12 main: a rate limit FAILs closed, rc 1", main(["--pr", pr, "--base", "main"], get=limited, env=env) == 1)
     check("13 null: main on the plant exits 0", main(["--pr", pr, "--base", "main"], get=world(A.THREE, plant, live), env=env) == 0)
+    reads = []
+
+    def finishing(path, params=None, headers=None):
+        if path.endswith("/runs/100/jobs"):
+            reads.append(path)
+        done = len(reads) > 2                      # the code run's codeql unit completes on the third read
+        return world(A.THREE, plant, live, runs={100: dict(code, status="completed" if done else "in_progress")},
+                     run_jobs={100: jobs() if done else [dict(j, status="in_progress") for j in jobs()]})(path, params, headers)
+
+    naps = []
+    try:
+        got = run(finishing, repo, 200, pr, "main", False, sleep=naps.append, now=iter(range(0, 10_000, 1)).__next__)
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("14 an edit run whose code run's codeql unit is still running waits at the 60 s poll, then lists (#2675)",
+          got == one and naps == [POLL_S, POLL_S], f" (got {got!r}, slept {naps})")
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = main(["--pr", pr, "--base", "main"], get=limited, env=env)
+    check("15 the FAIL line is on stderr, where the job log shows it, and stdout (the alert file) is empty",
+          rc == 1 and err.getvalue().startswith("FAIL closed: ") and out.getvalue() == "", f" (stdout {out.getvalue()!r})")
+    out, err = io.StringIO(), io.StringIO()
+    still = world(A.THREE, plant, live, runs={100: dict(code, status="in_progress")},
+                  run_jobs={100: [dict(j, status="in_progress") for j in jobs()]})
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = main(["--pr", pr, "--base", "main"], get=still, env=dict(env, GITHUB_RUN_ID="200"),
+                  sleep=lambda s: None, now=iter(range(0, 10_000, 100)).__next__)
+    check("16 a refusal of the wait itself is on stderr too, stdout empty",
+          rc == 1 and err.getvalue().startswith("FAIL closed: no run") and out.getvalue() == "", f" (stdout {out.getvalue()!r})")
+    clock = [0]
+    reads.clear()
+
+    def late_then_absent(path, params=None, headers=None):    # the unit finishes at 540 s; no analysis ever lands
+        if path.endswith("/runs/100/jobs"):
+            reads.append(path)
+        done = clock[0] >= 540
+        return world(A.THREE[1:], A.EMPTY, [], runs={100: dict(code, status="completed" if done else "in_progress")},
+                     run_jobs={100: jobs() if done else [dict(j, status="in_progress") for j in jobs()]})(path, params, headers)
+    try:
+        got = run(late_then_absent, repo, 200, pr, "main", False,
+                  sleep=lambda s: clock.__setitem__(0, clock[0] + s), now=lambda: clock[0])
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("17 WAIT_MAX_S bounds steps 1 and 4 together, not each", str(got).startswith("FAIL no analysis")
+          and clock[0] <= WAIT_MAX_S, f" (waited {clock[0]} s: {got!r})")
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
