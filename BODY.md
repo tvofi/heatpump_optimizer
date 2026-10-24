@@ -19,6 +19,8 @@ Alternatives considered:
 
 ## Head
 
+`b3dceb5cafc873698ab7e0967bfd624ff749b1ec` is the code head: one commit, `.github/workflows/governance.yml` (4 insertions, the wave-script restore list), on top of the measured head below. The figures below were measured at the earlier head and that commit touches no file they read.
+
 `acdc10b22e018087626b0d545c22cf8e99965b97` on merge base `50af6174f53c0f9bec3f705c3a4bb99615f71acc`, which was origin/main's tip at 2026-10-24T09:00Z (`git rev-parse origin/main` after `git fetch origin main`). Four commits: the change (`6106b480d`), the two harnesses' `inert_reads` entries for `tests/harness_headers.py` (`ci_predict.py --apply-inert`, the predictor's own repair), and the live harness. No production file (`custom_components/`) is touched.
 
 ## Mutation proof
@@ -83,7 +85,7 @@ none: the diff adds no production line. The CI mutation lane's scope is producti
 
 ## Forward-carry
 
-1. nudge.md step 3 says to leave budget-file and policy-path heads out of the queue and direct-merge them (step 7). The pitch queues them for the batch's serial route instead, where `--pre-flight` parks a budget raise or policy head the owner has not approved at that head. Step 3's hand procedure, which names `merge_train.py run` (serial, no admission routing), now disagrees with the mechanism it describes. The orchestrator or R10-POLICY-INSTRUMENTS should bring step 3 into line, or rule that the builder filters them. Control: diff nudge.md step 3 against `Train.admit_verdict` and `sweep_template.md` item (3); no contradiction remains. Not yet in that group's roster carry: this seat writes no roster. Carry: R10-POLICY-INSTRUMENTS
+1. nudge.md step 3 says to leave budget-file and policy-path heads out of the queue and direct-merge them (step 7). The pitch queues them for the batch's serial route instead, where `--pre-flight` parks a budget raise or policy head the owner has not approved at that head. Step 3's hand procedure, which names `merge_train.py run` (serial, no admission routing), now disagrees with the mechanism it describes. The orchestrator or R10-POLICY-ROLE-PACK should bring step 3 into line, or rule that the builder filters them. Control: diff nudge.md step 3 against `Train.admit_verdict` and `sweep_template.md` item (3); no contradiction remains. Not yet in that group's roster carry: this seat writes no roster. Carry: R10-POLICY-ROLE-PACK
 2. R10-ORCH-MACHINERY hosts the pitch as the beat's pitch job: `merge_train.py pitch --once --state-dir <dir> [--mandate M]`, last line `PITCH HELD|EMPTY|STARTED|REFUSED`, rc 2 only on REFUSED. Its `train-stop` read is `ledger.fold(ledger.events(home, log))` at the default ledger home. Nothing writes a `train-stop` yet, so the producer the beat adds must `ledger.py open train-stop <pr> <head>` on a `TRAIN STOPPED` line. The roster already carries this seam on R10-FLOW-AUTOTRAIN (the "Seam with R10-ORCH-MACHINERY" item). Carry: R10-ORCH-MACHINERY
 
 ## Friction
