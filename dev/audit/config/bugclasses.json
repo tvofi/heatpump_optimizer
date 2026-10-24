@@ -4468,6 +4468,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md"
       ]
+    },
+    "R10-RCA-CI-RATCHET-RUN-NAME": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tests/ci_ratchet.py keyed push runs on .name == \"CI\"; the umbrella's run-name rewrites .name, so once the newest 8 push runs were all umbrella runs (d5dc3e26a) the window held no measurable run and main went red",
+      "trigger": "assigned by the orchestrator: tests / ci-ratchet red on main from d5dc3e26a (2026-10-24)",
+      "date": "2026-10-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d) each unit was gated in its own tree and passed; a sibling unit's run-name changed the premise (the run's .name) after the reader was written",
+      "countermeasure": "none separate (recorded refusal): the fix keys on the run's workflow path; a job classifying its own run costs ~129 runner-s/day against a recurrence closed by the fix; barrier rejected by triage P52",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -4847,6 +4863,41 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-p2b-assembly-reader": {
+    "kind": "instrument",
+    "mechanism": "P2b assembly: a reader written and self-tested in one unit's tree meets a sibling unit's change when the units are assembled, and no gate before merge grades the combination. In the instance that shipped, ci_ratchet.py keyed push runs on .name == \"CI\" (correct in its own tree); the umbrella's run-name, from a sibling unit, rewrote .name, and the grade failed only once 8 umbrella push runs filled the window, which no PR run can show",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": null,
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a main merge into a reviewed branch reddening the head; here the units are assembled from separate trees, and 3 of the 4 incidents were caught by the assembly's own gates, the fourth only on main",
+    "aliases": [
+      "new: P2b assembly, a reader meets a sibling unit's change"
+    ],
+    "non_round_note": "Process incidents from the R10-CI-LAYOUT P2b assembly, not audit findings, not in register_rows.tsv, not counted in total. Triage P52 (2026-10-24) rejected a barrier: the 3-instance trigger has not fired for a listed-not-counted class, and neither candidate catches the instance that shipped. Reopen on a second multi-unit assembly failing the same way.",
+    "non_round_instances": [
+      "bd0d4d603 the cut-over's gate-at-head precondition read one check suite",
+      "69a26d2a2 the required-contexts record accepted one shape",
+      "168365196 two prepr refusals the Arm B probe found on the assembly",
+      "d5dc3e26a tests/ci_ratchet.py keyed push runs on .name, which the umbrella's run-name rewrites (main red from 02:36Z 2026-10-24)"
+    ],
+    "rca": [
+      "R10-RCA-CI-RATCHET-RUN-NAME"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
