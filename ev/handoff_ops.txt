@@ -1,0 +1,10 @@
+d4d3f5a19 roster_edit set-stage R10-FLY-CIPREDICT-LAYOUT (tools/audit/seat/roster_edit.py)
+dev/programme/rosters/wave-r10-groups.json
+c60d917ca roster_edit append-group R10-FLY-LEDGER-SAMPLE (tools/audit/seat/roster_edit.py)
+dev/programme/rosters/wave-r10-groups.json
+ce0520798 roster_edit set-after R10-ARCH-DOCS (tools/audit/seat/roster_edit.py)
+dev/programme/rosters/wave-r10-groups.json
+6a57b0a79 roster_edit append-carry R10-HEAT-METER (tools/audit/seat/roster_edit.py)
+dev/programme/rosters/wave-r10-groups.json
+78f195461 roster_edit append-carry R10-COP-GATE (tools/audit/seat/roster_edit.py)
+dev/programme/rosters/wave-r10-groups.json
