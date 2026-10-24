@@ -578,6 +578,12 @@ async function selfTest() {
   probes.push(['an argv list broken between "pr" and "merge" is still a merge call', wr('cmd = ["gh", "pr",\n       "merge", n, "--subject", s]\n').length === 1])
   probes.push(["null control: a sibling argv in the call's own table is not the call's", !wr('for argv in ((["gh", "pr", "merge", "1"], False),\n             (["gh", "issue", "edit", "1", "--body", "x"], False)):\n').length])
   probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
+  probes.push(['a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused',
+    wr('(cd repo) && gh pr merge 9 --merge --subject "Merge pull request #9 (x)"\n').length === 1])
+  probes.push(['every merge call in a file is read: a --subject on the second is refused, at its line', ((r) => r.length === 1 && r[0].includes('tools/x:2:'))(
+    wr('gh pr merge 1 --merge\ngh pr merge 2 --merge --subject "Merge pull request #2 (x)"\n'))])
+  probes.push(["null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's",
+    !wr('run(["gh", "pr", "merge", n,  # it\'s\n    "--merge"])\nother(["--subject", s])\n').length])
   probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
   probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
     !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
