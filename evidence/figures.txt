@@ -1,1 +1,55 @@
-      1 ACCEPT
+## reviewed head c24be17f8cd37cfd46f7fd2cad354c15db74d15a; origin/main 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec; merge-base e97f5749b441b282e43bd99dbcbb762e9d10a369
+## merge-tree --write-tree origin/main c24be17f8cd37cfd46f7fd2cad354c15db74d15a
+c3c76836b800281ff37e7e0993353f93e41cc3cb
+rc=0
+## update_pr.sh checked out elsewhere
+50:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
+## update_pr.sh sweep/push
+28:M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
+30:WT=$P/upd-${BR//\//-}
+45:OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
+48:  git -C $o checkout -q --detach
+77:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
+## open_pr.sh _push
+6:# Successor of handoff_push.sh's open path: always merges origin/main, names the roster group in the row.
+55:if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+58:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
+70:if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+71:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 &
+## handoff_push.sh push_app / commit_row / update arm
+13:# The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
+100:# trap reaps it, and each push runs asynchronously (push_app) so an INT does not wait behind it.
+113:push_app() { # <tail count>: the push, asynchronously into its log; its REFUSE/PUSHED lines, printed and in PUSH_OUT
+166:if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # update an open PR to a new code head
+168:  ( cd "$WT" && git fetch -q origin "$BR" && git reset -q --hard "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
+179:  push_app 2  # mut:push-update
+183:if [ -d "$WT" ]; then git worktree remove --force "$WT"; git branch -D "$BR" >/dev/null 2>&1; fi  # a refused earlier attempt, no PR
+197:# Never `$(push_app ...)`: the shell would wait on that subshell in the foreground, and an INT behind it.
+198:push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open
+204:commit_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")" >/dev/null || exit 1
+212:push_app 1  # mut:push-row
+## app_push.sh committed-tip gate
+482:  tip=$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null) \
+484:  [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
+861:st "$(grep -c 'is not the committed tip' "$W/tipmoved/err")" 1 "naming the mismatch"
+## merge_train.py existing --free-holders
+    def free_holder(self, pr: int, wt: Path, br: str) -> None:
+        """`--free-holders`: the recarry's `worktree add` failed; when the
+        branch is held by a worktree `freeable` clears, detach that worktree
+        (its files stay; `git -C <holder> switch <br>` restores it) and add
+        again. Any other case raises today's HOLDER refusal, its reason
+        appended."""
+        holder = self.branch_holder(br)
+        why = "--free-holders is off" if not self.free_holders else (
+            "no worktree holds it" if holder is None else self.freeable(holder, br))
+        if why is None and self.ok("git", "-C", holder, "checkout", "-q", "--detach") \
+                and self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
+            self.log(f"#{pr} recarry [HOLDER] freed: {holder} held {br}, clean at origin/{br}; "
+                     f"detached it (restore: git -C {holder} switch {br})")
+            return
+        s = self.holder_refusal(wt, br)
+        if s.cls and self.free_holders:
+            s.why += f" -- not freed: {why or 'the detach or the second add failed'}"
+        raise s
+
+    @staticmethod
