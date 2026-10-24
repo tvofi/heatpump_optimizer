@@ -1,0 +1,35 @@
+head 583219fa8a44c79e038ae091ce907dafa3e847d0 base origin/main 50af6174f53c0f9bec3f705c3a4bb99615f71acc
+## roles diff since merge base (empty = current)
+0
+## merge-tree
+17f963c4eabd4fac5f3231d35281141617c8b0d4
+exit=0
+## diff stat (three-dot)
+ dev/programme/delivery/2689.md    |   1 +
+ dev/programme/triage/s6-batch2.md | 283 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 284 insertions(+)
+## VERSION/manifest/notes touched?
+0
+## verdict counts
+      4 Verdict: ACCEPT
+      2 Verdict: DEFER
+      2 Verdict: REJECT
+8
+## P49
+14
+48
+## P52 times: TZ=UTC git log -1 --format=%cI, then UTC via %cd
+69a26d2a2 2026-10-23T09:29:46+02:00 2026-10-23T07:29:46+00:00
+bd0d4d603 2026-10-23T09:31:44+02:00 2026-10-23T07:31:44+00:00
+168365196 2026-10-23T09:53:28+02:00 2026-10-23T07:53:28+00:00
+d5dc3e26a 2026-10-24T04:05:44+02:00 2026-10-24T02:05:44+00:00
+b927f431a 2026-10-24T01:53:31+02:00 2026-10-23T23:53:31+00:00
+## P49 chain: files added under delivery/ by each record merge
+#2676 f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c: dev/programme/delivery/2676.md  | Merge pull request #2676 from tvofi/record/autofix
+#2679 144fb4f900768195c64469f9647ece583a54a52b: dev/programme/delivery/2679.md  | Merge pull request #2679 from tvofi/record/autofix
+#2680 d05a44c63647fe62da28b3951a87a4b3e7107319: dev/programme/delivery/2680.md  | Merge pull request #2680 from tvofi/record/autofix
+#2682 5c1980cbac23fbb68c271d5da81a46e77cb5e1cd: dev/programme/delivery/2682.md  | Merge pull request #2682 from tvofi/record/autofix
+#2684 d5dc3e26a3cc297a6888c07961bff74d70b7f60e: dev/programme/delivery/2684.md  | Merge pull request #2684 from tvofi/record/autofix
+#2685 15f0b5924f3c2a75befe984d156cb3e602effd2e: dev/programme/delivery/2685.md  | Merge pull request #2685 from tvofi/record/autofix
+#2686 50af6174f53c0f9bec3f705c3a4bb99615f71acc: dev/programme/delivery/2686.md  | Merge pull request #2686 from tvofi/record/autofix
+merge-tree vs origin/main 0c36407610e372ec73cf03b757b07b5ef7e352dc: 4fd9868ed1ae9f3db9ea376ae77594c90ef09390 exit=0

@@ -1,0 +1,17 @@
+P45 ACCEPT
+P46 ACCEPT
+P47 DEFER
+P48 DEFER
+P49 ACCEPT
+P50 REJECT
+P51 ACCEPT
+P52 REJECT
+P53 None
+carry #P45 None
+carry #P46 None
+carry #P49 None
+carry #P51 None
+carry #P47 dev/programme/triage/s6-batch2.md#P47 is not an ACCEPT ruling (DEFER)
+carry #P50 dev/programme/triage/s6-batch2.md#P50 is not an ACCEPT ruling (REJECT)
+carry #P53 dev/programme/triage/s6-batch2.md#P53 is not an ACCEPT ruling (no such entry)
+MUTANT P45->REJECT dev/programme/triage/s6-batch2.md#P45 is not an ACCEPT ruling (REJECT)
