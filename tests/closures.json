@@ -3570,6 +3570,7 @@
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
    "dev/audit/harnesses/r10_family_replay.mjs",
    "dev/audit/harnesses/r10_field_coverage_paths.sh",
+   "dev/audit/harnesses/r10_flow_autotrain_mutants.sh",
    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
