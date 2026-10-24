@@ -893,17 +893,17 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
 
 
 def _interval_measured_heat_kw(coord: Any) -> float | None:
-    """#2016: the flow meter's kW for the interval a learner replays, or None.
+    """#2016, #2507: the measured heat kW for the interval a learner replays.
 
-    ``None`` leaves the model inferring Q_hp from the draw and its own COP,
-    which is what every install did before the flow key existed. Two questions
-    decide it, and both are somebody else's answer already given:
+    The thermal meter's reading or the flow meter's estimate, else ``None``,
+    which leaves the model inferring Q_hp from the draw and its own COP. Two
+    questions decide it, and both are somebody else's answer already given:
 
     * was anything measured this cycle? ``flow_meter.read_heat_output_kw``
-      owns that and every refusal in it -- no flow key, a power or a frequency
-      signal that outranks the meter, a stale, negative or unknown-unit
-      reading, and a supply no warmer than the return. Nothing here restates
-      one of them;
+      owns that and every refusal in it -- which source answers (a thermal
+      meter outranks the flow meter, which a power or frequency signal
+      outranks), a stale, negative or unknown-unit reading, and a supply no
+      warmer than the return. Nothing here restates one of them;
     * was the interval the house's? The meter reads one sum, so a hot-water
       charge is heat the rooms did not get, and these two learners persist
       what they conclude. The commanded split is the tree's own answer to what
