@@ -185,7 +185,8 @@ sweep's standing-seat liveness step keep them alive.
   agent's environment and reads neither the profile nor `BASH_ENV`, so the
   toolchain reaches it only through the environment's variables, which
   `--variables` prints and the setup run's last line names; `--check`, in a
-  seat: `OK`, or `REFUSE` naming them. The profile prepends `venv-ci/bin` only
+  seat: `OK` (exit 0) only when all three hold, or `REFUSE` naming them (exit
+  1). The profile prepends `venv-ci/bin` only
   when absent, so a PATH a caller narrowed is left alone; `--self-test`: the
   profile, variables and check arms. Refusal: a missing checkout warns and
   exits 0, so a session still starts, without pins.

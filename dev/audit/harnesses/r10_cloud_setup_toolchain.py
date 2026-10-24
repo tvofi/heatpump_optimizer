@@ -17,18 +17,25 @@ merge base and the head run through the same arms:
              agent's shell (n/a where the script has no such mode)
   nested     #2452: under BASH_ENV, a nested `PATH=<stub>:$PATH bash -c`
              must still find the stub's python3 first
+  check-ok   `cloud-setup.sh --check` under the printed variables: OK, rc 0
+  check-sys  the same with PATH the image's (system python3) but
+             HPO_TYPING_PYTHON and OPENBLAS_CORETYPE set: REFUSE, rc 1, or
+             the check reads the defect as OK (n/a without a --check mode)
 
   python3 -I dev/audit/harnesses/r10_cloud_setup_toolchain.py \\
       --script <cloud-setup.sh> [--prefix /opt/hpo]
 
 Needs an installed prefix (venv-ci with numpy). Prints one `ARM <name>: ...`
-line per arm, then `verdict: toolchain reaches the agent's shell: yes|no`.
+line per arm, then `verdict: toolchain reaches the agent's shell: yes|no`;
+`yes` also needs a --check, where the script has one, that separates the two
+check arms.
 """
 
 import argparse
 import hashlib
 import os
 import re
+import shlex
 import socket
 import subprocess
 import tempfile
@@ -84,15 +91,25 @@ def main() -> int:
             env = dict(line.split("=", 1) for line in r.stdout.splitlines())
             arms["variables"] = shell({**bare, **env}, PROBE, True)
         else:
+            env = {}
             arms["variables"] = "n/a (no --variables mode)"
+        checks = "--check)" in script and env
+        check = f"bash {shlex.quote(args.script)} --check; echo rc=$?"
+        sys_env = {k: v for k, v in env.items() if k != "PATH"}
+        arms["check-ok"] = shell({**bare, **env}, check, True) if checks else "n/a (no --check mode)"
+        arms["check-sys"] = shell({**bare, **sys_env}, check, True) if checks else "n/a (no --check mode)"
         stub = Path(td) / "stub"; stub.mkdir()
         (stub / "python3").write_text("#!/bin/sh\necho stub\n"); (stub / "python3").chmod(0o755)
         live = {**remedy, "PATH": f"{args.prefix}/venv-ci/bin:{IMAGE_PATH}"}
-        arms["nested"] = shell(live, f'PATH="{stub}:$PATH" bash -c "command -v python3"', False).replace(td, "<tmp>")
+        arms["nested"] = shell(live, f'PATH="{stub}:$PATH" bash -c "command -v python3"', False)
+        arms = {k: v.replace(td, "<tmp>") for k, v in arms.items()}
     print(f"script sha1 {hashlib.sha1(script.encode()).hexdigest()} (~/.bashrc hook: {'yes' if hooked else 'no'})")
     for k, v in arms.items():
         print(f"ARM {k}: {v}")
     ok = arms["variables"].endswith("numpy-ok") or arms["remedy"].endswith("numpy-ok")
+    if checks:
+        ok = ok and arms["check-ok"].endswith("rc=0") and " OK " in arms["check-ok"] \
+            and arms["check-sys"].endswith("rc=1") and "REFUSE" in arms["check-sys"]
     print(f"verdict: toolchain reaches the agent's shell: {'yes' if ok else 'no'}")
     return 0
 

@@ -30,21 +30,27 @@
 # narrowed (a test's stub directory ahead of the venv) is left alone.
 #
 #   cloud-setup.sh --variables   print those variables, one NAME=value a line
-#   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's, else
-#                                REFUSE naming the variables; exit 0 or 1
+#   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's,
+#                                HPO_TYPING_PYTHON is executable and
+#                                OPENBLAS_CORETYPE is the pinned core type
+#                                (the golden fixtures' BLAS floats depend on
+#                                it); else REFUSE naming the variables; exit 0
+#                                or 1
 #   cloud-setup.sh --self-test   the profile, variables and check arms, in a temp dir
 set -euo pipefail
 
 REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
 PREFIX=${HPO_PREFIX:-/opt/hpo}
 PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}
+CORETYPE=Haswell
+SELF=$(readlink -f "${BASH_SOURCE[0]}")
 
 write_profile() { # profile, prefix
   cat > "$1" <<EOF
 # Written by tools/audit/seat/cloud-setup.sh, for login shells.
 case ":\$PATH:" in *":$2/venv-ci/bin:"*) ;; *) export PATH="$2/venv-ci/bin:\$PATH" ;; esac
 export HPO_TYPING_PYTHON="$2/venv-ha/bin/python"
-export OPENBLAS_CORETYPE=Haswell
+export OPENBLAS_CORETYPE=$CORETYPE
 EOF
 }
 
@@ -53,12 +59,13 @@ variables() { # prefix: the environment variables a seat's shell needs
   IFS=: read -ra parts <<< "$PATH"
   for d in "${parts[@]}"; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
   printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
-    "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" OPENBLAS_CORETYPE=Haswell
+    "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE"
 }
 
 check() { # prefix
   local py; py=$(command -v python3 || true)
-  if [ "$py" = "$1/venv-ci/bin/python3" ] && [ -x "${HPO_TYPING_PYTHON:-}" ]; then
+  if [ "$py" = "$1/venv-ci/bin/python3" ] && [ -x "${HPO_TYPING_PYTHON:-}" ] \
+    && [ "${OPENBLAS_CORETYPE:-}" = "$CORETYPE" ]; then
     echo "cloud-setup check: OK python3 is $py"; return 0
   fi
   echo "cloud-setup check: REFUSE python3 is ${py:-absent}, not $1/venv-ci/bin/python3;" \
@@ -81,7 +88,7 @@ self_test() (
   write_profile "$W/profile.sh" "$P"
   base="$W/sys:/usr/bin:/bin"
   run() { env -i HOME="$W" PATH="$base" "$@" </dev/null; }
-  fns="$(declare -f variables check)"
+  fns="CORETYPE=$CORETYPE; $(declare -f variables check)"
 
   out=$(run bash -c 'python3')
   [ "$out" = system ]; expect "control: a non-login bash with no variables set gets the system python3 (the defect)" $?
@@ -93,10 +100,23 @@ self_test() (
   run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
   expect "check is OK under the printed variables" $?
   out=$(run bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
-  [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python"*) true ;; *) false ;; esac
+  [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python OPENBLAS_CORETYPE=$CORETYPE"*) true ;; *) false ;; esac
   expect "check refuses without them, naming each variable" $?
-  run "${vars[0]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  run "${vars[0]}" "${vars[2]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
   [ $? = 1 ]; expect "check refuses venv-ci's python3 without HPO_TYPING_PYTHON" $?
+  out=$(run "${vars[1]}" "${vars[2]}" bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
+  [ "$rc" = 1 ] && case $out in *"REFUSE python3 is $W/sys/python3,"*) true ;; *) false ;; esac
+  expect "check refuses the system python3 beside an executable HPO_TYPING_PYTHON" $?
+  run "${vars[0]}" "${vars[1]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  [ $? = 1 ]; expect "check refuses without OPENBLAS_CORETYPE" $?
+  run bash -c ". \"\$2\"; $fns; check \"\$1\"" _ "$P" "$W/profile.sh" >/dev/null
+  expect "check is OK in a shell that sourced the profile" $?
+  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
+  [ "$rc" = 0 ] && case $out in *" OK "*) true ;; *) false ;; esac
+  expect "cloud-setup.sh --check exits 0 under the printed variables" $?
+  out=$(run HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
+  [ "$rc" = 1 ] && case $out in *"REFUSE"*) true ;; *) false ;; esac
+  expect "cloud-setup.sh --check exits 1 without them" $?
   out=$(run bash -c '. "$1"; . "$1"; echo "$PATH"' _ "$W/profile.sh")
   [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
   out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
