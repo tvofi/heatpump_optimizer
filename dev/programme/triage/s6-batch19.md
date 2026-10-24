@@ -1,0 +1,29 @@
+# Proposal triage, session s6, batch 19 (P88-)
+
+Rulings from the s6 `proposals.md`, collected 4 or 5 to a pull request under
+tvofi's batching rule of 2026-10-24 (one PR per ruling only when it unblocks
+critical-path work). Numbering continues after `s6-batch18.md` (P87, #2763,
+unmerged at this base).
+
+A roster op citing an ACCEPT below resolves only once this file is on the
+roster branch or origin/main (`roster_edit.py` reads the ruling from there).
+
+## P88: record PRs batch 4-5 rows instead of one per push to main (S6-V23)
+Verdict: ACCEPT -> a carry into R10-FLOW-RECORD-PITCH (the existing group that owns `record-autofix`'s open-and-automerge step and the record-chain carry from P49): on push events, open or update the record PR only once its plan holds at least 4 rowless merges or the oldest is 8 first-parent commits old; schedule and dispatch runs always flush.
+Source: s6 `proposals.md` `## V23`; owner ask (tvofi 2026-10-24): "the triage, record and roster prs does not need to create prs for every entry, batch 4-5 entries together". GitHub calls: 1 (the PR search below).
+Instances:
+- `gh pr list --state all --search 'record: delivery rows created:>=2026-10-24'` returns 37 record PRs opened today, 24 of them merged by the time of the read.
+- `git log --first-parent --grep record/autofix` since 12:00Z shows the shape: 12 record merges, each rowing 2 to 10 PRs, and almost every one rowing the previous record PR's own number (for example `e45c1546` rows #2754, which `a260e563` merged). That is the record chain P49 already carried to this group: each record merge is itself a rowless merge, which the next push turns into another record PR.
+Each record PR costs a gate run, a train `--bot-prs` sweep slot and a push to main. Every push to main moves main under every open head, and a train batch in flight answers that with a re-prove of about 30 to 45 min.
+What the tree already does:
+- `nightly.yml`'s `record-autofix` runs on every push to main, plans rows with `record_row.py --plan`, keeps one job-owned `record/autofix` branch (force-with-lease), and leaves an open record PR alone when `record_row.py --automerge-check --hold` passes, so it merges itself.
+- `tests/delivery_status.py` calls a rowless merge OVERDUE only after `STALE_AFTER_COMMITS = 12` first-parent commits, a unit measured on batches (longest 8, median 4); anything under that is pending, not red.
+- `stamp.py`'s rule 5 ("rows") refuses a tag while any merged PR in the window lacks a row (`delivery_status.py --require-rows`).
+Cost: S inside R10-FLOW-RECORD-PITCH. About 10 to 20 lines in the `record-autofix` step: a count of the plan's rows (`record_row.py --row-numbers` already prints them), the first-parent age of the oldest, and `github.event_name`. Add an entities row and a harness case. No new file, no API calls, no Pi cost.
+Risk, ruled:
+- (a) Delivery-status lag: a row lands up to 8 first-parent commits after its merge. That is inside the 12-commit OVERDUE bound with a margin of 4, so the record never goes red from batching.
+- (b) The stamp: rule 5 needs every row before the tag. The stamp step therefore dispatches `record-autofix` first and waits for its merge, which works because a dispatch run flushes whatever the count. That step goes in the carry.
+- (c) HANDOVER trap 15 ("one record per merge has a bounded truth condition"): #531 failed because one record PR stayed open for 20 hours while 31 merges landed under it. Here the bound is explicit (8 commits), the PR is generated and never hand-edited, and once opened it still merges through the existing automerge guard. The rows stay one per merge; only the PR's timing batches. The orchestrator should re-read trap 15 and the rule file's phrase "an immediate record PR" (`delivery-status-tracking.md`) against this change. Editing either is policy and needs owner approval, so it is not part of the carry.
+- (d) The group is held behind R10-FLOW-MQ-PROBE (owner card 4, a carry on the group). The owner's new ask may be a reason to release that hold for this narrow part; that is the orchestrator's or the owner's call, not this ruling's.
+Binding: about 37 record PRs a day become roughly 8 to 10, which removes some 28 gate runs, sweep slots and pushes to main a day, along with the re-proves those pushes cause. That costs about 15 lines in a step the group already owns, against a lag bounded under the existing OVERDUE line. The record-chain fix already carried from P49 compounds the gain, because a record merge alone then owes nothing and falls under the count.
+Carry text (for `roster_edit.py append-carry R10-FLOW-RECORD-PITCH`, citing `triage: dev/programme/triage/s6-batch19.md#P88`): "Batch record PRs (tvofi 2026-10-24: batch 4-5 entries). In .github/workflows/nightly.yml `record-autofix`, on a `push` event, open or update the record PR only when the plan (`record_row.py --plan`, counted with `--row-numbers`) holds at least 4 rowless merges, or the oldest rowless merge has at least 8 first-parent commits after it on main. That keeps a margin of 4 under `STALE_AFTER_COMMITS = 12` in tests/delivery_status.py, so batching never turns the record OVERDUE. `schedule` and `workflow_dispatch` runs flush at any count. The stamp step dispatches `record-autofix` and waits for its merge before tagging, because tools/release/stamp.py's rule 5 refuses rowless merges. Basis: 37 record PRs opened on 2026-10-24, each costing a gate run, a `--bot-prs` sweep slot and a push to main that can force a train re-prove of about 30 to 45 min. Most of them row the previous record PR's own merge (the record chain P49 already carried here). Controls: a harness case where 3 rowless merges on a push open nothing (null: 4 open one, and a dispatch with 1 opens one); a case where an oldest merge 8 commits old opens at a count of 2; one mutant that drops the event check. After merge, a day's record PR count against 2026-10-24's 37."
