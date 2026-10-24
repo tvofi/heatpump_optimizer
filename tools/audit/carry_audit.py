@@ -678,10 +678,13 @@ def _self_test() -> int:
     rp = Path(gtmp.name, roster_lib.ROSTERS_DIR, "wave-r10-groups.json")
     rp.parent.mkdir(parents=True)
 
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_init  # noqa: E402  (the one way to build a scratch repo)
+    genv = throwaway_git_init(gtmp.name, "-q")
+
     def git(*argv: str) -> None:
-        subprocess.run(["git", "-C", gtmp.name, "-c", "user.name=t", "-c", "user.email=t@t", "-c",
-                        "commit.gpgsign=false", *argv], capture_output=True, check=True)
-    git("init", "-q")
+        subprocess.run(["git", "-C", gtmp.name, "-c", "commit.gpgsign=false", *argv], env=genv,
+                       capture_output=True, check=True)
     for refname, data in (("refs/remotes/" + rnd[0], rnd[1]), ("refs/remotes/origin/main", roster)):
         rp.write_text(json.dumps(data))
         git("add", "-A")
