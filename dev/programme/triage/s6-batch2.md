@@ -229,13 +229,15 @@ owner approves its merge (CLAUDE.md, "Where the policy is").
 Verdict: REJECT (the barrier); the class entry is not a roster carry (route below)
 Source: s6 proposals.md item S6-S (08:55Z, orchestrator).
 Instances: 4 incidents, 0 judged survivors. Three are fixes inside the
-R10-CI-LAYOUT P2b assembly, committed 2026-10-23 09:29Z-09:53Z, before the
-assembly's first push run on main (`b927f431a`, 23:53Z, per the RCA below):
-`69a26d2a2` (the required-contexts record accepts either whole shape),
-`bd0d4d603` (the gate-at-head precondition reads every check suite) and
-`168365196` (two prepr refusals "the Arm B probe found on the assembly") --
+R10-CI-LAYOUT P2b assembly, committed 2026-10-23 07:29:46Z, 07:31:44Z and 07:53:28Z (UTC; `git log`
+prints +02:00 local time, `TZ=UTC git log -1 --format=%cI <sha>`), before the
+assembly's merge commit `b927f431a` (2026-10-23T23:53:31Z, the first umbrella push run on main, per the RCA below):
+`69a26d2a2` (07:29:46Z, the required-contexts record accepts either whole shape),
+`bd0d4d603` (07:31:44Z, the gate-at-head precondition reads every check suite) and
+`168365196` (07:53:28Z, two prepr refusals "the Arm B probe found on the assembly") --
 `git log -1 --format=%ad%n%s <sha>`. The fourth is the one that reached main:
-`tests / ci-ratchet` red from `d5dc3e26a` (02:36Z) to at least 08:35Z, 6.0 h
+`tests / ci-ratchet` red from `d5dc3e26a` (committed 2026-10-24T02:05:44Z; its ci-ratchet
+grade, the first red, ran at 02:36Z per the RCA) to at least 08:35Z, 6.0 h
 and 5 red push runs, because `ci_ratchet.py` keyed on a run's `.name` that a
 sibling unit's `run-name:` rewrote
 (`dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md` at
@@ -262,9 +264,10 @@ earlier unit reads, ended with P2b (the cut-over is live since 2026-10-24
 00:34Z). On the audit-class rule: `defect-root-cause.md` counts judged
 survivors and sweep seams; these are process incidents found by probes, which
 `bugclasses.json` carries as `non_round_instances`, "listed, not counted"
-(`_counting`), as the existing class `N-postreview-merge-red` does (total 0,
-`non_round_instances` 15, `rca` listed, `barrier` null, `trigger` all false);
-so the three-instance trigger has not fired, and the cost test, which the rule
+(`_counting`), as the existing class `N-postreview-merge-red` does (`kind` instrument, `total` 0,
+`non_round_instances` 15, `rca` `R9-RC-POSTREVIEW-MERGE`, `barrier` null, and
+`trigger` `per_round`, `cross_round` and `barriered_any` false, `class_rca_on_record`
+true); the three-instance triggers (`per_round`, `cross_round`) have not fired, and the cost test, which the rule
 says picks the barrier's form, picks none here. What would change the answer:
 a second assembly of independently-gated units (the merge-queue adoption after
 `R10-FLOW-MQ-PROBE` would be one) that fails the same way, at which point the
@@ -272,9 +275,9 @@ RCA's own suggestion applies, a `plan-review.md` brief line naming the readers
 of workflow-run fields to check against the post-assembly API answer.
 Registration: the proposer asks for a `bugclasses.json` entry either way. That
 is a data row on the RCA seat's own pull request, in the shape of
-`N-postreview-merge-red` (`kind` process, `total` 0, the four incidents under
+`N-postreview-merge-red` (`kind` instrument or process as the RCA seat judges, `total` 0, the four incidents under
 `non_round_instances`, `rca` `R10-RCA-CI-RATCHET-RUN-NAME`, `barrier` null,
 `status` open); the RCA says it did not register them (its section 5). No live
 roster group owns that RCA, so there is no carry; the orchestrator asks that
 seat to add the row before its pull request merges. `R10-FLY-INERT-LOAD-TIME`
-(in-progress) also edits that file, so the row should not ride on it.
+(in-progress at origin/main) also edits that file, so the row should not ride on it.
