@@ -1,8 +1,9 @@
 Closes #2234. This fully delivers it: the finding D14-s3-02 and all six sweep
 instances the issue lists (energy, supply, return, flow, humidity, and power and
 mode beyond the finding) are closed in this diff (`## Figures`, instance probe
-and class enumerator), and the countermeasure of the class's RCA,
-`dev/audit/rca/R10-N-staleness.md`, ships here as the declaration check.
+and class enumerator). The class's RCA, `dev/audit/rca/R10-N-staleness.md`,
+gets its countermeasure here as the declaration check, in a form that departs
+from the one the RCA proposed (below).
 
 A source that reports only on change writes nothing while its value holds, so
 its age measures how still the value is, not whether the source is alive.
@@ -41,9 +42,17 @@ architect note asks:
   flue, solar) and PV (no reader applies it; class P6).
   `tests/features.py`'s `_r10st_same` names each of them with its reason. The
   check refuses an undeclared key, an equal key left unnamed, and a named key
-  that is not equal. This is the RCA's countermeasure
-  (`dev/audit/rca/R10-N-staleness.md` at d23205d13): a declared quantity a
-  check compares, not a comment.
+  that is not equal. This departs from the countermeasure that
+  `dev/audit/rca/R10-N-staleness.md` (at d23205d13) proposed. The RCA proposed
+  a numeric quiet-interval table beside the limit and a check refusing a limit
+  below it. The shipped check instead forces a per-key on-change decision.
+  The 7 overridden keys carry a number the check compares. For the 19 keys
+  kept equal (26 - 7), the decision rests on a reason string in
+  `_r10st_same`, and no quiet number is compared. The RCA's non-vacuity clause
+  is not covered either: it counts the module `*_MAX_AGE_MINUTES` constants
+  (DHW inlet, MODE_LAST_GOOD) beside the table. The detector is demonstrated
+  by the #2683 r1 review's plants: a planted undeclared key fails 1 check, and
+  the power limit set back to 30.0 fails 3.
 
 Alternatives rejected:
 
@@ -80,6 +89,10 @@ Each now re-reports before going silent, as a polled source does:
 None of them lost an assertion.
 
 ## Head
+
+`07b83e9b28ab3a21e3a1ad8d9b38eea27ee707e0` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2683.md`. The authored code head is `5d5b807e05b50e7d80bd17a61fbba37e2153ae96`.
+
+`a23179207dc3a417c69e1b1095128a61913ef793` merges origin/main `d05a44c63` into the authored code head `5d5b807e05b50e7d80bd17a61fbba37e2153ae96` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
 
 5d5b807e05b50e7d80bd17a61fbba37e2153ae96 on merge base
 144fb4f900768195c64469f9647ece583a54a52b (origin/main's tip,
@@ -301,9 +314,6 @@ Locally the first gate run at 61d9fdb09 had `tests/features.py` and `tests/entit
 
 ## Forward-carry
 
-The seat writes no branch but its return refs, so the orchestrator lands each
-of these into the named brief:
-
 1. R10-HEAT-METER (next on `const.py`) adds a delivered-heat energy entity. A
    new key in `INPUT_MAX_AGE_MINUTES` now needs its on-change decision in the
    same PR. Either it overrides `INPUT_ON_CHANGE_MAX_AGE_MINUTES` (a
@@ -313,14 +323,14 @@ of these into the named brief:
    check is red at a6620c30a and green at this head. A test of a dead meter
    must re-report before going silent (`last_reported` past `last_updated`).
    An aged on-change stamp now reads as a quiet value, not a dead sensor.
-   Carry: R10-HEAT-METER
+   Landed in this group's `carry` (the entry starting "From R10-INPUT-STALENESS (#2683") on `handoff/audit-r10-roster` at 8d6527c07. Carry: R10-HEAT-METER
 2. R10-ARCH-SHAPES (later on `inputs.py`) adds a power-kW reader there. The
    default age limit is now chosen per read by `age_limit_for` inside
    `InputReader._begin`, and a new stamp reader in `inputs.py` is refused by
    `tests/entities.py`'s P2 `state_age` registry unless it is dispositioned
    (`source_polls` is, as the re-report fact). The `_RANGE_KEYS` comment that
    group also holds is fixed here (`git grep -n ATTR_MIN_TEMP custom_components`
-   returns nothing at the head). Carry: R10-ARCH-SHAPES
+   returns nothing at the head). Landed in this group's `carry` (the entry starting "From R10-INPUT-STALENESS (#2683") on `handoff/audit-r10-roster` at 57bb4b33e. Carry: R10-ARCH-SHAPES
 
 ## Friction
 
@@ -331,3 +341,4 @@ of these into the named brief:
 - dev/governance/roles/fixer.md#3: stale: the sweep's `probe.py HUMIDITY` arm reads a
   module constant this fix deletes, so it cannot run at the head; the
   in-tree census replaces it. Carry: dismissed: a round record recounts and stays as written
+
