@@ -5226,7 +5226,9 @@
    "reviewerModel": "opus",
    "effort": "medium",
    "after": [],
-   "carry": [],
+   "carry": [
+    "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/harnesses/r10_demand_overbook.py (lands with R10-DEMAND-OVERBOOK) and fix in the learner's admission seam."
+   ],
    "issues": [
     2508
    ],
