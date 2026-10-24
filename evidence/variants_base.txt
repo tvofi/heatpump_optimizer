@@ -15,3 +15,4 @@ RESULT outparam_append=708
 RESULT outparam_attr=708
 RESULT outparam_extend=708
 RESULT callback=708
+rc=0
