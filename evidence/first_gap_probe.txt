@@ -1,4 +1,0 @@
-== head
-"gh \\\n  pr merge 9 --merge --subject \"Merge pull request #9 (x)\"" {"calls":["f"],"bad":["f:1"]}
-== head with first-gap continuation arm dropped
-"gh \\\n  pr merge 9 --merge --subject \"Merge pull request #9 (x)\"" {"calls":[],"bad":[]}
