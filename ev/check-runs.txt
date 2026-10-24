@@ -1,0 +1,5 @@
+Head 859b74ba8ab4d0020025895b73a53b3833b5e74c, read from the PR check-runs API (65 runs, all completed).
+Red: gate 120903782777 (run 40098427045, KIND code, 14:58:10-14:58:34Z) and gate 120903766312 (run 40098427428, KIND edit, 14:58:09-14:58:32Z).
+Both logs: "FAIL run(s) [40104542321] at this head are still being judged; their gate decides".
+Run 40104542321: gate 120904460153 success (14:59:35-15:00:02Z); pr-contract 120904105145 success (started 14:58:37Z, after the last red concluded at 14:58:34Z).
+Every other run: success or skipped.
