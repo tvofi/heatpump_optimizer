@@ -40,7 +40,6 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-FLOW-ROSTER-FREEZE (wave 1, 2 satisfied edge(s))
 - R10-FLOW-WIP (wave 1, 1 satisfied edge(s))
 - R10-FLY-CAP-LINE (wave 1, 0 satisfied edge(s))
-- R10-FLY-CARRY-DOC-CONTEXT (wave 1, 1 satisfied edge(s))
 - R10-FLY-CIPREDICT-LAYOUT (wave 1, 0 satisfied edge(s))
 - R10-FLY-CLOUD-SETUP-TOOLCHAIN (wave 1, 0 satisfied edge(s))
 - R10-FLY-DAEMONIZE-ARGV (wave 1, 0 satisfied edge(s))
@@ -70,5 +69,4 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-SAV-COMFORT (wave 1, 1 satisfied edge(s))
 - R10-STRUCTURE-ALIAS (wave 1, 0 satisfied edge(s))
 - R10-THERMAL-POWER-OPTION (wave 1, 0 satisfied edge(s))
-- R10-TRAIN-OVERLAP-GRADE (wave 1, 0 satisfied edge(s))
 - R10-UPDATE-PR-SIGNALS (wave 1, 0 satisfied edge(s))
