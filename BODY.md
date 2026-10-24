@@ -1,87 +1,150 @@
-`tools/pr/ci_predict.py` now runs the layout guard that the `fast` job runs. This is #2554's forward-carry, item 4ddebe42. Part of #2505 (R10-FLY-CIPREDICT-LAYOUT, carved out of R10-ORCH-MACHINERY's row G).
+`tools/pr/ci_predict.py` predicts three CI reds that no handoff check saw. The first is the layout guard `fast` runs (#2554's forward-carry, item 4ddebe42). The other two are the reds #2671 reached CI with, both carried to this group from dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md: `wave-script`'s agreement lane run with the base's copy (countermeasure A), and `instrument-self-tests`' `ref_privacy.py --check` (countermeasure B). Part of #2505 (R10-FLY-CIPREDICT-LAYOUT, carved out of R10-ORCH-MACHINERY's row G).
 
-`body_push.sh` refuses a handoff only on what `ci_predict.py` predicts, plus the pr-body lint. `prepr.sh` already ran `tests/layout.py --guard` (`moved_line`), but `ci_predict.py` did not. So a head that re-added a moved path, or added a line citing one, passed the handoff and turned red on `tests / fast (3.14)` after the push. The guard runs in seconds; the CI red took about 30 minutes to show (`prepr.sh`'s comment above `moved_line`, from #2065).
+`body_push.sh` refuses a handoff only on what `ci_predict.py` predicts, plus the pr-body lint. Before this change:
+- `prepr.sh` ran the layout guard (`moved_line`), but the predictor did not.
+- `prepr.sh` step 3f4 runs the agreement lane with the head's copy. That is push-to-main's direction. CI grades a pull request with the base's copy (governance.yml's wave-script restore).
+- No local path ran `ref_privacy.py --check`.
 
-The fix adds a fifth refusing arm, `layout_preds(root, base)`. It calls `tests/layout.py`'s own `guard` and does not restate the rule. It reads the commit `HEAD` against the merge base and uses `HEAD`'s `tests/layout.json`, so the prediction covers what is pushed. CI runs the guard on a checkout of that commit, whose index is the commit. The arm uses the guard's `rev` form, which `--replay` uses too. Each refusal prints as `PREDICT tests / fast (3.14) LAYOUT <guard line>` and sets rc 1. A guard that raises prints `LAYOUT UNREADABLE` and also sets rc 1, the way the carry arm handles an unreadable roster. A tree with no `tests/layout.py` predicts nothing for this arm, as `prepr.sh`'s `moved_line` skips. `repairs()` gains the arm's repair line, worded like `moved_line`'s hints.
+The arms:
+- **LAYOUT** (`layout_preds`, `tests / fast (3.14)`) calls `tests/layout.py`'s own `guard` over the commit HEAD, against the merge base, with HEAD's `tests/layout.json`.
+- **REF PRIVACY** (`privacy_preds`, `governance / instrument-self-tests`) calls `ref_privacy.py`'s own `sites`/`grep`, `registry_refusals` and `content_check` over the commit HEAD. It judges with the runner's identity, as CI's run does. Running `--check` itself on a seat would add the seat's home and name to the classes. `_leaks` matches the home as a substring, and the root account's home is inside the path of the root-cause role contract, which 28 tracked files cite; on a root seat each of them would refuse (see `## Forward-carry`).
+- **AGREEMENT** (`agreement_preds`, `governance / wave-script`) runs only when the three-dot diff touches a file the lane loads (`lane_files`). That set is `agreement_py.closure`, the restore precondition's own derivation, plus the `.mjs` files `agreement.mjs` imports or `load`s/`at`s, transitively. The run builds CI's tree in a throwaway clone:
+  - HEAD is merged into the base tip, base first, with GitHub's `Merge <head> into <base>` subject;
+  - every pathspec of the job's restore step (`agreement_py.restore_specs`, read from the merge's `governance.yml`) is checked out from the tip;
+  - `refs/remotes/origin/main` is set to the tip;
+  - then `agreement_py.py --out` and `agreement.mjs --py-json` run.
+
+  A base that does not carry the lane predicts nothing for this arm, because the job skips it. A head that does not merge is predicted `AGREEMENT UNMERGED`.
+
+Each arm prints `PREDICT <check> <ARM> ...` and its own `CI PREDICT:` repair line, and sets rc 1. The AGREEMENT repair line says that a registration only the head's copy carries has no local repair (the RCA's cause 3, carried to R10-MERGE-SUBJECT-HARDEN).
 
 Alternatives considered:
-- Have `body_push.sh` call `prepr.sh`'s `moved_line`. That puts a second refusal path into the handoff script, outside the predictor. Every other static CI red is predicted in one place (the predictor), and `prepr.sh` step 6d already reads that place.
-- Re-implement the guard's three refusals inside `ci_predict.py`. `tests/README.md` says a restated rule pins nothing, and the other arms call CI's own functions (`closure.orphan_files`, `mutation_table`, `carry_audit.audit`).
+- An AGREEMENT key on any wave-script restore pathspec (the RCA's A'). Rejected on the cost test below: about 2.3 times the trigger rate for the same verdict.
+- Running prepr step 3f4 under the base's copy. The handoff (`body_push.sh`) runs only this predictor, so step 3f4 would still not refuse a handoff. Step 3f4 itself is `prepr.sh`'s, outside this one-module group (`## Forward-carry`).
+- Calling `ref_privacy.py --check` as a process. That is the seat-identity run above. Its 28-file false refusal on root seats would block those seats' handoffs.
 
 ## Head
 
-`6965c36b492af09aec9b7161802b4f877a6a9766`, cut from `origin/main` `145bfe197b9e7c09eb90bedadec44c6bc19d679d`, which is also the merge base. Every figure was taken at this head on 2026-10-24 from 10:31Z, while `origin/main` was at `145bfe197b9e`. `origin/main` moved to `e8a08cf9efef` before the handoff; its 23 changed files include nothing this diff reads (`git diff --name-only 145bfe197b9e...origin/main`), so the head was not merged forward. Python 3.14.7 at `/opt/hpo/venv-ci`.
+`7ff66e5a521d5fe3c3c8e2bdea0cb05c1a0a85c3`. It continues the round-1 head `cd7dc09a8` with `origin/main` merged in (`6b5183c5e`), and its merge base is `origin/main` `e97f5749b441b282e43bd99dbcbb762e9d10a369`. Every figure below was taken at this head unless it names `6d4c233af`, `1f62fdc1a` or `9cd9b78df`, its parents on this branch; those differ from it only in `plant_self_test`, a `--no-renames` flag and a docstring. The figures were taken on 2026-10-24 from 14:20Z to 16:45Z, with `origin/main` at `e97f5749b` until about 16:30Z. It then moved to `806aa2ce8` (`git ls-remote origin main` at the handoff). That move changes one file this diff reads, `tools/audit/seat/ref_privacy.py` (`git diff --name-only e97f5749b...806aa2ce8`, #2700's `d4e766136`): `grep` gains a defaulted `root` and a portable prefilter. The head was not merged forward. As a control, a throwaway merge of this head with `806aa2ce8` prints `ci_predict self-test: 0 failed`, and its predictor prints `no closures, fast, wave-script or instrument red predicted against 806aa2ce89ae`; `git merge-tree --write-tree origin/main HEAD` exits 0. Python 3.14.7 at `/opt/hpo/venv-ci`, node 22.
 
 ## Mutation proof
 
-The self-test was written first. Its two red cases failed before the arm was written (the worktree, uncommitted: the merge base plus the self-test alone): `ci_predict self-test: 2 failed`, with `FAIL a file re-added at a path whose move landed is predicted red (rc 0)` and `FAIL a new line citing a landed path is predicted red (rc 0)`.
-
-Each mutant is one single-occurrence replacement in `tools/pr/ci_predict.py`. Each run executes `python3 -I tools/pr/ci_predict.py --self-test` and then restores the file (the driver printed `restored`).
+The arms' red cases failed before each arm existed. Mutants A1, B1 and M1 below (an arm not called) are that state. Each mutant is one single-occurrence replacement in `tools/pr/ci_predict.py`. A one-off driver in the seat's scratch applied each replacement, ran `python3 -I tools/pr/ci_predict.py --self-test` and restored the file; `git status --short` was empty afterwards. It is not landed: the replacement column is the whole of it, and the in-tree self-test is the pin.
 
 | mutant | replacement | rc | failing checks |
 |---|---|---|---|
 | NULL | none | 0 | none |
-| M1 arm not called | delete `preds += layout_preds(root, base)` in `predict` | 1 | `a file re-added at a path whose move landed is predicted red`, `a new line citing a landed path is predicted red` |
-| M2 findings dropped | `layout_preds` returns `[]` in place of its findings | 1 | the same two |
-| M3 guard on the index | `layout.guard(root, manifest, base)` in place of `..., base, "HEAD")` | 1 | `the re-added path staged and not committed is predicted green (null control)` |
-| M4 repair line dropped | `if False:` in place of the LAYOUT test in `repairs` | 1 | the two red cases (their `CI PREDICT: a LAYOUT refusal is repaired` line is missing) |
-| M5 wrong job | the arm files under `mutation` (a warning that never sets rc) | 1 | the two red cases (rc 0) |
+| A1 privacy arm not called | delete `preds += privacy_preds(root)` | 1 | `an unregistered push site is predicted red`, `a guarded pusher's guard dropped in HEAD and restored in the index is predicted red` |
+| A2 seat identity | `rp.content_check("HEAD", root)` in place of `..., runner)` | 1 | `a line that pushes nothing and names the seat's home is predicted green (null control: ...)` and the three staged-not-committed nulls |
+| A3 registry text from the worktree | `(root / p).read_text()` in place of `show(root, "HEAD", p)` | 1 | `a guarded pusher's guard dropped in HEAD and restored in the index is predicted red` |
+| A4 refusals dropped | `return []` in place of the arm's return | 1 | the two privacy red cases |
+| A5 repair line dropped | `if False:` for the REF PRIVACY repair | 1 | the two privacy red cases |
+| B1 agreement arm not called | delete `preds += agreement_preds(...)` | 1 | `a grammar registered only in the head's copy is predicted red` |
+| B2 no restore from the base | the pathspec checkout disabled | 1 | that red case, and `a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's)` |
+| B3 no key | `hit = sorted(lane_files(root))` | 1 | `a grammar in two files the lane does not load, the lane untouched, is not run (null control: the key; ...)` |
+| B4 HEAD, not the merge | `git checkout HEAD` in place of the merge | 1 | `a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip)` |
+| B5 origin/main not set | delete the `update-ref ... origin/main` | 1 | `a lane edit under a branch merge, main already past it, is predicted green (null control: CI's origin/main is the base)` |
+| B6 verdict dropped | `if True: return []` | 1 | `a grammar registered only in the head's copy is predicted red` |
+| B7 repair line dropped | `if False:` for the AGREEMENT repair | 1 | the same case |
+| M6 manifest from the worktree | `(root / layout.MANIFEST).read_text()` | 1 | `the re-added path with its entry dropped from the staged manifest is predicted red` |
+| M7 UNREADABLE dropped | `return []` in place of the `LAYOUT UNREADABLE` return | 1 | `a manifest that does not parse is predicted red` |
+| M8 guard from HEAD~1 | `layout.guard(root, manifest, <HEAD~1>, "HEAD")` | 1 | `the re-added path under a second commit is predicted red` |
 
-M3 survived a first version of the self-test. The staged-and-not-committed null case was added to kill it. M1 is also the base end of the measurement below: the base has no layout arm.
+Fix review round 1's survivors M6, M7 and M8 are killed by the three layout cases added for them. Round 1's M1–M5 are unchanged in the code and stay killed: M1 (arm not called) and M3 (the guard on the index) fail the same cases they failed in round 1's table. A3, B3, B4 and B5 survived the first run, at `6d4c233af` (rc 0, 0 failed each). `1f62fdc1a` and `9cd9b78df` added the four cases that pin them:
+- the guard dropped in HEAD and restored in the index (A3);
+- a lane edit under a base tip that shares and registers a grammar HEAD lacks (B4);
+- an unregistered grammar in files the lane does not load (B3);
+- a branch merge with a non-template subject under a `main` already past it (B5). Under B5 that case printed `merge-subject-pr c5df709e8 "Merge branch 'side' into plant"` refused, which is the RCA's refused=3 shape.
 
 ## Null control
 
-- The self-test's two nulls run in the same throwaway clone as the plants. One is a comment that cites nothing, appended to `tests/wood_advisor.py`. The other is the placement plant staged but not committed. Both print no `LAYOUT` line and exit with rc 0.
-- On this head's own diff, the predictor prints no LAYOUT line: `CI PREDICT: no closures or fast red predicted against 145bfe197b9e`. CI's guard agrees: `layout: GUARD: 0 refusal(s) against 145bfe197b9e`.
-- Both ends against CI's own command. The same three plants were committed in a throwaway clone of this head (`throwaway_git_clone --shared`) on a base commit that holds either the base's or the head's predictor. Each was then run through `python3 -I tools/pr/ci_predict.py --base <that commit>` and through CI's `python3 -I tests/layout.py --guard --base <that commit>`. The plant path is the first `retired` entry in `tests/layout.json` that has a `new` path, is a file and no longer exists in the tree. At this head that is `.claude/workflows/agreement.mjs`.
+- In the self-test, each arm's nulls run in the same throwaway clone as its plants:
+  - a line that cites, pushes and registers nothing;
+  - each red plant staged and not committed;
+  - a line naming the seat's home (`SEAT_HOME`, set as the predictor's `HOME`);
+  - a head `agreement.mjs` that runs `process.exit(1)` first;
+  - the base-tip registration;
+  - the non-lane grammar;
+  - the branch merge under a later `main`.
 
-  | end | plant | predictor rc | predictor LAYOUT lines | CI guard rc |
+  Each prints no line for its arm and exits rc 0. `python3 -I tools/pr/ci_predict.py --self-test` at this head prints `ci_predict self-test: 0 failed`.
+- On this head's own diff, the predictor prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against e97f5749b441`, rc 0. AGREEMENT is not keyed: the lane-key probe below prints `key []` for this diff.
+- **Both ends, against the RCA's controls.** Each run was done in a `git clone --shared` of this repository at the pull request's head, with the predictor file copied in, running `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base <PINNED>`. "Base" is `git show e97f5749b:tools/pr/ci_predict.py`; "head" is this head's file.
+
+  | end | tree | predictor rc | wave-script / instrument lines | wall |
   |---|---|---|---|---|
-  | base | re-added path | 0 | 0 | 1 |
-  | base | citation | 0 | 0 | 1 |
-  | base | comment (null) | 0 | 0 | 0 |
-  | head | re-added path | 1 | 1 | 1 |
-  | head | citation | 1 | 1 | 1 |
-  | head | comment (null) | 0 | 0 | 0 |
+  | base | #2671 `338c9ba49` against `fd7e289d0` | 0 | none | 2.8 s |
+  | base | #2669 `0506a55b2` against `e6dd46277` (null) | 0 | none | 2.5 s |
+  | head | #2671 `338c9ba49` against `fd7e289d0` | 1 | `AGREEMENT RESULT divergent=0 unregistered=3 dead=0 refused=0` with CI's three UNREGISTERED grammars (`[0-9a-f]{40}`, `\bledger_open ([a-z-]+) `, `\blevel_line ([a-z-]+) `); `REF PRIVACY REFUSE tools/audit/seat/ledger.py:726` | 11.9 s |
+  | head | #2669 `0506a55b2` against `e6dd46277` (null) | 0 | none | 11.5 s |
 
-  At the base, the predictor and CI disagree on both plants. At the head, they agree on all three rows. This probe was a one-off driver in the seat's scratch directory and is not landed: the in-tree self-test reproduces the head end, and mutant M1 reproduces the base end.
+  The head rows reproduce the RCA's table and CI's verdicts: run 39996377402's red `wave-script` and job 120560854278's `ledger.py:726`, and job 120594524199's `AGREEMENT ok` on #2669. The null ran the arm and did not skip it. The lane-key probe (`ci_predict.lane_files` intersected with the three-dot diff, in the same clone) prints `key ['tools/policy/agreement.mjs', 'tools/policy/agreement_py.py', 'tools/policy/budget_raise_gate.py', 'tools/policy/policy_lint.mjs']` for #2669 and `key ['tools/policy/agreement.mjs']` for #2671. The 11.5 s, against the base end's 2.5 s, is the lane's own run.
+- The old local path, at #2671's tree, is green. That is the defect: the lane under the head's copy (step 3f4's run, `origin/main` set to `fd7e289d0`) prints `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`, rc 0. `ref_privacy.py --check` there prints `1 refused`; at this head it prints `0 refused`.
 
 ## Figures
 
-- `python3 -I tools/pr/ci_predict.py --self-test` -> `ci_predict self-test: 0 failed`, with 4 layout cases and 3 carry cases `ok`, and `every JOB value is a name gate.REQUIRED owes`. `governance.yml`'s step "Show the CI predictor" runs this command. A depth-1 clone of this head passes it too (`git rev-parse --is-shallow-repository` -> `true`).
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` -> `CI PREDICT: no closures or fast red predicted against 145bfe197b9e (a data-file read is not seen)`, rc 0. The output has no `ADDED UNPINNED` line.
-- `python3 tests/closure.py select --diff 145bfe197b9e --workdir "$D"` -> `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` The only changed file is `tools/pr/ci_predict.py`, and no measured closure lists it. Its check is the `governance.yml` self-test step above.
-- `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` -> `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` -> `ALL 117 closure shrink pins PASSED`; `python3 tests/layout.py` -> `layout self-test: ok`. `tests/harness_headers.py` was left to CI because no harness changed.
-- `python3 tests/closure.py affected` over the same diff names 2 closures to re-derive, `tests/entities.py` and `tests/harness_headers.py`, because both read `tools/pr/ci_predict.py` as text (`inert_reads`). Both pass when run plainly at this head: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` -> `ALL 2425 ENTITY CHECKS PASSED`, rc 0 (the same at the base, in a worktree at `145bfe197b9e`); `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` -> `ALL 112 HARNESS HEADER CHECKS PASSED`, rc 0.
-- `bash tools/pr/prepr.sh <this body>` -> `PRE-PR: 6965c36b492a... 000000000000000001000000`, rc 1. Its only refusal is the closures step: `failed while being recorded: tests/entities.py (exit 1)`. This is not this diff (see `## Red checks`). Every other step is `ok` or `skip`, including `ci predict`, `layout guard`, `throwaway git` and `claims hygiene`. `prepr.sh --body-check` -> `pr-body ok: PR-BODY: 0 error(s)`.
-- `python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>` -> `CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`.
-- `python3 -I tests/layout.py --guard --base 145bfe197b9e` -> `layout: GUARD: 0 refusal(s) against 145bfe197b9e`.
+- `python3 -I tools/pr/ci_predict.py --self-test` -> `ci_predict self-test: 0 failed`, with 3 carry, 7 layout (5 red, 2 null), 4 privacy (2 red, 2 null) and 7 agreement (1 red, 6 null) cases `ok`, and `every JOB value is a name gate.REQUIRED owes`. The JOB check exempts `instrument-self-tests`, which is no required context; its red is predicted because a red check is still owed an answer. Wall time 120 s at this head, against round 1's 11.8 s: the agreement cases run the lane 5 times. `governance.yml`'s "Show the CI predictor" step runs it, inside `instrument-self-tests`' 20-minute timeout.
+- Standing cost per handoff on a diff the lane key misses: the head predictor took 2.9–3.3 s and the base predictor 2.3 s, over 3 alternating runs on this head's diff (`time` around each `ci_predict.py --base origin/main`). Of that, `lane_files` measured 0.58 s and `privacy_preds` 0.26 s, timed in-process.
+- Trigger rate, the cost test re-measured at this merge base, by a scratch probe over `git log --first-parent --merges --since=2026-10-09T00:00 --until=2026-10-24T00:00 origin/main` (the RCA's window): `merges 456 | touching the lane's closure (20 files) 62 | touching a restore pathspec 142`.
+  - Rule: a merge counts when `git diff --name-only M^1 M` meets `ci_predict.lane_files` at this tree, or meets `agreement_py.covers` over the restore specs.
+  - Controls: #2669's merge `5c9828fe5` counts (`lane-touching=True`); #2650's record merge `8cea0d2cf` does not (`lane-touching=False`).
+  - The key's 62 (13.6 %) is above the RCA's 25 of 440. The RCA counted 5 `.mjs` files; this key adds the 14 Python readers the restore precondition derives.
+  - Cost: at the arm's measured ~11 s over the base end, the standing cost is 62/456 × 11 s = 1.5 s per PR. Keyed on any restore pathspec, it would be 142/456 × 11 s = 3.4 s. The RCA's expected defect cost is 4.1 s (0.68 % × 600 s CI floor), so the narrow key passes the cost test and the wide one passes with less margin for no added verdict.
+- `python3 tests/closure.py select --diff e97f5749b441 --workdir "$D"` -> `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` The changed files are `tools/pr/ci_predict.py` and `dev/programme/delivery/2707.md` (the orchestrator's row, carried by `cd7dc09a8`).
 - `python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 145bfe197b9e` -> `Architecture score: dS +0.0000 NULL`.
-- `python3 -I tests/throwaway_git.py --check` -> `throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`. The self-test's clone goes through `throwaway_git_clone`.
+- `python3 tools/audit/archscore/score.py --diff e97f5749b441` -> `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tests/throwaway_git.py --check` -> `0 raw git init or clone site(s) refused`. Both clones go through `throwaway_git_clone`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check` -> `tmp_paths: 0 refused`.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check` -> `selftest_wiring: 93 self-testing, 93 wired, 0 unwired`.
-- The class census (fixer step 8). The class is a CI command that `prepr.sh` runs before the PR exists but the handoff (`body_push.sh` = `ci_predict.py` plus `prepr.sh --body-check`) does not predict. The rule that lists its seams is `grep -nE '^[a-z_]+_line\(\) \{' tools/pr/prepr.sh`, which returns 9 functions. Dispositions:
-  - `moved_line` (the layout guard, `fast`): closed in this diff.
-  - `predict_line`: this is `ci_predict.py`.
-  - `body_line`: run by `body_push.sh` through `prepr.sh --body-check`.
-  - `closures_line` (scoped recordings): `ci_predict.py`'s closures arms already predict it statically, by design. A recording cannot be done statically, and `closures-autofix` repairs it after the push (`ci-autofix.md`).
-  - `unpinned_line` and `reds_line`: body-side checks that read `open_pr.sh`'s red history and step 6d's site file, and only exist at the open (`--body-check`'s comment).
-  - `copies_line` (`tests/closure.py no-copies`, the `closures` job), `throwaway_line` (`tests/throwaway_git.py --check`, `governance.yml`) and `claims_line` (the claim-file check, `tests/env_drift.py`, a `run_always` line of `tests/run.sh`): **open seams** that this diff does not close, carried below.
+- `python3 -I tools/audit/seat/ref_privacy.py --check` -> `0 refused`. The privacy plant's own push-site line is split across two source lines so that the file is not a push site; the runner identity's home is built, not spelled. The arm itself first caught the spelled home, refusing the `privacy_preds` line that spelled it in the self-test's staged-plant nulls.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check` -> `93 self-testing, 93 wired, 0 unwired`.
+- `python3 -I tests/layout.py --guard --base e97f5749b441` -> `GUARD: 0 refusal(s)`.
+- `bash tools/pr/prepr.sh <this body>` -> `PRE-PR: 7ff66e5a521d5fe3c3c8e2bdea0cb05c1a0a85c3 000000000000000001000000`, rc 1. Its one refusal is the closures step, `failed while being recorded: tests/entities.py (exit 1)`, which is the seat's recorder (`## Red checks`). Every other step is `ok` or `skip`, including `self-test 352 passed, 0 failed`, `wave-script 209 passed, 0 failed`, `agreement lane` and `ci predict`.
+- `python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>` -> `CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)`.
+- **The class census (fixer step 8), widened.** The class is a CI red that the handoff (`body_push.sh` = `ci_predict.py` plus `prepr.sh --body-check`) does not predict, either because no handoff check runs CI's command, or because one runs it in the other copy's direction. Round 1's rule (`*_line` functions) missed step 3f4. There are three rules now.
+
+  **Rule 1, every `prepr.sh` step:** `grep -nE '^# --- [0-9]+[a-z0-9]*\. ' tools/pr/prepr.sh` returns 29 steps.
+  - Local preconditions with no CI check of their own (6): 0 shared root, 1 merge base, 1a transport, 1b0 gate priority, 1b heavy slot, 2 MODE line. Not in the class. 3g (`pinned_verdict`) is a local meta-check over the other steps; also not in the class.
+  - 3f4 the agreement lane: **closed in this diff** (AGREEMENT).
+  - 6e the layout guard: **closed** (LAYOUT, round 1).
+  - 6d: this predictor.
+  - 7 the body: run by `body_push.sh` through `--body-check`.
+  - 6b scoped recordings: predicted statically by the closures arms, by design. A recording is not static, and `closures-autofix` repairs it after the push (`ci-autofix.md`).
+  - 5 version untouched: no pull-request check reddens on it; the stamp refuses it after the merge.
+  - **Open seams, carried (`## Forward-carry`)**:
+    - The base-pinned graders, run locally only with the head's copy, which is 3f4's direction gap: 3 `policy_lint`, 3a corpus acceptance, 3b `rules_sync --check`, 3c fragments, 3d hooks, 3e `codeowners_gap --check`, 3f `brief_lint`, 3f3 field coverage (`policy-docs`), and 4 `check-wave-script` (`wave-script`). 3f3 is the RCA's probable #2636 instance.
+    - Run by `prepr.sh` but by no handoff check: 3f5 the register check, 3f6 `tmp_paths --check`, 3h the governance self-test, 6/6a claim files and `INHERITED CLAIMS` (`claims_line`), 6c `no-copies` (`copies_line`) and 6f `throwaway_git --check`. The last three were already carried in round 1.
+
+  **Rule 2, the tree-reading checks of `instrument-self-tests`, which `prepr.sh` may not run at all:** `awk 'NR>=243 && NR<940' .github/workflows/governance.yml | grep -nE -- 'python3 -I [^ ]+ --check\b'` returns 4 (lines 243 and 940 bound the job, from `grep -n '^  [a-z-]*:$'`).
+  - `ref_privacy.py --check`: **closed in this diff** (REF PRIVACY).
+  - `tmp_paths.py --check` and `throwaway_git.py --check`: prepr steps 3f6 and 6f, open seams of rule 1.
+  - `selftest_wiring.py --check`: open seam. The RCA measured 0.14 s and no instance, and left it uncosted. Carried with the rest.
+
+  **Rule 3, `fast`'s always-run scripts, which a fixer runs by hand (fixer step 5) and no handoff check runs:** `grep -nE '^\s*run_always "\$PYTHON"' tests/run.sh` returns 4.
+  - `tests/layout.py`: its guard is **closed** (LAYOUT). The rest of it is the layout self-test.
+  - `tests/env_drift.py --claims-only`: `claims_line`, carried in round 1.
+  - `tests/closure.py selftest`: open seam. It refused this diff at `9cd9b78df` (`no rename-detecting --name-only diff under RENAME_SITES`, on the restore list's `git diff`), and `7ff66e5a5` repairs that with `--no-renames`. The fixer's step-5 run caught it before any push; no handoff check would have.
+  - `tests/harness_headers.py`: open seam.
+
+  Both open seams are carried.
 
 ## Unpinned sites
 
-n/a: `ci_predict.py --base origin/main` prints no `ADDED UNPINNED` line for this diff (prepr step 6d's arm).
+n/a: `ci_predict.py --base origin/main` prints no `ADDED UNPINNED` line for this diff (prepr step 6d). Every mutant in `## Mutation proof` is killed by the in-tree self-test.
 
 ## Red checks
 
-No pull request or CI run exists for this head yet. Locally, one step went red: `prepr.sh`'s closures step, which records `tests/entities.py` under strace (`tests/derive_closures.sh --single tests/entities.py --record-only`). The recording exits 1 with `2 of 2425 ENTITY CHECKS FAILED`. The two failures are both final tries of `hb:positive_control`: under the strace recorder, `py-spy dump` times out or does not name the spin. Null control: the same recording at the base `145bfe197b9e`, in a worktree without this diff, also exits 1 with `2 of 2425 ENTITY CHECKS FAILED` and the same two final-try `hb:positive_control` failures, while the plain `entities.py` run passes at both ends. So this is the seat's recorder environment (two ptrace users on one process), not this diff. CI's `closures` job does the recording that counts. The cheaper detector would be the recording at the merge base, which costs the same ~20 min as the recording itself; I have not built one, and the condition is carried below under `## Friction`. The self-test's red before the arm existed was the failing test, written deliberately before the fix. `main`'s possible push-CI red on `tests / ci-ratchet` is not this diff's: this diff touches no ratchet file, and a hotfix is in flight, as the dispatch states.
+- At round 1's head `cd7dc09a8` (check-runs API, read about 14:35Z): `pr-contract / pr-contract` (job 120891274769) failed at 14:02:26Z, 3 s after `tools/ci/codescan_wait.py` started, while `codeql / Analyze (python)` was still `in_progress` (it was still `in_progress` at the read). `gate` (job 120892151815) failed after it. This is the known transient: codescan_wait exits 1 while an Analyze is unfinished, so it is no body defect and no diff fault. The cheaper detector would be a wait that exits on an unfinished Analyze without failing. That is `codescan_wait.py`'s, not this group's, and its standing cost is nil. No CI run exists at this head yet. This answer is owed again only if the check is red at this head after codeql concludes, which the next reader of the check-runs API decides.
+- Locally, `prepr.sh`'s closures step refused, because the strace recording of `tests/entities.py` exits 1. Null control: `tests/derive_closures.sh --single tests/entities.py --record-only --out-dir D`, run at the same time at this head and in a worktree at the merge base `e97f5749b` without this diff. Both exit 1 with `2 of 2425 ENTITY CHECKS FAILED`, and the same two checks fail at both ends: `gate-sweep.yml: on CI's completion, no concurrency, ...` and `graders-head-copy's delivery_status step is red only when ...`. The FAIL lines of the two outputs differ only in measured milliseconds and set order (`diff` of their first 80 columns: 3 lines, all `hb:positive_control` timings and one `a8:register_once` set order). Round 1's two failures were `hb:positive_control` tries under the same recorder, also at both ends. So the refusal comes from the seat's recorder environment and says nothing about this diff, as in round 1. CI's `closures` job does the recording that counts (green at `cd7dc09a8`). The cheaper detector would be the base recording itself, about 19 min (1115 s measured at `6d4c233af`), which is the same cost as the gate. None is built; the condition is under `## Friction`.
+- The self-test's reds before each arm existed were the failing tests, written first.
+- `main`'s possible push-CI red on `tests / ci-ratchet` is not this diff's: the diff touches no ratchet file.
 
 ## Forward-carry
 
-- Three CI commands that `prepr.sh` runs before the PR still have no arm in `ci_predict.py`, so `body_push.sh` hands off a head they refuse: `tests/closure.py no-copies` (`copies_line`, the `closures` job), `tests/throwaway_git.py --check` (`throwaway_line`, `governance.yml`) and the claim-file check (`claims_line`, `tests/env_drift.py`). Control, as for this arm: for each one, a planted violation must make `ci_predict.py` predict red, and a null plant must keep it quiet. They belong in R10-FLOW-JIDOKA's error-proofing before handoff. Carry: R10-FLOW-JIDOKA
-- `prepr.sh` runs the layout guard twice: in step 6d through `ci_predict.py`, and on its own through `moved_line`. This is only a duplicate print, not a disagreement, because both call the same `guard`. `moved_line` stays because its self-test pins the refusal hints and a tree with no predictor. Retiring it is a `prepr.sh` change outside this one-module group. Carry: R10-FLOW-JIDOKA
+- The base-pinned graders other than the agreement lane still have only a head-copy local run: prepr steps 3, 3a–3f, 3f3 and 4 (rule 1 above). A diff to one of them is graded by CI with the base's copy, as #2671's lane was. Precondition for the stage, with its control: run each grader under its job's restore (`policy-docs`' and `wave-script`'s restore steps), keyed on the diff touching that grader's load closure, as `ci_predict.agreement_preds` does for the lane. The arm must fire on a plant registered only in the head's copy and stay quiet when the head's copy alone is broken (this PR's `plant_self_test` pair). Re-measure the trigger rate at your merge base with this body's rule (`## Figures`). Carry: R10-FLOW-JIDOKA
+- `fast`'s always-run `tests/closure.py selftest` and `tests/harness_headers.py` (rule 3): run by no handoff check. `closure.py selftest` refused this diff's restore-list `git diff` at `9cd9b78df` until `--no-renames` (`7ff66e5a5`). Control: the same plant/null pair as below. Carry: R10-FLOW-JIDOKA
+- Run by `prepr.sh` but by no handoff check: step 3f5 (the register check), 3f6 `tmp_paths.py --check`, 3h the governance self-test and `selftest_wiring.py --check` (rules 1 and 2). Control, as for the arms here: a planted violation must make the predictor refuse, and a null plant must keep it quiet. Carry: R10-FLOW-JIDOKA
+- `ref_privacy.py`'s `_leaks` matches a seat's home as a substring. On a seat running as root, any added line citing the root-cause role contract's path (under `dev/governance`) refuses as `home-directory`, because the root account's home is inside that path. Measured: `ref_privacy.content_refusals` over one added line citing that path, with `Identity.made` of the root account's home and name, returns one `home-directory` refusal; with the runner's identity it returns none. `git grep -c` of the path's basename over `origin/main -- dev tools` -> 28 files. The same match refused two docstring lines of this diff at `9cd9b78df` on this seat, and those lines were reworded. Precondition: a local `ref_privacy.py --check` on a root seat is not CI's verdict. Judge with the runner's identity, as `privacy_preds` does, or bound the home match at a path edge. No live group owns `ref_privacy.py`, so this goes to the stage that ports its local runs. Carry: R10-FLOW-JIDOKA
 
 ## Friction
 
-- gate-scoping: cost: on this cloud seat, `prepr.sh`'s closures step refuses any diff that reaches `tests/entities.py`, because `hb:positive_control`'s `py-spy` sample fails under the strace recorder. The base reproduces the same 2 of 2425 failures, so the refusal says nothing about the diff, and each occurrence costs a ~20 min recording to show that. Carry: R10-POLICY-GATE-SCOPING
+- gate-scoping: cost: on this cloud seat, `prepr.sh`'s closures step refuses any diff that reaches `tests/entities.py`, because its strace recording exits 1 at the base as at the head (`## Red checks`). Each occurrence costs about 19 min of recording to show that. Round 1 carried the same. Carry: R10-POLICY-GATE-SCOPING
