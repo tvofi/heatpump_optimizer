@@ -1,0 +1,5 @@
+RESULT humidity held=241 polled=False -> (None, 55.0)
+RESULT humidity held=359 polled=False -> (None, 55.0)
+RESULT humidity held=361 polled=False -> ('stale', 55.0)
+RESULT humidity held=121 polled=True -> ('stale', 55.0)
+RESULT humidity held=119 polled=True -> (None, 55.0)

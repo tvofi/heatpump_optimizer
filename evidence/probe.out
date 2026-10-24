@@ -1,0 +1,20 @@
+RESULT base probe CONF_POWER_ENTITY rc=0 :: CONF_POWER_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT base probe CONF_HEAT_PUMP_MODE_ENTITY rc=0 :: CONF_HEAT_PUMP_MODE_ENTITY: limit=60.0 held 61 min -> problem=stale FAIL
+RESULT base probe CONF_ENERGY_ENTITY rc=0 :: CONF_ENERGY_ENTITY: limit=180.0 held 181 min -> problem=stale FAIL
+RESULT base probe CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY rc=0 :: CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT base probe CONF_HEAT_PUMP_RETURN_TEMP_ENTITY rc=0 :: CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT base probe CONF_FLOW_METER_ENTITY rc=0 :: CONF_FLOW_METER_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT base probe HUMIDITY rc=0 :: HUMIDITY: limit=120.0 quiet=240 -> FAIL stale
+RESULT base probe CONF_INDOOR_TEMP_ENTITY rc=0 :: CONF_INDOOR_TEMP_ENTITY: limit=360.0 held 361 min -> problem=stale FAIL
+RESULT base probe CONF_HEAT_PUMP_DEFROST_ENTITY rc=0 :: CONF_HEAT_PUMP_DEFROST_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT base probe CONF_WOOD_TANK_TOP_ENTITY rc=0 :: CONF_WOOD_TANK_TOP_ENTITY: limit=60.0 held 61 min -> problem=stale FAIL
+RESULT head probe CONF_POWER_ENTITY rc=0 :: CONF_POWER_ENTITY: limit=30.0 held 31 min -> problem=None pass
+RESULT head probe CONF_HEAT_PUMP_MODE_ENTITY rc=0 :: CONF_HEAT_PUMP_MODE_ENTITY: limit=60.0 held 61 min -> problem=None pass
+RESULT head probe CONF_ENERGY_ENTITY rc=0 :: CONF_ENERGY_ENTITY: limit=180.0 held 181 min -> problem=None pass
+RESULT head probe CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY rc=0 :: CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: limit=30.0 held 31 min -> problem=None pass
+RESULT head probe CONF_HEAT_PUMP_RETURN_TEMP_ENTITY rc=0 :: CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: limit=30.0 held 31 min -> problem=None pass
+RESULT head probe CONF_FLOW_METER_ENTITY rc=0 :: CONF_FLOW_METER_ENTITY: limit=30.0 held 31 min -> problem=None pass
+RESULT head probe HUMIDITY rc=0 :: AttributeError: module 'heatpump_optimizer.coordinator' has no attribute 'HUMIDITY_MAX_AGE_MINUTES'. Did you mean: 'DHW_INLET_MAX_AGE_MINUTES'?
+RESULT head probe CONF_INDOOR_TEMP_ENTITY rc=0 :: CONF_INDOOR_TEMP_ENTITY: limit=360.0 held 361 min -> problem=stale FAIL
+RESULT head probe CONF_HEAT_PUMP_DEFROST_ENTITY rc=0 :: CONF_HEAT_PUMP_DEFROST_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+RESULT head probe CONF_WOOD_TANK_TOP_ENTITY rc=0 :: CONF_WOOD_TANK_TOP_ENTITY: limit=60.0 held 61 min -> problem=stale FAIL

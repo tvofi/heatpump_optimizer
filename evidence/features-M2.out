@@ -1,0 +1,6 @@
+  FAIL all 26 age-limited keys: a quiet on-change source is stale only on a key named equal; a silent polling source is stale on every key, remembered past a changing write (D14-s3-02)  [wrong (key, quiet, polled, changed): [('flow_meter_entity', 'stale', 'stale', 'stale'), ('heat_pump_energy_entity', 'stale', 'stale', 'stale'), ('heat_pump_mode_entity', 'stale', 'stale', 'stale'), ('heat_pump_power_entity', 'stale', 'stale', 'stale'), ('heat_pump_return_temp_entity', 'stale', 'stale', 'stale'), ('heat_pump_supply_temp_entity', 'stale', 'stale', 'stale'), ('indoor_humidity_entity', 'stale', 'stale', 'stale')]]
+  FAIL an on-change power meter idle at 0 W for 10 h reads 0 kW with no limit, and an unavailable one is still refused  [idle stale 0.0 limit 30.0, gone unavailable]
+  FAIL source_polls with no owner judges the state alone: a re-report polls, a change does not
+  FAIL humidity: an on-change probe quiet 121 min keeps the mold floor; a polling one silent 121 min, or an on-change one past 360 min, drops it  [quiet None, polled None, past None]
+4 of 4345 FEATURE CHECKS FAILED
+rc=1
