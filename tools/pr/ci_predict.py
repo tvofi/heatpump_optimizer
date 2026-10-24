@@ -16,10 +16,17 @@ push, because that repair costs a red `closures` run and a bot commit on the
 reviewer's head; `--apply-inert` writes the entry the recording would, which
 for a child process's read (harness_headers' scan) is the one repair a Darwin
 seat can make, since only Linux `strace` sees it
-(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Three arms call CI's own functions: UNCLASSIFIED
+(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Four arms call CI's own functions: UNCLASSIFIED
 (`closure.orphan_files`), the INERT test inside both closure arms
-(`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s source-only
-ratchet). One is this predictor's own model, because CI learns the answer by
+(`closure.is_inert`), ADDED UNPINNED (`mutation_table`'s source-only
+ratchet), and LAYOUT (`layout.guard`, the guard `fast` runs, which refuses a
+diff re-adding a moved path or citing one: #2554's forward-carry, since
+`prepr.sh` ran it and `body_push.sh`, which runs only this, did not). Two
+more run CI's own command where no local path ran it the way CI does
+(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md): REF PRIVACY
+(`ref_privacy.py --check`, `instrument-self-tests`, which no local path ran)
+and AGREEMENT (`wave-script`'s agreement lane under the base's copy, as the
+pull request is graded, where `prepr.sh` step 3f4 runs the head's). One is this predictor's own model, because CI learns the answer by
 running: the import arm resolves imports statically where CI records them at
 run time. (A fourth arm, NO RECORDING, read the `rec tests/...` lines of
 `tests/derive_closures.sh`; round-9 C1 derived the full arm's recording set
@@ -27,13 +34,14 @@ from the tree and the class stopped being expressible -- `no_recording` below
 says so where it stood.) Every arm is
 scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
-or a mutant: seconds, never a heavy script.
+or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
+lane in a throwaway clone (about 10 s) and only on a diff to a file it loads.
 
     python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE]
     python3 -I tools/pr/ci_predict.py --self-test
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
-`CI PREDICT: ...`. rc 1 when a closures or `fast` red is predicted, 0 when
+`CI PREDICT: ...`. rc 1 when any red but `mutation`'s is predicted, 0 when
 none is, 2 when the base does not resolve. ADDED UNPINNED sites print but never
 set the rc: `mutation-autofix` may pin them after the push (`ci-autofix.md`),
 so `prepr.sh` step 6d warns and the body owes each one a disposition.
@@ -62,6 +70,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -70,7 +79,8 @@ from pathlib import Path
 # The check name each internal arm key is CI's after the layout cut-over
 # (DESIGN-P2 section 9); gate.REQUIRED pins every value but `ledger`.
 JOB = {"closures": "tests / closures", "fast": "tests / fast (3.14)",
-       "mutation": "tests / mutation", "carry": "pr-contract / pr-contract"}
+       "mutation": "tests / mutation", "carry": "pr-contract / pr-contract",
+       "wave-script": "governance / wave-script", "instrument": "governance / instrument-self-tests"}
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -317,6 +327,136 @@ def carry_preds(root: Path, body: str) -> list[tuple[str, str]]:
             for r in res["rows"] if r["status"] != "routed"]
 
 
+def layout_preds(root: Path, base: str) -> list[tuple[str, str]]:
+    """The layout guard `fast` runs (`tests/layout.py`, run_always): CI's own
+    `guard`, over the commit HEAD against the merge base and with HEAD's
+    manifest, so what is predicted is what is pushed, as every other arm.
+
+    CI runs it on a checkout of the head, whose index is that commit; the
+    guard's `rev` form reads the commit instead of the index, the form its
+    own `--replay` uses. A tree with no layout guard has none to predict; a
+    guard that raises is a red CI would also print.
+    """
+    if not (root / "tests" / "layout.py").exists():
+        return []
+    try:
+        import layout
+        manifest = json.loads(show(root, "HEAD", layout.MANIFEST) or "")
+        found = layout.guard(root, manifest, base, "HEAD")
+    except Exception as e:
+        return [("fast", f"LAYOUT UNREADABLE {type(e).__name__}: {e}")]
+    return [("fast", f"LAYOUT {f}") for f in found]
+
+
+def privacy_preds(root: Path) -> list[tuple[str, str]]:
+    """`instrument-self-tests`'s `ref_privacy.py --check`, which no local path
+    ran (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure B): its own
+    registry and content checks over the commit HEAD, judged with the
+    runner's identity as CI's run is. Its run on a seat adds the seat's home
+    and name, which CI never judges by, and matches the home as a substring:
+    the root account's home is inside the path of the root-cause role
+    contract, which 28 tracked files cite.
+    """
+    seat = root / "tools" / "audit" / "seat"
+    if not (seat / "ref_privacy.py").is_file():
+        return []
+    sys.path.insert(0, str(seat))
+    try:
+        import ref_privacy as rp
+        found = rp.sites(rp.grep("HEAD"))
+        bad = (rp.registry_refusals(found, lambda p: show(root, "HEAD", p) or "") if found
+               else ["the scan found no push site at all, so it checked nothing"])
+        runner = rp.Identity.made(("/".join(("", "home", "runner")),), ("runner",), None)  # built: a spelled
+        bad += rp.content_check("HEAD", root, runner)[2]                                    # home is refused
+    except Exception as e:
+        bad = [f"UNREADABLE {type(e).__name__}: {e}"]
+    return [("instrument", f"REF PRIVACY REFUSE {b}") for b in bad]
+
+
+# The agreement lane at either layout, in the order `wave-script` tries them.
+AGREEMENT = (".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs")
+EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+
+def lane_files(root: Path) -> set[str]:
+    """What the agreement lane loads: agreement_py.py's own `closure` (its
+    restore precondition's list) and agreement.mjs's, its relative imports and
+    `load`/`at` literals over every .mjs file those reach."""
+    import layout
+    mjs = next((p for p in AGREEMENT if (root / p).is_file()
+                and (root / p).with_name("agreement_py.py").is_file()), None)
+    if mjs is None:
+        return set()
+    sys.path.insert(0, str(root / Path(mjs).parent))
+    import agreement_py
+    seen = set(agreement_py.closure(root, root / Path(mjs).with_name("agreement_py.py")))
+    stack = [mjs]
+    while stack:
+        p = layout.locate(stack.pop(), root=root)
+        if p in seen or not p.endswith(".mjs") or not (root / p).is_file():
+            continue
+        seen.add(p)
+        src = (root / p).read_text()
+        stack += [str(Path(p).parent / m) for m in re.findall(r"from '(\./[^']+)'", src)]
+        stack += re.findall(r"\b(?:load|at)\('([^']+)'\)", src)
+    return seen
+
+
+def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
+    """`wave-script`'s agreement lane as CI runs it on the pull request: the
+    merge of HEAD into the base tip (base first), the job's restore pathspecs
+    checked out from that tip, in a clone whose origin/main is the tip (a live
+    origin/main past the PR moves the merge-subject walk onto its own merges).
+
+    prepr.sh step 3f4 runs the head's copy, push-to-main's direction; the two
+    differ only where the diff edits a file the lane loads, so that diff is
+    the key (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure A:
+    #2671's registration passed 3f4 and was UNREGISTERED under the base's
+    copy). A base without the lane runs none, as the job skips it.
+    """
+    hit = sorted(changed & lane_files(root))
+    tip = (git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}") or "").strip()
+    if not hit or not tip or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in AGREEMENT):
+        return []
+    import shutil
+    import tempfile
+    import agreement_py
+    from throwaway_git import throwaway_git_clone
+    head = (git(root, "rev-parse", "HEAD") or "").strip()
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-agreement-"))
+    r = tmp / "r"
+    try:
+        env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
+
+        def run(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+
+        run("git", "update-ref", "refs/remotes/origin/main", tip)
+        run("git", "checkout", "-q", "--detach", tip)
+        if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
+            return [("wave-script", f"AGREEMENT UNMERGED: HEAD does not merge into {tip[:12]}, "
+                                    f"and CI runs nothing on a conflict; merge the base first")]
+        shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
+        specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text())
+        (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
+        run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
+        py = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
+        out = run(sys.executable, "-I", py, "--out", str(tmp / "agreement.json"))
+        if out.returncode == 0:
+            out = run("node", next(p for p in AGREEMENT if (r / p).is_file()), "--py-json", str(tmp / "agreement.json"))
+    except (OSError, StopIteration, ValueError) as e:
+        return [("wave-script", f"AGREEMENT UNRUN {type(e).__name__}: {e}")]
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    if out.returncode == 0:
+        return []
+    lines = [l for l in out.stdout.splitlines() if l.strip()] or [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
+    why = [l.strip() for l in lines if l.split()[0] in ("UNRESTORED", "DIVERGENT", "UNREGISTERED", "DEAD", "REFUSED")]
+    result = next((l for l in reversed(lines) if l.startswith("RESULT ")), lines[-1].strip())
+    return [("wave-script", f"AGREEMENT {result} (the base's copy, over {', '.join(hit)})")] + \
+           [("wave-script", f"AGREEMENT {w}") for w in why]
+
+
 def orphans(changed, closure):
     """A changed file in no closure and on no list: entities.py's refusal."""
     return [("fast", f"UNCLASSIFIED {f}: in no measured closure and not on "
@@ -384,6 +524,9 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
     preds: list[tuple[str, str]] = []
     preds += orphans(changed, closure)
+    preds += layout_preds(root, base)
+    preds += privacy_preds(root)
+    preds += agreement_preds(root, base_ref, changed)
     preds += no_recording(root, base, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
                           closure, pairs, scripts)
@@ -438,6 +581,18 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
                    + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
                       if many else ""))
+    if any(j == "fast" and l.startswith("LAYOUT") for j, l in preds):
+        out.append("a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` "
+                   "names it: a re-added moved path goes where it lives, a citation is re-pointed to "
+                   "its new path, and a new file goes where tests/layout.json says")
+    if any(j == "wave-script" for j, _ in preds):
+        out.append("an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to "
+                   "the lane is graded by the copy it replaces: repair what the base's copy refuses, and a "
+                   "registration only the head's copy carries has no local repair "
+                   "(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks")
+    if any(j == "instrument" for j, _ in preds):
+        out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
+                   "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
     if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
         out.append("an UNCLASSIFIED file is classified in the diff (CLAUDE.md): one a test script reads joins "
                    "that script's closure through tests/derive_closures.sh --single <script>; one no script "
@@ -498,7 +653,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
-        print(f"CI PREDICT: no closures or fast red predicted against "
+        print(f"CI PREDICT: no closures, fast, wave-script or instrument red predicted against "
               f"{base[:12]} (a data-file read is not seen)")
     return rc
 
@@ -523,16 +678,203 @@ def self_test() -> int:
             got = 1 if carry_preds(root, f.name) else 0
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
+    bad += plant_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
         import gate as g
         pinned = set(g.REQUIRED["pr"])
-        miss = [v for k, v in JOB.items() if k != "carry" and v not in pinned]
+        # instrument-self-tests is no required context: its red blocks no merge, and is
+        # predicted because a red check is still owed an answer (defect-root-cause.md).
+        miss = [v for k, v in JOB.items() if k not in ("carry", "instrument") and v not in pinned]
         print(f"  {'ok  ' if not miss else 'FAIL'} every JOB value is a name gate.REQUIRED owes{' -- ' + str(miss) if miss else ''}")
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+# The home the self-test's predictor runs under: a seat's, which CI never judges by.
+SEAT_HOME = "/opt/hpo-ci-predict-seat"
+
+
+def plant_self_test(root: Path) -> int:
+    """The layout, REF PRIVACY and AGREEMENT arms end to end: the predictor as
+    a process over a throwaway clone of this head, each plant a commit (or
+    two) on a base holding this file, each arm's repair line beside its red.
+
+    LAYOUT plants are the guard's own refusals of a landed move, read from
+    this tree's tests/layout.json: the file re-added at its old path, then
+    under a second commit (the guard reads the merge base, not HEAD's parent),
+    then with that entry dropped from the manifest, staged and not
+    committed (HEAD's manifest is the one pushed), a citation of it, and a
+    manifest that does not parse. REF PRIVACY's are an unregistered push site
+    and a guarded pusher's guard dropped in HEAD but restored in the index.
+    AGREEMENT's is #2671's shape, a grammar in two files registered only in
+    the head's agreement.mjs, which the base's copy finds UNREGISTERED. The
+    nulls: a line that cites, pushes and registers nothing, each red plant
+    staged and not committed (what is pushed is HEAD), a line naming the
+    seat's home (CI judges with the runner's identity), a head copy of
+    agreement.mjs that exits 1 at once (CI never runs it), a grammar the base
+    tip registers and shares (CI grades HEAD merged into the tip, not HEAD
+    alone), and an unregistered grammar in files the lane does not load (the
+    key: prepr step 3f4 refuses that under either copy, so the arm need not).
+    """
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    try:
+        from throwaway_git import throwaway_git_clone
+    finally:
+        sys.path.pop(0)
+    manifest = json.loads((root / "tests" / "layout.json").read_text())
+    tracked = set((git(root, "ls-files") or "").split())
+    dirs = {p[:i + 1] for p in tracked for i, c in enumerate(p) if c == "/"}
+    old = next((r["old"] for r in manifest["retired"] if r.get("new") and not r["old"].endswith("/")
+                and r["old"] not in tracked | dirs), None)
+    ag = next((p for p in AGREEMENT if p in tracked), None)
+    sys.path.insert(0, str(root / "tools" / "audit" / "seat"))
+    try:
+        import ref_privacy as rp
+    finally:
+        sys.path.pop(0)
+    guarded = next((p for p, (kind, _) in sorted(rp.PUSHERS.items()) if kind == rp.GUARDED and p in tracked), None)
+    if old is None or ag is None or guarded is None:
+        print("  FAIL the plants have a landed retired file to re-add, an agreement lane to register in "
+              "and a guarded pusher")
+        return 1
+
+    def app(text):
+        return lambda s: s + text
+
+    def unlisted(s):
+        m = json.loads(s)
+        m["retired"] = [e for e in m["retired"] if e["old"] != old]
+        return json.dumps(m)
+
+    def unguard(s):
+        return s.replace("ref_privacy", "ref_privacx")
+
+    def reguard(s):
+        return s.replace("ref_privacx", "ref_privacy")
+
+    grammar = 'import re\n_CI_PREDICT_PLANT = re.compile(r"ci-predict-plant-(\\d+)-x")\n'
+    register = {ag: lambda s: s.replace("const SHARED_GRAMMARS = {\n", "const SHARED_GRAMMARS = {\n"
+                                        '  "ci-predict-plant-(\\\\d+)-x": "identical:ci_predict self-test plant",\n', 1),
+                "tests/wood_advisor.py": app(grammar), "tools/audit/archscore/score.py": app(grammar)}
+    site = " ".join(["_CI_PREDICT_PLANT = 'git",
+                     "push origin HEAD'\n"])         # split, or this line is a push site itself
+    push = {"tools/audit/archscore/score.py": app(site)}
+    readd, cite = f"LAYOUT placement: {old} re-adds a moved path", f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}"
+    shared = {"tests/wood_advisor.py": app(grammar), "tools/audit/archscore/score.py": app(grammar)}
+
+    def side_merge(run):
+        """A branch merge whose subject is no template, then a main already past it: what a
+        live origin/main shows the merge-subject walk once the PR has merged (the RCA's refused=3)."""
+        h = run("git", "rev-parse", "HEAD").stdout.strip()
+        run("git", "checkout", "-q", "--detach", base)
+        (r / "tests" / "wood_advisor.py").write_text((r / "tests" / "wood_advisor.py").read_text() + "# side\n")
+        run("git", "commit", "-qam", "side")
+        side = run("git", "rev-parse", "HEAD").stdout.strip()
+        run("git", "checkout", "-q", "--detach", h)
+        run("git", "merge", "-q", "--no-ff", "-m", "Merge branch 'side' into plant", side)
+        past = run("git", "commit-tree", "HEAD^{tree}", "-p", "HEAD", "-m", "past").stdout.strip()
+        run("git", "update-ref", "refs/heads/main", past)
+    # (label, [(edits, True: committed | False: staged | "tip": the --base, beside HEAD)], job,
+    #  the predicted line's text or None for a null, rc); a callable step runs git itself
+    cases = [("a file re-added at a path whose move landed is predicted red", [({old: app("")}, True)], "fast", readd, 1),
+             ("the re-added path under a second commit is predicted red", [({old: app("")}, True),
+              ({"tests/wood_advisor.py": app("# a comment\n")}, True)], "fast", readd, 1),
+             ("the re-added path with its entry dropped from the staged manifest is predicted red",
+              [({old: app("")}, True), ({"tests/layout.json": unlisted}, False)], "fast", readd, 1),
+             ("a new line citing a landed path is predicted red", [({"tests/wood_advisor.py": app(f"# see {old}\n")}, True)],
+              "fast", cite, 1),
+             ("a manifest that does not parse is predicted red", [({"tests/layout.json": lambda s: "{"}, True)],
+              "fast", "LAYOUT UNREADABLE", 1),
+             ("a comment citing nothing is predicted green (null control)",
+              [({"tests/wood_advisor.py": app("# a comment\n")}, True)], "fast", None, 0),
+             ("the re-added path staged and not committed is predicted green (null control)",
+              [({old: app("")}, False)], "fast", None, 0),
+             ("an unregistered push site is predicted red", [(push, True)], "instrument",
+              "REF PRIVACY REFUSE tools/audit/archscore/score.py", 1),
+             ("a guarded pusher's guard dropped in HEAD and restored in the index is predicted red",
+              [({guarded: unguard}, True), ({guarded: reguard}, False)], "instrument",
+              f"REF PRIVACY REFUSE {guarded}: registered", 1),
+             ("a line that pushes nothing and names the seat's home is predicted green (null control: "
+              "CI judges with the runner's identity)",
+              [({"tools/audit/archscore/score.py": app(f'_CI_PREDICT_PLANT = "{SEAT_HOME}/x"\n')}, True)],
+              "instrument", None, 0),
+             ("the push site staged and not committed is predicted green (null control)", [(push, False)],
+              "instrument", None, 0),
+             ("a grammar registered only in the head's copy is predicted red", [(register, True)], "wave-script",
+              "AGREEMENT RESULT divergent=0 unregistered=1", 1),
+             ("a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted "
+              "green (CI merges HEAD into the tip)", [(register, "tip"), ({ag: app("// a comment\n")}, True)],
+              "wave-script", None, 0),
+             ("a grammar in two files the lane does not load, the lane untouched, is not run (null control: the "
+              "key; prepr step 3f4 refuses it under either copy)", [(shared, True)], "wave-script", None, 0),
+             ("a lane edit under a branch merge, main already past it, is predicted green (null control: CI's "
+              "origin/main is the base)", [({ag: app("// a comment\n")}, True), side_merge], "wave-script", None, 0),
+             ("a comment in the lane is predicted green (null control)", [({ag: app("// a comment\n")}, True)],
+              "wave-script", None, 0),
+             ("a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's)",
+              [({ag: lambda s: "process.exit(1)\n" + s}, True)], "wave-script", None, 0),
+             ("the registration staged and not committed is predicted green (null control)", [(register, False)],
+              "wave-script", None, 0)]
+    marker = {"fast": "LAYOUT", "instrument": "REF PRIVACY", "wave-script": "AGREEMENT"}
+    head = (git(root, "rev-parse", "HEAD") or "").strip()
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-plant-"))
+    r = tmp / "r"
+    try:
+        env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
+
+        def run(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+
+        # The base is this tree and this file, on main's side of the merge
+        # base: the lane walks first-parent merge subjects, and a branch's own
+        # merges are on CI's second parent, never walked there.
+        run("git", "checkout", "-q", "--detach", head)
+        shutil.copy(Path(__file__), r / "tools" / "pr" / "ci_predict.py")
+        run("git", "add", "-A")
+        main = (git(root, "merge-base", "HEAD", "origin/main") or head).strip()
+        base = run("git", "commit-tree", run("git", "write-tree").stdout.strip(), "-p", main, "-m", "predictor").stdout.strip()
+        run("git", "update-ref", "refs/remotes/origin/main", base)
+        penv = {**env, "HOME": SEAT_HOME}
+        bad = 0
+        for label, steps, job, want, rc in cases:
+            run("git", "checkout", "-q", "-f", "--detach", base)
+            run("git", "clean", "-qfd")
+            tip = base
+            run("git", "update-ref", "refs/heads/main", base)
+            for step in steps:
+                if callable(step):
+                    step(run)
+                    continue
+                edits, commit = step
+                for p, edit in edits.items():
+                    (r / p).parent.mkdir(parents=True, exist_ok=True)
+                    (r / p).write_text(edit((r / p).read_text() if (r / p).exists() else ""))
+                run("git", "add", "-A")
+                if commit:
+                    run("git", "commit", "-qm", label)
+                if commit == "tip":
+                    tip = run("git", "rev-parse", "HEAD").stdout.strip()
+                    run("git", "checkout", "-q", "--detach", base)
+            out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", tip), cwd=r, env=penv,
+                                 capture_output=True, text=True)
+            lines = out.stdout.splitlines()
+            tag = f"PREDICT {JOB[job]} {marker[job]}"
+            fix = any(l.startswith(f"CI PREDICT: a{'n' if job == 'wave-script' else ''} {marker[job]} refusal") for l in lines)
+            hit = (any(l.startswith(tag) and want in l for l in lines) and fix if want
+                   else not any(l.startswith(tag) for l in lines) and not fix)
+            ok = hit and out.returncode == rc
+            print(f"  {'ok  ' if ok else 'FAIL'} {label} (rc {out.returncode})")
+            if not ok:
+                print("\n".join(f"         {l}" for l in (lines + out.stderr.splitlines())[-6:]))
+            bad += not ok
+        return bad
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":

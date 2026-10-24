@@ -355,6 +355,12 @@ jobs:
       - name: Show the superseded-run canceller refusing its own fixtures
         run: python3 tools/pr/cancel_superseded.py --self-test
 
+      # The Dependabot auto-merge decision (dependabot-automerge.yml): patch and
+      # minor merge, a major is left, and a code-owned path withholds the App's
+      # approval, over fixtures and the tree's own CODEOWNERS.
+      - name: Show the Dependabot merge decision refusing its own fixtures
+        run: python3 -I tools/pr/dependabot_merge.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
@@ -558,6 +564,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
+
+      - name: Show the roster queue runner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
+          grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
 
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
