@@ -1,0 +1,13 @@
+RESULT clean_seam_cut_total=313 count
+RESULT alias_seam_cut_total=313 count
+RESULT getter_seam_cut_total=313 count
+# getter _price_model seam=fetch reads=['_price_learner']
+# getter dhw_temperature seam=dhw reads=['_dhw_temperature']
+# getter mode seam=core reads=['_mode']
+# getter prices seam=fetch reads=['_prices']
+# getter system_identification_active seam=core reads=['_sysid']
+# property _price_model seam=fetch read_from=['dhw', 'grid', 'learning'] getter=True
+# property effective_config seam=core read_from=['fetch', 'grid'] getter=False
+# property target_temperature seam=core read_from=['learning'] getter=False
+RESULT bare_getters=5 count
+RESULT properties_read_cross_seam=3 count

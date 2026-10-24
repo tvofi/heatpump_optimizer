@@ -1,0 +1,4 @@
+RESULT clean_seam_cut_total=710 count
+RESULT alias_seam_cut_total=708 count
+RESULT getter_seam_cut_total=708 count
+# census: this tree's structure.py has no bare-getter rule

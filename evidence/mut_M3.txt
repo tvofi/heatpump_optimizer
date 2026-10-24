@@ -1,0 +1,5 @@
+########## counting-rule self-check ##########
+FAIL  a read that crosses the seam costs one, however it is spelt
+FAIL  a property's setter hides none of its getter's reads
+FAIL  a helper is priced as the method it was cut from (#1686)
+3 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
