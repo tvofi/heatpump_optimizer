@@ -3566,6 +3566,8 @@
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh",
    "dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh",
+   "dev/audit/harnesses/r10_cloud_setup_mutants.py",
+   "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
