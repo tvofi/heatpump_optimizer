@@ -1,0 +1,11 @@
+== good (carry appended to brief)
+== <scratch>/br-good/wave-r10-groups.json ==
+  -- 0 error(s), 0 warning(s)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+TOTAL: 0 error(s) across 1 file(s)
+== bad (carry appended to brief)
+== <scratch>/br-bad/wave-r10-groups.json ==
+  ERROR   [R10-TRAIN-UPGRADE] path: tools/audit/seat/merge_trainZ.py: not in the tree, and no tag SHA is cited alongside it
+  -- 1 error(s), 0 warning(s)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+TOTAL: 1 error(s) across 1 file(s)
