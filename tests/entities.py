@@ -36862,8 +36862,14 @@ def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
 
 
 def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
+    # The one row it re-drives, not the live ledger: main() refuses a ledger
+    # that disagrees with the live inventory, so a whole-ledger stub went red
+    # on ANY pinned line a mutant rewrote -- the vacuous kill (R10
+    # mutation-anchor). That agreement is the mutation lane's own refusal.
     budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
-    budgets["killed_by"][_MUT_AN]["killed_by"] = pinned
+    budgets["killed_by"] = {_MUT_AN: dict(budgets["killed_by"][_MUT_AN],
+                                          killed_by=pinned)}
+    budgets["survivor_triage"] = {}
     _row = budgets["killed_by"][_MUT_AN] if _MUT_AN_JUDGE in drivers else None
     _saved = {n: getattr(_mut, n) for n in
               ("load_budgets", "load_closures", "clone_tree", "drop_tree", "run_script")}
