@@ -1637,11 +1637,6 @@ class Train:
         return keep
 
     # ------------------------------------------------------ the queue builder
-    #: The verdict grammar, bus.sh's verdict_sha (app_comment.sh's two patterns;
-    #: orchestrator_tick.py's verdict levels read the same two).
-    VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
-    VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
-
     def build_queue(self) -> list[dict]:
         """`queue`: the train's queue, written from what is already machine-read
         (R10-FLOW-AUTOTRAIN) instead of assembled by hand in an agent's turn.
@@ -1697,6 +1692,8 @@ class Train:
         `merge`; and its head is the verdict's, or `app_approve.sh --carry`
         says the verdict carries to it. The comment id rides the entry: the
         mandate approval quotes it and app_approve.sh's evidence gate reads it."""
+        sys.modules.setdefault("merge_train", sys.modules[__name__])  # proof_watch imports the train
+        import proof_watch  # the verdict grammar's one Python reader
         import record_row  # the record branch's one spelling, as --bot-prs looks it up
         n, h = int(pr.get("number") or 0), pr.get("headRefOid") or ""
         if pr.get("headRefName") == record_row.RECORD_BRANCH:
@@ -1722,11 +1719,10 @@ class Train:
         if f"\nbus: verdict/{n} at {tip}," not in body:
             return f"the newest posted verdict (comment {v.get('id')}) is not verdict/{n}'s tip {tip}"
         first = body.split("\n", 1)[0].rstrip("\r")
-        m = self.VERDICT_MERGE.match(first)
-        if not m:
-            return "the newest verdict is " + ("blocked" if self.VERDICT_BLOCKED.match(first) else "unparsed") \
-                + f": {first[:120]}"
-        verdict = m.group(1)
+        got = proof_watch.parse_verdict(first)
+        if got is None or got[0] != "merge":
+            return f"the newest verdict is {got[0] if got else 'unparsed'}: {first[:120]}"
+        verdict = got[1]
         if verdict != h:
             self.run(["git", "fetch", "-q", "origin", verdict, h])
             o = self.run(["bash", tool("app_approve"), "--carry", verdict, h])[1]
@@ -3364,6 +3360,20 @@ def _queue_self_test(check) -> None:
           not any(c[:2] == ["git", "diff"] for c in calls))
     check("queue: the carry is asked only where the verdict is not the head (#12, #13)",
           sorted(c[c.index("--carry") + 1][:1] for c in calls if "--carry" in c) == ["2", "3"])
+    # R10-FLOW-AUTOTRAIN-R2: the grammar is proof_watch's, read at the call. A
+    # grammar swapped there must move the queue; a copy inlined here would not.
+    keep_rx = proof_watch.VERDICT_MERGE
+    proof_watch.VERDICT_MERGE = re.compile(keep_rx.pattern.replace(" merge ", " MERGE "))
+    try:
+        upper = build(world(comments={**world()["comments"],
+                                      11: [posted(11, f"Fix review: MERGE {hx('f')[:-1]}1")]}))[0]
+        lower = build(world())[0]
+    finally:
+        proof_watch.VERDICT_MERGE = keep_rx
+    check("queue: the verdict grammar is proof_watch.parse_verdict's, not a copy -- a grammar swapped there "
+          "admits #11 under it and leaves #11 under the old spelling",
+          isinstance(upper, list) and upper[:1] == want[:1]
+          and isinstance(lower, list) and not any(e["pr"] == 11 for e in lower))
     for name, over in (("pull request list", {"list": (1, "HTTP 502")}),
                        ("verdict bus listing", {"ls": (128, "fatal: unreachable")})):
         got = build(world(**over))[0]

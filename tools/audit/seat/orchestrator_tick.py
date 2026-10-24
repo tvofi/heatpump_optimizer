@@ -617,14 +617,9 @@ class Tick:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
 
-    #: The verdict grammar, bus.sh's verdict_sha (app_comment.sh's two patterns).
-    VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
-    VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
-
-    def _verdict_authors(self) -> "tuple[set, int] | None":
+    def _verdict_authors(self, pw) -> "tuple[set, int] | None":
         """The approver App's identity off app_approve.sh, through
         proof_watch.verdict_allowlist, its one reader; None when unreadable."""
-        pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")
         if pw is None or not hasattr(pw, "verdict_allowlist"):
             return None
         for rel in ("tools/pr/app_approve.sh", "tools/audit/app_approve.sh"):
@@ -663,7 +658,8 @@ class Tick:
           BLOCKED-UNFIXED: #N <head8>  blocked at the current head, and no
                                        handoff/<topic> tip committed after it.
         A verdict at an older head prints neither line."""
-        allow = self._verdict_authors()
+        pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")  # the identity and the grammar
+        allow = self._verdict_authors(pw)
         if allow is None:
             self.unreadable(S, "verdict levels", "no VERDICT_AUTHORS in app_approve.sh")
             return
@@ -688,11 +684,11 @@ class Tick:
                 continue
             v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
             first = (v.get("body") or "").split("\n", 1)[0].rstrip("\r")
-            m, b = self.VERDICT_MERGE.match(first), self.VERDICT_BLOCKED.match(first)
+            kind, at = pw.parse_verdict(first) or ("", "")
             ms = (pr.get("mergeStateStatus") or "").upper()
-            if m and m.group(1) == head and ms in ("CLEAN", "UNSTABLE"):
+            if kind == "merge" and at == head and ms in ("CLEAN", "UNSTABLE"):
                 self.line(S, f"MERGE-READY: #{n} {head[:8]}", flag=True)
-            elif b and b.group(1) == head:
+            elif kind == "blocked" and at == head:
                 newer = self._handoff_newer(pr.get("headRefName") or "", v.get("created_at") or "")
                 if newer is None:
                     self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
@@ -3775,6 +3771,28 @@ def self_test() -> int:
              any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
             ("comments it cannot read are UNREADABLE, never silence",
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
+        ])
+        total, failed = total + a, failed + f
+        # R10-FLOW-AUTOTRAIN-R2: the grammar is proof_watch.parse_verdict's. A grammar
+        # swapped in the module the tick loads must move the level; a copy here would not.
+        real_module = _module
+
+        def swapped(name, *candidates):
+            mod = real_module(name, *candidates)
+            if name == "proof_watch_tick" and mod is not None:
+                mod.VERDICT_MERGE = re.compile(mod.VERDICT_MERGE.pattern.replace(" merge ", " MERGE "))
+            return mod
+        globals()["_module"] = swapped
+        try:
+            upper, _ = vboard([(50, "CLEAN", [vc(11, f"Fix review: MERGE {h(50)}")])])
+            lower, _ = vboard([(51, "CLEAN", [vc(12, f"Fix review: merge {h(51)}")])])
+        finally:
+            globals()["_module"] = real_module
+        a, f = check("verdict grammar", [
+            ("the verdict grammar is proof_watch.parse_verdict's, not a copy: a grammar swapped there is MERGE-READY",
+             any(l["text"] == f"MERGE-READY: #50 {h(50)[:8]}" for l in upper)),
+            ("null control: under the swapped grammar the old spelling is no merge verdict",
+             not any(l["text"].startswith("MERGE-READY") for l in lower)),
         ])
         total, failed = total + a, failed + f
 

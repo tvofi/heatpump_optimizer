@@ -5,11 +5,14 @@
 # prints the self-test's last line and its FAIL lines: a killed mutant prints
 # failures, a survivor "0 failed". The CI mutation lane does not cover these
 # files: its scope is production code, and nothing under tools/ is in it.
+# R10-FLOW-AUTOTRAIN-R2 adds G1 and G2: the verdict grammar re-inlined in the
+# queue (merge_train.py) or the verdict levels (orchestrator_tick.py) instead of
+# read through proof_watch.parse_verdict; each prints agreement_py's RESULT too.
 # Run from a clean checkout of the branch, all mutants or the ones named:
 #   bash dev/audit/harnesses/r10_flow_autotrain_mutants.sh [A1 P3 ...]
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
-F=tools/audit/seat/merge_train.py L=tools/audit/seat/tick_loop.sh
-git diff --quiet -- $F $L || { echo "$F or $L has uncommitted edits; the restore would erase them"; exit 2; }
+F=tools/audit/seat/merge_train.py L=tools/audit/seat/tick_loop.sh O=tools/audit/seat/orchestrator_tick.py
+git diff --quiet -- $F $L $O || { echo "$F, $L or $O has uncommitted edits; the restore would erase them"; exit 2; }
 want=" $* "
 mut() { # name, file, python replace old->new (exactly one occurrence)
   name=$1; f=$2; old=$3; new=$4
@@ -17,9 +20,11 @@ mut() { # name, file, python replace old->new (exactly one occurrence)
   python3 - "$f" "$old" "$new" 2>/dev/null <<'P' || { echo "== $name: PATTERN NOT FOUND"; return; }
 import sys; p,o,n=sys.argv[1:]; s=open(p).read(); assert s.count(o)==1; open(p,'w').write(s.replace(o,n))
 P
-  if [ "$f" = "$L" ]; then out=$(bash $L --self-test 2>&1); else out=$(python3 $F --self-test 2>&1); fi
+  if [ "$f" = "$L" ]; then out=$(bash $L --self-test 2>&1); else out=$(python3 "$f" --self-test 2>&1); fi
+  [[ $name == G* ]] && agr=$(python3 -I tools/policy/agreement_py.py --run 2>&1 | grep '^RESULT')
   git checkout -q -- "$f"
   echo "== $name: $(echo "$out" | tail -1)"; echo "$out" | grep FAIL | sed 's/^/     /'
+  [[ $name == G* ]] && echo "     agreement_py: $agr"
 }
 if [ "$want" = "  " ] || [[ "$want" == *" M0 "* ]]; then
   echo "== M0 baseline: $(python3 $F --self-test 2>&1 | tail -1); $(bash $L --self-test 2>&1 | tail -1)"
@@ -38,9 +43,7 @@ mut A5 $F '        v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("
         body = v.get("body") or ""' '        v = min(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
         body = v.get("body") or ""'
 mut A6 $F '        if f"\nbus: verdict/{n} at {tip}," not in body:' '        if False:'
-mut A7 $F '        m = self.VERDICT_MERGE.match(first)
-        if not m:' '        m = self.VERDICT_MERGE.match(first) or self.VERDICT_BLOCKED.match(first)
-        if not m:'
+mut A7 $F '        if got is None or got[0] != "merge":' '        if got is None:'
 mut A8 $F '            if "CARRY: yes" not in o:
                 return f"the verdict' '            if False:
                 return f"the verdict'
@@ -80,3 +83,9 @@ mut P9 $F '            if a.once:
                 return rc'
 mut P10 $F '            time.sleep(max(a.every, 60))' '            time.sleep(60)'
 mut T3 $L '  [ $(( $(date +%s) - last )) -ge "$every" ] || return 0  # mut:due' '  true || return 0  # mut:due'
+# The grammar's one reader (R10-FLOW-AUTOTRAIN-R2): a copy of the merge pattern
+# inlined at either call site, the shape agreement_py refused at the r1 head.
+RX='^Fix review: merge ([0-9a-f]{40})$'
+mut G1 $F '        got = proof_watch.parse_verdict(first)' "        got = (lambda m: (\"merge\", m.group(1)) if m else None)(re.match(r\"$RX\", first))"
+mut G2 $O '            kind, at = pw.parse_verdict(first) or ("", "")' "            m = re.match(r\"$RX\", first)
+            kind, at = (\"merge\", m.group(1)) if m else (pw.parse_verdict(first) or (\"\", \"\"))"
