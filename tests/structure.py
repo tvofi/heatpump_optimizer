@@ -1037,7 +1037,7 @@ def _flow_static(fn: ast.AST, roots: frozenset[str]):
             # A call may store what it is handed in anything else it is
             # handed: ``out.append(self._x)``, ``setattr(out, "x", ...)``.
             handed = [node.func, *node.args, *(k.value for k in node.keywords)]
-            for holder in handed:
+            for holder in handed[isinstance(node.func, ast.Name):]:
                 while isinstance(holder, (ast.Attribute, ast.Subscript, ast.Starred)):
                     holder = holder.value
                 if isinstance(holder, ast.Name):
