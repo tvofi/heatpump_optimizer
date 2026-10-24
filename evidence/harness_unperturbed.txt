@@ -1,0 +1,64 @@
+== b unperturbed
+  pair merge-subject-pr: 4 readers, 1055 items, 0 divergent
+  merge-subject guard: 249 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=3.7
+AGREEMENT ok
+864:        self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
+1482:            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+2111:            if argv[:3] == ["gh", "pr", "merge"] and argv[3] == "9":
+2116:            if argv[:3] == ["gh", "pr", "merge"] and world.get("merge_outs"):
+2248:        return any(c[:3] == ["gh", "pr", "merge"] for c in calls)
+2398:          rc == 0 and remerges(calls) == 2 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2399:          and not any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2416:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H1]
+2423:    order = [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]]
+2427:          and any(c[:4] == ["gh", "pr", "merge", "9"] and c[-1] == "e" * 40 for c in calls)
+2433:              rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2438:          rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2449:          rc == 1 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2634:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2645:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2759:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2763:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+2794:          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+2863:    check("the merge is retried until GitHub reports MERGED", rc == 0 and sum(c[:3] == ["gh", "pr", "merge"] for c in calls) == 3)
+2879:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H0, H1]
+2885:          rc == 0 and remerges(calls) == 1 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2903:    check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
+3120:    code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
+3329:    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+3538:            if argv[:3] in (["gh", "pr", "view"], ["gh", "pr", "merge"]) and argv[3] == "9":
+3565:            if argv[:3] == ["gh", "pr", "merge"]:
+3723:    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+== h unperturbed
+  pair merge-subject-pr: 4 readers, 1057 items, 0 divergent
+  merge-subject guard: 249 first-parent commit(s) past 07a09406a, 55 merge call(s) in 11 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=4.7
+AGREEMENT ok
+864:        self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
+1482:            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+2111:            if argv[:3] == ["gh", "pr", "merge"] and argv[3] == "9":
+2116:            if argv[:3] == ["gh", "pr", "merge"] and world.get("merge_outs"):
+2248:        return any(c[:3] == ["gh", "pr", "merge"] for c in calls)
+2398:          rc == 0 and remerges(calls) == 2 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2399:          and not any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2416:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H1]
+2423:    order = [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]]
+2427:          and any(c[:4] == ["gh", "pr", "merge", "9"] and c[-1] == "e" * 40 for c in calls)
+2433:              rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2438:          rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2449:          rc == 1 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+2634:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2645:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+2759:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2763:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+2794:          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+2863:    check("the merge is retried until GitHub reports MERGED", rc == 0 and sum(c[:3] == ["gh", "pr", "merge"] for c in calls) == 3)
+2879:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H0, H1]
+2885:          rc == 0 and remerges(calls) == 1 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+2903:    check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
+3120:    code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
+3329:    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+3538:            if argv[:3] in (["gh", "pr", "view"], ["gh", "pr", "merge"]) and argv[3] == "9":
+3565:            if argv[:3] == ["gh", "pr", "merge"]:
+3723:    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
