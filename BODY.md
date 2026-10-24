@@ -1,20 +1,20 @@
-Moves the roster seat's queue runner and carry read-back (runq.py, rb.py, previously only under the seat's scratch directory) into `tools/audit/seat/roster_queue.py`, per decision 0013 (tools live in the tree). The runner lints from a clone it owns at `origin/main` so it never moves the orchestrator's checkout; it retries a moved-main refusal up to four times and reads every `append-carry @file` back from the pushed commit. Adds an INSTRUMENTS.md entry and a governance.yml step that runs the self-test.
+Moves the roster seat's queue runner and carry read-back (runq.py, rb.py, previously only under the seat's scratch directory) into `tools/audit/seat/roster_queue.py`, per decision 0013 (tools live in the tree). The runner lints from a clone it owns at `origin/main` so it never moves the orchestrator's checkout; it retries a moved-main refusal up to four times and reads every `append-carry @file` back from the pushed commit. A queue line may carry flags after the group (`drop-carry G --match TEXT`): the runner passes everything from the first `--` token on to `roster_edit.py` (the seat-local copy dropped them and the first `--match` line was refused). Adds an INSTRUMENTS.md entry and a governance.yml step that runs the self-test.
 
 ## Head
 
-e191a706c44a636c6252946014c20d7b4a6abbe1
+4f72699f053882c1cbdf9a07938e532f95873a1a
 
 ## Mutation proof
 
-Planted in `roster_queue.py` at the head, each run with `python3 -I tools/audit/seat/roster_queue.py --self-test`: the retry condition disabled (`attempt < 0`) reddens 2 checks ("run: moved main retried", "run: pushed + readback"); the read-back match forced (`hit = [0]`) reddens 3, including the null control "absent text is no match".
+Planted in `roster_queue.py` at the head, each run with `python3 -I tools/audit/seat/roster_queue.py --self-test`: the retry condition disabled (`attempt < 0`) reddens 2 checks ("run: moved main retried", "run: pushed + readback"); the read-back match forced (`hit = [0]`) reddens 3, including the null control "absent text is no match". For the flag pass-through: dropping `extra` from the editor command reddens "run: drop-carry --match reaches the editor as a flag, not a value" (1 failed); reverting the parser to a bare positional reddens "parse: drop-carry --match keeps the flag and its text" (1 failed).
 
 ## Null control
 
-Unmodified tree: `roster_queue self-test: 12 checks, 0 failed`.
+Unmodified tree: `roster_queue self-test: 14 checks, 0 failed`.
 
 ## Figures
 
-- 12 checks, 0 failed: `python3 -I tools/audit/seat/roster_queue.py --self-test`
+- 14 checks, 0 failed: `python3 -I tools/audit/seat/roster_queue.py --self-test`
 - 94 self-testing, 94 wired, 0 unwired: `python3 -I tools/audit/seat/selftest_wiring.py --check`
 - structure ratchet passed: `python3 tests/structure.py`
 
