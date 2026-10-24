@@ -1,0 +1,10 @@
+merge-base ac5788f2617755631f14e4d1a31efab0e47aa820
+census: 9 functions: predict_line unpinned_line claims_line closures_line body_line copies_line throwaway_line moved_line reds_line 
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+layout: GUARD: 0 refusal(s) against ac5788f26177
+CI PREDICT: no closures or fast red predicted against ac5788f26177 (a data-file read is not seen)
+selftest_wiring: 93 self-testing, 93 wired, 0 unwired
+VERSION/manifest/notes/claims untouched

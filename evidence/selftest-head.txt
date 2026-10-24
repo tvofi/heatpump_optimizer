@@ -1,0 +1,9 @@
+  ok   a carry to a group of the roster is predicted green
+  ok   a carry to a group the roster lacks is predicted red
+  ok   a finding with no carry at all is predicted red
+  ok   a file re-added at a path whose move landed is predicted red (rc 1)
+  ok   a new line citing a landed path is predicted red (rc 1)
+  ok   a comment citing nothing is predicted green (null control) (rc 0)
+  ok   the re-added path staged and not committed is predicted green (null control) (rc 0)
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
