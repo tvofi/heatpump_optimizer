@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:space_draw_kw RETURN_DEL 8b9f939b",
+  "killed_by": "tests/structure.py",
+  "old": "    return running_kw(draw, drawn_kw) * space_share(*split) if space_served else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

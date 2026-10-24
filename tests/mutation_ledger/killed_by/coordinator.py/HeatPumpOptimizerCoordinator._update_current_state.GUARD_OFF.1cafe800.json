@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF 1cafe800",
+  "killed_by": "tests/features.py",
+  "old": "        if frozen := await self._track_dhw(dhw.value if dhw.ok else None, reader):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=32."
+}

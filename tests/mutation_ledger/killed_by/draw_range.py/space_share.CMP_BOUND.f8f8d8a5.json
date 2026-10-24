@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:space_share CMP_BOUND f8f8d8a5",
+  "killed_by": "tests/boost_drift_replay.py",
+  "old": "    return space_kw / total if total > 1e-6 else 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: CMP_BOUND (`return space_kw / total if total >= 1e-6 else 1.0`) took tests/boost_drift_replay.py from rc=0 failed=0 to rc=1 failed=1."
+}
