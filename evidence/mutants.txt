@@ -1,0 +1,6 @@
+venv-ha python, tests/gate_lock.py --accept, worktree at ea459c0b5f6b4d753394935dfb49e5386480fd40, 2 runs each
+M1 Owner.write -> path.write_text : FAIL torn_write [torn reads=22588 / 18135 of 4000 rewrites], 1 of 31 FAILED (killed)
+M2 Owner.create -> O_EXCL then write : FAIL torn_create [winners=['rival','a']], 1 of 31 FAILED (killed)
+M3 os.link(tmp,path) -> os.replace(tmp,path) : FAIL torn_create [winners=['rival','a']], 1 of 31 FAILED (killed)
+M4 drop finally: tmp.unlink : ALL 31 PASSED (SURVIVED)
+unmutated head: ALL 31 PASSED x3
