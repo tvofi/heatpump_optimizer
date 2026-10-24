@@ -5128,8 +5128,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if void:
             self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
         phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
-        new_scale, new_ratio, ratio_reset = reanchor_heat_loss(
+        new_scale, new_ratio, scale_reset, ratio_reset = reanchor_heat_loss(
             *pair, self._house_heat_loss_scale, ratio, phi,
+            scale_bounds=(HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX),
             ratio_bounds=(LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX),
         )
         if ratio_reset:
@@ -5139,18 +5140,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 ratio, self._lower_floor_loss_samples,
             )
             self._lower_floor_loss_samples, phi = 0, (phi[0], 0.0)
-        if not HOUSE_HEAT_LOSS_SCALE_MIN <= new_scale <= HOUSE_HEAT_LOSS_SCALE_MAX:
+        if scale_reset:
             _LOGGER.warning(
-                "Learned house heat loss scale %.3f (fitted against "
-                "%.4f kW/°C, %d samples) cannot be expressed against the "
-                "newly configured %.4f kW/°C: resetting to the "
-                "configuration",
-                self._house_heat_loss_scale,
-                anchor,
-                self._house_heat_loss_samples,
-                current,
+                "Learned house heat loss scale %.3f (fitted against %.4f kW/°C, %d samples) cannot be "
+                "expressed against the newly configured %.4f kW/°C: resetting to the configuration",
+                self._house_heat_loss_scale, anchor, self._house_heat_loss_samples, current,
             )
-            new_scale, self._house_heat_loss_samples = DEFAULT_HOUSE_HEAT_LOSS_SCALE, 0
+            self._house_heat_loss_samples, phi = 0, (0.0, phi[1])
         _LOGGER.info(
             "Re-anchored learned house heat loss scale %.3f -> %.3f and ratio %.3f -> %.3f "
             "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "

@@ -8938,6 +8938,42 @@ R.check(
     f"{_ra_none._house_heat_loss_scale:.6f} unlearned (ratio {_ra_none._lower_floor_loss_ratio})",
 )
 
+# The mirror: a scale that cannot be expressed against the new nameplates
+# resets, so the ratio beside it lands where the same edit lands over a store
+# whose scale never learned and whose ratio holds the same lower-zone
+# measurement (ratio s*r). A ratio solved jointly with the inexpressible
+# scale kept that scale's share of the lower zone (fix review of #2698).
+_RA_SR_EDIT = dict(_RA_CFG, upper_floor_heat_loss=_RA_U * 1.8, lower_floor_heat_loss=_RA_L * 1.4)
+_ra_sr = _ra_reload(_RA_SR_EDIT, _ra_learned(_RA_CFG, scale=0.5, ratio=0.8))
+_ra_sr_twin = _ra_reload(
+    _RA_SR_EDIT, _ra_learned(_RA_CFG, scale=1.0, ratio=0.5 * 0.8, samples=(0, _RA_NR))
+)
+R.check(
+    "the ratio beside a reset scale is the ratio with no scale evidence",
+    abs(_ra_sr._house_heat_loss_scale - 1.0) < 1e-12
+    and (_ra_sr._house_heat_loss_samples, _ra_sr._lower_floor_loss_samples) == (0, _RA_NR)
+    and abs(_ra_sr._lower_floor_loss_ratio / _ra_sr_twin._lower_floor_loss_ratio - 1.0) < 1e-12
+    and _ra_sr._lower_floor_loss_ratio != 1.0,
+    f"scale {_ra_sr._house_heat_loss_scale:.6f}, ratio {_ra_sr._lower_floor_loss_ratio:.6f} "
+    f"after the reset vs {_ra_sr_twin._lower_floor_loss_ratio:.6f} with no scale evidence, "
+    f"samples {_ra_sr._house_heat_loss_samples}/{_ra_sr._lower_floor_loss_samples}",
+)
+
+# And where the ratio solved again beside the reset scale is inexpressible
+# too, both reset and both say so: the edit lands on the configuration.
+_ra_sr2 = _ra_reload(
+    dict(_RA_CFG, upper_floor_heat_loss=_RA_U * 0.6, lower_floor_heat_loss=_RA_L * 0.5),
+    _ra_learned(_RA_CFG, scale=2.0, ratio=2.5),
+)
+R.check(
+    "a reset scale whose ratio is inexpressible beside it resets both",
+    abs(_ra_sr2._house_heat_loss_scale - 1.0) < 1e-12
+    and (_ra_sr2._lower_floor_loss_ratio, _ra_sr2._house_heat_loss_samples,
+         _ra_sr2._lower_floor_loss_samples) == (1.0, 0, 0),
+    f"scale {_ra_sr2._house_heat_loss_scale:.6f}, ratio {_ra_sr2._lower_floor_loss_ratio}, "
+    f"samples {_ra_sr2._house_heat_loss_samples}/{_ra_sr2._lower_floor_loss_samples}",
+)
+
 # G-ID-3: a power meter added under a learned state. The learners replayed
 # commanded power until now, so what they hold is void against the metered
 # basis: both start again from the configuration, and the store says so once.

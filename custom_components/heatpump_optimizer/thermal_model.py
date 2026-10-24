@@ -2044,9 +2044,10 @@ def reanchor_heat_loss(
     ratio: float,
     confidence: tuple[float, float],
     *,
+    scale_bounds: tuple[float, float],
     ratio_bounds: tuple[float, float],
-) -> tuple[float, float, bool]:
-    """The learned ``(scale, ratio)`` re-expressed against new nameplates, and a ratio reset.
+) -> tuple[float, float, bool, bool]:
+    """The learned ``(scale, ratio)`` re-expressed against new nameplates, and which reset.
 
     ``then`` and ``now`` are the ``(upper, lower)`` nameplate UA the learners
     were fitted against and the UA configured now (lower 0 for one zone);
@@ -2060,17 +2061,22 @@ def reanchor_heat_loss(
 
     on the zone total with the scale's phi, and on the lower zone with the
     ratio's, whose prior is the lower nameplate at the new scale (ratio 1).
-    Path-independent; every zone keeps its measurement at convergence and
-    its configuration at zero evidence, where round 1 did its damage. The
-    pair solves a quadratic in the scale with one non-negative root.
+    Path-independent only at the ends of the confidence range: every zone
+    keeps its measurement at convergence and its configuration at zero
+    evidence, where round 1 did its damage; between them a chain of edits
+    blends toward each intermediate nameplate and lands elsewhere than the
+    one edit (the #86 law's own property). The pair solves a quadratic in
+    the scale with one non-negative root, which is 1 at zero scale confidence.
     Re-expressing the scale alone handed the lower zone's learned share to
     the upper one, the total kept and the split wrong.
 
-    A ratio outside ``ratio_bounds`` cannot be expressed against the new
-    lower nameplate: clamp means reset, so its evidence is void and the pair
-    is solved again at zero ratio confidence (ratio 1), the third element
-    ``True``. Keeping the scale solved beside the inexpressible ratio kept
-    that ratio's share of the total in the upper zone.
+    Clamp means reset, on either learner: a value outside its bounds cannot
+    be expressed against the new nameplates, so its evidence is void and the
+    pair is solved again at that learner's zero confidence. A scale outside
+    ``scale_bounds`` lands at 1 and flags the third element; a ratio outside
+    ``ratio_bounds`` lands at 1 and flags the fourth. Keeping the other
+    learner solved beside the inexpressible one kept that one's share: the
+    upper zone held a reset ratio's, the lower zone a reset scale's.
     """
     (u_then, l_then), (u_now, l_now) = then, now
     a, b = confidence
@@ -2082,12 +2088,16 @@ def reanchor_heat_loss(
     root = math.sqrt(lin * lin - 4.0 * quad * const)
     # The cancellation-free form of the same root on either sign of ``lin``.
     new_scale = (root - lin) / (2.0 * quad) if lin <= 0 else -2.0 * const / (lin + root)
+    bounds = {"scale_bounds": scale_bounds, "ratio_bounds": ratio_bounds}
+    if a and not scale_bounds[0] <= new_scale <= scale_bounds[1]:
+        again = reanchor_heat_loss(then, now, scale, ratio, (0.0, b), **bounds)
+        return again[0], again[1], True, again[3]
     if l_now <= 0 or new_scale <= 0:
-        return new_scale, ratio, False
+        return new_scale, ratio, False, False
     new_ratio = (1.0 - b) + b * lower / (l_now * new_scale)
     if b and not ratio_bounds[0] <= new_ratio <= ratio_bounds[1]:
-        return (*reanchor_heat_loss(then, now, scale, ratio, (a, 0.0), ratio_bounds=ratio_bounds)[:2], True)
-    return new_scale, new_ratio, False
+        return (*reanchor_heat_loss(then, now, scale, ratio, (a, 0.0), **bounds)[:3], True)
+    return new_scale, new_ratio, False, False
 
 
 @dataclass(frozen=True, kw_only=True)
