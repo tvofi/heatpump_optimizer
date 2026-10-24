@@ -12,25 +12,45 @@ The `never --subject` line in `dev/governance/roles/orchestrator.md` belongs to 
 
 ## Head
 
-`09b1d002c19f941e9ba77367554e086c8cec50ee`, cut from origin/main `50af6174f53c0f9bec3f705c3a4bb99615f71acc` (the merge base; origin/main had not moved when fetched at the end of the work).
+`f6568a42961232dc0f4fcdc32cb9c187a3602635`: the repair commit on the reviewed head `b4dd119172d5e0f04f800e752dffe265228d19e1` (code `09b1d002c`, then the delivery-row record), a fast-forward of `handoff/r10-merge-subject-harden`. Merge base with origin/main `50af6174f53c0f9bec3f705c3a4bb99615f71acc`. origin/main was `fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a` at 2026-10-24T12:59Z; the branch is frozen past the handoff, so main is not merged in here, and `git merge-tree --write-tree origin/main HEAD` exits 0 (no conflict).
+
+## Review response (review/2697, round 1, `blocked mutation-vacuous`)
+
+- **M13** (`else if (')]}'.includes(c)) open.pop()` in `callExtent` deleted, every probe held). New probe `a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused`, driving the reviewer's shape `(cd repo) && gh pr merge 9 --merge --subject "Merge pull request #9 (x)"`. It holds at head and fails under M13 (table below).
+- **M12** (the quote-state reset at a line end in `callExtent` deleted, every probe held). New null-control probe `null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's`, driving the reviewer's shape `run(["gh", "pr", "merge", n,  # it's` / `"--merge"])` / `other(["--subject", s])`, which must pass. It holds at head and fails under M12.
+- **The M1 to M13 table is re-run** below with the reviewer's own instrument (review/2697 `evidence/mut.py`, unchanged), each mutant killed.
+- **The pair's item count** is re-taken at the new head; the false `Unpinned sites: none` is now true by the table and is restated with its evidence.
+- **A third probe, beyond the verdict.** Running further mutants of my own over the diff's added lines (X1 to X6 below) found one more writer miss that no probe pinned: with `subjectWriters` reading only the first `MERGE_CALL` match in a file, a `--subject` on a second merge call in the same file passed every probe. New probe `every merge call in a file is read: a --subject on the second is refused, at its line` kills it.
+- The repair is these three probes: no production line changed (`git diff b4dd11917 HEAD` is 6 added lines, all inside `selfTest`).
 
 ## Mutation proof
 
-Each mutant was applied to the head's `tools/policy/agreement.mjs`, followed by `node tools/policy/agreement.mjs --self-test`, then a restore. All 11 were killed. The failing probes:
+Instrument: review/2697's `evidence/mut.py`, run unchanged from the worktree root at head `f6568a429`. It applies each string-replacement mutant to `tools/policy/agreement.mjs`, runs `node tools/policy/agreement.mjs --self-test`, prints the summary and each FAIL, and restores. Unmutated: `SELF-TEST 39 of 39 probes held`. All 13 mutants were killed (each summary below 39 of 39; a survivor would print `39 of 39` and no FAIL):
 
-- M1, title arm back to `/\(#\d+\)$/`: `FAIL a subject GitHub's title template never writes is refused` (35 of 36).
-- M2, number back to `\d+`: `FAIL a subject GitHub's title template never writes is refused` (35 of 36).
-- M3, extent ends at every line end (the line scan): `FAIL a --subject on a shell continuation line is refused, at the call line`, `FAIL a --subject in an argv list split over lines is refused`, `FAIL an argv list broken between "pr" and "merge" is still a merge call`, `FAIL a merge_pull_request call whose commit_title is on a later line is refused` (32 of 36).
-- M4, `\` continuation ignored: `FAIL a --subject on a shell continuation line is refused, at the call line`.
-- M5, the line-end check ignores bracket depth: `FAIL a merge_pull_request call whose commit_title is on a later line is refused`.
-- M6, blank-line end deleted: `FAIL null control: a split merge call with no subject passes, and a flag on the next command is not the call's`.
-- M7, closing the enclosing bracket does not end the extent: `FAIL null control: a sibling argv in the call's own table is not the call's`.
-- M8, extent always starts at the line's start: `FAIL null control: a sibling argv in the call's own table is not the call's`.
-- M9, `MERGE_CALL` back to literal single spaces: `FAIL an argv list broken between "pr" and "merge" is still a merge call`.
-- M10, quote marks not read as quotes: `FAIL null control: a bracket in a quote, past an escaped quote, opens no command`.
-- M11, escapes inside a quote not read: `FAIL null control: a bracket in a quote, past an escaped quote, opens no command`.
+- M1, title arm back to `/\(#\d+\)$/`: 38 of 39, `FAIL a subject GitHub's title template never writes is refused`.
+- M2, number back to `\d+`: 38 of 39, `FAIL a subject GitHub's title template never writes is refused`.
+- M3, extent ends at every line end (the line scan): 35 of 39, `FAIL a --subject on a shell continuation line is refused, at the call line`, `FAIL a --subject in an argv list split over lines is refused`, `FAIL an argv list broken between "pr" and "merge" is still a merge call`, `FAIL a merge_pull_request call whose commit_title is on a later line is refused`.
+- M4, `\` continuation ignored: 38 of 39, `FAIL a --subject on a shell continuation line is refused, at the call line`.
+- M5, the line-end check ignores bracket depth: 38 of 39, `FAIL a merge_pull_request call whose commit_title is on a later line is refused`.
+- M6, blank-line end deleted: 38 of 39, `FAIL null control: a split merge call with no subject passes, and a flag on the next command is not the call's`.
+- M7, closing the enclosing bracket does not end the extent: 37 of 39, `FAIL null control: a sibling argv in the call's own table is not the call's`, `FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's`.
+- M8, extent always starts at the line's start: 37 of 39, the same two FAILs as M7.
+- M9, `MERGE_CALL` back to literal single spaces: 38 of 39, `FAIL an argv list broken between "pr" and "merge" is still a merge call`.
+- M10, quote marks not read as quotes: 38 of 39, `FAIL null control: a bracket in a quote, past an escaped quote, opens no command`.
+- M11, escapes inside a quote not read: 38 of 39, `FAIL null control: a bracket in a quote, past an escaped quote, opens no command`.
+- M12, the quote-state reset at a line end deleted: 38 of 39, `FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's`. At the reviewed head this mutant held 36 of 36.
+- M13, `open.pop()` on a bracket closed before the match deleted: 38 of 39, `FAIL a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused`. At the reviewed head this mutant held 36 of 36.
 
-Failing test first: the head's 36 probes were run against the base's production block (`// THE GUARD.` through `subjectWriters`, swapped back in). They gave `SELF-TEST 31 of 36 probes held`. The five FAILs were the title-template probe and the four writer-miss probes named under M3. The null-control probes held at the base.
+Further mutants of my own over the other added lines of `callExtent` and `subjectWriters` (scratch script, string replacements applied and restored the same way):
+
+- X1, the quote skip in the backward scan deleted: 38 of 39, `FAIL null control: a bracket in a quote, past an escaped quote, opens no command`.
+- X2, the quote skip in the forward scan deleted: 38 of 39, the same FAIL.
+- X3, `open.push(i)` deleted: 38 of 39, `FAIL null control: a sibling argv in the call's own table is not the call's`.
+- X4, `depth++` deleted: 37 of 39, `FAIL a bracket closed before the call on its line opens nothing: ...` and `FAIL a merge_pull_request call whose commit_title is on a later line is refused`.
+- X5, the forward scan starting at the open bracket itself rather than one past it (`start + (open.length ? 1 : 0)` to `start`): **survives, 39 of 39.** The mutant only widens the extent, to the bracket enclosing the call's own. See Unpinned sites: it is not pinned, deliberately.
+- X6, `matchAll` replaced by the first match only: 38 of 39, `FAIL every merge call in a file is read: a --subject on the second is refused, at its line`. At the reviewed head this mutant held every probe.
+
+Failing test first, for this repair: it adds probes only, so the failing-first evidence is M12, M13 and X6, each holding every probe at the reviewed head `b4dd11917` and failing its new probe here. For the original fix (unchanged): the reviewed head's 36 probes were run against the base's production block (`// THE GUARD.` through `subjectWriters`, swapped back in). They gave `SELF-TEST 31 of 36 probes held`. The five FAILs were the title-template probe and the four writer-miss probes named under M3. The null-control probes held at the base.
 
 ## Null control
 
@@ -41,14 +61,15 @@ Failing test first: the head's 36 probes were run against the base's production 
 
 ## Figures
 
-- Self-test at head: `node tools/policy/agreement.mjs --self-test` → `SELF-TEST 36 of 36 probes held` (27 at the base; 9 probes added).
+- Self-test at head `f6568a429`: `node tools/policy/agreement.mjs --self-test` → `SELF-TEST 39 of 39 probes held` (27 at the base; 12 probes added, three of them this repair's).
 - The finder's harness at both ends. The instrument is `python3 -I tools/policy/agreement_py.py --run`, the wave-script's agreement run, which reads the whole tree. It ran unperturbed, and again with `"--subject", "Merge pull request #%s (x)" % pr,` inserted at the start of the second line of `merge_train.py`'s split `gh pr merge` call:
   - base `50af6174f`, unperturbed: `52 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0`.
   - base, perturbed: `RESULT ... refused=0`. The planted writer is missed.
   - head `09b1d002c`, unperturbed: `55 merge call(s) in 11 file(s)`, `RESULT ... refused=0`, `AGREEMENT ok`.
   - head, perturbed: `REFUSED merge-subject-pr writer tools/audit/seat/merge_train.py:1482`, `refused=1`.
+  - re-run at the repaired head `f6568a429` (the repair changes only `selfTest`): unperturbed `55 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`; perturbed (the same plant on line 1483) `REFUSED merge-subject-pr writer tools/audit/seat/merge_train.py:1482`, `RESULT ... refused=1`.
 - Call count 52 → 55, by rule: the base counted lines matching `MERGE_CALL`; the head counts matches. A per-line census over the scanned files (the base regex `.test` per line against the head regex's `matchAll` count per line) gives 52 lines and 55 matches. The three lines that differ each hold two matches: `.claude/workflows/web-fragments.md` (the mapping-table row naming both `merge_pull_request` and `gh pr merge`) and `tools/policy/fragments_sync.mjs`'s two `GH_READ`/`GH_WRITE` lines. The whitespace-tolerant `MERGE_CALL` adds no call site on the tree. Had it added one, a line with base 0 and head 1 would have printed.
-- `pair merge-subject-pr: 4 readers, 1055 items, 0 divergent`, from `python3 -I tools/policy/agreement_py.py --run` at head. The guard walks `249 first-parent commit(s) past 07a09406a`, the same at both ends.
+- `python3 -I tools/policy/agreement_py.py --run` at head `f6568a429` prints `pair merge-subject-pr: 4 readers, 1058 items, 0 divergent`. The item count is a function of the commits on HEAD and grows by one per commit (review/2697 measured 1055 at base `50af6174f`, 1056 at `09b1d002c`, 1057 at `b4dd11917`; this head is one commit past `b4dd11917`), so the figure describes this SHA only; the claim that holds across heads is `0 divergent`. The guard walks `249 first-parent commit(s) past 07a09406a`, the same at both ends.
 - The class census (fixer.md step 8). Rule 1 is `git grep -n -F '\(#' -- 'tools/*.py' 'tools/*.mjs' 'tools/*.js' 'tools/*.sh' 'tests/*.py' '.github/*' '.claude/*'`, excluding `tools/audit/round*`. It returns:
   - `tools/policy/agreement.mjs` `TEMPLATE_SUBJECT`: closed in this diff.
   - `tools/policy/agreement.mjs` discovery registry `'\\(#(\\d+)\\)': 'pair:merge-subject-pr'`: a registry key, not a shape rule.
@@ -56,20 +77,22 @@ Failing test first: the head's 36 probes were run against the base's production 
   - `tools/policy/record-predicate/sweep.mjs` `/\(#(\d+)\)\s*$/`: a PR-number reader over record lines, not a merge-subject shape guard. Already outside this guard's concept.
   - `tests/delivery_status.py:152`: a comment carrying a census command.
 - The class census, rule 2: `git grep -n -E 'gh pr merge|merge_pull_request' -- '*.py' '*.mjs' '*.sh'` filtered to regex and test sites. It returns `agreement.mjs` `MERGE_CALL` (closed in this diff) and `fragments_sync.mjs:213-214`. Those two test a grant string for membership and are not a writer scan, so they are a distinct concern and need no change. It also returns `dev/audit/rounds/round3/D11/agency.py` `WRITE`, a round-3 record, which stays as written (fixer.md step 10). No other line-based merge-writer scan exists.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` → `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; the one run is `tests/entities.py`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` → `2 of 2425 ENTITY CHECKS FAILED` at head, and also `2 of 2425 ENTITY CHECKS FAILED` at base `50af6174f` in a detached worktree. Both runs fail the same two checks: the `gate-sweep.yml` U0c wiring check, and `graders-head-copy's delivery_status step is red only when ...`. Neither reads `tools/policy/agreement.mjs`. Both fail on this container at the untouched base, so they belong to the environment or to main, not to this diff. CI's run is the authority. Had the diff caused either, the base run would have printed `1 of` or `0 of`.
-- run_always: `python3 tests/env_drift.py --claims-only origin/main` → `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` → `ALL 117 closure shrink pins PASSED`; `python3 tests/layout.py` → `layout self-test: ok`; `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` → `ALL 112 HARNESS HEADER CHECKS PASSED`.
-- `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
-- `node tools/policy/policy_lint.mjs` → `TOTAL: 0 error(s) across 50 policy file(s)`.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures or fast red predicted against 50af6174f53c`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` → `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; the one run is `tests/entities.py`. Re-run at head `f6568a429` with the same result (changed files `dev/programme/delivery/2697.md`, the orchestrator's record commit, and `tools/policy/agreement.mjs`).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` → `2 of 2425 ENTITY CHECKS FAILED` at head, and also `2 of 2425 ENTITY CHECKS FAILED` at base `50af6174f` in a detached worktree. Both runs fail the same two checks: the `gate-sweep.yml` U0c wiring check, and `graders-head-copy's delivery_status step is red only when ...`. Neither reads `tools/policy/agreement.mjs`. Both fail on this container at the untouched base, so they belong to the environment or to main, not to this diff. CI's run is the authority. Had the diff caused either, the base run would have printed `1 of` or `0 of`. Re-run at the repaired head `f6568a429`: `2 of 2425 ENTITY CHECKS FAILED`, the same `graders-head-copy's delivery_status step is red only when ...` FAIL among them (the base run was not repeated for this repair; the repair adds lines inside `selfTest` only, which no entity check reads).
+- run_always, re-run at head `f6568a429` with identical results: `python3 tests/env_drift.py --claims-only origin/main` → `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` → `ALL 117 closure shrink pins PASSED`; `python3 tests/layout.py` → `layout self-test: ok`; `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` → `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- At head `f6568a429`: `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
+- At head `f6568a429`: `node tools/policy/policy_lint.mjs` → `TOTAL: 0 error(s) across 50 policy file(s)`.
+- At head `f6568a429`: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures or fast red predicted against 50af6174f53c`.
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff origin/main` → `Architecture score: dS +0.0000 NULL`. No metric moved.
+At head `f6568a429`: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` → `Architecture score: dS +0.0000 NULL`. No metric moved. Measured against the merge base, because origin/main has moved past it (`ac5788f26`): `--diff origin/main` at this head prints `coord_footprint 2463 -> 2470`, which is main's newer commits, not this diff (a two-dot artefact, `CLAUDE.md` rule 3).
 
 ## Unpinned sites
 
-none: `ci_predict.py` lists none, and every production line added is killed by a self-test probe (M1 to M11 above).
+One, dispositioned by written triage. `ci_predict.py` lists none. Every other line the diff adds to the guard is killed by a self-test probe (M1 to M13 and X1 to X4, X6 above, each FAIL named). The reviewed head's `none` covered M1 to M11 only and was false for the lines M12, M13 and X6 delete; the three probes added here close those.
+
+- `callExtent`'s `start + (open.length ? 1 : 0)` (X5 survives). Deleting the `+ 1` makes the extent run to the bracket enclosing the call's own group, which only adds refusals. It is not pinned, because the only probe that kills it pins a writer miss as correct: `run(["gh", "pr", "merge", n], "--subject", s)` passes at head (`[]`) and is refused under X5 (`["f:1"]`), measured with review/2697's `evidence/probe.mjs` extraction on this head. That shape (a subject flag in the same call but outside the argv list's own brackets) is an open seam of this guard's design choice "the extent is the call's own bracket group". Widening the extent to the enclosing call brings back the sibling-argv false positive at `gh_read.py`'s table, so closing it is a design question, not this repair. No such site exists on the tree today: the unperturbed run at head is `refused=0` over its 55 calls, but a miss is by definition unseen there, so that is no evidence of absence. Surfaced to the orchestrator in this seat's result.
 
 ## Red checks
 
@@ -77,7 +100,7 @@ none.
 
 ## Forward-carry
 
-n/a: neither finding changes how a later stage must work.
+none: no finding here changes how a later stage must work. The one open seam (Unpinned sites, X5) is surfaced to the orchestrator in this seat's result, not filed.
 
 ## Friction
 
