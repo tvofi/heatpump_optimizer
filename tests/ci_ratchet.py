@@ -30,7 +30,10 @@ THE METRICS, each an answer to a named cost:
                   (every script measured and re-derived once). Scoping's
                   ratchet: what a full-case PR costs may only shrink.
   critical_path_minutes   median wall minutes of the last completed push
-                  Tests runs (the GitHub API run list, fetched by the job).
+                  runs of the tests workflow (the GitHub API run list,
+                  fetched by --gather-runs): a `CI` run from its creation
+                  to its last `tests / *` job's completion, a pre-umbrella
+                  Tests run from creation to its update, as before.
                   A NOISY metric: recorded at the window's p75 for headroom,
                   because shared runners vary far more than the medians do
                   (Bencher documents >30 % variance on shared runners); the
@@ -56,6 +59,7 @@ Usage (the ci-ratchet job; stdlib only besides the archscore import):
     python3 tests/ci_ratchet.py --metrics-dir DIR --runs-json FILE \
         --record "reason"
     python3 tests/ci_ratchet.py --gather --metrics-dir DIR   # the job's fetch
+    python3 tests/ci_ratchet.py --gather-runs FILE           # its runs.json
     python3 tests/ci_ratchet.py --self-test                  # offline, no network
 
 --metrics-dir holds the ci-metrics artifacts of this run and the recent
@@ -64,7 +68,8 @@ window, flat: lines of
 (the event and run id come from the runner environment, so a window's three
 lane artifacts of one run group as one run), plus the fast lane's single
 <fast>\tmode\t<full|scoped>\t<n_run>\t<n_skip>\t<event>\t<run id>.
---runs-json is the GitHub API workflow-runs listing for critical path.
+--runs-json is the GitHub API workflow-runs listing for critical path, each
+`CI` run carrying its own `jobs` (what --gather-runs writes).
 --record re-records every metric from what was just derived, refusing without
 a reason.
 """
@@ -380,20 +385,82 @@ def script_runs(run: list[dict]) -> int:
     return sum(1 for r in run if r["lane"] in LANES and r["class"] != "reused")
 
 
-def critical_path_minutes(runs_json: Path) -> float:
-    """Median wall minutes over the window's COMPLETED push Tests runs."""
-    runs = json.loads(runs_json.read_text())["workflow_runs"]
-    minutes = []
+# --- the push runs' window (R10-CI-LAYOUT P2b) -------------------------------
+#
+# After P2b a push to main runs ci.yml (`CI`), whose tests.yml jobs are named
+# `tests / <job>` beside the other units and `gate`. The metric stays the
+# tests workflow's wall (DESIGN-P2 3.2): a CI run counts from its creation to
+# its last `tests / *` job's completion, so a unit or gate finishing later
+# moves nothing; a pre-umbrella Tests run counts as it always did, so the
+# window stays continuous across the cut-over and an old run reads the same.
+PUSH_RUNS = ("ci.yml", "tests.yml")
+PUSH_RUNS_URL = "repos/{repo}/actions/workflows/{wf}/runs?event=push&branch=main&per_page={n}"
+JOBS_URL = "repos/{repo}/actions/runs/{run}/jobs?per_page=100"
+PUSH_WINDOW = 8
+TESTS_JOB_PREFIX = "tests / "
+
+
+def _at(stamp: str) -> datetime:
+    return datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+
+
+def run_minutes(r: dict) -> "float | None":
+    """One completed push run's tests wall in minutes; None for a run that
+    is neither the umbrella's nor a pre-umbrella Tests run, or not completed.
+    A CI run without its jobs, or with no completed `tests / *` job, refuses:
+    its wall is unknown, never its run's."""
+    if r.get("status") != "completed" or r.get("name") not in ("CI", "Tests"):
+        return None
+    if r["name"] == "Tests":
+        end = _at(r["updated_at"])
+    else:
+        jobs = r.get("jobs")
+        if not isinstance(jobs, list):
+            raise _refusal(f"CI push run {r.get('id')} carries no jobs list; "
+                           "--gather-runs embeds them (fail closed)")
+        ends = [_at(j["completed_at"]) for j in jobs
+                if str(j.get("name") or "").startswith(TESTS_JOB_PREFIX) and j.get("completed_at")]
+        if not ends:
+            raise _refusal(f"CI push run {r.get('id')} has no completed "
+                           f"`{TESTS_JOB_PREFIX}*` job (fail closed)")
+        end = max(ends)
+    return (end - _at(r["created_at"])).total_seconds() / 60
+
+
+def gather_runs(out_file, *, repo=None, runner=None) -> int:
+    """The ci-ratchet job's runs.json: the newest PUSH_WINDOW push runs of
+    ci.yml and the pre-umbrella tests.yml together, each CI run with its jobs.
+    Any failed read refuses by name: a short window is not a fast one."""
+    repo = repo or os.environ.get("GITHUB_REPOSITORY")
+    if not repo:
+        raise _refusal("--gather-runs needs GITHUB_REPOSITORY")
+    run = runner or subprocess.run
+
+    def api(*argv):
+        proc = run(["gh", "api", *argv], capture_output=True, text=True)
+        if proc.returncode != 0 or not (proc.stdout or "").strip():
+            raise _refusal(f"gh api {argv[-1]} failed (rc {proc.returncode}): "
+                           f"{(proc.stderr or '').strip()[:300]}")
+        return proc.stdout
+    runs = []
+    for wf in PUSH_RUNS:
+        runs += json.loads(api(PUSH_RUNS_URL.format(repo=repo, wf=wf, n=PUSH_WINDOW))).get("workflow_runs") or []
+    runs = sorted(runs, key=lambda r: r.get("created_at") or "", reverse=True)[:PUSH_WINDOW]
     for r in runs:
-        if r.get("name") != "Tests" or r.get("status") != "completed":
-            continue
-        start = datetime.fromisoformat(
-            r["created_at"].replace("Z", "+00:00"))
-        end = datetime.fromisoformat(
-            r["updated_at"].replace("Z", "+00:00"))
-        minutes.append((end - start).total_seconds() / 60)
+        if r.get("name") == "CI":
+            r["jobs"] = [json.loads(x) for x in api(
+                "--paginate", "--jq", ".jobs[]", JOBS_URL.format(repo=repo, run=r["id"])).splitlines() if x.strip()]
+    Path(out_file).write_text(json.dumps({"workflow_runs": runs}))
+    print(f"push runs: {len(runs)} ({sum(r.get('name') == 'CI' for r in runs)} CI)")
+    return len(runs)
+
+
+def critical_path_minutes(runs_json: Path) -> float:
+    """Median of run_minutes over the window's COMPLETED push runs."""
+    runs = json.loads(runs_json.read_text())["workflow_runs"]
+    minutes = [m for m in map(run_minutes, runs) if m is not None]
     if not minutes:
-        raise SystemExit("ci-ratchet: no completed push Tests runs in "
+        raise SystemExit("ci-ratchet: no completed push CI or Tests runs in "
                          "runs.json; cannot derive critical_path_minutes "
                          "(fail closed)")
     minutes.sort()
@@ -597,6 +664,66 @@ def self_test() -> int:
         ck("a non-expiry download failure still refuses by name",
            "artifact 13" in msg and "exited 3" in msg, msg or "no refusal")
 
+    # --- the push runs' window across the umbrella cut-over (P2b) -----------
+    def ci_run(rid, created, tests_end, *, other_end="2026-10-22T02:00:00Z", jobs=True):
+        js = [{"name": "tests / fast (3.14)", "completed_at": tests_end},
+              {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z"},
+              {"name": "gate", "completed_at": other_end},
+              {"name": "codeql / Analyze (python)", "completed_at": other_end}]
+        return {"id": rid, "name": "CI", "status": "completed", "created_at": created,
+                "updated_at": other_end, **({"jobs": js} if jobs else {})}
+    tests_run = {"id": 1, "name": "Tests", "status": "completed",
+                 "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z"}
+    m, msg = safe(lambda: run_minutes(ci_run(2, "2026-10-22T00:00:00Z", "2026-10-22T00:40:00Z")))
+    ck("a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)",
+       m == 40.0, msg or f"got {m}")
+    ck("a pre-umbrella Tests push run is measured as before: created to updated (the null: 50)",
+       run_minutes(tests_run) == 50.0)
+    ck("another workflow's run, or one not completed, is not in the window",
+       run_minutes({**tests_run, "name": "Card"}) is None
+       and run_minutes({**tests_run, "status": "in_progress"}) is None)
+    for label, r in (("carries no jobs", ci_run(3, "2026-10-22T00:00:00Z", "x", jobs=False)),
+                     ("has no completed tests job", {**ci_run(4, "2026-10-22T00:00:00Z", None),
+                                                     "jobs": [{"name": "gate", "completed_at": "2026-10-22T01:00:00Z"},
+                                                              {"name": "tests / fast (3.14)", "completed_at": None}]})):
+        try:
+            msg = refused(lambda r=r: run_minutes(r))
+        except Exception as exc:  # a crash reddens this check by name, never the whole self-test
+            msg = f"crashed: {type(exc).__name__}"
+        ck(f"a CI push run that {label} refuses (its wall is unknown, never its run's)",
+           "fail closed" in msg, msg or "no refusal")
+    with tempfile.TemporaryDirectory() as td:
+        f = Path(td) / "runs.json"
+        f.write_text(json.dumps({"workflow_runs": [tests_run, ci_run(2, "2026-10-22T00:00:00Z",
+                                                                     "2026-10-22T00:40:00Z")]}))
+        cp, msg = safe(lambda: critical_path_minutes(f))
+        ck("a window across the cut-over is the median of both kinds (45)", cp == 45.0, msg or f"got {cp}")
+
+        listings = {"ci.yml": [ci_run(i, f"2026-10-22T0{i}:00:00Z", "2026-10-22T09:00:00Z", jobs=False)
+                               for i in range(1, 6)],
+                    "tests.yml": [{**tests_run, "id": 10 + i, "created_at": f"2026-10-21T0{i}:00:00Z"}
+                                  for i in range(1, 6)]}
+        reads = []
+
+        def gh(argv, **_kw):
+            reads.append(argv)
+            url = argv[-1]
+            if "/jobs?" in url:
+                return subprocess.CompletedProcess(argv, 0, json.dumps(
+                    {"name": "tests / fast (3.14)", "completed_at": "2026-10-22T09:00:00Z"}) + "\n", "")
+            wf = url.split("/workflows/")[1].split("/")[0]
+            return subprocess.CompletedProcess(argv, 0, json.dumps({"workflow_runs": listings[wf]}), "")
+        n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh))
+        got = json.loads(f.read_text())["workflow_runs"] if n else []
+        ck("--gather-runs keeps the newest 8 push runs of ci.yml and tests.yml together, jobs on each CI run only",
+           n == 8 and [r["name"] for r in got].count("CI") == 5
+           and all(("jobs" in r) == (r["name"] == "CI") for r in got)
+           and sum("/jobs?" in a[-1] for a in reads) == 5, msg or f"n={n}")
+        msg = refused(lambda: gather_runs(f, repo="o/r", runner=lambda argv, **_kw: subprocess.CompletedProcess(
+            argv, 1, "", "gh: HTTP 502")))
+        ck("a failed runs read refuses by name (a short window is not a fast one)",
+           "failed (rc 1)" in msg and "HTTP 502" in msg, msg or "no refusal")
+
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -617,6 +744,12 @@ def main(argv: list[str] | None = None) -> int:
                   file=sys.stderr)
             return 2
         gather(metrics_dir)
+        return 0
+    if argv[:1] == ["--gather-runs"]:
+        if len(argv) != 2:
+            print("ci-ratchet: --gather-runs needs exactly FILE", file=sys.stderr)
+            return 2
+        gather_runs(argv[1])
         return 0
     record_reason = None
     if "--record" in argv:

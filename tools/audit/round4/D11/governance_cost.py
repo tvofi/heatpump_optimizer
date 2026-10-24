@@ -45,7 +45,7 @@ import d11lib as L  # noqa: E402
 
 # The rule this set is derived from (#1241, D13-04): every job defined in
 # .github/workflows/governance.yml, plus `briefs` (tests.yml) and the jobs of
-# `pr-contract.yml`, `budget-raise-gate.yml` and `budget-raise-gate-rerun.yml`,
+# `pr-contract.yml`, `budget-raise-gate.yml` and `gate-sweep.yml`,
 # governance jobs held in their own files for their triggers. The set is
 # carried here rather than parsed live because a harness is pinned, not
 # self-modifying -- but tests/entities.py pins it BOTH WAYS against the
@@ -56,14 +56,20 @@ import d11lib as L  # noqa: E402
 # pin only enforced the second direction for governance.yml itself, so a new
 # job added to pr-contract.yml, budget-raise-gate.yml or
 # budget-raise-gate-rerun.yml -- as `rerun-stale-verdict` was -- passed
-# uncounted), so the next job any of the five grows is refused until this
-# set names it.
+# uncounted), so the next job any of the four grows is refused until this
+# set names it. After the layout cut-over (DESIGN-P2 section 9) the two rerun
+# workflows are gone, `gate-sweep.yml`'s job replaces them, and a check run is
+# named `<unit> / <job>` (`bare` strips the unit), so GOV stays keyed by job id.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
        "delivery-status", "delivery-status-publish", "briefs",
-       "instrument-self-tests", "budget-raise-gate", "rerun-stale-verdict",
-       "rerun-stale-contract"}
+       "instrument-self-tests", "budget-raise-gate", "sweep"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
+
+
+def bare(name):
+    """A check run's job id: `governance / policy-docs` -> `policy-docs`; `gate` has no unit."""
+    return name.split(" / ", 1)[-1]
 
 
 def dur(c):
@@ -82,10 +88,10 @@ def main():
         rs = L.check_runs(prs[n]["headRefOid"])
         if rs is None:
             continue
-        g.append(sum(dur(c) for c in rs if c["name"] in GOV))
+        g.append(sum(dur(c) for c in rs if bare(c["name"]) in GOV))
         t.append(sum(dur(c) for c in rs
-                     if c["name"] not in GOV and c["conclusion"] != "skipped"))
-        rounds.append(len([c for c in rs if c["name"] == "pr-contract"]))
+                     if bare(c["name"]) not in GOV and c["conclusion"] != "skipped"))
+        rounds.append(len([c for c in rs if bare(c["name"]) == "pr-contract"]))
     print(f"window {W0} .. {W1}  merges measured: {len(g)}")
     print(f"body rounds distribution: {dict(sorted(Counter(rounds).items()))}")
     L.result("merges", len(g))

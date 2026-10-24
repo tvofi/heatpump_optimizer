@@ -33,6 +33,11 @@ mkdir -p "$D"; cd "$M"
 # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
 pr_branch_lock "$(dirname -- "$D")/upd-${BR//\//-}.lock" "$BR" "$WT"  # mut:oplock
 pr_handoff_tips "$T" 1
+# The attempt is the ledger's (R10-ORCH-LEDGER): `started` now, and on every exit, a stop
+# signal's included, `opened,PR=<n>` or `unopened` (bash's $? in an EXIT trap after a TERM is the
+# last command's, so it names no signal), so a killed opener shows on its handoff-no-pr line.
+python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" started || true
+pr_exit_trap 'python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
 git fetch -q origin handoff/$T handoff-body/$T
 pr_code_in_handoff "$C" "$T"
 git cat-file -e "$PR_BT:BODY.md" 2>/dev/null || pr_refuse "handoff-body/$T ($PR_BT) holds no BODY.md"
@@ -65,4 +70,5 @@ E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 &
 pr_wait $! $D/p2.log
+PR_ATTEMPT=opened,PR=$N
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"
