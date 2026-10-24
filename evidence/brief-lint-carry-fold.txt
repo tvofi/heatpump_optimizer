@@ -1,0 +1,102 @@
+reviewed head 029d6ccc954a6b2cbf04aa92bb53fea23cb65a0a
+roster: origin/handoff/audit-r10-roster at f7a3b23f4c729d6225711839337703d50d26a576 (184 groups, 644 carries), lint run from a worktree at the head with only that roster file copied in
+--- plain roster
+TOTAL: 0 error(s) across 1 file(s)
+--- carries appended to brief
+
+== dev/programme/rosters/appended-r10.json ==
+  ERROR   [R10-PARAMS-OWNER] path:line: coordinator.py:4178: '_async_load_thermal_learning' not found near custom_components/heatpump_optimizer/coordinator.py:4178; found at line 2918 instead
+  ERROR   [R10-COP-GATE] path:line: accuracy.py:873: 'last_refusal' not found near custom_components/heatpump_optimizer/accuracy.py:873; found at line 911 instead
+  ERROR   [R10-COP-GATE] path:line: sensor.py:1670: none of [last_refusal, duty_floor] found near custom_components/heatpump_optimizer/sensor.py:1670, or anywhere else in the file
+  WARNING [R10-COP-GATE] path:line: coordinator.py:9901-9924: no anchor text extracted near the citation; line range only
+  ERROR   [R10-COP-GATE] path:line (anchored): draw_range.fold:5670 (custom_components/heatpump_optimizer/draw_range.py): line 5670 is past end of file (431 lines)
+  ERROR   [R10-COP-GATE] path:line (anchored): draw_range.fold:5634 (custom_components/heatpump_optimizer/draw_range.py): line 5634 is past end of file (431 lines)
+  ERROR   [R10-ARCH-DOCS] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [0d370ca08, 7ae69419e, 16954f0c]
+  ERROR   [R10-ARCH-DOCS] path: beatd.jobs.json: not in the tree, and not present at its cited tag ref(s) [0d370ca08, 7ae69419e, 16954f0c]
+  ERROR   [R10-POLICY-FIXER-MD] path: etc/profile.d/hpo-toolchain.sh: not in the tree, and not present at its cited tag ref(s) [74f23814e, c3a25d2ae, c09d61dc9, 947d3631, 93015eca, 0a1c1f12ad43]
+  ERROR   [R10-POLICY-FIXER-MD] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [74f23814e, c3a25d2ae, c09d61dc9, 947d3631, 93015eca, 0a1c1f12ad43]
+  ERROR   [R10-SAV-COMFORT] path:line: custom_components/heatpump_optimizer/pump_arbiter.py:1001-1038: none of [heatpump_optimizer, custom_components] found near custom_components/heatpump_optimizer/pump_arbiter.py:1001-1038, or anywhere else in the file
+  WARNING [R10-SAV-COMFORT] path:line: pump_arbiter.py:700-707: no anchor text extracted near the citation; line range only
+  ERROR   [R10-SAV-COMFORT] path:line: custom_components/heatpump_optimizer/pump_arbiter.py:1006-1010: none of [heatpump_optimizer, custom_components] found near custom_components/heatpump_optimizer/pump_arbiter.py:1006-1010, or anywhere else in the file
+  ERROR   [R10-SAV-COMFORT] path:line: pump_arbiter.py:1013-1015: 'on_threshold_kw' not found near custom_components/heatpump_optimizer/pump_arbiter.py:1013-1015; found at line 172 instead
+  WARNING [R10-SAV-COMFORT] path:line: pump_arbiter.py:1020-1026: no anchor text extracted near the citation; line range only
+  WARNING [R10-SAV-COMFORT] path:line: pump_arbiter.py:46: no anchor text extracted near the citation; line range only
+  ERROR   [R10-MUTATION-ANCHOR] path: proposals.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-BUFFER-STORE] path: dev/audit/harnesses/r10_demand_overbook.py: not in the tree, and not present at its cited tag ref(s) [a7a683d1]
+  ERROR   [R10-UPDATE-PR-SIGNALS] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [931e9a0f, 01ce8b81]
+  ERROR   [R10-ORCH-MACHINERY] path: ev/roster_carries.txt: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 76b6a5be2f203e0f417f90f75ad35eabd7d6823d, 46cd9d4448042e90300aa869d0859f6572e33f59, e7c66485, 5620151813e03a5916c375554dd57c977f6d8097]
+  ERROR   [R10-LEARNER-DEFAULT] path: dev/audit/harnesses/r10_demand_overbook.py: not in the tree, and not present at its cited tag ref(s) [a7a683d1]
+  ERROR   [R10-CI-LAYOUT-P2] path: tmp/pr-alerts.txt: not in the tree, and not present at its cited tag ref(s) [afc00bfe, 1371a0a6, 28a20e95, d3bbca03, e1b53d854, 27b59c9f7, 22284d6eb, cc51e6626c91, cc51e6626, 54fb6f03e, 2845e5459331, 144fb4f90]
+  WARNING [R10-CI-LAYOUT-P2] path:line: tests/ci_ratchet.py:383-405: no anchor text extracted near the citation; line range only
+  ERROR   [R10-FLOW-BOARD] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  WARNING [R10-FLOW-DESIGN-STAGES] path: PAYLOAD.json: not in the tree and no tag cited; could be shorthand for .claude/workflows/fixtures/policy-loop/pr-payloads.json, custom_components/heatpump_optimizer/payload.py, dev/audit/rounds/round10/D7/arch-s2/patches/01_payload_value_mixin.patch, dev/audit/rounds/round10/D7/arch-s2/patches/02_payload_path_mixin.patch, dev/audit/rounds/round10/D7/arch-s2/shape_payload_guard.py -- verify by hand
+  WARNING [R10-FLOW-DESIGN-STAGES] path: PROMPT.md: not in the tree and no tag cited; could be shorthand for dev/programme/round9/state/NEXT-SESSION-PROMPT.md, tools/audit/seat/handover_prompt.py -- verify by hand
+  ERROR   [R10-FLOW-DESIGN-STAGES] path: proposals.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLOW-DESIGN-STAGES] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLOW-JIDOKA] path: tools/policy/agreement_restore.py: not in the tree, and not present at its cited tag ref(s) [10a490f9, a7ef03069016, 2fe11ffbc, 4fd3eef16, 056ddbd0, 8c6a3e6f]
+  ERROR   [R10-FLOW-JIDOKA] path: _budgets.json: not in the tree, and not present at its cited tag ref(s) [10a490f9, a7ef03069016, 2fe11ffbc, 4fd3eef16, 056ddbd0, 8c6a3e6f]
+  ERROR   [R10-FLOW-JIDOKA] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [10a490f9, a7ef03069016, 2fe11ffbc, 4fd3eef16, 056ddbd0, 8c6a3e6f]
+  ERROR   [R10-FLOW-MQ-PROBE] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLOW-POSTMERGE] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [6fc4c91ab]
+  ERROR   [R10-FLOW-RECORD-PITCH] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44]
+  ERROR   [R10-FLOW-ROSTER-FREEZE] path: workers.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLOW-ROSTER-FREEZE] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  WARNING [R10-FLOW-ROSTER-FREEZE] path:line: cloud_relay.sh:498: no anchor text extracted near the citation; line range only
+  WARNING [R10-FLOW-ROSTER-FREEZE] path:line: update_pr.sh:55-57: no anchor text extracted near the citation; line range only
+  ERROR   [R10-FLOW-WIP] path: proposals.md: not in the tree, and not present at its cited tag ref(s) [a6620c30a, fd9914851]
+  WARNING [R10-FLOW-WIP] path:line: orchestrator_tick.py:607-611: no anchor text extracted near the citation; line range only
+  ERROR   [R10-FLOW-AUTOTRAIN] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [6fc4c91ab]
+  ERROR   [R10-FLOW-BODY-ONLY] path: ev/roster_carries.txt: not in the tree, and not present at its cited tag ref(s) [b38c6431a, 5620151813e0]
+  ERROR   [R10-FLOW-BODY-ONLY] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [b38c6431a, 5620151813e0]
+  ERROR   [R10-FLY-OPENPR-ATOMIC] path:line: update_pr.sh:74: 'open_pr' not found near tools/audit/seat/update_pr.sh:74; found at line 4 instead
+  ERROR   [R10-FLY-ROW-HEAD-CARRY] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLOW-AUDIT-PLAN] path: STUDY.md: not in the tree, and not present at its cited tag ref(s) [399098f63]
+  ERROR   [R10-FLY-RELAY-REVIEW-FF] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [7e7638c4, 16a8240f1, fef4a1351, cfa89d24f, 1acdb3cdc]
+  ERROR   [R10-FLY-RELAY-REVIEW-FF] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [7e7638c4, 16a8240f1, fef4a1351, cfa89d24f, 1acdb3cdc]
+  WARNING [R10-FLY-CARRY-DISPOSITION] path:line: tools/audit/carry_audit.py:204-207: no anchor text extracted near the citation; line range only
+  ERROR   [R10-FLY-CARRY-DOC-CONTEXT] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [90bab078, 71a577c9]
+  ERROR   [R10-FLOW-TOOLKIT-MODEL] path: simulate_rules.py: not in the tree, and not present at its cited tag ref(s) [f424d993d, a7ef03069016]
+  ERROR   [R10-FLOW-TOOLKIT-MODEL] path: simulate.py: not in the tree, and not present at its cited tag ref(s) [f424d993d, a7ef03069016]
+  ERROR   [R10-FLOW-TOOLKIT-MODEL] path: proposals.md: not in the tree, and not present at its cited tag ref(s) [f424d993d, a7ef03069016]
+  ERROR   [R10-ROUND-PLAYBOOK] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-TRAIN-OVERLAP-GRADE] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [6077bf70e, 143e2d0ac, a2576fcb2, b859929d, 6fb50ac5, 98904e32, d0f9c95b8, a95b50b17]
+  ERROR   [R10-ORCH-LEDGER] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, 3985dac8, ecaf178c, 743463c61, b38c6431a, fafcf2d32, 14f4bde43, 6bec0b0a]
+  ERROR   [R10-ORCH-LEDGER] path: beatd.jobs.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, 3985dac8, ecaf178c, 743463c61, b38c6431a, fafcf2d32, 14f4bde43, 6bec0b0a]
+  ERROR   [R10-ORCH-LEDGER] path: workers.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, 3985dac8, ecaf178c, 743463c61, b38c6431a, fafcf2d32, 14f4bde43, 6bec0b0a]
+  WARNING [R10-ORCH-LEDGER] path:line: tools/audit/seat/ledger.py:58-65: no anchor text extracted near the citation; line range only
+  ERROR   [R10-ORCH-DISPATCH-REG] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 92bca45d, 8ab071b4, 49018a8, b87aa9e4, 545184b96, 9a2082ce, 306a96d5f]
+  ERROR   [R10-ORCH-DISPATCH-REG] path: beatd.jobs.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 92bca45d, 8ab071b4, 49018a8, b87aa9e4, 545184b96, 9a2082ce, 306a96d5f]
+  ERROR   [R10-ORCH-DISPATCH-REG] path: workers.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 92bca45d, 8ab071b4, 49018a8, b87aa9e4, 545184b96, 9a2082ce, 306a96d5f]
+  ERROR   [R10-ORCH-BEATD] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: beatd.jobs.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: workers.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: verdict.md: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: ev/carry-audit.txt: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-BEATD] path: seat_loop.sh: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e, a4ec4610, e5d5c508, d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44, cdd7283c, fea3d3c, 743463c61, 735981f4e]
+  ERROR   [R10-ORCH-PLANPAGE] path: beatd.py: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351, e98d4b97, 7213e761ea5a47f6aa9bace1b03620e650b1cd3c, d3f27e05db3410fe38e10afea47866b82645e4fa, 8162c672d99d15d7cb5e11e8a6d2ba51ddc30138]
+  ERROR   [R10-ORCH-PLANPAGE] path: beatd.jobs.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351, e98d4b97, 7213e761ea5a47f6aa9bace1b03620e650b1cd3c, d3f27e05db3410fe38e10afea47866b82645e4fa, 8162c672d99d15d7cb5e11e8a6d2ba51ddc30138]
+  ERROR   [R10-ORCH-PLANPAGE] path: workers.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351, e98d4b97, 7213e761ea5a47f6aa9bace1b03620e650b1cd3c, d3f27e05db3410fe38e10afea47866b82645e4fa, 8162c672d99d15d7cb5e11e8a6d2ba51ddc30138]
+  ERROR   [R10-ORCH-PLANPAGE] path: plan.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351, e98d4b97, 7213e761ea5a47f6aa9bace1b03620e650b1cd3c, d3f27e05db3410fe38e10afea47866b82645e4fa, 8162c672d99d15d7cb5e11e8a6d2ba51ddc30138]
+  ERROR   [R10-ORCH-PLANPAGE] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351, e98d4b97, 7213e761ea5a47f6aa9bace1b03620e650b1cd3c, d3f27e05db3410fe38e10afea47866b82645e4fa, 8162c672d99d15d7cb5e11e8a6d2ba51ddc30138]
+  WARNING [R10-ORCH-ROSTER-SCHEMA] path:line: roster_edit.py:10: no anchor text extracted near the citation; line range only
+  ERROR   [R10-FLY-CIPREDICT-LAYOUT] path:line: ledger.py:726: line 726 is past end of file (578 lines)
+  ERROR   [R10-FLY-CLOUD-SETUP-TOOLCHAIN] path: etc/profile.d/hpo-toolchain.sh: not in the tree, and not present at its cited tag ref(s) [2fc665c61, 4c5f0868, 0a1c1f12ad43, 6d4f5c52]
+  ERROR   [R10-FLY-CLOUD-SETUP-TOOLCHAIN] path: sr-self-test.txt: not in the tree, and not present at its cited tag ref(s) [2fc665c61, 4c5f0868, 0a1c1f12ad43, 6d4f5c52]
+  ERROR   [R10-FLY-SUITE-ENV-FLAKES] path: verdict.md: not in the tree, and not present at its cited tag ref(s) [a4ff6382, fef4a135, ab6216cee6b6, ab6216ce, 325975e1, a6620c30]
+  ERROR   [R10-FLY-SUITE-ENV-FLAKES] path: ev/features_base_TZ.txt: not in the tree, and not present at its cited tag ref(s) [a4ff6382, fef4a135, ab6216cee6b6, ab6216ce, 325975e1, a6620c30]
+  ERROR   [R10-FLY-SUITE-ENV-FLAKES] path: ev/mutants.txt: not in the tree, and not present at its cited tag ref(s) [a4ff6382, fef4a135, ab6216cee6b6, ab6216ce, 325975e1, a6620c30]
+  ERROR   [R10-FLY-SUITE-ENV-FLAKES] path: s.py: not in the tree, and not present at its cited tag ref(s) [a4ff6382, fef4a135, ab6216cee6b6, ab6216ce, 325975e1, a6620c30]
+  ERROR   [R10-STRUCTURE-ALIAS] path: ev/structure_p2.txt: not in the tree, and not present at its cited tag ref(s) [654004be, 931a23da, 72fbab2a719c, 9169bb83487c5c6fe35596e1952347c07fdedbca]
+  ERROR   [R10-STRUCTURE-ALIAS] path: ev/structure_p3.txt: not in the tree, and not present at its cited tag ref(s) [654004be, 931a23da, 72fbab2a719c, 9169bb83487c5c6fe35596e1952347c07fdedbca]
+  ERROR   [R10-ORCH-REVIEW-PACKET] path: CARDS.json: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-POLICY-ROLE-PACK] path: CARDS.json: not in the tree, and not present at its cited tag ref(s) [b3dceb5ca]
+  WARNING [R10-ADVISOR-RESIDUE] path:line: tests/features.py:33575-33584: no anchor text extracted near the citation; line range only
+  WARNING [R10-BRIEFS-FOLD-D0] path:line: tests/optimality.py:655: no anchor text extracted near the citation; line range only
+  ERROR   [R10-ROUTING-INVARIANTS] path: routing-audit-1.md: not in the tree, and not present at its cited tag ref(s) [d3c2a27c7]
+  ERROR   [R10-ROUTING-INVARIANTS] path: routing-decisions-1.md: not in the tree, and not present at its cited tag ref(s) [d3c2a27c7]
+  -- 75 error(s), 15 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 75 error(s) across 1 file(s)
