@@ -6,7 +6,7 @@
         --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
         --window L=2026-10-19T14:50Z..2026-10-21T14:50Z \\
         [--by kind|class|prior-merge|origin|size|product|fixer[+...] ...] \\
-        [--roster REF:PATH] [--as-of T]
+        [--roster REF:PATH] [--as-of T] [--guardrail]
 
 R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
 REST call, so no rate limit and no 403. `--fetch` first fetches
@@ -63,6 +63,21 @@ in every fact stratum. Every figure is then a function of the bus, the two refs
 and T, not of a tip's position when it is run.
 first-pass m/n: of the PRs whose FIRST bus verdict falls in the window, the
 m whose first verdict is `merge`.
+
+GUARDRAIL (`--guardrail`; R10-FLY-YIELD-GUARD, yield-probe.md's threshold).
+REAL is widened by REAL_EXTRA, the record's nine words outside the study's
+list. Each arm takes the last N PRs by first verdict before the latest
+window's until (a tie broken by PR number), restricted for a seat-family arm
+to the verdicts that family gave, and reads its incidence k/N against the
+binomial P(X <= k | N, P0), P0 = 0.28 (24/85, the post-cloud regime). The
+all arm is N = 30 and trips at k <= 4 (P = 0.0495); the cloud and local arms
+are N = 20 and trip at k <= 1 (k = 2 reads P = 0.0526, above ALPHA). An arm
+with fewer than N PRs is insufficient, never a trip. A trip means: audit the
+last reviews with a planted defect, the one calibration that separates weak
+review from a scarce supply of defects; it decides nothing (R13: report-only
+until the owner adopts a threshold). The last line names every blocked word
+neither real nor taught: a word to classify, never silently bookkeeping. The
+family is the verdict's kind; the reviewer's model is not on the bus.
 """
 from __future__ import annotations
 
@@ -76,8 +91,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from math import comb
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -88,6 +104,12 @@ REAL_CATCH = frozenset({
     "mutation-untriaged", "mutation", "architecture-unsound", "metric-gamed",
     "defect", "product-tradeoff-regression", "policy-regression",
     "figures-false"})
+REAL_EXTRA = frozenset({
+    "regression", "flaky-arm", "claim-false", "control-failed", "claim-refuted",
+    "rule-dropped", "null-control-false", "red-at-head", "tests-red"})
+ALPHA = 0.05
+P0 = 0.28
+ARMS = ((None, 30), ("cloud", 20), ("local", 20))
 VERDICT_RE = re.compile(
     r"verdict: #(\d+) Fix review: (merge|blocked) ([0-9a-f]{40})(?: ([^\s:]+):)?")
 PREFIX_RE = re.compile(r"verdict: #(\d+) Fix review:")
@@ -267,6 +289,35 @@ def fmt(o: dict) -> str:
             f"first-pass {sum(o['first'])}/{len(o['first'])}")
 
 
+def binom_cdf(k: int, n: int, p: float) -> float:
+    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k + 1))
+
+
+def guardrail(verdicts: list[dict], until: datetime, n: int, p0: float, family: str | None = None) -> str:
+    """One arm: the last `n` PRs `family` (every seat when None) reviewed before `until`, tested against p0."""
+    first, caught = {}, set()
+    for v in verdicts:
+        if v["t"] < until and family in (None, v["reviewer"]):
+            first[v["pr"]] = min(first.get(v["pr"], v["t"]), v["t"])
+            if v["real"]:
+                caught.add(v["pr"])
+    last = sorted(first, key=lambda p: (first[p], p))[-n:]
+    arm = family or "all"
+    if len(last) < n:
+        return f"GUARDRAIL {arm} insufficient: {len(last)} reviewed PRs < N={n}"
+    k = sum(p in caught for p in last)
+    cdf = binom_cdf(k, n, p0)
+    verdict = "would-trip: audit the last reviews with a planted defect" if cdf < ALPHA else "ok"
+    return (f"GUARDRAIL {arm} last {n} PRs (first verdict {first[last[0]]:%m-%dT%H:%MZ}..{first[last[-1]]:%m-%dT%H:%MZ}): "
+            f"incidence {k}/{n}; P(X<={k}|{n},{p0}) = {cdf:.4f} -> {verdict} (report-only)")
+
+
+def unclassified(verdicts: list[dict], until: datetime, taught: tuple[str, ...]) -> list[str]:
+    """The block words before `until` that are neither real nor taught: to classify, not to count as bookkeeping."""
+    return sorted({v["cls"] for v in verdicts if v["t"] < until and v["kind"] == "blocked" and v["cls"]
+                   and not v["real"] and v["cls"] not in taught})
+
+
 def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--repo", default=str(ROOT))
@@ -280,6 +331,7 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--as-of", metavar="T", help="the time the fact strata are taken at; default the latest window's until")
     ap.add_argument("--real-extra", default="", metavar="W[,W...]",
                     help="class words counted REAL beside REAL_CATCH (a sensitivity run)")
+    ap.add_argument("--guardrail", action="store_true", help="print the guardrail's arms (widens REAL by REAL_EXTRA)")
     ap.add_argument("--self-test", action="store_true")
     return ap
 
@@ -300,7 +352,7 @@ def main(argv: list[str]) -> int:
     if a.fetch:
         git(repo, "fetch", "-q", "--tags", a.remote, *(f"+refs/heads/{f}/*:refs/remotes/{a.remote}/{f}/*"
                                                       for f in ("review", "verdict", "probe")))
-    extra = frozenset(w for w in a.real_extra.split(",") if w)
+    extra = frozenset(w for w in a.real_extra.split(",") if w) | (REAL_EXTRA if a.guardrail else frozenset())
     verdicts, outside = load(repo, a.remote, REAL_CATCH | extra)
     if extra:
         print(f"REAL = the study's list + {', '.join(sorted(extra))}")
@@ -324,6 +376,12 @@ def main(argv: list[str]) -> int:
             for name, _, _ in wins:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
                 print(f"  {k:24} {name:6} {fmt(o)}")
+    if a.guardrail:
+        until = max(u for _, _, u in wins)
+        for family, n in ARMS:
+            print(guardrail(verdicts, until, n, P0, family))
+        print(f"GUARDRAIL unclassified block words (neither real nor taught): "
+              f"{', '.join(unclassified(verdicts, until, taught)) or '-'}")
     return 0
 
 
@@ -590,6 +648,7 @@ def self_test() -> int:
                         lambda v: stratum("class", v, {}))) == {"(merge)"})
         _self_test_seams(R, g, mk, verdict, lines, m1, RP, r2, check)
         _self_test_vocabulary(R, g, verdict, check)
+        _self_test_guardrail(R, verdict, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -944,6 +1003,72 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     check("main --fetch reads the remote's review, probe and verdict refs and its tags (13 back; 12, 13 and 5 now cloud)",
           "verdicts on the bus: 17;" in before and "verdicts on the bus: 18;" in after
           and "  cloud                    L      PRs 3 " in before and "  cloud                    L      PRs 6 " in after)
+
+
+def _self_test_guardrail(R: Path, verdict, check) -> None:
+    """The guardrail's calibration: a planted miss of each real class trips its arm, and a null window does not."""
+    H = "c" * 40
+    words = sorted(REAL_CATCH | REAL_EXTRA)
+    study = (ROOT / "dev/audit/rounds/round10/D13/yield-probe.md").read_text()
+    nine = re.search(r"Nine block words outside it[^:]*:\n\n((?:- .*\n)+)", study)
+    check("REAL_EXTRA is the study record's nine words outside the list, word for word",
+          nine is not None and set(re.findall(r"^- (\S+)", nine[1], re.M)) == set(REAL_EXTRA) and len(REAL_EXTRA) == 9)
+    # One PR per word, each blocked under it in a real subject, so realness is load's rule, not this test's.
+    for i, w in enumerate([*words, "carry-missing", "typo-word"]):
+        verdict(f"refs/remotes/origin/review/{200 + i}", f"verdict: #{200 + i} Fix review: blocked {H} {w}: x",
+                f"{200 + i:08x}" + "c" * 24, f"2026-11-01T00:{i:02d}:00Z")
+    bus = load(R, "origin", REAL_CATCH | REAL_EXTRA)[0]
+    real = {v["cls"]: v["real"] for v in bus if v["pr"] >= 200}
+    check("load reads every guardrail word real, a taught bookkeeping word and an untaught one not",
+          all(real[w] for w in words) and not real["carry-missing"] and not real["typo-word"])
+    t0 = when("2026-12-01T00:00Z")
+    end = when("2027-01-01T00:00Z")
+
+    def win(n: int, k: int, cls: str, who: str = "cloud", pr0: int = 1000) -> list[dict]:
+        return [dict(pr=pr0 + i, t=t0 + timedelta(minutes=pr0 - 1000 + i), kind="blocked" if i < k else "merge",
+                     cls=cls if i < k else "", real=i < k and real[cls], reviewer=who) for i in range(n)]
+
+    trip = lambda line: line.endswith("would-trip: audit the last reviews with a planted defect (report-only)")
+    check("a planted miss of each class trips: 4/30 trips the all arm (P = 0.0495), 5/30 does not (0.1161)",
+          all(trip(guardrail(win(30, 4, w), end, 30, P0)) and guardrail(win(30, 5, w), end, 30, P0).endswith(
+              "= 0.1161 -> ok (report-only)") for w in words))
+    check("the seat-family arm at the carry's point: 2/20 is ok (P = 0.0526 > ALPHA), 1/20 trips (0.0123)",
+          all(guardrail(win(20, 2, w), end, 20, P0, "cloud").endswith("= 0.0526 -> ok (report-only)")
+              and trip(guardrail(win(20, 1, w), end, 20, P0, "cloud")) for w in words))
+    check("the all arm prints its span, incidence and four-decimal P",
+          guardrail(win(30, 4, "harness"), end, 30, P0)
+          == "GUARDRAIL all last 30 PRs (first verdict 12-01T00:00Z..12-01T00:29Z): incidence 4/30; "
+             "P(X<=4|30,0.28) = 0.0495 -> would-trip: audit the last reviews with a planted defect (report-only)")
+    check("blocks under a bookkeeping or an unclassified word catch nothing: 30/30 of them trip at 0/30",
+          all(" incidence 0/30;" in guardrail(win(30, 30, w), end, 30, P0) and trip(guardrail(win(30, 30, w), end, 30, P0))
+              for w in ("carry-missing", "typo-word")))
+    check("a null window at the baseline (8/30, 6/20) trips no arm",
+          not trip(guardrail(win(30, 8, "harness"), end, 30, P0))
+          and not trip(guardrail(win(20, 6, "defect", "local"), end, 20, P0, "local")))
+    check("fewer PRs than N is insufficient, never a trip",
+          guardrail(win(29, 0, "harness"), end, 30, P0) == "GUARDRAIL all insufficient: 29 reviewed PRs < N=30")
+    mixed = win(20, 6, "harness", "cloud") + win(20, 1, "harness", "local", 2000)
+    check("each family arm reads only its own seats: cloud 6/20 ok, local 1/20 trips, the all arm the last 30",
+          not trip(guardrail(mixed, end, 20, P0, "cloud")) and trip(guardrail(mixed, end, 20, P0, "local"))
+          and " incidence 1/20;" in guardrail(mixed, end, 20, P0, "local")
+          and " incidence 1/30;" in guardrail(mixed, end, 30, P0))
+    tie = [dict(win(1, 1, "harness")[0], pr=5000), dict(win(1, 0, "harness")[0], pr=5001)]
+    check("a PR's own later catch counts, one at until does not; the latest N by first verdict, ties on PR number",
+          " incidence 0/20;" in guardrail([*win(20, 0, "harness"), dict(win(1, 1, "harness")[0], t=end)], end, 20, P0)
+          and " incidence 2/20;" in guardrail([*win(20, 1, "harness"), dict(win(2, 2, "harness")[1], t=end - timedelta(minutes=1))],
+                                              end, 20, P0)
+          and " incidence 0/1;" in guardrail(tie, end, 1, P0) and " incidence 0/1;" in guardrail(tie[::-1], end, 1, P0))
+    check("unclassified: a blocked word neither real nor taught, once; a merge's word and a taught one are not",
+          unclassified(bus + [dict(win(1, 0, "x")[0], cls="merge-word")], end, ("carry-missing",)) == ["typo-word"])
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = main(["--repo", str(R), "--tree", "main", "--window", "G=2026-11-01T00:00Z..2026-11-02T00:00Z", "--guardrail"])
+    text = out.getvalue()
+    check("main --guardrail counts the extended list and prints one line per arm and the unclassified words",
+          rc == 0 and "REAL = the study's list + " + ", ".join(sorted(REAL_EXTRA)) in text
+          and [ln.split(" ", 2)[1] for ln in text.splitlines() if ln.startswith("GUARDRAIL")]
+          == ["all", "cloud", "local", "unclassified"]
+          and "GUARDRAIL unclassified block words (neither real nor taught): typo-word\n" in text)
 
 
 if __name__ == "__main__":

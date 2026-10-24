@@ -5,8 +5,8 @@
 
 THE RULE (the enumeration, so a sibling cannot be missed). The file is parsed
 with `ast`; every node of every module-level statement is visited except the
-docstring, the imports, `ROOT`, `self_test` and its `_self_test_main`, `_self_test_seams` and
-`_self_test_vocabulary`, type annotations
+docstring, the imports, `ROOT`, `self_test` and its `_self_test_main`, `_self_test_seams`,
+`_self_test_vocabulary` and `_self_test_guardrail`, type annotations
 and the `__main__` guard, and each
 operator class below yields one mutant per site and per replacement:
 
@@ -105,7 +105,7 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 TARGET = "tools/audit/seat/review_strength.py"
 COPY = ("tests/throwaway_git.py", "dev/audit/rounds/round10/D13/yield-probe.md", ".claude/workflows/web-fix-wave.js")
-SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams", "_self_test_vocabulary"}
+SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams", "_self_test_vocabulary", "_self_test_guardrail"}
 SKIP_ASSIGN = {"ROOT"}
 TEXT_KW = {"help", "metavar", "description"}
 TEXT_CALLS = {"error", "SystemExit"}
