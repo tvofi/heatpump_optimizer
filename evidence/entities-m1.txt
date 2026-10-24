@@ -1,0 +1,9 @@
+# PYTHONPATH=tests/hastub python3 tests/entities.py at m1 (head f4458d2160d8f9f6b10d7fb3d657140201cd1d31 plus the mutant in mutants.diff)
+  FAIL gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, its outcome read from the output's word (SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), never from the exit code (U0c)  [defects=["program (['SWEEP-DONE run=2 reruns=1'], rc 0) -> step rc 1, want success", "program (['SKIP run 2: its gate is not green and newest-covering']
+  FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE  [cases={'shared-1': 0, 'head-only': 0, 'base-only': 0, 'shared-0': 0, 'head-crash': 0, 'head-overdue': 0, 'shared-overdue': 0}; dropping the exit comparison makes a shared 1 red (1), exiting 0 always makes a head-only 1 green (0), and dropping the OVERD
+  ok   replay reach: the rule reads the lane's own COST_FILES
+  FAIL replay reach: every cost file, the optimizer, the lane and a fixture run the timed lane; nothing beside them does  [missed ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/process_worker.py', 'custom_components/heatpump_optimizer/price_model.py', 'custom_components/heatpump_optimizer/narrative.py'
+  FAIL replay reach: a lane source naming no COST_FILES runs the lane, never skips it  [(True, "cannot read the lane's COST_FILES (tests/replay.py assigns no COST_FILES); the lane runs")]
+  ok   the timed replay runs on a pull request whose diff reaches it, and on nothing else in tests.yml (nightly runs it in full)
+4 of 2429 ENTITY CHECKS FAILED
+rc=1

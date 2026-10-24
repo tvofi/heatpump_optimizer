@@ -1,0 +1,7 @@
+RESULT enforcement_surface_files=156 count
+RESULT covered_by_an_owner=58 count
+RESULT pinned_by_base_restore=95 count
+RESULT of_which_no_pr_job_runs=79 count
+RESULT uncovered_files=3 count
+REFUSED: 3 file(s) a workflow executes or loads carry no CODEOWNERS owner; own each above, or restore it from the base before every PR-reachable job runs it, or the pull request can change the check it is graded by (#1515)
+rc=0

@@ -1,0 +1,8 @@
+Merge pull request #2675 from tvofi/fix/r10-livestate-pr :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py
+Merge pull request #2620 from tvofi/fix/r10-currency :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py, custom_components/heatpump_optimizer/narrative.py
+Merge pull request #2632 from tvofi/fix/r10-loop-cpu :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py, tests/replay.py
+Merge pull request #2647 from tvofi/fix/r10-scores :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py, custom_components/heatpump_optimizer/sensor.py
+Merge pull request #2612 from tvofi/fix/r10-solver :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/optimizer.py
+Merge pull request #2563 from tvofi/fix/r10-night-folds :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py
+Merge pull request #2572 from tvofi/fix/r10-advisor :: the diff reaches the timed replay lane: custom_components/heatpump_optimizer/coordinator.py
+RESULT replay_true=7 of 100 merges
