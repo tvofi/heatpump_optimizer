@@ -68114,6 +68114,11 @@ R.check(
 # step's first tick, so a step whose plan changed mid-step was scored
 # against the plan before the solve. Null arm: a duty that changes with the
 # SAME plan in force (a lease or boost moving) keeps the adoption's freeze.
+from heatpump_optimizer.thermal_model import ThermalParameters as _RpRefreezeParams  # noqa: E402
+
+_rp_refreeze_params = _RpRefreezeParams()
+
+
 def _rp_refreeze(second_plan):
     held = _rp_pa.ArbiterState()
     first = object()
@@ -68124,6 +68129,7 @@ def _rp_refreeze(second_plan):
         (t0 + timedelta(minutes=15), second_plan or first, "idle", 0.0),
     ):
         _rp_pa._observe(held, _RP_NS(config={}, plan=plan, state=_RP_NS(dhw_temperature=None),
+                                     thermal=_RP_NS(params=_rp_refreeze_params),
                                      measured_power_kw=kw), duty, when)
     return held.log[-1]
 
