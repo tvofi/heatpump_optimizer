@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop GUARD_OFF 286162d5",
+  "killed_by": "tests/features.py",
+  "old": "        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
