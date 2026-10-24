@@ -1,0 +1,9 @@
+RESULT ruling_verdict P42 DEFER
+RESULT ruling_verdict P43 ACCEPT
+RESULT ruling_verdict P44 DEFER
+RESULT ruling_verdict P45 None
+RESULT triage_refusal P42 dev/programme/triage/s6-batch1.md#P42 is not an ACCEPT ruling (DEFER)
+RESULT triage_refusal P43 None
+RESULT triage_refusal P44 dev/programme/triage/s6-batch1.md#P44 is not an ACCEPT ruling (DEFER)
+RESULT triage_refusal P45 dev/programme/triage/s6-batch1.md#P45 is not an ACCEPT ruling (no such entry)
+RESULT perturbed P43 dev/programme/triage/s6-batch1.md#P43 is not an ACCEPT ruling (DEFER)
