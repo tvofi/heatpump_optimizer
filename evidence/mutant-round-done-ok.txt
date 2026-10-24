@@ -1,0 +1,3 @@
+FAIL a group done on main and on the round ref is a bad destination
+FAIL a group done on the round ref alone is a bad destination
+carry_audit self-test: 196 checks, 2 failed

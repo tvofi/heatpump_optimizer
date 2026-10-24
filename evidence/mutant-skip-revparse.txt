@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "tools/audit/carry_audit.py", line 1024, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "tools/audit/carry_audit.py", line 519, in main
+    return _self_test()
+  File "tools/audit/carry_audit.py", line 697, in _self_test
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
+                                                       ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "tools/audit/carry_audit.py", line 356, in load_dests
+    round_roster = (rref, roster_lib.show_roster(str(repo), rref))
+                          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "tools/audit/seat/roster_lib.py", line 128, in show_roster
+    path = roster_path(repo, ref, path)
+  File "tools/audit/seat/roster_lib.py", line 103, in roster_path
+    raise RosterNotFound(f"cannot list {ROSTERS_DIR}/ at {ref} in "
+                         f"{repo}: {(r.stderr or r.stdout).strip()[:200]}")
+roster_lib.RosterNotFound: cannot list dev/programme/rosters/ at origin/handoff/audit-r10-roster in <tmpdir>: fatal: Not a valid object name origin/handoff/audit-r10-roster
