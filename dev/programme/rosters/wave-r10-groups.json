@@ -9623,6 +9623,47 @@
     "next_step": "fixer, topic r10-gate-defer, critical path"
    },
    "brief": "Fixer brief, critical path, owner's word: fixing the gate race is top priority. tools/ci/gate.py lines 137-140 fail a deferring gate ('run(s) [...] at this head are still being judged; their gate decides'), so the required context `gate` goes red before its verdict is decided, and two runs at one head whose gates complete together each defer to the other and deadlock. Evidence: PR #2754 run 40119473491 at 18:22:44Z on programs pinned 87ecf385, after #2737 merged. Fix: decide the verdict exactly once, and publish no red before it is decided, without masking a real red: a deferring gate must publish nothing red (a pending or neutral state, or no conclusion) and exactly one run owns the final verdict. Measure first which of the two runs at that head holds the verdict and what each gate published; read the check-runs API for #2754, not gh pr checks. Controls: two runs at one head whose gates complete together yield one verdict and no red-then-green; a head with a real red check still ends red (null control); a single run is unchanged; one mutant per arm, and a self-test row for the deadlock shape. Files: tools/ci/gate.py and its tests. Code-owned CI path: mandated approval under 6329234399."
+  },
+  {
+   "group": "R10-TRAIN-UPGRADE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 10,
+   "hot_files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/train.sh"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/train.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-train-upgrade"
+   },
+   "brief": "Owner-ordered (tvofi 2026-10-24, prioritized): upgrade tools/audit/seat/merge_train.py so that (1) policy and triage-record heads batch with code under a valid mandate (budget raises stay serial), (2) one train sequences several batches, and (3) PRs can be added to a running train's queue for its next batch under a lock, never mutating a batch in proof. Replaces the ad-hoc per-PR merge loops (V19). Failing test first, mutation proof per new arm, null control: a single-batch queue behaves as today."
   }
  ]
 }
