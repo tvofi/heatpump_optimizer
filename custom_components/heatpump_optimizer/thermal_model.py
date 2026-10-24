@@ -1408,6 +1408,17 @@ def learner_unmetered(config: Any) -> str | None:
     )
 
 
+def heat_loss_basis(config: Any) -> str:
+    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install."""
+    return const.HEAT_LOSS_BASES[1 if probe_install(config or {}).measured_power else 0]
+
+
+def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
+    """Whether evidence fitted on ``stored`` is void on ``basis`` (an earlier one)."""
+    bases = const.HEAT_LOSS_BASES
+    return stored in bases and bases.index(stored) < bases.index(basis)
+
+
 def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray:
     """Map a schedule onto ``{0} ∪ [p_min, p_max]``.
 
@@ -1991,6 +2002,81 @@ def learner_newton_step(
     # region keeps noise even and, with it, bounds one sample's move.
     updated = float((1.0 - alpha) * current + alpha * target)
     return target, updated
+
+
+def heat_loss_anchor_pair(
+    stored: tuple[float, float],
+    live: tuple[float, float | None],
+    ratio: float,
+    *,
+    void: bool,
+    step: float,
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    """The ``(then, now)`` nameplates ``reanchor_heat_loss`` re-expresses against.
+
+    ``stored`` and ``live`` are the ``(zone total, lower nameplate)`` anchors
+    as saved and as configured now (lower 0 or ``None``: one zone, or a store
+    from before the lower anchor). The ratio multiplies the nameplate split,
+    so it is re-anchored only when that split moves past ``step`` (or the
+    evidence is ``void``); otherwise the total is re-expressed as one zone,
+    the ratio kept -- the law blends toward the nameplate at partial
+    confidence, so re-anchoring an unmoved split would pull the lower zone
+    off its measurement. ``None``: below ``step`` everywhere, or a total not
+    positive on either side (a store with no anchor), keep the store.
+    """
+    (total_then, lower_then), (total_now, lower_now) = stored, live
+    if min(total_then, total_now) <= 1e-9:
+        return None
+    upper = (total_then - lower_then * ratio, total_now - (lower_now or 0.0) * ratio)
+    if lower_now and lower_then > 1e-9 and min(upper) > 1e-9:
+        then, now = (upper[0], lower_then), (upper[1], lower_now)
+        if void or abs(now[1] * then[0] / (now[0] * then[1]) - 1.0) > step:
+            return then, now
+    if not void and abs(total_now / total_then - 1.0) <= step:
+        return None
+    return (total_then, 0.0), (total_now, 0.0)
+
+
+def reanchor_heat_loss(
+    then: tuple[float, float],
+    now: tuple[float, float],
+    scale: float,
+    ratio: float,
+    confidence: tuple[float, float],
+) -> tuple[float, float]:
+    """The learned ``(scale, ratio)`` re-expressed against new nameplates.
+
+    ``then`` and ``now`` are the ``(upper, lower)`` nameplate UA the learners
+    were fitted against and the UA configured now (lower 0 for one zone);
+    ``confidence`` is each learner's ``house_loss_confidence``. The scale
+    owns the level of both zones and the ratio the lower zone's share, so a
+    store holds two measurements: the zone total ``scale * (U + L * ratio)``
+    and the lower zone ``scale * L * ratio``. The law, from the recorded
+    decisions (issue #86), held on both at once (#2239):
+
+    ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
+
+    on the zone total with the scale's phi, and on the lower zone with the
+    ratio's, whose prior is the lower nameplate at the new scale (ratio 1).
+    Path-independent; every zone keeps its measurement at convergence and
+    its configuration at zero evidence, where round 1 did its damage. The
+    pair solves a quadratic in the scale with one non-negative root.
+    Re-expressing the scale alone handed the lower zone's learned share to
+    the upper one, the total kept and the split wrong.
+    """
+    (u_then, l_then), (u_now, l_now) = then, now
+    a, b = confidence
+    total = scale * (u_then + l_then * ratio)
+    lower = scale * l_then * ratio
+    quad = u_now + (1.0 - b) * l_now
+    lin = b * lower - (1.0 - a) * (u_now + (1.0 - b) * l_now) - a * total
+    const = -(1.0 - a) * b * lower
+    root = math.sqrt(lin * lin - 4.0 * quad * const)
+    # The cancellation-free form of the same root on either sign of ``lin``.
+    new_scale = (root - lin) / (2.0 * quad) if lin <= 0 else -2.0 * const / (lin + root)
+    if l_now <= 0 or new_scale <= 0:
+        return new_scale, ratio
+    return new_scale, (1.0 - b) + b * lower / (l_now * new_scale)
 
 
 @dataclass(frozen=True, kw_only=True)
