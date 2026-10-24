@@ -1,0 +1,1 @@
+(entities.py killed after 300s locally; not re-run — CI's run cited)
