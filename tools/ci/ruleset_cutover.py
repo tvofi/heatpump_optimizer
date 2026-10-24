@@ -151,6 +151,28 @@ def digest(obj) -> str:
     return hashlib.sha256(canon(obj).encode()).hexdigest()
 
 
+def unordered(sixk: dict) -> dict:
+    """The six keys with the lists GitHub returns in its own order sorted: the rules,
+    the bypass actors and the required contexts (the 2026-10-23T23:54Z --enable read
+    `pull_request` first and refused a correct PUT). Only comparisons read it; the
+    saved copy and its digest stay byte-for-byte the GET."""
+    out = copy.deepcopy(sixk)
+    for r in out["rules"]:
+        if r.get("type") == RSC and RSC in r["parameters"]:      # without_checks takes the list out
+            r["parameters"][RSC].sort(key=canon)
+    out["rules"].sort(key=canon)
+    out["bypass_actors"].sort(key=canon)
+    return out
+
+
+def same(a: dict, b: dict) -> bool:
+    return unordered(a) == unordered(b)
+
+
+def requires_only_gate(sixk: dict) -> bool:
+    return sorted(contexts(sixk), key=canon) == sorted(NEW_CHECKS, key=canon)
+
+
 def assert_old(sixk: dict, what: str) -> None:
     n = len(contexts(sixk))
     if n != OLD_CONTEXTS:
@@ -173,7 +195,7 @@ def preconditions(gh, live: dict, staged: dict | None, head: str | None, pr: int
     if staged is None:
         out.append(("staged-hash", None, "not evaluated: no --staged"))
     else:
-        a, b = digest(six(live)), digest(six(staged))
+        a, b = digest(unordered(six(live))), digest(unordered(six(staged)))
         out.append(("staged-hash", a == b, f"live {a[:16]} staged {b[:16]}"))
     if head is None:
         out.append(("gate-at-head", None, "not evaluated: no --head"))
@@ -256,7 +278,7 @@ def window_off(sixk: dict) -> dict:
 def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
-    if six(live) != six(rollback):
+    if not same(six(live), six(rollback)):
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     if not print_preconditions(preconditions(gh, live, staged, head, pr)):
         raise Refuse("a precondition failed; nothing was written")
@@ -264,7 +286,7 @@ def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
     if rc != 0:
         after = six(call(gh, [RULESET]))
-        state = ("is UNCHANGED (reads back equal to the rollback copy)" if after == six(rollback)
+        state = ("is UNCHANGED (reads back equal to the rollback copy)" if same(after, six(rollback))
                  else "DIFFERS from the rollback copy:\n" + diff(six(rollback), after, "rollback", "live"))
         raise Refuse(f"the PUT was refused ({out.strip()[:300]}); the ruleset {state}")
     try:
@@ -272,11 +294,11 @@ def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     except ValueError:
         raise Refuse("the PUT returned no JSON") from None
     after = six(call(gh, [RULESET]))
-    if put != want or contexts(after) != NEW_CHECKS:
+    if not same(put, want) or not requires_only_gate(after):
         raise Refuse("READBACK half 1 FAILED: the PUT result is not the payload\n"
                      + diff(want, put, "payload", "put"))
     print("READBACK half 1 OK: the PUT result equals the payload; the GET requires only gate")
-    if without_checks(after) != without_checks(six(rollback)):
+    if not same(without_checks(after), without_checks(six(rollback))):
         raise Refuse("READBACK half 2 FAILED: the PUT changed more than required_status_checks\n"
                      + diff(without_checks(six(rollback)), without_checks(after), "rollback", "live"))
     print("READBACK half 2 OK: everything but required_status_checks equals the rollback copy")
@@ -290,7 +312,7 @@ def rollback(gh, path: str) -> int:
     if rc != 0:
         raise Refuse(f"the rollback PUT was refused: {out.strip()[:300]}")
     after = six(call(gh, [RULESET]))
-    if after != want:
+    if not same(after, want):
         raise Refuse("ROLLBACK READBACK FAILED\n" + diff(want, after, "rollback", "live"))
     print(f"ROLLBACK READBACK OK: all six keys equal {path}; now revert PR 2")
     return 0
@@ -304,9 +326,9 @@ def dry_run(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
     print(canon(want), end="")
     print("DIFF (live six keys -> payload):")
     print(diff(six(live), want, "live", "payload"), end="")
-    same = without_checks(want) == without_checks(six(live))
-    print(f"OUTSIDE required_status_checks: {'IDENTICAL' if same else 'DIFFERS'}")
-    ok = print_preconditions(preconditions(gh, live, staged, head, pr)) and same
+    kept = without_checks(want) == without_checks(six(live))
+    print(f"OUTSIDE required_status_checks: {'IDENTICAL' if kept else 'DIFFERS'}")
+    ok = print_preconditions(preconditions(gh, live, staged, head, pr)) and kept
     print(f"DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
     return 0 if ok else 1
 
@@ -397,7 +419,7 @@ def main_ratchet_green(gh):
 def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=None) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
-    if six(live) != six(rollback):
+    if not same(six(live), six(rollback)):
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
     rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)))
@@ -409,7 +431,7 @@ def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=No
     if rc != 0:
         raise Refuse(f"the disable PUT was refused ({out.strip()[:300]})")
     after = six(call(gh, [RULESET]))
-    if after != want:
+    if not same(after, want):
         raise Refuse("DISABLE READBACK FAILED\n" + diff(want, after, "payload", "live"))
     print("DISABLE READBACK OK: required_status_checks removed; enforcement and every other rule equal the rollback copy")
     print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
@@ -421,7 +443,7 @@ def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=No
 def enable(gh, rollback_file: str, merged: str, head: str) -> int:
     rollback = read_copy(rollback_file, "--rollback-file")
     live = six(call(gh, [RULESET]))
-    if live != window_off(rollback):
+    if not same(live, window_off(rollback)):
         raise Refuse("the live ruleset is not the rollback copy less required_status_checks\n"
                      + diff(window_off(rollback), live, "expected", "live"))
     cmp = call(gh, [f"repos/{REPO}/compare/{merged}...main"]).get("status")
@@ -438,10 +460,10 @@ def enable(gh, rollback_file: str, merged: str, head: str) -> int:
     if rc != 0:
         raise Refuse(f"the enable PUT was refused ({out.strip()[:300]}); required_status_checks is still removed")
     after = six(call(gh, [RULESET]))
-    if after != want or contexts(after) != NEW_CHECKS:
+    if not same(after, want) or not requires_only_gate(after):
         raise Refuse("READBACK half 1 FAILED: the GET is not the payload\n" + diff(want, after, "payload", "live"))
     print("READBACK half 1 OK: the GET equals the payload; it requires only gate")
-    if without_checks(after) != without_checks(six(rollback)):
+    if not same(without_checks(after), without_checks(six(rollback))):
         raise Refuse("READBACK half 2 FAILED\n" + diff(without_checks(six(rollback)), without_checks(after), "rollback", "live"))
     print("READBACK half 2 OK: everything but required_status_checks equals the rollback copy, enforcement included")
     print(f"NEXT: watch main's push gate, then --verify --head <main sha>; on red: --rollback {rollback_file}, then revert")
@@ -583,6 +605,15 @@ def self_test() -> int:
     H, PR = green["head"], green["pr"]
     checks = failed = 0
 
+    def reorder(st):
+        return {**st, "rules": st["rules"][::-1], "bypass_actors": st["bypass_actors"][::-1]}
+
+    def flip_pr_rule(st):
+        for r in st["rules"]:
+            if r["type"] == "pull_request":
+                r["parameters"]["require_code_owner_review"] = False
+        return st
+
     def check(name, ok, detail=""):
         nonlocal checks, failed
         checks += 1
@@ -723,11 +754,6 @@ def self_test() -> int:
               rc == 2 and "DIFFERS" in out and "UNCHANGED" not in out, out)
 
         # Each read-back half catches what only it can see.
-        def flip_pr_rule(s):
-            for r in s["rules"]:
-                if r["type"] == "pull_request":
-                    r["parameters"]["require_code_owner_review"] = False
-            return s
         f = FakeGh(ruleset, green, put="echo-other", after=lambda s: {**s, "enforcement": "disabled"})
         rc, out = run(f, apply_argv()[0])
         check("half 1: a PUT that is not the payload refuses", rc == 2 and "half 1 FAILED" in out, out)
@@ -735,6 +761,13 @@ def self_test() -> int:
         rc, out = run(f, apply_argv()[0])
         check("half 2: a PUT that changed the pull_request rule refuses",
               rc == 2 and "half 1 OK" in out and "half 2 FAILED" in out, out)
+        f = FakeGh(ruleset, green, put="echo-other", after=reorder)
+        rc, out = run(f, apply_argv()[0])
+        check("apply: a PUT echo and GET in GitHub's own list order pass both halves",
+              rc == 0 and "half 1 OK" in out and "half 2 OK" in out, out)
+        f = FakeGh(reorder(copy.deepcopy(ruleset)), green)
+        rc, out = run(f, ["--dry-run", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("staged-hash: a live ruleset reordered from the staged one is the staged one", "staged-hash: PASS" in out, out)
 
         # --rollback: PUT the copy's six keys, all six read back.
         f = FakeGh(payload(ruleset) | {"id": RULESET_ID}, green)
@@ -841,6 +874,21 @@ def self_test() -> int:
             f, rc, out, _ = dis(variant(check_runs=runs_at(*runs)))
             check(f"disable plant {name}: refuses, no PUT",
                   rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        # One suite, two attempts of an owed unit: the re-run is the newest run in that suite,
+        # and only it decides (#2673 carry 22). A reader keeping the first attempt passes the plant.
+        def attempts(first, rerun):
+            g = copy.deepcopy(g_win)
+            cr = g["check_runs"]["check_runs"]
+            one = next(r for r in cr if r["name"] == "tests / closures")
+            one["conclusion"] = first
+            cr.append(dict(one, id=max(r["id"] for r in cr) + 1, conclusion=rerun))
+            g["check_runs"]["total_count"] = len(cr)
+            return g
+        f, rc, out, _ = dis(attempts("success", "failure"))
+        check("disable plant an owed unit passed, then its re-run failed in the same suite: refuses, no PUT",
+              rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out and "tests / closures" in out, out)
+        f, rc, out, _ = dis(attempts("failure", "success"))
+        check("disable null: an owed unit failed, then its re-run passed in the same suite: succeeds", rc == 0, out)
         f, rc, out, _ = dis(g_win, reaches=True)
         check("disable plant a PR reaching custom_components without arch-score: refuses (pr-cc owes it)",
               rc == 2 and f.puts == [] and "arch-score / arch-score" in out, out)
@@ -879,11 +927,11 @@ def self_test() -> int:
         Path(rb + DIGEST_SUFFIX).write_text(digest(six(ruleset)) + "\n")
         off = {**ruleset, **window_off(six(ruleset))}
 
-        def ena(state, cmp_status="ahead", rbf=rb, parents=(H,)):
+        def ena(state, cmp_status="ahead", rbf=rb, parents=(H,), after=None):
             g = variant(user=lambda u: u)
             g["compare"] = {"status": cmp_status}
             g["commit"] = {"parents": [{"sha": "b" * 40}, *({"sha": x} for x in parents)]}
-            f = FakeGh(state, g)
+            f = FakeGh(state, g, after=after)
             rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40, "--head", H])
             return f, rc, out
         f, rc, out = ena(off)
@@ -891,6 +939,14 @@ def self_test() -> int:
               rc == 0 and f.puts and contexts(f.puts[0]) == NEW_CHECKS
               and f.puts[0]["enforcement"] == ruleset["enforcement"]
               and "half 1 OK" in out and "half 2 OK" in out, out)
+        # GitHub returns a ruleset's lists in its own order: the 2026-10-23T23:54Z --enable
+        # read `pull_request` before `required_status_checks` and refused a correct PUT.
+        f, rc, out = ena(off, after=reorder)
+        check("enable: GitHub's reordered read-back (rules, bypass actors) is the payload, both halves pass",
+              rc == 0 and len(f.puts) == 1 and "half 1 OK" in out and "half 2 OK" in out, out)
+        f, rc, out = ena(off, after=lambda st: flip_pr_rule(reorder(st)))
+        check("enable null: a reordered read-back that also changed the pull_request rule still refuses",
+              rc == 2 and "half 1 FAILED" in out, out)
         f, rc, out = ena(ruleset)
         check("enable: refuses when the live ruleset is not the disabled copy", rc == 2 and f.puts == [], out)
         f, rc, out = ena(off, "behind")
@@ -936,6 +992,9 @@ def self_test() -> int:
         rc, out = run(f, ["--rollback", rb])
         check("rollback from the window state: restores the copy whole",
               rc == 0 and f.puts == [six(ruleset)], out)
+        f = FakeGh(off, green, after=reorder)
+        rc, out = run(f, ["--rollback", rb])
+        check("rollback: GitHub's reordered read-back is the copy", rc == 0 and "ROLLBACK READBACK OK" in out, out)
 
     print(f"ruleset_cutover self-test: {checks} checks, {failed} failed")
     return 1 if failed else 0
