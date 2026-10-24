@@ -19444,8 +19444,10 @@ R.check(
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
-#     `workset` names it, and each needed by `gate` (and by `pr-contract`,
-#     which runs last);
+#     `workset` names it, and each needed by `pr-contract`, which runs last
+#     and whose `!cancelled()` holds its skip until they end; `gate` needs
+#     exactly the prelude and `pr-contract` (owner request 2026-10-24: one
+#     edge into `gate`, not ten);
 #   - every `needs.prelude.outputs.*` read is a prelude output, and every
 #     prelude output reads a key prelude.py prints (the producer pin);
 #   - `gate`'s `if:` is true under every event type `on:` lists, with the
@@ -19593,10 +19595,14 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
         if sec is not None and (not isinstance(sec, dict) or any(
                 v != f"${{{{ secrets.{k} }}}}" for k, v in sec.items())):
             out.append(f"{j}: secrets {sec!r} (each passed by its own name, never inherit)")
-    for j, want in (("gate", callers), ("pr-contract", callers - {"pr-contract"})):
-        needs = (jobs.get(j) or {}).get("needs") or []
-        if "prelude" not in needs or not want <= set(needs):
-            out.append(f"{j} needs {needs}, not prelude and {sorted(want)}")
+    pc_needs = (jobs.get("pr-contract") or {}).get("needs") or []
+    if "prelude" not in pc_needs or not callers - {"pr-contract"} <= set(pc_needs):
+        out.append(f"pr-contract needs {pc_needs}, not prelude and {sorted(callers - {'pr-contract'})}")
+    if not str((jobs.get("pr-contract") or {}).get("if", "")).startswith("${{ !cancelled() && "):
+        out.append("pr-contract's if: does not open with !cancelled(): a failed unit would skip it before the "
+                   "rest end, and `gate`, needing only it, would judge them pending")
+    if sorted((jobs.get("gate") or {}).get("needs") or []) != ["pr-contract", "prelude"]:
+        out.append(f"gate needs {(jobs.get('gate') or {}).get('needs')}, not exactly prelude and pr-contract")
     pre = (jobs.get("prelude") or {}).get("outputs") or {}
     sample, _ = _cip.outputs(_cip.context("push", {}, {"GITHUB_SHA": _CI_SHA}), [], lambda *a, **k: (200, {}, {}))
     for k, v in pre.items():
@@ -19659,8 +19665,14 @@ _CI_PLANTS = {
         "    secrets: inherit\n    _x:\n      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}\n", 1),
     "a caller off its stem": _CI_TEXT.replace(
         "    uses: ./.github/workflows/validate.yml\n", "    uses: ./.github/workflows/hassfest.yml\n", 1),
-    "gate does not need a unit": _CI_TEXT.replace(
-        "kernel-points, arch-score, budget-raise-gate, pr-contract]\n", "kernel-points, arch-score, pr-contract]\n", 1),
+    "pr-contract does not need a unit": _CI_TEXT.replace(
+        "kernel-points, arch-score, budget-raise-gate]\n", "kernel-points, arch-score]\n", 1),
+    "gate does not need pr-contract": _CI_TEXT.replace("    needs: [prelude, pr-contract]\n", "    needs: [prelude]\n", 1),
+    "gate needs a unit beside pr-contract": _CI_TEXT.replace(
+        "    needs: [prelude, pr-contract]\n", "    needs: [prelude, tests, pr-contract]\n", 1),
+    "pr-contract skippable before its needs end": _CI_TEXT.replace(
+        "    if: ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}\n",
+        "    if: ${{ contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}\n", 1),
     "shallow gate checkout": _CI_TEXT[:_CI_TEXT.find("  gate:\n")] + _CI_TEXT[_CI_TEXT.find("  gate:\n"):].replace(
         "fetch-depth: 0", "fetch-depth: 1", 1) if "  gate:\n" in _CI_TEXT else _CI_TEXT,
     "an output prelude.py never prints": _CI_TEXT.replace(
