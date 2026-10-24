@@ -1594,7 +1594,7 @@ INPUT_MAX_AGE_MINUTES[CONF_INDOOR_HUMIDITY_ENTITY] = 120.0
 # key keeps its polling limit, and tests/features.py names why for each.
 INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
     **INPUT_MAX_AGE_MINUTES,
-    CONF_POWER_ENTITY: math.inf,  # 0 W through an idle spell
+    CONF_POWER_ENTITY: 30.0,  # planted: the defect's polling limit
     CONF_ENERGY_ENTITY: math.inf,  # a counter holds while the pump idles
     CONF_HEAT_PUMP_MODE_ENTITY: math.inf,  # changes only when the mode does
     # Water at rest stays inside its report threshold, and flow holds 0 while
