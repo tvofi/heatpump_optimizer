@@ -3433,7 +3433,8 @@
     "R10-STRUCTURE-ALIAS",
     "R10-ORCH-REVIEW-PACKET",
     "R10-POLICY-ROLE-PACK",
-    "R10-ARCH-DOCS-FIRST"
+    "R10-ARCH-DOCS-FIRST",
+    "R10-IMMERSION-LATCH"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
