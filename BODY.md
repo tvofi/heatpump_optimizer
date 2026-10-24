@@ -1,8 +1,8 @@
-Moves the roster seat's queue runner and carry read-back (runq.py, rb.py, previously only under the seat's scratch directory) into `tools/audit/seat/roster_queue.py`, per decision 0013 (tools live in the tree). The runner lints from a clone it owns at `origin/main` so it never moves the orchestrator's checkout; it retries a moved-main refusal up to four times and reads every `append-carry @file` back from the pushed commit. A queue line may carry flags after the group (`drop-carry G --match TEXT`): the runner passes everything from the first `--` token on to `roster_edit.py` (the seat-local copy dropped them and the first `--match` line was refused). Adds an INSTRUMENTS.md entry and a governance.yml step that runs the self-test.
+Moves the roster seat's queue runner and carry read-back (runq.py, rb.py, previously only under the seat's scratch directory) into `tools/audit/seat/roster_queue.py`, per decision 0013 (tools live in the tree). The runner lints from a clone it owns at `origin/main` so it never moves the orchestrator's checkout; it retries a moved-main refusal up to four times and reads every `append-carry @file` back from the pushed commit. A queue line may carry flags after the group (`drop-carry G --match TEXT`): the runner passes everything from the first `--` token on to `roster_edit.py` (the seat-local copy dropped them and the first `--match` line was refused). Adds an INSTRUMENTS.md entry and a governance.yml step that runs the self-test. The self-test builds its throwaway repository through `tests/throwaway_git.py` (`throwaway_git_init`), so `python3 -I tests/throwaway_git.py --check` refuses 0 sites at the head.
 
 ## Head
 
-4f72699f053882c1cbdf9a07938e532f95873a1a
+aa5b7e069ccb1c80e02095cfafe0491d173db15e
 
 ## Mutation proof
 
@@ -17,6 +17,7 @@ Unmodified tree: `roster_queue self-test: 14 checks, 0 failed`.
 - 14 checks, 0 failed: `python3 -I tools/audit/seat/roster_queue.py --self-test`
 - 94 self-testing, 94 wired, 0 unwired: `python3 -I tools/audit/seat/selftest_wiring.py --check`
 - structure ratchet passed: `python3 tests/structure.py`
+- 0 raw git init or clone sites refused: `python3 -I tests/throwaway_git.py --check`
 
 ## Red checks
 
@@ -24,7 +25,7 @@ none
 
 ## Forward-carry
 
-none. Not run locally: `tests/entities.py` (no homeassistant module on this host); CI owns it. The new file is classified by `ci_predict.py --apply-inert` (one `tests/closures.json` INERT READS line for `tests/entities.py`).
+n/a: nothing carries forward. Not run locally: `tests/entities.py` (no homeassistant module on this host); CI owns it. The new file is classified by `ci_predict.py --apply-inert` (one `tests/closures.json` INERT READS line for `tests/entities.py`).
 
 ## Friction
 
