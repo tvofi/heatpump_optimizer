@@ -1,0 +1,36 @@
+# census at 455d7c2001fc7b94d39f9a0feb933894d9ca704d, over tools/ and .claude/workflows/ (the scan's surface)
+## single-quoted argv 'pr', 'merge'
+## quoted word / flag between pr and merge (shell)
+## "pr" <ws>, "merge"
+## any line with gh and merge not matched by MERGE_CALL (pr nearby)
+.claude/workflows/audit-fix.js:34:  `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${fix.head_sha}. Read dev/governance/roles/fix-review.md and follow it: re-run the mutation proof, measure with the finder's harness at ${baseline ?? 'origin/main before the PR'} and at ${fix.head_sha} printing your own RESULT lines, re-run null controls, compare claim files against env_drift.py --all (and card_drift.mjs for card changes) at the merge base, check VERSION/manifest/notes untouched, attack the fix at other configurations, confirm the head SHA in the body. Post your verdict as a PR comment (gh pr comment) beginning "Fix review: merge" or "Fix review: blocked — <why>", with the RESULT lines. Return {verdict, comment_url}.`,
+.claude/workflows/audit-wave.js:52:  `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${fix.head_sha}. Read dev/governance/roles/fix-review.md and follow it: re-run the mutation proof, measure with the finder's harness at ${baseline ?? 'origin/main before the PR'} and at ${fix.head_sha} printing your own RESULT lines, re-run null controls, compare claim files against env_drift.py --all (and card_drift.mjs for card changes) at the merge base, check VERSION/manifest/notes untouched, attack the fix at other configurations, confirm the head SHA in the body. Post your verdict as a PR comment (gh pr comment) beginning "Fix review: merge" or "Fix review: blocked — <why>", with the RESULT lines. Return {verdict, comment_url}.`
+tools/audit/seat/gh_read.py:446:                       (["gh", "pr", "merge", "1"], False), (["gh", "pr", "review", "1", "--approve"], False),
+tools/audit/seat/merge_train.py:864:        self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
+tools/audit/seat/merge_train.py:1482:            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+tools/audit/seat/merge_train.py:2111:            if argv[:3] == ["gh", "pr", "merge"] and argv[3] == "9":
+tools/audit/seat/merge_train.py:2116:            if argv[:3] == ["gh", "pr", "merge"] and world.get("merge_outs"):
+tools/audit/seat/merge_train.py:2248:        return any(c[:3] == ["gh", "pr", "merge"] for c in calls)
+tools/audit/seat/merge_train.py:2398:          rc == 0 and remerges(calls) == 2 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+tools/audit/seat/merge_train.py:2399:          and not any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+tools/audit/seat/merge_train.py:2416:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H1]
+tools/audit/seat/merge_train.py:2423:    order = [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]]
+tools/audit/seat/merge_train.py:2427:          and any(c[:4] == ["gh", "pr", "merge", "9"] and c[-1] == "e" * 40 for c in calls)
+tools/audit/seat/merge_train.py:2433:              rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+tools/audit/seat/merge_train.py:2438:          rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+tools/audit/seat/merge_train.py:2449:          rc == 1 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+tools/audit/seat/merge_train.py:2634:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+tools/audit/seat/merge_train.py:2645:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+tools/audit/seat/merge_train.py:2759:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+tools/audit/seat/merge_train.py:2763:          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+tools/audit/seat/merge_train.py:2794:          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+tools/audit/seat/merge_train.py:2863:    check("the merge is retried until GitHub reports MERGED", rc == 0 and sum(c[:3] == ["gh", "pr", "merge"] for c in calls) == 3)
+tools/audit/seat/merge_train.py:2879:          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H0, H1]
+tools/audit/seat/merge_train.py:2885:          rc == 0 and remerges(calls) == 1 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+tools/audit/seat/merge_train.py:2903:    check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
+tools/audit/seat/merge_train.py:3120:    code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
+tools/audit/seat/merge_train.py:3329:    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+tools/audit/seat/merge_train.py:3538:            if argv[:3] in (["gh", "pr", "view"], ["gh", "pr", "merge"]) and argv[3] == "9":
+tools/audit/seat/merge_train.py:3565:            if argv[:3] == ["gh", "pr", "merge"]:
+tools/audit/seat/merge_train.py:3723:    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+## lines ending gh/pr continuation

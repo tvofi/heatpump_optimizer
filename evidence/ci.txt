@@ -1,9 +1,6 @@
-check-runs on 96ad30e87ad6a52a879e6c94364021535fe6f5ae (PR #2697 get_check_runs), read 2026-10-24 ~15:40Z:
-total_count 6
-refresh (run 40107544605) queued
-prelude (run 40107544605) queued
-cancel-superseded (run 40107544605) queued
-refresh (run 40107543861) completed success
-cancel-superseded (run 40107543861) completed success
-prelude (run 40107543861) queued
-No gate workflow had concluded; no red check run.
+check-runs on 455d7c2001fc7b94d39f9a0feb933894d9ca704d, read 2026-10-24 after 17:24Z:
+pr-contract / pr-contract: completed failure (job 120936964374)
+gate: queued
+prelude (run 40115512480), cancel-superseded (run 40115512480): queued
+arch-score, budget-raise-gate, refresh, prelude (run 40115512010), cancel-superseded (run 40115512010): success
+governance, validate, codeql, hassfest, tests, kernel-points: skipped
