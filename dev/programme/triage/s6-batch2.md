@@ -77,7 +77,7 @@ passes `merge-queue.txt`, `roster-queue.txt` and `dispatch-queue.txt` to
 sweep. `pulse.py`'s own header (lines 49-53) defines the one accepted format,
 and `rg -n 'alive' tools/audit/seat/pulse.py` finds no liveness-by-file arm.
 Cost: S -- a `--seat-alive SEAT=FILE[:MIN]` arm of about 15 lines beside
-`seat_queue_arm`, using the `STANDING` cadences already in the file
+`judge_queue`, using the `STANDING` cadences already in the file
 (`STANDING = {"tick": 70, "merge": 120, ...}`), fixtures for fresh, stale and
 absent, one mutant each; no API call, local `stat`.
 Binding: a false STOPPED makes the sweep restart a live seat (a duplicate
