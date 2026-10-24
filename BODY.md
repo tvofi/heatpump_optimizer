@@ -147,8 +147,8 @@ Forward-carry.
 
 - No-power-meter installs cannot tell a draw shortfall from UA. Harness `dev/audit/harnesses/r10_demand_overbook.py`, arm `nometer_half` (true scale 1.0, the pump delivers half of what is commanded, no power entity): the learned scale stays 1.828 and plan/deliv stays 1.936, byte-identical at base 145bfe197 and head 428a758e5. Against that, the metered arms move (owner_i01 1.185 -> 0.628, true 0.6; meter_half 2.102 -> 1.247). The ideal-delivery null arms stay on the truth at both ends (null 1.015 -> 0.992, true 1.0). So the residual is unobservability, not an unfixed bias. On such an install the health surface must report the learned heat-loss scale as unobservable, not as trustworthy. Carry: R10-UX-HEALTH (orchestrator ruling under mandate 6329234399).
 - House learner gets zero evidence on a standby-drawing, under-delivering pump: owner_i03 accepted 0 samples in 10 days at both ends, because `COP_TRACKING_ERROR_GATE` in `_interval_space_power` refuses every interval. Carry: R10-LEARNER-DEFAULT
-- Optimality: on its own learned model, the plan books 38-40% more kWh than the relaxed DP optimum, at both ends (one window). Carry: R10-SETPOINT-BOOST
-- `dhw_temp_trajectory` open-loop tank seed (class census): Carry: R10-PUMP-MODEL
+- Optimality: on its own learned model, the plan books 38-40% more kWh than the relaxed DP optimum, at both ends (one window). Carry: R10-COP-PARTLOAD
+- `dhw_temp_trajectory` open-loop tank seed (class census): Carry: R10-HEAT-METER
 
 ## Friction
 
