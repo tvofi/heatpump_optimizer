@@ -21043,6 +21043,30 @@ R.check(
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
 )
+# A skipped leg uploads main's analysis of its category as a stand-in, so a
+# pull request carries every configuration main does and code scanning never
+# reads "1 configuration not found" (r10-codeql-dependabot). The shape: the
+# stand-in step runs on `skip` alone; an upload-sarif step under the leg's own
+# category runs exactly when it wrote one; init and analyze run exactly when
+# it did not -- so every leg either analyzes or uploads, never neither.
+_CQ_BY_NAME = {st.get("name"): st for st in _CODEQL_STEPS}
+_CQ_STANDIN = _CQ_BY_NAME.get("Write main's analysis as the skipped leg's stand-in") or {}
+_CQ_UPLOAD = [st for st in _CODEQL_STEPS
+              if str(st.get("uses", "")).startswith("github/codeql-action/upload-sarif@")]
+_CQ_GATED = [st for st in _CODEQL_STEPS
+             if str(st.get("uses", "")).startswith(("github/codeql-action/init@", "github/codeql-action/analyze@"))]
+R.check(
+    "codeql.yml: a skipped leg uploads main's analysis of its category; every leg analyzes or uploads",
+    _CQ_STANDIN.get("id") == "standin"
+    and _CQ_STANDIN.get("if") == "fromJSON(inputs.legs || '{}')[matrix.language] == 'skip'"
+    and "codeql_scope.py stand-in" in str(_CQ_STANDIN.get("run"))
+    and len(_CQ_UPLOAD) == 1 and _CQ_UPLOAD[0].get("if") == "steps.standin.outputs.ok == 'true'"
+    and (_CQ_UPLOAD[0].get("with") or {}).get("category") == "/language:${{ matrix.language }}"
+    and len(_CQ_GATED) == 2 and all(st.get("if") == "steps.standin.outputs.ok != 'true'" for st in _CQ_GATED)
+    and "if" not in (_CQ_BY_NAME.get("Checkout repository") or {}),
+    f"standin={_CQ_STANDIN.get('if')!r}; uploads={[st.get('if') for st in _CQ_UPLOAD]}; "
+    f"init/analyze={[st.get('if') for st in _CQ_GATED]}",
+)
 R.check(
     "codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)",
     set(_CODEQL_JOBS) == {"analyze"},

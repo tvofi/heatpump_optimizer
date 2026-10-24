@@ -51,7 +51,8 @@ name: CodeQL
 # would stop a required `Analyze` context from reporting at all. What
 # narrows instead is a pull request's leg whose diff that leg cannot read: the
 # umbrella's prelude (tools/ci/prelude.py, through tools/pr/codeql_scope.py,
-# O17) says `skip` in its `legs` output, the leg's steps skip and its context
+# O17) says `skip` in its `legs` output, the leg's analysis steps skip, it
+# uploads main's own analysis of its category as a stand-in (below), and its context
 # reports success. Every other event analyzes. O17 is a suffix allow-list, not
 # a measured closure; owner ruling D-5 admits it under the soundness step
 # below, which fails a push run when a leg's extracted source archive holds a
@@ -124,17 +125,50 @@ jobs:
         run: |
           echo "codeql scope for ${{ matrix.language }}: ${WORD:-analyze (no decision)}"
       - name: Checkout repository
-        if: fromJSON(inputs.legs || '{}')[matrix.language] != 'skip'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         # This job holds `security-events: write`; nothing it runs needs git
         # credentials, so none is left on disk (D11-s1-03's pin).
         with:
           persist-credentials: false
 
+      # A SKIPPED leg still uploads its category (tools/pr/codeql_scope.py's
+      # docstring): main carries every `/language:<leg>` under this job's
+      # analysis key, and a pull request missing one reads "1 configuration
+      # not found". The stand-in is main's own analysis of the category, at
+      # the base commit where it exists; by O17's premise the diff is inert to
+      # this extractor, so those ARE the merge ref's alerts. The program is
+      # the BASE's copy; any failure (no such analysis, a base predating the
+      # subcommand, a failed read) leaves `ok` unset and the leg analyzes.
+      - name: Write main's analysis as the skipped leg's stand-in
+        id: standin
+        if: fromJSON(inputs.legs || '{}')[matrix.language] == 'skip'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEG: ${{ matrix.language }}
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -uo pipefail
+          test -n "$PINNED" || { echo "no base commit: the leg analyzes"; exit 0; }
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED" || exit 0
+          git checkout "$PINNED" -- tools/pr/codeql_scope.py || exit 0
+          if python3 -I tools/pr/codeql_scope.py stand-in --language "$LEG" \
+              --base-sha "$PINNED" --out "$RUNNER_TEMP/stand-in.sarif"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no stand-in: the leg analyzes"
+          fi
+
+      - name: Upload the stand-in under this leg's category
+        if: steps.standin.outputs.ok == 'true'
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          sarif_file: ${{ runner.temp }}/stand-in.sarif
+          category: "/language:${{ matrix.language }}"
+
       # build-mode is left at its default: none of the three languages above
       # is compiled, so no build step runs between init and analyze.
       - name: Initialize CodeQL
-        if: fromJSON(inputs.legs || '{}')[matrix.language] != 'skip'
+        if: steps.standin.outputs.ok != 'true'
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           languages: ${{ matrix.language }}
@@ -145,7 +179,7 @@ jobs:
               - .claude/workflows/*.js
 
       - name: Perform CodeQL Analysis
-        if: fromJSON(inputs.legs || '{}')[matrix.language] != 'skip'
+        if: steps.standin.outputs.ok != 'true'
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: "/language:${{ matrix.language }}"
