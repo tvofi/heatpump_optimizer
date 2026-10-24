@@ -9394,7 +9394,8 @@
     "tools/audit/seat/INSTRUMENTS.md"
    ],
    "carry": [
-    "From routing audit 1: 18 of the 25 unrouted items were review evidence prose or trailers (`Round: ...`, `bus-nonce: ...`), not findings. carry_audit's TRAILER regex gains `bus-nonce:` and `Round:` with a fixture each; the evidence-section rule (EVIDENCE_HEADING) is not loosened beyond that without a mutant showing a real finding still reads."
+    "From routing audit 1: 18 of the 25 unrouted items were review evidence prose or trailers (`Round: ...`, `bus-nonce: ...`), not findings. carry_audit's TRAILER regex gains `bus-nonce:` and `Round:` with a fixture each; the evidence-section rule (EVIDENCE_HEADING) is not loosened beyond that without a mutant showing a real finding still reads.",
+    "From routing audit 1 (2026-10-24, the orchestrator scratch files routing-audit-1.md and routing-decisions-1.md): on origin/handoff/audit-r10-roster d3c2a27c7, `carry_audit.py sweep --last 150` read 423 finding items, 70 bad destinations and 25 unrouted; decided by hand, 24 of the 70 were implemented, 7 owed nothing and 39 were stranded in done groups. The null control of this group is that table: after the migration, every row it marks IMPLEMENTED or NO-OBLIGATION reads clean and every NOT IMPLEMENTED row reads routed to the live group it names."
    ],
    "resume": {
     "stage": "not-started",
