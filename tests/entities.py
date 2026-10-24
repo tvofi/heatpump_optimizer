@@ -3866,7 +3866,11 @@ def _p2_registry(sources):
                      "row's own last_updated, the export's SQL window rule",
                  "debugger.py::_record":
                      "writes a recorded row's last_updated and last_reported "
-                     "verbatim, the export's row shape; nothing reads them as an age"}),
+                     "verbatim, the export's row shape; nothing reads them as an age",
+                 # #2234: which age TABLE applies, never the age itself.
+                 "inputs.py::source_polls":
+                     "compares last_reported with last_updated, the re-report "
+                     "that marks a polling source; the age stays state_stamp's"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -19440,8 +19444,10 @@ R.check(
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
-#     `workset` names it, and each needed by `gate` (and by `pr-contract`,
-#     which runs last);
+#     `workset` names it, and each needed by `pr-contract`, which runs last
+#     and whose `!cancelled()` holds its skip until they end; `gate` needs
+#     exactly the prelude and `pr-contract` (owner request 2026-10-24: one
+#     edge into `gate`, not ten);
 #   - every `needs.prelude.outputs.*` read is a prelude output, and every
 #     prelude output reads a key prelude.py prints (the producer pin);
 #   - `gate`'s `if:` is true under every event type `on:` lists, with the
@@ -19589,10 +19595,14 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
         if sec is not None and (not isinstance(sec, dict) or any(
                 v != f"${{{{ secrets.{k} }}}}" for k, v in sec.items())):
             out.append(f"{j}: secrets {sec!r} (each passed by its own name, never inherit)")
-    for j, want in (("gate", callers), ("pr-contract", callers - {"pr-contract"})):
-        needs = (jobs.get(j) or {}).get("needs") or []
-        if "prelude" not in needs or not want <= set(needs):
-            out.append(f"{j} needs {needs}, not prelude and {sorted(want)}")
+    pc_needs = (jobs.get("pr-contract") or {}).get("needs") or []
+    if "prelude" not in pc_needs or not callers - {"pr-contract"} <= set(pc_needs):
+        out.append(f"pr-contract needs {pc_needs}, not prelude and {sorted(callers - {'pr-contract'})}")
+    if not str((jobs.get("pr-contract") or {}).get("if", "")).startswith("${{ !cancelled() && "):
+        out.append("pr-contract's if: does not open with !cancelled(): a failed unit would skip it before the "
+                   "rest end, and `gate`, needing only it, would judge them pending")
+    if sorted((jobs.get("gate") or {}).get("needs") or []) != ["pr-contract", "prelude"]:
+        out.append(f"gate needs {(jobs.get('gate') or {}).get('needs')}, not exactly prelude and pr-contract")
     pre = (jobs.get("prelude") or {}).get("outputs") or {}
     sample, _ = _cip.outputs(_cip.context("push", {}, {"GITHUB_SHA": _CI_SHA}), [], lambda *a, **k: (200, {}, {}))
     for k, v in pre.items():
@@ -19655,8 +19665,14 @@ _CI_PLANTS = {
         "    secrets: inherit\n    _x:\n      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}\n", 1),
     "a caller off its stem": _CI_TEXT.replace(
         "    uses: ./.github/workflows/validate.yml\n", "    uses: ./.github/workflows/hassfest.yml\n", 1),
-    "gate does not need a unit": _CI_TEXT.replace(
-        "kernel-points, arch-score, budget-raise-gate, pr-contract]\n", "kernel-points, arch-score, pr-contract]\n", 1),
+    "pr-contract does not need a unit": _CI_TEXT.replace(
+        "kernel-points, arch-score, budget-raise-gate]\n", "kernel-points, arch-score]\n", 1),
+    "gate does not need pr-contract": _CI_TEXT.replace("    needs: [prelude, pr-contract]\n", "    needs: [prelude]\n", 1),
+    "gate needs a unit beside pr-contract": _CI_TEXT.replace(
+        "    needs: [prelude, pr-contract]\n", "    needs: [prelude, tests, pr-contract]\n", 1),
+    "pr-contract skippable before its needs end": _CI_TEXT.replace(
+        "    if: ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}\n",
+        "    if: ${{ contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}\n", 1),
     "shallow gate checkout": _CI_TEXT[:_CI_TEXT.find("  gate:\n")] + _CI_TEXT[_CI_TEXT.find("  gate:\n"):].replace(
         "fetch-depth: 0", "fetch-depth: 1", 1) if "  gate:\n" in _CI_TEXT else _CI_TEXT,
     "an output prelude.py never prints": _CI_TEXT.replace(
@@ -20948,14 +20964,46 @@ _CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
                / "workflows" / "codeql.yml").read_text()
 _CODEQL_TRIGGERS = (_yaml.safe_load(_CODEQL_YML) or {}).get(True) or {}
 # DESIGN-P2 2.1: codeql.yml is a callee of ci.yml. `workflow_call` takes the
-# prelude's `legs`; the weekly schedule stays (it runs on main only); a
-# dispatch is ci.yml's, and the push/pull_request/merge_group triggers are the
-# umbrella's, so a standalone trigger here would run the analysis twice.
+# prelude's `legs`; a dispatch is ci.yml's, and the push/pull_request/
+# merge_group triggers are the umbrella's, so a standalone trigger here would
+# run the analysis twice. The weekly schedule is gone too (r10-codeql-
+# dependabot, a departure from 2.1): a top-level run of this file uploads under
+# `codeql.yml:analyze`, a second code-scanning configuration beside the
+# umbrella's `ci.yml:analyze`.
 R.check(
-    "codeql.yml is a callee: workflow_call and the weekly schedule, no other trigger",
-    set(_CODEQL_TRIGGERS) == {"workflow_call", "schedule"}
+    "codeql.yml is a callee: workflow_call alone, no schedule and no other trigger",
+    set(_CODEQL_TRIGGERS) == {"workflow_call"}
     and "legs" in ((_CODEQL_TRIGGERS.get("workflow_call") or {}).get("inputs") or {}),
     f"triggers={sorted(_CODEQL_TRIGGERS)}",
+)
+# .github/dependabot.yml is the artifact the PR contract's Dependabot arm reads
+# (tools/policy/dependabot_contract.mjs). Its reader is a line scan, not YAML,
+# so this compares the scan with a real YAML parse of the same file: an entry
+# shape the scan misses (a `directories:` list, a reordered key) reads as a
+# different entry list here instead of a manifest silently left unadmitted. A
+# second arm: every configured ecosystem is one the module maps to manifests,
+# so a new ecosystem cannot be configured and then have every PR refused.
+_DEPENDABOT_PATH = pathlib.Path(__file__).resolve().parents[1] / ".github" / "dependabot.yml"
+_DEPENDABOT_YAML = [
+    {"ecosystem": u.get("package-ecosystem"), "directory": u.get("directory")}
+    for u in ((_yaml.safe_load(_DEPENDABOT_PATH.read_text()) or {}).get("updates") or [])]
+_DEPENDABOT_SCAN = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import(process.argv[1]).then(async (m) => { const t = (await import('node:fs'))"
+     ".readFileSync(process.argv[2], 'utf8'); console.log(JSON.stringify({"
+     "entries: m.dependabotEntries(t), manifests: m.dependabotManifests(t).length})) })",
+     str(pathlib.Path(__file__).resolve().parents[1] / "tools" / "policy" / "dependabot_contract.mjs"),
+     str(_DEPENDABOT_PATH)],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "dependabot_contract.mjs reads .github/dependabot.yml's entries as YAML does",
+    bool(_DEPENDABOT_YAML) and _DEPENDABOT_SCAN.get("entries") == _DEPENDABOT_YAML,
+    f"yaml={_DEPENDABOT_YAML}; scan={_DEPENDABOT_SCAN.get('entries')}",
+)
+R.check(
+    "every ecosystem .github/dependabot.yml configures maps to manifests in dependabot_contract.mjs",
+    _DEPENDABOT_SCAN.get("manifests") == len(_DEPENDABOT_YAML),
+    f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
 # pull request. Its runtime swings with runner load, and the 30-minute cap sat
@@ -20988,6 +21036,59 @@ R.check(
         i for i, st in enumerate(_CODEQL_STEPS)
         if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
     f"d5 steps={len(_D5)}",
+)
+_REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
+# codeql.yml's one paths-ignore entry is admitted because the files it matches
+# cannot be parsed as JavaScript at all (Claude Code workflow scripts: a
+# top-level `return`), so ignoring them narrows no finding set. Pinned on the
+# registered artifact: every ignore pattern must match at least one tracked
+# file, and every file it matches must fail `node --check` under BOTH grammars,
+# fed on stdin with `--input-type` named: given a path, Node 22.22 detects the
+# grammar itself and accepts these files, so the path form read them parseable
+# on CI's Node and unparseable on an older one. A file either grammar parses
+# under an ignore pattern is analyzable code being filtered out, refused.
+_CODEQL_INIT = [st for st in _CODEQL_STEPS
+                if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
+_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
+                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+_CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
+                               if p.is_file() and not p.is_symlink())
+                   for pat in _CODEQL_IGNORE}
+_CODEQL_PARSEABLE = [f for files in _CODEQL_IGNORED.values() for f in files
+                     if any(subprocess.run(["node", f"--input-type={g}", "--check"],
+                                           input=(_REPO_ROOT_CQ / f).read_bytes(),
+                                           capture_output=True).returncode == 0
+                            for g in ("module", "commonjs"))]
+R.check(
+    "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
+    bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
+    f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# A skipped leg uploads main's analysis of its category as a stand-in, so a
+# pull request carries every configuration main does and code scanning never
+# reads "1 configuration not found" (r10-codeql-dependabot). The shape: the
+# stand-in step runs on `skip` alone; an upload-sarif step under the leg's own
+# category runs exactly when it wrote one; init and analyze run exactly when
+# it did not -- so every leg either analyzes or uploads, never neither.
+_CQ_BY_NAME = {st.get("name"): st for st in _CODEQL_STEPS}
+_CQ_STANDIN = _CQ_BY_NAME.get("Write main's analysis as the skipped leg's stand-in") or {}
+_CQ_UPLOAD = [st for st in _CODEQL_STEPS
+              if str(st.get("uses", "")).startswith("github/codeql-action/upload-sarif@")]
+_CQ_GATED = [st for st in _CODEQL_STEPS
+             if str(st.get("uses", "")).startswith(("github/codeql-action/init@", "github/codeql-action/analyze@"))]
+R.check(
+    "codeql.yml: a skipped leg uploads main's analysis of its category; every leg analyzes or uploads",
+    _CQ_STANDIN.get("id") == "standin"
+    and _CQ_STANDIN.get("if") == "fromJSON(inputs.legs || '{}')[matrix.language] == 'skip'"
+    and "codeql_scope.py stand-in" in str(_CQ_STANDIN.get("run"))
+    and len(_CQ_UPLOAD) == 1 and _CQ_UPLOAD[0].get("if") == "steps.standin.outputs.ok == 'true'"
+    and (_CQ_UPLOAD[0].get("with") or {}).get("category") == "/language:${{ matrix.language }}"
+    and len(_CQ_GATED) == 2 and all(st.get("if") == "steps.standin.outputs.ok != 'true'" for st in _CQ_GATED)
+    and "if" not in (_CQ_BY_NAME.get("Checkout repository") or {})
+    and (_CQ_BY_NAME.get("Restore the decision program from the base") or {}).get("if")
+    == "github.event_name == 'pull_request'",
+    f"standin={_CQ_STANDIN.get('if')!r}; uploads={[st.get('if') for st in _CQ_UPLOAD]}; "
+    f"init/analyze={[st.get('if') for st in _CQ_GATED]}",
 )
 R.check(
     "codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)",
@@ -29861,11 +29962,15 @@ R.check(
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
-_PRW_D5 = _PRW_TEXTS["codeql.yml"].replace("if: github.event_name == 'push'\n", "if: success()\n")
+# The D-5 step's program is now also covered by the job's pull-request restore
+# (r10-codeql-dependabot's stand-in), so the control undoes both: without the
+# restore AND the push-only `if:`, the step runs the pull request's copy.
+_PRW_D5 = _PRW_TEXTS["codeql.yml"].replace("if: github.event_name == 'push'\n", "if: success()\n").replace(
+    'git checkout "$PINNED" -- tools/pr/codeql_scope.py', 'true "$PINNED" -- tools/pr/codeql_scope.py')
 R.check(
-    "and codeql.yml's push-only D-5 step is exempt only by its `if:`: without it the step is refused (null control)",
-    _PRW_TEXTS["codeql.yml"] != _PRW_D5 and _prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "codeql.yml": _PRW_D5})
-    == ["codeql.yml:analyze runs tools/pr/codeql_scope.py unrestored"],
+    "and codeql.yml's D-5 step is exempt only by its `if:` and the base restore: without both the step is refused (null control)",
+    _PRW_TEXTS["codeql.yml"] != _PRW_D5 and set(_prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "codeql.yml": _PRW_D5}))
+    == {"codeql.yml:analyze runs tools/pr/codeql_scope.py unrestored"},
     f"{_prw_defects({'ci.yml': _PRW_TEXTS['ci.yml'], 'codeql.yml': _PRW_D5})}",
 )
 R.check(
@@ -34584,11 +34689,16 @@ R.check(
 
 
 def _cir_retry_runner(calls: list):
+    # The list is read per lane by name (ci_ratchet.ARTIFACTS_URL), so the
+    # stub answers as the server does: the fast lane gets the good listing,
+    # every other lane its own (empty) one.
     def run(argv, **_kw):
         calls.append(argv)
         if len(calls) < 3:
             return _subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
-        return _subprocess.CompletedProcess(argv, 0, _CIR_GOOD_ARTIFACTS, "")
+        body = (_CIR_GOOD_ARTIFACTS if "name=ci-metrics-fast&" in argv[-1]
+                else '{"artifacts": []}')
+        return _subprocess.CompletedProcess(argv, 0, body, "")
     return run
 
 
@@ -34597,7 +34707,7 @@ _CIR_RETRIED = [a["id"] for a in _cir.fetch_window(
     "o/r", "77", runner=_cir_retry_runner(_CIR_ATTEMPTS), sleep=lambda _s: None)]
 R.check(
     "the CI ratchet retries the artifacts list and uses the retry's window",
-    len(_CIR_ATTEMPTS) == 3 and _CIR_RETRIED == [2, 1],
+    len(_CIR_ATTEMPTS) == 2 + len(_cir.WINDOW_LANES) and _CIR_RETRIED == [2, 1],
     f"attempts={len(_CIR_ATTEMPTS)} ids={_CIR_RETRIED}",
 )
 
@@ -37064,8 +37174,6 @@ _P8_ALLOWED = {
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
     ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
-    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
-        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
 }
 
 
