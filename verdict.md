@@ -1,0 +1,45 @@
+Fix review: blocked ba02b95fca47744634a5e404ad24dfcc77fca314 carry-missing: not carried to R10-HEAT-METER and R10-COP-GATE
+
+bus-nonce: 75ba66c32768b5cc31d32b345f75fc71
+
+Round: first review of #2753 at this head (R10-THERMAL-POWER-OPTION). Head measured: `ba02b95fca47744634a5e404ad24dfcc77fca314`, still the PR head when this verdict was written (`ev/HEAD.txt`).
+
+## Block
+
+fix-review.md step 10 and finding-propagation.md ("invalidates an assumption it rests on"). The body's `## Forward-carry` reads `none`, but this diff makes statements false in the briefs of two groups that have not started, both on the roster at origin/main `2636ce9e9` (`ev/roster_briefs_origin_main.txt`):
+
+- **R10-HEAT-METER** (`after` includes R10-THERMAL-POWER-OPTION, shares `flow_meter.py`, `const.py`, `config_flow.py`, `coordinator.py`). Its brief opens: "Main has no delivered-heat energy input: the only heat-output path is `CONF_FLOW_METER_ENTITY` (`read_heat_output_kw` ...), used only without a power and a frequency signal." After this merge, `read_heat_output_kw` answers `CONF_THERMAL_POWER_ENTITY` first, whatever else the install has. `_fold_measured_cop` already uses heat over electricity as the COP sample and skips `MeasuredCop.judge_ratio` when a heat reading exists (`flow_meter.cop_evidence`). The house learner already replays that heat (`replay_freeze`, `_interval_measured_heat_kw`). The HEAT-METER fixer needs these preconditions in the brief: its energy meter is a second heat source next to this one; it must state which one wins and keep the no-fallback rule this PR set ("the flow meter is not consulted at all, even in a cycle the heat reading is unusable"); and the COP sample site it is told to replace has already been replaced, so its exact-fold and null tests have to go through `cop_evidence`. The control to carry is this PR's own check, which the M1 mutant confirms below: "a configured heat meter answers in kW, and outranks the flow meter's estimate".
+- **R10-COP-GATE** (runs after HEAT-METER). Its brief scopes the "COP not measurable here" state and the L3 draw-follows check to "installs without a heat meter". After this PR, a thermal power entity with an electrical meter makes COP observable (harness `metered` arm, head spread 0.0000). The brief has to say that `probe_install(...).measured_heat` (`CONF_THERMAL_POWER_ENTITY`) counts as a heat meter for that scoping. Otherwise a gate keyed on HEAT-METER's energy key alone marks a thermal-power install "not measurable" while its fold is learning.
+
+The carry belongs in both groups' `brief` strings in `dev/programme/rosters/wave-r10-groups.json`, before the merge. A PR comment would not satisfy it.
+
+## Findings
+
+- Closing contract: the roster group lists `issues: [2507]`, `fixes: []`. Its brief says the PR "names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest". The body never names #2507. Instead it says `Closes #1955`, an issue closed on 2026-10-07 by #2006. `pr-contract` passed only because #1955 is in no roster `issues` list ("ok closes #1955 -- intended"). The body owes "Part of #2507" and should not use a closing keyword on #1955. Carry: R10-THERMAL-POWER-OPTION
+- The (c) freeze lift books undeclared hot-water heat as space heat. `replay_freeze` lifts the unmetered-power freeze on switch-plus-setpoint installs for a heat-metered interval. `_interval_measured_heat_kw` decides space against hot water only from the commanded split (`_commanded_split`), never from an observed pump mode. A heat meter that also counts the pump's self-initiated hot-water charges (the owner's meter does, according to R10-HEAT-METER's brief) is then replayed as space heat on exactly the installs the freeze protected. This is a judgement on the code, not measured on a plant. The mode split it needs is R10-HEAT-METER's requirement ("split delivered heat ... by the heat-pump mode entity"), so it belongs in that group's brief beside the block above. Carry: R10-HEAT-METER
+- Stale docstring: `coordinator.py` `_interval_measured_heat_kw` still opens "#2016: the flow meter's kW for the interval a learner replays", but it now also carries the thermal meter's reading (`flow_meter.read_heat_output_kw`). This is a one-line wording fix that can go in with the repair push. Carry: R10-THERMAL-POWER-OPTION
+
+## Evidence
+
+- RESULT harness (the fixer's own, `dev/audit/harnesses/r10_thermal_power_option.py`, added by this PR: the finding had no committed finder harness, and the fixer's body does not label it as their own), run by this reviewer at the head against both bases. Against `73b69fe0a` (the body's base) and against `4a00a3f05` (the PR's current base), the output is identical: head `metered` spread=0.0000, all seven scales within 5.2e-7 of 0.9; base `metered` spread=0.1321 (0.6356 at -15 to 0.7677 at 12); `commanded` spread=0.1321 at both trees, bitwise equal, which is the null control; `first_fold` head 0.997 after one fold; `clamp` 1.6 at every point at both trees. Every figure in the body's harness bullet reproduces. `ev/harness_73b69fe.txt`, `ev/harness_4a00a3f.txt`.
+- RESULT features at the head: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/features.py` gives ALL 4374 FEATURE CHECKS PASSED, rc=0 (`ev/features_head.txt`).
+- RESULT targeted mutants (mine, one-line edits each, full `tests/features.py`, `ev/mut_*.txt` with the diff), 10 of 10 killed:
+  - M1, the heat-meter branch off: 7 failing.
+  - M2, the cop_evidence target loses `cop_scale`: 2.
+  - M3, partial-load samples decay the bucket: 1.
+  - M4, partial-load samples count: 1.
+  - M5, a zero heat reading refused: 1.
+  - M6, the freeze lifted without a reading: 1.
+  - M7, the reference ignores whether heat was measured: 9.
+  - M8, the on-change `math.inf` for the key dropped: 2.
+  - M9, the polling age limit for the key dropped: 4.
+  - M10, an unusable heat reading falls back to the flow meter: 1.
+- RESULT mutation lane (CI, run 40119600368, read from its log, not from its conclusion): "6 mutant(s) over 5 file(s)", the null control `coordinator.py:511 NULL_COMMENT` survived every driver, baselines `features.py`/`env_drift.py`/`entities.py` rc=0, "PIN RE-VERIFICATION: 6 reproduced, 0 not reproduced", "0 survivor(s) of 6 evaluated", MUTATION TABLE PASSED. The green result comes from mutants that were actually evaluated, not from an inconclusive run.
+- CI at this head: every check concluded, and none is red except one `pr-contract` run (job 120962737861, 18:24 UTC). That run failed in the `codescan_wait.py` step while CodeQL's Python analysis was still running (it finished at 18:47). A later `pr-contract` run (job 120962434273, started 19:13:57, after the last workflow to conclude) passed on the same body. This is not a red caused by the diff. The `mutation` red on the earlier refused handoff is answered in `## Red checks`, with ci_predict.py named as the cheaper detector, which satisfies step 11.
+- Merge: `git merge-tree --write-tree origin/main` (origin/main `2636ce9e9`) gives rc=0, tree `192a33d68`; the ledger driver printed `LEDGER-MERGE: resolved tests/closures.json`; neither claim file conflicts (`ev/merge_tree.txt`).
+- Claims and goldens: against `4a00a3f05` only `tests/golden/config_flow.json` (+17 lines, keys added) moved, and it is claimed in `claimed_drift.txt` with `claims-for: 7.0.4` = `VERSION`. No coord_* capture moved. `env_drift.py --claims-only` printed claims hygiene ok (`ev/env_drift_claims_only.txt`, `ev/golden_stat.txt`). I did not re-run the full `--all` capture; per step 11 I relied on CI `tests / fast (3.14)`, which was green at this head.
+- `VERSION`, the manifest version and the RELEASE_NOTES heading are untouched (`ev/roles_and_version.txt`). The role contract is current: the roles diff against origin/main is empty.
+- Structure: `tests/structure.py` prints STRUCTURE RATCHET PASSED (`ev/structure.txt`). Against the current base the budgets only move down: `class_excess_loc` 18209 -> 18202 and `max_class_loc` 8449 -> 8442. The body quotes 18217 -> 18210 and 8457 -> 8450, measured against its earlier base `73b69fe0a`; the delta is the same -7 either way, and no budget is raised.
+- Brief requirements, traced: (1), (2) and (3) are each tested and killed by mutants above. The single probe is `InstallCapability.measured_heat`, with no second probe. The body states how the heat meter and the flow meter interact and which one wins. The byte-identical goldens without the key hold (above).
+- Class rule (step 6): the body names ci_predict sites, the R10 N-staleness census over `INPUT_MAX_AGE_MINUTES`, and the R8-P3 humidity barrier widened to `flow_meter.py`. M8 and M9 confirm the census judges the new key. I found no consumer of `FlowCurveBias.heat_output_kw` outside the diff other than the published `measured_heat_output_kw` attribute (`sensor.py`), which reads the same holder and is unchanged without the key.
+- Architecture: CI `arch-score` passed, and the body's line reads `Architecture score: dS +0.0000`. I did not re-run it, per step 11.
