@@ -583,6 +583,15 @@ def self_test() -> int:
     H, PR = green["head"], green["pr"]
     checks = failed = 0
 
+    def reorder(st):
+        return {**st, "rules": st["rules"][::-1], "bypass_actors": st["bypass_actors"][::-1]}
+
+    def flip_pr_rule(st):
+        for r in st["rules"]:
+            if r["type"] == "pull_request":
+                r["parameters"]["require_code_owner_review"] = False
+        return st
+
     def check(name, ok, detail=""):
         nonlocal checks, failed
         checks += 1
@@ -723,11 +732,6 @@ def self_test() -> int:
               rc == 2 and "DIFFERS" in out and "UNCHANGED" not in out, out)
 
         # Each read-back half catches what only it can see.
-        def flip_pr_rule(s):
-            for r in s["rules"]:
-                if r["type"] == "pull_request":
-                    r["parameters"]["require_code_owner_review"] = False
-            return s
         f = FakeGh(ruleset, green, put="echo-other", after=lambda s: {**s, "enforcement": "disabled"})
         rc, out = run(f, apply_argv()[0])
         check("half 1: a PUT that is not the payload refuses", rc == 2 and "half 1 FAILED" in out, out)
@@ -735,6 +739,13 @@ def self_test() -> int:
         rc, out = run(f, apply_argv()[0])
         check("half 2: a PUT that changed the pull_request rule refuses",
               rc == 2 and "half 1 OK" in out and "half 2 FAILED" in out, out)
+        f = FakeGh(ruleset, green, put="echo-other", after=reorder)
+        rc, out = run(f, apply_argv()[0])
+        check("apply: a PUT echo and GET in GitHub's own list order pass both halves",
+              rc == 0 and "half 1 OK" in out and "half 2 OK" in out, out)
+        f = FakeGh(reorder(copy.deepcopy(ruleset)), green)
+        rc, out = run(f, ["--dry-run", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("staged-hash: a live ruleset reordered from the staged one is the staged one", "staged-hash: PASS" in out, out)
 
         # --rollback: PUT the copy's six keys, all six read back.
         f = FakeGh(payload(ruleset) | {"id": RULESET_ID}, green)
@@ -841,6 +852,21 @@ def self_test() -> int:
             f, rc, out, _ = dis(variant(check_runs=runs_at(*runs)))
             check(f"disable plant {name}: refuses, no PUT",
                   rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        # One suite, two attempts of an owed unit: the re-run is the newest run in that suite,
+        # and only it decides (#2673 carry 22). A reader keeping the first attempt passes the plant.
+        def attempts(first, rerun):
+            g = copy.deepcopy(g_win)
+            cr = g["check_runs"]["check_runs"]
+            one = next(r for r in cr if r["name"] == "tests / closures")
+            one["conclusion"] = first
+            cr.append(dict(one, id=max(r["id"] for r in cr) + 1, conclusion=rerun))
+            g["check_runs"]["total_count"] = len(cr)
+            return g
+        f, rc, out, _ = dis(attempts("success", "failure"))
+        check("disable plant an owed unit passed, then its re-run failed in the same suite: refuses, no PUT",
+              rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out and "tests / closures" in out, out)
+        f, rc, out, _ = dis(attempts("failure", "success"))
+        check("disable null: an owed unit failed, then its re-run passed in the same suite: succeeds", rc == 0, out)
         f, rc, out, _ = dis(g_win, reaches=True)
         check("disable plant a PR reaching custom_components without arch-score: refuses (pr-cc owes it)",
               rc == 2 and f.puts == [] and "arch-score / arch-score" in out, out)
@@ -879,11 +905,11 @@ def self_test() -> int:
         Path(rb + DIGEST_SUFFIX).write_text(digest(six(ruleset)) + "\n")
         off = {**ruleset, **window_off(six(ruleset))}
 
-        def ena(state, cmp_status="ahead", rbf=rb, parents=(H,)):
+        def ena(state, cmp_status="ahead", rbf=rb, parents=(H,), after=None):
             g = variant(user=lambda u: u)
             g["compare"] = {"status": cmp_status}
             g["commit"] = {"parents": [{"sha": "b" * 40}, *({"sha": x} for x in parents)]}
-            f = FakeGh(state, g)
+            f = FakeGh(state, g, after=after)
             rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40, "--head", H])
             return f, rc, out
         f, rc, out = ena(off)
@@ -891,6 +917,14 @@ def self_test() -> int:
               rc == 0 and f.puts and contexts(f.puts[0]) == NEW_CHECKS
               and f.puts[0]["enforcement"] == ruleset["enforcement"]
               and "half 1 OK" in out and "half 2 OK" in out, out)
+        # GitHub returns a ruleset's lists in its own order: the 2026-10-23T23:54Z --enable
+        # read `pull_request` before `required_status_checks` and refused a correct PUT.
+        f, rc, out = ena(off, after=reorder)
+        check("enable: GitHub's reordered read-back (rules, bypass actors) is the payload, both halves pass",
+              rc == 0 and len(f.puts) == 1 and "half 1 OK" in out and "half 2 OK" in out, out)
+        f, rc, out = ena(off, after=lambda st: flip_pr_rule(reorder(st)))
+        check("enable null: a reordered read-back that also changed the pull_request rule still refuses",
+              rc == 2 and "half 1 FAILED" in out, out)
         f, rc, out = ena(ruleset)
         check("enable: refuses when the live ruleset is not the disabled copy", rc == 2 and f.puts == [], out)
         f, rc, out = ena(off, "behind")
@@ -936,6 +970,9 @@ def self_test() -> int:
         rc, out = run(f, ["--rollback", rb])
         check("rollback from the window state: restores the copy whole",
               rc == 0 and f.puts == [six(ruleset)], out)
+        f = FakeGh(off, green, after=reorder)
+        rc, out = run(f, ["--rollback", rb])
+        check("rollback: GitHub's reordered read-back is the copy", rc == 0 and "ROLLBACK READBACK OK" in out, out)
 
     print(f"ruleset_cutover self-test: {checks} checks, {failed} failed")
     return 1 if failed else 0
