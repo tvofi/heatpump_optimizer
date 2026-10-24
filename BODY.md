@@ -105,7 +105,7 @@ The predictor's 27 keys, by `file:line KIND`. "Pinned by mutation-autofix" means
 
 ## Red checks
 
-none on this branch: no pull request exists yet, and a handoff ref runs no job. `main`'s push CI is red on `tests / ci-ratchet`, which is the orchestrator's (a hotfix is in flight); this diff does not touch `tests/ci_ratchet.py` or anything it reads.
+- `mutation`: predicted red. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at this head prints 27 `PREDICT tests / mutation ADDED UNPINNED` lines (the keys are under `## Unpinned sites`, 5 in `coordinator.py` at 5126, 5130, 5137, 5144 and 22 in `thermal_model.py`). The fix adds mutable guard and comparison sites that no pin yet kills. Answer (`ci-autofix.md`): `mutation-autofix` pins each killed mutant after the push (commit subject `ci: pin killed mutants`), and a survivor it reports is triaged by hand. The cheaper detector is that predictor, run by `body_push.sh` and `prepr.sh` step 6d before the push at a standing cost of seconds; it warns and never refuses, because the pin cannot exist before the PR does. The reviewer re-checks this line after the bot's pin commit, which stales it.
 
 ## Forward-carry
 
