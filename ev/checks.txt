@@ -1,0 +1,28 @@
+## merge-tree origin/main 806aa2ce89aeb6c00cf756195f31026ab798f3ca vs ee1960f7
+353e0ca278388884ad071b326646261c419d7691
+rc=0
+## VERSION/manifest/notes touched?
+(empty = untouched)
+## ledger default home / dispose
+def default_log() -> str:
+    return os.path.join(os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
+                        "cloud-relay.log")
+def dispose(home: Path, ref: str, sha: str, how: str = "disposed") -> None:
+    classify(ref)
+    if not is_sha(sha):
+        raise Refused("sha must be 40 lowercase hex")
+    dispositions(home, persist=True)  # the one-time import lands before the first act
+    _append(home / DISP, [ref, sha, utc(), how])
+        self.behind_max = behind_max
+        # cloud_relay.sh's own default log (#2419): POSTED/OWED lines.
+        self.relay_log = relay_log or os.path.join(
+            os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
+            "cloud-relay.log")
+## refusal-breakers cited
+139:# The ledger is ${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relayed and is
+150:relay_log() { printf '%s' "${LOG:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relay.log}"; }
+192:  state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
+575:            e = dict(env, HPO_STATE_DIR=str(t / "st"), HPO_BUS_STATE=str(t / "bus"), TMPDIR=str(t))
+## s6-batch9 on main?
+fatal: path 'dev/programme/triage/s6-batch9.md' does not exist in 'origin/main'
+ls: cannot access '$HOME/.local/state/hpo': No such file or directory
