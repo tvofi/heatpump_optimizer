@@ -17,11 +17,102 @@
 #
 # The pins are read from the checkout, never restated here, so this script
 # cannot drift from the lock files; a lock edit reaches the next session.
+#
+# THE TOOLCHAIN REACHES A SEAT ONLY THROUGH THE ENVIRONMENT'S VARIABLES. A
+# seat's Bash call is `bash -c` inheriting the agent's environment, and Claude
+# Code's shell snapshot re-exports the agent's own PATH; so neither the profile
+# this script writes nor BASH_ENV reaches it (a first-level bash on a socket
+# stdin, as the agent's is, reads ~/.bashrc in place of BASH_ENV, and the stock
+# ~/.bashrc returns at once), and nothing this script does can. Set, beside
+# the setup script, the variables its last line prints: PATH with venv-ci/bin
+# first, HPO_TYPING_PYTHON and OPENBLAS_CORETYPE. The profile is for login
+# shells; it prepends venv-ci/bin only when absent, so a PATH a caller
+# narrowed (a test's stub directory ahead of the venv) is left alone.
+#
+#   cloud-setup.sh --variables   print those variables, one NAME=value a line
+#   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's, else
+#                                REFUSE naming the variables; exit 0 or 1
+#   cloud-setup.sh --self-test   the profile and check arms, in a temp dir
 set -euo pipefail
 
 REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
 PREFIX=${HPO_PREFIX:-/opt/hpo}
 PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}
+
+write_profile() { # profile, prefix
+  cat > "$1" <<EOF
+# Written by tools/audit/seat/cloud-setup.sh, for login shells.
+case ":\$PATH:" in *":$2/venv-ci/bin:"*) ;; *) export PATH="$2/venv-ci/bin:\$PATH" ;; esac
+export HPO_TYPING_PYTHON="$2/venv-ha/bin/python"
+export OPENBLAS_CORETYPE=Haswell
+EOF
+}
+
+variables() { # prefix: the environment variables a seat's shell needs
+  local d rest="" parts
+  IFS=: read -ra parts <<< "$PATH"
+  for d in "${parts[@]}"; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
+  printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
+    "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" OPENBLAS_CORETYPE=Haswell
+}
+
+check() { # prefix
+  local py; py=$(command -v python3 || true)
+  if [ "$py" = "$1/venv-ci/bin/python3" ] && [ -x "${HPO_TYPING_PYTHON:-}" ]; then
+    echo "cloud-setup check: OK python3 is $py"; return 0
+  fi
+  echo "cloud-setup check: REFUSE python3 is ${py:-absent}, not $1/venv-ci/bin/python3;" \
+    "set the environment's variables: $(variables "$1" | tr '\n' ' ')"
+  return 1
+}
+
+# Every child runs with stdin from /dev/null: `env -i` drops SHLVL, and a
+# first-level bash on a socket stdin (the agent's) skips BASH_ENV.
+self_test() (
+  set +e; pass=0; fail=0
+  W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
+  trap 'rm -rf "$W"' EXIT
+  ok() { pass=$((pass + 1)); echo "ok   $1"; }
+  bad() { fail=$((fail + 1)); echo "FAIL $1"; }
+  expect() { if [ "$2" = 0 ]; then ok "$1"; else bad "$1"; fi; }
+  stub() { mkdir -p "$1"; printf '#!/bin/sh\necho %s\n' "$2" > "$1/$3"; chmod +x "$1/$3"; }
+  P="$W/hpo"; stub "$P/venv-ci/bin" venv python3; stub "$P/venv-ha/bin" ha python
+  stub "$W/stub" stub python3; stub "$W/sys" system python3
+  write_profile "$W/profile.sh" "$P"
+  base="$W/sys:/usr/bin:/bin"
+  run() { env -i HOME="$W" PATH="$base" "$@" </dev/null; }
+  fns="$(declare -f variables check)"
+
+  out=$(run bash -c 'python3')
+  [ "$out" = system ]; expect "control: a non-login bash with no variables set gets the system python3 (the defect)" $?
+  mapfile -t vars < <(PATH="$base" variables "$P")
+  out=$(PATH="$P/venv-ci/bin:$base:$P/venv-ci/bin" variables "$P" | head -n 1)
+  [ "$out" = "${vars[0]}" ]; expect "the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice" $?
+  out=$(run "${vars[@]}" bash -c python3)
+  [ "$out" = venv ]; expect "a non-login bash under the printed variables gets venv-ci's python3" $?
+  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  expect "check is OK under the printed variables" $?
+  out=$(run bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
+  [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python"*) true ;; *) false ;; esac
+  expect "check refuses without them, naming each variable" $?
+  run "${vars[0]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  [ $? = 1 ]; expect "check refuses venv-ci's python3 without HPO_TYPING_PYTHON" $?
+  out=$(run bash -c '. "$1"; . "$1"; echo "$PATH"' _ "$W/profile.sh")
+  [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
+  out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
+  [ "$out" = stub ]; expect "under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)" $?
+
+  printf 'cloud_setup self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
+  [ "$fail" = 0 ]
+)
+
+case ${1:-} in
+  --variables) variables "$PREFIX"; exit 0 ;;
+  --check) check "$PREFIX"; exit $? ;;
+  --self-test) self_test; exit $? ;;
+  "") ;;
+  *) echo "usage: cloud-setup.sh [--variables | --check | --self-test]" >&2; exit 2 ;;
+esac
 
 # The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)
 # and stop-validator.py (Stop) run `ruff format` and `ruff check --fix`, and
@@ -63,12 +154,7 @@ pins venv-ha --no-deps -r "$REPO/tests/requirements-typing.txt"
 "$PREFIX/venv-ci/bin/python" -c 'import numpy, scipy, voluptuous'
 "$PREFIX/venv-ha/bin/python" -c 'import homeassistant.const as c; assert c.__version__ == "2026.9.3", c.__version__'
 
-cat > "$PROFILE" <<EOF
-export PATH="$PREFIX/venv-ci/bin:\$PATH"
-export HPO_TYPING_PYTHON="$PREFIX/venv-ha/bin/python"
-export OPENBLAS_CORETYPE=Haswell
-EOF
-[ -n "${HPO_PROFILE:-}" ] || grep -qF "$PROFILE" "$HOME/.bashrc" 2>/dev/null \
-  || echo ". $PROFILE" >> "$HOME/.bashrc"
+write_profile "$PROFILE" "$PREFIX"
 
-echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX"
+echo "cloud-setup: python $PYVER, venv-ci and venv-ha under $PREFIX;" \
+  "a seat's shell needs these environment variables: $(variables "$PREFIX" | tr '\n' ' ')"
