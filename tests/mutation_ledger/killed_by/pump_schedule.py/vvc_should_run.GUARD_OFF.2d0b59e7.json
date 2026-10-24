@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:vvc_should_run GUARD_OFF 2d0b59e7",
+  "killed_by": "tests/features.py",
+  "old": "    if not windows:",
+  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

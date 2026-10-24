@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP d3a9222b",
+  "killed_by": "tests/features.py",
+  "old": "                        q_rad = np.maximum(0.0, ua_rad * (t_mix - T_upper))",
+  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: CLAMP_DROP (`q_rad = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=15."
+}
