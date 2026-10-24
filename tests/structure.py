@@ -155,11 +155,15 @@ Metrics (definitions, one line each; the code is the authority):
                               attribute is owned by a seam when one of its
                               units stores it), plus each (seam, callee) pair
                               crossing it -- once, however often it is read,
-                              so an alias buys nothing (O19); a property read
-                              is a call, a call is also the reads that escape
-                              through its callee's return value
-                              (``StateFlow``), and the edge is dropped only for
-                              a callee doing nothing else. The units are the coordinator's
+                              so an alias buys nothing (O19); a property read,
+                              or a bound method handed on uncalled, is a call;
+                              a call is also the reads its callee hands on --
+                              through its return value, an exception, or an
+                              argument it stores into or calls
+                              (``StateFlow``) -- and the edge is dropped only
+                              for a callee doing nothing else; each constant
+                              spelling of an access is read as the access
+                              (``_OneSpelling``). The units are the coordinator's
                               methods and ``coordinator.py``'s module-level
                               helpers handed the coordinator, priced alike
                               (#1686): a body moved into ``_helper(self, ...)``
@@ -221,6 +225,7 @@ for _pin in (
 
 import argparse  # noqa: E402
 import ast  # noqa: E402
+import copy  # noqa: E402
 import hashlib  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
@@ -1007,6 +1012,164 @@ def state_root_bindings(fn: ast.AST, roots: frozenset[str] = SELF_ROOT,
 _FRESH = (ast.Compare, ast.JoinedStr, ast.Constant)
 _SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 STATE_ESCAPE = "<state>"   # the coordinator itself, or its context
+UNIT_REF = "<unit>"        # prefix: a reference to the unit named after it
+# Python calls these on an instance unnamed -- ``self[k]``, ``for x in self``,
+# ``self()``, ``f"{self}"``, a missing attribute -- so a whole-value use of the
+# coordinator reaches each one the class defines. These run at class creation
+# or construction, before any seam can hold the instance.
+_NOT_IMPLICIT = frozenset({"__init__", "__new__", "__init_subclass__", "__set_name__",
+                           "__class_getitem__"})
+_ATTR_HOOKS = frozenset({"__getattr__", "__getattribute__"})
+
+
+def _is_dunder(name: str) -> bool:
+    return name.startswith("__") and name.endswith("__")
+
+
+def _const_name(node: ast.AST) -> str | None:
+    return (node.value if isinstance(node, ast.Constant) and isinstance(node.value, str)
+            and node.value.isidentifier() else None)
+
+
+class _OneSpelling(ast.NodeTransformer):
+    """Rewrite every constant spelling of a member access to ``x.name`` (O19).
+
+    ``type(x)`` and ``x.__class__`` reach what ``x`` reaches, and
+    ``type(x).m(a, ...)`` is the unbound ``Cls.m(a, ...)``; ``getattr``/``hasattr``/
+    ``setattr``/``delattr`` with a literal name, ``vars(x)["a"]`` and
+    ``x.__dict__["a"]`` (or ``.get("a")``) read, test, store or delete
+    ``x.a``. The cut then prices one form: a spelling of the same access can
+    no longer be cheaper than the access. A name that is not a constant is not
+    rewritten (``computed`` in the census).
+    """
+
+    def __init__(self, class_name: str) -> None:
+        self.class_name = class_name
+        self.literals: dict[str, frozenset[str]] = {}
+
+    @staticmethod
+    def _literal_names(fn: ast.AST) -> dict[str, frozenset[str]]:
+        """Each local only ever bound to a literal name -- ``name = "_a"``, or
+        ``for name in ("_a", "_b")`` (destructured alike) -- and the names."""
+        got: dict[str, set[str]] = defaultdict(set)
+        other: set[str] = set()
+
+        def bind(target: ast.AST, values: list[ast.AST]) -> None:
+            if isinstance(target, ast.Name):
+                names = {_const_name(v) for v in values}
+                if None in names:
+                    other.add(target.id)
+                got[target.id] |= names - {None}
+            elif isinstance(target, (ast.Tuple, ast.List)):
+                for i, t in enumerate(target.elts):
+                    bind(t, [v.elts[i] if isinstance(v, (ast.Tuple, ast.List))
+                             and i < len(v.elts) else v for v in values])
+            else:
+                other.update(n.id for n in ast.walk(target) if isinstance(n, ast.Name))
+
+        for node in ast.walk(fn):
+            if isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+                bind(node.target, node.iter.elts if isinstance(node.iter, (ast.Tuple, ast.List, ast.Set))
+                     else [node.iter])
+            elif isinstance(node, ast.Assign):
+                for t in node.targets:
+                    bind(t, [node.value])
+            elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+                bind(node.target, [node.value] if node.value is not None else [])
+            elif isinstance(node, (ast.withitem,)) and node.optional_vars is not None:
+                bind(node.optional_vars, [node.context_expr])
+            elif isinstance(node, ast.arguments):
+                other.update(a.arg for a in (*node.posonlyargs, *node.args, *node.kwonlyargs,
+                                             node.vararg, node.kwarg) if a is not None)
+        return {n: frozenset(v) for n, v in got.items() if v and n not in other}
+
+    def visit_FunctionDef(self, node: ast.AST) -> ast.AST:
+        if not self.literals:
+            self.literals = self._literal_names(node)
+            try:
+                return self.generic_visit(node)
+            finally:
+                self.literals = {}
+        return self.generic_visit(node)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    @staticmethod
+    def _instance_of(node: ast.AST) -> ast.AST | None:
+        """``x`` for ``type(x)`` or ``x.__class__``."""
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "type" and len(node.args) == 1 and not node.keywords):
+            return node.args[0]
+        if isinstance(node, ast.Attribute) and node.attr == "__class__":
+            return node.value
+        return None
+
+    @staticmethod
+    def _dict_of(node: ast.AST) -> ast.AST | None:
+        """``x`` for ``vars(x)`` or ``x.__dict__``."""
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "vars" and len(node.args) == 1):
+            return node.args[0]
+        if isinstance(node, ast.Attribute) and node.attr == "__dict__":
+            return node.value
+        return None
+
+    def _go(self, new: ast.AST, old: ast.AST) -> ast.AST:
+        return self.visit(ast.fix_missing_locations(ast.copy_location(new, old)))
+
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        f, args = node.func, node.args
+        if isinstance(f, ast.Attribute) and self._instance_of(f.value) is not None:
+            # ``type(x).m(a, ...)`` is ``Cls.m(a, ...)``: unbound, so ``a``
+            # is ``m``'s first parameter, whatever ``x`` is.
+            return self._go(ast.Call(ast.Attribute(ast.Name(self.class_name, ast.Load()),
+                                                   f.attr, ast.Load()),
+                                     args, node.keywords), node)
+        if self._instance_of(node) is not None:
+            return self._go(node.args[0], node)
+        name = _const_name(args[1]) if len(args) >= 2 else None
+        if (isinstance(f, ast.Name) and name is None and len(args) >= 2
+                and isinstance(args[1], ast.Name) and args[1].id in self.literals
+                and f.id in ("getattr", "hasattr", "setattr", "delattr") and not node.keywords):
+            # A name only ever bound to literals: each of them, spelt out.
+            return self._go(ast.Tuple([ast.Call(f, [args[0], ast.Constant(n), *args[2:]], [])
+                                       for n in sorted(self.literals[args[1].id])],
+                                      ast.Load()), node)
+        if (isinstance(f, ast.Name) and name and not node.keywords
+                and not (f.id == "getattr" and name == STATE_CONTEXT_ATTR and len(args) == 3)):
+            obj = args[0]
+            if f.id == "getattr":
+                read = ast.Attribute(obj, name, ast.Load())
+                return self._go(read if len(args) == 2 else ast.BoolOp(ast.Or(), [read, args[2]]),
+                                node)
+            if f.id == "hasattr" and len(args) == 2:
+                return self._go(ast.Compare(ast.Attribute(obj, name, ast.Load()),
+                                            [ast.IsNot()], [ast.Constant(None)]), node)
+            if f.id == "setattr" and len(args) == 3:
+                return self._go(ast.Tuple([ast.Attribute(obj, name, ast.Store()), args[2]],
+                                          ast.Load()), node)
+            if f.id == "delattr" and len(args) == 2:
+                return self._go(ast.Attribute(obj, name, ast.Del()), node)
+        if (isinstance(f, ast.Attribute) and f.attr == "get" and args
+                and (holder := self._dict_of(f.value)) is not None
+                and (name := _const_name(args[0]))):
+            read = ast.Attribute(holder, name, ast.Load())
+            return self._go(read if len(args) == 1 else ast.BoolOp(ast.Or(), [read, args[1]]),
+                            node)
+        return self.generic_visit(node)
+
+    def visit_Subscript(self, node: ast.Subscript) -> ast.AST:
+        holder, name = self._dict_of(node.value), _const_name(node.slice)
+        if holder is not None and name:
+            return self._go(ast.Attribute(holder, name, node.ctx), node)
+        return self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
+        if node.attr == "__class__" and isinstance(node.ctx, ast.Load):
+            return self.visit(node.value)
+        if (inner := self._instance_of(node.value)) is not None:
+            return self._go(ast.Attribute(inner, node.attr, node.ctx), node)
+        return self.generic_visit(node)
 
 
 def _own_nodes(fn: ast.AST):
@@ -1019,10 +1182,70 @@ def _own_nodes(fn: ast.AST):
             stack.extend(ast.iter_child_nodes(node))
 
 
+def _holders(value: ast.AST) -> set[str]:
+    """The names whose object ``value`` may be (part of): ``out``, ``out["k"]``,
+    ``out.setdefault(...)``, ``out or {}``."""
+    stack, got = [value], set()
+    while stack:
+        node = stack.pop()
+        if isinstance(node, ast.Name):
+            got.add(node.id)
+        elif isinstance(node, (ast.Attribute, ast.Subscript, ast.Starred, ast.NamedExpr,
+                               ast.Await)):
+            stack.append(node.value)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            stack.append(node.func.value)
+        elif isinstance(node, ast.BoolOp):
+            stack.extend(node.values)
+        elif isinstance(node, ast.IfExp):
+            stack.extend((node.body, node.orelse))
+    return got
+
+
+def _defs_of(fn: ast.AST) -> list[ast.AST]:
+    return fn.body if isinstance(fn, ast.Module) else [fn]
+
+
+def _params(fn: ast.AST) -> list[str]:
+    names = []
+    for d in _defs_of(fn):
+        a = d.args
+        names += [p.arg for p in (*a.posonlyargs, *a.args, *a.kwonlyargs)]
+        names += [p.arg for p in (a.vararg, a.kwarg) if p is not None]
+    return names
+
+
 @lru_cache(maxsize=4096)
 def _flow_static(fn: ast.AST, roots: frozenset[str]):
-    """``fn``'s state-root aliases and hops, and each binding: (value, names bound)."""
-    bindings = []
+    """``fn``'s state-root aliases and hops, each binding: (value, names bound),
+    and what its caller can see afterwards: parameters, names it declares
+    ``global``/``nonlocal``, the links between names that may share an object,
+    what it raises, and each call with the names its arguments may be."""
+    params = set(_params(fn))
+    plain, declared = set(params), set()
+    for node in ast.walk(fn):
+        targets = (node.targets if isinstance(node, ast.Assign) else
+                   [node.target] if isinstance(node, (ast.AnnAssign, ast.AugAssign,
+                                                      ast.NamedExpr, ast.For, ast.AsyncFor,
+                                                      ast.comprehension)) else
+                   [node.optional_vars] if isinstance(node, ast.withitem) else [])
+        for t in targets:
+            stack = [t]
+            while stack:
+                t = stack.pop()
+                if isinstance(t, ast.Name):
+                    plain.add(t.id)
+                elif isinstance(t, (ast.Tuple, ast.List)):
+                    stack.extend(t.elts)
+                elif isinstance(t, ast.Starred):
+                    stack.append(t.value)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node is not fn:
+            plain.add(node.name)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            plain.add(node.name)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            declared.update(node.names)
+    bindings, links, calls, mutations = [], [], [], []
     for node in ast.walk(fn):
         if isinstance(node, ast.Assign):
             bindings += [(t, node.value) for t in node.targets]
@@ -1037,37 +1260,95 @@ def _flow_static(fn: ast.AST, roots: frozenset[str]):
                          if isinstance(n, (ast.Return, ast.Yield, ast.YieldFrom))]
         elif isinstance(node, ast.Call):
             # A call may store what it is handed in anything else it is
-            # handed: ``out.append(self._x)``, ``setattr(out, "x", ...)``.
+            # handed: ``out.append(self._x)``, ``setattr(out, "x", ...)``;
+            # and a local or parameter called is handed its arguments: a
+            # callback.
             handed = [node.func, *node.args, *(k.value for k in node.keywords)]
-            for holder in handed[isinstance(node.func, ast.Name):]:
+            callback = isinstance(node.func, ast.Name) and node.func.id in plain
+            first = isinstance(node.func, ast.Name) and not callback
+            for i, holder in enumerate(handed[first:], first):
                 while isinstance(holder, (ast.Attribute, ast.Subscript, ast.Starred)):
                     holder = holder.value
                 if isinstance(holder, ast.Name):
-                    bindings += [(holder, v) for v in handed[1:]]
+                    # What a local receiver is handed it may hold, the
+                    # coordinator included (``box.append(self)``); a module
+                    # (``dt_util.as_utc(self)``) or a co-argument holds it
+                    # only as an opaque call's result.
+                    raw = i == 0 and holder.id in plain
+                    bindings += [(holder, v if raw else ast.Call(ast.Name("<opaque>"), [v], []))
+                                 for v in handed[1:]]
+            # What the caller sees changed: a method called on what it handed
+            # (``out.append(v)``), or a callback it handed, called.
+            if callback or isinstance(node.func, ast.Attribute):
+                mutations += [(h, v) for h in _holders(node.func) for v in handed[1:]]
+            calls.append((node, tuple(sorted(set().union(*map(_holders, handed[1:]))))))
+        elif (isinstance(node, ast.Tuple) and node.elts
+              and isinstance(node.elts[0], ast.Attribute)
+              and isinstance(node.elts[0].ctx, ast.Store)):
+            bindings.append((node.elts[0], node.elts[1]))   # ``setattr(out, "a", v)``
+    for target, value in bindings:
+        if isinstance(target, ast.Name):
+            links.append((target.id, tuple(sorted(_holders(value)))))
+            if target.id in declared:
+                mutations.append((target.id, value))
+        else:
+            # ``out[k] = v``, ``out.a = v``, ``a, out.b = ...``: a store into
+            # what a name holds.
+            stack = [target]
+            while stack:
+                t = stack.pop()
+                if isinstance(t, (ast.Tuple, ast.List)):
+                    stack.extend(t.elts)
+                elif isinstance(t, ast.Starred):
+                    stack.append(t.value)
+                elif isinstance(t, (ast.Attribute, ast.Subscript)):
+                    mutations += [(h, value) for h in _holders(t.value)]
+    raises = tuple(v for n in _own_nodes(fn) if isinstance(n, ast.Raise)
+                   for v in (n.exc, n.cause) if v is not None)
     aliases, hops = state_root_bindings(fn, roots)
     return aliases, hops, tuple(
         (value, tuple(n.id for n in ast.walk(target) if isinstance(n, ast.Name)))
-        for target, value in bindings)
+        for target, value in bindings), (
+        frozenset(params), frozenset(declared), tuple(links), raises, tuple(calls),
+        tuple(mutations))
 
 
 class StateFlow:
     """What each expression of one unit may hold: state attributes, or the state.
 
-    ``called(node, flow)`` is the escape set of the unit ``node`` calls (a
-    method, a property read, a helper handed the coordinator), or None for
-    any other node. Locals hold what they are bound to, whatever binds them.
+    ``called(node, flow)`` is the escape set of the unit ``node`` calls or
+    names (a method, a property read, a bound method handed on, a helper
+    handed the coordinator), or None for any other node; ``handed_back`` is
+    what such a call leaves in its arguments. ``descriptors`` maps a
+    class-body name to the attributes and units reading it reaches. Locals
+    hold what they are bound to, whatever binds them.
     """
 
-    def __init__(self, fn: ast.AST, roots: frozenset[str], methods, called) -> None:
+    def __init__(self, fn: ast.AST, roots: frozenset[str], methods, called,
+                 handed_back=None, descriptors=None, unit_escapes=None,
+                 own_roots: frozenset[str] | None = None) -> None:
         self.fn, self.roots, self.methods, self.called = fn, roots, methods, called
-        self.aliases, self.hops, bindings = _flow_static(fn, roots)
+        # The coordinator by signature; a parameter some call hands it is
+        # still the caller's argument, so still a channel back to it.
+        self.own_roots = roots if own_roots is None else own_roots
+        self.descriptors = descriptors or {}
+        self.unit_escapes = unit_escapes or (lambda unit: frozenset())
+        self.aliases, self.hops, bindings, self._outward = _flow_static(fn, roots)
+        calls = self._outward[4]
         self.env: dict[str, frozenset[str]] = {}
+        self._handed: dict[str, frozenset[str]] = {}   # what calls left in each name
         self._memo: dict[int, frozenset[str]] = {}
         changed = True
         while changed:
             changed = False
-            for value, names in bindings:
-                got = self.carry(value)
+            pending = [(self.carry(value), names) for value, names in bindings]
+            if handed_back is not None:
+                for node, names in calls:
+                    if got := handed_back(node, self):
+                        pending.append((got, names))
+                        for name in names:
+                            self._handed[name] = self._handed.get(name, frozenset()) | got
+            for got, names in pending:
                 for name in names:
                     if not got <= self.env.get(name, frozenset()):
                         self.env[name] = self.env.get(name, frozenset()) | got
@@ -1090,21 +1371,26 @@ class StateFlow:
             return set()
         if is_state_root(node, self.aliases, self.roots):
             return {STATE_ESCAPE}
-        if isinstance(node, ast.Name):
-            return set(self.env.get(node.id, ()))
         got = self.called(node, self)
         if got is not None:
             args = ([*node.args, *(k.value for k in node.keywords)]
                     if isinstance(node, ast.Call) else [])
             return set(got).union(*map(self.carry, args)) - {STATE_ESCAPE} | (
                 got & {STATE_ESCAPE})
+        if isinstance(node, ast.Name):
+            return set(self.env.get(node.id, ()))
         if isinstance(node, ast.Call):
             # What an opaque call returns may hold what it is handed, but is
-            # not taken for the coordinator itself: ``f(self).x`` is f's.
-            return set().union(*(self.carry(c.value if isinstance(c, ast.keyword) else c)
-                                 for c in ast.iter_child_nodes(node)
-                                 if isinstance(c, (ast.expr, ast.keyword)))) - {STATE_ESCAPE}
+            # not taken for the coordinator itself, ``f(self).x`` is f's, nor
+            # for a unit it was handed, which was priced where it was named.
+            return {c for c in set().union(*(self.carry(c.value if isinstance(c, ast.keyword) else c)
+                                             for c in ast.iter_child_nodes(node)
+                                             if isinstance(c, (ast.expr, ast.keyword))))
+                    if c != STATE_ESCAPE and not c.startswith(UNIT_REF)}
         if isinstance(node, ast.Attribute):
+            if self.is_root(node.value) and node.attr in self.descriptors:
+                attrs, via = self.descriptors[node.attr]
+                return set(attrs).union(*map(self.unit_escapes, via))
             if self.is_root(node.value) and node.attr not in self.methods:
                 return {node.attr}
             return set(self.carry(node.value))
@@ -1125,6 +1411,28 @@ class StateFlow:
         """What may escape through the return value; a ``yield`` returns too."""
         return frozenset().union(*(self.carry(n.value) for n in _own_nodes(self.fn)
                                    if isinstance(n, (ast.Return, ast.Yield, ast.YieldFrom))))
+
+    def raised(self) -> frozenset[str]:
+        """What may escape through an exception this unit raises itself."""
+        return frozenset().union(*map(self.carry, self._outward[3]))
+
+    def left(self) -> frozenset[str]:
+        """What may be left, after the call, in anything the caller can see: a
+        parameter that is not the coordinator, or anything sharing an object
+        with one (``o = out``, ``out["k"].append``, a callback called), and a
+        name declared ``global`` or ``nonlocal``."""
+        params, declared, links = self._outward[:3]
+        seen = set(params - self.own_roots) | set(declared)
+        grown = True
+        while grown:
+            grown = False
+            for name, holders in links:
+                group = {name, *holders} - self.own_roots - self.aliases
+                if group & seen and not group <= seen:
+                    seen |= group
+                    grown = True
+        return frozenset().union(*(self.carry(v) for h, v in self._outward[5] if h in seen),
+                                 *(self._handed.get(n, frozenset()) for n in seen))
 
 
 class SeamMapError(ValueError):
@@ -1199,10 +1507,28 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
     for m in coord_class.body:
         if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
             defs[m.name].append(m)
+    # Each unit is read in one spelling (``_OneSpelling``), on a copy: the
+    # tree is shared with every other metric. A method's coordinator is its
+    # first parameter, whatever it is called, and the class's own name is
+    # the coordinator's class; a static method has none of its own.
+    statics = frozenset(n for n, fns in defs.items() if any(map(_is_static, fns)))
+    spell = _OneSpelling(coord_class.name)
+
+    def spelt(fn: ast.AST) -> ast.AST:
+        return ast.fix_missing_locations(spell.visit(copy.deepcopy(fn)))
+
+    defs = {name: [spelt(f) for f in fns] for name, fns in defs.items()}
+    klass = frozenset({coord_class.name})
+
+    def own_root(fn: ast.AST) -> frozenset[str]:
+        first = [*fn.args.posonlyargs, *fn.args.args][:1]
+        return klass | (frozenset() if _is_static(fn) or not first else {first[0].arg})
+
     units: dict[str, tuple[ast.AST, frozenset[str]]] = {
-        name: (fns[0] if len(fns) == 1 else ast.Module(body=fns, type_ignores=[]), SELF_ROOT)
+        name: (fns[0] if len(fns) == 1 else ast.Module(body=fns, type_ignores=[]),
+               own_root(fns[0]))
         for name, fns in defs.items()}
-    units.update(helpers)
+    units.update({key: (spelt(fn), roots | klass) for key, (fn, roots) in helpers.items()})
     helper_names = {key.split(".", 1)[1]: key for key in helpers}
     seams = load_seam_map() if seams is None else seams
     unmapped = sorted(set(units) - set(seams))
@@ -1217,61 +1543,178 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
     buckets = {name: seams[name] for name in units}
     readers = {name: next((f for f in fns if _is_property(f)), fns[0])
                for name, fns in defs.items()}
-    properties = {name for name, f in readers.items() if _is_property(f)}
+    # A class-body name bound to a descriptor -- ``x = _view("_a")``,
+    # ``x = property(lambda s: s._a)``, ``x = property(_get)`` -- is read as
+    # what it names: each identifier its calls are handed, each attribute its
+    # lambdas read off their first parameter, each method it names.
+    descriptors: dict[str, tuple[frozenset[str], frozenset[str]]] = {}
+    for stmt in coord_class.body:
+        if not isinstance(stmt, (ast.Assign, ast.AnnAssign)) or stmt.value is None:
+            continue
+        value, attrs, via = spell.visit(copy.deepcopy(stmt.value)), set(), set()
+        for n in ast.walk(value):
+            if isinstance(n, ast.Call):
+                attrs |= {c for c in map(_const_name, [*n.args, *(k.value for k in n.keywords)])
+                          if c}
+            elif isinstance(n, ast.Lambda) and (first := [*n.args.posonlyargs, *n.args.args][:1]):
+                attrs |= {r.attr for r in ast.walk(n.body) if isinstance(r, ast.Attribute)
+                          and isinstance(r.value, ast.Name) and r.value.id == first[0].arg}
+            elif isinstance(n, ast.Name) and n.id in methods:
+                via.add(n.id)
+        via |= attrs & set(methods)
+        if attrs or via:
+            for t in (stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]):
+                if isinstance(t, ast.Name):
+                    descriptors[t.id] = (frozenset(attrs - set(methods)), frozenset(via))
+    implicit = frozenset(n for n in methods if _is_dunder(n) and n not in _NOT_IMPLICIT)
+    attr_hooks = implicit & _ATTR_HOOKS
 
     def callee_of(node: ast.AST, flow: StateFlow) -> str | None:
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                and node.func.attr in methods and flow.is_root(node.func.value)):
-            return node.func.attr
-        if (isinstance(node, ast.Attribute) and node.attr in properties
-                and flow.is_root(node.value)):
-            return node.attr
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                and node.func.id in helper_names
-                and any(flow.is_root(a) for a in [*node.args, *(k.value for k in node.keywords)])):
-            return helper_names[node.func.id]
+        """The unit ``node`` calls, or hands on uncalled, or None."""
+        if isinstance(node, ast.Call):
+            if (isinstance(node.func, ast.Attribute) and node.func.attr in methods
+                    and flow.is_root(node.func.value)):
+                return node.func.attr
+            if (isinstance(node.func, ast.Name) and node.func.id in helper_names
+                    and any(flow.is_root(a) for a in [*node.args, *(k.value for k in node.keywords)])):
+                return helper_names[node.func.id]
+            return None
+        if (isinstance(node, ast.Attribute) and node.attr in methods
+                and isinstance(node.ctx, ast.Load) and flow.is_root(node.value)):
+            return node.attr   # a property read, or a bound method handed on
+        if (isinstance(node, ast.Name) and node.id in helper_names
+                and isinstance(node.ctx, ast.Load)):
+            return helper_names[node.id]   # a helper handed on uncalled
         return None
 
     def scan(flow: StateFlow):
-        """``("attr", name, stored)`` per state reference, ``("call", unit)`` per call."""
+        """``("attr", name, stored)`` per state reference, ``("call", unit)`` per
+        unit called or handed on, once per occurrence."""
+        funcs = {id(n.func) for n in ast.walk(flow.fn) if isinstance(n, ast.Call)}
+        through = {id(n.value) for n in ast.walk(flow.fn) if isinstance(n, ast.Attribute)}
         for node in ast.walk(flow.fn):
-            if (isinstance(node, ast.Attribute) and id(node) not in flow.hops
-                    and node.attr not in methods and flow.is_root(node.value)):
-                yield "attr", node.attr, isinstance(node.ctx, ast.Store)
-            elif (callee := callee_of(node, flow)) is not None:
+            if isinstance(node, ast.Attribute) and flow.is_root(node.value):
+                if node.attr in descriptors:
+                    attrs, via = descriptors[node.attr]
+                    stored = isinstance(node.ctx, ast.Store)
+                    yield from (("attr", a, stored) for a in attrs)
+                    yield from (("call", u, False) for u in via)
+                    continue
+                if (node.attr not in methods and id(node) not in flow.hops
+                        and not _is_dunder(node.attr)):
+                    yield "attr", node.attr, isinstance(node.ctx, ast.Store)
+                    yield from (("call", u, False) for u in attr_hooks)
+                    continue
+            if id(node) in funcs and not isinstance(node, ast.Call):
+                continue
+            if (callee := callee_of(node, flow)) is not None:
                 yield "call", callee, False
+            elif (implicit and isinstance(node, ast.expr) and id(node) not in through
+                  and not isinstance(node, ast.Attribute) and flow.is_root(node)
+                  and not isinstance(getattr(node, "ctx", None), ast.Store)):
+                yield from (("call", u, False) for u in implicit)
 
-    # A call hands its caller whatever escapes through the callee's return
-    # value, priced at the caller as the reads it is (O19): one edge in place
-    # of k reads paid 2(k-1) with nothing encapsulated, and a callee handing
-    # back the coordinator itself (``_ctx_of``) made every read through it
-    # free. The edge itself stays unless the callee is transparent -- it
-    # reads only what it hands back, stores nothing and calls only
+    # A call hands its caller whatever escapes the callee (O19), priced at
+    # the caller as the reads it is: one edge in place of k reads paid
+    # 2(k-1) with nothing encapsulated, and a callee handing back the
+    # coordinator itself (``_ctx_of``) made every read through it free. A
+    # callee hands state on through its return value or a ``yield``, an
+    # exception it raises or lets pass, and anything it leaves in an
+    # argument (``out[k] = ``, ``out.append``, a callback called) or a
+    # ``global``. The edge itself stays unless the callee is transparent --
+    # it reads only what it hands on, stores nothing and calls only
     # transparent callees -- so a callee that computes, reads more than it
-    # returns or hands nothing back is still the edge it was, and returning
-    # state from one costs those reads on top.
+    # hands on or hands nothing on is still the edge it was, and handing
+    # state on from one costs those reads on top. A parameter handed the
+    # coordinator at any call site is the coordinator in the callee.
     escapes = dict.fromkeys(units, frozenset())
+    left = dict.fromkeys(units, frozenset())
+    raised = dict.fromkeys(units, frozenset())
+    handed = {name: frozenset() for name in units}
 
     def called(node: ast.AST, flow: StateFlow) -> frozenset[str] | None:
         callee = callee_of(node, flow)
-        return None if callee is None else escapes[callee]
+        if callee is None:
+            return None
+        return escapes[callee] | (frozenset() if isinstance(node, ast.Call)
+                                  else {UNIT_REF + callee})
+
+    def handed_back(node: ast.AST, flow: StateFlow) -> frozenset[str]:
+        callee = callee_of(node, flow)
+        return left[callee] if callee is not None else frozenset().union(
+            *(left[r[len(UNIT_REF):]] for r in flow.carry(node.func) if r.startswith(UNIT_REF)))
 
     def flows(which: dict) -> dict[str, StateFlow]:
-        return {name: StateFlow(which.get(name, fn), roots, methods, called)
+        return {name: StateFlow(which.get(name, fn), roots | handed[name], methods, called,
+                                handed_back, descriptors, lambda u: escapes[u], roots)
                 for name, (fn, roots) in units.items()}
+
+    def coordinators(flow: StateFlow):
+        """``(unit, parameter)`` for each parameter a call here hands the coordinator."""
+        for node in ast.walk(flow.fn):
+            if not isinstance(node, ast.Call):
+                continue
+            callee = callee_of(node, flow)
+            func = node.func
+            if (callee is None and node.args and (
+                    (isinstance(func, ast.Name) and func.id == "partial")
+                    or (isinstance(func, ast.Attribute) and func.attr == "partial"))):
+                # ``partial(self.m, self)``: the call it binds, its arguments.
+                func = node.args[0]
+                node = ast.Call(func, node.args[1:], node.keywords)
+            targets = ({callee} if callee is not None else
+                       {r[len(UNIT_REF):] for r in flow.carry(func) if r.startswith(UNIT_REF)})
+            for unit in targets:
+                params = _params(readers.get(unit, units[unit][0]))
+                fn = readers.get(unit, units[unit][0])
+                positional = [p.arg for p in (*fn.args.posonlyargs, *fn.args.args)]
+                unbound = (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+                           and func.value.id in klass)
+                if unit in methods and unit not in statics and not unbound and (
+                        callee is None or isinstance(func, ast.Attribute)):
+                    positional = positional[1:]
+                for i, a in enumerate(node.args):
+                    if isinstance(a, ast.Starred):
+                        if flow.is_root(a.value):
+                            yield from ((unit, p) for p in params)
+                        break
+                    if flow.is_root(a):
+                        name = (positional[i] if i < len(positional)
+                                else fn.args.vararg.arg if fn.args.vararg else None)
+                        if name:
+                            yield unit, name
+                for k in node.keywords:
+                    if flow.is_root(k.value):
+                        if k.arg is None or k.arg not in params:
+                            yield from ((unit, p) for p in params
+                                        if k.arg is None or fn.args.kwarg and p == fn.args.kwarg.arg)
+                        else:
+                            yield unit, k.arg
 
     changed = True
     while changed:
         changed = False
         for name, flow in flows(readers).items():
-            if (got := flow.returned()) != escapes[name]:
-                escapes[name], changed = got, True
+            events = list(scan(flow))
+            calls = {e[1] for e in events if e[0] == "call"}
+            got_raised = flow.raised().union(*(raised[c] for c in calls))
+            got_left = flow.left()
+            got = (flow.returned() | got_raised, got_left, got_raised)
+            if got != (escapes[name], left[name], raised[name]):
+                escapes[name], left[name], raised[name] = got
+                changed = True
+        for name, flow in flows({}).items():
+            for unit, param in coordinators(flow):
+                if param not in handed[unit]:
+                    handed[unit] |= {param}
+                    changed = True
     transparent, callees = set(), {}
     for name, flow in flows(readers).items():
         events = list(scan(flow))
         callees[name] = {e[1] for e in events if e[0] == "call"}
         reads = {e[1] for e in events if e[0] == "attr"}
-        if escapes[name] and reads <= escapes[name] and not any(e[2] for e in events):
+        out = escapes[name] | left[name]
+        if out and reads <= out and not any(e[2] for e in events):
             transparent.add(name)
     while stale := {n for n in transparent if not callees[n] <= transparent}:
         transparent -= stale
@@ -1283,6 +1726,8 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
     attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
     call_pairs: set[tuple[str, str]] = set()              # (caller bucket, callee unit)
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
+    unresolved = []                                       # (unit, line, name) a unit's name no event read
+    names = {*methods, *helper_names}
     for name, flow in flows({}).items():
         bucket = buckets[name]
         for kind, target, stored in scan(flow):
@@ -1291,11 +1736,38 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
                 if stored:
                     attr_owners[target].add(bucket)
                 continue
-            for attr in escapes[target] - {STATE_ESCAPE}:
-                attr_refs[attr].add(bucket)
+            for attr in escapes[target] | left[target]:
+                if attr != STATE_ESCAPE and not attr.startswith(UNIT_REF):
+                    attr_refs[attr].add(bucket)
             if target not in transparent:
                 call_pairs.add((bucket, target))
             call_edges[(bucket, buckets[target])] += 1
+        for node in ast.walk(flow.fn):
+            named = (node.attr if isinstance(node, ast.Attribute) and not flow.is_root(node.value)
+                     else node.id if isinstance(node, ast.Name) and node.id in helper_names
+                     and callee_of(node, flow) is None and not any(
+                         isinstance(c, ast.Call) and c.func is node and callee_of(c, flow)
+                         for c in ast.walk(flow.fn))
+                     else node.value if isinstance(node, ast.Constant) else None)
+            if named in names and not (isinstance(node, ast.Constant)
+                                       and named in descriptors):
+                unresolved.append((name, getattr(node, "lineno", 0), named))
+    # A read by a name only known at run time may be any attribute: priced
+    # as a read of each one a unit stores, so it is never cheaper than the
+    # reads it stands for (O19). A store by one is listed, not owned.
+    for name, flow in flows({}).items():
+        if any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+               and n.func.id in ("getattr", "hasattr") and len(n.args) >= 2
+               and not isinstance(n.args[1], ast.Constant) and flow.is_root(n.args[0])
+               for n in ast.walk(flow.fn)):
+            for attr in list(attr_owners):
+                attr_refs[attr].add(buckets[name])
+    computed = sorted({(name, getattr(n, "lineno", 0)) for name, flow in flows({}).items()
+                       for n in ast.walk(flow.fn) if isinstance(n, ast.Call)
+                       and isinstance(n.func, ast.Name)
+                       and n.func.id in ("getattr", "setattr", "hasattr", "delattr")
+                       and len(n.args) >= 2 and not isinstance(n.args[1], ast.Constant)
+                       and flow.is_root(n.args[0])})
 
     total_edges = sum(call_edges.values())
     cross_edges = sum(c for (a, b), c in call_edges.items() if a != b)
@@ -1330,7 +1802,12 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
         "cross_edges": cross_edges,
         "cross_seam_fraction": (cross_edges / total_edges) if total_edges else 0.0,
         "returned_state": escapes,
+        "left_state": left,
+        "raised_state": raised,
+        "handed_coordinator": {n: v for n, v in handed.items() if v},
         "transparent": frozenset(transparent),
+        "unresolved_unit_names": sorted(unresolved),
+        "computed_names": computed,
     }
 
 
@@ -3151,6 +3628,10 @@ SEAM_SELF_CHECK_SPELLINGS = (
 SEAM_SELF_CHECK_FOREIGN = (
     "        ctx = elsewhere()\n        return ctx._depth",
     '        other = elsewhere()\n        return getattr(other, "_ctx", other)._depth',
+    # an opaque call's co-argument, or a module it is called on, is not
+    # what it is handed: neither becomes the coordinator
+    "        other = elsewhere()\n        record(other, self)\n        return other._depth",
+    "        clock.as_utc(self)\n        return clock._depth",
 )
 # The alias and the getter the round-10 fix review planted (O19): each holds
 # the same reads as the direct spelling, and must price the same.
@@ -3220,6 +3701,98 @@ SEAM_SELF_CHECK_MORE = (
     "        return self._depth if self._limit else None",
     "        self._limit = 1\n        return self._depth",
 )
+# Every other way a learning-seam unit can hand ``_fetch_prices`` both reads
+# (review/2711 round 2, and the enumeration of its round 3): each family is
+# (what the class adds, what ``_fetch_prices`` runs), and each must price as
+# the two direct reads. Channel: how the state leaves the callee. Reach: how
+# the callee is reached. A family whose rule is deleted reads cheaper.
+_D = "self._depth, self._limit"
+SEAM_SELF_CHECK_CHANNELS = {
+    "an argument the callee stores into, mutates or calls": (
+        (f"    def _state(self, out):\n        out['d'], out['l'] = {_D}\n",
+         "        st = {}\n        self._state(st)\n        return st"),
+        (f"    def _state(self, out):\n        out.extend(({_D}))\n",
+         "        st = []\n        self._state(st)\n        return st"),
+        (f"    def _state(self, out):\n        setattr(out, 'd', self._depth)\n"
+         "        setattr(out, 'l', self._limit)\n",
+         "        st = Box()\n        self._state(st)\n        return st"),
+        (f"    def _state(self, out):\n        o = out\n        o.append(({_D}))\n",
+         "        st = []\n        self._state(st)\n        return st"),
+        (f"    def _state(self, cb):\n        cb({_D})\n",
+         "        box = []\n        self._state(lambda *a: box.extend(a))\n        return box"),
+        (f"    def _state(self, out):\n        out.append(({_D}))\n\n"
+         "    def _relay(self, out):\n        self._state(out)\n",
+         "        st = []\n        self._relay(st)\n        return st"),
+        (f"    def _state(self):\n        global SEEN\n        SEEN = ({_D})\n",
+         "        self._state()\n        return SEEN"),
+    ),
+    "the coordinator itself, left in an argument or a local": (
+        ("", "        box = []\n        box.append(self)\n        return box[0]._depth, box[0]._limit"),
+        ("    def _state(self, out):\n        out.append(self)\n",
+         "        box = []\n        self._state(box)\n        me = box[0]\n"
+         "        return me._depth, me._limit"),
+    ),
+    "an exception the callee raises, or lets pass": (
+        (f"    def _state(self):\n        raise LookupError({_D})\n",
+         "        try:\n            self._state()\n        except LookupError as e:\n"
+         "            return e.args"),
+        (f"    def _state(self):\n        raise LookupError({_D})\n\n"
+         "    def _relay(self):\n        self._state()\n",
+         "        try:\n            self._relay()\n        except LookupError as e:\n"
+         "            return e.args"),
+        (f"    def _state(self):\n        raise LookupError({_D})\n\n"
+         "    def _relay(self):\n        try:\n            self._state()\n"
+         "        except LookupError as e:\n            return e",
+         "        return self._relay().args"),
+    ),
+    "the callee reached through its class, a literal or computed name, or a dict": (
+        (f"    def _state(self):\n        return {_D}\n", "        return type(self)._state(self)"),
+        (f"    def _state(self):\n        return {_D}\n", "        return self.__class__._state(self)"),
+        (f"    def _state(self):\n        return {_D}\n", "        return Coordinator._state(self)"),
+        ("    def _state(self, me):\n        return me._depth, me._limit\n",
+         "        return type(self)._state(None, self)"),
+        ("    def _state(self, me):\n        return me._depth, me._limit\n",
+         "        return Coordinator._state(None, self)"),
+        (f"    def _state(self):\n        return {_D}\n", "        return getattr(self, '_state')()"),
+        ("    def _state(self):\n        return getattr(self, '_depth'), vars(self)['_limit']\n",
+         "        return self._state()"),
+        ("    def _state(self):\n        return self.__dict__.get('_depth'), type(self)._limit\n",
+         "        return self._state()"),
+        ("", "        n = '_'\n        return getattr(self, n + 'depth'), getattr(self, n + 'limit')"),
+        ("", "        return tuple(getattr(self, n) for n in ('_depth', '_limit'))"),
+    ),
+    "the callee handed on uncalled: an alias, a partial, a callback": (
+        (f"    def _state(self):\n        return {_D}\n", "        g = self._state\n        return g()"),
+        (f"    def _state(self):\n        return {_D}\n",
+         "        return functools.partial(self._state)()"),
+        (f"    def _state(self):\n        return {_D}\n",
+         "        return (lambda f: f())(self._state)"),
+        (f"    def _state(self):\n        return {_D}\n", "        return self._state.__call__()"),
+    ),
+    "the coordinator in a parameter not spelt self": (
+        ("    def _state(me):\n        return me._depth, me._limit\n", "        return self._state()"),
+        ("    def _state(self, me):\n        return me._depth, me._limit\n",
+         "        return self._state(self)"),
+        ("    @staticmethod\n    def _state(me):\n        return me._depth, me._limit\n",
+         "        return self._state(self)"),
+        ("    def _state(self, me):\n        return me._depth, me._limit\n",
+         "        g = self._state\n        return g(self)"),
+        ("    def _state(self, me):\n        return me._depth, me._limit\n",
+         "        return functools.partial(self._state, self)()"),
+    ),
+    "a dunder Python calls unnamed": (
+        (f"    def __getitem__(self, k):\n        return ({_D})[k]\n",
+         "        return self[0], self[1]"),
+        (f"    def __iter__(self):\n        return iter(({_D}))\n", "        d, l = self\n        return d, l"),
+        (f"    def __getattr__(self, name):\n        return {_D}\n", "        return self._pair"),
+    ),
+    "a class-body descriptor": (
+        (f"    _pair = property(lambda s: (s._depth, s._limit))\n", "        return self._pair"),
+        ("    _pair = _pair_view('_depth', '_limit')\n", "        return self._pair"),
+        (f"    def _get(self):\n        return {_D}\n    _pair = property(_get)\n",
+         "        return self._pair"),
+    ),
+}
 
 
 def seam_self_check() -> tuple[tuple[str, bool], ...]:
@@ -3283,6 +3856,16 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
         return seam_metrics(tree.body[0], {"__init__": "core", "_state": "learning"}
                             )["cut_costs"]["cut_learning"]
 
+    def planted(extra: str, body: str) -> int:
+        tree = ast.parse("class Coordinator:\n    def __init__(self):\n        self._depth = 0\n"
+                         "        self._limit = 0\n\n" + extra
+                         + "\n    def _fetch_prices(self):\n" + body + "\n")
+        cls = tree.body[0]
+        seam_map = {m.name: "learning" for m in cls.body
+                    if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        return seam_metrics(cls, {**seam_map, "_fetch_prices": "fetch"})["seam_cut_total"]
+
+    spare = "    def _spare(self):\n        self._other = 0\n"   # a third attribute, stored
     direct = total(SEAM_SELF_CHECK_FRESH[0], SEAM_SELF_CHECK_DIRECT)
     edge = total(SEAM_SELF_CHECK_FRESH[0], SEAM_SELF_CHECK_THROUGH)
     more = total(SEAM_SELF_CHECK_FRESH[0], "        self._state()\n        return self._depth")
@@ -3320,6 +3903,22 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
          and all(total(g, SEAM_SELF_CHECK_THROUGH) == more for g in SEAM_SELF_CHECK_MORE)),
         ("a property's setter hides none of its getter's reads",
          hidden("") == hidden("    @_state.setter\n    def _state(self, value):\n        pass\n") > 0),
+        *((f"a callee handing both reads on through {family} costs at least the two reads (O19)",
+           all(planted(extra, body) >= planted("", f"        return {_D}")
+               for extra, body in cases))
+          for family, cases in SEAM_SELF_CHECK_CHANNELS.items()),
+        ("a name only ever bound to literals reads exactly those attributes, no more",
+         planted(spare, "        return tuple(getattr(self, n) for n in ('_depth', '_limit'))")
+         == planted(spare, f"        return {_D}")
+         < planted(spare, "        n = '_'\n        return getattr(self, n + 'depth'), getattr(self, n + 'limit')")),
+        ("a callee handing nothing on through a parameter or a reference is still the edge",
+         planted("    def _state(self, out):\n        return self._depth > self._limit\n",
+                 "        return self._state([])")
+         == planted("    def _state(self):\n        return self._depth > self._limit\n",
+                    "        g = self._state\n        return g()")
+         == planted("    def _state(self):\n        return self._depth > self._limit\n",
+                    "        return self._state()")
+         != planted("", f"        return {_D}")),
         ("a property is a callee: read from another seam, it is priced as a call",
          total(SEAM_SELF_CHECK_FRESH[0], SEAM_SELF_CHECK_THROUGH, prop=True)
          == edge
