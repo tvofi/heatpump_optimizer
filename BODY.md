@@ -65,8 +65,8 @@ The design's own predicate mutants (`dev/audit/harnesses/r10_ci_gate_core.py mut
 
 ## Forward-carry
 
-- P82 (triage batch 13, on the unmerged ref `triage/s6-batch13`) carries a tick branch that reads a red `gate` with siblings in flight as a race. After this lands, such a red appears only past `GATE_WAIT_MAX_S`. The tick's line should name that bound, and the carry's "remove when R10-CI-LAYOUT-P2's codescan poll lands" should instead key on this PR. Carry: R10-ORCH-LEDGER
-- R10-RCA-CODESCAN-WAIT section 5 carries M1, M3 and M4 to R10-CI-LAYOUT-P2. M1 and M4's prelude case land here. M3 (echo `codescan_wait.py`'s FAIL line to the log) does not. Carry: R10-CI-LAYOUT-P2
+- P82 (triage batch 13, on the unmerged ref `triage/s6-batch13`) carries a tick branch that reads a red `gate` with siblings in flight as a race. After this lands, such a red appears only past `GATE_WAIT_MAX_S`. The tick's line should name that bound, and the carry's "remove when R10-CI-LAYOUT-P2's codescan poll lands" should instead key on this PR. Carry: R10-ORCH-LEDGER (roster 61446b002)
+- R10-RCA-CODESCAN-WAIT section 5 carries M1, M3 and M4 to R10-CI-LAYOUT-P2. M1 and M4's prelude case land here. M3 (echo `codescan_wait.py`'s FAIL line to the log) does not. Carry: R10-RCA-CODESCAN-WAIT (roster 216e090fe)
 
 ## Friction
 
