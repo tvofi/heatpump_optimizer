@@ -1,5 +1,5 @@
 ########## counting-rule self-check ##########
-  ok   61 counting rules hold
+  ok   63 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
   custom_components/heatpump_optimizer/coordinator.py:2842-11290  8449 LOC  230 methods  HeatPumpOptimizerCoordinator
   custom_components/heatpump_optimizer/optimizer.py:2269-5709  3441 LOC  52 methods  HeatPumpOptimizer
@@ -194,14 +194,14 @@
   integration_version: __init__:async_setup_entry
 
 ########## coordinator seam table (helpers charged: 19) ##########
-  internal call occurrences: 380, crossing a seam: 157 (ratio 0.4132, evidence only)
+  internal call occurrences: 382, crossing a seam: 159 (ratio 0.4162, evidence only)
   seam        units  attrs  xattr  xmeth    cut
-  dhw            17      3     19      8     27
-  learning       36     37     68     36    104
-  fetch          27      9     24     23     47
-  grid           23     27     40     27     67
-  views          19      3     50     18     68
-  seam_cut_total = 313
+  dhw            17      3     24      6     30
+  learning       36     37     91     28    119
+  fetch          27      9     53     12     65
+  grid           23     27     68     20     88
+  views          19      3     57      8     65
+  seam_cut_total = 367
 
 ########## RESULT lines ##########
 RESULT class_excess_loc=18209 count
@@ -221,10 +221,10 @@ RESULT max_method_loc=373 count
 RESULT methods_over_150=17 count
 RESULT methods_over_200=9 count
 RESULT name_kept_members=38 count
-RESULT seam_cut_total=313 count
+RESULT seam_cut_total=367 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 145bfe197b9e) ##########
+########## ratchet vs structure_budgets.json (recorded_at e97f5749b441) ##########
   ok   class_excess_loc 18209 <= 18209
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 146 <= 146
@@ -242,6 +242,7 @@ RESULT thread_factor=1.0 ratio
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
   ok   name_kept_members 38 <= 38
-  ok   seam_cut_total 313 <= 313
+  ok   seam_cut_total 367 <= 367
 
 STRUCTURE RATCHET PASSED
+rc=0
