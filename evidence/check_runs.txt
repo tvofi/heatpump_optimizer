@@ -1,0 +1,53 @@
+neutral	CodeQL	120988774656	2026-10-24T21:10:59Z
+skipped	codeql	120991028637	2026-10-24T21:21:05Z
+skipped	governance	120991032158	2026-10-24T21:21:05Z
+skipped	governance / delivery-status-publish	120987725565	2026-10-24T21:06:18Z
+skipped	governance / record	120987725488	2026-10-24T21:06:18Z
+skipped	hassfest	120991024859	2026-10-24T21:21:05Z
+skipped	kernel-points	120987725450	2026-10-24T21:06:18Z
+skipped	kernel-points	120990995877	2026-10-24T21:21:05Z
+skipped	tests	120990995790	2026-10-24T21:21:05Z
+skipped	tests / ci-ratchet	120989528328	2026-10-24T21:14:23Z
+skipped	tests / claims-autofix	120989161464	2026-10-24T21:12:42Z
+skipped	tests / closures-autofix	120989528526	2026-10-24T21:14:23Z
+skipped	tests / coverage	120988347296	2026-10-24T21:09:01Z
+skipped	tests / coverage-ratchet	120988347824	2026-10-24T21:09:01Z
+skipped	tests / mutation-autofix	120988083338	2026-10-24T21:07:50Z
+skipped	tests / mutation-pins	120988082472	2026-10-24T21:07:50Z
+skipped	tests / nightly-ha	120988347158	2026-10-24T21:09:01Z
+skipped	validate	120990995734	2026-10-24T21:21:05Z
+success	arch-score / arch-score	120987724523	2026-10-24T21:07:30Z
+success	arch-score / arch-score	120990995946	2026-10-24T21:07:05Z
+success	budget-raise-gate / budget-raise-gate	120987724568	2026-10-24T21:07:13Z
+success	budget-raise-gate / budget-raise-gate	120990995761	2026-10-24T21:06:32Z
+success	cancel-superseded	120986721684	2026-10-24T21:07:04Z
+success	cancel-superseded	120990995319	2026-10-24T21:05:03Z
+success	codeql / Analyze (actions)	120987724511	2026-10-24T21:10:16Z
+success	codeql / Analyze (javascript-typescript)	120987724470	2026-10-24T21:11:05Z
+success	codeql / Analyze (python)	120987724532	2026-10-24T21:10:40Z
+success	gate	120990755798	2026-10-24T21:20:47Z
+success	gate	120990995118	2026-10-24T21:21:29Z
+success	governance / delivery-status	120987724754	2026-10-24T21:09:09Z
+success	governance / env-matrix	120987724679	2026-10-24T21:13:30Z
+success	governance / instrument-self-tests	120987724637	2026-10-24T21:19:03Z
+success	governance / policy-docs	120987724559	2026-10-24T21:08:13Z
+success	governance / wave-script	120987724602	2026-10-24T21:08:02Z
+success	hassfest / hassfest	120987724864	2026-10-24T21:06:54Z
+success	pr-contract / pr-contract	120990557853	2026-10-24T21:19:59Z
+success	pr-contract / pr-contract	120990996336	2026-10-24T21:11:47Z
+success	prelude	120986721677	2026-10-24T21:06:17Z
+success	prelude	120990995045	2026-10-24T21:03:41Z
+success	refresh	120986721486	2026-10-24T21:06:19Z
+success	refresh	120991022052	2026-10-24T21:06:22Z
+success	tests / arch-instrument	120988345988	2026-10-24T21:12:24Z
+success	tests / briefs	120987724549	2026-10-24T21:08:36Z
+success	tests / browser	120988346042	2026-10-24T21:12:49Z
+success	tests / closure-scope	120987724588	2026-10-24T21:09:01Z
+success	tests / closures	120988346020	2026-10-24T21:14:23Z
+success	tests / fast (3.14)	120988345935	2026-10-24T21:12:42Z
+success	tests / graders-head-copy	120988346246	2026-10-24T21:13:01Z
+success	tests / lane-proofs	120989185777	2026-10-24T21:13:11Z
+success	tests / mutation	120987724527	2026-10-24T21:07:49Z
+success	tests / nightly-status	120987724525	2026-10-24T21:07:48Z
+success	tests / typing	120988345998	2026-10-24T21:12:29Z
+success	validate / validate-hacs	120987724557	2026-10-24T21:08:20Z
