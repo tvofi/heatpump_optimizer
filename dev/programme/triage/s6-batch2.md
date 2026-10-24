@@ -11,7 +11,7 @@ Base: origin/main `50af6174f`; roster origin/handoff/audit-r10-roster
 `4c54758d7`, read with
 `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
 Logs cited by file name are in the orchestrators' scratch directories
-(`/Users/timmalmstrom/hpo-orch/r10s5/` and `.../r10s6/`, out of tree).
+(the s5 and s6 orchestrators' scratch directories, out of tree).
 GitHub calls: 0.
 
 A roster op citing an ACCEPT below resolves only once this file is on the
