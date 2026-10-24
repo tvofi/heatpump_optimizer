@@ -4,6 +4,7 @@
     python3 -I tools/pr/codeql_scope.py changed --base BASE --head HEAD > CHANGED.txt
     python3 -I tools/pr/codeql_scope.py decide --language LEG --event EVENT \
         --files-from CHANGED.txt
+    python3 -I tools/pr/codeql_scope.py extracted --language LEG --archive SRC.ZIP
     python3 -I tools/pr/codeql_scope.py --self-test
 
 `decide` prints one word on stdout, `analyze` or `skip`, and its reason on
@@ -15,6 +16,13 @@ WHY (O17, 2026-10-18). A pull request whose diff is a roster or a delivery row
 paid `Analyze (python)`'s 23-26 minutes, its critical path, for an analysis
 that cannot differ from main's: no file the python extractor reads changed.
 That was 76 of the 144 pull requests merged in round 10.
+
+D-5 (owner ruling, DESIGN-P2 6): INERT is an allow-list, not a measured
+closure, so `extracted` checks it against the extractor on every push run
+(which analyzes in full): the leg's extracted source archive (the database's
+`src.zip`) must hold no file whose suffix is on that leg's INERT list. A file
+the extractor read and the list calls inert is a pull request that would skip
+a leg that could have found something; the push run goes red instead.
 
 THE RULE, fail-closed in every arm:
   * only `pull_request` may skip. `push`, `schedule`, `merge_group` and
@@ -71,6 +79,35 @@ def decide(language: str, event: str, files: list[str]) -> tuple[str, str]:
         if suffix not in INERT[language]:
             return "analyze", f"{f} ({suffix or 'no suffix'}) may be read by the {language} extractor"
     return "skip", f"all {len(files)} changed file(s) are inert to the {language} extractor"
+
+
+def extracted_violations(language: str, names: list[str], inert=None) -> list[str]:
+    """The archive entries whose suffix is on the leg's INERT list (D-5). An
+    unknown leg or an empty archive is itself a violation: nothing was read,
+    so nothing was checked."""
+    inert = INERT if inert is None else inert
+    if language not in inert:
+        return [f"unknown leg {language!r}"]
+    names = [n for n in names if n and not n.endswith("/")]
+    if not names:
+        return ["the archive holds no file: nothing was checked"]
+    return [n for n in names if PurePosixPath(n).suffix.lower() in inert[language]]
+
+
+def check_extracted(language: str, archive: str) -> int:
+    """0 when the archive holds no inert file, 1 on one, 2 when unreadable."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(archive) as z:
+            names = z.namelist()
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f"codeql_scope: cannot read the extracted archive {archive}: {e}", file=sys.stderr)
+        return 2
+    bad = extracted_violations(language, names)
+    for n in bad[:20]:
+        print(f"codeql_scope: {language}: extracted but inert: {n}", file=sys.stderr)
+    print(f"codeql_scope: {language}: {len(names)} archive entries, {len(bad)} on the INERT list", file=sys.stderr)
+    return 1 if bad else 0
 
 
 def _closure():
@@ -193,6 +230,41 @@ def self_test() -> int:
     finally:
         cl.changed_between = real
 
+    # D-5: the INERT list against the extractor's own source archive.
+    import zipfile
+    arch = {"python": ["src/a.py", "src/pkg/", "src/b.py"],
+            "javascript-typescript": ["src/card.js", "src/x.json", "src/y.html"],
+            "actions": ["src/.github/workflows/ci.yml"]}
+    for leg, names in arch.items():
+        check(f"D-5: a {leg} archive of extractable files is sound (null control)",
+              extracted_violations(leg, names), [])
+    plant = {**INERT, "python": INERT["python"] | {".py"}}
+    check("D-5 plant: .py joining python's INERT list fails the check",
+          extracted_violations("python", arch["python"], plant), ["src/a.py", "src/b.py"])
+    check("D-5 plant: .json is inert to python, so a json in the archive fails",
+          extracted_violations("python", arch["python"] + ["src/c.json"]), ["src/c.json"])
+    check("D-5: an upper-case suffix is the same suffix",
+          extracted_violations("python", ["A.PY", "B.MD"]), ["B.MD"])
+    check("D-5: an empty archive is not a pass", len(extracted_violations("python", ["d/"])), 1)
+    check("D-5: an unknown leg is not a pass", len(extracted_violations("ruby", ["a.rb"])), 1)
+    with tempfile.TemporaryDirectory() as td:
+        def zipped(*names: str) -> str:
+            path = os.path.join(td, f"z{len(os.listdir(td))}.zip")
+            with zipfile.ZipFile(path, "w") as z:
+                for nm in names:
+                    z.writestr(nm, "x")
+            return path
+        check("D-5 main: a sound archive exits 0",
+              main(["extracted", "--language", "python", "--archive", zipped("a.py")]), 0)
+        check("D-5 main: an inert file in the archive exits 1",
+              main(["extracted", "--language", "python", "--archive", zipped("a.py", "n.md")]), 1)
+        check("D-5 main: a missing archive exits 2, never 0",
+              main(["extracted", "--language", "python", "--archive", os.path.join(td, "none.zip")]), 2)
+        bad = os.path.join(td, "bad.zip")
+        with open(bad, "w", encoding="utf-8") as fh:
+            fh.write("not a zip")
+        check("D-5 main: a corrupt archive exits 2", main(["extracted", "--language", "python", "--archive", bad]), 2)
+
     print(f"codeql_scope self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -201,6 +273,8 @@ def main(argv: list[str]) -> int:
     if argv == ["--self-test"]:
         return self_test()
     opts = dict(zip(argv[1::2], argv[2::2]))
+    if argv[:1] == ["extracted"] and len(argv) == 5 and set(opts) == {"--language", "--archive"}:
+        return check_extracted(opts["--language"], opts["--archive"])
     if argv[:1] == ["changed"] and len(argv) == 5 and set(opts) == {"--base", "--head"}:
         try:
             files = changed_files(opts["--base"], opts["--head"])
@@ -212,7 +286,8 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] != ["decide"] or len(argv) != 7 or set(opts) != {"--language", "--event", "--files-from"}:
         print("usage: codeql_scope.py decide --language LEG --event EVENT --files-from FILE"
-              " | changed --base BASE --head HEAD | --self-test",
+              " | changed --base BASE --head HEAD | extracted --language LEG --archive SRC.ZIP"
+              " | --self-test",
               file=sys.stderr)
         return 2
     try:

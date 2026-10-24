@@ -95,105 +95,62 @@ name: Tests
 #
 # * closures-autofix / claims-autofix / mutation-autofix — same-repo PRs
 #   only. Merge UNDER-SCOPED recordings, empty an inherited claim list, or
-#   pin measured kills, then retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
+#   pin measured kills, then retrigger CI. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  # The merge queue (round-9 process review item 2): every job that writes a
-  # required context runs on the queue's merge commit as it does on a pull
-  # request. The PR-only lanes (autofix, `graders-head-copy`, `nightly-status`)
-  # and the non-required coverage pair stay off it; the coverage pair ran on
-  # the pull request's head and runs again on the push the merge makes.
-  merge_group:
-    types: [checks_requested]
-  workflow_dispatch:
+  # A unit of the CI umbrella (R10-CI-LAYOUT P2b, unit U5; DESIGN-P2 2.1): ci.yml
+  # calls this file once, as job `tests`, when the prelude's workset names it
+  # (a code run: pull_request, push, merge_group or a dispatch), so every check
+  # reads `tests / <job>`. Inside a call `github.event_name` and `github.event`
+  # are the caller's, so every event guard below reads the umbrella's event.
+  # The inputs are U0c's interface, each a string defaulting to "".
+  workflow_call:
     inputs:
-      # Kept declared: merge_train.py dispatches with -f recheck=true, and a
-      # dispatch naming an undeclared input is refused. Every dispatch of this
-      # workflow is pull-request-like (the nightly lanes are nightly.yml's);
-      # `recheck` still keys lane-proofs and closure-scope's laneskip step.
+      gate_scope:
+        description: "The prelude's scope: auto, or full on push; anything else runs full"
+        type: string
+        default: ""
+      pr:
+        description: "The PR this run judges (empty on push and a dispatch naming none)"
+        type: string
+        default: ""
+      base:
+        description: "That PR's base ref name"
+        type: string
+        default: ""
+      head:
+        description: "The head SHA the prelude derived"
+        type: string
+        default: ""
+      # A dispatch's own `-f recheck=` / `-f no-skip=` (merge_train.py's batch
+      # proof dispatches ci.yml with -f recheck=true); empty on every other
+      # event, so lane-proofs and closure-scope's laneskip step read them.
       recheck:
         description: "Record and reuse lane proofs like a pull request (the batch proof's arm)"
-        type: boolean
-        default: false
+        type: string
+        default: ""
       no-skip:
         description: "Force every heavy lane to run, ignoring recorded green proofs (R9-CI-SKIP)"
-        type: boolean
-        default: false
+        type: string
+        default: ""
+    # The autofix jobs' push token and the run-approver App, until M-3.
+    secrets:
+      CLOSURES_PUSH_TOKEN:
+        required: false
+      HPO_RUNS_PEM:
+        required: false
+      HPO_RUNS_APPID:
+        required: false
 
 # The suite needs the code it tests and the cache it reuses, nothing
 # more; every job inherits this read-only floor.
 permissions:
   contents: read
 
-# A newer push to a pull request cancels that pull request's run at the head it
-# superseded (round-9 process review item 3): nobody reads a verdict on a head
-# that is gone, and it holds runners the new head waits for. Only
-# `pull_request` runs share a group; every other event -- above all the push to
-# main, whose FULL gate is the backstop for every scoped one -- gets a group of
-# its own by run id, so it is never cancelled and never queued behind another.
-# So does an autofix push (GITHUB_TOKEN, `github-actions[bot]`): the run it
-# would cancel is still running the other autofix jobs, and the next run's
-# `ci:` subject is their loop guard, so a repair cancelled there never comes.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
-
+# No concurrency group and no cancel-superseded job: the umbrella's run-id
+# group holds every run alone, and supersession is ci.yml's own
+# cancel-superseded (DESIGN-P2 2.2, rev2 N1).
 jobs:
-  # R10-CI-CONCURRENCY. The concurrency group above cancels a superseded run
-  # only when both runs are in the pull request's group, and a bot-sent run
-  # (an approved autofix head) or a dispatch is not: it gets a group of its own
-  # on purpose, so it never cancels the run still running the other autofix
-  # jobs. The cost is the other half: such an OLDER run cannot be cancelled by a
-  # newer App push and finishes for a head nobody reads. This job, in the live
-  # App-sent run only, cancels the older runs of this workflow on this branch at
-  # another head SHA (tools/pr/cancel_superseded.py: live head, never a
-  # same-SHA twin, never main, never a bot-sent caller). The concurrency
-  # expression is unchanged. It holds `actions: write`, so it runs the BASE's
-  # copy of the program (restored from the pinned base, D11-s1-03); until that
-  # copy exists on the base it only says so.
-  cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Cancel this branch's runs at superseded heads
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.head_ref }}
-          RUN_ID: ${{ github.run_id }}
-          SENDER: ${{ github.event.sender.login }}
-        run: |
-          set -euo pipefail
-          # The merge commit's two parents are the base and the head, so a
-          # depth-2 checkout holds the base; a base that moved since is skipped.
-          if git cat-file -e "$PINNED:tools/pr/cancel_superseded.py" 2>/dev/null; then
-            git checkout "$PINNED" -- tools/pr/cancel_superseded.py
-            python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow tests.yml \
-              --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
-              --run-id "$RUN_ID" --sender "$SENDER"
-          else
-            echo "::notice::the base (or its commit) has no tools/pr/cancel_superseded.py yet; cancelling nothing"
-          fi
-
   fast:
     needs: [closure-scope]
     # R9-CI-SKIP: this lane stands down at the STEP level, never the job
@@ -202,9 +159,11 @@ jobs:
     # not `fast (3.14)` -- and the required context is `fast (3.14)`, so a
     # job-level skip leaves the merge rule waiting for a check that never
     # reports (demonstrated live on this pull request's first demo head, run
-    # 38322500356). A skipped NON-matrix lane keeps its exact name -- `browser`
-    # and `coverage` skip at the job level below -- and a skipped required
-    # check satisfies the rule (the isolated probe, both arms). So `fast` runs
+    # 38322500356). A skipped NON-matrix lane keeps its exact name, but under
+    # the umbrella a skipped required job FAILs `gate` (DESIGN-P2 4.2), so
+    # `browser` and `typing` stand down at the step level too; only `coverage`,
+    # required on push alone, where closure-scope never runs, still skips at
+    # the job level. So `fast` runs
     # a job that reports SUCCESS while standing down: every step after the
     # report below is gated on the closure-scope decision, which is empty --
     # RUN -- on every event the skip arm does not cover, push to main above
@@ -388,22 +347,6 @@ jobs:
           echo "key=$(python tests/env_drift.py --cache-key "$GITHUB_SHA" --all)" >> "$GITHUB_OUTPUT"
           echo "DRIFT_WARM_CACHE=1" >> "$GITHUB_ENV"
 
-      # Pull requests and merge-queue entries get the scoped gate;
-      # everything else -- pushes to main above all -- gets the whole suite.
-      # Written as an explicit equality on the event name so an event this
-      # file has not thought about lands on `full`, not on `auto`.
-      - name: Decide the gate scope
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] \
-             || [ "${{ github.event_name }}" = "merge_group" ] \
-             || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
-            echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
-          else
-            echo "GATE_SCOPE=full" >> "$GITHUB_ENV"
-          fi
-
       - name: Run the suite
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         env:
@@ -412,6 +355,12 @@ jobs:
           # set it and emit nothing.
           HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
           GOLDEN_MODE: drift
+          # The scope is the prelude's (its "Decide" step moved there, U5):
+          # `auto` on a pull request, the merge queue and a dispatch, against
+          # the comparison ref resolved above; anything else -- a push to main
+          # above all, or an empty input -- runs the whole suite.
+          GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
+          GATE_SCOPE_BASE: ${{ env.GOLDEN_REF }}
           # The architecture-score pair is `arch-instrument`'s, below (U5b):
           # run.sh skips it here by name.
           RUN_PART: fast
@@ -509,72 +458,14 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
-      # The scope `fast` takes, by fast's own two steps, copied: the same
-      # comparison ref and the same auto-or-full decision (full on a push to
-      # main). tests/entities.py pins the copies equal.
-      - name: Resolve the golden comparison ref
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # The PR's merge-base with its target: exactly the code this
-            # PR forked from, so the drift comparison isolates the PR.
-            REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
-            # The branch's OWN claim list is read from the PR head, not the
-            # synthetic merge tree this checkout is (env_drift's CLAIM_HEAD).
-            echo "CLAIM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
-          elif [ "${{ github.event_name }}" = "merge_group" ]; then
-            # A queue entry is a merge commit (merge method MERGE): its first
-            # parent is the main tip or the entry ahead of it, its second the
-            # pull request's head. That is the shape of a pull request's
-            # synthetic merge, whose merge-base with its target is the same
-            # first parent, so the drift comparison and the claim list are
-            # read exactly as on the pull request. No second parent means the
-            # queue's merge method changed; fail rather than guess.
-            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
-            PR_TIP=$(git rev-parse --verify --quiet 'HEAD^2^{commit}') || {
-              echo "This merge_group commit has no second parent; the queue must merge with merge method MERGE."
-              exit 1
-            }
-            echo "CLAIM_HEAD=${PR_TIP}" >> "$GITHUB_ENV"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Autofix dispatch is not a pull_request event. Compare against
-            # main the same way a PR would, not HEAD^1 (the autofix commit's
-            # parent), so leftover drift vs main cannot hide.
-            git fetch --no-tags origin main
-            REF=$(git merge-base origin/main HEAD)
-          else
-            # Push to main: compare against the state before this push.
-            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
-          fi
-          if [ -z "${REF}" ]; then
-            # An empty GOLDEN_REF is not "no preference": run.sh and
-            # env_drift.py both fall back to origin/main, which on a push to
-            # main IS this commit -- the tree would be compared against
-            # itself and pass no matter what it did. Fail here instead, where
-            # the reason is visible.
-            echo "Could not resolve a comparison ref for this ${{ github.event_name }}."
-            echo "The drift gate needs a baseline that is not this commit;"
-            echo "an empty ref silently becomes origin/main == HEAD."
-            exit 1
-          fi
-          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
-
-      - name: Decide the gate scope
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] \
-             || [ "${{ github.event_name }}" = "merge_group" ] \
-             || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
-            echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
-          else
-            echo "GATE_SCOPE=full" >> "$GITHUB_ENV"
-          fi
-
+      # The scope `fast` takes: the prelude's, diffed from the merge base with
+      # the PR's base (origin/main on a dispatch naming none); full on push.
       - name: Run the architecture-score pair
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           RUN_PART: arch
+          GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
+          GATE_SCOPE_BASE: origin/${{ inputs.base || 'main' }}
         run: ./tests/run.sh
 
   # The real-browser layout lane (issue #96): positions, sizes and
@@ -595,33 +486,51 @@ jobs:
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
         || github.event_name == 'workflow_dispatch'
-      ) && needs.closure-scope.outputs.browser_skip != 'skip'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
+      # `tests / browser` skipped at the job level FAILs the gate as SKIPPED,
+      # so this lane stands down at the step level, as `fast` does, and this is
+      # the one step a standing-down run executes.
+      - name: Say the lane-skip decision this run stands on
+        run: |
+          echo "browser: closure-scope decided '${{ needs.closure-scope.outputs.browser_skip || 'run' }}' for this base and diff."
+          if [ "${{ needs.closure-scope.outputs.browser_skip }}" = "skip" ]; then
+            echo "A recorded green run at this exact base and diff stands in for this"
+            echo "rerun; every step below is skipped and this job reports success."
+          fi
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         with:
           python-version: "3.13"
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         with:
           node-version: "22"
 
       - name: Install pinned test dependencies
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
       - name: Cache the lane's Chromium
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/pw-browsers
           key: pw-chromium-1.56.1
 
       - name: Install playwright and Chromium
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         run: |
           mkdir -p "$RUNNER_TEMP/pwlane"
           cp tests/pwlane/package.json tests/pwlane/package-lock.json \
@@ -631,11 +540,13 @@ jobs:
             "$RUNNER_TEMP/pwlane/node_modules/.bin/playwright" install chromium
 
       - name: Write the plan payload
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         env:
           PYTHONPATH: tests/hastub
         run: python tests/plan_view.py
 
       - name: Run the layout lane
+        if: needs.closure-scope.outputs.browser_skip != 'skip'
         # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
         # a `~` in a workflow env var is a literal tilde, which Playwright
         # resolves relative to the repository -- the shell expands $HOME.
@@ -687,7 +598,7 @@ jobs:
       # rosters are the pull request's, the linter the base's.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -740,11 +651,24 @@ jobs:
         || github.event_name == 'pull_request'
         || github.event_name == 'merge_group'
         || github.event_name == 'workflow_dispatch'
-      ) && needs.closure-scope.outputs.typing_skip != 'skip'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
+      # `tests / typing` skipped at the job level FAILs the gate as SKIPPED,
+      # so this lane stands down at the step level, as `fast` does, and this is
+      # the one step a standing-down run executes.
+      - name: Say the lane-skip decision this run stands on
+        run: |
+          echo "typing: closure-scope decided '${{ needs.closure-scope.outputs.typing_skip || 'run' }}' for this base and diff."
+          if [ "${{ needs.closure-scope.outputs.typing_skip }}" = "skip" ]; then
+            echo "A recorded green run at this exact base and diff stands in for this"
+            echo "rerun; every step below is skipped and this job reports success."
+          fi
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.typing_skip != 'skip'
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
       # the two halves constrain each other: homeassistant-stubs 2026.9.3
@@ -753,6 +677,7 @@ jobs:
       # would either fail to install or measure something else and call it
       # the same number.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.typing_skip != 'skip'
         with:
           python-version: "3.14"
 
@@ -765,6 +690,7 @@ jobs:
       # --no-deps: the lock overrides homeassistant's cryptography pin (see
       # its header), and it is already the complete resolution.
       - name: Install the pinned toolchain
+        if: needs.closure-scope.outputs.typing_skip != 'skip'
         run: |
           python3 -m venv .venv-typing
           .venv-typing/bin/python -m pip install --require-hashes --no-deps \
@@ -774,6 +700,7 @@ jobs:
       # Run BY the pinned interpreter, so the ruler introspects the
       # environment it is measuring in rather than being told about it.
       - name: Run the ruler and ratchet its three numbers
+        if: needs.closure-scope.outputs.typing_skip != 'skip'
         run: |
           .venv-typing/bin/python tests/typing_ruler.py --mypy \
             --emit "$RUNNER_TEMP/typing-census.json"
@@ -781,7 +708,7 @@ jobs:
       # Kept on a failure too: the run that refuses because the census is not
       # yet recorded is exactly the run whose numbers are wanted.
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        if: always()
+        if: always() && needs.closure-scope.outputs.typing_skip != 'skip'
         with:
           name: typing-census
           path: ${{ runner.temp }}/typing-census.json
@@ -1655,7 +1582,7 @@ jobs:
   # entry its skip stood on is the entry this job would write, byte-equal,
   # and actions/cache keys are immutable, so `continue-on-error` absorbs the
   # reserve refusal a legitimate rerun (a `no-skip` dispatch) would raise.
-  # The pull-request concurrency group cancels this job on a newer push, so a
+  # ci.yml's cancel-superseded cancels this run on a newer push, so a
   # proof can never be recorded against a diff the lanes never judged.
   lane-proofs:
     needs: [closure-scope, fast, arch-instrument, coverage, browser]
@@ -1663,8 +1590,8 @@ jobs:
       !cancelled() && (
         github.event_name == 'pull_request'
         || (github.event_name == 'workflow_dispatch'
-            && github.event.inputs.recheck == 'true'
-            && github.event.inputs.no-skip != 'true')
+            && inputs.recheck == 'true'
+            && inputs.no-skip != 'true')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -1791,8 +1718,8 @@ jobs:
         if: >-
           github.event_name == 'pull_request'
           || (github.event_name == 'workflow_dispatch'
-              && github.event.inputs.recheck == 'true'
-              && github.event.inputs.no-skip != 'true')
+              && inputs.recheck == 'true'
+              && inputs.no-skip != 'true')
         run: |
           git fetch --no-tags origin main
           MB=$(git merge-base origin/main HEAD) || {
@@ -2333,12 +2260,14 @@ jobs:
           # stopped returning .run_id on 2026-10-12); both stay null-safe in
           # ci_ratchet.window_entries, which owns the selection now.
           python3 -I tests/ci_ratchet.py --gather --metrics-dir "$M"
+      # The window is ci.yml's push runs and, across the cut-over, the
+      # pre-umbrella Tests runs, each carrying its jobs: the critical path is
+      # a CI run's span to its last `tests / *` job (U9a). Its reads and its
+      # refusals are tests/ci_ratchet.py's, self-tested above.
       - name: Fetch the recent push runs' durations
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh api "repos/${{ github.repository }}/actions/workflows/tests.yml/runs?event=push&branch=main&per_page=8"
-          > "$RUNNER_TEMP/runs.json"
+        run: python3 -I tests/ci_ratchet.py --gather-runs "$RUNNER_TEMP/runs.json"
 
       - name: Grade the ratchet
         run: >-
@@ -2357,10 +2286,10 @@ jobs:
   # A GITHUB_TOKEN push's own pull_request runs are created but held
   # `action_required` until approved (since 2026-10-15; run 38781421410), so
   # the approve step below has hpo-runs approve them, and this job also
-  # dispatches Tests, Hassfest, Validate and CodeQL on the new SHA, whose
-  # dispatched runs are not held; not Governance (why:
-  # tests/entities.py). CLOSURES_PUSH_TOKEN, if set, retriggers via
-  # synchronize and the dispatch is skipped.
+  # dispatches CI (ci.yml, -f pr -f base) on the new SHA, whose dispatched
+  # run is not held and whose gate judges every unit there.
+  # CLOSURES_PUSH_TOKEN, if set, retriggers via synchronize and the dispatch
+  # is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -2446,6 +2375,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -2472,30 +2403,26 @@ jobs:
           # A GITHUB_TOKEN push's pull_request runs at this head are held
           # `action_required` (since 2026-10-15; run 38781421410), and the
           # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatches below are not held.
+          # approve them; the dispatch below is not held.
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           # No -f recheck=: the dispatched run uses this ref's workflow, and
           # every dispatch of it runs the pull-request-like lanes (the
           # nightly lanes are nightly.yml's since R10-CI-LAYOUT PR 1).
-          gh workflow run tests.yml --ref "$HEAD_REF"
-          gh workflow run hassfest.yml --ref "$HEAD_REF"
-          gh workflow run validate.yml --ref "$HEAD_REF"
-          # Only a ref older than codeql.yml's trigger is excused; any
-          # other dispatch failure fails the step like the three above.
-          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
-            gh workflow run codeql.yml --ref "$HEAD_REF"
-          else
-            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
-          fi
+          # One dispatch of the umbrella, naming the PR and its base (U0c's
+          # inputs): its prelude verifies they name the open PR this pushed
+          # SHA heads, and its gate judges every unit at that head.
+          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # The dispatches above run at once. #1276 added this step because a
+      # The dispatch above runs at once. #1276 added this step because a
       # GITHUB_TOKEN push's pull_request runs were held action_required for a
       # human, and a pending required check shadowed the dispatched green on
       # the PR. Measured 2026-10-09, at two bot heads: no such run is created
-      # at all, so this step normally finds nothing to approve and the four
-      # dispatched runs stand alone (the five pull_request-only required
-      # contexts are absent there; an App push or a body edit writes them).
+      # at all, so this step normally finds nothing to approve and the
+      # dispatched runs stood alone. Under the umbrella the held run is a
+      # `CI` run (ci.yml), which this step approves like any other on the
+      # branch; whether it is approved beside the dispatched `gate` or the
+      # step is deleted is M-3's decision (DESIGN-P2 10, U10's M-3(b)).
       # The listing is preceded by a bounded poll: GitHub creates the pushed
       # SHA's runs asynchronously, and a one-shot listing was measured
       # approving nothing while all five runs appeared moments later (#1283).
@@ -2718,6 +2645,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -2744,25 +2673,19 @@ jobs:
           # A GITHUB_TOKEN push's pull_request runs at this head are held
           # `action_required` (since 2026-10-15; run 38781421410), and the
           # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatches below are not held.
+          # approve them; the dispatch below is not held.
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          gh workflow run tests.yml --ref "$HEAD_REF"
-          gh workflow run hassfest.yml --ref "$HEAD_REF"
-          gh workflow run validate.yml --ref "$HEAD_REF"
-          # Only a ref older than codeql.yml's trigger is excused; any
-          # other dispatch failure fails the step like the three above.
-          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
-            gh workflow run codeql.yml --ref "$HEAD_REF"
-          else
-            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
-          fi
+          # One dispatch of the umbrella, naming the PR and its base (U0c's
+          # inputs): its prelude verifies they name the open PR this pushed
+          # SHA heads, and its gate judges every unit at that head.
+          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # As in closures-autofix (#1276): the dispatches run at once. That
+      # As in closures-autofix (#1276): the dispatch runs at once. That
       # step exists because a GITHUB_TOKEN push's pull_request runs were held
       # action_required for a human; measured 2026-10-09 at two bot heads, no
       # such run is created at all, so the poll below normally finds nothing
-      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # and the dispatched run stands alone. Where GitHub does hold one,
       # the approve step clears it as the Actions-only App -- the RS256 mint
       # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
       # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
@@ -3006,6 +2929,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -3032,25 +2957,19 @@ jobs:
           # A GITHUB_TOKEN push's pull_request runs at this head are held
           # `action_required` (since 2026-10-15; run 38781421410), and the
           # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatches below are not held.
+          # approve them; the dispatch below is not held.
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          gh workflow run tests.yml --ref "$HEAD_REF"
-          gh workflow run hassfest.yml --ref "$HEAD_REF"
-          gh workflow run validate.yml --ref "$HEAD_REF"
-          # Only a ref older than codeql.yml's trigger is excused; any
-          # other dispatch failure fails the step like the three above.
-          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
-            gh workflow run codeql.yml --ref "$HEAD_REF"
-          else
-            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
-          fi
+          # One dispatch of the umbrella, naming the PR and its base (U0c's
+          # inputs): its prelude verifies they name the open PR this pushed
+          # SHA heads, and its gate judges every unit at that head.
+          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # As in closures-autofix (#1276): the dispatches run at once. That
+      # As in closures-autofix (#1276): the dispatch runs at once. That
       # step exists because a GITHUB_TOKEN push's pull_request runs were held
       # action_required for a human; measured 2026-10-09 at two bot heads, no
       # such run is created at all, so the poll below normally finds nothing
-      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # and the dispatched run stands alone. Where GitHub does hold one,
       # the approve step clears it as the Actions-only App -- the RS256 mint
       # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
       # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent

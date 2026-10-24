@@ -123,8 +123,10 @@ SELF = "tools/audit/seat/orchestrator_tick.py"
 SEAT = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
-#: Per merge_train.py: written only by a PR event; no dispatch writes them.
-PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+#: Per merge_train.py (its self-test pins the two equal): under the umbrella
+#: the one required context, `gate`, is written by a dispatch too, so nothing
+#: is PR-only (R10-CI-LAYOUT P2b).
+PR_ONLY: "tuple[str, ...]" = ()
 ROW_DIR = "dev/programme/delivery/"
 CLAIM_FILES = ("tests/golden/claimed_drift.txt",
                "tests/golden/card_claimed_drift.txt")
@@ -1223,8 +1225,11 @@ class Tick:
         else:
             latest = self.latest(runs)
             green, _, red = self.judge(latest)
+            # A unit's red is a REQUIRED red once the ruleset is [gate]: the
+            # classes below read gate_required too (DESIGN-P2 9, item 11).
+            gating = mt.gating_names(req) or []
             sup = [n for n in red
-                   if n not in (req or ()) and self.superseded(latest[n])]
+                   if n not in gating and self.superseded(latest[n])]
             if sup:
                 red = [n for n in red if n not in sup]
                 self.line(S, f"main {tip[:12]}: superseded, not red (GitHub "
@@ -1251,7 +1256,7 @@ class Tick:
                 self.line(S, f"main {tip[:12]} green "
                              f"({len(green)} context(s) concluded green)")
             nightly = [n for n in red
-                       if n not in (req or []) and NIGHTLY_CLASS.search(n)]
+                       if n not in gating and NIGHTLY_CLASS.search(n)]
             if nightly:
                 self.line(S, f"main {tip[:12]}: non-required red (nightly/record "
                              f"class): {', '.join(nightly)}", flag=True)
@@ -1287,7 +1292,7 @@ class Tick:
         """True when GitHub cancelled this run for a newer one in its own
         concurrency group -- its annotation is GitHub's record of why. A
         workflow_run follower of a PR head attaches to main's tip, and one
-        with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
+        with cancel-in-progress is cancelled so by
         design: its successor's conclusion is the status, and counting it red
         sent a fixer after main for a run that never had a runner. Any other
         cancellation, or an annotation list the API did not return, is red;
@@ -2778,6 +2783,36 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- MAIN under the umbrella (R10-CI-LAYOUT P2b, DESIGN-P2 9 item
+        # 11): the ruleset is [gate], so every unit check is non-required to
+        # GitHub; `tests / closures` matches NIGHTLY_CLASS and would print as a
+        # nightly red. The classes read gate_required as well, so it is not.
+        def umbrella(names_red):
+            gh = Stub()
+            gh.on("commits/main", out=H1)
+            gh.on(".[] | select(.name", out="42")
+            gh.on("rulesets/42", out="gate\n")
+            gh.on(f"commits/{H1}/check-runs", out="\n".join(
+                json.dumps(run_obj(n, conclusion="failure" if n in names_red else "success"))
+                for n in ("gate", "tests / closures", "tests / fast (3.14)", "record-autofix")))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            t.main()
+            return [x["text"] for x in t.findings]
+        got = umbrella({"gate", "tests / closures", "record-autofix"})
+        a, f = check("MAIN umbrella item 11", [
+            ("PR_ONLY agrees with merge_train's (empty)", PR_ONLY == mt.PR_ONLY == ()),
+            ("a red gate is REQUIRED not green",
+             any("REQUIRED not green: gate" in x for x in got)),
+            ("a red unit check is never classed nightly/non-required",
+             not any("non-required red" in x and "tests / closures" in x for x in got)),
+            ("null control: record-autofix, which gate never owes, is still a non-required red",
+             any("non-required red" in x and "record-autofix" in x for x in got)),
+            ("null control: a green gate with only record-autofix red reads main green on the required set",
+             not any("REQUIRED not green" in x for x in umbrella({"record-autofix"}))),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- MAIN: a lane GitHub cancelled for a newer run in its own
         # concurrency group is superseded, not red (rerun-stale-contract on
         # f58b14c1: a workflow_run follower of a PR head attaches to main's
@@ -2785,7 +2820,7 @@ def self_test() -> int:
         # design). Its annotation is GitHub's own record of why; any other
         # cancellation, or an unreadable annotation list, stays red.
         sup = ("Canceling since a higher priority waiting request for "
-               f"pr-contract-rerun-{H2} exists")
+               f"follower-{H2} exists")
         for label, ann, want_red in (
                 ("concurrency-superseded", [{"message": sup}], False),
                 ("cancelled otherwise (null control)",
@@ -3286,9 +3321,10 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
             total, failed = total + a, failed + f
-        # PRS (d): a pull request's head is judged on PR_ONLY too: a red
-        # pr-contract, read live from the ruleset, is not reviewable (null
-        # control: the same head with pr-contract green).
+        # PRS (d): a pull request's head is judged on every live required
+        # context: a red pr-contract, read live from the ruleset, is not
+        # reviewable (null control: the same head with pr-contract green).
+        # PR_ONLY is empty under the umbrella, so MAIN grades it too.
         for concl, want in (("failure", True), ("success", False)):
             t = tick(prs=[pr_obj(74, H1)], required_names=("tests", "pr-contract"),
                      runs_at={H1: [run_obj("tests"), run_obj("pr-contract", conclusion=concl),
@@ -3298,7 +3334,7 @@ def self_test() -> int:
             t.one_pr("PRS", pr_obj(74, H1), None, req)
             nr = [x["text"] for x in t.findings if x["text"].startswith("#74: NOT REVIEWABLE")]
             a, f = check(f"K15 (d) PRS PR_ONLY pr-contract {concl}", [
-                ("the ruleset's PR_ONLY context is not among the main-graded names", req == ["tests"]),
+                ("with PR_ONLY empty, every live context is main-graded", req == ["pr-contract", "tests"]),
                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
             total, failed = total + a, failed + f

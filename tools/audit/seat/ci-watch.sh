@@ -180,6 +180,49 @@ EOF
   ck "W7 zero runs at a mergeable head still alerts STALLED (v2 behaviour kept)" \
      "$([ $rc = 1 ] && says 'STALLED' "$O" && echo 1 || echo 0)"
 
+  # W8-W12: the umbrella (R10-CI-LAYOUT P2b): the ruleset requires `gate`
+  # alone, and every CI run is a check suite of its own, so one head carries a
+  # gate per run (5th column: the check suite id).
+  gatefix() { # <dir> <sha> ; cr lines (name|status|conclusion|started|suite) on stdin
+    mkdir -p "$1"; printf '2066\n' > "$1/prs"; printf '%s MERGEABLE\n' "$2" > "$1/head"
+    printf 'gate\n' > "$1/required"; printf '23698884\n' > "$1/ruleset-id"
+    tr '|' '\t' > "$1/cr-$2.tsv"
+  }
+  F=$TMP/w8; gatefix "$F" newlayout <<EOF
+gate|completed|success|2026-10-22T00:00:00Z|1
+tests / fast (3.14)|completed|success|2026-10-22T00:00:00Z|1
+EOF
+  O=$(watch "$F" "$TMP/s8"); rc=$?
+  ck "W8 a settled new-layout head with a green gate under the gate ruleset: no alert (null for W9, W10, W12)" \
+     "$([ $rc = 0 ] && [ -z "$O" ] && echo 1 || echo 0)"
+  F=$TMP/w9; mkfix "$F" oldlayout MERGEABLE <<EOF
+$REQ17
+EOF
+  printf 'gate\n' > "$F/required"
+  O=$(watch "$F" "$TMP/s9"); rc=$?
+  ck "W9 a settled old-layout head (the 17, no gate) under the gate ruleset alerts gate ABSENT" \
+     "$([ $rc = 1 ] && says 'ABSENT' "$O" && says 'gate' "$O" && echo 1 || echo 0)"
+  F=$TMP/w10; gatefix "$F" oldred <<EOF
+gate|completed|failure|2026-10-22T00:00:00Z|1
+gate|completed|success|2026-10-22T01:00:00Z|2
+EOF
+  O=$(watch "$F" "$TMP/s10"); rc=$?
+  ck "W10 A5: an older red gate suite beside a newer green one alerts RED: gate (the platform blocks on it)" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+  F=$TMP/w11; gatefix "$F" rerun <<EOF
+gate|completed|failure|2026-10-22T00:00:00Z|1
+gate|completed|success|2026-10-22T01:00:00Z|1
+EOF
+  O=$(watch "$F" "$TMP/s11"); rc=$?
+  ck "W11 A5 null: a red gate re-run green inside ONE suite is no alert" \
+     "$([ $rc = 0 ] && [ -z "$O" ] && echo 1 || echo 0)"
+  F=$TMP/w12; gatefix "$F" skipgate <<EOF
+gate|completed|skipped|2026-10-22T00:00:00Z|1
+EOF
+  O=$(watch "$F" "$TMP/s12"); rc=$?
+  ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+
   printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
   [ "$failed" = 0 ]
   return $?
@@ -211,18 +254,20 @@ while true; do
     [ "$mb" = "CONFLICTING" ] || [ "$mb" = "DIRTY" ] && issue=" | $mb — needs local main absorb"
     # ONE check-runs read per head per cycle (v2 made two), every page: past
     # 100 runs a first page alone misjudges both the reds and the absences.
-    CR=$(gh api --paginate "repos/$R/commits/$sha/check-runs?per_page=100" --jq '.check_runs[] | [.name, .status, .conclusion, .started_at] | @tsv' 2>/dev/null)
+    CR=$(gh api --paginate "repos/$R/commits/$sha/check-runs?per_page=100" --jq '.check_runs[] | [.name, .status, .conclusion, .started_at, (.check_suite.id // "")] | @tsv' 2>/dev/null)
     cr_rc=$?
     total=""
     if [ $cr_rc = 0 ]; then
       total=0
       if [ -n "$CR" ]; then
         total=$(printf '%s\n' "$CR" | wc -l | tr -d ' ')
-        # Latest run per name, red when its conclusion is failure (v2's rule).
+        # Latest run per name, red when its conclusion is failure (v2's rule);
+        # `gate` per check suite, red when a completed one did not succeed
+        # (A5: GitHub blocks on any suite's red gate; RATE-LIMITED fails).
         # Sorted: the signature file dedups on this string, and awk's END-loop
         # order is arbitrary -- an unsorted list would re-alert the same reds
         # as a NEW state every cycle (v2's jq group_by was name-sorted).
-        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{bad[$1] = ($3 == "failure")} END {for (x in bad) if (bad[x]) print x}' | sort | tr '\n' ' ')
+        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{k = ($1 == "gate") ? $1 SUBSEP $5 : $1; nm[k] = $1; bad[k] = ($1 == "gate") ? ($2 == "completed" && $3 != "success") : ($3 == "failure")} END {for (x in bad) if (bad[x]) print nm[x]}' | sort -u | tr '\n' ' ')
         [ -n "$reds" ] && issue="$issue | RED: $reds"
         # ABSENT, judged only at a settled head: every run it has completed.
         pending=$(printf '%s\n' "$CR" | awk -F "$TAB" '$2 != "completed"' | wc -l | tr -d ' ')

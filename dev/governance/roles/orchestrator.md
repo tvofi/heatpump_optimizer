@@ -225,7 +225,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
 
 ## 11. Before you merge
 
-- Every gate lane **ran**. Absent is not green.
+- `gate` passed at the head. Absent is not green.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>

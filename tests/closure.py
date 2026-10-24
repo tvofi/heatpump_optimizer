@@ -486,6 +486,9 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # Its sweep re-runs `gate` jobs, so it decides which verdict stands at a
+    # head as ci.yml does (U0c).
+    ".github/workflows/gate-sweep.yml",
     # The umbrella's programs (R10-CI-LAYOUT P2a): the prelude decides the
     # GATE_SCOPE every lane runs under and gate.py is the one required check,
     # so a change here changes the gate's verdict as ci.yml does.
@@ -586,6 +589,14 @@ INERT_EXCEPT = (
     # merge: skip-merge-failed on this pair). Same route as the README above:
     # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
     "tools/pr/cancel_superseded.py",
+    # R10-CI-LAYOUT P2b: tests/entities.py imports U5's harness modules (`_u5_load`:
+    # run_part.py, unitcheck.py) and opens codeql.yml's program tools/pr/codeql_scope.py
+    # (U3's pins). CI's recording on probe #2656 (closures-autofix job 120356230438)
+    # refused the merge, skip-merge-failed on these three: INERT and read. Same route as
+    # cancel_superseded.py above: the prefixes stay INERT, the files move to the recorded closure.
+    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+    "tools/pr/codeql_scope.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
