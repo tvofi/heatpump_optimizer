@@ -21063,7 +21063,9 @@ R.check(
     and len(_CQ_UPLOAD) == 1 and _CQ_UPLOAD[0].get("if") == "steps.standin.outputs.ok == 'true'"
     and (_CQ_UPLOAD[0].get("with") or {}).get("category") == "/language:${{ matrix.language }}"
     and len(_CQ_GATED) == 2 and all(st.get("if") == "steps.standin.outputs.ok != 'true'" for st in _CQ_GATED)
-    and "if" not in (_CQ_BY_NAME.get("Checkout repository") or {}),
+    and "if" not in (_CQ_BY_NAME.get("Checkout repository") or {})
+    and (_CQ_BY_NAME.get("Restore the decision program from the base") or {}).get("if")
+    == "github.event_name == 'pull_request'",
     f"standin={_CQ_STANDIN.get('if')!r}; uploads={[st.get('if') for st in _CQ_UPLOAD]}; "
     f"init/analyze={[st.get('if') for st in _CQ_GATED]}",
 )
@@ -29939,11 +29941,15 @@ R.check(
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
-_PRW_D5 = _PRW_TEXTS["codeql.yml"].replace("if: github.event_name == 'push'\n", "if: success()\n")
+# The D-5 step's program is now also covered by the job's pull-request restore
+# (r10-codeql-dependabot's stand-in), so the control undoes both: without the
+# restore AND the push-only `if:`, the step runs the pull request's copy.
+_PRW_D5 = _PRW_TEXTS["codeql.yml"].replace("if: github.event_name == 'push'\n", "if: success()\n").replace(
+    'git checkout "$PINNED" -- tools/pr/codeql_scope.py', 'true "$PINNED" -- tools/pr/codeql_scope.py')
 R.check(
-    "and codeql.yml's push-only D-5 step is exempt only by its `if:`: without it the step is refused (null control)",
-    _PRW_TEXTS["codeql.yml"] != _PRW_D5 and _prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "codeql.yml": _PRW_D5})
-    == ["codeql.yml:analyze runs tools/pr/codeql_scope.py unrestored"],
+    "and codeql.yml's D-5 step is exempt only by its `if:` and the base restore: without both the step is refused (null control)",
+    _PRW_TEXTS["codeql.yml"] != _PRW_D5 and set(_prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "codeql.yml": _PRW_D5}))
+    == {"codeql.yml:analyze runs tools/pr/codeql_scope.py unrestored"},
     f"{_prw_defects({'ci.yml': _PRW_TEXTS['ci.yml'], 'codeql.yml': _PRW_D5})}",
 )
 R.check(
