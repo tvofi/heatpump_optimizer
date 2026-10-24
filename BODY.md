@@ -77,7 +77,7 @@ none.
 
 ## Forward-carry
 
-none. Neither finding changes how a later stage must work. The merge path (`merge_train.py`, `merge_pr.sh`) already passes no subject. The orchestrator's merge-section line is RCA-FRICTION's, as the brief states.
+n/a: neither finding changes how a later stage must work.
 
 ## Friction
 
