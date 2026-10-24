@@ -76,10 +76,10 @@ def self_test() -> int:
     check("minor merges", decide("version-update:semver-minor"), "merge")
     check("major is left", decide("version-update:semver-major").split()[0], "leave")
     check("no update type is left", decide("").split()[0], "leave")
-    co = "/.github/workflows/  @tvofi\n/tools/site/ @tvofi\n/tools/audit/briefs/ @tvofi\n/tools/audit/briefs/COMMON.md\n"
+    co = "/.github/workflows/  @tvofi\n/tools/site/ @tvofi\n/x/owned/ @tvofi\n/x/owned/free.md\n"
     check("an owned directory", owned(co, [".github/workflows/any.yml"]), [".github/workflows/any.yml"])
     check("an unowned manifest (the null control)", owned(co, ["tests/requirements-any.txt"]), [])
-    check("a later owner-less line un-owns", owned(co, ["tools/audit/briefs/COMMON.md"]), [])
+    check("a later owner-less line un-owns", owned(co, ["x/owned/free.md"]), [])
     check("a prefix is a directory, not a name stem", owned(co, ["tools/sitemap.txt"]), [])
     try:
         owned("*.js @x\n", ["a.js"])
