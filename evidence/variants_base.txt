@@ -1,0 +1,7 @@
+RESULT clean=710 count
+RESULT tuple_plant=708 count
+RESULT trailing_none=708 count
+RESULT tuple_call=708 count
+RESULT slice_copy=708 count
+RESULT dict_call=708 count
+RESULT pass_stmt=708 count

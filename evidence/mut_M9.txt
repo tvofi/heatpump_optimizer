@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 3665, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 3639, in main
+    if self_check():
+       ~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 3595, in self_check
+    *seam_self_check(),
+     ~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 3135, in seam_self_check
+    computing = total(SEAM_SELF_CHECK_COMPUTING, "        return self._state()")
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 3125, in total
+    return seam_metrics(cls, seam_map, helpers)["seam_cut_total"]
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 1193, in seam_metrics
+    cross_method_refs = sum(
+        c
+        for (caller, callee), c in call_edges.items()
+        if (caller == label) != (buckets[callee] == label)
+    )
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dd62e516-5115-52dc-b4af-70bab3089e24/scratchpad/wt/tests/structure.py", line 1196, in <genexpr>
+    if (caller == label) != (buckets[callee] == label)
+                             ~~~~~~~^^^^^^^^
+KeyError: 'learning'
