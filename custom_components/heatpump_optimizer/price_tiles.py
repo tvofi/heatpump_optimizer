@@ -63,6 +63,18 @@ def book(owner: Any) -> dict[str, dict[str, Any]]:
     return _BOOKS.setdefault(owner, {})
 
 
+#: Each coordinator's rotation position; not persisted.
+_CURSORS: WeakKeyDictionary[Any, int] = WeakKeyDictionary()
+
+
+def take(owner: Any, specs: list[tuple[str, dict[str, float]]]) -> tuple[str, dict[str, float]]:
+    """``owner``'s next spec. The rotation moves before the solve, so a failing
+    or cancelled spec cannot block the others: it is retried on the next pass."""
+    cursor = _CURSORS.get(owner, 0)
+    _CURSORS[owner] = cursor + 1
+    return specs[cursor % len(specs)]
+
+
 def per_month(delta: float, horizon_hours: float) -> float:
     """A cost difference over a solve's horizon, scaled to a month."""
     return delta * MONTH_HOURS / horizon_hours

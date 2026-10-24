@@ -24742,7 +24742,7 @@ R.check(
 # these four, lands here as an option the list does not cover.
 _ACTION_PRODUCERS = {
     "optimizer.py": {"get_current_action", "_idle_action"},
-    "coordinator.py": {"_async_update_data", "_run_system_identification"},
+    "coordinator.py": {"_fixed_mode_action", "_run_system_identification"},
 }
 _emitted_modes = set()
 for _fname, _names in _ACTION_PRODUCERS.items():

@@ -3,6 +3,7 @@
  "seams": {
   "__init__": "core",
   "_accumulate_energy": "core",
+  "_adopt_away_override": "core",
   "_adopt_system_identification": "core",
   "_apply_action": "core",
   "_apply_buffer_cooling_rate": "core",
@@ -91,6 +92,7 @@
   "_fetch_weather_forecast": "fetch",
   "_file_dhw_lead_predictions": "dhw",
   "_file_lead_predictions": "core",
+  "_fixed_mode_action": "core",
   "_floor_widening": "core",
   "_fold_capacity_envelope": "core",
   "_fold_internal_gains": "core",

@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Carry destination for #2674 (R10-LIVESTATE item ls-r2: seven unprobed",
+    "per-cycle store-load leads). No live roster group covers #2674, so this file",
+    "is its brief. Shape and required fields: dev/governance/rules/finding-propagation.md.",
+    "Linted by tools/policy/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 2674,
+  "stage": "#2674, probing the seven per-cycle writers that may run inside the first refresh before their store load resolves",
+  "carries": [
+    {
+      "from": "#2675 (R10-LIVESTATE), item ls-r2, with item ls-r1's probe recipe",
+      "effect": "narrows",
+      "control": "None of the seven leads is a finding: no harness has shown one lose a write. A lead becomes a finding only through item ls-r1's probe with its null: the load's store replaced by a stub whose async_load waits on an asyncio.Event; the load spawned, one yield, one coordinator cycle (the writer) run as a task, the event set, both awaited. Metric: the writer's increment absent after the load resolves, 1 (lost) or 0 (kept). Null control: the same cycle run after the load resolves, which must read 0; a lead whose null is not 0 is a broken probe, not a finding.",
+      "remeasure": "At your merge base, first establish per lead whether the writer runs in the first refresh at all (it may be gated on a sensor history or a previous-cycle value the first refresh lacks); a writer that cannot run before its load resolves is closed by that reading, with the gate cited. Only then run the probe and its null, per lead; re-anchor every writer by name, not by line.",
+      "brief": "The seven loads and their writers: `_async_load_thermal_learning` against `_async_learn_buffer_cooling`; `DhwLearner.async_load_profile` against `async_learn_dynamics`; the legionella store load against `async_track_cycle`; `_async_load_price_model` against `_async_learn_price_shape`; `_async_load_energy_totals` against the space-energy increment of `_energy_totals`; `_async_load_ledger` against the ledger's add; `_async_load_accuracy` against the accuracy tracker's record. This stage is narrowed to leads proven by the probe and its null; a fix without a reproducing probe is refused. Where a lead reproduces, the fix is the writer awaiting its store's `async_wait_for_read` before writing, as #2675 made `async_apply_manual_plan` and `async_clear_manual_plan` do for the manual plan store: not a per-lead flag. The user-command writers that race a load (item ls-r1) are carried to R10-PARAMS-OWNER, not here."
+    }
+  ]
+}

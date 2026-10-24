@@ -31,7 +31,8 @@ from . import debugger
 from . import mixing_valve
 from . import quiet_windows
 from . import topology
-from .accuracy import REFIT_SETTLED_DAYS, utc_shift
+from .accuracy import REFIT_SETTLED_DAYS
+from .drift import utc_shift
 from .const import (
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,

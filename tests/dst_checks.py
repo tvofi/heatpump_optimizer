@@ -1107,7 +1107,7 @@ R.section("the UTC helpers themselves across both transitions (round-9 P7)")
 # error inside ``utc_elapsed_seconds`` or ``utc_shift`` is invisible to it
 # (fix review of #1722: ``replace(tzinfo=UTC)`` for ``astimezone(UTC)`` put
 # the P7 bug back with every check green). These pin the helpers directly.
-from heatpump_optimizer.accuracy import utc_shift  # noqa: E402
+from heatpump_optimizer.drift import utc_shift  # noqa: E402
 
 
 _aut_a = datetime(2026, 10, 25, 1, 30, tzinfo=STHLM)  # 23:30Z, CEST
