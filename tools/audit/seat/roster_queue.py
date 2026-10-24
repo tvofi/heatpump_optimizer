@@ -7,7 +7,7 @@
     python3 -I tools/audit/seat/roster_queue.py --self-test
 
 `run` applies queue lines FIRST..LAST (1-based; blank and `#` lines skipped, a
-leading line number dropped). Each line is `<op> <group> [arg]`, passed to
+leading line number dropped). Each line is `<op> <group> [arg] [--flag value ...]`, passed to
 `roster_edit.py` with `--push`. WHY IT EXISTS: the lint gate refuses a push
 whose `--lint-cwd` is not exactly `origin/main`, and main moves faster than a
 checkout another seat owns can be kept level (2026-10-24: four refusals). So
@@ -82,7 +82,12 @@ def parse_line(ln):
         t = t[1:]
     if len(t) < 2:
         return None
-    return t[0], t[1], (t[2] if len(t) > 2 else "")
+    # A flag (`--match TEXT` on drop-carry) is never the op's positional value:
+    # everything from the first `--` token on is passed through to roster_edit.
+    rest = t[2:]
+    if rest and rest[0].startswith("--"):
+        return t[0], t[1], "", rest
+    return t[0], t[1], (rest[0] if rest else ""), rest[1:]
 
 
 def run_queue(a, python=None):
@@ -108,8 +113,8 @@ def run_queue(a, python=None):
         p = parse_line(ln)
         if not p:
             continue
-        op, g, arg = p
-        cmd = [py, editor, op, g] + ([arg] if arg else []) + [
+        op, g, arg, extra = p
+        cmd = [py, editor, op, g] + ([arg] if arg else []) + extra + [
             "--checkout", a.edit_checkout, "--worktree", a.worktree,
             "--lint-cwd", a.lint_clone, "--push"]
         if a.branch:
@@ -147,9 +152,11 @@ def _self_test():
             fails.append(name)
             print("  FAIL", name)
 
-    ck("parse: numbered", parse_line("7 set-stage G done") == ("set-stage", "G", "done"))
+    ck("parse: numbered", parse_line("7 set-stage G done") == ("set-stage", "G", "done", []))
     ck("parse: blank/comment", parse_line("") is None and parse_line("# x") is None)
-    ck("parse: quoted arg", parse_line("append-carry G 'a b'") == ("append-carry", "G", "a b"))
+    ck("parse: quoted arg", parse_line("append-carry G 'a b'") == ("append-carry", "G", "a b", []))
+    ck("parse: drop-carry --match keeps the flag and its text",
+       parse_line("drop-carry G --match 'x.py:1-2'") == ("drop-carry", "G", "", ["--match", "x.py:1-2"]))
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         repo = t / "repo"
@@ -182,24 +189,29 @@ def _self_test():
             "import sys,pathlib\n"
             f"c=pathlib.Path({str(t / 'calls')!r}); m=pathlib.Path({str(t / 'mode')!r})\n"
             "c.write_text(c.read_text()+' '.join(sys.argv[2:5])+'\\n')\n"
+            f"pathlib.Path({str(t / 'argv')!r}).open('a').write(' '.join(sys.argv[1:])+'\\n')\n"
             "if 'BAD' in sys.argv: print('REFUSED: unknown group'); sys.exit(2)\n"
             "if m.read_text()=='moved1':\n"
             "    m.write_text('ok'); print('--lint-cwd x is not origin/main'); sys.exit(3)\n"
             f"print('pushed handoff/x at {sha}')\n")
         q = t / "q.txt"
-        q.write_text(f"1 append-carry G @{t / 'c.txt'}\n# skip\n\n2 set-stage BAD done\n3 set-stage G done\n")
-        a = argparse.Namespace(first=1, last=5, queue=str(q), report=str(t / "rep"),
+        q.write_text(f"1 append-carry G @{t / 'c.txt'}\n# skip\n\n2 set-stage BAD done\n3 set-stage G done\n4 drop-carry G --match 'x.py:1-2'\n")
+        a = argparse.Namespace(first=1, last=6, queue=str(q), report=str(t / "rep"),
                                edit_checkout=str(repo), worktree=str(repo), lint_clone=str(repo),
                                alive=str(t / "alive"), branch=None, editor=str(stub))
         run_queue(a, python=sys.executable)
         rep = (t / "rep").read_text().strip().split("\n")
         calls = (t / "calls").read_text().strip().split("\n")
-        ck("run: one report line per op", len(rep) == 3)
+        ck("run: one report line per op", len(rep) == 4)
         ck("run: moved main retried (first op called twice)", calls[0] == calls[1])
         ck("run: pushed + readback on append-carry", rep[0].startswith("roster: append-carry G pushed " + sha[:9])
            and "exact-match-index=[1]" in rep[0])
         ck("run: refusal reported, not retried", "refused rc=2" in rep[1] and sum("BAD" in c for c in calls) == 1)
         ck("run: later op still runs", rep[2] == f"roster: set-stage G pushed {sha[:9]}")
+        dl = [x for x in (t / "argv").read_text().split("\n") if x.startswith("drop-carry")]
+        ck("run: drop-carry --match reaches the editor as a flag, not a value",
+           len(dl) == 1 and dl[0].startswith("drop-carry G --match x.py:1-2 --checkout ")
+           and rep[3] == f"roster: drop-carry G pushed {sha[:9]}")
         ck("run: alive touched", (t / "alive").exists())
     print(f"roster_queue self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0

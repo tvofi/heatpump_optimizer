@@ -807,7 +807,7 @@ sweep's standing-seat liveness step keep them alive.
   and no pull request is no evidence. `--self-test` drives it offline over a
   recorded `--pr-state`; `r10_roster_sync_mutants.py` plants its predicates.
 - `roster_queue.py` — the standing roster seat's queue runner: `run FIRST LAST`
-  applies each queue line (`<op> <group> [arg]`) through `roster_edit.py --push`,
+  applies each queue line (`<op> <group> [arg] [--flag value]`, so `drop-carry G --match TEXT` works) through `roster_edit.py --push`,
   linting from a clone it owns and detaches at `origin/main` before every
   attempt (up to four, when main moved or a clean-lint push lost a race), and
   never moving the orchestrator's checkout. `readback SHA GROUP FILE` prints
