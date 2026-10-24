@@ -1,0 +1,13 @@
+CLOUD FIXER seat for PR #2712 of tvofi/heatpump_optimizer, at head 65d37a7cbb83111e8cb0e929bbe91e571ed1ed4d. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 65d37a7cbb83111e8cb0e929bbe91e571ed1ed4d for the base you were given.
+Output: push the code to refs/heads/handoff/r10-demand-overbook-r4, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-demand-overbook-r4 <body.md>`, which pushes refs/heads/handoff-body/r10-demand-overbook-r4; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Continue from handoff/r10-demand-overbook (tip 65d37a7cbb83111e8cb0e929bbe91e571ed1ed4d); do not restart from main. #2712's PR head is a717ded9a5852254eba157da5a2330d74c876ae2 (the autofix commits "ci: pin killed mutants" sit on it); merge origin/fix/r10-demand-overbook into your work so the pins it carries are kept, then origin/main.
+Real reds at a717ded9 (not the race):
+(1) tests / mutation: MUTATION TABLE REFUSED, 5 unpinned sites added by this diff (3992 vs 3990). Pin each with a killing test (--pin-killed), or kill the site, or triage it in `## Unpinned sites`; a null control for each. Read the site list from the CI log (tools/audit/seat/failure_logs.sh 2712) or from prepr's tests / mutation arm.
+(2) pr-contract, 2 body errors: `## Head` must name a717ded (the head CI ran on; the autofix commit 5fb0a08 is not authored as github-actions, so the Head section must state it), and `## Red checks` must answer `tests / mutation` (the failure, the cheaper detector and its standing cost, or the finding that none exists). Re-take the whole body, not a subset, and name the new head you hand off.
+Re-run prepr to a pass, then push handoff/r10-demand-overbook (new 40-hex tip) and handoff-body/r10-demand-overbook per the fixer contract. Report the new handoff SHA.
+no host or home paths in anything you push
