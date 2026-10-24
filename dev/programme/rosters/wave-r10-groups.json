@@ -7137,7 +7137,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+    "note": "absorbed into R10-FLOW-WIP by routing audit 1 (2026-10-24); brief and carry moved there"
    }
   },
   {
