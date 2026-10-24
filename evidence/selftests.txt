@@ -1,0 +1,7 @@
+codescan_wait self-test: 17 checks, 0 failed
+ruleset_cutover self-test: 101 checks, 0 failed
+gate self-test: 27 checks, 0 failed
+merge_train self-test: 239 checks, 0 failed
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+TOTAL: 0 error(s) across 50 policy file(s)

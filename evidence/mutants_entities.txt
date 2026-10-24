@@ -1,0 +1,4 @@
+== none: defects= [] missed= []
+== gate-exact arm deleted: defects= [] missed= ['gate does not need pr-contract', 'gate needs a unit beside pr-contract']
+== !cancelled arm deleted: defects= [] missed= ['pr-contract skippable before its needs end']
+== pr-contract needs arm deleted: defects= [] missed= ['pr-contract does not need a unit']

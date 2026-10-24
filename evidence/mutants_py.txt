@@ -1,0 +1,32 @@
+== M1 step1 raises instead of polling
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+codescan_wait self-test: 17 checks, 2 failed
+== M2 wait own bound
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+codescan_wait self-test: 17 checks, 1 failed
+== M3 rate-limit print to stdout
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+codescan_wait self-test: 17 checks, 1 failed
+== M4 Fail print to stdout
+codescan_wait self-test: 17 checks, 1 failed
+== M5 same positional
+FAIL apply: a PUT echo and GET in GitHub's own list order pass both halves ROLLBACK saved /tmp/tmpu_p54fkl/rb-22.json (17 contexts, sha256 b6d380ac9d90f05d, digest beside it)
+FAIL enable: GitHub's reordered read-back (rules, bypass actors) is the payload, both halves pass PRECONDITION merged-on-main: PASS -- compare aaaaaaaaaaaa...main reads 'ahead'
+FAIL rollback: GitHub's reordered read-back is the copy REFUSED: ROLLBACK READBACK FAILED
+ruleset_cutover self-test: 101 checks, 3 failed
+== M6 rules unsorted
+FAIL apply: a PUT echo and GET in GitHub's own list order pass both halves ROLLBACK saved /tmp/tmp0vxz08fy/rb-22.json (17 contexts, sha256 b6d380ac9d90f05d, digest beside it)
+FAIL staged-hash: a live ruleset reordered from the staged one is the staged one PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884):
+FAIL enable: GitHub's reordered read-back (rules, bypass actors) is the payload, both halves pass PRECONDITION merged-on-main: PASS -- compare aaaaaaaaaaaa...main reads 'ahead'
+FAIL rollback: GitHub's reordered read-back is the copy REFUSED: ROLLBACK READBACK FAILED
+ruleset_cutover self-test: 101 checks, 4 failed
+== M7 bypass unsorted
+FAIL apply: a PUT echo and GET in GitHub's own list order pass both halves ROLLBACK saved /tmp/tmphqx6sort/rb-22.json (17 contexts, sha256 b6d380ac9d90f05d, digest beside it)
+FAIL staged-hash: a live ruleset reordered from the staged one is the staged one PAYLOAD (PUT repos/tvofi/heatpump_optimizer/rulesets/23698884):
+FAIL enable: GitHub's reordered read-back (rules, bypass actors) is the payload, both halves pass PRECONDITION merged-on-main: PASS -- compare aaaaaaaaaaaa...main reads 'ahead'
+FAIL rollback: GitHub's reordered read-back is the copy REFUSED: ROLLBACK READBACK FAILED
+ruleset_cutover self-test: 101 checks, 4 failed
+== M8 contexts unsorted (own, not in body)
+ruleset_cutover self-test: 101 checks, 0 failed
+== M9 requires_only_gate positional (own)
+ruleset_cutover self-test: 101 checks, 0 failed
