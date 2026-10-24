@@ -1,0 +1,8 @@
+== fixer.md
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fixer.md:7:Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fixer.md:8:API floor is theirs), woken once by its exit, never sleeping and polling;
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fixer.md:9:past the handoff, do not wait. Rotate to a fresh context between stages (rca,
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fixer.md:10:fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
+== fix-review.md
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fix-review.md:3:You review one fix PR adversarially, in a fresh context, from a worktree at
+879dd65becbc34403458628b0614ccdb43063e9f:dev/governance/roles/fix-review.md:8:A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.

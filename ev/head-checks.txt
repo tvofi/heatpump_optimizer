@@ -1,0 +1,10 @@
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+
+209 passed, 0 failed
+tools/audit/briefs/fixer.md                      314  315     5214  5216 
+tools/audit/briefs/fix-review.md                 140  140     2448  2451 
+.claude/rules/finding-propagation.md             101  101     1332  1336 
