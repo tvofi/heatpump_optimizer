@@ -1,0 +1,30 @@
+7a8,36
+> ## Status at `origin/main` `50af6174f` (2026-10-24)
+> 
+> The record below is as measured on 2026-10-15; its figures are not rewritten. This
+> section re-derives what the tree can answer now, each by the command shown.
+> 
+> - **M2 and M3 are built.** `tools/audit/seat/body_push.sh` runs `ci_predict.py
+>   --base origin/main` before the push and refuses on rc 1 (`INSTRUMENTS.md`
+>   describes it); `tools/pr/prepr.sh` prints each arm's repair (M3). Landed with
+>   `03c0766bf` (R10-TICK-DRIVERS).
+> - **M4 is built.** `ci-autofix.md` now says a handoff ref runs no job, so a red step 6d
+>   predicts is repaired before the handoff (`--single`; for INERT READS
+>   `ci_predict.py --apply-inert`), and `fixer.md` step 5 says the same.
+>   `grep -c -i 'predict\|prepr' dev/governance/rules/ci-autofix.md` prints 2 (it
+>   printed 0 in section 7, item 3).
+> - **Section 7 items 1 to 3 and 5 are therefore stale.** Items 4 (`open_pr.sh` sets
+>   `PREPR_SKIP_CLOSURES=1`) still holds: `tools/pr/prepr.sh:3130` prints
+>   "closures-autofix is the only check left".
+> - **The carry is still unrouted.** `grep -c rederive tools/pr/ci_predict.py` prints 0.
+>   `grep -c R9-RO-9b dev/programme/rosters/*.json` has no non-zero file. M5 is not built.
+> - **Class size, re-taken.** The harness siblings `inert_siblings()` counts:
+>   `ls dev/audit/harnesses/*.py | wc -l` prints 102, and
+>   `tests/closures.json` lists 139 `dev/audit/harnesses/` paths under
+>   `inert_reads["tests/harness_headers.py"]` (26 when this record was written).
+>   `git log origin/main --since=2026-09-25 --grep='re-record closures' --oneline | wc -l`
+>   prints 35 (24 in section 1), 15 of them since 2026-10-12 (5 in section 1).
+>   `git ls-remote origin 'refs/heads/handoff/*' | wc -l` prints 99 refs (15 topics in
+>   section 4). The section-1 timings, the 3-of-15 rate and the 3.5 h expected loss are
+>   that day's measurements and are not re-run.
+> 
