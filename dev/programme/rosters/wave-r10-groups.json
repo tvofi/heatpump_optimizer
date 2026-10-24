@@ -6785,7 +6785,8 @@
    "rca": [],
    "after": [
     "R10-FLOW-PULL",
-    "R10-TICK-RELAY-DECOUPLE"
+    "R10-TICK-RELAY-DECOUPLE",
+    "R10-TRAIN-UPGRADE"
    ],
    "carry": [
     "Pre-study: the Lean flow pre-study, section K10.",
