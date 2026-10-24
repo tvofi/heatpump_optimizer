@@ -1,18 +1,20 @@
-P66 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-CARRY-DISPOSITION'] | live: [('R10-FLY-CARRY-DISPOSITION', 'not-started')]
-   carry -> R10-FLY-CARRY-DISPOSITION matches verdict group: True | triage_refusal: None
-P67 ruling_verdict= ACCEPT | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
-   carry -> R10-FLOW-JIDOKA matches verdict group: True | triage_refusal: None
-P68 ruling_verdict= DEFER | verdict groups ['R10-FLOW-BODY-ONLY'] | live: [('R10-FLOW-BODY-ONLY', 'not-started')]
-P69 ruling_verdict= DEFER | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
-P70 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
-   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
-P71 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
-   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
-P72 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
-   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
-P73 ruling_verdict= REJECT | verdict groups [] | live: []
-P74 ruling_verdict= REJECT | verdict groups [] | live: []
-P75 ruling_verdict= ACCEPT | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
-   carry -> R10-FLOW-JIDOKA matches verdict group: True | triage_refusal: None
-P76 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-CARRY-DISPOSITION'] | live: [('R10-FLY-CARRY-DISPOSITION', 'not-started')]
-   carry -> R10-FLY-CARRY-DISPOSITION matches verdict group: True | triage_refusal: None
+P66 ruling_verdict= ACCEPT
+P67 ruling_verdict= ACCEPT
+P68 ruling_verdict= DEFER
+P69 ruling_verdict= DEFER
+P70 ruling_verdict= ACCEPT
+P71 ruling_verdict= ACCEPT
+P72 ruling_verdict= ACCEPT
+P73 ruling_verdict= REJECT
+P74 ruling_verdict= REJECT
+P75 ruling_verdict= ACCEPT
+P76 ruling_verdict= ACCEPT
+P99 ruling_verdict= None
+dev/programme/triage/s6-batch8.md#P66 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P67 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P70 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P71 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P72 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P75 triage_refusal= None
+dev/programme/triage/s6-batch8.md#P76 triage_refusal= None
+MUTANT P75->DEFER triage_refusal= dev/programme/triage/s6-batch8.md#P75 is not an ACCEPT ruling (DEFER)
