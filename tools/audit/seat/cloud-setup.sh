@@ -68,7 +68,8 @@ check() { # prefix
     && [ "${OPENBLAS_CORETYPE:-}" = "$CORETYPE" ]; then
     echo "cloud-setup check: OK python3 is $py"; return 0
   fi
-  echo "cloud-setup check: REFUSE python3 is ${py:-absent}, not $1/venv-ci/bin/python3;" \
+  echo "cloud-setup check: REFUSE python3 is ${py:-absent}," \
+    "HPO_TYPING_PYTHON is ${HPO_TYPING_PYTHON:-unset}, OPENBLAS_CORETYPE is ${OPENBLAS_CORETYPE:-unset};" \
     "set the environment's variables: $(variables "$1" | tr '\n' ' ')"
   return 1
 }
