@@ -217,7 +217,7 @@ jobs:
             echo "rerun; every step below is skipped and this job reports success."
           fi
 
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           # env_drift needs the comparison ref's history to build its
@@ -230,12 +230,12 @@ jobs:
       # compute different keys and cannot restore each other's baseline.
       # A cross-interpreter baseline is exactly the false drift that would
       # otherwise make this matrix unreadable.
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           node-version: "22"
@@ -321,7 +321,7 @@ jobs:
           || github.event_name == 'merge_group'
           || github.event_name == 'workflow_dispatch'
             && needs.closure-scope.outputs.fast_skip != 'skip'
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.driftkey.outputs.key }}
@@ -389,7 +389,7 @@ jobs:
       # empty on a run whose lane never executed a line.
       - name: Upload the fast lane's CI metrics
         if: always() && needs.closure-scope.outputs.fast_skip != 'skip'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-fast
           path: ${{ runner.temp }}/ci-metrics-fast.tsv
@@ -405,7 +405,7 @@ jobs:
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
             && needs.closure-scope.outputs.fast_skip != 'skip'
-        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.warmkey.outputs.key }}
@@ -441,12 +441,12 @@ jobs:
           fi
 
       # Full history: the scoped plan diffs against the merge base.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           python-version: "3.14"
@@ -502,15 +502,15 @@ jobs:
             echo "rerun; every step below is skipped and this job reports success."
           fi
 
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.closure-scope.outputs.browser_skip != 'skip'
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.closure-scope.outputs.browser_skip != 'skip'
         with:
           python-version: "3.13"
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.closure-scope.outputs.browser_skip != 'skip'
         with:
           node-version: "22"
@@ -524,7 +524,7 @@ jobs:
 
       - name: Cache the lane's Chromium
         if: needs.closure-scope.outputs.browser_skip != 'skip'
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pw-browsers
           # Keyed on the lock, not a typed version: a playwright bump (a
@@ -584,7 +584,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Tags are not fetched by a plain checkout. Fetched here (rather
           # than skipped) so a tag-scoped citation gets verified for real in
@@ -593,7 +593,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -670,7 +670,7 @@ jobs:
             echo "rerun; every step below is skipped and this job reports success."
           fi
 
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.closure-scope.outputs.typing_skip != 'skip'
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
@@ -679,7 +679,7 @@ jobs:
       # line satisfies the pin this ruler is defined by (#504). A second leg
       # would either fail to install or measure something else and call it
       # the same number.
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: needs.closure-scope.outputs.typing_skip != 'skip'
         with:
           python-version: "3.14"
@@ -710,7 +710,7 @@ jobs:
 
       # Kept on a failure too: the run that refuses because the census is not
       # yet recorded is exactly the run whose numbers are wanted.
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && needs.closure-scope.outputs.typing_skip != 'skip'
         with:
           name: typing-census
@@ -746,11 +746,11 @@ jobs:
     steps:
       # Full history: the scope below diffs against the merge base and reads
       # that base's tests/closures.json, as `fast`'s does.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -786,7 +786,7 @@ jobs:
       # miss. The push arm restores its parent's entry by the same rule.
       - name: Restore the base's per-script coverage
         id: covbase
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/coverage-base
           key: ${{ steps.covkey.outputs.restore_key }}
@@ -903,7 +903,7 @@ jobs:
 
       # Kept on a failure too: the run that refuses because the floor moved is
       # exactly the run whose per-module numbers are wanted.
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: coverage-json
@@ -912,7 +912,7 @@ jobs:
 
       - name: Upload the coverage lane's CI metrics
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-coverage
           path: ${{ runner.temp }}/ci-metrics-coverage.tsv
@@ -933,7 +933,7 @@ jobs:
 
       - name: Save this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/coverage-base
           key: ${{ steps.covkey.outputs.key }}
@@ -960,15 +960,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
       # A missing artifact fails this step, so a measurement that never
       # happened is a red here, never a green.
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
@@ -1019,13 +1019,13 @@ jobs:
       shards: ${{ steps.plan.outputs.shards }}
       count: ${{ steps.plan.outputs.count }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # --scope changed diffs three-dot against the merge base, which a
           # shallow clone does not have.
           fetch-depth: 0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1049,7 +1049,7 @@ jobs:
             --scope changed --base origin/main --max 10 --jobs 3 \
             | tee "$RUNNER_TEMP/mutation-table.txt"
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: mutation-table
@@ -1120,11 +1120,11 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.mutation.outputs.shards) }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1135,7 +1135,7 @@ jobs:
           -r tests/requirements-ci.txt
 
       - name: Download the lane's table
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: mutation-table
@@ -1219,7 +1219,7 @@ jobs:
           print(f"measure: {status}, {len(added)} anchor(s)")
           PY
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.pins.outcome != 'skipped'
         with:
           name: mutation-pins-${{ matrix.shard }}
@@ -1287,7 +1287,7 @@ jobs:
         # The floor the integration supports (#514), and whatever is current.
         image: ["2025.2.0", "stable"]
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Every step after the checkout is the composite action's, the one
       # nightly.yml's schedule arm runs too (R10-CI-LAYOUT PR 1): a matrix
@@ -1345,9 +1345,9 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1412,13 +1412,13 @@ jobs:
     env:
       HPO_JOB_GRADES: nothing
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           # policy_lint.mjs's citation resolvers ask git about cited tags.
           fetch-tags: true
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1463,7 +1463,7 @@ jobs:
             echo "a pinned governance grader changed: its own copy runs below"
           fi
 
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: >-
           steps.changed.outputs.coverage_ratchet == 'true'
           && needs.coverage.result != 'skipped'
@@ -1524,7 +1524,7 @@ jobs:
           fi
           exit 0
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         with:
           node-version: "22"
@@ -1621,7 +1621,7 @@ jobs:
           && needs.arch-instrument.result == 'success'
           && needs.closure-scope.outputs.fast_skip != 'skip'
         continue-on-error: true
-        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-fast
           key: lane-proof-fast-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
@@ -1644,7 +1644,7 @@ jobs:
           needs.coverage.result == 'success'
           && needs.closure-scope.outputs.coverage_skip != 'skip'
         continue-on-error: true
-        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-coverage
           key: lane-proof-coverage-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
@@ -1667,7 +1667,7 @@ jobs:
           needs.browser.result == 'success'
           && needs.closure-scope.outputs.browser_skip != 'skip'
         continue-on-error: true
-        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-browser
           key: lane-proof-browser-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
@@ -1699,10 +1699,10 @@ jobs:
       state_coverage: ${{ steps.skipcoverage.outputs.state }}
       state_browser: ${{ steps.skipbrowser.outputs.state }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1750,21 +1750,21 @@ jobs:
       # the mechanism can only ever fail toward the expensive answer.
       - name: Restore fast's last green proof
         if: steps.laneskip.outputs.diff != ''
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-fast
           key: lane-proof-fast-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
           restore-keys: lane-proof-fast-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-
       - name: Restore coverage's last green proof
         if: steps.laneskip.outputs.diff != ''
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-coverage
           key: lane-proof-coverage-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
           restore-keys: lane-proof-coverage-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-
       - name: Restore browser's last green proof
         if: steps.laneskip.outputs.diff != ''
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/lane-proof-browser
           key: lane-proof-browser-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
@@ -1939,7 +1939,7 @@ jobs:
                            || github.event_name == 'workflow_dispatch')
                          && needs.closure-scope.outputs.case == 'skip' }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -1950,7 +1950,7 @@ jobs:
       # the same script with no rule for choosing between them. The closure
       # table records which files a script reads, which is a property of the
       # code, not of the interpreter running it.
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1960,7 +1960,7 @@ jobs:
       # node, the pinned dependencies, nor strace. On any diff the gate can
       # scope -- full or scoped -- every one of these steps runs exactly as it
       # did before the fast lane existed.
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: env.DOCS_ONLY_FAST != 'true'
         with:
           node-version: "22"
@@ -2186,7 +2186,7 @@ jobs:
           always() && (github.event_name == 'pull_request'
                        || github.event_name == 'workflow_dispatch')
           && env.DOCS_ONLY_FAST != 'true'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ github.event_name == 'pull_request' && 'closure-recordings' || format('closure-recordings-tree-{0}', env.CLOSURES_TREE) }}
           path: ${{ runner.temp }}/closures
@@ -2195,7 +2195,7 @@ jobs:
 
       - name: Upload the closures lane's CI metrics
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-closures
           path: ${{ runner.temp }}/ci-metrics-closures.tsv
@@ -2221,9 +2221,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -2306,7 +2306,7 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
@@ -2331,12 +2331,12 @@ jobs:
           # the pull request's copy in the tree; it runs this copy instead.
           install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
       - name: Download closure recordings
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: closure-recordings
           path: ${{ runner.temp }}/closures
@@ -2578,7 +2578,7 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
@@ -2604,7 +2604,7 @@ jobs:
           # the pull request's copy in the tree; it runs this copy instead.
           install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -2837,7 +2837,7 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
@@ -2863,7 +2863,7 @@ jobs:
           # the pull request's copy in the tree; it runs this copy instead.
           install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -2873,7 +2873,7 @@ jobs:
       # (#2060, R9-CI-2); `merge_pin_shards` folds them into the one
       # directory `apply_pins` reads.
       - name: Download the pins the mutation-pins shards measured
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           pattern: mutation-pins*
