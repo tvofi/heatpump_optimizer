@@ -1,6 +1,0 @@
-HEAD 5a03e901be80782cfacabf69b6bff1895dddb864
-RESULT ruling_verdict P63 = ACCEPT
-RESULT null P99 = None
-RESULT triage_refusal unmutated = None
-MUTANT ACCEPT->DEFER refusal = dev/programme/triage/s6-batch5.md#P63 is not an ACCEPT ruling (DEFER)
-MUTANT no Verdict line = unreadable
