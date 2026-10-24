@@ -1,0 +1,55 @@
+## verdicts
+      1 Verdict: ACCEPT
+      2 Verdict: DEFER
+## entries
+3
+## load_dests at main
+196:                self.dests = ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state)
+329:def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
+330-               issue_state=None) -> Dests:
+331-    # A carry file's destination issue is its own `issue` field (brief_lint.mjs
+332-    # owns the file-name grammar and refuses a name that disagrees with it).
+333-    if ref:
+334-        roster = roster_lib.show_roster(str(repo), ref)
+335-        r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
+336-                           capture_output=True, text=True)
+337-        texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
+338-                                text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
+339-    else:
+340-        roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
+341-        texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
+## brief_lint 980-992
+    return findings
+  }
+  if (shape) checkShape(data.groups, findings)
+  lintAfterEdges(data.groups, findings)
+  for (const g of data.groups) {
+    if (!g || typeof g !== 'object') continue
+    if (g.resume?.stage === STAGE_SKIP) continue // merged work; brief will not be read again
+    if (typeof g.brief !== 'string' || !g.brief.trim()) continue // absence already reported
+    lintBrief(typeof g.group === 'string' ? g.group : '(unnamed)', g.brief, findings)
+  }
+  return findings
+}
+
+## tick_loop 76
+tick_pass() { # <out> [tick args...]: one pass; prints the banner
+  local out=$1 relay rrc trc tmp now; shift
+  relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
+  mkdir -p "$(dirname -- "$out")"
+  if [ -f "$relay" ]; then
+## handoff_push 128
+# app_push.sh judges the same range again at the push, rows included.
+git fetch -q origin main || { echo "could not fetch origin/main to judge $CODE over it"; exit 1; }
+python3 -I "$SEAT/ref_privacy.py" guard --ref "$BR" --commits "$CODE" --over refs/remotes/origin/main \
+  || { echo "REFUSE: a commit handoff/$TOPIC adds over main carries a tool's attribution or names this host; nothing pushed"; exit 1; }
+git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+## urc 75
+390:    if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
+## class size
+1
+## brief-citations carry
+.claude/rules/brief-citations.md:11:`node tools/policy/brief_lint.mjs` lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `dev/programme/carries/carry-<N>.json`. It does not read the plan, the handover, or the role and dimension briefs.
+.claude/rules/brief-citations.md:22:4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).
+dev/governance/rules/brief-citations.md:11:`node tools/policy/brief_lint.mjs` lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `dev/programme/carries/carry-<N>.json`. It does not read the plan, the handover, or the role and dimension briefs.
+dev/governance/rules/brief-citations.md:22:4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).

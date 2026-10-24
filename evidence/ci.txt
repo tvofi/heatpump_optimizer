@@ -1,5 +1,7 @@
-head 1fbc924ab96888b7eb371ebd789a4e6326294a0d, check-runs API via pull_request_read get_check_runs, read 2026-10-24: 52 runs, all completed; conclusions success or skipped, 0 failure.
-pr-contract / pr-contract 120839002221 success (09:31:56-09:32:21); pr-contract / pr-contract 120838774437 success (09:34:45-09:35:15), started after every other run on the head concluded.
-gate 120839001422 success; gate 120838883142 success; governance / instrument-self-tests 120839000711 success; tests / mutation 120839000261 success.
-earlier head b451bde0: governance / instrument-self-tests job 120821317365 conclusion failure (get_check_run), the red the body answers.
-branch fix/r10-triage-s6-batch1 at 1fbc924ab96888b7eb371ebd789a4e6326294a0d by git ls-remote before writing.
+check-runs API (pull_request_read get_check_runs) at head 1fbc924ab96888b7eb371ebd789a4e6326294a0d, read 2026-10-24:
+total_count 52, all status completed; conclusions: success or skipped, 0 failure, 0 cancelled.
+pr-contract / pr-contract: success (job 120839002221, 09:31:56-09:32:21Z; job 120838774437, 09:34:45-09:35:15Z, started after every other run concluded)
+gate: success (120839001422; 120838883142)
+governance / instrument-self-tests: success (120839000711)
+tests / closures: success; tests / fast (3.14): success; tests / mutation: success; governance / delivery-status: success; tests / nightly-status: success
+Earlier red at b451bde0: governance / instrument-self-tests job 120821317365 (named and answered in the body's ## Red checks).
