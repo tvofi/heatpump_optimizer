@@ -10,7 +10,9 @@ alert_list.py (`match`, `reds`), never re-implemented:
   1. S, the run whose codeql unit this verdict covers: this run when its title's
      workset owns codeql, else the newest other run at this head that names this
      PR and the PR's live base, owns codeql, and whose codeql jobs have all
-     completed (gate.py's source rule). None FAILs.
+     completed (gate.py's source rule). None yet is polled for as step 4
+     polls, under the same bound: an edit run starts while its code run's
+     codeql unit is still analysing (#2675).
   2. The legs S uploaded: each `codeql / Analyze (<leg>)` job whose step "Perform
      CodeQL Analysis" concluded success (a scope stand-down skips it).
   3. M, S's `sha=` token; R, refs/pull/<N>/merge when S's event is pull_request,
@@ -19,7 +21,8 @@ alert_list.py (`match`, `reds`), never re-implemented:
      until every uploaded leg has its analysis at M; WAIT_MAX_S bounds the whole
      wait, and an absent analysis at the bound FAILs.
   5. `alert_list.reds`: the open alerts of those analyses.
-Exit 0 with the reds on stdout; 1 with `FAIL closed: <why>` (a rate limit included).
+Exit 0 with the reds on stdout; 1 with `FAIL closed: <why>` (a rate limit included)
+on stderr, so the job log shows it while stdout goes to the alert file.
 """
 from __future__ import annotations
 
@@ -64,23 +67,26 @@ def owns_codeql(run, pr):
     return t is not None and "codeql" in workset(t[0], t[1]) and t[1] == pr
 
 
-def source(get, repo, run_id, pr, base):
-    """(S's run object, S's jobs): step 1."""
+def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monotonic):
+    """(S's run object, S's jobs): step 1, polled until `stop`."""
     me = _get(get, f"repos/{repo}/actions/runs/{run_id}", "this run")
     if owns_codeql(me, pr):
         return me, _jobs(get, repo, me["id"])
     if pr:
         base = _get(get, f"repos/{repo}/pulls/{pr}", f"pull request {pr}")["base"]["ref"]
-    runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": me["head_sha"]}, get=get)
-    for r in sorted(runs, key=lambda r: r["id"], reverse=True):
-        t = parse_title(r.get("display_title") or "")
-        if r["id"] == me["id"] or r["status"] == "action_required" or t is None or t[2] != base or not owns_codeql(r, pr):
-            continue
-        jobs = _jobs(get, repo, r["id"])
-        done = {j["name"]: j["status"] for j in jobs}
-        if all(done.get(n) == "completed" for n in CODEQL):
-            return r, jobs
-    raise Fail(f"no run at this head owns a finished codeql unit for base {base!r}")
+    while True:
+        runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": me["head_sha"]}, get=get)
+        for r in sorted(runs, key=lambda r: r["id"], reverse=True):
+            t = parse_title(r.get("display_title") or "")
+            if r["id"] == me["id"] or r["status"] == "action_required" or t is None or t[2] != base or not owns_codeql(r, pr):
+                continue
+            jobs = _jobs(get, repo, r["id"])
+            done = {j["name"]: j["status"] for j in jobs}
+            if all(done.get(n) == "completed" for n in CODEQL):
+                return r, jobs
+        if now() + POLL_S > stop:
+            raise Fail(f"no run at this head owns a finished codeql unit for base {base!r} after {WAIT_MAX_S} s")
+        sleep(POLL_S)
 
 
 def legs_uploaded(jobs):
@@ -93,9 +99,8 @@ def legs_uploaded(jobs):
     return sorted(out)
 
 
-def wait(get, ref, sha, legs, sleep=time.sleep, now=time.monotonic):
+def wait(get, ref, sha, legs, stop, sleep=time.sleep, now=time.monotonic):
     """Step 4: poll until every uploaded leg has its analysis at (ref, sha)."""
-    stop = now() + WAIT_MAX_S
     while True:
         missing = [x for x in legs if x not in alert_list.match(get, ref, sha, legs)]
         if not missing:
@@ -105,15 +110,17 @@ def wait(get, ref, sha, legs, sleep=time.sleep, now=time.monotonic):
         sleep(POLL_S)
 
 
-def run(get, repo, run_id, pr, base, base_repeats, **kw):
-    s, jobs = source(get, repo, run_id, pr, base)
+def run(get, repo, run_id, pr, base, base_repeats, sleep=time.sleep, now=time.monotonic):
+    kw = dict(sleep=sleep, now=now)
+    stop = now() + WAIT_MAX_S                      # one bound over steps 1 and 4
+    s, jobs = source(get, repo, run_id, pr, base, stop, **kw)
     legs = legs_uploaded(jobs)
     sha = title_sha(s.get("display_title") or "")
     if not sha:
         raise Fail(f"run {s['id']}: its title carries no sha=")
     ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
     rel = alert_list.bind(get, repo)
-    wait(rel, ref, sha, legs, **kw)
+    wait(rel, ref, sha, legs, stop, **kw)
     ok, got = alert_list.reds(rel, ref, sha, legs, base, base_repeats)
     if not ok:
         raise Fail(got.removeprefix("FAIL closed: "))
@@ -129,10 +136,10 @@ def main(argv, get=ghapi.get, env=os.environ, **kw):
     try:
         got = run(get, env["GITHUB_REPOSITORY"], env["GITHUB_RUN_ID"], a.pr, a.base, a.base_repeats, **kw)
     except Fail as e:
-        print(f"FAIL closed: {e}")
+        print(f"FAIL closed: {e}", file=sys.stderr)
         return 1
     except (ghapi.RateLimited, ghapi.ApiError, KeyError) as e:
-        print(f"FAIL closed: {type(e).__name__}: {e}")
+        print(f"FAIL closed: {type(e).__name__}: {e}", file=sys.stderr)
         return 1
     print("\n".join(got))
     return 0
