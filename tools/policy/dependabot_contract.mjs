@@ -28,18 +28,17 @@
 
 export const DEPENDABOT_AUTHORS = new Set(['dependabot[bot]', 'app/dependabot'])
 
-// The files each ecosystem rewrites in its directory. pip is restricted to
-// the requirements*.txt locks this tree installs from; github-actions to the
-// workflow and composite-action files under .github/.
+// The files each ecosystem rewrites in its directory, as a test on the path
+// below that directory. pip is restricted to the requirements*.txt locks this
+// tree installs from; github-actions to the workflow and composite-action
+// files under .github/. The directory is compared as a string prefix, never
+// spliced into a pattern, so no regexp escape is written here: the policy
+// lint's own `printedPattern` holds the tree's one.
 const ECOSYSTEM_FILES = {
-  pip: (dir) => new RegExp(`^${dir}requirements[^/]*\\.txt$`),
-  npm: (dir) => new RegExp(`^${dir}(?:package\\.json|package-lock\\.json)$`),
-  'github-actions': () => /^\.github\/(?:workflows\/[^/]+\.ya?ml|actions\/[^/]+\/action\.ya?ml)$/,
+  pip: (rest) => /^requirements[^/]*\.txt$/.test(rest),
+  npm: (rest) => rest === 'package.json' || rest === 'package-lock.json',
+  'github-actions': (rest, path) => /^\.github\/(?:workflows\/[^/]+\.ya?ml|actions\/[^/]+\/action\.ya?ml)$/.test(path),
 }
-
-// The one regexp-escape in the policy lint (policy_lint.mjs imports it): a
-// grammar written twice is the agreement lane's refusal.
-export const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // The (ecosystem, directory) entries of a dependabot.yml, in file order. The
 // file's own header fixes the shape this reads (`package-ecosystem:` then
@@ -58,15 +57,16 @@ export function dependabotEntries(text) {
   return out
 }
 
-// One matcher per entry; an ecosystem this module does not know matches
-// nothing, so configuring it in dependabot.yml without teaching this module
-// leaves its PRs refused rather than waved through.
+// One path predicate per entry; an ecosystem this module does not know
+// matches nothing, so configuring it in dependabot.yml without teaching this
+// module leaves its PRs refused rather than waved through.
 export function dependabotManifests(text) {
   return dependabotEntries(text).flatMap(({ ecosystem, directory }) => {
-    const make = ECOSYSTEM_FILES[ecosystem]
-    if (!make) return []
+    const test = ECOSYSTEM_FILES[ecosystem]
+    if (!test) return []
     const d = directory.replace(/^\/+|\/+$/g, '')
-    return [make(d ? `${esc(d)}/` : '')]
+    const prefix = d ? `${d}/` : ''
+    return [(path) => path.startsWith(prefix) && test(path.slice(prefix.length), path)]
   })
 }
 
@@ -92,7 +92,7 @@ export function dependencyBumpProblems({ paths = [], commits = null, red = [], m
     }
   }
   if (!paths.length) out.push('the changed-path list is empty; a Dependabot pull request changes at least one manifest')
-  const off = paths.filter((p) => !manifests.some((re) => re.test(p)))
+  const off = paths.filter((p) => !manifests.some((matches) => matches(p)))
   if (off.length) {
     out.push(`this Dependabot pull request changes ${off.length} path(s) no .github/dependabot.yml entry configures, including \`${off[0]}\`; the dependency-bump contract covers configured manifests only`)
   }
