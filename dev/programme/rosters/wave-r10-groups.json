@@ -8653,7 +8653,9 @@
    "kind": "instrument",
    "class": "instrument",
    "size": "XS",
-   "issues": [],
+   "issues": [
+    2730
+   ],
    "fixes": [],
    "after": [],
    "files": [
