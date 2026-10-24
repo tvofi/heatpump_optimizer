@@ -9402,6 +9402,48 @@
     "branch": "handoff/r10-routing-invariants"
    },
    "brief": "Owner request (tvofi, 2026-10-24), issue #2733: three routing invariants hold at every roster state. (1) Every carry not yet implemented routes to a roster group that is not done. (2) Every live roster group lists at least one issue in `issues` or `fixes`. (3) Every open issue but #201 is listed by at least one live roster group. Extend the instruments, add no script; size S, per the verifier (the verifier report filed on #2733, section 5). (a) roster_edit.py gains `mark-carry <group> <index|--match TEXT> implemented <sha>|moved <GROUP>|dismissed <reason>`; carry_audit.py gains an offline `roster` subcommand that REPORTS STRANDED = a pending carry on a done group; legacy carries (existing on done groups at the cut-over roster sha) are exempt, so there is no blanket migration and nothing is marked implemented by default. `[implemented: <sha>]` records that the sha is on main; it is not verification. (b) roster_sync sets the existing `carries-open` stage instead of `done` when pending carries remain; no set-stage refusal, so the factual sync at every merge is unchanged. (c) Invariant 2 is a brief_lint warning, not an error, so roster_edit's --push lint gate and fly-in registration at dispatch are not blocked. Invariant 3 is a tick report line in the default pass from the tick's cached issue list (CARRY made default and offline); the issue check is report-only on push, with no failing CI job on issues. (d) The offline `roster` check in governance.yml is scoped to PRs that touch the roster file or carry_audit and to push to main. Controls: a done group with a pending non-legacy carry reads STRANDED and its twin marked implemented at an ancestor sha does not; a live group with empty issues and fixes warns and stops warning once it gains one; an open issue listed only by a done group is reported and #201 is not; the null control is the first carry. Hot files are shared with R10-FLY-CARRY-DISPOSITION (carry_audit.py) and R10-FLOW-WIP (orchestrator_tick.py) at distinct seams; roster_edit.py is R10-ORCH-ROSTER-SCHEMA's, hence the after-edge. The `absorbed` stage joining DONE_STAGES stays with R10-ORCH-ROSTER-SCHEMA."
+  },
+  {
+   "lane": "SV",
+   "kind": "owner",
+   "class": "owner",
+   "severity": "medium",
+   "size": "M",
+   "issues": [
+    2492
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 16,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-SAV-ACTUATION",
+   "after": [
+    "R10-SAV-COMFORT"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-sav-actuation"
+   },
+   "brief": "R10-SAV-ACTUATION (owner #2492 carry 5, seam 2). Actuate the supply switch at step boundaries from a one-minute tick, so that the plan's step change reaches the pump at the boundary instead of at the next coordinator refresh. Routed from R10-SAV-COMFORT's body (Carry: #2492 (item ea7e7a49)). Size: M until the design note says otherwise. A design note comes first (designer.md), naming the owning seam (actuator writes come from the coordinator or pump_arbiter.py, per fixer.md step 17) and the failing test. After-edge: R10-SAV-COMFORT. issues: [2492]; fixes: [2492] only once the seam closes the carry."
   }
  ]
 }
