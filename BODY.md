@@ -131,16 +131,17 @@ Forward-carry.
 
 `tools/pr/ci_predict.py --base origin/main` lists 13 sites added by the diff. Dispositions:
 
-- draw_range.py:296 CMP_BOUND (`drawn_kw > floor`): value check `#2499: a standby draw under the running floor heats nothing`, which kills the M2 mutant above.
-- draw_range.py:324 GUARD_OFF, :326 RETURN_DEL, :305 CMP_BOUND/RETURN_DEL: value check `#2499: a resistive element sharing the meter gives no space draw; a pump not serving rooms gives 0 kW` (None / 0.0 / 2.0 for a (2, 1) split).
-- coordinator.py:6505 GUARD_OFF: value checks `#2499: a metered pump that drew nothing ...` and `the slab rises with the metered draw ...`.
-- coordinator.py:1007 CMP_BOUND*2 (the `0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS` bounds): no local value check drives dt_h to either bound (the test uses 0.5 h), so this site is left to `mutation-autofix`, with a written triage if it survives. M1 above mutates the same predicate's `kw` conjunct, not these bounds.
-- coordinator.py:1011 RETURN_DEL: value checks `without a power meter the slab follows the plan` and `with no previous sample time the slab follows the plan` (25.0 expected).
-- draw_range.py:295 CLAMP_DROP, draw_range.py:296 RETURN_DEL, coordinator.py:6468 GUARD_OFF, :7659 GUARD_OFF, :7670 RETURN_DEL (the moved `_track_dhw` block): pinned by `mutation-autofix` where CI's mutation check kills them. A survivor gets a written triage on this PR, never an automated one.
+- `custom_components/heatpump_optimizer/draw_range.py:296 CMP_BOUND`: value check `#2499: a standby draw under the running floor heats nothing` (kills the M2 mutant above); pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/draw_range.py:324 GUARD_OFF`, `custom_components/heatpump_optimizer/draw_range.py:326 RETURN_DEL`, `custom_components/heatpump_optimizer/draw_range.py:305 CMP_BOUND`, `custom_components/heatpump_optimizer/draw_range.py:305 RETURN_DEL`: value check `#2499: a resistive element sharing the meter gives no space draw; a pump not serving rooms gives 0 kW` (None / 0.0 / 2.0 for a (2, 1) split); pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/coordinator.py:6505 GUARD_OFF`: value checks `#2499: a metered pump that drew nothing ...` and `the slab rises with the metered draw ...`; pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/coordinator.py:1011 RETURN_DEL`: value checks `without a power meter the slab follows the plan` and `with no previous sample time the slab follows the plan` (25.0 expected); pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/coordinator.py:1007 CMP_BOUND*2` (the `0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS` bounds): no local value check drives dt_h to either bound (the test uses 0.5 h). Pinned by `mutation-autofix` if killed; a survivor gets a written triage on this PR. M1 mutates the same predicate's `kw` conjunct, not these bounds.
+- `custom_components/heatpump_optimizer/draw_range.py:295 CLAMP_DROP`, `custom_components/heatpump_optimizer/draw_range.py:296 RETURN_DEL`, `custom_components/heatpump_optimizer/coordinator.py:6468 GUARD_OFF`, `custom_components/heatpump_optimizer/coordinator.py:7659 GUARD_OFF`, `custom_components/heatpump_optimizer/coordinator.py:7670 RETURN_DEL` (the last three are the moved `_track_dhw` block): pinned by `mutation-autofix` where CI's mutation check kills them; a survivor gets a written triage, never an automated one.
 
 ## Red checks
 
-none at handoff. `ci_predict.py` predicted two reds before the repair commit d6ab12b4b: `tests / closures` (INERT READS) and `ledger` (STALE PIN). Both are now repaired. These are `ci-autofix.md`'s known classes, and the static predictor `body_push.sh` runs is the cheaper detector that caught them.
+- `mutation`: predicted red at this head, because prepr step 6d lists the 13 unpinned sites above, and `mutation` fails on a mutant no pin kills until `mutation-autofix` pins it after the push (`ci-autofix.md`). The cheaper detector is that step-6d prediction itself, which runs in seconds and named every site before the handoff. The answer is the per-site disposition above.
+- Before the repair commit d6ab12b4b, `ci_predict.py` also predicted `tests / closures` (INERT READS) and `ledger` (STALE PIN). Both are repaired at this head. The static predictor `body_push.sh` runs is the cheaper detector that caught them.
 
 ## Forward-carry
 
