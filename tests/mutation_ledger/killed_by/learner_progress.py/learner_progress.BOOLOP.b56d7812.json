@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:learner_progress BOOLOP b56d7812",
+  "killed_by": "tests/features.py",
+  "old": "    if learner.blocked_by is not None and rate is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: BOOLOP (`if learner.blocked_by is not None or rate is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

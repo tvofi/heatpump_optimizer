@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:learner_progress_view BOOLOP 42520d5a",
+  "killed_by": "tests/features.py",
+  "old": "            params.two_zone_enabled and bool(config.lower_floor_temp_entity),",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: BOOLOP (`params.two_zone_enabled or bool(config.lower_floor_temp_entity),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

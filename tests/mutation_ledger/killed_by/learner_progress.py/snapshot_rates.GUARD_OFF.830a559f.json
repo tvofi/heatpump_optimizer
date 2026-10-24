@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:snapshot_rates GUARD_OFF 830a559f",
+  "killed_by": "tests/features.py",
+  "old": "        if days < MIN_RATE_WINDOW_DAYS:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
