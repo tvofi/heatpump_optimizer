@@ -23,7 +23,15 @@ now requires on push. By default the shim adds each of those three, green,
 to a push run that lacks it (never over one it has); `--no-b3-fill` drops the
 fill, and the push rows must then fail naming exactly those names.
 
-`b3` enumerates, from `.github/workflows/tests.yml`, every job whose failure
+U5B FILL. The model predates P2b's `tests / arch-instrument` too, which the
+port requires wherever `tests` runs and which is no ruleset context: the shim
+keeps it out of the model's names and adds it, green, to any run carrying a
+`tests / *` job that lacks it (this run's and every run at the head),
+always: `--no-b3-fill` keeps it, so its null stays B3's. The port's own
+self-test is this name's null (a run without it FAILs naming it).
+
+`b3` enumerates, from this tree's `.github/workflows/tests.yml` (the file the
+port's REQUIRED is paired with; origin/main's until P2b), every job whose failure
 reddens the Tests push run (it runs on push and is not continue-on-error)
 and compares it with REQUIRED["push"]'s `tests / *` names; `--plant` drops
 `ci-ratchet` from REQUIRED first, and the parity must go red.
@@ -66,6 +74,13 @@ import gate as port  # noqa: E402
 import prelude  # noqa: E402
 
 B3_NAMES = tuple(f"tests / {n}" for n in port.PUSH_ONLY["tests"])
+U5B_NAMES = ("tests / arch-instrument",)
+
+
+def u5b_fill(jobs: dict) -> dict:
+    if not any(k.startswith("tests / ") for k in jobs):
+        return jobs
+    return {**{n: ("completed", "success") for n in U5B_NAMES}, **jobs}
 
 
 def extract(dest: Path) -> Path:
@@ -78,18 +93,21 @@ def extract(dest: Path) -> Path:
 
 def shim(b3_fill: bool = True) -> types.ModuleType:
     G = types.ModuleType("gate_model")
-    G.CODE = {u: list(n) for u, n in port.CODE.items()}
+    G.CODE = {u: [x for x in n if f"{u} / {x}" not in U5B_NAMES] for u, n in port.CODE.items()}
     G.BODY = {u: list(n) for u, n in port.BODY.items()}
     G.REQUIRED = {**G.CODE, **G.BODY}
     G.BODY_ON_EDIT, G.BODY_ON_REVIEW = set(prelude.BODY_ON_EDIT), set(prelude.BODY_ON_REVIEW)
     G.ATTEMPT_CAP = port.ATTEMPT_CAP
     G.derive, G.title, G.parse_title, G.title_sha = prelude.derive, prelude.title, prelude.parse_title, prelude.title_sha
     G.workset = lambda kind, pr: prelude.workset(kind, pr)
-    G.judging = port.judging
+    _judging = port.judging                            # the original: gate() below swaps port.judging
+    G.judging = lambda run: _judging({**run, "jobs": u5b_fill(run.get("jobs") or {})})
 
     def gate(ctx, api):
         if b3_fill and ctx["event_name"] == "push":
             api = {**api, "jobs": {**{n: ("completed", "success") for n in B3_NAMES}, **api["jobs"]}}
+        api = {**api, "jobs": u5b_fill(api["jobs"]),
+               "runs_at_head": [{**r, "jobs": u5b_fill(r.get("jobs") or {})} for r in api["runs_at_head"]]}
         saved, port.judging = port.judging, G.judging
         try:
             return port.gate(ctx, api)
@@ -159,7 +177,7 @@ def runs_on_push(cond: str) -> bool:
     e = re.sub(r"github\.event_name\s*==\s*'([\w-]+)'", lambda m: str(m.group(1) == "push"), e)
     e = re.sub(r"github\.ref\s*==\s*'refs/heads/main'", "True", e)
     e = re.sub(r"!\s*cancelled\(\)", "True", e)
-    e = re.sub(r"(needs|github\.event)\.[\w.-]+\s*(==|!=)\s*('[^']*'|github\.repository)", "True", e)
+    e = re.sub(r"(needs|github\.event|inputs)\.[\w.-]+\s*(==|!=)\s*('[^']*'|github\.repository)", "True", e)
     e = e.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     if re.search(r"[^\sA-Za-z()]", e) or set(re.findall(r"[A-Za-z]+", e)) - {"True", "False", "and", "or", "not", "true"}:
         raise SystemExit(f"b3: cannot evaluate if: {cond!r} (left {e!r})")
@@ -167,13 +185,12 @@ def runs_on_push(cond: str) -> bool:
 
 
 def b3_arm(opts: list[str]) -> int:
-    text = subprocess.run(["git", "show", "origin/main:.github/workflows/tests.yml"], cwd=ROOT,
-                          capture_output=True, text=True, check=True).stdout
+    text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
     enumerated = b3_enumerate(text)
     required = [n.split(" / ", 1)[1] for n in port.REQUIRED["push"] if n.startswith("tests / ")]
     if "--plant" in opts:
         required = [n for n in required if n != "ci-ratchet"]
-    print(f"b3: enumerated from origin/main:.github/workflows/tests.yml: {enumerated}")
+    print(f"b3: enumerated from .github/workflows/tests.yml: {enumerated}")
     print(f"b3: REQUIRED['push'] tests / * {'(PLANT: ci-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
     ok = enumerated == sorted(required)
     print(f"b3: parity {'GREEN' if ok else 'RED'}; only in tests.yml {sorted(set(enumerated) - set(required))}, "

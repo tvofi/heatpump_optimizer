@@ -1,10 +1,8 @@
 # The shared prompt fragments for the `web-*.js` workflows
 
-Workflow scripts cannot import each other — every script this repository
-ships is evaluated as a function body handed `args`/`agent()`/`phase()`, with
-a top-level `return`, so a static `import` would not be legal. The four
-`web-*.js` scripts therefore each carry their own copy of the block below,
-between the `meta` literal and the first `phase()`.
+Workflow scripts cannot import each other (each is a function body with a
+top-level `return`), so the four `web-*.js` scripts each carry a copy of the
+block below, between the `meta` literal and the first `phase()`.
 
 **Change the text here, then copy it out:** `fragments_sync.mjs` refuses a
 copy that differs.
@@ -14,7 +12,7 @@ const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
 heatpump_optimizer): issue_read (get / get_comments), pull_request_read
 (get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
-actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+actions_list (list_workflow_runs on ci.yml, branch main), actions_get,
 get_job_logs (failed_only). This grant is read-only.`
 
 const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
@@ -106,9 +104,9 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
-branch main) until the run for ${sha} completes; check every three minutes,
-give up after two hours. Require both fast and closures to be success. On a
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow ci.yml,
+branch main) until the push run for ${sha} completes; check every three minutes,
+give up after two hours. Require its \`gate\` job to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
 {green: false, log_excerpt}. Return {green, run_id}.`
 
@@ -146,7 +144,8 @@ as `tvofi`. Equivalents for the named MCP tools:
 | `update_pull_request` | `gh api -X PATCH repos/<owner>/<repo>/pulls/N -F body=@<file>` (the seat token cannot run `gh pr edit`) |
 | `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh api /repos/<owner>/<repo>/commits/<sha>/check-runs` |
 | `merge_pull_request` (merge, `expectedHeadSha`) | `gh pr merge N --merge --match-head-commit <sha> --delete-branch` |
-| `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow tests.yml --json databaseId,headSha,status,conclusion,createdAt` |
+| `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow ci.yml --json databaseId,headSha,status,conclusion,createdAt` |
+| `actions_run_trigger` (run_workflow) | `gh workflow run ci.yml --ref <branch> -f pr=<N> -f base=<ref>` |
 | `actions_get` | `gh run view <id> --json jobs` |
 | `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |
 

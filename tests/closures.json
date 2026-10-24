@@ -1282,17 +1282,16 @@
    ".github/PULL_REQUEST_TEMPLATE.md",
    ".github/actions/nightly-ha/action.yml",
    ".github/workflows/arch-score.yml",
-   ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
+   ".github/workflows/gate-sweep.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
    ".github/workflows/kernel-points.yml",
    ".github/workflows/merge-main.yml",
    ".github/workflows/nightly.yml",
    ".github/workflows/pages.yml",
-   ".github/workflows/pr-contract-rerun.yml",
    ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
@@ -1406,6 +1405,8 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "dev/audit/README.md",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round4/D11/dora_keys.py",
    "dev/audit/rounds/round4/D12/cells.py",
    "dev/audit/rounds/round4/D12/d12lib.py",
@@ -1611,6 +1612,7 @@
    "tools/policy/vendor/markdown-it.min.js",
    "tools/pr/README.md",
    "tools/pr/cancel_superseded.py",
+   "tools/pr/codeql_scope.py",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
@@ -2385,17 +2387,16 @@
   ],
   "tests/harness_headers.py": [
    ".github/workflows/arch-score.yml",
-   ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
+   ".github/workflows/gate-sweep.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
    ".github/workflows/kernel-points.yml",
    ".github/workflows/merge-main.yml",
    ".github/workflows/nightly.yml",
    ".github/workflows/pages.yml",
-   ".github/workflows/pr-contract-rerun.yml",
    ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
@@ -2492,6 +2493,8 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round10/D0/verify_s1_random.py",
    "dev/audit/rounds/round10/D0/verify_s2_shipped.py",
    "dev/audit/rounds/round10/D1/v_m1_own.py",
@@ -3472,17 +3475,22 @@
   ],
   "tests/entities.py": [
    "LICENSE",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
    "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/flow_metrics.py",
+   "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
+   "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
    "tools/audit/seat/pulse.py",
    "tools/audit/seat/queue_pre_flight.py",
+   "tools/audit/seat/r10_ledger_mutants.py",
    "tools/audit/seat/r10_roster_ops_mutants.py",
    "tools/audit/seat/r10_roster_sync_mutants.py",
    "tools/audit/seat/record_row.py",
@@ -3497,7 +3505,8 @@
    "tools/policy/fixtures/policy-rot/prepr/raise/bare-payments.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/good.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/score-no-verdict.md",
-   "tools/policy/fixtures/policy-rot/prepr/raise/verdict-outside.md"
+   "tools/policy/fixtures/policy-rot/prepr/raise/verdict-outside.md",
+   "tools/pr/codeql_scope.py"
   ],
   "tests/harness_headers.py": [
    "LICENSE",
@@ -3541,6 +3550,19 @@
    "dev/audit/harnesses/r10_ci_layout_p1/critpath.py",
    "dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh",
    "dev/audit/harnesses/r10_ci_layout_p1/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_p2_u1u2u7/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u0c/mutants.py",
+   "dev/audit/harnesses/r10_ci_layout_u0c/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u10/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u11/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u3/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u4/mutants.py",
+   "dev/audit/harnesses/r10_ci_layout_u4/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/script_runs.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+   "dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh",
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
@@ -3555,6 +3577,7 @@
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_leaf_solver_closure.py",
+   "dev/audit/harnesses/r10_ledger_class_reach.py",
    "dev/audit/harnesses/r10_literal_respelled_replant.py",
    "dev/audit/harnesses/r10_main_gate_replay.py",
    "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
@@ -3599,6 +3622,7 @@
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
    "dev/audit/harnesses/r10_triage_gate_replay.py",
    "dev/audit/harnesses/r10_trust_relative_bundle.py",
+   "dev/audit/harnesses/r10_u9a_ratchet_nulls.py",
    "dev/audit/harnesses/r10_vent_bias_window.py",
    "dev/audit/harnesses/r10_vent_probe_companion.py",
    "dev/audit/harnesses/r10_vent_sun_transient.py",
@@ -4347,7 +4371,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 84.3
+   "seconds": 33.0
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -4363,7 +4387,7 @@
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 141.4
+   "seconds": 68.5
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -4387,7 +4411,7 @@
   },
   "tests/dst_checks.py": {
    "rc": 0,
-   "seconds": 0.8
+   "seconds": 62.0
   },
   "tests/edge.py": {
    "rc": 0,
@@ -4447,7 +4471,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 219.6
+   "seconds": 93.0
   },
   "tests/plan_view.py": {
    "rc": 0,

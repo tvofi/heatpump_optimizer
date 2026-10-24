@@ -1,0 +1,20 @@
+{
+ "renames": {},
+ "dropped": [
+  "instrument-self-tests|Show the contract re-run deciding its own fixtures"
+ ],
+ "gained": [
+  "instrument-self-tests|Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes",
+  "instrument-self-tests|Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal",
+  "instrument-self-tests|Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures"
+ ],
+ "changed": [
+  "|triggers",
+  "record|"
+ ],
+ "after": {
+  "instrument-self-tests|Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes": "instrument-self-tests|Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures",
+  "instrument-self-tests|Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal": "instrument-self-tests|Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes",
+  "instrument-self-tests|Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures": "instrument-self-tests|Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal"
+ }
+}

@@ -79,7 +79,7 @@ import {
   ROSTER_FILE_RE,
   CARRY_FILE_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, cutoverDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -1094,10 +1094,11 @@ function requiredContextsOverTree() {
   }
   const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
   return [
-    ...requiredContextsDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
+    ...cutoverDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
     ...sites.flatMap((rel) => checkRequiredContexts(rel, read(rel), live)),
   ]
 }
+
 
 function checkOrphanCaps(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
@@ -4330,9 +4331,10 @@ function assertAcceptance(derived) {
     c1: [
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
       { name: 'typing', status: 'completed', conclusion: 'failure' },
-      { name: 'pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'gate', status: 'completed', conclusion: 'failure' },
       { name: 'mutation', status: 'completed', conclusion: 'skipped' },
-      { name: 'nightly-status', status: 'in_progress' },
+      { name: 'tests / nightly-status', status: 'in_progress' },
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
     ],
     c2: [
@@ -4351,6 +4353,31 @@ function assertAcceptance(derived) {
     console.log('\nFIXTURE VACUOUS: the red history names a check over a range that failed nothing, so the derivation is not reading the run objects it is handed')
     rc = 1
   }
+  // THE DEFER SHAPE (R10-CI-LAYOUT P2b, Arm A #2649 at dd3d6306): two runs at one
+  // head, the first `gate` red only because it deferred to the second ("still
+  // being judged; their gate decides"), the second green, every unit green. The
+  // gate is an aggregate whose unit reds carry their own names, so nothing is
+  // owed; a unit red at that head still is (the null control).
+  pins += 2
+  const DEFER = [
+    { name: 'gate', status: 'completed', conclusion: 'failure' },
+    { name: 'gate', status: 'completed', conclusion: 'success' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'success' },
+    { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'success' },
+    { name: 'prelude', status: 'completed', conclusion: 'success' },
+  ]
+  const redDefer = redsOverCommits(['d1'], () => ({ ok: true, runs: DEFER }))
+  if (!redDefer.ok || redDefer.reds.length) {
+    console.log(`\nFIXTURE VACUOUS: a gate that deferred to a second run at its head leaves ${redDefer.ok ? JSON.stringify(redDefer.reds) : `not ok (${redDefer.why})`} on the red history; the aggregate's own red is owed nothing`)
+    rc = 1
+  }
+  const redDeferUnit = redsOverCommits(['d1'], () =>
+    ({ ok: true, runs: [...DEFER, { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'failure' }] }))
+  if (!redDeferUnit.ok || redDeferUnit.reds.join(',') !== 'tests / fast (3.14)') {
+    console.log('\nFIXTURE VACUOUS: beside a deferred gate, a unit red at the same head is not on the red history, so the exclusion swallowed a name it does not own')
+    rc = 1
+  }
   // The enforcement, driven on the DERIVED names rather than on a hand-written
   // list: `unnamed-red.md`'s `## Red checks` says `none`, so the red a later
   // commit cleared has to reach the same refusal the head's own red does.
@@ -4367,18 +4394,18 @@ function assertAcceptance(derived) {
   const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
   const OWN_ROW = ['tests/x.py', 'dev/programme/delivery/9999.md']
   const REPORTER_CASES = [
-    ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
-      OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
-    ['a merged row deleted', ['delivery-status'],
-      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['delivery-status']],
-    ['a merged row deleted, old spelling', ['delivery-status'],
-      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
-    ['the moved plan edited', ['delivery-status'],
-      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['delivery-status']],
-    ["the reporter's own script", ['nightly-status'],
-      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
-    ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
-    ['no paths', ['nightly-status'], [], null, ['nightly-status']],
+    ['exempt, own row added', ['tests / nightly-status', 'governance / delivery-status', 'typing', 'governance / delivery-status-publish', 'tests / Nightly-Status'],
+      OWN_ROW, ['tests/x.py'], ['typing', 'governance / delivery-status-publish', 'tests / Nightly-Status']],
+    ['a merged row deleted', ['governance / delivery-status'],
+      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['governance / delivery-status']],
+    ['a merged row deleted, old spelling', ['governance / delivery-status'],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['governance / delivery-status']],  // layout:old=docs/delivery (the old spelling, on purpose)
+    ['the moved plan edited', ['governance / delivery-status'],
+      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['governance / delivery-status']],
+    ["the reporter's own script", ['tests / nightly-status'],
+      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['tests / nightly-status']],
+    ['no existing list', ['governance / delivery-status'], OWN_ROW, null, ['governance / delivery-status']],
+    ['no paths', ['tests / nightly-status'], [], null, ['tests / nightly-status']],
   ]
   for (const [label, redNames, paths, existing, owed] of REPORTER_CASES) {
     pins += 1
@@ -4760,10 +4787,21 @@ function assertAcceptance(derived) {
     fs.writeFileSync(foreignFile, foreignSeed)
     const foreignFile2 = path.join(wcDir, 'foreign2.json')
     fs.writeFileSync(foreignFile2, foreignSeed)
+    // The same head and ANOTHER `since`: the seed above differs only in the head
+    // half of the key, so a read comparing only that half (the mutant) serves it.
+    const foreignSinceSeed = JSON.stringify({ key: `${'0'.repeat(40)}..${windowKey(wcSince).split('..')[1]}`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    const foreignFile3 = path.join(wcDir, 'foreign3.json')
+    fs.writeFileSync(foreignFile3, foreignSinceSeed)
+    const foreignFile4 = path.join(wcDir, 'foreign4.json')
+    fs.writeFileSync(foreignFile4, foreignSinceSeed)
     calls = 0
     const foreign = pullsByShaShared(commits, wcSince, foreignFile, okPulls)
     const foreignReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile2, okReads)
     if (calls !== 2 || foreign.fromCache || foreign.map.has('zz') || foreignReads.fromCache || foreignReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on another window was served instead of ignored')
+    calls = 0
+    const foreignSince = pullsByShaShared(commits, wcSince, foreignFile3, okPulls)
+    const foreignSinceReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile4, okReads)
+    if (calls !== 2 || foreignSince.fromCache || foreignSince.map.has('zz') || foreignSinceReads.fromCache || foreignSinceReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on the same head and another since was served instead of ignored')
     const seeded = path.join(wcDir, 'seeded.json')
     fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
     const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }
@@ -5197,6 +5235,44 @@ function assertAcceptance(derived) {
   }
   const RC_THREE = { contexts: ['policy-docs', 'probe-a', 'probe-b'], count: 3, rulesets: [1] }
   const rcFixture = (contexts, rulesets = [1]) => JSON.stringify({ contexts, rulesets })
+  // THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). The record names the post-PUT set
+  // (`gate`) and, as `pre_cutover`, the set the ruleset holds until
+  // ruleset_cutover.py --enable. Either WHOLE shape is accepted, and the
+  // pre-cut-over match is said out loud; a set that is neither -- half
+  // migrated, or anything else -- is refused as before. Without the arm P2b's
+  // own `policy-docs` reads its record against the live 17 and is red, on its
+  // head and on main's push between P2b's merge and the PUT.
+  pins += 4
+  const RC_POST = { contexts: ['gate'], count: 1, rulesets: [1] }
+  const rcBoth = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [1] } })
+  const preMatch = driveRC(RC_THREE, rcBoth, [])
+  if (preMatch.found.length || !preMatch.said.some((l) => /PRE-CUT-OVER/.test(l))) {
+    console.log(`\nFIXTURE VACUOUS: a live set equal to the recorded pre_cutover shape produced ${preMatch.found.length} finding(s)${preMatch.said.some((l) => /PRE-CUT-OVER/.test(l)) ? '' : ' and no PRE-CUT-OVER line'}; the cut-over window must pass, and say why`)
+    rc = 1
+  }
+  if (driveRC(RC_POST, rcBoth, []).found.length) {
+    console.log('\nFIXTURE VACUOUS: a live set equal to the recorded post-PUT shape is refused once pre_cutover is recorded beside it')
+    rc = 1
+  }
+  if (!driveRC({ contexts: ['gate', 'policy-docs'], count: 2, rulesets: [1] }, rcBoth, []).found.length) {
+    console.log('\nFIXTURE VACUOUS: a half-migrated live set (gate plus one of the old contexts) passed; only a whole recorded shape may')
+    rc = 1
+  }
+  if (!driveRC(RC_THREE, rcFixture(['gate']), []).found.length) {
+    console.log('\nFIXTURE VACUOUS: the old set passed a record with no pre_cutover, so the comparison is not reading the record at all (null control)')
+    rc = 1
+  }
+  // WHOLE, not contexts alone (#2658 review): a pre shape whose rulesets differ from the
+  // post-PUT record's. A comparison that took only `contexts` from pre_cutover and the rest
+  // from the post-PUT record refuses this live set; the whole-shape arm accepts it.
+  pins += 1
+  const RC_PRE2 = { contexts: RC_THREE.contexts, count: 3, rulesets: [2] }
+  const rcBoth2 = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [2] } })
+  const pre2 = driveRC(RC_PRE2, rcBoth2, [])
+  if (pre2.found.length || !pre2.said.some((l) => /PRE-CUT-OVER/.test(l))) {
+    console.log(`\nFIXTURE VACUOUS: a live set equal to a pre_cutover whose rulesets differ from the post-PUT record's produced ${pre2.found.length} finding(s); pre_cutover must be compared WHOLE, not on contexts alone`)
+    rc = 1
+  }
   const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
   const rcRotText = read(rcRot)
   if (rcRotText == null) {
@@ -6452,7 +6528,12 @@ function autofixChain(head, names) {
 //
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
-const PR_CONTRACT_CHECK = 'pr-contract'
+// A check run's name is `<caller> / <job>` under the umbrella (DESIGN-P2 2.1),
+// so the contract's own is `pr-contract / pr-contract`, and `gate` is red
+// whenever any required check is: both are excluded from the red history, or
+// the body would be asked to answer the verdict it feeds (N4). U6 forward-carry.
+const PR_CONTRACT_CHECK = 'pr-contract / pr-contract'
+const OWN_VERDICT_CHECKS = new Set([PR_CONTRACT_CHECK, 'gate'])
 // THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
 // main's last scheduled run and `delivery-status` main's rowless merges; both
 // run on every pull request so a stopped lane or batch is seen. Owing a
@@ -6471,10 +6552,10 @@ const PR_CONTRACT_CHECK = 'pr-contract'
 // is why `existing` (the paths the base already had) is separate from `paths`;
 // without it every row counts, so a caller that cannot say which rows are new
 // loses the exemption rather than gaining it. No paths at all voids it too.
-const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
+const MAIN_STATE_REPORTERS = new Set(['tests / nightly-status', 'governance / delivery-status'])
 const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
-  '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  '.github/workflows/ci.yml', '.github/workflows/tests.yml', '.github/workflows/governance.yml',
   // nightly-status reads nightly.yml's runs since R10-CI-LAYOUT PR 1.
   '.github/workflows/nightly.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
@@ -6503,7 +6584,7 @@ function failingCheckNames(runs) {
   const names = new Set()
   for (const run of Array.isArray(runs) ? runs : []) {
     if (run?.status !== 'completed' || run?.conclusion !== 'failure') continue
-    if (run?.name === PR_CONTRACT_CHECK) continue
+    if (OWN_VERDICT_CHECKS.has(run?.name)) continue
     if (typeof run?.name === 'string' && run.name.trim()) names.add(run.name)
   }
   return [...names].sort()

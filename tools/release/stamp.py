@@ -10,10 +10,14 @@ claim file turned main red. So every rule below is a refusal, not a warning:
 
   1. The working tree is a checkout of origin/main (fetched), clean except for
      RELEASE_NOTES.md -- the stamper writes the notes section by hand first.
-  2. The Tests workflow for HEAD has completed and succeeded (fast + closures),
-     so a release never publishes ahead of the unscoped gate. --allow-red
+  2. The `gate` job of HEAD's `ci.yml` push run has completed and succeeded
+     (R10-CI-LAYOUT P2b, B3: on push gate.py owes every job whose failure
+     reddened the old Tests push run, ci-ratchet and coverage-ratchet
+     included), so a release never publishes ahead of the unscoped gate; a
+     HEAD with no ci.yml push run predates the umbrella and is read off its
+     Tests push run instead (`tests_run_fallback`). --allow-red
      overrides, loudly, for a red main whose cause is already understood.
-     Read through `gh run list` when gh is installed and through the REST
+     Read through `gh api` when gh is installed and through the REST
      API when it is not; both paths reduce to one verdict, so the refusal
      is the same sentence with the same override either way. A source that
      cannot answer at all -- no gh and no network -- is a not-green verdict
@@ -172,6 +176,9 @@ GITHUB_API = "https://api.github.com"
 REPO = "tvofi/heatpump_optimizer"
 TESTS_WORKFLOW = "Tests"
 TESTS_WORKFLOW_FILE = "tests.yml"
+CI_WORKFLOW = "CI"
+CI_WORKFLOW_FILE = "ci.yml"
+GATE_JOB = "gate"
 GATE_RUN_LIMIT = 5
 GATE_TIMEOUT_S = 30.0
 # The deploy-key push. The URL is derived from REPO, never read off or written
@@ -592,9 +599,18 @@ def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | 
     return "\n".join(out) + "\n", old_stamp, deleted
 
 
+def runs_path(head: str, repo: str = REPO) -> str:
+    """The query rule 2 asks: this commit's push runs, newest first."""
+    return f"repos/{repo}/actions/runs?head_sha={head}&event=push"
+
+
 def runs_url(head: str, repo: str = REPO, api: str = GITHUB_API) -> str:
-    """The REST query rule 2 asks: this commit's push runs, newest first."""
-    return f"{api}/repos/{repo}/actions/runs?head_sha={head}&event=push"
+    return f"{api}/{runs_path(head, repo)}"
+
+
+def jobs_path(run_id, repo: str = REPO) -> str:
+    """One run's jobs, each at its latest attempt."""
+    return f"repos/{repo}/actions/runs/{run_id}/jobs?filter=latest&per_page=100"
 
 
 def rest_headers(token: str | None) -> dict[str, str]:
@@ -618,21 +634,55 @@ def is_tests_run(run: dict) -> bool:
 
 
 def runs_from_payload(payload: dict, limit: int = GATE_RUN_LIMIT) -> list[dict]:
-    """Reduce a /actions/runs payload to exactly what `gh run list --json
-    status,conclusion,databaseId --limit 5` returns, so the verdict below
-    cannot tell the two paths apart. The API answers newest first."""
+    """Reduce a /actions/runs payload to the newest five Tests runs as
+    {status, conclusion, databaseId}, the shape gate_verdict reads. The API
+    answers newest first."""
     runs = [{"status": r.get("status"), "conclusion": r.get("conclusion"), "databaseId": r.get("id")}
             for r in (payload.get("workflow_runs") or []) if is_tests_run(r)]
     return runs[:limit]
 
 
-def gate_verdict(runs: list[dict]) -> tuple[bool, str]:
-    """(green, why) for rule 2, from either path's runs."""
+def is_ci_run(run: dict) -> bool:
+    """The umbrella's run, by name and by file, as is_tests_run."""
+    return ((run.get("name") or "").strip() == CI_WORKFLOW
+            or (run.get("path") or "").rsplit("/", 1)[-1] == CI_WORKFLOW_FILE)
+
+
+def gate_runs(payload: dict, jobs_of, limit: int = GATE_RUN_LIMIT) -> "list[dict] | None":
+    """B3: each of HEAD's newest five ci.yml push runs reduced to its `gate`
+    job -- that job's own status and conclusion, never the run's, whose other
+    jobs gate already judged -- or None when HEAD has no ci.yml push run (a
+    pre-umbrella HEAD, the fallback's). A completed run whose jobs name no
+    gate concluded "no gate job": not green."""
+    ci = [r for r in (payload.get("workflow_runs") or []) if is_ci_run(r)][:limit]
+    if not ci:
+        return None
+    out = []
+    for r in ci:
+        g = [j for j in jobs_of(r.get("id")) if j.get("name") == GATE_JOB]
+        st = g[0].get("status") if g else r.get("status")
+        concl = g[0].get("conclusion") if g else ("no gate job" if st == "completed" else None)
+        out.append({"status": st, "conclusion": concl, "databaseId": r.get("id")})
+    return out
+
+
+def tests_run_fallback(payload: dict) -> list[dict]:
+    """THE THREE-ROUND FALLBACK (plan/ci-layout EXECUTION.md 3): a HEAD
+    with no ci.yml push run predates the umbrella, so its rule 2 evidence is
+    its Tests push run, read as before P2b. It lives in this function alone,
+    so it can be split out of P2b or deleted whole."""
+    return runs_from_payload(payload)
+
+
+def gate_verdict(runs: list[dict], what: str = "Tests run") -> tuple[bool, str]:
+    """(green, why) for rule 2, from either path's runs: green on a
+    completed `success` alone (a skipped gate, or RATE-LIMITED's failed job,
+    is not green)."""
     done = [r for r in runs if r["status"] == "completed"]
     green = any(r["conclusion"] == "success" for r in done)
     pending = [r for r in runs if r["status"] != "completed"]
-    why = ("no completed Tests run for HEAD yet" if not done else
-           f"Tests for HEAD concluded {[r['conclusion'] for r in done]}")
+    why = (f"no completed {what} for HEAD yet" if not done else
+           f"{what} for HEAD concluded {[r['conclusion'] for r in done]}")
     if pending:
         why += f"; {len(pending)} run(s) still in progress"
     return green, why
@@ -931,9 +981,9 @@ def self_test() -> int:
     check("rule 2: a run still going is counted, not awaited", gate_verdict(queued) ==
           (False, "no completed Tests run for HEAD yet; 1 run(s) still in progress"))
     check("rule 2: no run at all", gate_verdict([]) == (False, "no completed Tests run for HEAD yet"))
-    check("rule 2: gh's shape and rest's reduce to one verdict",
+    check("rule 2: the reduced shape is the one verdict",
           gate_verdict([{"status": "completed", "conclusion": "failure", "databaseId": 21}]) == gate_verdict(red))
-    check("rule 2: the five newest Tests runs, as gh's --limit", len(runs_from_payload(
+    check("rule 2: the five newest Tests runs", len(runs_from_payload(
         {"workflow_runs": [{"id": i, "name": "Tests", "status": "completed", "conclusion": "success"}
                            for i in range(9)]})) == 5)
     check("rule 2: gh is used when it is installed", gate_source(lambda name: "/usr/bin/gh") == "gh")
@@ -944,7 +994,45 @@ def self_test() -> int:
 
     unreadable = tests_gate("deadbee", which=lambda name: None, fetchers={"rest": _no_gh})
     check("rule 2: a source that cannot answer refuses, it does not raise",
-          not unreadable[0] and "could not read the Tests gate" in unreadable[1])
+          not unreadable[0] and "could not read the gate" in unreadable[1])
+
+    # B3 (R10-CI-LAYOUT P2b): HEAD's ci.yml push run is judged by its `gate`
+    # job, never by the run's conclusion; a HEAD with no ci.yml push run is
+    # the fallback's, read off Tests as before.
+    def world(runs: list[dict], jobs: dict) -> dict:
+        def get(path: str) -> dict:
+            if path == runs_path("cafe"):
+                return {"workflow_runs": runs}
+            rid = int(path.split("/actions/runs/")[1].split("/")[0])
+            return {"jobs": jobs.get(rid, [])}
+        return {"gh": get, "rest": get}
+
+    ci_run = {"id": 41, "name": "CI", "path": ".github/workflows/ci.yml", "status": "completed",
+              "conclusion": "failure"}
+    tests_ok = {"id": 40, "name": "Tests", "path": ".github/workflows/tests.yml", "status": "completed",
+                "conclusion": "success"}
+
+    def job(concl, name=GATE_JOB, status="completed"):
+        return {"name": name, "status": status, "conclusion": concl}
+    g_ok = tests_gate("cafe", fetchers=world([ci_run], {41: [job("success"), job("failure", "tests / nightly-ha")]}))
+    check("B3: the ci.yml push run's gate success is green, whatever the run concluded", g_ok[0])
+    g_red = tests_gate("cafe", fetchers=world([ci_run], {41: [job("failure")]}))
+    check("B3: a red push gate (a red ci-ratchet reddens it) refuses, naming the gate",
+          not g_red[0] and "gate" in g_red[1] and "failure" in g_red[1])
+    check("B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, "
+          "cancelled, absent",
+          not any(tests_gate("cafe", fetchers=world([ci_run], {41: js}))[0]
+                  for js in ([job("failure")], [job("skipped")], [job("cancelled")], [job("success", "tests / fast (3.14)")])))
+    check("B3: a gate still running is not green",
+          not tests_gate("cafe", fetchers=world([dict(ci_run, status="in_progress")],
+                                                 {41: [job(None, status="in_progress")]}))[0])
+    check("B3: once HEAD has a ci.yml push run, a green Tests run there does not stand in for a red gate",
+          not tests_gate("cafe", fetchers=world([ci_run, tests_ok], {41: [job("failure")]}))[0])
+    fb = tests_gate("cafe", fetchers=world([tests_ok], {}))
+    check("fallback: a pre-umbrella HEAD (no ci.yml push run) is read off its Tests push run",
+          fb[0] and "Tests run" in fb[1])
+    check("fallback null: a pre-umbrella HEAD whose Tests run is red refuses",
+          not tests_gate("cafe", fetchers=world([dict(tests_ok, conclusion="failure")], {}))[0])
 
     # The tag-push fallback is a control-flow contract, so it is pinned by
     # reading this file: a failed tag push must not raise past the caller,
@@ -1519,32 +1607,33 @@ def self_test() -> int:
 
 # --- rule 2's two sources ----------------------------------------------------
 
-def fetch_runs_gh(head: str) -> list[dict]:
-    return json.loads(sh("gh", "run", "list", "--workflow", TESTS_WORKFLOW, "--commit", head,
-                         "--event", "push", "--json", "status,conclusion,databaseId",
-                         "--limit", str(GATE_RUN_LIMIT)))
+def get_gh(path: str) -> dict:
+    return json.loads(sh("gh", "api", path))
 
 
-def fetch_runs_rest(head: str) -> list[dict]:
-    request = urllib.request.Request(runs_url(head), headers=rest_headers(os.environ.get("GH_TOKEN")))
+def get_rest(path: str) -> dict:
+    request = urllib.request.Request(f"{GITHUB_API}/{path}", headers=rest_headers(os.environ.get("GH_TOKEN")))
     with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    return runs_from_payload(payload)
+        return json.loads(response.read().decode("utf-8"))
 
 
 def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> tuple[bool, str]:
-    """Rule 2's evidence, from gh or from REST. Never raises: a source that
+    """Rule 2's evidence, from gh or from REST: HEAD's ci.yml push `gate`
+    (gate_runs), else the pre-umbrella fallback. Never raises: a source that
     cannot answer is a not-green verdict carrying its reason, so --allow-red
     governs 'the gate says red' and 'nothing here can read the gate' alike."""
     source = gate_source(which)
-    fetch = (fetchers or {"gh": fetch_runs_gh, "rest": fetch_runs_rest})[source]
+    get = (fetchers or {"gh": get_gh, "rest": get_rest})[source]
     try:
-        runs = fetch(head)
+        payload = get(runs_path(head))
+        runs = gate_runs(payload, lambda rid: get(jobs_path(rid)).get("jobs") or [])
     except Exception as exc:  # every failure to read is a verdict, never a crash
         stderr = getattr(exc, "stderr", None)  # gh's own complaint, when it is gh
         detail = stderr.strip().splitlines()[-1] if stderr else f"{type(exc).__name__}: {exc}"
-        return False, f"could not read the Tests gate for HEAD via {source}: {detail}"
-    return gate_verdict(runs)
+        return False, f"could not read the gate for HEAD via {source}: {detail}"
+    if runs is None:
+        return gate_verdict(tests_run_fallback(payload))
+    return gate_verdict(runs, "ci.yml push run's gate")
 
 
 # --- the D6 register, re-recorded before the commit (rule "register") --------
