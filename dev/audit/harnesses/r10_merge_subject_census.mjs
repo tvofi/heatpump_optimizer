@@ -15,11 +15,16 @@ import { execFileSync } from 'node:child_process'
 const guard = (p) => {
   const src = fs.readFileSync(p, 'utf8')
   const from = src.indexOf('// WHAT A MERGE CALL IS') >= 0 ? src.indexOf('// WHAT A MERGE CALL IS') : src.indexOf('// What a merge call may not carry')
-  const block = src.slice(from, src.indexOf("// WHICH LINE IS MAIN'S")).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
+  let block = src.slice(from, src.indexOf("// WHICH LINE IS MAIN'S"))
+  // nonTemplateMerges reads constants defined later in the file; cut it out, by position.
+  const nt = block.indexOf('function nonTemplateMerges'); if (nt >= 0) block = block.slice(0, nt) + block.slice(block.indexOf('\n}\n', nt) + 3)
   return new Function(block + '\nreturn MERGE_CALL')()
 }
 const files = execFileSync('git', ['ls-files', 'tools', '.claude/workflows'], { encoding: 'utf8' }).split('\n')
-  .filter((f) => /\.(py|mjs|js|cjs|sh|md)$/.test(f) && !/^tools\/audit\/round\d/.test(f) && !/\/fixtures\//.test(f) && f !== 'tools/policy/agreement.mjs')
+  // The guard's own file filter (mergeSubjectGuard), spelled with string tests so
+  // this census registers no second copy of its grammar.
+  .filter((f) => ['.py', '.mjs', '.js', '.cjs', '.sh', '.md'].some((x) => f.endsWith(x))
+    && !(f.startsWith('tools/audit/round') && '0123456789'.includes(f['tools/audit/round'.length] ?? '')) && !f.includes('/fixtures/') && f !== 'tools/policy/agreement.mjs')
 const NEW = guard('tools/policy/agreement.mjs'); const OLD = process.argv[2] ? guard(process.argv[2]) : null
 const at = (re, text) => { const m = {}; for (const x of text.matchAll(new RegExp(re.source, 'g'))) { const l = text.slice(0, x.index).split('\n').length; m[l] = (m[l] || 0) + 1 } return m }
 let to = 0, tn = 0, unc = 0, both = 0
