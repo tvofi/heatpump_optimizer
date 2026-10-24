@@ -1,0 +1,18 @@
+P66 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-CARRY-DISPOSITION'] | live: [('R10-FLY-CARRY-DISPOSITION', 'not-started')]
+   carry -> R10-FLY-CARRY-DISPOSITION matches verdict group: True | triage_refusal: None
+P67 ruling_verdict= ACCEPT | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
+   carry -> R10-FLOW-JIDOKA matches verdict group: True | triage_refusal: None
+P68 ruling_verdict= DEFER | verdict groups ['R10-FLOW-BODY-ONLY'] | live: [('R10-FLOW-BODY-ONLY', 'not-started')]
+P69 ruling_verdict= DEFER | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
+P70 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
+   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
+P71 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
+   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
+P72 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-OPENPR-ATOMIC'] | live: [('R10-FLY-OPENPR-ATOMIC', 'not-started')]
+   carry -> R10-FLY-OPENPR-ATOMIC matches verdict group: True | triage_refusal: None
+P73 ruling_verdict= REJECT | verdict groups [] | live: []
+P74 ruling_verdict= REJECT | verdict groups [] | live: []
+P75 ruling_verdict= ACCEPT | verdict groups ['R10-FLOW-JIDOKA'] | live: [('R10-FLOW-JIDOKA', 'in-progress')]
+   carry -> R10-FLOW-JIDOKA matches verdict group: True | triage_refusal: None
+P76 ruling_verdict= ACCEPT | verdict groups ['R10-FLY-CARRY-DISPOSITION'] | live: [('R10-FLY-CARRY-DISPOSITION', 'not-started')]
+   carry -> R10-FLY-CARRY-DISPOSITION matches verdict group: True | triage_refusal: None

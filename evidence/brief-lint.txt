@@ -1,0 +1,18 @@
+== base
+<scratch>/base/wave-r10-groups.json ==
+  -- 0 error(s), 0 warning(s)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+TOTAL: 0 error(s) across 1 file(s)
+== asbrief
+<scratch>/asbrief/wave-r10-groups.json ==
+  ERROR   [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
+  -- 1 error(s), 0 warning(s)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+TOTAL: 1 error(s) across 1 file(s)
+== asbriefp
+<scratch>/asbriefp/wave-r10-groups.json ==
+  ERROR   [R10-FLOW-JIDOKA] path: tools/pr/prepr_nonexistent_zz.sh: not in the tree, and not present at its cited tag ref(s) [fbbd3e61]
+  ERROR   [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
+  -- 2 error(s), 0 warning(s)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+TOTAL: 2 error(s) across 1 file(s)
