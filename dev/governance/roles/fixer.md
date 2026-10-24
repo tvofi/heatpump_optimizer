@@ -4,6 +4,10 @@ You own one PR group: one subsystem, at most five findings, at most about 400
 production lines. You work in your own worktree branched from `origin/main`.
 Read only your roster group (`jq`). Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
+Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
+API floor is theirs), woken once by its exit, never sleeping and polling;
+past the handoff, do not wait. Rotate to a fresh context between stages (rca,
+fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading** (`CLAUDE.md` rule 4). The rule is keyed on the manifest's
@@ -13,9 +17,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
    the closure, paste the failing check names, restore. **Mutate the predicate,
-   not the tail**: a line appended past a script's own return changes nothing,
-   and a vacuous mutation reads exactly like a passing check — `exit 3` on the
-   end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
+   not the tail**: a line past a script's own return changes nothing, nor
+   `exit $?` to `exit 0` under `set -e` (write `|| true; exit 0`; #2709), and a
+   vacuous mutation reads exactly like a passing check.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included: the runner's, not the mutant's
    (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
@@ -130,9 +134,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
 10. **If the wrong text is generated, fix the generator first, and run it.**
     Correcting prose a script emits leaves the script emitting the old text on
     its next run, so the correction is undone rather than kept (#539). Grep for
-    the wrong form across the whole tree before deciding what to edit, because
-    a generator is rarely the only copy. **A generator fixed without being run
-    is a claim, not a fix**: run it and paste what it now emits, with the same
+    the wrong form across the whole tree before deciding what to edit.
+    **A generator fixed without being run is a claim, not a fix**: run it and
+    paste what it now emits, with the same
     run at the merge base as the control. Distinguish text that *instructs*
     from a record that *recounts* — a measurement record stays as written.
 11. **A check pins the artifact it reads, not the one it is named for.** The
@@ -188,10 +192,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
     reduction over a row VIEW of a batched array one over the fresh array
     the scalar expression builds: numpy's pairwise loop takes alignment and
-    stride as inputs, per backend — #948's batched terms were bit-identical
-    on arm64 and re-planned stress scenarios on CI's x86_64, at the 96-step
-    production width only. Where
-    the contract is bitwise, run the SCALAR EXPRESSION per row, on the
+    stride as inputs, per backend (#948: arm64 parity, x86_64 drift, at the
+    96-step production width only). Where the contract is bitwise, run the
+    SCALAR EXPRESSION per row, on the
     fresh per-row arrays that expression's own elementwise ops allocate —
     batch only what is elementwise end to end — and drive the parity grid
     at the production width.
@@ -199,11 +202,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
     The same rule holds one level up and across interpreter versions: a
     reduction whose scalar form is a PYTHON BUILTIN is compensated
     arithmetic on CPython 3.12+ — builtin `sum` is Neumaier — and no
-    vectorized accumulation reproduces it. #948's terminal twin
-    accumulated plain vector adds against the scalar closure's `sum`:
-    1-2 ulp apart, which diverged both of optimality's jac races on CI's
-    3.14 runner while every 3.11 seat was green, because 3.11's `sum` is
-    plain accumulation.
+    vectorized accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14
+    runner, green on 3.11, whose `sum` is plain).
     Make the twin call the scalar closure's own function per row, and put
     detector rows on the parity grid that separate the two summations
     (measured: ~12% of random three-term sums), so the interpreter class
