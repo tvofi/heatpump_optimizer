@@ -559,6 +559,13 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
+      - name: Show the roster queue runner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
+          grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
+
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
