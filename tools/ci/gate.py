@@ -7,8 +7,9 @@
     python3 -I tools/ci/gate.py --self-test
 
 The predicate is `measure/rev/gate_model.py` at 1371a0a6, ported line for line
-(`gate`, `judging`); dev/audit/harnesses/r10_ci_gate_core.py drives the
-design's replays (gate_replay2.py, gate_sim.py) against THIS file. `--pr`,
+(`gate` here, `judging` in prelude.py, which its wait shares);
+dev/audit/harnesses/r10_ci_gate_core.py drives the design's replays
+(gate_replay2.py, gate_sim.py) against THIS file. `--pr`,
 `--base` and `--kind` are the prelude's outputs, only cross-checked: the gate
 derives what the event owes from the event itself (prelude.derive).
 
