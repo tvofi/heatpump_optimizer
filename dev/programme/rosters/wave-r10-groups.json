@@ -9348,6 +9348,59 @@
     "branch": "handoff/r10-archscore-spellings"
    },
    "brief": "The last open row of #2259, from #2401's own table (R10-ARCHSCORE-COVERAGE p5, merged 07a0940): item 2, card coverage, duplicated spellings of a one-statement rule, not delivered. The 20-token census joins a copy only where a window matches, so a one-statement spelling sits below it: the #2401 review spelled three of ARCH2-s5's card_shapes rules once more inline and the finder's total read 22 -> 25 while card_clone_copies stayed 108 -> 108 and card_dead_definitions 0 -> 0. Make the card census read a one-statement respelling (planted fixture under tools/audit/archscore/planted/redteam beside 42_literal_respelled.py), with the null control that an unrelated one-statement line reads nothing. Closes #2259."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    2733
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-ROUTING-INVARIANTS",
+   "after": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "files": [
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/roster_sync.py",
+    "tools/policy/brief_lint.mjs",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [
+    "From routing audit 1 (2026-10-24, /Users/timmalmstrom/hpo-orch/r10s6/routing-audit-1.md and routing-decisions-1.md): on origin/handoff/audit-r10-roster d3c2a27c7, `carry_audit.py sweep --last 150` read 423 finding items, 70 bad destinations and 25 unrouted; decided by hand, 24 of the 70 were implemented, 7 owed nothing and 39 were stranded in done groups. The null control of this group is that table: after the migration, every row it marks IMPLEMENTED or NO-OBLIGATION reads clean and every NOT IMPLEMENTED row reads routed to the live group it names.",
+    "From routing audit 1: 18 of the 25 unrouted items were review evidence prose or trailers (`Round: ...`, `bus-nonce: ...`), not findings. carry_audit's TRAILER regex gains `bus-nonce:` and `Round:` with a fixture each; the evidence-section rule (EVIDENCE_HEADING) is not loosened beyond that without a mutant showing a real finding still reads."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-routing-invariants"
+   },
+   "brief": "Owner request (tvofi, 2026-10-24), issue #2733: three routing invariants hold at every roster state. (1) Every carry not yet implemented routes to a roster group that is not done. (2) Every live roster group lists at least one issue in `issues` or `fixes`. (3) Every open issue but #201 is listed by at least one live roster group. Extend the instruments, add no script; size S, per the verifier (routing-verify-1.md section 5). (a) roster_edit.py gains `mark-carry <group> <index|--match TEXT> implemented <sha>|moved <GROUP>|dismissed <reason>`; carry_audit.py gains an offline `roster` subcommand that REPORTS STRANDED = a pending carry on a done group; legacy carries (existing on done groups at the cut-over roster sha) are exempt, so there is no blanket migration and nothing is marked implemented by default. `[implemented: <sha>]` records that the sha is on main; it is not verification. (b) roster_sync sets the existing `carries-open` stage instead of `done` when pending carries remain; no set-stage refusal, so the factual sync at every merge is unchanged. (c) Invariant 2 is a brief_lint warning, not an error, so roster_edit's --push lint gate and fly-in registration at dispatch are not blocked. Invariant 3 is a tick report line in the default pass from the tick's cached issue list (CARRY made default and offline); the issue check is report-only on push, with no failing CI job on issues. (d) The offline `roster` check in governance.yml is scoped to PRs that touch the roster file or carry_audit and to push to main. Controls: a done group with a pending non-legacy carry reads STRANDED and its twin marked implemented at an ancestor sha does not; a live group with empty issues and fixes warns and stops warning once it gains one; an open issue listed only by a done group is reported and #201 is not; the null control is the first carry. Hot files are shared with R10-FLY-CARRY-DISPOSITION (carry_audit.py) and R10-FLOW-WIP (orchestrator_tick.py) at distinct seams; roster_edit.py is R10-ORCH-ROSTER-SCHEMA's, hence the after-edge. The `absorbed` stage joining DONE_STAGES stays with R10-ORCH-ROSTER-SCHEMA."
   }
  ]
 }
