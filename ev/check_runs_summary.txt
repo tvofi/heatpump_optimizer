@@ -1,0 +1,6 @@
+head b2de1d2fda8645b62f5665505f2e57c86d205a5a, check-runs API (34 runs, read about 21:16Z 2026-10-24)
+failure: 0
+success: hassfest, budget-raise-gate, nightly-status, delivery-status, closure-scope, wave-script, briefs, mutation, policy-docs, validate-hacs, arch-score, refresh x2, cancel-superseded x2, prelude (run 40132683736)
+skipped: nightly-ha, mutation-autofix, mutation-pins, governance/record, kernel-points, delivery-status-publish
+queued/in_progress: coverage, arch-instrument, closures, typing, fast (3.14), browser, instrument-self-tests, env-matrix, codeql x3, prelude (run 40132684086)
+not yet listed: pr-contract, gate
