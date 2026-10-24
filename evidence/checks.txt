@@ -1,0 +1,14 @@
+== figure: rg verdict count
+      1 DEFER
+== VERSION/manifest/notes untouched
+(empty above = untouched)
+== claim files
+(empty = byte-identical)
+== roles drift main vs mb
+(empty = current)
+== merge-tree
+8163811236e8b8fbf9397a12fa667ea81e5a3d8c
+rc=0
+== ruling_reader tested on closure
+dev/programme/triage/s6-batch7.md INERT
+dev/programme/delivery/2741.md INERT
