@@ -13,7 +13,7 @@ Alternatives considered. (1) Make `replay.py` a selectable gate script with a me
 
 ## Head
 
-`799830bb54ecf6556f988e674150306968f471b9`, over merge base `50af6174f53c0f9bec3f705c3a4bb99615f71acc`.
+`f4458d2160d8f9f6b10d7fb3d657140201cd1d31`, unchanged. The repair dispatched against it found nothing to change in the code: the red it named is not red at this head (see Red checks), so this handoff carries the PR head as it stands and re-takes the body only. `f4458d2160d8f9f6b10d7fb3d657140201cd1d31` merges origin/main `e8a08cf9e` (an automatic merge by the orchestrator's script, no conflict) into the previous head, then adds one commit holding only this PR's row, `dev/programme/delivery/2692.md`. The authored code head is `799830bb54ecf6556f988e674150306968f471b9`, over merge base `50af6174f53c0f9bec3f705c3a4bb99615f71acc`. origin/main was at `ac5788f26` on 2026-10-24T12:48Z, three commits past this PR's base; the head is not behind on anything it conflicts with, and the frozen head is not moved to take them.
 
 ## Mutation proof
 
@@ -35,7 +35,7 @@ Each mutant was a worktree of the fix head with one production line changed, run
 - Reach over recent merges: `for c in $(git rev-list --first-parent --merges -n 100 50af6174f); do python3 tests/closure.py changed --base $c^1 --head $c > chg.txt; python3 tests/closure.py replay-reach --files-from chg.txt; done` printed `replay=true` on 7 of 100.
 - The decision at this branch's own diff: `python3 tests/closure.py replay-reach --files-from <three-dot name list>` printed `replay=true` (the diff touches `tests/replay.py`), so this PR's `replay` job exercises itself.
 - Local lane cost at the base: `PYTHONPATH=tests/hastub python3 tests/replay.py` printed `ALL 93 replay checks PASSED`, `replay lane wall time 67.6 s` on a 4-core box. The job's `timeout-minutes: 30` is sized from this plus the pip install.
-- Entities at the head: `PYTHONPATH=tests/hastub python3 tests/entities.py`, 2427 of 2429 checks pass; the 2 that fail are the inherited ones under Red checks, and the four new replay checks are `ok`.
+- Entities at the head: `PYTHONPATH=tests/hastub python3 tests/entities.py`, 2427 of 2429 checks pass; the 2 that fail are the inherited ones under Red checks, and the four new replay checks are `ok`. Re-run by the repair seat at `f4458d2160d8f9f6b10d7fb3d657140201cd1d31` with the same result.
 - `python3 tests/closure.py selftest`: `ALL 117 closure shrink pins PASSED`.
 - `python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no metric moved.
@@ -47,12 +47,15 @@ Each mutant was a worktree of the fix head with one production line changed, run
 
 ## Red checks
 
-This branch turns no check red that is red because of the branch. Two `tests/entities.py` checks fail on this box at the base `50af6174f` as well as at the head. They are inherited, and this diff touches neither job:
+At the previous head `799830bb54ecf6556f988e674150306968f471b9` three checks were red, all from one failure:
 
-- `gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, ...` (U0c)
-- `graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, ...`
+- `tests / fast (3.14)`: `tests/entities.py` failed after 407 s on one check, `hb:positive_control` (the heartbeat lane's py-spy positive control). On a loaded runner its `py-spy dump` subprocess hit the 0.5 s `TimeoutExpired` on all 3 of its 3 allowed tries. It is a wall-clock probe of the runner, not of this diff: none of the files this PR touches is read by `hb:positive_control`, and the four replay checks were `ok` in that log. Answer: the check went green with no code change. At this head the `CI code` run 40091421387 has `tests / fast (3.14)` `success`, so no repair was made. The repair brief guessed at a classification fault in the new replay job, `replay_reach` or the wiring. None exists: the four replay checks are `ok` there and in the local run under Figures. The cheaper detector: none. The probe's 0.5 s bound against runner load is the fault, and that is a root-cause item for the heartbeat lane, not this PR's.
+- `gate`: red only because it reads `tests / fast (3.14)` above. At this head it is `success` in both runs (40091421387 and 40091420502).
+- `pr-contract / pr-contract`: red because the body did not yet answer `tests / fast (3.14)`. The body then answered it, and the `CI code` run's `pr-contract` at this head is `success` with `code-scanning alerts the body must answer:` empty.
 
-Main's push-side `tests / ci-ratchet` red (the 0-byte artifacts listing) is not this branch's either; its hotfix is in flight.
+At this head `f4458d2160d8f9f6b10d7fb3d657140201cd1d31` one check is red: `pr-contract / pr-contract` in the `CI edit` run 40091420502 (job started 11:50:48Z). Its failing step is `tools/ci/codescan_wait.py`. That step's `FAIL closed` line goes to `/tmp/pr-alerts.txt`, not the log, so the log shows only exit code 1, three seconds in. That is the script's step-1 arm for an edit run (its self-test case 6, `no finished codeql unit at this head for an edit run FAILs`): the code run that owns codeql at this head, 40091421387, had `codeql / Analyze (python)` in progress until 12:19:56Z. The edit run's step ran at 11:51:08Z. Every later step of that job passed (`FIGURES: 14 resolved, 0 not verified, 0 refused`, preflight `clean`, `CARRY-AUDIT ... 0 unrouted`). The run's attempt 2 (12:24:56Z) re-ran only the skipped jobs and `gate`, not this one. Answer: this is an ordering of two runs at one head, not this diff, and the body cannot fix it. Re-running that job now that the code run's codeql has completed is the remedy; this seat did not re-run it, because its dispatch allows no write but its return refs. The cheaper detector: none, because fail-closed on an unfinished codeql unit is the script's design.
+
+The two `tests/entities.py` checks that fail on this seat's box (`gate-sweep.yml: on CI's completion...` and `graders-head-copy's delivery_status step...`) are `ok` in CI at this head, so they are a local-box artifact and not red anywhere. Main's push-side `tests / ci-ratchet` red (the 0-byte artifacts listing) is not this branch's; its hotfix is in flight.
 
 ## Forward-carry
 
@@ -62,3 +65,4 @@ none
 
 - `roster: stale: R10-REPLAY-SCOPED's files list names tests/closures.json; the reach is a rule in tests/closure.py, and closures.json is untouched (alternative 1 above says why).` Carry: dismissed: plan artifact, named so the reviewer does not look for it.
 - `roster: unclear: R10-REPLAY-SCOPED lists R10-REPLAY-LANE under after, whose roster stage is still in-progress (no handoff/r10-replay-lane code ref on origin; only its body ref), yet the pool dispatched this group; nothing here depends on its diff, and a later tests/replay.py edit there merges by the tree's usual merge, not a re-cut.` Carry: dismissed: the orchestrator's dispatch call, named here.
+
