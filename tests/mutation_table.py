@@ -2350,6 +2350,292 @@ def driver_order(rel: str, drivers: list[str], seconds: dict[str, float],
     return sorted(drivers, key=lambda s: (smith(s), s))
 
 
+# ------------------------------------------------------------------ reach
+#
+# Which production lines a driver EXECUTES, from its traced baseline (#1930
+# fold (e)). A driver whose run never executes a mutated line runs the mutated
+# program exactly as it runs the original until the moment it would reach that
+# line, and it never does: its output cannot differ, so it cannot kill that
+# mutant, and `drive` does not start that run (`reach_skip`). That holds only
+# for what the line tracer can see, so a traced run records what would break
+# it beside the lines it executed, and `reach_problems` refuses the run for a
+# skip whenever one fired:
+#
+# - a production file READ as text outside an import (a source check --
+#   `structure.py`, `entities.py` -- kills a line it never executes): every
+#   pair in that file runs;
+# - a child process that is not Python (git, tar and node see the tree as
+#   bytes; `TREE_BLIND` names the one argv measured to read none of it), or a
+#   Python child started without the tracer's environment: every pair runs;
+# - a Python process that started and never wrote its record (killed, or
+#   left through `os._exit`), or a count that does not add up either way;
+# - a run that was not green, which may have stopped early.
+#
+# The tracer is `sys.monitoring`'s LINE event, disabled per location after its
+# first hit, so a run pays one callback per executed production line. It
+# reaches every process the driver starts through `sitecustomize`, put first
+# on the PYTHONPATH it inherits. A line is keyed by its path under the
+# package, so code executed from a copy of the tree counts as reaching it: an
+# over-report keeps a pair running, never skips one. The row is one run's: a
+# line only some runs execute -- the replay saw wall-clock-hour branches in
+# dhw_schedule.py move between two passes, in two drivers the rule already
+# refuses -- is a kill no single run could promise either. It lives in this
+# file, not beside it, because the write-granted jobs restore THIS program
+# from the base and import it (decision 0013's pinned grader): a module it
+# imported from the working tree would be the pull request's.
+#
+# The replay that measured the rule over every inventory pair, and its null
+# control, is `dev/audit/harnesses/r10_mutant_skip/replay.py`.
+
+# The hook every traced process imports at startup. Self-contained: it runs
+# before the driver and may import nothing from the tree. Every record is one
+# line appended with `os.write` before the traced instruction runs, so a
+# process killed mid-run (the solve worker is SIGKILLed at exit) has already
+# written everything it did: `H` an executed line, `R` a source read, `F` a
+# non-Python child, `U` a Python child without the tracer, `C` a counted one.
+REACH_HOOK = r'''
+import os, sys
+_OUT = os.environ.get("HPO_REACH_OUT")
+if _OUT:
+    import time
+    _PKG = "/custom_components/heatpump_optimizer/"
+    _fd = []
+
+    def _start():
+        _fd[:] = [os.open(os.path.join(_OUT, f"{os.getpid()}-{time.time_ns()}.rec"),
+                          os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)]
+        _emit("S", str(os.getpid()))
+
+    def _emit(tag, text):
+        os.write(_fd[0], (tag + "\t" + text.replace("\n", " ") + "\n").encode())
+
+    def _rel(path):
+        i = path.rfind(_PKG)
+        return path[i + 1:] if i >= 0 and path.endswith(".py") else None
+
+    def _line(code, line):
+        rel = _rel(code.co_filename)
+        if rel is not None:
+            _emit("H", f"{rel}\t{line}")
+        return sys.monitoring.DISABLE
+
+    # An import reads a source to execute it, which the LINE event sees.
+    # `loader.get_source()` called by a check is a read, and passes through
+    # the same frozen frames, so only the import machinery's own entry
+    # points (`import`, `importlib.reload`) mark a read as an import.
+    _ENTRY = ("_find_and_load", "_exec", "_load")
+
+    def _importing():
+        try:
+            f = sys._getframe(2)
+        except ValueError:
+            # No caller frame: the interpreter opening a main script to run
+            # it, which the LINE event sees like an import.
+            return True
+        while f is not None:
+            c = f.f_code
+            if (c.co_name in _ENTRY
+                    and c.co_filename.startswith("<frozen importlib")):
+                return True
+            f = f.f_back
+        return False
+
+    def _text(argv):
+        argv = argv if isinstance(argv, (list, tuple)) else [argv]
+        return " ".join(os.fsdecode(a) if isinstance(a, bytes) else str(a)
+                        for a in argv)[:200].replace("\t", " ")
+
+    def _hookless(argv):
+        """-I and -E drop PYTHONPATH, -S drops site: the hook never loads."""
+        for a in (argv if isinstance(argv, (list, tuple)) else [])[1:]:
+            a = os.fsdecode(a) if isinstance(a, bytes) else str(a)
+            if not a.startswith("-") or a.startswith("--") or a in ("-c", "-m"):
+                return False
+            if set(a[1:]) & set("IES"):
+                return True
+        return False
+
+    def _observe(event, args):
+        if event == "open":
+            path, mode = args[0], args[1]
+            if isinstance(path, bytes):
+                path = os.fsdecode(path)
+            if isinstance(path, str) and (mode is None or "r" in str(mode)):
+                rel = _rel(os.path.abspath(path))
+                if rel and not _importing():
+                    _emit("R", rel)
+        elif event == "subprocess.Popen":
+            exe, argv, env = args[0], args[1], args[3]
+            if not os.path.basename(os.fsdecode(exe)).startswith("python"):
+                _emit("F", _text(argv))
+            elif _hookless(argv) or (env is not None and "HPO_REACH_OUT" not in {
+                    os.fsdecode(k) if isinstance(k, bytes) else k for k in env}):
+                _emit("U", _text(argv))
+            else:
+                _emit("C", _text(argv))
+        elif event in ("os.system", "os.exec", "os.posix_spawn", "os.spawn"):
+            _emit("F", f"{event} {_text(args[0])}")
+
+    def _audit(event, args):
+        # A hook that raises fails the operation it audits (an open, a
+        # spawn), so a fault here is recorded as one that refuses the run.
+        try:
+            _observe(event, args)
+        except Exception as exc:
+            _emit("F", f"hook fault on {event}: {exc!r:.120}")
+
+    _start()
+    os.register_at_fork(after_in_parent=lambda: _emit("C", "fork"),
+                        after_in_child=_start)
+    _mon = sys.monitoring
+    _mon.use_tool_id(_mon.COVERAGE_ID, "hpo-reach")
+    _mon.register_callback(_mon.COVERAGE_ID, _mon.events.LINE, _line)
+    _mon.set_events(_mon.COVERAGE_ID, _mon.events.LINE)
+    sys.addaudithook(_audit)
+'''
+
+
+def hook_env(out: Path) -> dict[str, str]:
+    """The environment a traced run adds: the hook's directory first on the
+    PYTHONPATH, and the directory each process appends its record to."""
+    hook = out / "_hook"
+    hook.mkdir(parents=True, exist_ok=True)
+    (hook / "sitecustomize.py").write_text(REACH_HOOK)
+    return {"HPO_REACH_OUT": str(out), "HPO_REACH_HOOK": str(hook)}
+
+
+def traced_pythonpath(env: dict[str, str], pythonpath: str) -> str:
+    return f"{env['HPO_REACH_HOOK']}{os.pathsep}{pythonpath}"
+
+
+def collect(out: Path) -> dict:
+    """One run's reach: the union of every process record under `out`."""
+    hits: dict[str, set[int]] = {}
+    seen: dict[str, set[str]] = {"R": set(), "F": set(), "U": set()}
+    started = 1
+    recorded = 0
+    for p in sorted(out.glob("*.rec")):
+        for row in p.read_text(errors="replace").splitlines():
+            tag, _, text = row.partition("\t")
+            if tag == "S":
+                recorded += 1
+            elif tag == "C":
+                started += 1
+            elif tag == "H":
+                rel, _, line = text.partition("\t")
+                hits.setdefault(rel, set()).add(int(line))
+            elif tag in seen:
+                seen[tag].add(text)
+    return {"hits": {k: sorted(v) for k, v in sorted(hits.items())},
+            "reads": sorted(seen["R"]), "foreign": sorted(seen["F"]),
+            "untraced": sorted(seen["U"]),
+            "processes": {"started": started, "recorded": recorded}}
+
+
+# A child argv that opens nothing in the tree: ctypes.util.find_library's
+# library-cache listing (plan_view.py's import of numpy reaches it). Keyed on
+# the whole argv, so `ldconfig` with any other argument still refuses.
+TREE_BLIND = frozenset(("/sbin/ldconfig -p",))
+
+
+def reach_problems(reach: dict | None) -> list[str]:
+    """Why one run's reach may skip nothing at all; empty when it may.
+
+    A driver with no record, or one any of these names, keeps every pair:
+    each is a process that could see a mutated line without executing it,
+    or one whose executed lines nobody recorded. A source read refuses only
+    its own file (`never_reaches`). More records than counted children is
+    not one: a spawn route the audit hook does not see (multiprocessing's
+    `fork_exec`) still loaded the hook, or it would have left no record.
+    """
+    if reach is None:
+        return ["no traced run"]
+    out = []
+    # A red run may have stopped before the lines a green one executes
+    # (measured: a features.py run broken by a hook fault left 319 of its own
+    # ledger kills on lines it "never" executed).
+    if reach.get("rc") != 0:
+        out.append(f"the traced run was not green (rc={reach.get('rc')})")
+    foreign = [f for f in reach["foreign"] if f not in TREE_BLIND]
+    if foreign:
+        out.append(f"starts a non-Python process: {foreign[0]}"
+                   + (f" (+{len(foreign) - 1})" if len(foreign) > 1 else ""))
+    if reach["untraced"]:
+        out.append(f"starts Python without the tracer: {reach['untraced'][0]}")
+    p = reach["processes"]
+    if p["recorded"] < p["started"]:
+        out.append(f"{p['started']} processes started, {p['recorded']} recorded")
+    return out
+
+
+def executable_lines(path: Path) -> set[int]:
+    """Every line some instruction of the compiled module is attributed to.
+
+    A mutated line with no instruction of its own (folded into a constant,
+    say) can never fire a LINE event, so not executing it proves nothing.
+    """
+    seen: set[int] = set()
+
+    def walk(code) -> None:
+        seen.update(ln for _, _, ln in code.co_lines() if ln is not None)
+        for c in code.co_consts:
+            if hasattr(c, "co_lines"):
+                walk(c)
+    walk(compile(path.read_text(), str(path), "exec"))
+    return seen
+
+
+def never_reaches(reach: dict | None, rel: str, line: int,
+                  executable: set[int]) -> bool:
+    """True only where a clean traced run is a row saying `line` of `rel` was
+    never executed; every other pair -- no row, a run `reach_problems`
+    refuses, a file the run read as text, a line with no instruction --
+    must run."""
+    if (reach_problems(reach) or rel in reach["reads"]
+            or line not in executable):
+        return False
+    return line not in set(reach["hits"].get(rel, ()))
+
+
+def traced_baseline(run, script: str, tree: Path, timeout: int,
+                    extra_args, extra_env) -> tuple["ScriptRun", dict | None]:
+    """A driver's unmutated run through `run` (the lane's `run_script`), traced.
+
+    Returns the run and its reach. A traced run that is not green is run
+    again untraced and that run returned with no reach, so the tracer can
+    never be what turns a baseline red: the pair rows go, the verdicts stay.
+    """
+    with tempfile.TemporaryDirectory(prefix="reach-") as d:
+        out = Path(d)
+        env = hook_env(out)
+        traced_env = {**(extra_env or {}), **env, "PYTHONPATH":
+                      traced_pythonpath(env, (extra_env or {}).get(
+                          "PYTHONPATH", "tests/hastub"))}
+        got = run(script, tree, timeout, extra_args, traced_env)
+        reach = collect(out)
+    if got.timed_out:
+        return got, None
+    if got.rc != 0:
+        return run(script, tree, timeout, extra_args, extra_env), None
+    reach["rc"] = got.rc
+    return got, reach
+
+
+_EXECUTABLE: dict[str, set[int]] = {}
+
+
+def reach_skip(reach: dict | None, mut: dict) -> bool:
+    """True when `reach` -- one driver's traced baseline -- is a clean row
+    saying that driver never executed `mut`'s line, so the mutant cannot
+    change what it runs (`never_reaches`). No reach, or any
+    reason the row is refused, drives the pair."""
+    rel = mut["file"]
+    if rel not in _EXECUTABLE:
+        _EXECUTABLE[rel] = executable_lines(ROOT / rel)
+    return never_reaches(reach, rel, mut["line"],
+                                      _EXECUTABLE[rel])
+
+
 def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
                     null_out: dict | None = None) -> dict[str, ScriptRun]:
     """Every driver's unmutated run, spread over `workers` trees.
@@ -3307,6 +3593,10 @@ def main(argv: list[str] | None = None) -> int:
                          "written to OUT_DIR/pool_seconds.json, which the "
                          "workflow stages into the actions/cache entry the next "
                          "nightly restores")
+    ap.add_argument("--no-reach-skip", action="store_true",
+                    help="drive every mutant x driver pair, including those "
+                         "the driver's traced baseline never executed "
+                         "(reach_skip); the skip's own null control")
     ap.add_argument("--anchor", metavar="ANCHOR",
                     help="drive every site of ONE ledger anchor (as `PIN NOT "
                          "REPRODUCED` names it) with --scripts, and report "
@@ -3604,10 +3894,21 @@ def main(argv: list[str] | None = None) -> int:
         # 3-worker pool costs more than 3x its band-stale recording.
         own_s = seed_pool_seconds(recorded_seconds(), prior_pool)
 
+        # What each traced baseline executed (#1930 fold (e)): a driver whose
+        # unmutated run never reached a mutated line cannot kill it, so that
+        # pair is not driven (`reach_skip`). EXCLUSIVE drivers measure the
+        # machine and run untraced; a driver with no reach drives every pair.
+        reaches: dict[str, dict | None] = {}
+        reach_skipped: list[tuple[str, str]] = []
+
         def run_baseline(w: int, s: str) -> ScriptRun:
             extra_args, extra_env = drive_spec(s, ref)
             limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
-            run = run_script(s, trees[w], limit, extra_args, extra_env)
+            if args.no_reach_skip or s in EXCLUSIVE:
+                run = run_script(s, trees[w], limit, extra_args, extra_env)
+            else:
+                run, reaches[s] = traced_baseline(
+                    run_script, s, trees[w], limit, extra_args, extra_env)
             if not run.timed_out:
                 own_s[s] = run.seconds
                 measured_pool[s] = run.seconds
@@ -3696,6 +3997,10 @@ def main(argv: list[str] | None = None) -> int:
             # One task per worker at a time, so a tree carries one mutant.
             if verdicts.stop is not None:
                 return False
+            if reach_skip(reaches.get(s), mut):
+                reach_skipped.append((triage_key(mut), s))
+                outcomes[(id(mut), s)] = False
+                return False
             path = trees[w] / mut["file"]
             original = path.read_text()
             path.write_text(mutated[id(mut)])
@@ -3728,6 +4033,9 @@ def main(argv: list[str] | None = None) -> int:
             return stop.rc
         if verdicts.stop is not None:
             return verdicts.stop
+        print(f"  REACH SKIP: {len(reach_skipped)} driver run(s) not started, "
+              f"each on a line its traced baseline never executed "
+              f"(reach_skip); --no-reach-skip drives them")
         for s in (s for s in lazy if s not in baseline):
             print(f"  {s}: LAZY AND NEVER RUN -- every mutant run of it was "
                   f"green, so no verdict read its baseline; a red one would "
