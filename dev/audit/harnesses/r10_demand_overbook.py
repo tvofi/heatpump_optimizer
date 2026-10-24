@@ -25,8 +25,9 @@ attributes the learner's bias to the slab seed rather than to the learner.
 ``--dp`` adds the DP reference: after the ``owner_i01`` arm it solves the
 same 12-hour window by dynamic programming over a (room, slab) grid on the
 coordinator's own learned model, and prints the optimizer's plan and the DP
-optimum on one objective (energy cost plus a quadratic penalty below the
-comfort floor).
+optimum on one objective (``_dp_reference`` says which), then again on the
+TRUE house from its true slab: ``dp_true.dp_kwh`` is the energy the house
+actually needed, the reference the plan's ``plan_kwh`` is booked against.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
         python3 dev/audit/harnesses/r10_demand_overbook.py [--dp] [ARM ...]
@@ -46,7 +47,6 @@ import numpy as np
 
 DT_MIN = 30.0
 MIN_TEMP = 20.0
-PENALTY_PER_K2 = 50.0
 
 
 def _deliver_owner(c):
@@ -174,15 +174,30 @@ def run(name, dp=False):
         "room": round(hs.room_temperature, 2),
     }
     if dp:
-        row["dp"] = _dp_reference(coord._thermal_model, state, window, res, t)
+        row["dp_learned"] = _dp_reference(opt, state, window, res, t)
+        true_opt = HeatPumpOptimizer(house, opt.config)
+        row["dp_true"] = _dp_reference(
+            true_opt, replace(state, slab_temperature=held["house"].slab_temperature), window, res, t)
     return row
 
 
-def _dp_reference(model, state, window, res, t):
-    """The optimizer's plan against a DP optimum, both on ``model`` and one objective."""
+def _dp_reference(opt, state, window, res, t):
+    """The optimizer's plan against a DP optimum, both on ``model`` and one objective.
+
+    The objective is the optimizer's own, on ``opt.model``, less the terms
+    that couple steps: energy cost, the comfort-floor and ceiling penalties
+    and the pull to target per step (its constants), and its terminal cost
+    (``opt._terminal_cost``) on the end state. Cycling and capacity are left
+    out, so the DP is the optimum of a relaxation and ``gap`` >= 0 up to the
+    grid's interpolation error.
+    """
     from scipy.interpolate import RegularGridInterpolator
 
+    from heatpump_optimizer import optimizer as O
+
     prices, outdoor = window
+    model = opt.model
+    terminal = opt._terminal_cost(prices, outdoor)[0]
     n, dt_h = len(prices), DT_MIN / 60.0
     hours = [(t.hour + t.minute / 60.0 + i * dt_h) % 24.0 for i in range(n)]
     levels = [0.0, *np.arange(1.5, 5.01, 0.25)]
@@ -193,32 +208,46 @@ def _dp_reference(model, state, window, res, t):
                                 p, outdoor[i], dt_hours=dt_h, hour_of_day=hours[i])
         return s.room_temperature, s.slab_temperature
 
+    cfg = opt.config
+    band = max(cfg.target_temp - cfg.min_temp, 1.0)
+
     def stage(room, p, i):
-        return prices[i] * p * dt_h + PENALTY_PER_K2 * max(0.0, MIN_TEMP - room) ** 2
+        under = np.maximum(0.0, cfg.min_temp - room)
+        over = np.maximum(0.0, room - cfg.max_temp)
+        return (prices[i] * p * dt_h * cfg.price_weight
+                + cfg.comfort_weight * (10.0 * under ** 2 + 5.0 * over ** 2 + O._COMFORT_FLOOR_L1 * under)
+                + O._COMFORT_PULL_SINGLE_ZONE * cfg.comfort_weight * ((room - cfg.target_temp) / band) ** 2)
 
     grid = [(room, slab) for room in rooms for slab in slabs]
-    value = np.zeros((len(rooms), len(slabs)))
+    to_go = [None] * (n + 1)
+    ends = np.array([terminal(np.array([room]), np.array([slab]), np.array([room]), np.array([room]))
+                     for room, slab in grid])
+    to_go[n] = RegularGridInterpolator((rooms, slabs), ends.reshape(len(rooms), len(slabs)),
+                                       bounds_error=False, fill_value=None)
     for i in reversed(range(n)):
-        nxt = RegularGridInterpolator((rooms, slabs), value, bounds_error=False, fill_value=None)
         best = np.full(len(grid), np.inf)
         for p in levels:
             after = np.array([step(room, slab, p, i) for room, slab in grid])
-            shortfall = np.maximum(0.0, MIN_TEMP - after[:, 0])
-            cost = prices[i] * p * dt_h + PENALTY_PER_K2 * shortfall ** 2 + nxt(after)
-            best = np.minimum(best, cost)
-        value = best.reshape(value.shape)
-    dp_cost = float(RegularGridInterpolator((rooms, slabs), value)([[state.room_temperature, state.slab_temperature]])[0])
+            best = np.minimum(best, stage(after[:, 0], p, i) + to_go[i + 1](after))
+        to_go[i] = RegularGridInterpolator((rooms, slabs), best.reshape(len(rooms), len(slabs)),
+                                           bounds_error=False, fill_value=None)
 
-    def rollout(schedule):
+    def rollout(policy):
         room, slab, cost, energy = state.room_temperature, state.slab_temperature, 0.0, 0.0
-        for i, p in enumerate(schedule):
-            room, slab = step(room, slab, float(p), i)
-            cost += stage(room, float(p), i)
-            energy += float(p) * dt_h
-        return round(cost, 3), round(energy, 2)
+        for i in range(n):
+            p = policy(room, slab, i)
+            room, slab = step(room, slab, p, i)
+            cost += float(stage(room, p, i))
+            energy += p * dt_h
+        return round(cost + terminal(np.array([room]), np.array([slab]), np.array([room]), np.array([room])), 3), round(energy, 2)
 
-    plan_cost, plan_kwh = rollout(res.power_schedule)
-    return {"dp_cost": round(dp_cost, 3), "plan_cost": plan_cost, "plan_kwh": plan_kwh,
+    def greedy(room, slab, i):
+        return min(levels, key=lambda p: float(stage(step(room, slab, p, i)[0], p, i))
+                   + float(to_go[i + 1]([step(room, slab, p, i)])[0]))
+
+    dp_cost, dp_kwh = rollout(greedy)
+    plan_cost, plan_kwh = rollout(lambda room, slab, i: float(res.power_schedule[i]))
+    return {"dp_cost": dp_cost, "dp_kwh": dp_kwh, "plan_cost": plan_cost, "plan_kwh": plan_kwh,
             "gap": round((plan_cost - dp_cost) / max(dp_cost, 1e-9), 4)}
 
 
