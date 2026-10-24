@@ -1,0 +1,17 @@
+measured at base 50af6174f53c0f9bec3f705c3a4bb99615f71acc, head 4a81d718e03564dc1b0de06ee5a68edc98d13096
+harness siblings: 102
+inert_reads[tests/harness_headers.py] dev/audit/harnesses/ paths: 139
+re-record closures since 2026-09-25: 35; since 2026-10-12: 15
+handoff refs (live ls-remote 2026-10-24, not at base): 108 (body says 99)
+grep -c rederive tools/pr/ci_predict.py: 0
+grep -c -i 'predict\|prepr' ci-autofix.md: 2
+grep -c carry_audit prepr.sh body_push.sh: 0, 0
+policy_lint.mjs:6244 isNone; carry_audit.py:94 NONE_ITEM
+prepr.sh:3130 PREPR_SKIP_CLOSURES line: present
+roster at origin/main: R10-FLOW-JIDOKA not-started, R10-POLICY-LINT-FAMILY not-started
+roster at handoff/audit-r10-roster 717f7e58285d7795d82e23d6feb84d56c15ea9d5: JIDOKA in-progress; POLICY-LINT-FAMILY done (pr 2669, commit 5c9828fe5)
+PR #2669 head 0506a55b29af305fb8f7fc4012e5c41485d6cb2f is an ancestor of origin/main 50af6174f (merged 2026-10-23T19:12Z)
+G1/G2/G3 text (arch-score / gate.py --body / twin table / argv pin / isNone / NONE_ITEM / one parser) in JIDOKA or POLICY-LINT-FAMILY brief+carry: absent at origin/main and at 717f7e58
+JIDOKA's P-Q carry (717f7e58 only) scopes the parity test to "the checks pr-contract.yml runs on a body" -- the scope G1 says is insufficient
+VERSION / manifest / RELEASE_NOTES / tests/golden: untouched (git diff --name-only empty)
+CI on head: 52 check runs, all success or skipped, 0 failure
