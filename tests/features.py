@@ -1988,7 +1988,7 @@ from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noq
 _r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
 
 
-def _r10do_slab(meter, drawn_kw, sampled=True):
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -2004,8 +2004,8 @@ def _r10do_slab(meter, drawn_kw, sampled=True):
     ctx._thermal_params.dhw_enabled = False
     ctx.publish(coord, _r10do_state(
         room_temperature=21.0, outdoor_temperature=5.0, slab_temperature=23.0))
-    coord._last_house_sample_time = _r10do_t0 if sampled else None
     now = _r10do_t0 + timedelta(minutes=30)
+    coord._last_house_sample_time = now - timedelta(hours=gap_h) if sampled else None
     coord._optimization_result = _r9f12_ns(
         slab_temp_trajectory=[25.0, 25.5, 26.0],
         timestamps=[now + timedelta(minutes=30 * i) for i in range(3)],
@@ -2058,6 +2058,89 @@ R.check(
     _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=True, space_served=True) is None
     and _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=False, space_served=False) == 0.0
     and _r10do_draw.space_draw_kw(None, 3.0, (2.0, 1.0), shared=False, space_served=True) == 2.0,
+)
+
+# The replay window's two bounds. A gap of exactly the learners' sample window
+# is still replayed and a minute past it is not; a zero or negative gap (the
+# same instant, or a clock stepped back) measured no interval, so the plan's
+# prediction stands, as for every other unusable interval. That last one is a
+# design choice: a zero-length replay would return the prior slab instead.
+from heatpump_optimizer.coordinator import HOUSE_LOSS_MAX_SAMPLE_HOURS as _r10do_max_h  # noqa: E402
+
+_r10do_edge = _r10do_slab(True, 0.0, gap_h=_r10do_max_h)
+_r10do_past = _r10do_slab(True, 0.0, gap_h=_r10do_max_h + 1 / 60)
+R.check(
+    "#2499: a gap of exactly the sample window still advances the slab by the "
+    "meter; a minute past it follows the plan",
+    _r10do_edge < 23.0 and _r10do_past == 25.0,
+    "slab edge/past=%.3f/%.3f" % (_r10do_edge, _r10do_past),
+)
+_r10do_zero = _r10do_slab(True, 0.0, gap_h=0.0)
+_r10do_back = _r10do_slab(True, 0.0, gap_h=-0.5)
+R.check(
+    "#2499: a zero or negative gap replays nothing; the slab follows the plan",
+    _r10do_zero == 25.0 and _r10do_back == 25.0,
+    "slab zero/back=%.3f/%.3f" % (_r10do_zero, _r10do_back),
+)
+
+# The running floor ``space_draw_kw`` reads through: a reading AT the floor is
+# standby, and a learned idle draw above the fixed floor raises it.
+_r10do_idle = _r10do_draw.DrawRange()
+_r10do_idle.idle.extend([0.4] * _r10do_draw.MIN_IDLE)
+R.check(
+    "#2499: a draw at the running floor is standby, not heat",
+    _r10do_draw.running_kw(None, _r10do_draw.RUNNING_FLOOR_KW) == 0.0
+    and _r10do_draw.running_kw(None, 0.3) == 0.3,
+)
+R.check(
+    "#2499: a learned idle draw above the fixed floor raises it to "
+    "IDLE_MARGIN times the idle draw",
+    _r10do_draw.running_kw(_r10do_idle, 0.4) == 0.0
+    and _r10do_draw.running_kw(_r10do_idle, 0.6) == 0.6,
+    "idle_kw=%s" % _r10do_idle.idle_kw(),
+)
+
+# ``_track_dhw``, the tank block moved out of ``_update_current_state``: a tank
+# reading reaches the DHW learner and its freeze reason reaches the
+# coordinator; with no reading the learner is never called.
+
+
+def _r10do_dhw(tank):
+    coord = Coord(FakeHass(), _r9f12_entry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 30.0,
+        "dhw_temp_entity": "sensor.tank",
+    }))
+    coord._snapshots_loaded = True
+    seen = []
+
+    async def _learn(temp):
+        seen.append(temp)
+        return "tank_probe"
+
+    coord._dhw_learner.async_learn_dynamics = _learn
+    _r9f12_dt.freeze(_r10do_t0)
+    try:
+        readings = [("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0")]
+        if tank is not None:
+            readings.append(("sensor.tank", tank))
+        for entity, value in readings:
+            coord.hass.states.set(entity, FakeState(value, last_updated=_r10do_t0, unit="°C"))
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return seen, coord._learner_freeze_reason
+
+
+_r10do_tank, _r10do_notank = _r10do_dhw("48.0"), _r10do_dhw(None)
+R.check(
+    "#2499: a tank reading reaches the DHW learner, and its freeze reason the "
+    "coordinator; no reading reaches neither",
+    _r10do_tank == ([48.0], "tank_probe") and _r10do_notank == ([], None),
+    "tank=%s notank=%s" % (_r10do_tank, _r10do_notank),
 )
 
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
