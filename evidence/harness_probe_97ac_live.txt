@@ -1,0 +1,40 @@
+Note: switching to 'ae77c4150ee0245f5546c73fd9c3f35691e9a3c6'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updated 1 path from 3a343e03f
+check source restored from 47147487ba2bbe124cca1c0f3f5448bb5e26ad8b: 1 file(s) differ from the pull request's copy
+head 596b32d1ab86ae0e71cf69b0c1fa46ff9398a727 base 47147487ba2bbe124cca1c0f3f5448bb5e26ad8b live=1
+  baseline refs/remotes/origin/main = 4714748
+  FAIL  pr / policy_lint rc=0 and every pin earned  --  rc=1 pins=246; 37 ERROR line(s), first: ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: the live required-context set has `gate`, which the recorded shape lacks. The ruleset changed: re-record .claude/workflows/fixtures/requ
+  ok    pr / nothing skipped in a full clone
+  FAIL  pr / every corpus and record-mode check measured and pinned  --  rc=1; MUTANTS: the entry point exited 1 on the corpus as it stands. The null control above passed in-process, so this lane does not believe the tree is red; an entry that refuses a healthy corpus fails every arm below for free. First refusal: (re
+  FAIL  push-main / policy_lint rc=0  --  rc=1; 37 ERROR line(s), first: ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: the live required-context set has `gate`, which the recorded shape lacks. The ruleset changed: re-record .claude/workflows/fixtures/requ
+  ok    push-main / the same pins are earned as on a pull request
+  FAIL  push-main / every corpus and record-mode check still measured and pinned  --  rc=1; MUTANTS: the entry point exited 1 on the corpus as it stands. The null control above passed in-process, so this lane does not believe the tree is red; an entry that refuses a healthy corpus fails every arm below for free. First refusal: (re
+  FAIL  no-remote / policy_lint rc=0  --  rc=1; 37 ERROR line(s), first: ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: the live required-context set has `gate`, which the recorded shape lacks. The ruleset changed: re-record .claude/workflows/fixtures/requ
+  ok    no-remote / the skipped drive is said out loud
+  ok    no-remote / a skipped drive does not claim its pins
+  FAIL  no-remote / the lane reports NOT MEASURED rather than failing  --  rc=1; MUTANTS: the entry point exited 1 on the corpus as it stands. The null control above passed in-process, so this lane does not believe the tree is red; an entry that refuses a healthy corpus fails every arm below for free. First refusal: (re
+  FAIL  shallow / policy_lint rc=0  --  rc=1; 37 ERROR line(s), first: ERROR   [required-contexts] .claude/workflows/fixtures/required-contexts.json: the live required-context set has `gate`, which the recorded shape lacks. The ruleset changed: re-record .claude/workflows/fixtures/requ
+  ok    shallow / an undrivable arm is said out loud and not claimed
+  ok    no-rosters / a roster scan over zero rosters does not report ok
+  ok    since-ref / --record refuses an underivable window instead of counting zero errors over it
+  ok    since-ref / --stats refuses it too and prints no histogram for the filer to believe
+  ok    since-ref / a ref that DOES resolve over an empty window still measures, unmarked
+
+9 declared outcome(s) held, 7 did not, across 6 environment shape(s)
+rc=1

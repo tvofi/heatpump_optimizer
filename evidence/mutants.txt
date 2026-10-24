@@ -1,0 +1,7 @@
+Driver run as: node tools/policy/policy_lint_envmatrix.mjs /nonexistent <fresh dir> HEAD, at head ae77c4150ee0245f5546c73fd9c3f35691e9a3c6, file restored after each.
+M0 null: no MATRIX MUTE; reaches shapes (baseline (no main ref found); pr / built FAIL clone failed) rc=1
+M1 verdict-line return deleted: MATRIX MUTE: 1 of 2 ... ["rc=1; fatal: ambiguous argument 'origin/main' ... | fatal: ..."] rc=1
+M2 ERROR-ranking return made unreachable (if (false && errors.length)): MATRIX MUTE: 1 of 2 ... ["rc=1; fatal: ... |   skip     checkProvenance-pin ..."] rc=1
+M3 rcRow '; ${why(r.out)}' deleted: MATRIX MUTE: 2 of 2 ... ["rc=1","rc=1"] rc=1
+M5 (reviewer's own) no-remote / policy_lint row reverted from rcRow to add(..., `rc=${r.rc}`): MATRIX MUTE count 0 -> survives the self-check
+Class rule grep -cE "const (\w+) = sh\('node'": 11 at merge base, 11 at head. rcRow call sites at head: 7 rows + 1 probe.
