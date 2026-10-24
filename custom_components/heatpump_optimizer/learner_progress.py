@@ -30,13 +30,14 @@ from itertools import count
 from typing import Any
 
 from .drift import stored_instant, utc_elapsed_seconds
+from .payload import LearnerProgress
 
 #: A snapshot younger than this gives no rate: a day is the shortest window
 #: that spans one night and one noon, the dark and sunlit gates' cycle.
 MIN_RATE_WINDOW_DAYS = 1.0
 
 #: Where each learner's sample count sits in the thermal-learning payload
-#: the snapshot ring stores (``_thermal_learning_payload``).
+#: a snapshot stores under ``learners`` (``_thermal_learning_payload``).
 SNAPSHOT_COUNT_PATHS: Mapping[str, tuple[str, ...]] = {
     "house": ("house_heat_loss_samples",),
     "lower": ("lower_floor_loss_samples",),
@@ -76,25 +77,26 @@ def snapshot_rates(
     """
     rates: dict[str, float | None] = dict.fromkeys(counts)
     for snap in reversed(snapshots):
+        if not isinstance(snap, Mapping):
+            continue
         taken = stored_instant(snap.get("taken_at"))
         if taken is None:
             continue
         days = utc_elapsed_seconds(now, taken) / 86400.0
         if days < MIN_RATE_WINDOW_DAYS:
             continue
-        thermal = (snap.get("learners") or {}).get("thermal_learning") or {}
         for name, now_n in counts.items():
-            then = _snapshot_count(thermal, name)
+            then = _snapshot_count(snap, name)
             if then is not None:
                 rates[name] = (now_n - then) / days
         break
     return rates
 
 
-def _snapshot_count(payload: Mapping[str, Any], name: str) -> float | None:
-    """One learner's sample count in a thermal-learning payload, None if absent."""
-    value: Any = payload
-    for key in SNAPSHOT_COUNT_PATHS[name]:
+def _snapshot_count(snap: Mapping[str, Any], name: str) -> float | None:
+    """One learner's sample count in a snapshot, None if absent or malformed."""
+    value: Any = snap
+    for key in ("learners", "thermal_learning", *SNAPSHOT_COUNT_PATHS[name]):
         if not isinstance(value, Mapping):
             return None
         value = value.get(key)
@@ -113,22 +115,25 @@ def gate_count(gate: Callable[[int], bool], samples: int) -> int:
     return next(n for n in count(max(0, samples)) if gate(n))
 
 
-def learner_progress(learner: LearnerInputs) -> dict[str, Any]:
+def learner_progress(learner: LearnerInputs) -> LearnerProgress:
     """The phase, progress, wait and (counting only) ETA of one learner."""
     if not learner.enabled:
         return _status("off", None, None, None, learner.samples, None)
     n = learner.samples
-    rate = learner.rate_per_day
-    counted = rate is not None and rate > 0.0
+    # A rate of zero or below (a restore, a reset) is nothing counted.
+    rate = learner.rate_per_day if (learner.rate_per_day or 0.0) > 0.0 else None
     needed = gate_count(learner.gate, n) if learner.gate is not None else None
+    progress: float | None
+    eta: float | None = None
     if needed is not None and needed > n:
         phase, progress = "counting", n / needed
+        if rate is not None:
+            eta = (needed - n) / rate
     else:
         phase = "settling"
         progress = learner.walked(n) if learner.walked is not None else None
-    if learner.blocked_by is not None and not counted:
+    if learner.blocked_by is not None and rate is None:
         return _status("waiting", progress, learner.blocked_by, None, n, needed)
-    eta = (needed - n) / rate if phase == "counting" and counted else None
     return _status(phase, progress, None, eta, n, needed)
 
 
@@ -139,7 +144,7 @@ def _status(
     eta_days: float | None,
     samples: int,
     samples_needed: int | None,
-) -> dict[str, Any]:
+) -> LearnerProgress:
     return {
         "phase": phase,
         "progress": round(progress, 3) if progress is not None else None,

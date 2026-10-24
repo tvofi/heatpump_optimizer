@@ -66,6 +66,7 @@ from .payload import (
     GridView,
     InputHealthView,
     Insight,
+    LearnerProgress,
     LearningView,
     ManualPlan,
     MeasurementView,
@@ -1401,7 +1402,7 @@ def learner_progress_view(
     config: Any,
     snapshots: Sequence[Mapping[str, Any]],
     samples: tuple[float, float, float],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, LearnerProgress]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
     ``samples`` are the house, lower and solar learners' counts; a

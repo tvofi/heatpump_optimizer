@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains CMP_BOUND c7930f6b",
-  "killed_by": "tests/features.py",
-  "old": "            or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against f2fb1b0e950ecd047b7f08b3adef93776a622540: CMP_BOUND (`or settled <= INTERNAL_GAINS_MIN_UA_CONFIDENCE`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

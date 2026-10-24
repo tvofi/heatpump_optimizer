@@ -59,11 +59,18 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
-coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
-coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
-coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
-coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_all_features  # R10-LEARNER-ETA: data.learner_progress added (24 leaves)
+coord_dhw  # R10-LEARNER-ETA: data.learner_progress added (24 leaves)
+coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress added (24 leaves)
+coord_minimal  # R10-LEARNER-ETA: data.learner_progress added (24 leaves)
+coord_two_zone  # R10-LEARNER-ETA: data.learner_progress added (24 leaves)
+# R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
+# coord fixture's data gains that one key and its 24 leaves (house counting at
+# zero samples toward its gate, the other three off, no
+# eta_days anywhere); nothing else moves. Measured with env_drift --all
+# against origin/main 50af6174f in one environment: exactly these five move,
+# one key each, "present on one side only". The committed files were patched
+# in that one path from a head recording; no other leaf was re-recorded.
 # R10-SCORES (#2258): every coord fixture runs with zero heat-loss samples, so
 # the house grade is dashed (`heat_loss_learning`) instead of graded off the
 # configured prior: insight.scores.envelope and the score sensor's envelope

@@ -267,6 +267,40 @@
   },
   "internal_gains_profile": null,
   "learner_freeze_reason": null,
+  "learner_progress": {
+   "gains": {
+    "eta_days": null,
+    "phase": "off",
+    "progress": null,
+    "samples": 0,
+    "samples_needed": null,
+    "waiting_for": null
+   },
+   "house": {
+    "eta_days": null,
+    "phase": "counting",
+    "progress": 0.0,
+    "samples": 0,
+    "samples_needed": 50,
+    "waiting_for": null
+   },
+   "lower": {
+    "eta_days": null,
+    "phase": "off",
+    "progress": null,
+    "samples": 0,
+    "samples_needed": null,
+    "waiting_for": null
+   },
+   "solar": {
+    "eta_days": null,
+    "phase": "off",
+    "progress": null,
+    "samples": 0,
+    "samples_needed": null,
+    "waiting_for": null
+   }
+  },
   "learners_frozen": false,
   "lower_floor_loss_learned": false,
   "lower_floor_loss_ratio": 1.0,
