@@ -114,28 +114,70 @@ const MERGE_SHAPE = /^Merge pull request #(\d+)\b/
 // writer passes one. Commits at or before the cutoff are history main cannot
 // rewrite; the readers above read them, and the pair's corpus pins both.
 const SUBJECT_CUTOFF = '07a09406a1cc97076a6f28581f87f313b322a6b6'
-const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /\(#\d+\)$/]
+// The title template, as the host writes it: the trimmed, non-empty title, one
+// space, `(#N)`. An end anchor on `(#N)` alone passed `(#8)`, `x(#8)` and `x (#08)`.
+const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /^\S(?:.*\S)? \(#[1-9]\d*\)$/]
 // The pull_request event's checkout: GitHub's test merge of the head into the
 // base, which is HEAD on the runner and never a commit on main. Reached only on
 // the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // What a merge call may not carry: `gh pr merge`'s subject and body flags, and
 // the REST and MCP merge's commit_title and commit_message.
-const MERGE_CALL = /\bgh pr merge\b|"pr", "merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
+const MERGE_CALL = /\bgh\s+pr\s+merge\b|"pr",\s*"merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
 const SUBJECT_ARG = /(?:^|[\s"'[,])(?:--subject|--title|-t|--body|--body-file|-b|-F)(?=[\s="',\]]|$)|\bcommit_(?:title|message)\b/
 
 function nonTemplateMerges(log) {
   return log.split('\n').filter(Boolean).map((l) => l.split('\t')).filter(([, parents, subject], i) =>
     parents.split(' ').length >= 2 && !(i === 0 && TEST_MERGE.test(subject)) && !TEMPLATE_SUBJECT.some((r) => r.test(subject)))
 }
+// One step of the quote reader: true when `c` is quoted text (the quote marks
+// themselves included), so a bracket there opens nothing.
+function quoted(st, c) {
+  if (st.q) { if (st.esc) st.esc = false; else if (c === '\\') st.esc = true; else if (c === st.q) st.q = ''; return true }
+  if (c === '"' || c === "'") { st.q = c; return true }
+  return false
+}
+// A call, not a line: what a merge call carries runs from the innermost bracket
+// open before it on its line (or the line's start) to where that bracket closes,
+// or to the first line end that is outside every bracket it opened and not
+// escaped by `\`: an argv list or a call split over lines (merge_train.py's own
+// merge among them) and a shell continuation are one call, and a sibling in the
+// same table is not. A blank line ends it whatever its brackets, so prose with
+// a stray parenthesis cannot run on. A bracket inside a quote is text.
+function callExtent(text, at) {
+  const ls = text.lastIndexOf('\n', at - 1) + 1
+  const open = []; let st = { q: '', esc: false }
+  for (let i = ls; i < at; i++) {
+    const c = text[i]
+    if (quoted(st, c)) continue
+    if ('([{'.includes(c)) open.push(i)
+    else if (')]}'.includes(c)) open.pop()
+  }
+  const start = open.length ? open[open.length - 1] : ls
+  let depth = 0; st = { q: '', esc: false }
+  for (let i = start + (open.length ? 1 : 0); i < text.length; i++) {
+    const c = text[i]
+    if (c === '\n') {
+      st = { q: '', esc: false }
+      const next = text.indexOf('\n', i + 1)
+      if (!text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
+      if (!open.length && !depth && text[i - 1] !== '\\') return text.slice(start, i)
+      continue
+    }
+    if (quoted(st, c)) continue
+    if ('([{'.includes(c)) depth++
+    else if (')]}'.includes(c) && --depth < 0) return text.slice(start, i + 1)
+  }
+  return text.slice(start)
+}
 function subjectWriters(files, read) {
   const calls = []; const bad = []
   for (const f of files) {
-    read(f).split('\n').forEach((line, i) => {
-      if (!MERGE_CALL.test(line)) return
+    const text = read(f)
+    for (const m of text.matchAll(new RegExp(MERGE_CALL.source, 'g'))) {
       calls.push(f)
-      if (SUBJECT_ARG.test(line)) bad.push(`${f}:${i + 1}`)
-    })
+      if (SUBJECT_ARG.test(callExtent(text, m.index))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
+    }
   }
   return { calls, bad }
 }
@@ -520,6 +562,27 @@ async function selfTest() {
   probes.push(["merge-subject-pr's null guard covers a hand merge's custom tail, and not a subject naming no pull request",
     msp.mustAnswer('Merge pull request #2379 (R10-SENSOR-PAYLOAD)') && !msp.mustAnswer('Merge pull request from a fork')])
   probes.push(['a merge call that passes --subject is refused', guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 --merge --subject "Merge pull request #9 (x)"\n' }).length === 1])
+  // The title template is the host's `<title> (#N)`: a trimmed, non-empty
+  // title, one space, a pull-request number. An end-anchored `(#N)` alone also
+  // passes subjects GitHub never writes.
+  const one = (subject) => guard([[H('a'), `${H('1')} ${H('2')}`, subject]], writers).length === 1
+  probes.push(["a subject GitHub's title template never writes is refused", ['(#8)', 'x(#8)', ' x (#8)', 'x  (#8)', 'x (#08)', 'x (#0)', 'x \t(#8)'].every(one)])
+  probes.push(['null control: titles of the host shape pass, a parenthesis in the title included',
+    !['x (#8)', 'fix: a (b) (#8)', 'Revert "y (#7)" (#8)'].some(one)])
+  // The writer scan reads the whole command: a `--subject` on a continuation
+  // line, or inside an argv list split over lines, is the same call.
+  const wr = (src) => guard([], { ...writers, 'tools/x': src })
+  probes.push(['a --subject on a shell continuation line is refused, at the call line', ((r) => r.length === 1 && r[0].includes('tools/x:2:'))(
+    wr('set -e\ngh pr merge 9 --merge \\\n  --subject "Merge pull request #9 (x)"\n'))])
+  probes.push(['a --subject in an argv list split over lines is refused', wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--subject", s])\n').length === 1])
+  probes.push(['an argv list broken between "pr" and "merge" is still a merge call', wr('cmd = ["gh", "pr",\n       "merge", n, "--subject", s]\n').length === 1])
+  probes.push(["null control: a sibling argv in the call's own table is not the call's", !wr('for argv in ((["gh", "pr", "merge", "1"], False),\n             (["gh", "issue", "edit", "1", "--body", "x"], False)):\n').length])
+  probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
+  probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
+  probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
+    !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
+    && !wr('gh pr merge 9 --merge \\\n  --match-head-commit h\n\nprint("--subject")\n').length
+    && !wr('Merge grant: merge_pull_request (merge commit, never squash\n\n-b and --body are the body flags.\n').length])
   probes.push(['a merge call that passes commit_title is refused', guard([], { ...writers, 'tools/x.js': 'merge_pull_request with commit_title Merge pull request #9\n' }).length === 1])
   probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
   // The walk itself, on a real repository: a recarried branch's own
