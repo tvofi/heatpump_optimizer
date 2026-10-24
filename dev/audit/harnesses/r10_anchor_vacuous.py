@@ -4,6 +4,7 @@
     python3 dev/audit/harnesses/r10_anchor_vacuous.py --drive [--all] [--jobs N] [--out F]
     python3 dev/audit/harnesses/r10_anchor_vacuous.py --drive --anchor KEY [--anchor KEY ...]
                                       [--equivalent | --new TEXT] [--no-hide]
+    python3 dev/audit/harnesses/r10_anchor_vacuous.py --strike OUT.json --at SHA
 
 The census enumerates every row of the ledger whose `killed_by` is
 tests/entities.py (the rule: `load_budgets()["killed_by"]`, entry
@@ -26,6 +27,12 @@ plus a trailing comment, and `--new TEXT` with TEXT (one anchor) -- rewrites
 no check can tell apart, which must LIVE; `--no-hide` drives without the fix
 (no row hidden), the tree as the instrument saw it before, where the same
 rewrite reads killed.
+
+`--strike OUT --at SHA` applies a --drive measurement: each VACUOUS pin's
+`killed_by` row becomes a `survivor_triage` row with verdict `gap` and the
+reason, under the same anchor and `old` pin (`mutation_table.write_budgets`),
+so the site keeps a disposition and the unpinned ratchet does not move; a pin
+whose row changed since the measurement is left alone.
 
 Run `--drive` under `env -u BASH_ENV`, the finder's recipe: an inherited
 BASH_ENV turns two workflow-step checks of tests/entities.py red in the
@@ -140,6 +147,35 @@ def drive(budgets, by_anchor, anchors, jobs, timeout, new=None, hide=True):
     return out
 
 
+def strike(out: str, at: str) -> int:
+    got = json.loads(Path(out).read_text())
+    budgets = mt.load_budgets()
+    kb, tri = budgets["killed_by"], budgets.setdefault("survivor_triage", {})
+    n = 0
+    for a in got["vacuous"]:
+        entry = kb.get(a)
+        if not isinstance(entry, dict) or entry.get("killed_by") != JUDGE:
+            print(f"  left alone (row changed): {a}")
+            continue
+        d = got["detail"][a]
+        tri[a] = {"old": entry["old"], "verdict": "gap", "reason": (
+            f"R10 mutation-anchor: the `killed_by: {JUDGE}` pin was vacuous. "
+            f"Re-driven at {at} by dev/audit/harnesses/r10_anchor_vacuous.py "
+            f"with the {d['hidden']} ledger row(s) the mutant itself makes "
+            f"stale hidden from its tree, {d['killed']} of {d['sites']} "
+            f"site(s) were killed by {JUDGE}: the recorded kill was a check "
+            f"refusing a ledger row the mutant made stale (the --anchor "
+            f"self-test, or the survivor_triage staleness check), not one "
+            f"that saw the mutation. Was: {entry.get('reason', '')} Not re-driven here "
+            f"against the other drivers in its closure, so a gap until one "
+            f"is shown to kill it.")}
+        del kb[a]
+        n += 1
+    mt.write_budgets(budgets)
+    print(f"STRUCK {n} vacuous pin(s) into survivor_triage gap rows")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--drive", action="store_true")
@@ -151,7 +187,11 @@ def main(argv=None) -> int:
     ap.add_argument("--new")
     ap.add_argument("--no-hide", action="store_true")
     ap.add_argument("--out")
+    ap.add_argument("--strike", metavar="OUT")
+    ap.add_argument("--at", default="")
     args = ap.parse_args(argv)
+    if args.strike:
+        return strike(args.strike, args.at)
     budgets, by_anchor, pins, second = census()
     print(f"CENSUS: {len(pins)} killed_by {JUDGE} pin(s); {len(second)} on a "
           f"line carrying a second ledger row")
