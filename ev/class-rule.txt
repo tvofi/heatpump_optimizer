@@ -1,0 +1,15 @@
+## class rule at head
+184:            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+189:                f.write(self._text())
+261:    tmp.write_text(text)
+267:    (lock_dir / FLOCK_NAME).touch(exist_ok=True)
+285:    fd = os.open(lock_dir / FLOCK_NAME, os.O_RDWR)
+293:            (lock_dir / HOLDING_NAME).write_text("holding\n")
+376:    tmp.write_text(
+546:                    fresh.write(lock_dir / OWNER_NAME)
+595:    refreshed.write(lock_dir / OWNER_NAME)
+735:                fresh.write(_slot_path(pool, index))
+## outside-file rule
+tests/README.md:58:The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
+tests/README.md:64:`/tmp/hpo-gate.lock/flock`, so a crash drops it and the next waiter takes at
+tools/pr/prepr.sh:2782:  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 2 "and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status"
