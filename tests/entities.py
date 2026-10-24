@@ -3866,7 +3866,11 @@ def _p2_registry(sources):
                      "row's own last_updated, the export's SQL window rule",
                  "debugger.py::_record":
                      "writes a recorded row's last_updated and last_reported "
-                     "verbatim, the export's row shape; nothing reads them as an age"}),
+                     "verbatim, the export's row shape; nothing reads them as an age",
+                 # #2234: which age TABLE applies, never the age itself.
+                 "inputs.py::source_polls":
+                     "compares last_reported with last_updated, the re-report "
+                     "that marks a polling source; the age stays state_stamp's"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -34691,11 +34695,16 @@ R.check(
 
 
 def _cir_retry_runner(calls: list):
+    # The list is read per lane by name (ci_ratchet.ARTIFACTS_URL), so the
+    # stub answers as the server does: the fast lane gets the good listing,
+    # every other lane its own (empty) one.
     def run(argv, **_kw):
         calls.append(argv)
         if len(calls) < 3:
             return _subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
-        return _subprocess.CompletedProcess(argv, 0, _CIR_GOOD_ARTIFACTS, "")
+        body = (_CIR_GOOD_ARTIFACTS if "name=ci-metrics-fast&" in argv[-1]
+                else '{"artifacts": []}')
+        return _subprocess.CompletedProcess(argv, 0, body, "")
     return run
 
 
@@ -34704,7 +34713,7 @@ _CIR_RETRIED = [a["id"] for a in _cir.fetch_window(
     "o/r", "77", runner=_cir_retry_runner(_CIR_ATTEMPTS), sleep=lambda _s: None)]
 R.check(
     "the CI ratchet retries the artifacts list and uses the retry's window",
-    len(_CIR_ATTEMPTS) == 3 and _CIR_RETRIED == [2, 1],
+    len(_CIR_ATTEMPTS) == 2 + len(_cir.WINDOW_LANES) and _CIR_RETRIED == [2, 1],
     f"attempts={len(_CIR_ATTEMPTS)} ids={_CIR_RETRIED}",
 )
 
@@ -37171,8 +37180,6 @@ _P8_ALLOWED = {
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
     ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
-    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
-        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
 }
 
 
