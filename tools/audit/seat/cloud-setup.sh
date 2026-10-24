@@ -32,7 +32,7 @@
 #   cloud-setup.sh --variables   print those variables, one NAME=value a line
 #   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's, else
 #                                REFUSE naming the variables; exit 0 or 1
-#   cloud-setup.sh --self-test   the profile and check arms, in a temp dir
+#   cloud-setup.sh --self-test   the profile, variables and check arms, in a temp dir
 set -euo pipefail
 
 REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
