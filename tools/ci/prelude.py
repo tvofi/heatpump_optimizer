@@ -331,10 +331,10 @@ def self_test() -> int:
     get, naps = timeline([run(60, "code", "in_progress", done("code", gate=False))],
                          [run(60, "code", "in_progress", done("code"))])
     check("M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging",
-          (wait_sources(rctx, get, naps.append, lambda: 0), naps), ("", [POLL_S]))
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", [POLL_S]))
     get, naps = timeline([run(40, "edit", "in_progress", done("edit"))])
     check("a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us)",
-          (wait_sources(rctx, get, naps.append, lambda: 0), naps), ("", []))
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", []))
     check("poll floor is 60 s", POLL_S >= 60, True)
     clock = iter(range(0, 10 ** 6, 3000))
     get, _ = timeline([run(1, "code", "queued")])

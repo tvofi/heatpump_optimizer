@@ -388,6 +388,8 @@ def self_test() -> int:
         naps = []
 
         def get(path, params=None):
+            if sum(naps) > 2 * GATE_WAIT_MAX_S:
+                raise TimeoutError("waited past twice the bound")
             frame = frames[min(len(naps), len(frames) - 1)]
             if path.endswith("/pulls/7"):
                 return 200, {}, pull
@@ -400,7 +402,10 @@ def self_test() -> int:
         return get, naps, naps.append, lambda: sum(naps)
 
     def verdict(c, get, nap, now, kl=claim):
-        return judge(c, kl, get, cc, nap, now)[0]
+        try:
+            return judge(c, kl, get, cc, nap, now)[0]
+        except TimeoutError as e:
+            return f"UNBOUNDED: {e}"
     in_prelude = [{"name": "prelude", "status": "in_progress", "conclusion": None, "id": 1}]
     get, naps, nap, now = scene([run(101, "edit", "in_progress", in_prelude), run(102, "review", "queued", [])],
                                 [run(101, "edit", "in_progress", owed("edit")),
