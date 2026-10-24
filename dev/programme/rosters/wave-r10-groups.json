@@ -3442,7 +3442,8 @@
     "R10-BRIEFS-FOLD-D0",
     "R10-REPLAY-REAL-DAY",
     "R10-ARCHSCORE-SPELLINGS",
-    "R10-ROUTING-INVARIANTS"
+    "R10-ROUTING-INVARIANTS",
+    "R10-SAV-ACTUATION"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
