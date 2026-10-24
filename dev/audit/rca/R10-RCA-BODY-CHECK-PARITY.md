@@ -9,8 +9,18 @@ Root-cause seat (`root-cause.md`, `defect-root-cause.md`), beside R10-FLOW-JIDOK
 The analysis below was measured at `12032c43c` on 2026-10-23 and is kept as written;
 only the points the tree has since moved are listed here, each by its command.
 
-- **Neither carry destination has started.** `wave-r10-groups.json` has `R10-FLOW-JIDOKA`
-  and `R10-POLICY-LINT-FAMILY` both at `resume.stage: not-started`. G1 to G3 are open.
+- **Carry destinations, read on the roster handoff, not main's copy.** Main's
+  `wave-r10-groups.json` lags the roster, so its `resume.stage: not-started` for both groups
+  is not their state. On `handoff/audit-r10-roster` at `a72ff1128` (read 2026-10-24T12:24Z),
+  `R10-POLICY-LINT-FAMILY` is `done`, merged as #2669 (`0506a55b2`, an ancestor of
+  origin/main). Its `## Forward-carry` was `none` and it did not unify `isNone` with
+  `NONE_ITEM`, so a carry addressed to it reaches no seat. `R10-FLOW-JIDOKA` is `in-progress`.
+  Its last carry item, added by `a72ff1128`, names this RCA and says to read section 4 for
+  "the three requirements this fixer owes". All three of G1 to G3 are therefore JIDOKA's
+  (section 4 and `## Forward-carry` below route them so). The carry text cites
+  `handoff-body/r10-rca-body-check-parity` `4fd3eef16`, and that ref is not on origin at
+  that moment (`git ls-remote origin 'refs/heads/handoff-body/r10-rca-body*'` prints
+  nothing). This file is the copy of that body that stays readable. G1 to G3 are open.
 - **The table's "full prepr (open_pr)" cell for `carry_audit` is now stale; the
   `--body-check` cell is not.** `5cee85cec` (U9d) gave `ci_predict.py` a `--body` option
   (`carry_preds`, which calls `carry_audit.audit`), and `tools/pr/prepr.sh` step 6d
@@ -121,7 +131,7 @@ As briefed, the barrier is: every pr-contract body check is run by `--body-check
   The test must pin each body step's run line against a twin table: CI's exact argv and inputs, the twin's argv, and a stated reason for each difference. Editing the step's line without editing its row then fails the test. That is what catches a changed check.
 - **G3, two graders of one section.** Parity runs both graders before the open, but it leaves `policy_lint` and `carry_audit` defining `## Forward-carry` differently. Two of the four instances were written to satisfy `policy_lint` and were refused by `carry_audit`. The section's grammar should have one owner. Either `policy_lint`'s Forward-carry arm calls `carry_audit`'s parser, as P-F's design has `policy_lint` call `justification()`, or `policy_lint` stops demanding a path where `carry_audit` refuses one.
 
-Who owns what. G1 and G2 belong to R10-FLOW-JIDOKA, the same test widened. G3 belongs to R10-POLICY-LINT-FAMILY, the group that already owns `policy_lint`'s grammar seams (P-F's M1 is there). This seat builds nothing in parallel: a second test would be the parallel mechanism `fixer.md` forbids, and G3 changes a grader's grammar, which is the owning group's call.
+Who owns what. G1 and G2 belong to R10-FLOW-JIDOKA, the same test widened. As first written, G3 was routed to R10-POLICY-LINT-FAMILY, the group that owned `policy_lint`'s grammar seams. That group merged as #2669 without G3 before this carry reached it, so G3 is routed to R10-FLOW-JIDOKA too. JIDOKA's carry already owes the call into `carry_audit.py`, and its P-Q item names R10-FLY-CARRY-DISPOSITION as the owner of that file. This seat builds nothing in parallel: a second test would be the parallel mechanism `fixer.md` forbids, and G3 changes a grader's grammar, which is the owning group's call.
 
 Demonstration owed by the builder:
 - On the four recorded bodies (section 1), the new step refuses each one at `body_push`. Null controls: the repaired bodies, for example `r10-orch-ledger` `b3b67b1b`, pass the carry step's own fixture.
@@ -132,6 +142,6 @@ Demonstration owed by the builder:
 
 - G1: the parity test enumerates every workflow step that reads the pull-request body (`pr-contract.yml`, `arch-score.yml`, `budget-raise-gate.yml`), not `pr-contract.yml` alone. P-F's grader is in the second set. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-FLOW-JIDOKA
 - G2: the parity test pins each body step's run line against a twin table (CI argv and inputs, twin argv, a reason per difference), so a changed invocation fails it. A mutant editing one argument of the carry step must fail the test. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-FLOW-JIDOKA
-- G3: `## Forward-carry` has two graders with different grammars (`policy_lint.mjs` `isNone` and its path demand, against `carry_audit.py` `NONE_ITEM` and `seg_dests`). One parser must own the section. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-POLICY-LINT-FAMILY
+- G3: `## Forward-carry` has two graders with different grammars (`policy_lint.mjs` `isNone` and its path demand, against `carry_audit.py` `NONE_ITEM` and `seg_dests`). One parser must own the section. R10-POLICY-LINT-FAMILY, first named here, merged as #2669 without it. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-FLOW-JIDOKA
 - The `bugclasses.json` citation of `dev/audit/rca/R10-RCA-BODY-CHECK-PARITY.md` lands with the JIDOKA pull request. This seat pushes no code. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-FLOW-JIDOKA
 
