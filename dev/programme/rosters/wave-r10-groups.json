@@ -7132,7 +7132,7 @@
    "architect_note": "",
    "brief": "The tick's 'at the cap: do not dispatch' line names its exceptions: expedites (rule 16) and the next chain link (rule 15), instead of reading as 'hold lane dispatches' only.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-fly-cap-line",
     "commit": null,
     "last_step": null,
