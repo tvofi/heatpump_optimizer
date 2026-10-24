@@ -3487,6 +3487,7 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
+    _add_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -4596,6 +4597,167 @@ def _batch_self_test(check) -> None:
         except ValueError as e:
             got = str(e)
         check(f"queue_batches refuses {name}, naming the rule", got.startswith("queue: "))
+
+
+def _add_self_test(check) -> None:
+    """`add` (R10-TRAIN-UPGRADE): the admission seam's rules, and the live queue's
+    lock, idempotence, start and race, against a stubbed GitHub and a stub
+    launch whose "train" is a sleeping process."""
+    import threading
+    g = _mandate_gate()
+    owner = {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
+    H, V, B = "1" * 40, "2" * 40, "e" * 40
+
+    def stub(w: dict):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            got = budget_fixture(w.get("budgets"), argv, B)
+            if got is not None:
+                return got
+            if argv[:3] == ["gh", "pr", "view"]:
+                return w.get("view", (0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})))
+            if "--carry" in argv:
+                return 0, w.get("carry", "CARRY: yes")
+            if argv[:2] == ["git", "merge-base"]:
+                return 0, B
+            if argv[:2] == ["git", "diff"]:
+                return 0, "\n".join(w.get("files", ["a.py", f"{ROW_DIR}/{w.get('pr', 7)}.md"]))
+            if "--corpus-filter" in a:
+                return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            if argv[:2] == ["gh", "api"] and "/reviews" in a:
+                return 0, json.dumps([w.get("reviews", [])])
+            if argv[:2] == ["gh", "api"] and "/pulls/" in a:  # the body raise_hold justifies
+                return 0, ""
+            if argv[:3] == ["gh", "pr", "view"]:
+                return 0, ""
+            return 0, ""
+        return run
+
+    def admit(mandate=None, **w) -> "str | None":
+        return Train("o/r", Path("."), mandate, "", (), 1, run=stub(w)).admit_add(
+            {"pr": w.get("pr", 7), "verdict": w.get("verdict", H), "verdict_comment": "42"})
+
+    check("admit_add: a green, rowed, carried head is admitted (null control)", admit() is None)
+    check("admit_add: a verdict that carries to the head is admitted; one that does not is refused as `carry`",
+          admit(verdict=V) is None and (admit(verdict=V, carry="app_approve: REFUSE: own diff") or "")
+          .startswith("carry: the verdict 222222222222 does not carry to head 111111111111: app_approve: REFUSE"))
+    for rule, w, want in (
+            ("shape", {"verdict": "abc"}, "shape: verdict 'abc'"),
+            ("shape", {"pr": "x"}, "shape: pr 'x'"),
+            ("open", {"view": (0, json.dumps({"state": "MERGED", "baseRefName": "main", "headRefOid": H}))},
+             "open: #7 is MERGED"),
+            ("open", {"view": (1, "HTTP 502")}, "open: #7 could not be read"),
+            ("base", {"view": (0, json.dumps({"state": "OPEN", "baseRefName": "dev", "headRefOid": H}))},
+             "base: #7 targets dev"),
+            ("row", {"files": ["a.py"]}, f"row: #7 has no {ROW_DIR}/7.md"),
+            ("budget-raise", {"budgets": RAISE_FIXTURE, "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
+             "budget-raise: 1 budget raise(s)"),
+            ("policy", {"files": ["CLAUDE.md", f"{ROW_DIR}/7.md"]}, "policy: CLAUDE.md changed, with no owner approval")):
+        got = admit(**w) or ""
+        check(f"admit_add refuses by its `{rule}` rule, naming it: {want[:60]}", got.startswith(want))
+    check("admit_add: a budget file that only gains rows raises nothing and is admitted (the batch routes it serial)",
+          admit(budgets=NEW_ROWS_FIXTURE, files=["tests/ci_budgets.json", f"{ROW_DIR}/7.md"]) is None)
+    check("admit_add: a policy head is admitted with the owner's approval at its head, or a --mandate id "
+          "policy_approve can post under",
+          admit(files=["CLAUDE.md", f"{ROW_DIR}/7.md"],
+                reviews=[{"user": owner, "state": "APPROVED", "commit_id": H, "body": "ok"}]) is None
+          and admit(mandate=str(MID), files=["CLAUDE.md", f"{ROW_DIR}/7.md"]) is None)
+
+    tmp = tempfile.TemporaryDirectory()
+    sleepers: list = []
+
+    def launcher(delay: float = 0.0, fail: bool = False):
+        got: list = []
+
+        def launch(argv, state):
+            got.append(argv)
+            time.sleep(delay)
+            if fail:
+                return 0, "rc 2: train.sh: REFUSE: no seat venv"
+            p = subprocess.Popen(["sleep", "60"])
+            sleepers.append(p)
+            (state / "train.pid").write_text(f"{p.pid}\n")
+            return p.pid, ""
+        return launch, got
+
+    def add(state, pr, launch, verdict=H, **w):
+        lines: list = []
+        t = Train("o/r", state, None, "", (), 1, run=stub({"pr": pr, **w}), log=lines.append)
+        rc = train_add(t, {"pr": pr, "verdict": verdict, "verdict_comment": "42"},
+                       ["bash", "train.sh", "--repo", "o/r"], launch=launch, settle=0.3)
+        return rc, lines
+
+    try:
+        st = Path(tempfile.mkdtemp(dir=tmp.name))
+        launch, got = launcher()
+        rc, lines = add(st, 7, launch)
+        qf = got[0][got[0].index("--queue") + 1] if got else ""
+        check("add, no train live: ONE train.sh starts over the entry, its pid in queue.open (STARTED)",
+              rc == 0 and len(got) == 1 and json.loads(Path(qf).read_text())[0]["pr"] == 7
+              and read_pid(st / QUEUE_OPEN) == read_pid(st / "train.pid") and lines[-1].startswith("STARTED train.sh pid"))
+        rc, lines = add(st, 8, launch)
+        check("add, a train live: the entry is spooled for its NEXT batch, nothing started (ADDED)",
+              rc == 0 and len(got) == 1 and [e["pr"] for e in spool_read(st)[0]] == [8]
+              and lines[-1].startswith("ADDED #8 to the live train"))
+        rc8, l8 = add(st, 8, launch)
+        rc7, l7 = add(st, 7, launch)
+        check("add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, "
+              "nothing spooled twice, nothing started",
+              (rc8, rc7) == (0, 0) and l8[-1].startswith("ALREADY #8") and l7[-1].startswith("ALREADY #7")
+              and len(spool_read(st)[0]) == 1 and len(got) == 1)
+        rc, lines = add(st, 9, launch, verdict=V, carry="app_approve: REFUSE: own diff")
+        check("add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled",
+              rc == 1 and lines[-1].startswith("ADD REFUSED #9 carry: the verdict") and len(spool_read(st)[0]) == 1)
+
+        st = Path(tempfile.mkdtemp(dir=tmp.name))
+        with queue_lock(st):
+            spool_append(st, {"pr": 5, "verdict": H})  # a stopped train's leftover
+        launch, got = launcher(fail=True)
+        rc, lines = add(st, 7, launch)
+        check("add, the start refused: rc 2 naming it, and a stopped train's leftover stays spooled",
+              rc == 2 and "start: train.sh did not start" in lines[-1]
+              and [e["pr"] for e in spool_read(st)[0]] == [5] and not (st / QUEUE_OPEN).exists())
+        launch, got = launcher()
+        rc, lines = add(st, 7, launch)
+        qf = got[0][got[0].index("--queue") + 1] if got else ""
+        check("add, no train live with a leftover spooled: the new train's queue holds both, the spool is empty",
+              rc == 0 and [e["pr"] for e in json.loads(Path(qf).read_text())] == [5, 7]
+              and not spool_read(st)[0])
+
+        st = Path(tempfile.mkdtemp(dir=tmp.name))
+        closing = subprocess.Popen(["sleep", "60"])
+        sleepers.append(closing)
+        (st / "train.pid").write_text(f"{closing.pid}\n")
+        launch, got = launcher()
+        rc, lines = add(st, 7, launch)
+        check("add beside a train.sh still holding train.pid with no queue open waits it out, then starts "
+              "nothing beside it (one-train, rc 2)", rc == 2 and not got and "one-train:" in lines[-1])
+
+        # THE RACE (the coordinator's control): two adds at once with no train live.
+        st = Path(tempfile.mkdtemp(dir=tmp.name))
+        launch, got = launcher(delay=0.3)
+        gate = threading.Barrier(2)
+        out: dict = {}
+
+        def racer(pr):
+            gate.wait()
+            out[pr] = add(st, pr, launch)
+        th = [threading.Thread(target=racer, args=(n,)) for n in (7, 8)]
+        for x in th:
+            x.start()
+        for x in th:
+            x.join()
+        check("RACE: two concurrent adds with no train live start exactly ONE train (one launch, one "
+              "train.pid) and spool exactly the other entry",
+              len(got) == 1 and sorted(rc for rc, _ in out.values()) == [0, 0]
+              and read_pid(st / "train.pid") == read_pid(st / QUEUE_OPEN)
+              and len(spool_read(st)[0]) == 1
+              and {spool_read(st)[0][0]["pr"], json.loads(Path(got[0][-1]).read_text())[0]["pr"]} == {7, 8})
+    finally:
+        for p in sleepers:
+            p.kill()
+            p.wait()
+        tmp.cleanup()
 
 
 def _parser() -> argparse.ArgumentParser:
