@@ -1,8 +1,5 @@
-dispatch/fixer-r10-sav-comfort
-dispatch/fixer-r10-replay-scoped
-dispatch/fixer-r10-mutation-anchor
-dispatch/fixer-r10-merge-subject-harden
-dispatch/fixer-r10-mutant-skip
-dispatch/fixer-r10-flow-autotrain
-dispatch/fixer-r10-policy-fixer-md
-dispatch/fixer-r10-policy-gate-scoping
+dispatch/fixer-r10-structure-alias
+dispatch/fixer-r10-fly-cipredict-layout
+dispatch/fixer-r10-fly-cloud-setup-toolchain
+dispatch/fixer-r10-fly-yield-guard
+dispatch/fixer-r10-fly-envmatrix-noremote
