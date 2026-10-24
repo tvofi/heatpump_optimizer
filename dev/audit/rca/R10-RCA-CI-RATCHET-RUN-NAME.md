@@ -68,7 +68,9 @@ The same-day neighbours of this defect are `bd0d4d603` (a gate-at-head precondit
 check suite), `69a26d2a2` (a required-contexts record accepted one shape) and `168365196` (two
 prepr refusals). Each is a defect where a reader written against one unit's tree met another
 unit's change in the assembly. Together with this one, 4 defects in the P2b assembly are on `main`.
-I did not check whether they share a cause beyond that shape.
+I did not check whether they share a cause beyond that shape. They are registered together as
+the class `N-p2b-assembly-reader` in `dev/audit/config/bugclasses.json`, listed and not counted:
+the 4 are its `non_round_instances`, its `total` is 0, and its `barrier` is null (section 4).
 
 ## 2. Process state: (d), sound in its unit, precondition changed underneath
 
@@ -131,14 +133,20 @@ countermeasure and I do not count it as one.
 **What I leave to the owner, not to build:** an assembly of independently-gated units has no
 gate at the seam where a sibling's change meets a reader. This defect and its three same-day
 neighbours are that shape. It is a P2b-specific shape, and P2b is done, so I record the finding
-and build nothing. If a later layout round assembles units again, `plan-review.md`'s brief for it
+and build nothing. The record is the register row `N-p2b-assembly-reader`, listed and not
+counted: its `non_round_note` records them as process incidents, not audit findings.
+Triage P52 (2026-10-24) rejected a barrier for it: the 3-instance trigger has not fired for a
+listed-not-counted class, and neither candidate catches the instance that shipped. The same
+note carries that ruling and its reopen condition, a second multi-unit assembly
+failing the same way. If a later layout round assembles units again, `plan-review.md`'s brief for it
 should name the readers of workflow runs and check each against the post-assembly API answer. That
 is policy-adjacent, so it is a proposal and not a change.
 
 ## 5. What I did not establish
 
-- Whether 4 assembly defects in 2 days make an audit class that owes a barrier
-  (`defect-root-cause.md`). They are not registered in `bugclasses.json`; I did not register them.
+- Whether the 4 assembly defects share one cause beyond the shape in section 1. They are
+  registered as one class, `N-p2b-assembly-reader`, listed and not counted, and triage P52
+  rejected a barrier for it (section 4); I did not establish a common cause past that shape.
 - The artifacts listing's own cause (why the server returned 0 bytes from 03:14). The fixer's
   per-lane listing answered in under a second per its comment; I did not measure it.
 - Whether `ci-ratchet` runs on PR events with a window; I read only the push-run logs.
