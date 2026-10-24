@@ -8698,7 +8698,9 @@
    "kind": "instrument",
    "class": "instrument",
    "size": "S",
-   "issues": [],
+   "issues": [
+    2732
+   ],
    "fixes": [],
    "after": [],
    "files": [
