@@ -25,6 +25,10 @@ with every scale a ``repr`` so an equality across trees is bitwise:
   configured heat meter leaves it. The fix reads it; the merge base ignores it.
 - ``commanded``: no heat reading. The null control: the byte-identical claim
   for an install without the key, so it must print the same at both trees.
+- ``first_fold``: the zero-evidence end, one fold per outdoor point from the
+  stored 1.0: each step is bounded by ``COP_LEARNING_MAX_STEP`` as before.
+- ``clamp``: the other end, a heat meter reading 4 x the law (a mis-scaled
+  meter): the scale stops at ``COP_SCALE_MAX``, the bound every path shares.
 
 Expected: ``metered`` spread near zero with every scale at ``TRUE_K`` at the
 head, and the same spread as ``commanded`` at the base; ``commanded`` identical
@@ -92,14 +96,14 @@ class Gate:
         return None
 
 
-def walk(metered):
+def walk(metered, k=TRUE_K, folds=FOLDS):
     gate, law = Gate(), ThermalModel(ThermalParameters())
     out = {}
     for outdoor in OUTDOORS:
         supply = 50.0 - 0.8 * outdoor
         gate._current_state.outdoor_temperature = outdoor
-        true_cop = TRUE_K * law.compute_cop_dhw(outdoor, supply)
-        for _ in range(FOLDS):
+        true_cop = k * law.compute_cop_dhw(outdoor, supply)
+        for _ in range(folds):
             gate._current_action = {"power": 9.0 / gate._thermal_model.compute_cop(outdoor)}
             gate._measured_power = 9.0 / true_cop
             gate._flow_bias.observe_temps(supply, supply - 5.0, heat_output_kw=9.0 if metered else None)
@@ -108,8 +112,13 @@ def walk(metered):
     return out
 
 
-for arm, metered in (("metered", True), ("commanded", False)):
-    scales = walk(metered)
+for arm, metered, k, folds in (
+    ("metered", True, TRUE_K, FOLDS),
+    ("commanded", False, TRUE_K, FOLDS),
+    ("first_fold", True, TRUE_K, 1),
+    ("clamp", True, 4.0, FOLDS),
+):
+    scales = walk(metered, k, folds)
     spread = max(scales.values()) - min(scales.values())
     print("ARM", arm, "spread=%.4f" % spread, " ".join("%g=%r" % kv for kv in scales.items()))
 '''
