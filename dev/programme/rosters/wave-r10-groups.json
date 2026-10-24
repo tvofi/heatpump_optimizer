@@ -4870,7 +4870,8 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "carry": [
-    "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py."
+    "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py.",
+    "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
    ],
    "architect_note": null,
    "findings": [],
