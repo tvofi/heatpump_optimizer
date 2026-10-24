@@ -150,11 +150,14 @@ Metrics (definitions, one line each; the code is the authority):
                               grid / views; a unit's seam is its entry in
                               ``tests/seam_map.json``, #1539) of what an
                               extraction of the seam would have to make
-                              explicit: attribute references crossing the
-                              ownership boundary in either direction (an
+                              explicit: each (seam, attribute) pair crossing
+                              the ownership boundary in either direction (an
                               attribute is owned by a seam when one of its
-                              units stores it), plus calls between units
-                              crossing it. The units are the coordinator's
+                              units stores it), plus each (seam, callee) pair
+                              crossing it -- once, however often it is read,
+                              so an alias buys nothing (O19); a property read
+                              is a call, and a call of a bare state getter is
+                              the reads it returns. The units are the coordinator's
                               methods and ``coordinator.py``'s module-level
                               helpers handed the coordinator, priced alike
                               (#1686): a body moved into ``_helper(self, ...)``
@@ -990,6 +993,45 @@ def state_root_bindings(fn: ast.AST, roots: frozenset[str] = SELF_ROOT,
     return frozenset(aliases), frozenset(hops)
 
 
+def _is_property(fn: ast.AST) -> bool:
+    return any(isinstance(d, ast.Name) and d.id in ("property", "cached_property")
+               for d in getattr(fn, "decorator_list", ()))
+
+
+def state_getter_reads(fn: ast.AST, roots: frozenset[str], methods: dict[str, ast.AST],
+                       ) -> frozenset[str] | None:
+    """The attributes a bare state getter returns, or None for any other body.
+
+    A bare getter is a docstring, state-root aliases and one ``return`` of a
+    state read or a tuple, list, set or dict of them; a ``@property`` is one
+    like any other method. Calling it from another seam
+    hands that seam the state as surely as reading it does, so a call is priced
+    as those reads at the caller, never as one edge: one edge in place of k
+    reads paid 2(k-1) with nothing encapsulated (the round-10 ``_cop_state``
+    plant, O19).
+    """
+    body = list(getattr(fn, "body", ()))
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        body = body[1:]
+    aliases, _hops = state_root_bindings(fn, roots)
+    if not body or not isinstance(body[-1], ast.Return) or body[-1].value is None:
+        return None
+    if not all(isinstance(stmt, ast.Assign) and is_state_root(stmt.value, frozenset(), roots)
+               for stmt in body[:-1]):
+        return None
+    value = body[-1].value
+    elements = (value.elts if isinstance(value, (ast.Tuple, ast.List, ast.Set))
+                else value.values if isinstance(value, ast.Dict) else [value])
+    reads = set()
+    for node in elements:
+        while isinstance(node, ast.Attribute) and not is_state_root(node.value, aliases, roots):
+            node = node.value
+        if not isinstance(node, ast.Attribute) or node.attr in methods:
+            return None
+        reads.add(node.attr)
+    return frozenset(reads)
+
+
 class SeamMapError(ValueError):
     """The seam map and the class it partitions disagree (#1539)."""
 
@@ -1056,8 +1098,15 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
         if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
     helpers = helpers or {}
+    # Every def of a name is its unit: ``methods`` keeps the last, so a
+    # ``@<name>.setter`` would hide the property's own body.
+    defs: dict[str, list[ast.AST]] = defaultdict(list)
+    for m in coord_class.body:
+        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            defs[m.name].append(m)
     units: dict[str, tuple[ast.AST, frozenset[str]]] = {
-        name: (fn, SELF_ROOT) for name, fn in methods.items()}
+        name: (fns[0] if len(fns) == 1 else ast.Module(body=fns, type_ignores=[]), SELF_ROOT)
+        for name, fns in defs.items()}
     units.update(helpers)
     helper_names = {key.split(".", 1)[1]: key for key in helpers}
     seams = load_seam_map() if seams is None else seams
@@ -1071,9 +1120,28 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
             f" method, and each coordinator.py helper handed the coordinator, its"
             f" seam in {SEAM_MAP_FILE.name} (#1539, #1686)")
     buckets = {name: seams[name] for name in units}
-    attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
+    readers = {name: next((f for f in fns if _is_property(f)), fns[0])
+               for name, fns in defs.items()}
+    properties = {name for name, f in readers.items() if _is_property(f)}
+    getters = {name: reads for name, (fn, roots) in units.items()
+               if (reads := state_getter_reads(readers.get(name, fn), roots, methods))
+               is not None}
+    # An extraction makes each crossing name explicit once, however often it
+    # is read: priced per occurrence, a local alias of a repeated read paid
+    # for itself with nothing moved (O19). So the cut is distinct pairs.
+    attr_refs: dict[str, set[str]] = defaultdict(set)     # attr -> buckets that reference it
     attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
+    call_pairs: set[tuple[str, str]] = set()              # (caller bucket, callee unit)
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
+
+    def call(bucket: str, callee: str) -> None:
+        if callee in getters:
+            for attr in getters[callee]:
+                attr_refs[attr].add(bucket)
+        else:
+            call_pairs.add((bucket, callee))
+        call_edges[(bucket, buckets[callee])] += 1
+
     for name, (fn, roots) in units.items():
         bucket = buckets[name]
         aliases, hops = state_root_bindings(fn, roots)
@@ -1084,7 +1152,7 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
                 and is_state_root(node.value, aliases, roots)
                 and node.attr not in methods
             ):
-                attr_refs[node.attr][bucket] += 1
+                attr_refs[node.attr].add(bucket)
                 if isinstance(node.ctx, ast.Store):
                     attr_owners[node.attr].add(bucket)
             elif (
@@ -1094,7 +1162,13 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
                 and node.func.value.id in roots
                 and node.func.attr in methods
             ):
-                call_edges[(bucket, buckets[node.func.attr])] += 1
+                call(bucket, node.func.attr)
+            elif (
+                isinstance(node, ast.Attribute)
+                and node.attr in properties
+                and is_state_root(node.value, aliases, roots)
+            ):
+                call(bucket, node.attr)
             elif (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Name)
@@ -1102,7 +1176,7 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
                 and any(is_state_root(a, aliases, roots)
                         for a in [*node.args, *(k.value for k in node.keywords)])
             ):
-                call_edges[(bucket, buckets[helper_names[node.func.id]])] += 1
+                call(bucket, helper_names[node.func.id])
 
     total_edges = sum(call_edges.values())
     cross_edges = sum(c for (a, b), c in call_edges.items() if a != b)
@@ -1112,14 +1186,14 @@ def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None,
     for label in SEAM_LABELS:
         owned = {attr for attr, owners in attr_owners.items() if label in owners}
         cross_attr_refs = 0
-        for attr, counter in attr_refs.items():
-            inside = counter.get(label, 0)
-            outside = sum(c for b, c in counter.items() if b != label)
+        for attr, referrers in attr_refs.items():
+            inside = int(label in referrers)
+            outside = len(referrers - {label})
             cross_attr_refs += outside if attr in owned else inside
         cross_method_refs = sum(
-            c
-            for (a, b), c in call_edges.items()
-            if (a == label) != (b == label)
+            1
+            for caller, callee in call_pairs
+            if (caller == label) != (buckets[callee] == label)
         )
         seam_rows.append(
             (label, sum(1 for b in buckets.values() if b == label), len(owned),
@@ -2956,6 +3030,44 @@ SEAM_SELF_CHECK_FOREIGN = (
     "        ctx = elsewhere()\n        return ctx._depth",
     '        other = elsewhere()\n        return getattr(other, "_ctx", other)._depth',
 )
+# The alias and the getter the round-10 fix review planted (O19): each holds
+# the same reads as the direct spelling, and must price the same.
+SEAM_SELF_CHECK_REPEATS = (
+    "        return self._depth + self._depth",
+    "        depth = self._depth\n        return depth + depth",
+)
+# ``__init__`` and ``_state`` are the learning seam's, so it owns both
+# attributes; the fetch body reads them directly or through ``_state``. A
+# callee body that computes is a method, and a call of it stays an edge.
+SEAM_SELF_CHECK_GETTER_SOURCE = '''
+class Coordinator:
+    def __init__(self):
+        self._depth = 0
+        self._limit = 0
+
+    def _state(self):
+%s
+
+    def _fetch_prices(self):
+%s
+'''
+SEAM_SELF_CHECK_GETTER_HELPER = '''
+def _state(owner):
+    return owner._depth, owner._limit
+'''
+SEAM_SELF_CHECK_GETTERS = (
+    "        return self._depth, self._limit",
+    "        \"\"\"Both.\"\"\"\n        return (self._depth, self._limit)",
+    "        ctx = self._ctx\n        return [ctx._depth, ctx._limit]",
+    '        return {"depth": self._depth, "limit": self._limit}',
+)
+SEAM_SELF_CHECK_DIRECT = "        return self._depth, self._limit"
+SEAM_SELF_CHECK_COMPUTING = "        return self._depth + self._limit"
+SEAM_SELF_CHECK_NOT_GETTERS = (
+    "        return self._depth, len(self._limit)",
+    "        self._limit = 1\n        return self._depth, self._limit",
+)
+SEAM_SELF_CHECK_THROUGH = "        depth, limit = self._state()\n        return depth, limit"
 
 
 def seam_self_check() -> tuple[tuple[str, bool], ...]:
@@ -2988,6 +3100,39 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
             return True
         return False
 
+    def total(getter: str, body: str, helper: bool = False, prop: bool = False,
+              setter: bool = False) -> int:
+        source = SEAM_SELF_CHECK_GETTER_SOURCE
+        if helper:
+            body = body.replace("self._state()", "_state(self)")
+        if prop:
+            source = source.replace("    def _state", "    @property\n    def _state")
+            body = body.replace("self._state()", "self._state")
+        if setter:
+            source = source.replace("    def _fetch_prices", "    @_state.setter\n"
+                                    "    def _state(self, value):\n        self._depth = value\n\n"
+                                    "    def _fetch_prices")
+        tree = ast.parse(source % (getter, body))
+        cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
+        seam_map = {"__init__": "learning", "_state": "learning", "_fetch_prices": "fetch"}
+        helpers = None
+        if helper:
+            cls.body = [m for m in cls.body if getattr(m, "name", "") != "_state"]
+            fn = ast.parse(SEAM_SELF_CHECK_GETTER_HELPER).body[0]
+            helpers = {"coordinator._state": (fn, frozenset({"owner"}))}
+            seam_map = {"__init__": "learning", "coordinator._state": "learning",
+                        "_fetch_prices": "fetch"}
+        return seam_metrics(cls, seam_map, helpers)["seam_cut_total"]
+
+    def hidden(setter: str) -> int:
+        tree = ast.parse("class Coordinator:\n    def __init__(self):\n        self._depth = 0\n"
+                         "    @property\n    def _state(self):\n        return self._depth + 1\n"
+                         + setter)
+        return seam_metrics(tree.body[0], {"__init__": "core", "_state": "learning"}
+                            )["cut_costs"]["cut_learning"]
+
+    direct = total(SEAM_SELF_CHECK_GETTERS[0], SEAM_SELF_CHECK_DIRECT)
+    computing = total(SEAM_SELF_CHECK_COMPUTING, "        return self._state()")
     base = cut("        return 0")
     crossing = [cut(t % {"attr": "_depth"}) for t in SEAM_SELF_CHECK_SPELLINGS]
     owned = [cut(t % {"attr": "_cache"}) for t in SEAM_SELF_CHECK_SPELLINGS]
@@ -2999,6 +3144,25 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
          all(c == base for c in owned)),
         ("the state root is the binding, not the name it is bound to",
          all(c == base for c in foreign)),
+        ("a second read of an attribute, or a local alias of it, costs nothing more (O19)",
+         all(cut(t) == crossing[0] for t in SEAM_SELF_CHECK_REPEATS)),
+        ("a getter returning bare state reads is priced as those reads at its caller",
+         all(total(g, SEAM_SELF_CHECK_THROUGH) == direct for g in SEAM_SELF_CHECK_GETTERS)
+         and total(SEAM_SELF_CHECK_GETTERS[0], SEAM_SELF_CHECK_THROUGH, helper=True) == direct
+         and total(SEAM_SELF_CHECK_GETTERS[0], SEAM_SELF_CHECK_THROUGH, prop=True) == direct
+         and total(SEAM_SELF_CHECK_GETTERS[0], SEAM_SELF_CHECK_THROUGH, prop=True,
+                   setter=True) == direct),
+        ("a callee that computes is a call edge, not the state it reads",
+         computing != direct
+         and all(total(g, "        return self._state()") == computing
+                 for g in SEAM_SELF_CHECK_NOT_GETTERS)),
+        ("a property's setter hides none of its getter's reads",
+         hidden("") == hidden("    @_state.setter\n    def _state(self, value):\n        pass\n") > 0),
+        ("a property is a callee: read from another seam, it is priced as a call",
+         total(SEAM_SELF_CHECK_COMPUTING, "        return self._state()", prop=True)
+         == computing
+         == total(SEAM_SELF_CHECK_COMPUTING, "        return self._state()", prop=True,
+                  setter=True)),
         ("a method's seam is its map entry, not its name (#1539)",
          cut("        return self._depth", "_zz", {"__init__": "core", "_zz": "fetch"})
          == crossing[0]),
