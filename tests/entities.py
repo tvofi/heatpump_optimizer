@@ -36822,36 +36822,61 @@ _MUT_AN_BUDGETS = _mut.load_budgets()
 _MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
 
 
-def _mut_an_clone(dest):
+# The third stub reads no code at all: it is TRIAGE_JUDGE's ledger check in
+# miniature, red iff a row in the tree it runs in names a site that tree's
+# file does not generate. Pinned to it, a re-drive is a kill only by the row
+# the mutant itself made stale -- vacuous, as an equivalent rewrite read
+# killed by tests/entities.py (R10's anchor finding) -- so it must not
+# reproduce. The clone carries the pin's row so the judge has one to read.
+_MUT_AN_JUDGE = "tests/stub_ledger_judge.py"
+_MUT_AN_ROWS = _mut.ledger_dir().relative_to(_mut.ROOT)
+
+
+def _mut_an_clone(dest, row=None):
     (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
     (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    if row is not None:
+        _at = dest / _MUT_AN_ROWS / _mut.ledger_relpath("killed_by", _MUT_AN)
+        _at.parent.mkdir(parents=True, exist_ok=True)
+        _at.write_text(_mut.row_text(_MUT_AN, row))
     return dest
+
+
+def _mut_an_stale(cwd):
+    rows = _mut.read_rows(cwd / _MUT_AN_ROWS)
+    text = (cwd / _MUT_AN_REL).read_text()
+    sites = _mut.anchor_sites(text, [dict(_s, file=_MUT_AN_REL) for _s in
+                                     _mut.candidates(cwd / _MUT_AN_REL)])
+    return bool(rows["killed_by"]) and bool(_mut.completeness_problems(
+        {"killed_by": rows["killed_by"]}, sites))
 
 
 def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
     text = (cwd / _MUT_AN_REL).read_text()
-    red = (script == _MUT_AN_KILL and text != _MUT_AN_TEXT
-           and "(null control)" not in text)
+    red = ((script == _MUT_AN_KILL and text != _MUT_AN_TEXT
+            and "(null control)" not in text)
+           or (script == _MUT_AN_JUDGE and _mut_an_stale(cwd)))
     return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
                           "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
                           else "ok\n")
 
 
-def _mut_anchor(pinned):
+def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
     budgets["killed_by"][_MUT_AN]["killed_by"] = pinned
+    _row = budgets["killed_by"][_MUT_AN] if _MUT_AN_JUDGE in drivers else None
     _saved = {n: getattr(_mut, n) for n in
               ("load_budgets", "load_closures", "clone_tree", "drop_tree", "run_script")}
     _mut.load_budgets = lambda: budgets
-    _mut.load_closures = lambda: {_MUT_AN_KILL: [_MUT_AN_REL],
-                                  _MUT_AN_PASS: [_MUT_AN_REL]}
-    _mut.clone_tree, _mut.drop_tree = _mut_an_clone, lambda dest: None
+    _mut.load_closures = lambda: {d: [_MUT_AN_REL] for d in drivers}
+    _mut.clone_tree = lambda dest: _mut_an_clone(dest, _row)
+    _mut.drop_tree = lambda dest: None
     _mut.run_script = _mut_an_run
     _log = tempfile.TemporaryFile("w+")
     try:
         with _pv_ctx.redirect_stdout(_log):
             _rc = _mut.main(["--scope", "full", "--anchor", _MUT_AN, "--jobs", "1",
-                             "--scripts", f"{_MUT_AN_KILL},{_MUT_AN_PASS}"])
+                             "--scripts", ",".join(drivers)])
     finally:
         for _n, _v in _saved.items():
             setattr(_mut, _n, _v)
@@ -36872,6 +36897,61 @@ R.check(
     and f"pinned to {_MUT_AN_PASS}, killed by {_MUT_AN_KILL}" in _MUT_AN_WRONG[1]
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
     f"has pin={_MUT_AN_HAS} real={_MUT_AN_REAL!r:.500} wrong={_MUT_AN_WRONG!r:.500}",
+)
+_MUT_AN_VAC = (_mut_anchor(_MUT_AN_JUDGE, (_MUT_AN_JUDGE, _MUT_AN_KILL))
+               if _MUT_AN_HAS else (None, ""))
+R.check(
+    "a re-driven pin is not reproduced by a driver that only sees the row the "
+    "mutant made stale: the row is hidden from the mutant's tree, and a code "
+    "check still kills it (R10 mutation-anchor)",
+    _MUT_AN_VAC[0] == 0
+    and f"pinned to {_MUT_AN_JUDGE}, killed by {_MUT_AN_KILL}" in _MUT_AN_VAC[1]
+    and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_VAC[1],
+    f"has pin={_MUT_AN_HAS} judge-pinned={_MUT_AN_VAC!r:.600} -- reproduced "
+    "means the ledger judge read the mutant's own stale row as a kill",
+)
+# The rows a rewrite invalidates, on the real ledger: a pinned line rewritten
+# equivalently (a trailing comment) loses exactly the rows pinned to it, and
+# the ledger without them agrees with the rewritten file again; a line no row
+# pins loses none (the null control).
+_MUT_IR = getattr(_mut, "invalidated_rows", None)
+_MUT_IR_LINES = _MUT_AN_TEXT.splitlines(True)
+_MUT_IR_SITES = _mut.anchor_sites(_MUT_AN_TEXT, list(_mut.candidates(_mut.ROOT / _MUT_AN_REL)))
+_MUT_IR_LN = next((s["line"] for s in _MUT_IR_SITES if s["anchor"] == _MUT_AN), 0)
+_MUT_IR_FREE = next((i for i, ln in enumerate(_MUT_IR_LINES, 1)
+                     if ln.strip() and not ln.lstrip().startswith("#")
+                     and i not in {s["line"] for s in _MUT_IR_SITES}), 0)
+
+
+def _mut_ir(ln):
+    lines = list(_MUT_IR_LINES)
+    lines[ln - 1] = lines[ln - 1].rstrip("\n") + "  # equivalent\n"
+    after = "".join(lines)
+    gone = _MUT_IR(_MUT_AN_BUDGETS, _MUT_AN_REL, _MUT_AN_TEXT, after)
+    keep = {m: {k: e for k, e in _MUT_AN_BUDGETS.get(m, {}).items()
+                if k.startswith(_MUT_AN_REL + ":")
+                and _mut.ledger_relpath(m, k) not in gone}
+            for m in _mut.LEDGER_MAPS}
+    sites = _mut.anchor_sites(after, list(_mut.candidates(
+        _mut.ROOT / _MUT_AN_REL, src=after)))
+    return gone, _mut.completeness_problems(keep, sites)
+
+
+_MUT_IR_OUT = (_mut_ir(_MUT_IR_LN), _mut_ir(_MUT_IR_FREE)) if (
+    _MUT_IR and _MUT_IR_LN and _MUT_IR_FREE) else None
+_MUT_IR_ON = {_mut.ledger_relpath(m, s["anchor"]) for s in _MUT_IR_SITES
+              if s["line"] == _MUT_IR_LN for m in _mut.LEDGER_MAPS
+              if s["anchor"] in _MUT_AN_BUDGETS.get(m, {})}
+R.check(
+    "invalidated_rows names exactly the rows pinned to a rewritten line, the "
+    "ledger without them agrees with the rewritten file, and an unpinned line "
+    "names none (R10 mutation-anchor)",
+    _MUT_IR_OUT is not None
+    and set(_MUT_IR_OUT[0][0]) == _MUT_IR_ON and bool(_MUT_IR_ON)
+    and _MUT_IR_OUT[0][1] == [] and _MUT_IR_OUT[1] == ([], []),
+    f"pinned line {_MUT_IR_LN} -> {_MUT_IR_OUT and _MUT_IR_OUT[0]!r}, want rows "
+    f"{sorted(_MUT_IR_ON)}; unpinned line {_MUT_IR_FREE} -> "
+    f"{_MUT_IR_OUT and _MUT_IR_OUT[1]!r}",
 )
 _MUT_PV_NIGHT = _workflow_job(_NIGHTLY_YML, "mutation-nightly")
 R.check(
