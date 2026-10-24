@@ -7,8 +7,8 @@ Applies each string-replacement mutant to tools/policy/agreement.mjs, runs
 `node tools/policy/agreement.mjs --self-test`, prints the summary and every FAIL,
 and restores the file (commit first: the restore writes the text read at start).
 M1-M13 are review/2697 round 1's evidence/mut.py; X1-X6 and Y1-Y12 are round 2's
-evidence/mut2.py; R1-R24 mutate each named part and sub-part of round 3's MERGE_CALL and
-SUBJECT_ARG. M9, Y8, Y8a and Y8b mutated the literal regexes that R1-R24's parts
+evidence/mut2.py; R1-R26 mutate each named part and sub-part of round 3's MERGE_CALL and
+SUBJECT_ARG. M9, Y8, Y8a and Y8b mutated the literal regexes that R1-R26's parts
 replaced, and are retired with them. A survivor prints `N of N` and no FAIL.
 Expected survivors: X5, Y9, Y10, each dispositioned in the PR body. A `NOT
 APPLIED` line means the mutated text moved.
@@ -72,6 +72,8 @@ M = {
 'R22 SUBJECT_ARG: -d not a cluster flag': ('const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tbF])` +', 'const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrs]*[tbF])` +'),
 'R23 SUBJECT_ARG: -F dropped from the short flags': ('const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tbF])` +', 'const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tb])` +'),
 'R24 SUBJECT_ARG: commitHeadline/commitBody dropped': ('  String.raw`|\\bcommit_(?:title|message)\\b|\\bcommit(?:Headline|Body)\\b`)', '  String.raw`|\\bcommit_(?:title|message)\\b`)'),
+'R25 GAP: whitespace narrowed to one literal space': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?: |\\\\\\n|,)+`'),
+'R26 GAP: one separator only, no run': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?:\\s|\\\\\\n|,)`'),
 }
 try:
     for k, (a, b) in M.items():
