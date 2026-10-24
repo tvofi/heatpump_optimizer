@@ -1,0 +1,5 @@
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.3249 WORSENS (inadmissible: coord_footprint 2463->2465)
+  duplication_copies 39 -> 38  +0.3261
+  coord_footprint 2463 -> 2465  -0.0012
