@@ -1,0 +1,19 @@
+applied M8_on_change_inf_dropped
+diff --git a/custom_components/heatpump_optimizer/const.py b/custom_components/heatpump_optimizer/const.py
+index fd53df4c9..fa6b14a7d 100644
+--- a/custom_components/heatpump_optimizer/const.py
++++ b/custom_components/heatpump_optimizer/const.py
+@@ -1611,7 +1611,6 @@ INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
+     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: math.inf,
+     CONF_FLOW_METER_ENTITY: math.inf,
+     # Heat holds 0 kW while the pump idles, as electricity does.
+-    CONF_THERMAL_POWER_ENTITY: math.inf,
+     # The room probe's own humidity channel: the room's quiet-store bound.
+     CONF_INDOOR_HUMIDITY_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
+ }
+rc=1
+  FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason  [undeclared [], equal unnamed ['heat_pump_thermal_power_entity'], named not equal []]
+  FAIL all 27 age-limited keys: a quiet on-change source is stale only on a key named equal; a silent polling source is stale on every key, remembered past a changing write (D14-s3-02)  [wrong (key, quiet, polled, changed): [('heat_pump_thermal_power_entity', 'stale', 'stale', 'stale')]]
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+2 of 4374 FEATURE CHECKS FAILED
