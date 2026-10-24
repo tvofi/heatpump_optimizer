@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair BOOLOP b990ee57",
+  "killed_by": "tests/features.py",
+  "old": "    if not void and abs(total_now / total_then - 1.0) <= step:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a: BOOLOP (`if not void or abs(total_now / total_then - 1.0) <= step:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}
