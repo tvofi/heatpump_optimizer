@@ -1,3 +1,0 @@
-ALL 31 gate lock acceptance checks PASSED
-ALL 31 gate lock acceptance checks PASSED
-ALL 31 gate lock acceptance checks PASSED
