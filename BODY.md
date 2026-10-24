@@ -18,7 +18,7 @@ Topic r10-codeql-dependabot. The owner ordered it directly (tvofi, 2026-10-24): 
 
 ## Head
 
-f4cc9aff057e1dc3c4cf4d00c6f2bf56d3df5ef5. It is the pull request's head 9439a0948 with `origin/main` 73b69fe0a merged in (c29fd80c7, no conflict, and main changed none of the 16 files this diff touches since 9586fce08), plus one commit, f4cc9aff0: `tests/closures.json` lists `.github/workflows/dependabot-automerge.yml` in `tests/harness_headers.py`'s closure, repairing the `tests / closures` red (`## Red checks`). This body is a re-cut. Every figure below that reads this tree was re-taken at f4cc9aff0 between 16:10Z and 16:45Z on 2026-10-24, on Linux with Node v22. The Actions census was re-taken at 16:40Z. The code-scanning figures and the live stand-in probe could not be re-taken, because this seat's token gets HTTP 403 on `code-scanning/*`. They are marked as dated snapshots.
+f4cc9aff0dad1399ceeae3fd7bd2eab095482fce. It is the pull request's head 9439a0948 with `origin/main` 73b69fe0a merged in (c29fd80c7, no conflict, and main changed none of the 16 files this diff touches since 9586fce08), plus one commit, f4cc9aff0: `tests/closures.json` lists `.github/workflows/dependabot-automerge.yml` in `tests/harness_headers.py`'s closure, repairing the `tests / closures` red (`## Red checks`). This body is a re-cut. Every figure below that reads this tree was re-taken at f4cc9aff0 between 16:10Z and 16:45Z on 2026-10-24, on Linux with Node v22. The Actions census was re-taken at 16:40Z. The code-scanning figures and the live stand-in probe could not be re-taken, because this seat's token gets HTTP 403 on `code-scanning/*`. They are marked as dated snapshots.
 
 ## Mutation proof
 
