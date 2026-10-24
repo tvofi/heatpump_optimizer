@@ -1,0 +1,3 @@
+MUTANT R4 lane key without the .mjs walk rc=1 fails=1
+    FAIL a grammar registered only in the head's copy is predicted red (rc 0)
+    ci_predict self-test: 1 failed
