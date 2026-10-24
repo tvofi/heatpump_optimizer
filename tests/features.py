@@ -68715,4 +68715,33 @@ R.check(
 )
 
 
+
+def _tp_cop_freeze(heat_age_min):
+    """The real coordinator's COP fold over a planted heat meter's health."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power", **{_TP_KEY: "sensor.heat"})
+    c.hass.states.set(
+        "sensor.heat",
+        FakeState("6000", last_updated=minutes_ago(heat_age_min, NOW), unit="W"),
+    )
+    reader = _fmReader(c.hass, c.effective_config, now=lambda: NOW)
+    _fm.observe_water(c._flow_bias, reader, c.effective_config)
+    c._input_health = reader.health
+    c._measured_power = 2.0
+    c._current_action = {"power": 2.0}
+    c._current_state.outdoor_temperature = 8.0
+    c._learn_measured_cop()
+    return c._measured_cop.refusal
+
+
+from heatpump_optimizer.accuracy import COP_REFUSED_FROZEN as _TP_FROZEN  # noqa: E402
+
+_tp_cop_stale = _tp_cop_freeze(45)
+_tp_cop_fresh = _tp_cop_freeze(1)
+R.check(
+    "a configured heat meter with a stale reading freezes the COP fold rather "
+    "than falling back to the commanded inference (null control: a fresh one folds)",
+    _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
+    f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
