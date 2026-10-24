@@ -4869,7 +4869,9 @@
    "fixture": true,
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
-   "carry": [],
+   "carry": [
+    "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py."
+   ],
    "architect_note": null,
    "findings": [],
    "wave": 2,
