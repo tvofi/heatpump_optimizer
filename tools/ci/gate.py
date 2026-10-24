@@ -25,6 +25,18 @@ failure reddens today's Tests push run joins (B3, enumerated from tests.yml by
 the harness's `b3` arm, never from memory). `tests / arch-instrument`, the
 architecture-score pair's own job beside `fast` (P2b, U5b), is a tests name
 like the rest: required on pull requests and push alike.
+
+DEFERRAL (R10-GATE-DEFER). A run still adding a source at this head
+(`busy`) makes this verdict undecided. The judge then WAITS, re-reading every
+POLL_S (60 s, tvofi's floor), up to GATE_WAIT_MAX_S, and judges once nothing
+is busy: a deferring gate publishes no red for an undecided head, and the
+verdict it then publishes is the one every gate at the head computes from the
+same finished sources, so a red source stays red and no wait masks it. The
+waits are acyclic: a gate waits only on runs that are not yet `judging`, and
+nothing waits on a judging run (prelude.wait_sources), so two gates that
+start together each find the other judging on a re-read. Only past the
+bound, a run still busy after GATE_WAIT_MAX_S, does the gate FAIL deferring,
+for gate-sweep.yml to re-judge.
 """
 from __future__ import annotations
 
@@ -33,28 +45,24 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import BODY_UNITS, CODE_UNITS, context, derive, parse_title, title, workset  # noqa: E402,F401
+from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
+                     run_jobs, title, workset)
 
-UNITS = {                                          # every name a unit owes at a PR head
-    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
-              "closure-scope"),
-    "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
-    "governance": ("policy-docs", "wave-script", "env-matrix"),
-    "hassfest": ("hassfest",),
-    "validate": ("validate-hacs",),
-    "arch-score": ("arch-score",),                 # owner ruling D-2
-    "budget-raise-gate": ("budget-raise-gate",),
-    "pr-contract": ("pr-contract",),
-}
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
 CODE = {u: UNITS[u] for u in CODE_UNITS}
 BODY = {u: UNITS[u] for u in BODY_UNITS}
 ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a run past 45 (4.3)
+# The deferral's wait bound: ci.yml's gate job has 15 min; the job's checkout,
+# restore and reads take under a minute without a wait (#2754's edit gate: 21 s),
+# so 12 min of waiting plus one poll leaves two minutes. The self-test pins it
+# under the job's `timeout-minutes`.
+GATE_WAIT_MAX_S = 720
 
 
 def _names(units, drop=(), extra=None) -> tuple[str, ...]:
@@ -82,26 +90,14 @@ def gate_required() -> list[str]:
     return sorted({n for names in REQUIRED.values() for n in names})
 
 
-def judging(run: dict) -> bool:
-    """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
-    `gate` is listed, no listed prelude or unit job is unfinished, and every name
-    its own title's workset owes is listed and completed (`tests /
-    closure-scope` aside when it names no PR)."""
-    jobs = run.get("jobs") or {}
-    if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
-                                     if k == "prelude" or k.split(" / ")[0] in UNITS):
-        return False
-    t = parse_title(run.get("title") or "")
-    if t is None:
-        return False                        # unreadable: never treated as finished (gate() also refuses it)
-    for u in workset(t[0], t[1]) & set(UNITS):
-        for n in UNITS[u]:
-            if u == "tests" and n == "closure-scope" and not t[1]:
-                continue
-            st = jobs.get(f"{u} / {n}")
-            if st is None or st[0] != "completed":
-                return False
-    return True
+def busy(ctx: dict, runs_at_head: list[dict]) -> list:
+    """The OTHER runs at this head still adding a source: unfinished, not held, not judging."""
+    return sorted(r["id"] for r in runs_at_head
+                  if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r))
+
+
+def deferral(ids: list) -> str:
+    return f"run(s) {ids} at this head are still being judged; their gate decides"
 
 
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
@@ -135,9 +131,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if lp.get("same_repo") is not True:  # R3-4: no supersession or refresh reaches a fork head
             return False, [f"PR {pr}: its head is not in this repository (a fork PR is not gated here)"]
     others = [r for r in api["runs_at_head"] if r["id"] != ctx["run_id"]]
-    busy = sorted(r["id"] for r in others if r["status"] not in ("completed", "action_required") and not judging(r))
-    if busy:
-        return False, [f"run(s) {busy} at this head are still being judged; their gate decides"]
+    waiting = busy(ctx, others)
+    if waiting:
+        return False, [deferral(waiting)]
     required: dict[str, list[str]] = {}
     for name in REQUIRED[event_class(ev, pr, api.get("reaches_cc"))]:
         u, n = name.split(" / ", 1)
@@ -174,11 +170,6 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     return not bad, sorted(set(bad), key=bad.index)
 
 
-def _jobs(get, repo: str, run_id) -> dict:
-    return {j["name"]: (j["status"], j["conclusion"]) for j in
-            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
-
-
 def _pull(get, repo: str, pr: str) -> dict:
     st, _, lp = get(f"repos/{repo}/pulls/{pr}")
     if st != 200 or not isinstance(lp, dict):
@@ -190,7 +181,7 @@ def _pull(get, repo: str, pr: str) -> dict:
 def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
-    jobs = _jobs(get, repo, ctx["run_id"])
+    jobs = run_jobs(get, repo, ctx["run_id"])
     api = {"prelude": {"conclusion": (jobs.get("prelude") or (None, None))[1], **claim},
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
@@ -201,7 +192,7 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
         api["open_pr_heads"] = {p["head"]["sha"] for p in ghapi.paginate(f"repos/{repo}/pulls", {"state": "open"}, get=get)}
     runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": ctx["head"]}, get=get)
     api["runs_at_head"] = [{"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                            "jobs": {} if r["status"] == "action_required" else _jobs(get, repo, r["id"])}
+                            "jobs": {} if r["status"] == "action_required" else run_jobs(get, repo, r["id"])}
                            for r in runs if r["id"] != ctx["run_id"]]
     return api
 
@@ -213,12 +204,20 @@ def reaches_custom_components(base: str, head: str) -> bool:
     return p.returncode != 0 or bool(p.stdout.strip())
 
 
-def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components) -> tuple[str, list[str], list[str]]:
-    """(outcome, reasons, this run's other jobs: reported, never gating)."""
+def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
+          now=time.monotonic) -> tuple[str, list[str], list[str]]:
+    """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
+    that only defers is never published while the bound allows a re-read."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
-    api = read_api(ctx, claim, cc, get)
-    ok, why = gate(ctx, api)
+    t0 = now()
+    while True:
+        api = read_api(ctx, claim, cc, get)
+        ok, why = gate(ctx, api)
+        waiting = busy(ctx, api["runs_at_head"])
+        if ok or why != [deferral(waiting)] or now() - t0 + POLL_S > GATE_WAIT_MAX_S:
+            break
+        sleep(POLL_S)
     owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
     notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
     return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
@@ -373,8 +372,84 @@ def self_test() -> int:
     check("an unnamed dispatch at an open PR's head is refused", gate(dctx, {**dapi, "open_pr_heads": {"M"}})[1],
           ["this SHA heads an open PR: dispatch with -f pr=N -f base=REF"])
     check("... and judged as usual at no PR's head (null)", gate(dctx, {**dapi, "open_pr_heads": {"X"}}), (True, []))
-    busy = [{"id": 99, "display_title": title("code", "7", "main", "M"), "status": "in_progress"}]
-    check("defer on an earlier run still adding a source", judge(ctx, claim, fake(runs=busy), cc)[0].startswith("FAIL run(s) [99]"), True)
+    # R10-GATE-DEFER: a deferral waits, bounded, and publishes no red for an undecided head.
+    def owed(kind, gate=True, red=(), state="completed"):
+        names = ["prelude"] + [f"{u} / {n}" for u in sorted(workset(kind, "7") & set(UNITS)) for n in UNITS[u]]
+        return ([{"name": x, "status": state if x != "prelude" else "completed",
+                  "conclusion": ("failure" if x in red else "success") if state == "completed" or x == "prelude"
+                  else None, "id": 1} for x in names]
+                + ([{"name": "gate", "status": "in_progress", "conclusion": None, "id": 9}] if gate else []))
+
+    def run(i, kind, status, jobs):
+        return {"id": i, "display_title": title(kind, "7", "main", "M"), "status": status, "jobs": jobs}
+
+    def scene(*frames, me=100):
+        """A get whose runs and jobs at the head move one frame per nap; `now` is the naps' sum."""
+        naps = []
+
+        def get(path, params=None):
+            frame = frames[min(len(naps), len(frames) - 1)]
+            if path.endswith("/pulls/7"):
+                return 200, {}, pull
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{k: v for k, v in r.items() if k != "jobs"} for r in frame]}
+            rid = int(path.split("/runs/")[1].split("/")[0])
+            if rid == me:
+                return 200, {}, {"jobs": green}
+            return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
+        return get, naps, naps.append, lambda: sum(naps)
+
+    def verdict(c, get, nap, now, kl=claim):
+        return judge(c, kl, get, cc, nap, now)[0]
+    in_prelude = [{"name": "prelude", "status": "in_progress", "conclusion": None, "id": 1}]
+    get, naps, nap, now = scene([run(101, "edit", "in_progress", in_prelude), run(102, "review", "queued", [])],
+                                [run(101, "edit", "in_progress", owed("edit")),
+                                 run(102, "review", "in_progress", owed("review"))])
+    check("#2754 shape: a gate beside a busy edit run and a queued review run waits, then judges once, no red",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = scene([run(101, "code", "in_progress", owed("code", gate=False))],
+                                [run(101, "code", "in_progress", owed("code"))])
+    check("simultaneous completion, side A: the other's gate not yet listed -> wait, then a decider",
+          verdict(ctx, get, nap, now), "PASS")
+    bctx = {**ctx, "run_id": 101}
+    get, naps, nap, now = scene([run(100, "code", "in_progress", owed("code", gate=False)),
+                                 run(101, "code", "in_progress", owed("code"))],
+                                [run(100, "code", "in_progress", owed("code")), run(101, "code", "in_progress", owed("code"))],
+                                me=101)
+    check("simultaneous completion, side B: the same, so the pair never deadlocks red-red",
+          verdict(bctx, get, nap, now), "PASS")
+    get, naps, nap, now = scene([run(101, "edit", "in_progress", owed("edit", gate=False, state="in_progress"))],
+                                [run(101, "edit", "completed", owed("edit", red=("pr-contract / pr-contract",)))])
+    check("a deferring gate published after the decider's red is that red, never a PASS",
+          verdict(ctx, get, nap, now), "FAIL pr-contract / pr-contract: failure (run 101)")
+    get, naps, nap, now = scene([run(99, "code", "in_progress", owed("code", gate=False, state="in_progress"))])
+    out = verdict(ctx, get, nap, now)
+    check("past the bound, the deferral FAILs (for gate-sweep.yml), and the wait stays inside the bound",
+          (out.startswith("FAIL run(s) [99] at this head are still being judged"), bool(naps),
+           sum(naps) <= GATE_WAIT_MAX_S), (True, True, True))
+    get, naps, nap, now = scene([run(99, "code", "in_progress", owed("code", gate=False, state="in_progress"))])
+    check("a decided red never waits: the prelude cross-check beside a busy run",
+          (verdict(ctx, get, nap, now, {"kind": "code", "pr": ""}).startswith("FAIL prelude says"), naps), (True, []))
+    get, naps, nap, now = scene([])
+    check("null: no other run at the head, no wait", (verdict(ctx, get, nap, now), naps), ("PASS", []))
+    reds = [run(i, "code", "completed", owed("code")[:-1] + [{"name": "gate", "status": "completed",
+                                                                "conclusion": "failure", "id": 9}]) for i in (90, 91, 92)]
+    get, naps, nap, now = scene(reds + [run(99, "review", "queued", [])],
+                                reds + [run(99, "review", "in_progress", owed("review"))])
+    check("rerun cascade: three completed red deferring gates, a queued decider, and a re-run of an older gate: "
+          "it waits for the decider, never re-defers red", (verdict({**ctx, "run_attempt": 2}, get, nap, now), naps),
+          ("PASS", [POLL_S]))
+    rerun = run(100, "code", "in_progress", owed("code")[:-1] + [{"name": "gate", "status": "queued",
+                                                                  "conclusion": None, "id": 9}])
+    check("... and the decider never waits on that re-run: a run whose only open job is its gate is judging",
+          busy({**ctx, "run_id": 99}, [{**r, "title": r["display_title"],
+                                        "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in r["jobs"]}}
+                                       for r in reds + [rerun]]), [])
+    import re
+    ci = (HERE.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
+    m = re.search(r"\n  gate:\n(?:    .*\n)*?    timeout-minutes: (\d+)\n", ci)
+    check("the wait bound, one poll and two minutes fit the gate job's timeout-minutes",
+          bool(m) and GATE_WAIT_MAX_S + POLL_S + 120 <= int(m.group(1)) * 60, True)
 
     def limited(path, params=None):
         raise ghapi.RateLimited(path, 1700000000, "api rate limit exceeded")
