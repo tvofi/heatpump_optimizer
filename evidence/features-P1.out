@@ -1,3 +1,0 @@
-  FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason  [undeclared ['planted_on_change_entity'], equal unnamed [], named not equal []]
-1 of 4345 FEATURE CHECKS FAILED
-rc=1
