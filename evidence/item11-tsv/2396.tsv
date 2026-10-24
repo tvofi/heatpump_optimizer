@@ -1,0 +1,2 @@
+2026-10-18T17:18:23Z	Fix review: merge 860ca72cb48e90e56f8f50663be7bf63a135daaa
+2026-10-18T15:25:47Z	Fix review: blocked 6ffc3708d763dfcafb9faf5baf0de9b5cb541327 conflict: .github/CODEOWNERS and .github/workflows/codeql.yml conflict with origin/main 55dc8d9c2 (#2405); also harness: class-open governance.yml, hassfest.yml, validate.yml

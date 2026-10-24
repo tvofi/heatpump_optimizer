@@ -1,0 +1,2 @@
+2026-10-17T13:28:08Z	Fix review: merge c424aabf74362aacddd1ecf9a8e2f752bc19bc59
+2026-10-17T08:41:53Z	Fix review: blocked a0743cfa2727cd010020e5aa39be31f443c37869 harness: class-open a global/nonlocal-declared binding -- read by the round-1 head, lost by this one -- and an attribute resolved only in the scope that binds it

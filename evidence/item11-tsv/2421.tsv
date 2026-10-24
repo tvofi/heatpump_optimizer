@@ -1,0 +1,2 @@
+2026-10-19T03:58:52Z	Fix review: merge e9c0092e27e91e4b1d23178fc75774e5798dcc22
+2026-10-19T03:06:16Z	Fix review: blocked 1e6e79caa3b2a9f438e055cda1df52dd77eac930 harness: replay-fails-open: r10_train_raise_hold_replay.py, the body's live control, prints "0 raise(s), HOLDS" for #2368 (a real raise) when its gh/git reads fail, contradicting its docstring's "a read that fails prints the train's own Stop"

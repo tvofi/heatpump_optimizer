@@ -1,0 +1,2 @@
+2026-10-22T19:38:28Z	Fix review: merge e7fc65845c2609b5e2ce7096362460aa53e85b32
+2026-10-21T14:54:30Z	Fix review: blocked c071fa5f37abdac0da2284547b9282549eb4d607 harness: class-rule-missing -- the body states three pusher seams and names no enumeration rule; tools/audit/seat/handoff_push.sh (live, named by HANDOVER.md) runs app_push.sh as an untrapped foreground child at lines 75, 94 and 108 and is neither in the diff nor dispositioned: TERMed, it leaves 4 of 4 tree pids alive

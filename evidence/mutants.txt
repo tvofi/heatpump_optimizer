@@ -1,0 +1,24 @@
+== M1 finding-propagation source reverted
+
+RULES-SYNC: 2 file(s) out of date. Run without --check.
+rc=0
+== M2a fixer.md #386 sentence restored
+ dev/governance/roles/fixer.md | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+  ERROR   [budgets] tools/audit/briefs/fixer.md: about 5249 tokens across its lines exceeds its cap of 5216 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 50 policy file(s)
+tools/audit/briefs/fixer.md                      315  315     5249  5216 
+== M2b finding-propagation adjective clause restored + regen
+ .claude/rules/finding-propagation.md        | 4 ++--
+ .cursor/rules/finding-propagation.mdc       | 4 ++--
+ dev/governance/rules/finding-propagation.md | 4 ++--
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+  ERROR   [budgets] .claude/rules/finding-propagation.md: about 1348 tokens across its lines exceeds its cap of 1336 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 50 policy file(s)
+== M3 fix-review step6 re-spelled
+ dev/governance/roles/fix-review.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fix-review.md teaches "class-open" as a reason under another class: blocked <sha> harness: class-open <seam> spell it `blocked <sha> class-open: ...`
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL (probe, expected) threw: deliberate
+209 passed, 1 failed

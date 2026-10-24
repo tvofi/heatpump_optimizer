@@ -1,0 +1,3 @@
+2026-10-21T22:43:14Z	Fix review: merge 4b215f4be037df2d519b7d189663fd04d3e37c5b
+2026-10-21T17:43:02Z	Fix review: blocked 441d19932f40475ddc0420f3b67ba8d90202eb2c vacuous-test: MB5 (monthly_held_cost_delta read from predicted_cost) passes every check; MX1 (tiles dropped from the ledger save) passes too; carries to R10-UX-HEALTH and R10-LIVESTATE are not in the roster
+2026-10-21T17:31:17Z	Fix review: blocked 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70 harness: config-attack: at the default 30-min optimization_interval the production tile rotation publishes a degree pair the card's convexity check hides (14 of 40 days, 30 of 40 at 120 min); the days arm prices both tiles from one midnight solve and never applies that check
