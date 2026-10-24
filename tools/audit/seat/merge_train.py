@@ -6,10 +6,14 @@
         [--state-dir DIR] [--min-runs N]
     python3 tools/audit/seat/merge_train.py batch <queue.json> [run's options]
         [--base main|batch/<name>] [--tag TAG] [--skip-bad] [--overlap]
+    python3 tools/audit/seat/merge_train.py add <pr> <verdict> [--verdict-comment ID]
+        [--state-dir DIR] [--repo OWNER/REPO] [--mandate ID] [-- <train.sh flags>]
     python3 tools/audit/seat/merge_train.py wait-ci <40-hex sha> [--min-runs N]
     python3 tools/audit/seat/merge_train.py --self-test
 
-The queue is a JSON list, merged in order:
+The queue is a JSON list, merged in order -- or, for `batch`, a JSON list of such
+lists: SEVERAL BATCHES, run one after another on one train, each with its own
+admission, proof and merges (THE LIVE QUEUE, below):
 
     [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
       "verdict_comment": "<the verdict comment's id, quoted in a mandate approval; the comment itself must cite an absolute evidence path -- app_approve.sh's evidence gate reads the comment and refuses a verdict naming no qualifying absolute directory>",
@@ -58,7 +62,11 @@ later pull request would be graded against a `main` the refused one never joined
                  as it did before one existed (tvofi, 2026-10-09, #201 comment 6083743563:
                  batch merging of policy under an exceptional mandate, falling
                  back when there is none -- after its window no code edit is
-                 needed);
+                 needed). Under a --mandate naming that mandate's comment id, in
+                 force for policy merging NOW, the train posts the approval itself
+                 (`policy_approve`, citing `mandate comment <id>`) when the owner
+                 has none at the head and no budget file changed; `policy_gate`
+                 still judges it at the merge;
   6. approve  -- `app_approve.sh` at the head. When its refusal is exactly its own
                  code-owned line for this pull request (anchored: a blocked
                  verdict's echoed reason can carry the same words), and `--mandate` was given,
@@ -195,6 +203,19 @@ again). And an owner approval ALREADY at the live head is the owner's, with
 nothing re-posted, flag or not -- GitHub re-anchors an approval's commit_id
 across a clean base merge, which is why #2209's carry found no approval at h0
 (its review named 8a8e66e7 in the body; the API reports the recarried 8876da3b).
+
+THE LIVE QUEUE (R10-TRAIN-UPGRADE; tvofi, 2026-10-24). `batch` runs its batches
+in order and, between two, drains `<state-dir>/queue-add.jsonl` -- what `add`
+appended while a batch ran -- into one more batch; a batch in proof is never
+changed. `add` (train.sh add) takes the state dir's flock, is a no-op for a pull
+request the live train or the spool already holds (ALREADY), runs
+`Train.admit_add` (ADD REFUSED #<pr> <rule>: <why>), then spools the entry for
+the live train or, with none, starts one over it. A batch that stops ends the
+train (NOT RUN lines); spooled entries stay for the next. One train per state
+dir: `queue.open` names it, and a second is refused. Step 5's approval is
+posted by the train itself (`policy_approve`) under a --mandate id in force for
+policy merging, so a policy head batches like any other; a budget raise still
+goes serial and stays the owner's.
 
 THE 2026-10-15 OPTIONS (R10-TICK-TRAIN, tvofi: "handle main moved and collect and
 merge bot PRs automatically"; run and batch):
@@ -4542,6 +4563,12 @@ def _parser() -> argparse.ArgumentParser:
                         "every serial entry up front so their pull_request runs fire concurrently; each "
                         "lands, in queue order, when its own required contexts conclude. "
                         "Default: recarry one, wait, merge, next.")
+    ad = sub.add_parser("add", parents=[common, train_opts],
+                        help="load one verdicted pull request into the state dir's live train (its next "
+                             "batch), or start that train; the train.sh flags follow `--`")
+    ad.add_argument("pr", type=int)
+    ad.add_argument("verdict")
+    ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
     # K15: the classifier for a caller outside the train -- merge_pr.sh's
@@ -4568,7 +4595,15 @@ def main(argv: list[str]) -> int:
     if argv[:1] == ["--self-test"]:
         return _self_test()
     stop_on_signal()
+    rest: list[str] = []
+    if argv[:1] == ["add"] and "--" in argv:  # the train.sh flags a started train gets
+        argv, rest = argv[:argv.index("--")], argv[argv.index("--") + 1:]
     a = _parser().parse_args(argv)
+    if a.cmd == "add":
+        t = Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, (), a.min_runs)
+        item = {"pr": a.pr, "verdict": a.verdict, "verdict_comment": a.verdict_comment}
+        return train_add(t, item, ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--repo", a.repo,
+                                   "--state-dir", a.state_dir, *rest])
     if a.cmd == "wait-ci":
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
@@ -4589,6 +4624,9 @@ def main(argv: list[str]) -> int:
         print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
         return {"green": 0, "red": 1, "wait": 3}[state]
     queue = json.loads(Path(a.queue).read_text())
+    if a.cmd == "run" and queue and all(isinstance(b, list) for b in queue):
+        print("REFUSE queue: `run` takes one flat queue; several batches are `batch`'s")
+        return 2
     ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
                 bot_prs=a.bot_prs, pre_flight=a.pre_flight, free_holders=a.free_holders)
