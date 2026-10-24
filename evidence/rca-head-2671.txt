@@ -1,0 +1,9 @@
+PREDICT governance / instrument-self-tests REF PRIVACY REFUSE tools/audit/seat/ledger.py:726: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+PREDICT governance / wave-script AGREEMENT RESULT divergent=0 unregistered=3 dead=0 refused=0 seconds=0.3 (the base's copy, over tools/policy/agreement.mjs)
+PREDICT governance / wave-script AGREEMENT UNREGISTERED  "[0-9a-f]{40}" in .claude/workflows/policy_lint.mjs, tools/audit/seat/ledger.py
+PREDICT governance / wave-script AGREEMENT UNREGISTERED  "\\bledger_open ([a-z-]+) " in tools/audit/harnesses/r10_ledger_class_reach.py, tools/audit/seat/ledger.py
+PREDICT governance / wave-script AGREEMENT UNREGISTERED  "\\blevel_line ([a-z-]+) " in tools/audit/harnesses/r10_ledger_class_reach.py, tools/audit/seat/ledger.py
+CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
+CI PREDICT: a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` names it: a push site guarded and registered in PUSHERS, a published host path scrubbed
+CI PREDICT: 5 predicted red(s) on governance / instrument-self-tests, governance / wave-script against fd7e289d0a09 -- repair before the handoff; the lines above name each arm's repair
+rc=1 wall=14.673136205

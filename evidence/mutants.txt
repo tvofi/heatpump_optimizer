@@ -1,9 +1,0 @@
-RESULT mutant='M1 arm not called' rc=1 fails=['FAIL a file re-added at a path whose move landed is predicted red (rc 0)', 'FAIL a new line citing a landed path is predicted red (rc 0)']
-RESULT mutant='M2 findings dropped' rc=1 fails=['FAIL a file re-added at a path whose move landed is predicted red (rc 0)', 'FAIL a new line citing a landed path is predicted red (rc 0)']
-RESULT mutant='M3 guard on index' rc=1 fails=['FAIL the re-added path staged and not committed is predicted green (null control) (rc 1)']
-RESULT mutant='M4 repair dropped' rc=1 fails=['FAIL a file re-added at a path whose move landed is predicted red (rc 1)', 'FAIL a new line citing a landed path is predicted red (rc 1)']
-RESULT mutant='M5 wrong job' rc=1 fails=['FAIL a file re-added at a path whose move landed is predicted red (rc 0)', 'FAIL a new line citing a landed path is predicted red (rc 0)']
-RESULT mutant='M6 manifest from worktree' rc=0 fails=[]
-RESULT mutant='M7 unreadable silenced' rc=0 fails=[]
-RESULT mutant='M8 base is HEAD~1' rc=0 fails=[]
-restored True

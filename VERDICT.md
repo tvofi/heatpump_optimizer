@@ -1,45 +1,63 @@
-Fix review: blocked cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68 class-open: the agreement lane (prepr.sh step 3f4, CI's governance / wave-script) and ref_privacy.py --check are carried to R10-FLY-CIPREDICT-LAYOUT with controls before the branch was cut, and are neither in the diff nor dispositioned in the body
+Fix review: merge 04820384b7cbbf1d7d5a96fc6b103cff7a6da2a6
 
-bus-nonce: a27d6c562254ee2219692cab721e5de5
+bus-nonce: a6ca654c7be00d72659d0a1a2718eb38
 
-Round 1 of review for this PR. Measured head `cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68` (still the branch head when this verdict was written, `git ls-remote`); merge base with origin/main `ac5788f2617755631f14e4d1a31efab0e47aa820`.
+This is round 2 of review for #2707 (R10-FLY-CIPREDICT-LAYOUT). Round 1 returned `blocked cd7dc09a8 class-open`. Measured head: `04820384b7cbbf1d7d5a96fc6b103cff7a6da2a6`. `git ls-remote` showed it was still the branch head when this verdict was written (`ev/ls-remote.txt`). The head's merge base with origin/main is `806aa2ce89aeb6c00cf756195f31026ab798f3ca`. Live main is now `646dbaa65`. The role contract under `dev/governance/roles/` is unchanged between that merge base and origin/main.
 
-## Block
-
-The group's roster entry (`handoff/audit-r10-roster` at `78dce1d51`, `dev/programme/rosters/wave-r10-groups.json`, group `R10-FLY-CIPREDICT-LAYOUT`) carries four items (`ev/roster-carries.json`). The body answers only the first one, #2554's layout guard. Two more were appended to this group by `roster_edit append-carry`: `7caf190ba` at 2026-10-23T21:44+02:00 (the #2671 round-3 carry) and `42e45f420` at 2026-10-24T00:00+02:00 (the #2671 root-cause seat's correction, R10-RCA-2671-WAVE-SCRIPT). Both landed before the authored code head `6965c36b4` was committed (2026-10-24T10:30Z) (`ev/carry-timeline.txt`). They ask for:
-1. an agreement-lane arm that reproduces CI's wave-script restore, with a control that fires on #2671's `338c9ba49` merged into `fd7e289d0` (unregistered=3, rc 1) and a null control on #2669's `0506a55b2` merged into `e6dd46277` (rc 0); and
-2. a `tools/audit/seat/ref_privacy.py --check` arm (governance.yml:424, instrument-self-tests), which fires at `338c9ba49`.
-
-The body defines its class as "a CI command that `prepr.sh` runs before the PR exists but the handoff does not predict". Its enumeration rule is `grep -nE '^[a-z_]+_line\(\) \{' tools/pr/prepr.sh`, and it returns 9 functions. The rule misses prepr.sh step 3f4 (lines 3003-3014), which runs the agreement lane and is not a `*_line` function. So the body's own class has a seam that its rule does not return, that the diff does not close, and that the body does not disposition. `grep -n 'agreement\|ref_privacy' tools/pr/ci_predict.py` at this head returns nothing. `ref_privacy --check` falls outside the body's narrower class, but it is a carry routed to this group, and the body says nothing about it. If this merges as it is, the group closes with two routed carries silently dropped.
-
-Repair: implement both arms with the controls the carries name. Or disposition each one in the body with a `Carry:` to a group that accepts it (the root-cause seat already routed the lane deadlock to R10-MERGE-SUBJECT-HARDEN). Also widen the census rule so it returns step 3f4.
+Round 1's block is settled:
+- the agreement lane (AGREEMENT arm) and `ref_privacy.py --check` (REF PRIVACY arm) are implemented, with the controls the carries named;
+- the census rule is widened to three rules, and they now return step 3f4;
+- the round-1 survivors M6, M7 and M8 are pinned by new layout cases.
 
 ## Findings
 
-- Surviving mutant M8: `layout.guard(root, manifest, <HEAD~1>, "HEAD")` in place of the merge base `base` passes the self-test (rc 0). Every plant is one commit on its base, so the self-test never separates the merge base from the parent commit. My own both-ends probe shows that the head handles a plant followed by a second commit correctly (`twocommit` row, `ev/both-ends.txt`), but no in-tree case pins it. Repair: a two-commit plant case. Carry: R10-FLY-CIPREDICT-LAYOUT
-- Surviving mutant M6: reading the manifest from the worktree (`(root / layout.MANIFEST).read_text()`) in place of `show(root, "HEAD", layout.MANIFEST)` passes the self-test. The body says the arm "uses HEAD's tests/layout.json", but no case leaves an uncommitted manifest edit for the self-test to see. Carry: R10-FLY-CIPREDICT-LAYOUT
-- Surviving mutant M7: replacing the `LAYOUT UNREADABLE` return with `return []` passes the self-test. The body says that a guard that raises "prints LAYOUT UNREADABLE and also sets rc 1", but no case pins this. Carry: R10-FLY-CIPREDICT-LAYOUT
+- Surviving mutant R12 (my own): in `privacy_preds`, replacing `else ["the scan found no push site at all, so it checked nothing"])` with `else [])` passes the self-test (rc 0, `ci_predict self-test: 0 failed`, `ev/mut-R12.txt`). The arm's refusal of an empty push-site scan has no case; `ref_privacy.check` refuses the same state in CI. This is a defensive line, outside every mutant the body names, and every mutant the body names is killed. A plant that removes every push site from the scanned paths would pin it. Carry: R10-FLOW-JIDOKA
+- At `handoff/audit-r10-roster` `86278a5ae`, R10-FLOW-JIDOKA's roster entry (`carry` and `brief`) does not yet hold three of the body's four `## Forward-carry` items:
+  - the handoff seam over `fast`'s always-run `tests/closure.py selftest` and `tests/harness_headers.py`;
+  - prepr steps 3f5 and 3h and `selftest_wiring.py --check`;
+  - the root-seat `_leaks` substring match in `ref_privacy.py`.
+
+  The base-pinned grader replay and the `ref_privacy`/`tmp_paths` prepr arms are already in its carries (Triage P3 (s4), s6-batch9 P78). Each body line ends `Carry: R10-FLOW-JIDOKA`, a live group, and `carry_audit` routes it, but `finding-propagation.md`'s Enforcement wants the write in the tree before this merges. The train's `roster_edit append-carry` for these three items is owed before the merge. Carry: R10-FLOW-JIDOKA
+- `privacy_preds` judges the whole HEAD tree's push-site registry, and judges content against `tmp_paths.ledger_base` (origin/main), not against the predictor's `--base`. The module docstring still says every arm is scoped to what the three-dot diff adds. Carry: dismissed: CI's `ref_privacy.py --check` is whole-tree and origin/main-based in the same way, so the prediction matches CI's verdict; only the docstring sentence overstates, and it costs no wrong prediction.
 
 ## Evidence
 
-- Self-test at the head: `ci_predict self-test: 0 failed`, with 4 layout cases ok (`ev/selftest-head.txt`), on Python 3.14.7 at /opt/hpo/venv-ci.
-- Mutation proof re-run (`ev/mutants.txt`, file restored after each mutant): M1 to M5 reproduce the body's table exactly. M1, M2 and M5 fail the two red cases with rc 0. M3 fails the staged-not-committed null case. M4 fails the two red cases because the repair line is missing. M6, M7 and M8 are my own mutants and survive (see Findings). The body's M1 to M5 table is verified.
-- Both ends (`ev/both-ends.txt`), my own driver, in a `--shared` clone of the head, against CI's `tests/layout.py --guard` (a plain `tests/layout.py` run includes the guard and is the `run_always` line at tests/run.sh:563). Plant path `.claude/workflows/agreement.mjs`, the same as the body's. RESULT lines:
-  - base predictor: re-add rc 0 against guard rc 1; citation rc 0 against guard rc 1; null rc 0 against guard rc 0; two-commit re-add rc 0 against guard rc 1.
-  - head predictor: re-add rc 1 against guard rc 1; citation rc 1 against guard rc 1; null rc 0 against guard rc 0; two-commit re-add rc 1 against guard rc 1.
-  - Each red row at the head prints one `PREDICT tests / fast (3.14) LAYOUT ...` line plus the repair line. My grep for " LAYOUT " counted both, which is why it shows 2. This matches the body's both-ends table.
-- Figures re-derived at this head against merge base `ac5788f26` (`ev/figures.txt`). The body took its figures against `145bfe197b9e`, and the merge commit `d9a6f2f2d` changes neither of the PR's files.
+- Self-test at the head (`ev/selftest.txt`): `ci_predict self-test: 0 failed`, rc 0, 22 cases ok, which is 3 carry, 7 layout, 4 privacy, 7 agreement and the JOB check. Wall time was 2m45s on this seat, with other runs in parallel. The body says 120 s.
+- Mutation proof, my own mutants, each a single-occurrence replacement in `tools/pr/ci_predict.py`, run in its own worktree at the head with the file restored afterwards (`ev/mut-R*.txt`):
+  - R1, `content_check` with the seat's identity (the body's A2): 4 failed. These are the seat-home null and the three staged-not-committed nulls, matching A2's row.
+  - R2, merge onto HEAD instead of the tip (B4's class): 1 failed, the base-tip-registration case.
+  - R3, restore pathspecs checked out from the merge instead of the tip (B2's class): 2 failed, the head-only registration red and the `process.exit(1)` null, matching B2's row.
+  - R4, lane key without the `.mjs` import walk: 1 failed, the head-only registration red.
+  - R8, node never run: 1 failed, the same red case.
+  - R12 survives (see Findings).
+- Both ends against the RCA controls, re-run in `--shared` clones with `PYTHONPATH=tests/hastub` (`ev/rca-*.txt`):
+  - base predictor (`fd7e289d0`'s and `e6dd46277`'s file): rc 0 at #2671 and rc 0 at #2669.
+  - head predictor at #2671 `338c9ba49` against `fd7e289d0`: rc 1, with `AGREEMENT RESULT divergent=0 unregistered=3 dead=0 refused=0`, the three UNREGISTERED grammars and `REF PRIVACY REFUSE tools/audit/seat/ledger.py:726`, in 14.7 s.
+  - head predictor at #2669 `0506a55b2` against `e6dd46277` (null): rc 0 in 15.4 s.
+
+  This reproduces the body's both-ends table.
+- Null control on this head's own diff: `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 806aa2ce89ae`, in 3.3 s (`ev/figures.txt`). That is within the body's 2.9–3.3 s standing cost.
+- Figures re-derived at this head against `806aa2ce8` (`ev/figures.txt`):
   - `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
   - `STRUCTURE RATCHET PASSED`
   - `Architecture score: dS +0.0000 NULL`
-  - `throwaway_git: 0 raw ... refused, 0 stale`
-  - `layout: GUARD: 0 refusal(s)`
-  - `CI PREDICT: no closures or fast red predicted`
+  - `ref_privacy --check ... 0 refused`
+  - `GUARD: 0 refusal(s)`
+  - `tmp_paths: 0 refused`
+  - `throwaway_git: 0 ... refused`
   - `selftest_wiring: 93 self-testing, 93 wired, 0 unwired`
-  - census grep: 9 functions, as the body says.
-- Not re-run: `entities.py` (2425 checks), `harness_headers.py`, `closure.py selftest` and `carry_audit` on the body. These are CI's to cite.
-- VERSION, the manifest version, RELEASE_NOTES.md and the claim files are untouched (three-dot diff).
-- `git merge-tree --write-tree origin/main cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68` exits rc 0 with tree `496c9d619`: no conflict (`ev/merge-tree.txt`).
-- The head SHA in the body's `## Head` section is `cd7dc09a8b2214e3392cdc5a157f41b5cd04bc68`, the head I measured.
-- CI on this head (check-runs API, ~13:56Z): most jobs are queued. arch-score, prelude and refresh are success, the rest are skipped. Nothing is red, so step 11 has nothing to answer yet. The workflows have not concluded.
-- The body's forward-carries go to R10-FLOW-JIDOKA and R10-POLICY-GATE-SCOPING, and both groups exist on the roster. They do not settle the Block above.
+
+  All match the body.
+- Census rules re-run (`ev/census.txt`):
+  - prepr steps: 29;
+  - `instrument-self-tests` `--check` lines in governance.yml lines 243–939: 4, namely tmp_paths, ref_privacy, selftest_wiring and throwaway_git (job bounds at 243 and 940 confirmed);
+  - `run_always "$PYTHON"` in tests/run.sh: 4.
+
+  Each open seam the rules return is carried in the body to R10-FLOW-JIDOKA, a live group (see Findings for the write).
+- Trigger rate: re-derived as `merges 456 | lane 62 | restore 142` over the body's window, with a probe I rebuilt myself from the body's stated rule (`ev/trigger-probe.py`, `ev/trigger-probe.txt`). The body's probe is not in the tree, so I disclose this one as my own. The cost arithmetic (1.5 s against 3.4 s against the RCA's 4.1 s) follows from these counts.
+- I did not re-run `prepr.sh`, the closures recording of `tests/entities.py`, or `carry_audit` on the body. CI's runs on this head are cited instead: `tests / closures` and `pr-contract` are green.
+- CI on this head (`ev/ci-checks.txt`): all 53 check runs completed, none red. `pr-contract` concluded success at 17:30:54Z and `gate` at 17:34:46Z, both after the rest. `governance / wave-script`, `governance / instrument-self-tests`, `tests / fast (3.14)`, `tests / closures`, `tests / mutation` and `codeql / Analyze (python)` are success. The round-1 head's `pr-contract`/`gate` red (codescan_wait racing an unfinished Analyze) is answered in `## Red checks`, with the cheaper detector named.
+- `git merge-tree --write-tree origin/main 04820384b` exits 0 against `646dbaa65`, the current main (`ev/merge-tree.txt`). There is no conflict and no claim-file conflict.
+- VERSION, the manifest version, `RELEASE_NOTES.md` and both claim files are untouched. The three-dot diff touches only `tools/pr/ci_predict.py` and `dev/programme/delivery/2707.md`.
+- The body's `## Head` names `04820384b7cbbf1d7d5a96fc6b103cff7a6da2a6`, the head I measured. Its figures were taken at `7ff66e5a5`. The merge commit after that brings in only main's `ref_privacy.py` change from #2700, and the body controlled for it with a throwaway merge. My figures above are taken at this head.
+- Architecture (step 15): the three arms call CI's own functions (`layout.guard`, `ref_privacy.sites`/`registry_refusals`/`content_check`, `agreement_py.closure`/`restore_specs`) rather than re-implementing them. Clones go through `throwaway_git_clone`, as other arms in this module do.
