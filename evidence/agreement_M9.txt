@@ -1,0 +1,3 @@
+  UNREGISTERED  "[.*+?^${}()|[\\]\\\\]" in .claude/workflows/policy_lint.mjs, tools/policy/dependabot_contract.mjs
+RESULT divergent=0 unregistered=1 dead=0 refused=0 seconds=1.9
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

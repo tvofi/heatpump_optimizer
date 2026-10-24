@@ -1,0 +1,3 @@
+  FAIL gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, its outcome read from the output's word (SWEEP-DONE / S
+  FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE  [cases={'shar
+2 of 2425 ENTITY CHECKS FAILED

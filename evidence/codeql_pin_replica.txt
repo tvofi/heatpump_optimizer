@@ -1,0 +1,3 @@
+['.claude/workflows/*.js'] ok
+['.claude/workflows/*.js', 'tools/policy/*.mjs'] REFUSED parseable=15 empty=[]
+['.claude/workflows/*.js', 'nosuch/*.js'] REFUSED parseable=0 empty=['nosuch/*.js']
