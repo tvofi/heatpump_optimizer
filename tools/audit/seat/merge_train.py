@@ -3696,7 +3696,15 @@ def _batch_self_test(check) -> None:
                 n = a.split("/pulls/")[1].split("/")[0]
                 w.setdefault("reviews_reads", []).append(n)
                 rf = w.get("reviews_for")
-                return 0, json.dumps([rf(w["heads"][int(n)]) if rf else []])
+                return 0, json.dumps([(rf(w["heads"][int(n)]) if rf else [])
+                                      + [r for r in w.get("posted", []) if r["pr"] == int(n)]])
+            if argv[:3] == ["gh", "pr", "review"]:  # posted as the owner's account, as `gh` is
+                gm = _mandate_gate()
+                w.setdefault("posted", []).append(
+                    {"pr": int(argv[3]), "state": "APPROVED", "commit_id": w["heads"][int(argv[3])],
+                     "user": {"login": gm.OWNER_LOGIN, "id": gm.OWNER_ID, "type": gm.OWNER_TYPE},
+                     "body": Path(argv[argv.index("--body-file") + 1]).read_text()})
+                return 0, "reviewed"
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
@@ -3726,13 +3734,13 @@ def _batch_self_test(check) -> None:
         return run
 
     def go(prs, base="batch/base", cap=2, setup=None, ignore=("nightly-status", "pr-contract"),
-           skip_bad=False, overlap=False, main_moved_tries=0, **opts):
+           skip_bad=False, overlap=False, main_moved_tries=0, mandate=None, **opts):
         with tempfile.TemporaryDirectory() as d:
             w = world(Path(d), base, prs, cap)
             (setup or (lambda w: None))(w)
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
-            t = Train("o/r", Path(d) / "state", None, "the orchestrator", ignore, 1, run=stub(w),
+            t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2,
                       base=base, skip_bad=skip_bad, overlap=overlap, main_moved_tries=main_moved_tries, **opts)
             q = [{"pr": n, "verdict": w["heads"][n]} for n in prs]
@@ -3826,6 +3834,18 @@ def _batch_self_test(check) -> None:
           "merge itself (admission reads, land reads again)",
           w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1"]
           and w["approved"] == [1])
+
+    w = go({1: {"CLAUDE.md": "policy text\n"}, 2: {"a.txt": "A\n"}}, base="main", mandate=str(MID),
+           setup=lambda w: w.update(mandate=bman(bnow)))
+    check("batch policy post: under --mandate <id> in force, a policy head is approved at admission (one "
+          "post, citing the mandate) and lands IN the proved batch beside a code head",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and len(w["pushed"]) == 1
+          and [r["pr"] for r in w.get("posted", [])] == [1]
+          and f"mandate comment {MID}" in w["posted"][0]["body"])
+    w = go({1: {"CLAUDE.md": "policy text\n"}, 2: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.update(mandate=bman(bnow)))
+    check("batch policy post null: the same queue without --mandate posts nothing and stops at admission, "
+          "as before", w["rc"] == 1 and not w.get("posted") and not w["merged"] and "policy:" in w["lines"][-1])
 
     # --bot-prs in the batch: the record PR merges BEFORE the base is read, so
     # it is under every proof (R16) -- and never from a rehearsal, whose
