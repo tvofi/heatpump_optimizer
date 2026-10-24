@@ -9578,6 +9578,44 @@
     "branch": "handoff/r10-rca-codescan-wait"
    },
    "brief": "Root-cause seat, topic r10-rca-codescan-wait. Start from origin/main; read dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md first. This runs beside the countermeasure fix and never inside it.\n\nDEFECT. pr-contract goes red at tools/ci/codescan_wait.py exit 1 while codeql Analyze is in progress on a fresh head, and the gate fails with \"still being judged\". Three instances on 2026-10-24: #2698 at 3383fb2a, #2704 at 04860ee0, #2706 at ea459c0b. Each needed a hand rerun, and the tick read each as owed to the fixer (a false \"back to fixer\").\n\nOWED (root-cause.md): (1) a named cause; (2) the process state, one of (a)-(d), with its reason; (3) a cost test with numbers (count the instances, reruns and tick misreads from the check-runs API, not from memory; print the failure count beside each figure); (4) a countermeasure, or a recorded refusal.\n\nMEASURE FIRST. Read the pr-contract log of one instance and say which exit path of codescan_wait.py fired. Read the check-runs API for the three heads, not gh pr checks.\n\nCOUNTERMEASURE. The fix itself is carried to R10-CI-LAYOUT-P2 (triage: dev/programme/triage/s6-batch4.md#P62). Do not implement it here. Record the carry with a Carry: line and cite the roster branch SHA beside it if the destination is not on main's roster.\n\nRECORD. Write the RCA record for this topic under dev/audit/rca/, named after the topic (the file does not exist yet), following the shape of the prepr-bounce RCA record there. Push refs/heads/handoff/r10-rca-codescan-wait and body_push.sh refs/heads/handoff-body/r10-rca-codescan-wait. Re-run prepr to a pass at your head first; do not touch VERSION, RELEASE_NOTES or either claim file. Write a literal n/a: <reason> for any carry that is none."
+  },
+  {
+   "lane": "IN",
+   "kind": "defect",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "code-owned CI: mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-GATE-DEFER",
+   "after": [],
+   "files": [
+    "tools/ci/gate.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-gate-defer",
+    "next_step": "fixer, topic r10-gate-defer, critical path"
+   },
+   "brief": "Fixer brief, critical path, owner's word: fixing the gate race is top priority. tools/ci/gate.py lines 137-140 fail a deferring gate ('run(s) [...] at this head are still being judged; their gate decides'), so the required context `gate` goes red before its verdict is decided, and two runs at one head whose gates complete together each defer to the other and deadlock. Evidence: PR #2754 run 40119473491 at 18:22:44Z on programs pinned 87ecf385, after #2737 merged. Fix: decide the verdict exactly once, and publish no red before it is decided, without masking a real red: a deferring gate must publish nothing red (a pending or neutral state, or no conclusion) and exactly one run owns the final verdict. Measure first which of the two runs at that head holds the verdict and what each gate published; read the check-runs API for #2754, not gh pr checks. Controls: two runs at one head whose gates complete together yield one verdict and no red-then-green; a head with a real red check still ends red (null control); a single run is unchanged; one mutant per arm, and a self-test row for the deadlock shape. Files: tools/ci/gate.py and its tests. Code-owned CI path: mandated approval under 6329234399."
   }
  ]
 }
