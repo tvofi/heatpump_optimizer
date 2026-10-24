@@ -213,6 +213,15 @@ class SolarAperture(TypedDict, total=False):
     samples: int
 
 
+class LearnerProgress(TypedDict):
+    phase: str  # "off" | "waiting" | "counting" | "settling"
+    progress: float | None
+    waiting_for: str | None  # "colder" | "sunnier"
+    eta_days: float | None  # counting only
+    samples: int
+    samples_needed: int | None
+
+
 class SnapshotRing(TypedDict, total=False):
     count: int
     alarm: bool
@@ -765,6 +774,7 @@ class LearningView(TypedDict, total=False):
     lower_floor_loss_ratio: float
     lower_floor_loss_samples: int
     lower_floor_loss_learned: bool
+    learner_progress: dict[str, LearnerProgress]
     cop_scale: float
     cop_samples: int
     measured_cop: float | None
