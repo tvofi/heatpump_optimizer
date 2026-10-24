@@ -1,0 +1,4 @@
+check-runs at af79498c8e0d50b7e15ca4f759e0e32b7df9aece (PR #2752 get_check_runs, read 2026-10-24 ~17:30Z), total 6:
+run 40115898269: refresh completed success; prelude in_progress; cancel-superseded queued
+run 40115899730: prelude queued; cancel-superseded queued; refresh queued
+No check concluded red. gate, pr-contract and the rest had not started.

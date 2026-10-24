@@ -1,0 +1,16 @@
+git merge-tree --write-tree origin/main(4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3) af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+9e87160f07b33c2cc38b670ecfd6faa8c5585bbb
+rc=0
+
+git diff --name-only 4a00a3f05...af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+dev/programme/delivery/2752.md
+dev/programme/triage/s6-batch13.md
+
+git log --format='%H %P %s' -2 af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+af79498c8e0d50b7e15ca4f759e0e32b7df9aece 488e0309aaead68e719d526ea9ab8bc1a5211b1f record: the delivery row for #2752
+488e0309aaead68e719d526ea9ab8bc1a5211b1f 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 triage: s6 batch 13, P82 (tick reports the early-gate race as back to the fixer)
+
+roles diff merge-base...origin/main (empty = current):
+0
+VERSION/notes/manifest touched:
+0
