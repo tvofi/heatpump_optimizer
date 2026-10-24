@@ -1,0 +1,2 @@
+2026-10-21T13:26:12Z	Fix review: merge f2f204fc3ed608a69b56ee9ebc0c2eee23e74dc1
+2026-10-21T11:38:32Z	Fix review: blocked daac94b439baf15b1ce8ea6c39bc73731eb076c6 claim-refuted: the head's own replay lane reads loop_cpu_ratio 0.1206 over the new 0.120 cap on an idle 4-core box whose ruler is slower than either CI class, so the runner-class model and 5.0 % noise band the cap rests on do not hold out of sample

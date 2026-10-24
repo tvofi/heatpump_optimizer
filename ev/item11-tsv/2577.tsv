@@ -1,0 +1,2 @@
+2026-10-22T02:53:06Z	Fix review: merge 9720cda1ebc3cb8304e62b5914910d54642e721a
+2026-10-21T22:07:11Z	Fix review: blocked 69a429cfab2d02fd938ac13ef2893c520ca98f7a mutant-survived: an explicit roster ref is silently replaced by the default, and the CLI group path's --head and --roster-ref pass-through are unpinned

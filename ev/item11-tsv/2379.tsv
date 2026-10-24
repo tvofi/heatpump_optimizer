@@ -1,0 +1,4 @@
+2026-10-18T18:05:20Z	Fix review: merge f4e168719d12f071bbc7771944e9430147a223db
+2026-10-18T09:56:52Z	Fix review: merge 6f6aa4e48d6871cf5cb926c9ac53a521468ae58a
+2026-10-18T09:55:36Z	Fix review: merge 98d33ce032e8958419accb7fa91fa9661b494521
+2026-10-18T08:07:59Z	Fix review: blocked aac8c5e80fdfe574597f7fad17f11a418ff3596f mutation-untriaged: 3 added sites survive every driver after mutation-autofix (climate.py:140 GUARD_OFF, entity.py:140 GUARD_OFF, sensor.py:2808 CMP_BOUND); mutation is red at 7e79b6762 and the body triages none of them
