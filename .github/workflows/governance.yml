@@ -1099,9 +1099,13 @@ jobs:
             'tools/audit/round4/D11/d11lib.py' \
             'tools/audit/round4/D11/governance_cost.py' \
             'tools/audit/seat/gh_read.py' \
+            'tools/audit/seat/ledger.py' \
+            'tools/audit/seat/proof_watch.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/queue_pre_flight.py' \
             'tools/audit/seat/ref_privacy.py' \
+            'tools/audit/seat/record_row.py' \
+            'tools/audit/seat/roster_lib.py' \
             'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
