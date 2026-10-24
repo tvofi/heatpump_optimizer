@@ -8978,6 +8978,49 @@
     "branch": "handoff/r10-closeout-cleanup"
    },
    "brief": "Programme-closeout work, and it runs LAST: after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, after the roster and the state docs have moved into main, and before the closure stamp. Owner request (tvofi, 2026-10-24): the programme must contain a group that cleans up after itself and drives the open branches down to the owner's 1-3 target. Round-10 end state: main plus at most two development branches, remote and local, every other ref archived as a tag first, GitHub's merged pull request branches already deleted. This group is the single owner of that end state; R10-FLY-PRUNE-REFS owns only the two defects in tools/audit/seat/prune_refs.py and must land first, so this group uses prune_refs.py as its ref instrument and never a session-local loop (decision 0013).\n\nDeliver a self-tested closeout instrument under tools/audit/seat/ that composes the existing instruments (tools/audit/seat/prune_refs.py, tools/audit/worktree_gc.sh, tools/audit/seat/state_docs.py) and is a dry plan by default, acting only under --apply, with the ordering below written as code. Then run it with --apply as the final act of the round (the orchestrator's step; the pull request lands the instrument and its fixtures, the run leaves the end state and the report). Steps, each gated by the one before:\n(1) Move the roster and the state docs into main, because the roster branch and the state ref are read at run time and must not be deleted while a workflow or a citation reads them (see the R9-CLOSURE-BRANCHES brief in dev/programme/rosters/wave-r9-groups.json for the hazard list). Sweep in-tree citations of every ref family about to go and retarget each to the archive tag at the same sha; prove it with node tools/policy/brief_lint.mjs (dev/governance/rules/brief-citations.md).\n(2) Archive before delete: every remaining handoff/*, handoff-body/*, fix/*, design/*, review/*, probe/*, claim/*, dispatch/* and record/* ref (and the other families prune_refs.py enumerates, verdict/* only once --verdicts-drained) is retagged under archive/<family>/<name> at its own commit, then its branch is deleted. origin keeps main plus at most two branches. Derive the counts with git ls-remote and a prefix histogram; carry none.\n(3) Local state: remove every seat worktree under ~/hpo-seats and under ~/.local/state/hpo/pr (a worktree holding an unpushed commit is reported and kept until the owner rules; worktree_gc.sh must already leave such a worktree alone, which is R10-FLY-WORKTREE-GC); clear scratch under ~/hpo-orch except the final ledger and state; prune git worktrees; reduce local branches to main plus at most two; run a final worktree_gc.\n(4) Issues and sessions: close or disposition every open issue except the coordination issue's successor, each with the number that closes it or the re-scope that keeps it; archive merged cloud sessions.\n(5) Closure report: write counts before and after for refs by family, tags added, worktrees, local branches, open issues and open pull requests, plus every ref left and the rule that kept it, to the round-10 evidence directory under dev/audit/rounds/.\nControls: a fixture where a ref to be deleted lacks its archive tag must refuse (every tag precedes every delete); an open-PR ref and main are kept (null control); a worktree with an unpushed commit survives; a dry run writes nothing. Spare the API: batch ref writes (R10-FLY-PRUNE-REFS carry (i)). Part of #201."
+  },
+  {
+   "group": "R10-IMMERSION-LATCH",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8860-8919) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1144) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10221-10235) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
+   "resume": {
+    "stage": "queued",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
   }
  ]
 }
