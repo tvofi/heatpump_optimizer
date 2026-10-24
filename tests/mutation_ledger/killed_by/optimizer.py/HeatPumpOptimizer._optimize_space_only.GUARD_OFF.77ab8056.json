@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 77ab8056",
+  "killed_by": "tests/features.py",
+  "old": "        if reference_targets is not comfort_targets:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 806aa2ce89aeb6c00cf756195f31026ab798f3ca: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
