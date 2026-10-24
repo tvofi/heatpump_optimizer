@@ -22,3 +22,4 @@ dispatch/fixer-r10-ratio-anchor-r2
 dispatch/fixer-r10-demand-overbook-r4
 dispatch/fixer-r10-sav-comfort-r2
 dispatch/fixer-r10-roster-freeze-b-r2
+dispatch/fixer-r10-merge-subject-harden-r5
