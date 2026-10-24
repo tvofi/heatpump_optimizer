@@ -1,0 +1,18 @@
+## INERT
+268:    # living handover is the hole is_handover cuts, under dev/programme/ as
+273:    "dev/programme/",
+521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+523:HANDOVER_DIRS = ("dev/programme/", "docs/")
+675:    # docs/ and dev/programme/ prefixes stay INERT, the two files move to
+## entities
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/acb63eaa-4d0a-5002-b364-94c24d359665/scratchpad/rev2688/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+## P44 reproduction at roster 4c54758d7
+groups 171 with carry 125 carries 557
+backticked paths 65 missing 5
+[('R10-FAHRENHEIT', 'dev/audit/rounds/round10/D7/arch3-s6/patches/P1_issue_writer_leaf.patch'), ('R10-BRIEFS-FOLD', 'tools/audit/harnesses/k1725_blas_kernel_gap.py'), ('R10-CI-LAYOUT', 'tests/composed_closures.json'), ('R10-CI-LAYOUT', '.github/workflows/pr-contract-rerun.yml'), ('R10-FLY-CLOUD-SETUP-TOOLCHAIN', '/etc/profile.d/hpo-toolchain.sh')]
+base
+TOTAL: 0 error(s) across 1 file(s)
+plant
+TOTAL: 0 error(s) across 1 file(s)
