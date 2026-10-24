@@ -3587,6 +3587,7 @@
    "dev/audit/harnesses/r10_main_gate_replay.py",
    "dev/audit/harnesses/r10_merge_subject_argv_seam.mjs",
    "dev/audit/harnesses/r10_merge_subject_mutants.py",
+   "dev/audit/harnesses/r10_merge_subject_plants.sh",
    "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
    "dev/audit/harnesses/r10_mermaid_parse.mjs",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
