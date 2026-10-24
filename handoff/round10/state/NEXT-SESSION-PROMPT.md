@@ -15,6 +15,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-RATIO-ANCHOR (stage in-progress, branch `handoff/r10-ratio-anchor`): `git fetch origin handoff/r10-ratio-anchor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-INPUT-STALENESS (stage in-progress, branch `handoff/r10-input-staleness`): `git fetch origin handoff/r10-input-staleness && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CONFIG-NOTICES (stage in-progress, branch `handoff/r10-config-notices`): `git fetch origin handoff/r10-config-notices && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LEARNER-ETA (stage in-progress, branch `handoff/r10-learner-eta`): `git fetch origin handoff/r10-learner-eta && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-SCOPED (stage in-progress, branch `handoff/r10-replay-scoped`): `git fetch origin handoff/r10-replay-scoped && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-POLICY-FIXER-MD (stage in-progress, branch `handoff/r10-policy-fixer-md`): `git fetch origin handoff/r10-policy-fixer-md && git worktree add --detach $SEAT/wt FETCH_HEAD`
