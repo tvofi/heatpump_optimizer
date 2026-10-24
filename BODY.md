@@ -1,4 +1,4 @@
-R10-FLY-ENVMATRIX-NOREMOTE (lane IN, size XS, instrument). Closes #2505.
+R10-FLY-ENVMATRIX-NOREMOTE (lane IN, size XS, instrument). Refs #2505 (the umbrella issue; the roster names it in this group's `issues` and in no group's `fixes`).
 
 The carry reads the env-matrix red at 97ac438d6 (job 119862131576, both
 no-remote rows `rc=1`, 14 held) as "a CI-environment arm that flakes". **The
@@ -83,6 +83,14 @@ flake and re-run. That was the carry's reading, and it is what a bare
 verdict.
 
 ## Head
+
+`124d6731a0282bb074ef38866170fb2281917dfc` merges main `73b69fe` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`c898cc1bb2061620bd07c55e8cb56f39e0a286ff` merges main `e97f574` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`ae77c4150ee0245f5546c73fd9c3f35691e9a3c6` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2708.md`. The authored code head is `767c5890d6a37b9f422f363519ded8a006411ecf`.
+
+`369e7e20b727a6b7aa073979bcd9b7b949ebf199` merges origin/main `ac5788f26` into the authored code head `767c5890d6a37b9f422f363519ded8a006411ecf` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
 
 `767c5890d6a37b9f422f363519ded8a006411ecf`. Merge base and origin/main tip are both
 `e8a08cf9efefc96c36e79efa7459562e27007b54`, measured at 2026-10-24T11:22Z (`date -u`). Every
@@ -184,3 +192,4 @@ which is in this diff.
 - finding-propagation: unclear: the dispatch allows pushes only to the two
   return refs, so the roster carry's refuted reading cannot be corrected by
   this seat; the orchestrator corrects the roster carry. Carry: R10-FLY-ENVMATRIX-NOREMOTE
+
