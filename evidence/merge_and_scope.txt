@@ -1,0 +1,9 @@
+merge-tree:
+3da0406e6a2a521b104ee4714f2ecacd89d55a56
+rc=0
+origin/main=0c36407610e372ec73cf03b757b07b5ef7e352dc
+version/claims diff: (empty above)
+268:    # living handover is the hole is_handover cuts, under dev/programme/ as
+273:    "dev/programme/",
+521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+roles diff end

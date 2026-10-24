@@ -1,0 +1,3 @@
+  pending  #2686 50af617 2 commit(s) since — record: delivery rows for #2675, #2685 (autofix)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
