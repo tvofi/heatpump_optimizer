@@ -499,6 +499,11 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
+#: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
+#: review at a head is that head's approval, never posted twice (P86).
+APPROVER_LOGIN = "hpo-approver[bot]"
+#: The grain of the wait for an approval's review-event run before a merge (P86).
+REVIEW_POLL_SECONDS = 5
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -864,6 +869,7 @@ class Train:
         self.main_moved_tries, self.bot_prs = main_moved_tries, bot_prs
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
+        self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
         self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
@@ -1450,6 +1456,22 @@ class Train:
         return self._post_carry(pr, h, body)
 
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
+        """Step 6, ONCE per head (R10-TRAIN-UPGRADE, triage P86): every approval
+        starts a `CI review` run of ci.yml that the merge then waits on, and
+        app_approve.sh posts on every call -- so a head this run approved, or
+        one the approver App already approved, is not approved again. A head
+        that moved is a new head and is approved afresh."""
+        if self.approved.get(pr) == h:
+            return "already, at this head, by this train"
+        if any(r.get("state") == "APPROVED" and r.get("commit_id") == h
+               and (r.get("user") or {}).get("login") == APPROVER_LOGIN for r in self._reviews(pr, "step 6")):
+            self.approved[pr] = h
+            return f"already, at this head, by {APPROVER_LOGIN}"
+        how = self._approve(pr, h, item, files)
+        self.approved[pr] = h
+        return how
+
+    def _approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
             return "app"
@@ -1725,7 +1747,10 @@ class Train:
         self.unstale(h)
         said = "(no output)"
         for k in range(1, self.merge_tries + 1):
-            self.sleep(30)
+            if k == 1:
+                self.review_settle(pr, h)
+            else:
+                self.sleep(30)
             guard()
             code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
                                    "--match-head-commit", h])
@@ -1750,6 +1775,23 @@ class Train:
         if self.real:
             self.run(["bash", tool("worktree_gc"), self.repo])
         return st.split()[-1]
+
+    def review_settle(self, pr: int, h: str) -> None:
+        """Before the FIRST merge attempt (P86): the approval's `CI review` run
+        (ci.yml on `pull_request_review`) at <h> must conclude, or base-branch
+        policy refuses the merge -- two refused 30-s attempts per merge
+        before. One REVIEW_POLL_SECONDS grain, then poll while any such run at
+        <h> is unfinished, up to `polls` times; an unreadable listing is not a
+        wait (the retry grain after it still is)."""
+        for n in range(self.polls):
+            self.sleep(REVIEW_POLL_SECONDS)
+            code, o = self.run(["gh", "api", f"repos/{self.repo}/actions/runs?event=pull_request_review"
+                                f"&head_sha={h}&per_page=20", "--jq", '.workflow_runs[] | "\\(.id) \\(.status)"'])
+            open_ = [ln.split()[0] for ln in o.splitlines() if code == 0 and len(ln.split()) == 2
+                     and ln.split()[1] != "completed"]
+            if not open_:
+                return
+            self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits ({n + 1}/{self.polls})")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -1947,6 +1989,9 @@ class Train:
             under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
             if under:
                 self.log(f"#{pr} policy head admitted under {under}")
+            # P86: approve now, while the proof and the earlier merges run, so the
+            # approval's review-event CI run is over before this entry's merge.
+            self.log(f"#{pr} approved at admission ({self.approve(pr, h, item, files)})")
         self.log(f"#{pr} admitted at {h[:8]}")
         return a
 
@@ -2995,6 +3040,15 @@ def _self_test() -> int:
           [Train("o/r", Path("."), m, "", (), 1).mandate_id() for m in
            (str(MID), f"mandate {MID} (tvofi, #201)", f"mandate {MID} and mandate {MID + 1}", "label", None)]
           == [MID, MID, None, None, None])
+    rc, lines, calls = go({"reviews": [{"user": {"login": APPROVER_LOGIN, "id": 2, "type": "Bot"},
+                                        "state": "APPROVED", "commit_id": H0, "body": "ok"}]})
+    check("P86: an approver App approval already at the head is not posted again: app_approve.sh is not "
+          "asked, and the head merges", rc == 0 and merged(calls) and no_app()
+          and any("approved (already, at this head, by hpo-approver[bot])" in ln for ln in lines))
+    rc, lines, calls = go({"reviews": [{"user": {"login": APPROVER_LOGIN, "id": 2, "type": "Bot"},
+                                        "state": "APPROVED", "commit_id": "f" * 40, "body": "ok"}]})
+    check("P86 null: an approver approval at ANOTHER head (the head moved) is no approval of this one: "
+          "app_approve.sh approves afresh", rc == 0 and merged(calls) and not no_app())
     rc, lines, calls = go({"heads": [H0, H1]})
     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]
           and not approved(calls) and not merged(calls))
@@ -3993,8 +4047,14 @@ def _batch_self_test(check) -> None:
                 if "state,mergeCommit" in a:
                     return 0, f"MERGED {w['merged'][n]}" if n in w["merged"] else "OPEN None"
                 return 0, "fix: x"
+            if "actions/runs?event=pull_request_review" in a:  # P86: the approval's review run,
+                w["review_reads"] = w.get("review_reads", 0) + 1  # running for its first `review_pending` reads
+                return 0, "77 completed" if w["review_reads"] > w.get("review_pending", 0) else "77 in_progress"
             if argv[:3] == ["gh", "pr", "merge"]:
                 n, h = int(argv[3]), argv[-1]
+                if w.get("review_reads", 0) <= w.get("review_pending", 0):  # base-branch policy: the run is not over
+                    w["refused"] = w.get("refused", 0) + 1
+                    return 1, "the base branch policy prohibits the merge"
                 if w["heads"][n] != h:
                     return 1, "head moved"
                 code, o = g(w["R"], "merge", "--no-ff", "--no-edit", "-q", h)
@@ -4086,7 +4146,8 @@ def _batch_self_test(check) -> None:
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
-                      sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2,
+                      sleep=lambda s: (w.setdefault("slept", []).append(s), w.get("on_sleep", lambda: None)()),
+                      log=lines.append, polls=2, merge_tries=2,
                       base=base, skip_bad=skip_bad, overlap=overlap, main_moved_tries=main_moved_tries, **opts)
             q = ([{"pr": n, "verdict": w["heads"][n]} for n in prs] if batches is None
                  else [[{"pr": n, "verdict": w["heads"][n]} for n in b] for b in batches])
@@ -4180,7 +4241,8 @@ def _batch_self_test(check) -> None:
            setup=lambda w: w.update(reviews_for=lambda h: [brev(h, bnow)], mandate=bman(bnow)))
     check("batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the "
           "merge itself (admission reads, land reads again)",
-          w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1"]
+          # the reads: admission's policy gate, admission's step-6 approval (P86), land's policy gate
+          w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1", "1"]
           and w["approved"] == [1])
 
     w = go({1: {"CLAUDE.md": "policy text\n"}, 2: {"a.txt": "A\n"}}, base="main", mandate=str(MID),
@@ -4195,6 +4257,26 @@ def _batch_self_test(check) -> None:
     check("batch policy post null: the same queue without --mandate posts nothing and stops at admission, "
           "as before", w["rc"] == 1 and not w.get("posted") and not w["merged"] and "policy:" in w["lines"][-1])
 
+
+    # P86 (carried into R10-TRAIN-UPGRADE): approve at admission, once per head,
+    # and wait the approval's review-event run out before the first attempt.
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, base="main")
+    ix = lambda pred: [i for i, c in enumerate(w["calls"]) if pred(" ".join(c))]  # noqa: E731
+    appr = ix(lambda a: "app_approve.sh" in a and "--carry" not in a)
+    push = ix(lambda a: "--branch-only" in a)
+    merges = ix(lambda a: a.startswith("gh pr merge 1 ") or a.startswith("gh pr merge 2 "))
+    check("P86: in a batch of two, each entry is approved ONCE, at admission -- before the proof is "
+          "pushed -- and merges on its first attempt, with no refused attempt",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and sorted(w["approved"]) == [1, 2]
+          and len(appr) == 2 and push and max(appr) < min(push) and len(merges) == 2
+          and not any("merge attempt" in ln for ln in w["lines"])
+          and sum(ln.startswith(("#1 approved at admission", "#2 approved at admission")) for ln in w["lines"]) == 2)
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, base="main", setup=lambda w: w.update(review_pending=1))
+    check("P86: the first merge attempt waits for the head's review run to conclude (polled at the "
+          f"{REVIEW_POLL_SECONDS}-s grain), so base-branch policy refuses nothing",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and not w.get("refused")
+          and any("review run(s) 77" in ln and "still running" in ln for ln in w["lines"])
+          and not any("merge attempt" in ln for ln in w["lines"]))
     # --bot-prs in the batch: the record PR merges BEFORE the base is read, so
     # it is under every proof (R16) -- and never from a rehearsal, whose
     # merges reach no main (R14).
@@ -4235,6 +4317,13 @@ def _batch_self_test(check) -> None:
           and any(ln.startswith("[MAIN-MOVED] before #2's merge: re-proving #2, #3") for ln in w["lines"])
           and [b for b, _ in w["pushed"]] == ["batch/t-1", "batch/t-m1-1"]
           and w["main_tree"] == w["proof_trees"][-1] and len(w["tree_ok"]) == 3)
+
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}, 3: {"units/b": "b\n"}}, base="main",
+           setup=lambda w: (moved(w), w.update(remerge=True)), main_moved_tries=1)
+    check("P86: a [MAIN-MOVED] re-prove at unchanged heads approves nothing again (#2741 was approved "
+          "twice around one): one approval per entry",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2, 3] and sorted(w["approved"]) == [1, 2, 3]
+          and any(ln.startswith("[MAIN-MOVED] before #2's merge") for ln in w["lines"]))
 
     def moved_red(w):
         moved(w)
@@ -4313,8 +4402,9 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["merged"] and "[BOT-HEAD]" in w["lines"][-1] and "GITHUB_TOKEN" in w["lines"][-1])
     w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"b.txt": "B\n"}}, base="main",
            setup=lambda w: w.update(ci_red=R0))
-    check("on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)",
-          w["rc"] == 1 and sorted(w["merged"]) == [1, 3] and sorted(w["approved"]) == [1, 3]
+    check("on main: entries are approved ONCE, at admission (P86: the dropped #2 too, at the head it was "
+          "admitted at), and the dropped one goes through the serial run (here its recarry stops)",
+          w["rc"] == 1 and sorted(w["merged"]) == [1, 3] and sorted(w["approved"]) == [1, 2, 3]
           and "recarry: #2 " in w["lines"][-1])
     def redmain(w):  # main reddens after both heads were cut green (review-2044's probe)
         (w["R"] / "units/u9").write_text("9\n")

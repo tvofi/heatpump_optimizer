@@ -72,6 +72,16 @@ MUTANTS = [
     ("M21", "admit_add: open", "            if view.get(\"state\") != \"OPEN\":", "            if False:"),
     ("M22", "admit_add: base", "            if view.get(\"baseRefName\") != self.base:", "            if False:"),
     ("M23", "admit_add: shape", "        if not is_sha(v):\n            return f\"shape:", "        if False:\n            return f\"shape:"),
+    # P86, carried in: approve once, at admission, and wait the review run out.
+    ("M24", "no second approval at a head this train approved", "        if self.approved.get(pr) == h:\n",
+     "        if False:\n"),
+    ("M25", "no second approval at a head the approver App approved",
+     "               and (r.get(\"user\") or {}).get(\"login\") == APPROVER_LOGIN for r",
+     "               and False for r"),
+    ("M26", "batch entries are approved at admission",
+     "            self.log(f\"#{pr} approved at admission ({self.approve(pr, h, item, files)})\")\n", ""),
+    ("M27", "the first attempt waits the review run out", "                self.review_settle(pr, h)\n",
+     "                self.sleep(30)\n"),
 ]
 
 
