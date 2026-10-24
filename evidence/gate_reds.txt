@@ -1,0 +1,18 @@
+120973683700:  * [new branch]          claim/s6/r10-rca-codescan-wait -> origin/claim/s6/r10-rca-codescan-wait
+120973683700:  * [new branch]          dispatch/fixer-r10-rca-codescan-wait -> origin/dispatch/fixer-r10-rca-codescan-wait
+120973683700:  * [new branch]          fix/r10-rca-codescan-wait   -> origin/fix/r10-rca-codescan-wait
+120973683700:  * [new branch]          handoff-body/r10-rca-codescan-wait -> origin/handoff-body/r10-rca-codescan-wait
+120973683700:  * [new branch]          handoff/r10-rca-codescan-wait -> origin/handoff/r10-rca-codescan-wait
+120973683700: [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+120973683700: FAIL run(s) [40124909955] at this head are still being judged; their gate decides
+120973683700: ##[error]Process completed with exit code 1.
+120973683700 run 40124637935 2
+120962237384:  * [new branch]          claim/s6/r10-rca-codescan-wait -> origin/claim/s6/r10-rca-codescan-wait
+120962237384:  * [new branch]          dispatch/fixer-r10-rca-codescan-wait -> origin/dispatch/fixer-r10-rca-codescan-wait
+120962237384:  * [new branch]          fix/r10-rca-codescan-wait   -> origin/fix/r10-rca-codescan-wait
+120962237384:  * [new branch]          handoff-body/r10-rca-codescan-wait -> origin/handoff-body/r10-rca-codescan-wait
+120962237384:  * [new branch]          handoff/r10-rca-codescan-wait -> origin/handoff/r10-rca-codescan-wait
+120962237384: [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+120962237384: FAIL run(s) [40123245376] at this head are still being judged; their gate decides
+120962237384: ##[error]Process completed with exit code 1.
+120962237384 run 40123245316 1
