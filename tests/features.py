@@ -38669,17 +38669,18 @@ R.check(
     [r["month"] for r in _rows] == ["2026-02"],
     repr([r["month"] for r in _rows]),
 )
-# #2255: the row's actual is the month's bill (the spot line, 2.0), the
-# saving is baseline less actual over the covered interval (1.0), and the
-# baseline is the bill plus that saving. With no coverage meta (a month
+# #2492: every cell is on the savings lines' one basis -- the row's actual
+# is the metered energy's cost over the covered interval (1.0), not the
+# month's bill (the spot line, 2.0); the baseline is the thermostat's (2.0)
+# and the saving the one less the other. With no coverage meta (a month
 # booked before it existed) the open month falls back to 28 / 10.
 R.check(
-    "open month scales the bill and the saving by one factor",
+    "open month scales the baseline, the actual and the saving by one factor",
     _rows[0]["estimated"] is True
-    and abs(_rows[0]["actual_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
     and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
-    and abs(_rows[0]["baseline_sek"] - 8.4) < 1e-9
-    and abs(_rows[0]["savings_pct"] - 100.0 / 3.0) < 1e-9,
+    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
     repr(_rows[0]),
 )
 _led.add_savings_settlement(
@@ -38693,10 +38694,10 @@ R.check(
 )
 _closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
 R.check(
-    "a closed month is unscaled; nothing saved reads baseline == actual == bill",
+    "a closed month is unscaled; nothing saved reads baseline == actual on the energy basis",
     _closed["estimated"] is False
-    and abs(_closed["baseline_sek"] - 20.0) < 1e-9
-    and abs(_closed["actual_sek"] - 20.0) < 1e-9
+    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
+    and abs(_closed["actual_sek"] - 1.0) < 1e-9
     and _closed["savings_sek"] == 0.0
     and _closed["savings_pct"] == 0.0,
     repr(_closed),
@@ -38708,9 +38709,12 @@ from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
 from heatpump_optimizer.ledger import month_hours as _sav_month_hours
 from heatpump_optimizer.ledger import SETTLED_HOURS_META as _SAV_SETTLED_META
 
-# Item 5: a closed September with every line the receipt adds -- spot,
-# grid fee, capacity, immersion, wear -- and one interval no plan covered.
-# The receipt's headline and the savings row's actual are the same figure.
+# Item 5, restated by #2492 (the owner's one-basis acceptance): a closed
+# September with every line the receipt adds -- spot, grid fee, capacity,
+# immersion, wear -- and one interval no plan covered. The row's actual is
+# the metered energy of the covered intervals at spot plus fee, the basis
+# its saving is on; capacity, wear and the uncovered interval are the
+# receipt's and in neither column.
 _sep = _SavLedger()
 _sep_t = _SavDT(2026, 9, 12, 3, 0)
 for _i, _base_kw in enumerate((2.0, 2.0, None)):
@@ -38729,9 +38733,9 @@ _sep_receipt = _sav_freeze(
 )
 _sep_row = _sep.savings_months(_SavDT(2026, 10, 3, 12, 0))[0]
 R.check(
-    "the closed month's actual is the receipt's total, not a second sum",
-    _sep_row["actual_sek"] == _sep_receipt["total_sek"]
-    and abs(_sep_row["actual_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
+    "the closed month's actual is the covered metered energy at spot plus fee, not the bill",
+    abs(_sep_row["actual_sek"] - 2 * 1.5 * 1.4) < 1e-9
+    and abs(_sep_receipt["total_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
     f"row {_sep_row} receipt total {_sep_receipt['total_sek']}",
 )
 R.check(
@@ -38759,14 +38763,14 @@ _feb_row = _feb.savings_months(_feb10)[0]
 R.check(
     "the open month scales by the month's hours over the hours it settled",
     _sav_month_hours(_feb10) == 672.0
-    and abs(_feb_row["actual_sek"] - (24.0 * 28.0 + 10.0)) < 1e-9
+    and abs(_feb_row["actual_sek"] - 24.0 * 28.0) < 1e-9
     and abs(_feb_row["savings_sek"] - 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 R.check(
-    "the capacity line is a month figure already and is not extrapolated",
+    "the capacity line is in neither column: baseline less actual is the saving",
     abs(_feb_row["baseline_sek"] - _feb_row["actual_sek"] - _feb_row["savings_sek"]) < 1e-9
-    and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
+    and abs(_feb_row["baseline_sek"] - 2 * 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 _over = _SavLedger()
@@ -38834,6 +38838,106 @@ R.check(
     "an interval of no length settles no hours: the stored coverage takes no sample",
     _SAV_SETTLED_META not in _none_meta and "spot_price" in _none_meta,
     repr(_none_meta),
+)
+
+# #2492, the owner's baseline specification (2026-10-24): the thermostat
+# runs at the power levels the pump recorded, over the same price profile,
+# and the saving is its cost less the metered cost. The ledger books the
+# plan's own modelled kWh beside the meter's on the same intervals, and the
+# month scales the modelled thermostat by their ratio. Four one-hour
+# intervals, a plan heating in the cheap hours, a thermostat of the same
+# modelled volume spread flat, and a meter reading 1.5x the plan's model.
+from heatpump_optimizer.ledger import (
+    MIN_CALIBRATION_KWH as _SAV_MIN_CAL,
+    SAVINGS_PLAN_LINE as _SAV_PLAN_LINE,
+)
+
+def _sav_cal_month(prices, thermostat, plan, meter_factor, with_plan=True, fee=0.0):
+    led = _SavLedger()
+    for _h, (_p, _b, _q) in enumerate(zip(prices, thermostat, plan)):
+        pend = {"baseline_kw": _b, "grid_fee": fee}
+        if with_plan:
+            pend["power"] = _q
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 1, 12, _h, 0), _p, pend, meter_factor * _q, 1.0
+        )
+    return led.savings_months(_feb10)[0]
+
+_sav_flat, _sav_vary = [2.0] * 4, [1.0, 3.0, 1.0, 3.0]
+_sav_plan, _sav_therm = [2.0, 0.0, 2.0, 0.0], [1.0, 1.0, 1.0, 1.0]
+_cal_flat = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5)
+_cal_flat_model = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5, with_plan=False)
+R.check(
+    "#2492: a meter reading a fixed factor over the model saves 0 at one flat price "
+    "when the thermostat's modelled volume is the plan's",
+    _cal_flat["meter_calibration"] == 1.5
+    and _cal_flat["savings_sek"] == 0.0
+    and _cal_flat["baseline_sek"] == _cal_flat["actual_sek"] == 12.0,
+    repr(_cal_flat),
+)
+R.check(
+    "#2492: and the modelled basis (no plan line) books the model's gap as a loss "
+    "(the control: the calibration is what moved it)",
+    _cal_flat_model["meter_calibration"] is None
+    and _cal_flat_model["savings_sek"] == 8.0 - 12.0,
+    repr(_cal_flat_model),
+)
+_cal_vary = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.5)
+R.check(
+    "#2492: over a varying profile the same month saves its timing, priced alike "
+    "on both sides",
+    _cal_vary["savings_sek"] == round(1.5 * (1 + 3 + 1 + 3) - 1.5 * 2.0 * (1 + 1), 2)
+    and _cal_vary["savings_sek"] > 0.0,
+    repr(_cal_vary),
+)
+_cal_vol = _sav_cal_month(_sav_flat, [2.0] * 4, _sav_plan, 1.5)
+R.check(
+    "#2492: at one flat price the volume difference remains, at the meter's levels",
+    _cal_vol["savings_sek"] == 2.0 * 1.5 * (8.0 - 4.0),
+    repr(_cal_vol),
+)
+_cal_gapless = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, fee=0.4)
+_cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_plan=False, fee=0.4)
+R.check(
+    "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
+    _cal_gapless["meter_calibration"] == 1.0
+    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
+    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    f"{_cal_gapless} / {_cal_gapless_model}",
+)
+# A month whose savings lines began before the plan line existed (an upgrade
+# mid-month) never gains one: its later intervals would calibrate the whole
+# month's thermostat. It stays on the modelled basis; the next month does not.
+_cal_upg = _SavLedger()
+_cal_upg.add_savings_settlement(_SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 1, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 2, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+R.check(
+    "#2492: a month begun without the plan line stays modelled; the next one calibrates",
+    _SAV_PLAN_LINE not in _cal_upg.months["2026-01"]["lines"]
+    and _cal_upg.meter_calibration("2026-01") is None
+    and _cal_upg.meter_calibration("2026-02") == 1.5,
+    repr({k: v["lines"].keys() for k, v in _cal_upg.months.items()}),
+)
+_cal_tiny = _SavLedger()
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=_SAV_MIN_CAL * 0.99,
+)
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 2, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=_SAV_MIN_CAL,
+)
+R.check(
+    "#2492: a month whose plan booked under the calibration floor stays modelled "
+    "(at the floor it calibrates)",
+    _cal_tiny.meter_calibration("2026-01") is None
+    and _cal_tiny.meter_calibration("2026-02") == 3.0 / _SAV_MIN_CAL,
+    repr(_cal_tiny.months),
 )
 
 # Item 1: the settlement books the plan's thermostat baseline at the step
@@ -67906,7 +68010,7 @@ R.check(
 # move the count off zero or the comparison is not reading anything.
 def _rp_ledger_key(now, src_floor):
     held = _rp_pa.ArbiterState()
-    inp = _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
+    inp = _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
     _rp_pa._observe(held, inp, None, now)
     key = held.step["start"] if held.step else None
     ref = src_floor(now)
@@ -67968,7 +68072,7 @@ try:
         _rp_held = _rp_pa.ArbiterState()
         _rp_pa._observe(
             _rp_held,
-            _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
+            _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
             None, _rp_now,
         )
         _rp_widths.append((
@@ -68002,6 +68106,35 @@ R.check(
     "step) -- live a microsecond before the edge, expired at it",
     _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
     f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
+)
+
+# --- #2492 (carry 5, seam 1): a step is scored against the plan that actuated it --
+# The cycle's re-solve can move a hot-water slot onto the current step, and
+# the switch is written from that new plan. The row froze `planned` at the
+# step's first tick, so a step whose plan changed mid-step was scored
+# against the plan before the solve. Null arm: a duty that changes with the
+# SAME plan in force (a lease or boost moving) keeps the adoption's freeze.
+def _rp_refreeze(second_plan):
+    held = _rp_pa.ArbiterState()
+    first = object()
+    t0 = datetime(2026, 1, 15, 13, 0, tzinfo=timezone.utc)
+    for when, plan, duty, kw in (
+        (t0, first, "dhw", 0.0),
+        (t0 + timedelta(minutes=13), second_plan or first, "space", 0.6),
+        (t0 + timedelta(minutes=15), second_plan or first, "idle", 0.0),
+    ):
+        _rp_pa._observe(held, _RP_NS(config={}, plan=plan, state=_RP_NS(dhw_temperature=None),
+                                     measured_power_kw=kw), duty, when)
+    return held.log[-1]
+
+
+_rp_moved, _rp_kept = _rp_refreeze(object()), _rp_refreeze(None)
+R.check(
+    "#2492: a plan adopted mid-step re-freezes the step's planned duty; the same "
+    "plan's later duty does not",
+    _rp_moved["planned"] == "space" and _rp_moved["verdict"] == "delivered"
+    and _rp_kept["planned"] == "dhw" and _rp_kept["verdict"] == "space-instead",
+    f"re-solved {_rp_moved}; same plan {_rp_kept}",
 )
 
 # --- R10-SAV-REASONS (#2256): a cost is booked under the cause that drew it ----

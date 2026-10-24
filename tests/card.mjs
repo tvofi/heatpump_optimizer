@@ -10018,6 +10018,31 @@ const STOCK_THEMES = {
     check(`and the bar itself is perceptible on a ${theme} card`,
       contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
   }
+
+  // #2492, the owner's acceptance: the tab equals ledger.savings_months cell
+  // for cell. The sensor's own published attributes, from a ledger settled
+  // through the production path (tests/plan_view.py), are what the card is
+  // handed; each cell is read back against the ledger's row.
+  const sav = plan.savings || { attributes: { savings_months: [] }, ledger_rows: [] };
+  const live = { ...savStates, "sensor.heat_pump_optimizer_monthly_savings": {
+    state: String(sav.attributes.savings_months.length), attributes: sav.attributes } };
+  const ledgerCard = build(live, { title: "c3-savings-ledger" });
+  ledgerCard.dialog.open();
+  ledgerCard.dialog.page = "savings";
+  ledgerCard._sig = null;
+  ledgerCard._render();
+  const ledgerCells = [...ledgerCard.shadowRoot.querySelectorAll("td")]
+    .map((el) => (el.textContent || "").replace(/\u00a0/g, " ").trim());
+  const fmt = (n) => (Number.isFinite(n) ? n.toFixed(2) : "—");
+  const expected = sav.ledger_rows.flatMap((r) => [r.month, fmt(r.baseline_sek), fmt(r.actual_sek),
+    fmt(r.savings_sek), Number.isFinite(r.savings_pct) ? `${r.savings_pct.toFixed(0)}%` : "—"]);
+  const got = ledgerCells.map((t, i) => (i % COLS === 0 ? t.split(" ")[0] : t));
+  check("#2492: the Savings tab's every cell is ledger.savings_months's, from the sensor's payload",
+    sav.ledger_rows.length >= 2 && got.length === expected.length && got.every((t, i) => t === expected[i]),
+    `tab ${got.join(" | ")} ledger ${expected.join(" | ")}`);
+  check("#2492: and each row's cells are one basis: baseline less actual is the saving shown",
+    sav.ledger_rows.every((r) => fmt(r.baseline_sek - r.actual_sek) === fmt(r.savings_sek)),
+    JSON.stringify(sav.ledger_rows));
 }
 
 // --- D4-03 (#1456): one screen, one quantity, one currency -----------------
