@@ -42,8 +42,8 @@ ROSTER_REL = "dev/programme/rosters/wave-r10-groups.json"
 MOVED = "not origin/main"
 
 
-def _git(*a, cwd=None):
-    return subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+def _git(*a, cwd=None, env=None):
+    return subprocess.run(["git", *a], cwd=cwd, env=env, capture_output=True, text=True)
 
 
 def _walk(o, grp):
@@ -160,15 +160,14 @@ def _self_test():
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         repo = t / "repo"
-        repo.mkdir()
-        _git("init", "-q", cwd=repo)
-        _git("config", "user.email", "a@b", cwd=repo)
-        _git("config", "user.name", "a", cwd=repo)
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_init
+        env = throwaway_git_init(repo, "-q")
         (repo / ROSTER_REL).parent.mkdir(parents=True)
         (repo / ROSTER_REL).write_text(json.dumps({"groups": [{"group": "G", "carry": ["one", "two\nlines"]}]}))
-        _git("add", "-A", cwd=repo)
-        _git("commit", "-qm", "r", cwd=repo)
-        sha = _git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        _git("add", "-A", cwd=repo, env=env)
+        _git("commit", "-qm", "r", cwd=repo, env=env)
+        sha = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
         (t / "c.txt").write_text("two\nlines\n")
         (t / "d.txt").write_text("three")
         line, ok = readback(sha, "G", t / "c.txt", cwd=repo)
