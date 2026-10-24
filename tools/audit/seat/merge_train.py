@@ -223,7 +223,9 @@ merge bot PRs automatically"; run and batch):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime
+import fcntl
 import functools
 import json
 import os
@@ -635,6 +637,175 @@ def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple
             text = budgets[path][0 if sha == base else 1]
             return (0, text) if text is not None else (128, f"fatal: path '{path}' does not exist in '{sha}'")
     return None
+
+
+# THE LIVE QUEUE (R10-TRAIN-UPGRADE; tvofi, 2026-10-24: "sequence multiple batches
+# on the same train, as well as loading more PRs on an already running train").
+# One state dir holds one train. Every file below is read and written only under
+# QUEUE_LOCK, an fcntl.flock taken in this process (never the shell's flock(1),
+# which macOS lacks): `add` appends to the spool while a train holds QUEUE_OPEN,
+# and the train drains the spool BETWEEN batches only -- a batch in proof is never
+# mutated -- each drain becoming its next batch. The train's close is a final
+# drain that found nothing, under the same lock, so an entry is either drained or
+# met by no open queue (and then starts a train itself): none is accepted unseen.
+QUEUE_LOCK = "queue.lock"            # the flock every reader and writer below takes
+QUEUE_OPEN = "queue.open"            # the live train's pid: the queue accepts adds
+QUEUE_SPOOL = "queue-add.jsonl"      # one entry per line, appended by `add`
+QUEUE_PENDING = "queue.pending.json"  # the PRs in the running and later batches: `add`'s idempotence
+ADD_SETTLE_SECONDS = 10              # how long `add` waits on a train.sh starting, or one closing
+
+
+def queue_batches(raw) -> "list[list[dict]]":
+    """The queue file as batches, in order: a list of entries is ONE batch (the
+    format every caller wrote before, run exactly as before); a list of
+    non-empty lists of entries is several. A pull request in two places, or
+    any other shape, is a ValueError naming the rule."""
+    if isinstance(raw, list) and raw and all(isinstance(b, list) for b in raw):
+        if not all(b and all(isinstance(e, dict) for e in b) for b in raw):
+            raise ValueError("queue: every batch is a non-empty list of entries")
+        batches = [list(b) for b in raw]
+    elif isinstance(raw, list) and all(isinstance(e, dict) for e in raw):
+        batches = [list(raw)]
+    else:
+        raise ValueError("queue: a list of entries (one batch) or a list of lists of entries (batches, in order)")
+    try:
+        prs = [int(e["pr"]) for b in batches for e in b]
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("queue: every entry names its pull request as an integer `pr`") from None
+    twice = sorted({n for n in prs if prs.count(n) > 1})
+    if twice:
+        raise ValueError(f"queue: {', '.join('#%d' % n for n in twice)} queued twice; a pull request lands once")
+    return batches
+
+
+@contextlib.contextmanager
+def queue_lock(state: Path):
+    state.mkdir(parents=True, exist_ok=True)
+    with open(state / QUEUE_LOCK, "a") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
+def read_pid(path: Path) -> "int | None":
+    try:
+        return int(path.read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def pid_alive(pid: "int | None") -> bool:
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def spool_read(state: Path) -> "tuple[list[dict], list[str]]":
+    """(entries, unreadable lines) of the spool; call it under the lock."""
+    try:
+        text = (state / QUEUE_SPOOL).read_text()
+    except OSError:
+        return [], []
+    good, bad = [], []
+    for ln in text.splitlines():
+        try:
+            e = json.loads(ln)
+            int(e["pr"])
+            good.append(e)
+        except (ValueError, TypeError, KeyError):
+            if ln.strip():
+                bad.append(ln)
+    return good, bad
+
+
+def spool_append(state: Path, entry: dict) -> None:
+    """Append one entry; call it under the lock."""
+    with open(state / QUEUE_SPOOL, "a") as fh:
+        fh.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
+    """Start train.sh detached (its own session: `add` returns, the train goes
+    on) and wait up to ADD_SETTLE_SECONDS for it to take train.pid. (pid, "")
+    once it holds it; (0, <its output's tail>) when it exited first -- a
+    refusal of train.sh's own -- or never took it."""
+    log = state / "add-launch.log"
+    with open(log, "w") as fh:
+        p = subprocess.Popen(argv, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=fh,
+                             stderr=subprocess.STDOUT, start_new_session=True)
+    end = time.monotonic() + ADD_SETTLE_SECONDS
+    while time.monotonic() < end and p.poll() is None and read_pid(state / "train.pid") != p.pid:
+        time.sleep(0.1)
+    if read_pid(state / "train.pid") == p.pid and p.poll() is None:
+        return p.pid, ""
+    tail = (log.read_text(errors="replace").strip().splitlines() or ["(no output)"])[-1]
+    return 0, f"rc {p.poll()}: {tail[:200]}"
+
+
+def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
+              settle: float = ADD_SETTLE_SECONDS) -> int:
+    """`add`: load one verdicted pull request into the state dir's live train,
+    or start that train. Under QUEUE_LOCK, in order: a pull request already in
+    the live train's running or later batches, or already spooled, is a no-op
+    (`ALREADY`, rc 0 -- a backstop sweep calls this safely); `Train.admit_add`
+    must pass (`ADD REFUSED #<pr> <rule>: <why>`, rc 1); a live train gets the
+    entry in its spool, which it drains as its NEXT batch (`ADDED`); with none,
+    `<train_argv> --queue <file>` starts one over the entry (and anything a
+    stopped train left spooled), the lock held until train.sh owns train.pid,
+    so a concurrent add finds it live (`STARTED`). A train.sh still closing is
+    waited out, never raced: one train per state dir. rc 2: no train could start."""
+    pr = item.get("pr")
+    with queue_lock(t.state):
+        live = read_pid(t.state / QUEUE_OPEN)
+        live = live if pid_alive(live) else None
+        spooled, _bad = spool_read(t.state)
+        try:
+            pending = set(json.loads((t.state / QUEUE_PENDING).read_text())) if live else set()
+        except (OSError, ValueError):
+            pending = set()
+        if str(pr).isdigit() and int(pr) in pending | {int(e["pr"]) for e in spooled}:
+            t.log(f"ALREADY #{pr}: queued in the {'live train (pid %d)' % live if live else 'spool'}; nothing added")
+            return 0
+        why = t.admit_add(item)
+        if why:
+            t.log(f"ADD REFUSED #{pr} {why}")
+            return 1
+        entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues") if item.get(k) is not None}
+        entry["pr"] = int(pr)
+        if live:
+            spool_append(t.state, entry)
+            t.log(f"ADDED #{pr} to the live train (pid {live}); it joins the batch after the one running")
+            return 0
+        end = time.monotonic() + settle
+        while pid_alive(read_pid(t.state / "train.pid")) and time.monotonic() < end:
+            time.sleep(0.1)  # a train.sh still exiting after its train closed the queue
+        closing = read_pid(t.state / "train.pid")
+        if pid_alive(closing):
+            t.log(f"ADD REFUSED #{pr} one-train: train.sh pid {closing} holds train.pid with no queue open; "
+                  "nothing started beside it")
+            return 2
+        queue = spooled + [entry]
+        qf = t.state / f"add-queue-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{pr}.json"
+        qf.write_text(json.dumps(queue, indent=2) + "\n")
+        (t.state / QUEUE_SPOOL).unlink(missing_ok=True)
+        pid, why = launch([*train_argv, "--queue", str(qf)], t.state)
+        if not pid:
+            for e in spooled:  # what a stopped train left stays for the next one
+                spool_append(t.state, e)
+            t.log(f"ADD REFUSED #{pr} start: train.sh did not start ({why})")
+            return 2
+        (t.state / QUEUE_OPEN).write_text(f"{pid}\n")
+        (t.state / QUEUE_PENDING).write_text(json.dumps(sorted(int(e["pr"]) for e in queue)) + "\n")
+        t.log(f"STARTED train.sh pid {pid} over {' '.join('#%d' % int(e['pr']) for e in queue)}; queue {qf.name}")
+        return 0
 
 
 class Train:
@@ -1951,14 +2122,158 @@ class Train:
         (self.state / "skipped.json").write_text(json.dumps(self.skipped, indent=2) + "\n")
         self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")
 
-    def batch(self, queue: list[dict], tag: str) -> int:
+    def batch(self, queue: list, tag: str) -> int:
+        """Every batch of the queue in order (`queue_batches`), then each the
+        spool yields between batches (`queue_take`), one `_batch` at a time --
+        its own admission, proof and merges. A batch that stops ends the train:
+        what was still to run is logged NOT RUN, and spooled entries stay for
+        the next train. One batch with an empty spool is the train as it was."""
         try:
-            return self._batch(queue, tag)
+            batches = queue_batches(queue)
+            self.queue_open(batches)
+        except (ValueError, Stop) as e:
+            self.log(f"TRAIN STOPPED {e}")
+            return 1
+        self.skipped = []
+        seen = {int(e["pr"]) for b in batches for e in b}
+        k = total = 0
+        try:
+            while True:
+                name = tag if k == 0 else f"{tag}-b{k + 1}"
+                total += len(batches[k])
+                try:
+                    stopped = self._batch(batches[k], name, total)
+                finally:
+                    self.release_worktrees()
+                    self.hold_release()
+                k += 1
+                if stopped:
+                    return 1
+                if not self.queue_take(batches, k, seen):
+                    self.log("TRAIN DONE")
+                    return 1 if self.skipped else 0
+                self.log(f"BATCH DONE {name}: {len(batches) - k} more batch(es) on this train, next "
+                         + " ".join("#%d" % int(e["pr"]) for e in batches[k]))
         finally:
-            self.release_worktrees()
-            self.hold_release()
+            self.queue_close(batches, k)
 
-    def _batch(self, queue: list[dict], tag: str) -> int:
+    def queue_open(self, batches: "list[list[dict]]") -> None:
+        """Take the state dir's queue for this train: refused while QUEUE_OPEN
+        names another live train (`add` writes the train.sh it started there,
+        this process's parent), so a second train never runs beside one."""
+        with queue_lock(self.state):
+            held = read_pid(self.state / QUEUE_OPEN)
+            if held not in (None, os.getpid(), os.getppid()) and pid_alive(held):
+                raise Stop("queue", f"a live train (pid {held}) holds {self.state / QUEUE_OPEN}; one train per state dir")
+            (self.state / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+            self._queue_pending(batches)
+
+    def _queue_pending(self, batches: "list[list[dict]]") -> None:
+        (self.state / QUEUE_PENDING).write_text(
+            json.dumps(sorted(int(e["pr"]) for b in batches for e in b)) + "\n")
+
+    def queue_take(self, batches: "list[list[dict]]", k: int, seen: "set[int]") -> bool:
+        """Between batches: drain the spool into ONE new batch after those still
+        to run (an entry this train already holds is logged ALREADY, never run
+        twice). True when batch <k> is there to run; False closes the queue in
+        the same locked step, so an add after it starts a train of its own."""
+        with queue_lock(self.state):
+            added, bad = spool_read(self.state)
+            (self.state / QUEUE_SPOOL).unlink(missing_ok=True)
+            for ln in bad:
+                self.log(f"ADD UNREADABLE (dropped): {ln[:160]}")
+            fresh = []
+            for e in added:
+                if int(e["pr"]) in seen:
+                    self.log(f"ALREADY #{e['pr']}: in this train already; not queued twice")
+                    continue
+                seen.add(int(e["pr"]))
+                fresh.append(e)
+            if fresh:
+                batches.append(fresh)
+                self.log(f"ADDED {' '.join('#%d' % int(e['pr']) for e in fresh)}: batch {len(batches)} of this train")
+            if k >= len(batches):
+                (self.state / QUEUE_OPEN).unlink(missing_ok=True)
+                (self.state / QUEUE_PENDING).unlink(missing_ok=True)
+                return False
+            self._queue_pending(batches[k:])
+            return True
+
+    def queue_close(self, batches: "list[list[dict]]", k: int) -> None:
+        """The train's end, whatever ended it: the queue no longer accepts adds;
+        batches not run are named, and spooled entries stay for the next train."""
+        with queue_lock(self.state):
+            if read_pid(self.state / QUEUE_OPEN) == os.getpid():
+                (self.state / QUEUE_OPEN).unlink(missing_ok=True)
+                (self.state / QUEUE_PENDING).unlink(missing_ok=True)
+            left, _bad = spool_read(self.state)
+        for b in batches[k:]:
+            self.log("NOT RUN " + " ".join("#%d" % int(e["pr"]) for e in b) + ": the train stopped before this batch")
+        if left:
+            self.log("NOT RUN " + " ".join("#%d" % int(e["pr"]) for e in left)
+                     + f": added, still in {QUEUE_SPOOL}; the next train runs them")
+
+    def admit_add(self, item: dict) -> "str | None":
+        """THE admission an `add` runs before it accepts an entry (R10-TRAIN-UPGRADE;
+        R10-FLOW-AUTOTRAIN extends it): None, or `<rule>: <why>`. The batch
+        re-reads every one of these at its own admission and at the merge; this
+        is the early refusal, so a backstop sweep never loads what would stop
+        the train. Rules: `shape`, `open`, `base`, `carry` (the verdict at the
+        head, or app_approve.sh --carry saying CARRY: yes), `row`,
+        `budget-raise` (raise_hold: a raise only with the owner's approval held;
+        the batch routes it serial), `policy` (an owner approval at the head,
+        or a --mandate id `policy_approve` can post under)."""
+        pr, v = item.get("pr"), str(item.get("verdict") or "")
+        if not str(pr).isdigit() or int(pr) <= 0:
+            return f"shape: pr '{pr}' is not a pull request number"
+        if not is_sha(v):
+            return f"shape: verdict '{v[:60]}' is not a 40-hex sha"
+        if item.get("verdict_comment") is not None and not str(item["verdict_comment"]).isdigit():
+            return f"shape: verdict_comment '{item['verdict_comment']}' is not a comment id"
+        pr = int(pr)
+        try:
+            code, o = self.run(["gh", "pr", "view", str(pr), "--repo", self.repo, "--json",
+                                "state,baseRefName,headRefOid"])
+            try:
+                view = json.loads(o) if code == 0 else None
+            except ValueError:
+                view = None
+            if not isinstance(view, dict):
+                return f"open: #{pr} could not be read: {o.strip()[-160:]}"
+            if view.get("state") != "OPEN":
+                return f"open: #{pr} is {view.get('state')}"
+            if view.get("baseRefName") != self.base:
+                return f"base: #{pr} targets {view.get('baseRefName')}, not {self.base}"
+            h = str(view.get("headRefOid") or "")
+            if not is_sha(h):
+                return f"open: #{pr}'s head could not be read: {h[:60]}"
+            self.run(["git", "fetch", "-q", "origin", "main", h, *([v] if v != h else [])])
+            if v != h:
+                o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
+                if "CARRY: yes" not in o:
+                    return (f"carry: the verdict {v[:12]} does not carry to head {h[:12]}: "
+                            + (o.strip().splitlines() or ["(no output)"])[-1][:160])
+            files = self.git("diff", "--no-renames", "--name-only", self.git("merge-base", "origin/main", h), h).split()
+            if f"{ROW_DIR}/{pr}.md" not in files:
+                return f"row: #{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff"
+            raises, held, why = self.raise_hold(pr, h, files)
+            if raises and not held:
+                return f"budget-raise: {why}"
+            pol = self.policy_paths(files)
+            if pol and not self.mandate_id():
+                g = _mandate_gate()
+                if not any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
+                           for r in self._reviews(pr, "the policy admission")):
+                    return (f"policy: {', '.join(pol)} changed, with no owner approval at {h[:12]} and no "
+                            "--mandate id to post one under")
+        except Stop as s:
+            return f"{s.step}: {s.why}"
+        return None
+
+    def _batch(self, queue: list[dict], tag: str, total: "int | None" = None) -> bool:
+        """One batch, as the train ran before it held several: True when it
+        stopped (its TRAIN STOPPED line logged), False when it completed."""
+        total = len(queue) if total is None else total
         # The banner is the FIRST output, before any blocking call: a
         # daemonized launch is attributable from the log's first line even if
         # everything after it hangs (tvofi, 2026-10-14, tag traintest).
@@ -1969,7 +2284,6 @@ class Train:
         self.hold_armed = True
         self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
-        self.skipped: list[dict] = []
         try:
             mf = _fastpath()
             self.sweep_bots()  # before the base is read: a record PR merged now is under every proof
@@ -2102,8 +2416,8 @@ class Train:
             self.hold_release()
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
-                self.skip_report(len(queue))
-            return 1
+                self.skip_report(total)
+            return True
         self.release_worktrees()
         if self.branches:  # the proofs are spent; their shas are in the log above
             code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
@@ -2111,10 +2425,9 @@ class Train:
             self.log(f"deleted {names}" if code == 0 else
                      f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
         if self.skip_bad:
-            self.skip_report(len(queue))
+            self.skip_report(total)
         self.hold_release()
-        self.log("TRAIN DONE")
-        return 1 if self.skipped else 0
+        return False
 
 
 # ----------------------------------------------------------------- self-test
