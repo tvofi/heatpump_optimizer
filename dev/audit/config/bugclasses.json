@@ -1194,7 +1194,8 @@
       "RCA-1515",
       "RCA-1567-unpinned-installs",
       "RCA-1589-policy-docs-red",
-      "RCA-R8-I3-1516"
+      "RCA-R8-I3-1516",
+      "R10-RCA-2671-WAVE-SCRIPT"
     ],
     "rca_planned": [],
     "trigger": {
@@ -4450,6 +4451,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md",
       "doc": [
         "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md"
+      ]
+    },
+    "R10-RCA-2671-WAVE-SCRIPT": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#2671 red trigger: wave-script graded the head with the base's agreement.mjs (UNREGISTERED=3) and instrument-self-tests refused ledger.py:726 under ref_privacy.py --check, while prepr.sh and ci_predict.py were green on the same head; a new SHARED_GRAMMARS entry has no tree the required lane passes",
+      "trigger": "2 (red check): Governance run 39996377402, wave-script and instrument-self-tests",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) x3: prepr.sh steps 3e-3g ran and passed but grade a pinned grader with the head's copy, the push-to-main direction; ref_privacy.py --check runs in CI and in no local path; base-pinning the lane, followed as designed, leaves a registration no passing tree",
+      "countermeasure": "A: base-pinned arm under CI's restore keyed on the lane's reader closure (0.85 s per PR against 4.1 s expected); B: ref_privacy.py --check in the local path (1.46 s against 2.7 s); C: an admissible route for a new shared grammar, owner decision",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md"
       ]
     }
   },
