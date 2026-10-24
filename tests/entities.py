@@ -33415,7 +33415,7 @@ try:
         _PIN_NEW([_pin_a], [_pin_a]),
         _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
                    "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
-                   _mut.ScriptRun(0, 0, 1.0, ""), "abc123"),
+                   _mut.ScriptRun(0, 0, 1.0, "")),
     )
 except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
     _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
@@ -33484,11 +33484,11 @@ try:
         [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
          (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
         {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
-        _pr_base, _PR_SITES, "abc123")
+        _pr_base, _PR_SITES)
     _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
-                    _pr_base, [_pr_k], "abc123")
+                    _pr_base, [_pr_k])
     # A verdict that claims a kill with no kept run is not a kill.
-    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k], "abc123")
+    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k])
     _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
                sorted(_PR_NORUN[0]), _PR_NORUN[2],
                _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
@@ -35761,7 +35761,7 @@ try:
                            lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
 except TypeError:
     _MUT_T_OUT = []
-_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE], "r")[0]
+_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE])[0]
                if _MUT_T_OUT else None)
 R.check(
     "a mutant whose driver only overran its timeout is not killed, not "
@@ -36182,7 +36182,7 @@ _MUT_AB_OUT = _mut_pool(_MUT_AB_POOL, 1, {"tests/a.py": 10}, _mut_ab_drive,
 _MUT_AB_PINS = _mut.pin_results(
     _MUT_AB_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
                   for m, v in _MUT_AB_OUT if v.startswith("killed")},
-    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL, "r",
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL,
     how="--drain")[0]
 _mut_drain_surv = getattr(_mut, "drain_survivors", None)
 _MUT_AB_SURV = (_mut_drain_surv(_MUT_AB_OUT, _MUT_AB_PINS)
@@ -36230,7 +36230,7 @@ _MUT_NA_OUT = _mut_pool(_MUT_NA_POOL, 1, {"tests/a.py": 10, "tests/z.py": 100},
 _MUT_NA_PINS = _mut.pin_results(
     _MUT_NA_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
                   for m, v in _MUT_NA_OUT if v.startswith("killed")},
-    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL, "r",
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL,
     how="--drain")[0]
 R.check(
     "a twin granted with its anchor is started even after a dearer site "
@@ -36380,7 +36380,7 @@ def _mut_e_run(schedule, workers):
     out = schedule(_MUT_E_POOL, workers, _MUT_E_COST, drive)
     entries, _, _ = _mut.pin_results(
         out, kills, {s: _mut.ScriptRun(0, 0, 1.0) for s in _MUT_E_DRIVERS},
-        _MUT_E_POOL, "r")
+        _MUT_E_POOL)
     return [v for _, v in out], json.dumps(entries, sort_keys=True, indent=2)
 
 
@@ -36415,7 +36415,7 @@ _MUT_H_OUT = (_mut_pin(_MUT_H_SITE, 4,
                        {"tests/a.py": 1, "tests/b.py": 2,
                         "tests/features.py": 500}, _mut_h_drive)
               if _mut_pin is not None else [])
-_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE, "r")[0]
+_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE)[0]
                if _MUT_H_OUT else None)
 R.check(
     "under the split a timed-out driver is never a kill: the mutant runs "

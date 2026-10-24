@@ -1217,13 +1217,19 @@ def apply_pins(pins_dir: str, head: str) -> str:
 
 
 def pin_entry(site: dict, script: str, run: "ScriptRun",
-              baseline: "ScriptRun", ref: str, how: str = "--pin-killed") -> dict:
-    """The `killed_by` disposition one measured kill earns."""
+              baseline: "ScriptRun", how: str = "--pin-killed") -> dict:
+    """The `killed_by` disposition one measured kill earns.
+
+    A function of the mutant and its runs alone, never of the base it was
+    measured on (P-L, #2632): a bot's pin and a fixer's pin of one mutant are
+    then the same bytes, so their add/add merges under git's default merge,
+    on GitHub too. The base is in git's history already.
+    """
     return {
         "killed_by": script,
         "old": site["old"],
-        "reason": (f"Recorded by `mutation_table.py {how}` against "
-                   f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
+        "reason": (f"Recorded by `mutation_table.py {how}`: "
+                   f"{site['kind']} (`{site['new'].strip()}`) took "
                    f"{script} from rc={baseline.rc} failed={baseline.failed} "
                    f"to rc={run.rc} failed={run.failed}."),
     }
@@ -1232,7 +1238,7 @@ def pin_entry(site: dict, script: str, run: "ScriptRun",
 def pin_results(results: list[tuple[dict, str]],
                 kill_runs: dict[tuple[int, str], "ScriptRun"],
                 baseline: dict[str, "ScriptRun"], sites: list[dict],
-                ref: str, how: str = "--pin-killed") -> tuple[dict, list[str], int]:
+                how: str = "--pin-killed") -> tuple[dict, list[str], int]:
     """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
 
     A disposition covers EVERY inventory site under its anchor, and an anchor
@@ -1269,7 +1275,7 @@ def pin_results(results: list[tuple[dict, str]],
                 report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
         if whole:
             mut, script, run, _ = got[0]
-            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref,
+            entries[anchor] = pin_entry(mut, script, run, baseline[script],
                                         how)
             if len(got) > 1:
                 entries[anchor]["reason"] += (
@@ -3156,7 +3162,7 @@ def selftest_pin_drive(sites: int = 8, jobs: int = 4,
         out = schedule(pool, workers, cost, drive)
         entries, _, _ = pin_results(
             out, kill_runs, {s: ScriptRun(0, 0, 1.0) for s in drivers},
-            pool, "r")
+            pool)
         return ([v for _, v in out],
                 json.dumps(entries, sort_keys=True, indent=2))
 
@@ -3810,7 +3816,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.drain:
         head = _rev(ROOT, "HEAD") or ""
         entries, report, _ = pin_results(results, kill_runs, baseline, sites,
-                                         head, how="--drain")
+                                         how="--drain")
         print("\n".join(report))
         survivors = drain_survivors(results, entries)
         status = write_drain(Path(args.drain), entries, head, survivors)
@@ -3819,7 +3825,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.pin_killed:
         entries, report, pin_rc = pin_results(results, kill_runs, baseline,
-                                              sites, rbase)
+                                              sites)
         print("\n".join(report))
         budgets.setdefault("killed_by", {}).update(entries)
         fixed, _ = normalize(budgets, sites)
