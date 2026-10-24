@@ -9445,6 +9445,45 @@
     "branch": "handoff/r10-sav-actuation"
    },
    "brief": "R10-SAV-ACTUATION (owner #2492 carry 5, seam 2). Actuate the supply switch at step boundaries from a one-minute tick, so that the plan's step change reaches the pump at the boundary instead of at the next coordinator refresh. Routed from R10-SAV-COMFORT's body (Carry: #2492 (item ea7e7a49)). Size: M until the design note says otherwise. A design note comes first (designer.md), naming the owning seam (actuator writes come from the coordinator or pump_arbiter.py, per fixer.md step 17) and the failing test. After-edge: R10-SAV-COMFORT. issues: [2492]; fixes: [2492] only once the seam closes the carry."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "group": "R10-FLY-POOL-INSTRUMENT",
+   "after": [],
+   "files": [
+    "tools/audit/seat/pool.py",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-pool-instrument"
+   },
+   "brief": "GROUP R10-FLY-POOL-INSTRUMENT (new, size S, triage: dev/programme/triage/s6-batch4.md#P55 and #P60). Owns the cloud seat pool as tracked code. New tools/audit/seat/pool.py (+ a self-test, an INSTRUMENTS.md entry; cloud_dispatch.py gains only a call into it): `append` writes a POOL line on dispatch/pool-<session> and READS THE REF BACK, refusing on mismatch and surfacing git's stderr (V2: the push error was discarded, 2 lost runs); `append` first deletes any claim/<session>/<topic> whose handoff ref has not moved since the claim (V1: stale claim -> POOL EMPTY, 3 runs); `fire` refuses when the topic's pool line is absent at the ref and otherwise prints \"pool read back OK\" (V7: a critical-path fixer was about to fire with no line). The routine prompt is unchanged. Controls: stale claim cleared (null: a claim whose handoff moved after it stays); forced push failure exits nonzero with the git error; fire with the line absent fires nothing (null: present fires once); one mutant per arm. Out of scope: prune_refs rule for claim/* (R10-FLY-PRUNE-REFS). Files: tools/audit/seat/pool.py, tools/audit/seat/cloud_dispatch.py, tools/audit/seat/INSTRUMENTS.md. Measure first: cloud_dispatch's current pool-line handling at main, if any."
   }
  ]
 }
