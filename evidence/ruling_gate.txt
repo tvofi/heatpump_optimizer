@@ -1,0 +1,6 @@
+P42 DEFER
+P43 ACCEPT
+P44 DEFER
+P45 None
+cite P42: dev/programme/triage/s6-batch1.md#P42 is not an ACCEPT ruling (DEFER)
+cite P43: None

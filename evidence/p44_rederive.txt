@@ -1,0 +1,10 @@
+rule: backticked, first segment a top-level dir of main, no glob/placeholder -> 70 paths, 4 missing
+   ('R10-FAHRENHEIT', 0, 'dev/audit/rounds/round10/D7/arch3-s6/patches/P1_issue_writer_leaf.patch')
+   ('R10-BRIEFS-FOLD', 19, 'tools/audit/harnesses/k1725_blas_kernel_gap.py')
+   ('R10-CI-LAYOUT', 11, 'tests/composed_closures.json')
+   ('R10-CI-LAYOUT', 14, '.github/workflows/pr-contract-rerun.yml')
+rule: backticked, first segment a top-level dir of main, no glob/placeholder, has extension -> 66 paths, 4 missing
+   ('R10-FAHRENHEIT', 0, 'dev/audit/rounds/round10/D7/arch3-s6/patches/P1_issue_writer_leaf.patch')
+   ('R10-BRIEFS-FOLD', 19, 'tools/audit/harnesses/k1725_blas_kernel_gap.py')
+   ('R10-CI-LAYOUT', 11, 'tests/composed_closures.json')
+   ('R10-CI-LAYOUT', 14, '.github/workflows/pr-contract-rerun.yml')
