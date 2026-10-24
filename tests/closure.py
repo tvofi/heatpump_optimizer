@@ -714,6 +714,9 @@ INERT_EXCEPT = (
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/render_md.mjs",
+    # r10-codeql-dependabot: policy_lint.mjs imports it and tests/entities.py
+    # imports it directly (the dependabot.yml agreement check).
+    "tools/policy/dependabot_contract.mjs",
     # tests/entities.py opens these. Left on the tools/policy/ prefix they
     # are declared unread while being read: the recording files them under
     # inert_reads and also in the closure, and merge refuses that pair.
@@ -735,6 +738,16 @@ INERT_EXCEPT = (
     # script opens is a dependency, not inert, whatever prefix it lives under.
     # An edit to the verdict grammar now selects tests/entities.py.
     ".claude/workflows/web-fix-wave.js",
+    # r10-codeql-dependabot: tests/entities.py runs `node --check` over every
+    # file codeql.yml's paths-ignore matches (the Claude Code workflow scripts)
+    # to pin that only unparseable files are ignored -- read, so not inert.
+    ".claude/workflows/audit-find.js",
+    ".claude/workflows/audit-fix.js",
+    ".claude/workflows/audit-verify.js",
+    ".claude/workflows/audit-wave.js",
+    ".claude/workflows/web-decomp-stage.js",
+    ".claude/workflows/web-stamp.js",
+    ".claude/workflows/web-triage.js",
     # Round 9's batch re-runner for the judge (PLAN R3): tests/entities.py
     # imports it and runs fixture harnesses through it, so a change to it
     # selects that script -- the web-fix-wave.js route, one line.
