@@ -1416,10 +1416,8 @@ def learner_progress_view(
     rates = snapshot_rates(snapshots, dt_util.now(), counts)
     outdoor = state.outdoor_temperature
 
-    def colder(zone: float | None) -> str | None:
+    def colder(zone: float) -> str | None:
         # The house and lower folds' own ΔT gate, on the reading in force now.
-        if zone is None or outdoor is None:
-            return None
         return "colder" if zone - outdoor < HOUSE_LOSS_MIN_DELTA else None
 
     house_wait = colder(_learned_zone_temperature(state, params))

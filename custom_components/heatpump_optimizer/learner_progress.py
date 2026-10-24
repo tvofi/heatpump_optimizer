@@ -26,7 +26,6 @@ import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from itertools import count
 from typing import Any
 
 from .drift import stored_instant, utc_elapsed_seconds
@@ -77,8 +76,6 @@ def snapshot_rates(
     """
     rates: dict[str, float | None] = dict.fromkeys(counts)
     for snap in reversed(snapshots):
-        if not isinstance(snap, Mapping):
-            continue
         taken = stored_instant(snap.get("taken_at"))
         if taken is None:
             continue
@@ -105,14 +102,16 @@ def _snapshot_count(snap: Mapping[str, Any], name: str) -> float | None:
     return float(value) if math.isfinite(value) else None
 
 
-def gate_count(gate: Callable[[int], bool], samples: int) -> int:
-    """The first count at or above ``samples`` the gate admits.
+def gate_count(gate: Callable[[int], bool], samples: int, horizon: int = 10_000) -> int | None:
+    """The first count at or above ``samples`` the gate admits, None past ``horizon``.
 
     Searched on the predicate itself, so no second spelling of the
-    learner's threshold exists; every gate here is monotone in the count
-    and opens within a few hundred samples.
+    learner's threshold exists. Every gate here is monotone in the count and
+    opens within a few hundred samples; the horizon, months of samples at any
+    rate a learner folds, turns a gate that never opens into "no gate" rather
+    than an endless search. A negative count is the gate's own to clamp.
     """
-    return next(n for n in count(max(0, samples)) if gate(n))
+    return next((n for n in range(samples, samples + horizon) if gate(n)), None)
 
 
 def learner_progress(learner: LearnerInputs) -> LearnerProgress:

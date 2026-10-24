@@ -20812,8 +20812,8 @@ from homeassistant.util import dt as _le_dt  # noqa: E402
 from heatpump_optimizer.coordinator import (  # noqa: E402
     HOUSE_LOSS_MIN_DELTA as _LE_MIN_DT,
     house_loss_confidence as _le_confidence,
+    _solar_aperture_walked as _le_solar_walked,
     internal_gains_gate_open as _le_gains_gate,
-    learner_progress_view as _le_view,
 )
 from heatpump_optimizer.const import (  # noqa: E402
     SOLAR_APERTURE_ALPHA as _LE_SOLAR_ALPHA,
@@ -20969,15 +20969,76 @@ R.check(
 # age, and a count below the snapshot's (a restore) gives no rate -- neither
 # may produce a day count. The null arm is the same snapshot a day back.
 _le_rate_rows = []
-for _le_days, _le_then in ((-1.0, 10), (2.0, 40), (0.5, 10), (2.0, 10)):
+for _le_days, _le_then in ((-1.0, 10), (2.0, 40), (0.5, 10), (1.5, 15), (1.0, 20)):
     _le_c = _le_coord(house=30)
     _le_snap(_le_c, _le_days, house=_le_then)
     _le_rate_rows.append(_le_progress(_le_c)["house"]["eta_days"])
 R.check(
     "R10-LEARNER-ETA: no rate from a future stamp, a count rolled back or a window under a day",
     _le_rate_rows[:3] == [None, None, None]
-    and _le_rate_rows[3] == round((_le_house_need - 30) / 10.0, 1),
+    # the null arms, ten samples a day: a day and a half, and exactly one day
+    and _le_rate_rows[3:] == [round((_le_house_need - 30) / 10.0, 1)] * 2,
     f"{_le_rate_rows}",
+)
+
+# A snapshot entry the loader keeps (``SnapshotRing.from_dict`` drops only a
+# non-dict one) but whose stamp does not parse, whose learners are malformed,
+# or which predates a count, gives no rate and no raise.
+_le_taken = (_LE_NOW - timedelta(days=2.0)).isoformat()
+_le_bad_rows = []
+for _le_bad in (
+    {"taken_at": "not a time", "learners": {"thermal_learning": {"house_heat_loss_samples": 10}}},
+    {"taken_at": _le_taken, "learners": "x"},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {}}},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": "10"}}},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": True}}},
+):
+    _le_c = _le_coord(house=30)
+    _le_c._snapshot_ring.snapshots.append(_le_bad)
+    try:
+        _le_bad_rows.append(_le_progress(_le_c)["house"]["eta_days"])
+    except Exception as _le_err:  # noqa: BLE001
+        _le_bad_rows.append(f"{type(_le_err).__name__}: {_le_err}")
+_le_c = _le_coord(house=30)
+_le_c._snapshot_ring.snapshots.append(
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": 10}}})
+_le_good = _le_progress(_le_c)["house"]["eta_days"]
+R.check(
+    "R10-LEARNER-ETA: a malformed or count-less snapshot gives no rate and never raises",
+    _le_bad_rows == [None] * 5 and _le_good == round((_le_house_need - 30) / 10.0, 1),
+    f"bad {_le_bad_rows} good {_le_good}",
+)
+
+# The gates' edges are the learners' own: a fold is admitted at exactly
+# HOUSE_LOSS_MIN_DELTA and at exactly SOLAR_APERTURE_MIN_IRRADIANCE, so neither
+# is a wait; a learner exactly on its gate count is settling.
+_le_c = _le_coord(house=30, solar=4, solar_aperture_learning_enabled=True)
+_le_c._current_state = _le_replace(
+    _le_c._current_state, outdoor_temperature=20.0 - _LE_MIN_DT, solar_radiation=_LE_MIN_IRR)
+_le_edge = _le_progress(_le_c)
+_le_c = _le_coord(house=_le_house_need)
+_le_snap(_le_c, 2.0, house=_le_house_need - 20)
+_le_on_gate = _le_progress(_le_c)["house"]
+R.check(
+    "R10-LEARNER-ETA: the ΔT and irradiance edges admit a sample, and the gate count settles",
+    _le_edge["house"]["phase"] == "counting" and _le_edge["house"]["waiting_for"] is None
+    and _le_edge["solar"]["phase"] == "counting" and _le_edge["solar"]["waiting_for"] is None
+    and _le_on_gate["phase"] == "settling" and _le_on_gate["eta_days"] is None
+    and _le_solar_walked(_LE_SOLAR_MIN - 5) == 0.0,
+    f"edge {_le_edge} on gate {_le_on_gate}",
+)
+
+# The lower learner is measurable only with the two-zone model AND a
+# lower-floor sensor (the learner's own two preconditions).
+_le_lower = []
+for _le_two, _le_sensor in ((True, True), (True, False), (False, True)):
+    _le_c = _le_coord(lower=20, **({"lower_floor_temp_entity": "sensor.lower"} if _le_sensor else {}))
+    _le_c._thermal_params.two_zone_enabled = _le_two
+    _le_lower.append(_le_progress(_le_c)["lower"]["phase"])
+R.check(
+    "R10-LEARNER-ETA: the lower learner is off unless both the two-zone model and its sensor exist",
+    _le_lower[0] != "off" and _le_lower[1:] == ["off", "off"],
+    f"{_le_lower}",
 )
 
 # --- #29 the narrative -----------------------------------------------------------
