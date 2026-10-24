@@ -1,0 +1,20 @@
+dup ids main/head False False
+order prefix preserved True
+main 181 head 187 removed []
+new ['R10-FLY-POOL-INSTRUMENT', 'R10-FLY-RECORD-BEAT', 'R10-GATE-DEFER', 'R10-RCA-CODESCAN-WAIT', 'R10-SAV-ACTUATION', 'R10-TRAIN-UPGRADE']
+changed 12
+   R10-ARCH-DOCS ['after']
+   R10-POLICY-FIXER-MD ['carry']
+   R10-POLICY-GATE-SCOPING ['resume']
+   R10-CI-LAYOUT-P2 ['carry', 'resume']
+   R10-FLOW-DESIGN-STAGES ['carry']
+   R10-FLOW-JIDOKA ['carry']
+   R10-FLOW-AUTOTRAIN ['after', 'carry']
+   R10-FLY-OPENPR-ATOMIC ['carry']
+   R10-FLY-CARRY-DISPOSITION ['carry']
+   R10-ORCH-LEDGER ['carry']
+   R10-ORCH-BEATD ['carry']
+   R10-FLY-CLOUD-SETUP-TOOLCHAIN ['resume']
+main stages {'done': 102, 'in-progress': 21, 'not-started': 45, 'queued': 6, 'absorbed': 1, 'carries-open': 6}
+head stages {'done': 105, 'in-progress': 21, 'not-started': 49, 'queued': 6, 'absorbed': 1, 'carries-open': 5}
+carry lens {'R10-RCA-CODESCAN-WAIT': 1, 'R10-ORCH-LEDGER': 12, 'R10-FLOW-AUTOTRAIN': 9, 'R10-TRAIN-UPGRADE': 0}

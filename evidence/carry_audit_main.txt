@@ -1,0 +1,2 @@
+BAD-DEST body item bf96a5a7: R10-RCA-CODESCAN-WAIT: R10-RCA-CODESCAN-WAIT is not a group of the roster; R10-TRAIN-UPGRADE: R10-TRAIN-UPGRADE is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)

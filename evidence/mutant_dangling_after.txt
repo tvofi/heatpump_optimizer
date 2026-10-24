@@ -1,0 +1,2 @@
+  ERROR   [R10-FLOW-AUTOTRAIN] after: after: 'R10-NOPE-MUTANT' names no group in this file
+TOTAL: 1 error(s) across 1 file(s)

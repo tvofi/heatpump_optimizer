@@ -1,0 +1,27 @@
+merge-tree origin/main(0810d5b8f) b475cb10:
+5ddbedf7aea50e819aa0edaca0cc229d3d7ddbd1
+exit=0
+
+diff stat merge-base...head:
+ dev/programme/delivery/2764.md             |   1 +
+ dev/programme/rosters/wave-r10-groups.json | 300 +++++++++++++++++++++++++++--
+ 2 files changed, 284 insertions(+), 17 deletions(-)
+
+roster at head == handoff/audit-r10-roster 1558cf55f:
+identical
+
+handoff base 50c690758; commits 50c690758..1558cf55f touching files:
+     35 dev/programme/rosters/wave-r10-groups.json
+main commits touching roster since handoff base:
+0
+
+VERSION/manifest/RELEASE_NOTES touched:
+0
+
+commit messages:
+b475cb1061a7bc3671b876daba665b3b95afff41
+record: the delivery row for #2764
+
+94a1b7de30d400df010de849dc1cd5befdd7ee84
+roster: land the round-10 roster ops from handoff/audit-r10-roster 1558cf55f
+
