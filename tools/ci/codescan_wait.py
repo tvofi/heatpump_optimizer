@@ -10,7 +10,9 @@ alert_list.py (`match`, `reds`), never re-implemented:
   1. S, the run whose codeql unit this verdict covers: this run when its title's
      workset owns codeql, else the newest other run at this head that names this
      PR and the PR's live base, owns codeql, and whose codeql jobs have all
-     completed (gate.py's source rule). None FAILs.
+     completed (gate.py's source rule). None yet is polled for as step 4
+     polls, under the same bound: an edit run starts while its code run's
+     codeql unit is still analysing (#2675).
   2. The legs S uploaded: each `codeql / Analyze (<leg>)` job whose step "Perform
      CodeQL Analysis" concluded success (a scope stand-down skips it).
   3. M, S's `sha=` token; R, refs/pull/<N>/merge when S's event is pull_request,
@@ -19,11 +21,14 @@ alert_list.py (`match`, `reds`), never re-implemented:
      until every uploaded leg has its analysis at M; WAIT_MAX_S bounds the whole
      wait, and an absent analysis at the bound FAILs.
   5. `alert_list.reds`: the open alerts of those analyses.
-Exit 0 with the reds on stdout; 1 with `FAIL closed: <why>` (a rate limit included).
+Exit 0 with the reds on stdout; 1 with `FAIL closed: <why>` (a rate limit included)
+on stderr, so the job log shows it while stdout goes to the alert file.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
 import sys
 import time
@@ -62,23 +67,26 @@ def owns_codeql(run, pr):
     return t is not None and "codeql" in workset(t[0], t[1]) and t[1] == pr
 
 
-def source(get, repo, run_id, pr, base):
-    """(S's run object, S's jobs): step 1."""
+def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monotonic):
+    """(S's run object, S's jobs): step 1, polled until `stop`."""
     me = _get(get, f"repos/{repo}/actions/runs/{run_id}", "this run")
     if owns_codeql(me, pr):
         return me, _jobs(get, repo, me["id"])
     if pr:
         base = _get(get, f"repos/{repo}/pulls/{pr}", f"pull request {pr}")["base"]["ref"]
-    runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": me["head_sha"]}, get=get)
-    for r in sorted(runs, key=lambda r: r["id"], reverse=True):
-        t = parse_title(r.get("display_title") or "")
-        if r["id"] == me["id"] or r["status"] == "action_required" or t is None or t[2] != base or not owns_codeql(r, pr):
-            continue
-        jobs = _jobs(get, repo, r["id"])
-        done = {j["name"]: j["status"] for j in jobs}
-        if all(done.get(n) == "completed" for n in CODEQL):
-            return r, jobs
-    raise Fail(f"no run at this head owns a finished codeql unit for base {base!r}")
+    while True:
+        runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": me["head_sha"]}, get=get)
+        for r in sorted(runs, key=lambda r: r["id"], reverse=True):
+            t = parse_title(r.get("display_title") or "")
+            if r["id"] == me["id"] or r["status"] == "action_required" or t is None or t[2] != base or not owns_codeql(r, pr):
+                continue
+            jobs = _jobs(get, repo, r["id"])
+            done = {j["name"]: j["status"] for j in jobs}
+            if all(done.get(n) == "completed" for n in CODEQL):
+                return r, jobs
+        if now() + POLL_S > stop:
+            raise Fail(f"no run at this head owns a finished codeql unit for base {base!r} after {WAIT_MAX_S} s")
+        sleep(POLL_S)
 
 
 def legs_uploaded(jobs):
@@ -91,9 +99,8 @@ def legs_uploaded(jobs):
     return sorted(out)
 
 
-def wait(get, ref, sha, legs, sleep=time.sleep, now=time.monotonic):
+def wait(get, ref, sha, legs, stop, sleep=time.sleep, now=time.monotonic):
     """Step 4: poll until every uploaded leg has its analysis at (ref, sha)."""
-    stop = now() + WAIT_MAX_S
     while True:
         missing = [x for x in legs if x not in alert_list.match(get, ref, sha, legs)]
         if not missing:
@@ -103,15 +110,17 @@ def wait(get, ref, sha, legs, sleep=time.sleep, now=time.monotonic):
         sleep(POLL_S)
 
 
-def run(get, repo, run_id, pr, base, base_repeats, **kw):
-    s, jobs = source(get, repo, run_id, pr, base)
+def run(get, repo, run_id, pr, base, base_repeats, sleep=time.sleep, now=time.monotonic):
+    kw = dict(sleep=sleep, now=now)
+    stop = now() + WAIT_MAX_S                      # one bound over steps 1 and 4
+    s, jobs = source(get, repo, run_id, pr, base, stop, **kw)
     legs = legs_uploaded(jobs)
     sha = title_sha(s.get("display_title") or "")
     if not sha:
         raise Fail(f"run {s['id']}: its title carries no sha=")
     ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
     rel = alert_list.bind(get, repo)
-    wait(rel, ref, sha, legs, **kw)
+    wait(rel, ref, sha, legs, stop, **kw)
     ok, got = alert_list.reds(rel, ref, sha, legs, base, base_repeats)
     if not ok:
         raise Fail(got.removeprefix("FAIL closed: "))
@@ -127,10 +136,10 @@ def main(argv, get=ghapi.get, env=os.environ, **kw):
     try:
         got = run(get, env["GITHUB_REPOSITORY"], env["GITHUB_RUN_ID"], a.pr, a.base, a.base_repeats, **kw)
     except Fail as e:
-        print(f"FAIL closed: {e}")
+        print(f"FAIL closed: {e}", file=sys.stderr)
         return 1
     except (ghapi.RateLimited, ghapi.ApiError, KeyError) as e:
-        print(f"FAIL closed: {type(e).__name__}: {e}")
+        print(f"FAIL closed: {type(e).__name__}: {e}", file=sys.stderr)
         return 1
     print("\n".join(got))
     return 0
@@ -221,6 +230,51 @@ def self_test() -> int:
     env = {"GITHUB_REPOSITORY": repo, "GITHUB_RUN_ID": "100"}
     check("12 main: a rate limit FAILs closed, rc 1", main(["--pr", pr, "--base", "main"], get=limited, env=env) == 1)
     check("13 null: main on the plant exits 0", main(["--pr", pr, "--base", "main"], get=world(A.THREE, plant, live), env=env) == 0)
+    reads = []
+
+    def finishing(path, params=None, headers=None):
+        if path.endswith("/runs/100/jobs"):
+            reads.append(path)
+        done = len(reads) > 2                      # the code run's codeql unit completes on the third read
+        return world(A.THREE, plant, live, runs={100: dict(code, status="completed" if done else "in_progress")},
+                     run_jobs={100: jobs() if done else [dict(j, status="in_progress") for j in jobs()]})(path, params, headers)
+
+    naps = []
+    try:
+        got = run(finishing, repo, 200, pr, "main", False, sleep=naps.append, now=iter(range(0, 10_000, 1)).__next__)
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("14 an edit run whose code run's codeql unit is still running waits at the 60 s poll, then lists (#2675)",
+          got == one and naps == [POLL_S, POLL_S], f" (got {got!r}, slept {naps})")
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = main(["--pr", pr, "--base", "main"], get=limited, env=env)
+    check("15 the FAIL line is on stderr, where the job log shows it, and stdout (the alert file) is empty",
+          rc == 1 and err.getvalue().startswith("FAIL closed: ") and out.getvalue() == "", f" (stdout {out.getvalue()!r})")
+    out, err = io.StringIO(), io.StringIO()
+    still = world(A.THREE, plant, live, runs={100: dict(code, status="in_progress")},
+                  run_jobs={100: [dict(j, status="in_progress") for j in jobs()]})
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = main(["--pr", pr, "--base", "main"], get=still, env=dict(env, GITHUB_RUN_ID="200"),
+                  sleep=lambda s: None, now=iter(range(0, 10_000, 100)).__next__)
+    check("16 a refusal of the wait itself is on stderr too, stdout empty",
+          rc == 1 and err.getvalue().startswith("FAIL closed: no run") and out.getvalue() == "", f" (stdout {out.getvalue()!r})")
+    clock = [0]
+    reads.clear()
+
+    def late_then_absent(path, params=None, headers=None):    # the unit finishes at 540 s; no analysis ever lands
+        if path.endswith("/runs/100/jobs"):
+            reads.append(path)
+        done = clock[0] >= 540
+        return world(A.THREE[1:], A.EMPTY, [], runs={100: dict(code, status="completed" if done else "in_progress")},
+                     run_jobs={100: jobs() if done else [dict(j, status="in_progress") for j in jobs()]})(path, params, headers)
+    try:
+        got = run(late_then_absent, repo, 200, pr, "main", False,
+                  sleep=lambda s: clock.__setitem__(0, clock[0] + s), now=lambda: clock[0])
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("17 WAIT_MAX_S bounds steps 1 and 4 together, not each", str(got).startswith("FAIL no analysis")
+          and clock[0] <= WAIT_MAX_S, f" (waited {clock[0]} s: {got!r})")
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
