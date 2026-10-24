@@ -140,18 +140,18 @@ const QUOTE = '["\'`]'
 const GAP = String.raw`(?:\s|\\\n|,)+`
 const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\w-])`
 const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=[^\s,'"${'`'}\]]*)?${QUOTE}?` +
-  `(?:${GAP}(?!${word('(?:pr|merge)')})${QUOTE}?[^\\s,'"${'`'}\\]-][^\\s,'"${'`'}\\]]*${QUOTE}?)?`
+  `(?:${GAP}${QUOTE}?[^\\s,'"${'`'}\\]]+${QUOTE}?)?`
 const OPTIONS = `(?:${GAP}${OPTION})*`
-const PROGRAM = String.raw`(?:(?<![\w$./-])${QUOTE}?(?:[\w./-]*\/)?gh${QUOTE}?(?![\w-])|${QUOTE}?\$\{?[A-Za-z_]\w*\}?${QUOTE}?)`
+const PROGRAM = String.raw`(?:(?<![\w$./-])(?:[\w./-]*\/)?gh|\$\{?[A-Za-z_]\w*\}?)${QUOTE}?`
 const MERGE_CALL = new RegExp(`${PROGRAM}${OPTIONS}${GAP}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +
-  `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}(?![\\w-])` +
+  `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}` +
   String.raw`|merge_pull_request|mergePullRequest|\/pulls\/\S+\/merge\b`)
 // What a merge call may not carry: `gh pr merge`'s subject and body flags, long
 // (`--subject x`, `--subject=x`) or short, alone or in a cluster after the
 // boolean method flags, value attached or not (`-t x`, `-tx`, `-mt x`, `-dmb x`,
 // `-mF f`; gh 2.98 parses each); and the REST, MCP and GraphQL merges'
 // commit_title/commit_message and commitHeadline/commitBody.
-const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\s"'${'`'}[,(])(?:--(?:subject|title|body|body-file)(?![\w-])|-[mrsd]*[tbF])` +
+const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\s"'[,])(?:--(?:subject|title|body|body-file)(?=[\s="',\]]|$)|-[mrsd]*[tbF])` +
   String.raw`|\bcommit_(?:title|message)\b|\bcommit(?:Headline|Body)\b`)
 function nonTemplateMerges(log) {
   return log.split('\n').filter(Boolean).map((l) => l.split('\t')).filter(([, parents, subject], i) =>
@@ -627,6 +627,8 @@ async function selfTest() {
     ['a single-quoted argv split over lines', `run(['gh', 'pr',\n     'merge', n, '--subject', s])\n`],
     ['whitespace before an argv comma', `run(["gh", "pr" , "merge", n, "--subject", s])\n`],
     ['an argv option and value between "pr" and "merge"', `run(["gh", "pr", "--repo", repo, "merge", n, "--subject", s])\n`],
+    ['an argv option with a quoted value between "pr" and "merge"', `run(["gh", "pr", "--repo", "o/r", "merge", n, "--subject", s])\n`],
+    ['a shell option with a quoted value between "pr" and "merge"', `gh pr -R "$REPO" merge 9 --merge --subject ${S}\n`],
     ['an argv whose program is a variable', `run([GH, "pr", "merge", n, "-t", s])\n`],
     ['a tuple argv with no spaces', `run(("gh","pr","merge",n,"--subject",s))\n`],
     ['os.spawnlp-style separate arguments', `os.spawnlp(os.P_WAIT, "gh", "gh", "pr", "merge", n, "--subject", s)\n`],
@@ -654,6 +656,7 @@ async function selfTest() {
     ['a backslash before CRLF is no continuation in bash: the next line is another command', `gh pr merge 9 --merge \\\r\n  --subject ${S}\n`],
     ['a comment line after a continuation ends the command', `gh pr merge 9 --merge \\\n  # note\n  --subject x\n`],
     ['-A takes a value, so "-Amt" is no -t', `gh pr merge 9 --merge -Amt@example.com\n`],
+    ['a program whose name only ends in "gh" is not gh', `hgh pr merge 9 --subject ${S}\n`],
     ['the boolean flags alone set no subject', `gh pr merge 9 -m -d --match-head-commit h --auto\n`],
   ]
   for (const [what, src] of NOT_WRITERS) probes.push([`null control: ${what}`, !wr(src).length])
