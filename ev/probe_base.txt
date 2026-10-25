@@ -1,0 +1,76 @@
+RESULT unit:peak free=False below completed=False hours_since=242.75
+RESULT unit:peak free=False reach completed=True hours_since=0.75
+RESULT unit:peak free=False reach_short_hold completed=True hours_since=0.0
+RESULT unit:peak free=True below completed=False hours_since=242.75
+RESULT unit:peak free=True reach completed=True hours_since=0.25
+RESULT unit:peak free=True reach_short_hold completed=False hours_since=240.0
+RESULT unit:sensor_gap completed=False
+RESULT unit:notice overdue_7d overdue=None
+RESULT unit:notice healthy_7d overdue=None
+RESULT unit:notice user14_age10 overdue=None
+RESULT unit:notice user14_age15 overdue=None
+RESULT unit:notice edge_7d_exact overdue=None
+RESULT unit:disabled issues=[] hours_since=1584.0 attempt=None
+RESULT unit:retry probe_7d due_in=[(0, 168.0), (6, 162.0), (12, 156.0), (24, 144.0), (48, 120.0)]
+RESULT unit:retry probe_0.5d due_in=[(0, 12.0), (6, 6.0), (12, 0.0), (24, -12.0), (48, -36.0)]
+RESULT unit:retry noprobe_7d due_in=[(0, 168.0), (6, 162.0), (12, 156.0), (24, 144.0), (48, 120.0)]
+RESULT unit:cap recent_completion due_in=167.0
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+RESULT loop:overdue_short585 commanded_steps 1
+RESULT loop:overdue_short585 first_commanded_h 0.5
+RESULT loop:overdue_short585 attempts [0.75]
+RESULT loop:overdue_short585 completed False
+RESULT loop:overdue_short585 max_tank 58.5
+RESULT loop:overdue_short585 max_plan 60.0
+RESULT loop:overdue_short585 dhw_max_temp 50.0
+RESULT loop:overdue_short585 plan_exceeds_ceiling True
+RESULT loop:overdue_short585 notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_unreachable']
+RESULT loop:overdue_short585 notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '50', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '55.4', 'target': '60'}}
+RESULT loop:overdue_short585 since_hash -1856042596580284397
+RESULT loop:null_notdue commanded_steps 0
+RESULT loop:null_notdue first_commanded_h None
+RESULT loop:null_notdue attempts []
+RESULT loop:null_notdue completed False
+RESULT loop:null_notdue max_tank 50.0
+RESULT loop:null_notdue max_plan 50.0
+RESULT loop:null_notdue dhw_max_temp 50.0
+RESULT loop:null_notdue plan_exceeds_ceiling False
+RESULT loop:null_notdue notices_ever ['dhw_legionella_above_setpoint']
+RESULT loop:null_notdue notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '50', 'interval_days': '7'}}
+RESULT loop:null_notdue since_hash -6107369058004769286
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+RESULT loop:user14_overdue commanded_steps 1
+RESULT loop:user14_overdue first_commanded_h 0.5
+RESULT loop:user14_overdue attempts [0.75]
+RESULT loop:user14_overdue completed False
+RESULT loop:user14_overdue max_tank 58.5
+RESULT loop:user14_overdue max_plan 60.0
+RESULT loop:user14_overdue dhw_max_temp 50.0
+RESULT loop:user14_overdue plan_exceeds_ceiling True
+RESULT loop:user14_overdue notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_unreachable']
+RESULT loop:user14_overdue notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '50', 'interval_days': '14'}, 'dhw_legionella_unreachable': {'reached': '55.4', 'target': '60'}}
+RESULT loop:user14_overdue since_hash 198636931460806440
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+RESULT loop:noprobe_overdue commanded_steps 1
+RESULT loop:noprobe_overdue first_commanded_h 0.5
+RESULT loop:noprobe_overdue attempts [0.75]
+RESULT loop:noprobe_overdue completed False
+RESULT loop:noprobe_overdue max_tank 58.5
+RESULT loop:noprobe_overdue max_plan 60.0
+RESULT loop:noprobe_overdue dhw_max_temp 50.0
+RESULT loop:noprobe_overdue plan_exceeds_ceiling True
+RESULT loop:noprobe_overdue notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_unverified']
+RESULT loop:noprobe_overdue notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '50', 'interval_days': '7'}, 'dhw_legionella_unverified': {'target': '60'}}
+RESULT loop:noprobe_overdue since_hash -7288471869524637249
+RESULT loop:disabled commanded_steps 0
+RESULT loop:disabled first_commanded_h None
+RESULT loop:disabled attempts []
+RESULT loop:disabled completed False
+RESULT loop:disabled max_tank 50.0
+RESULT loop:disabled max_plan 50.0
+RESULT loop:disabled dhw_max_temp 50.0
+RESULT loop:disabled plan_exceeds_ceiling False
+RESULT loop:disabled notices_ever []
+RESULT loop:disabled notices_standing {}
+RESULT loop:disabled since_hash 5124979071255641149
+exit 0
