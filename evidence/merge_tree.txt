@@ -1,6 +1,7 @@
-$ git merge-tree --write-tree origin/main ba02b95fca47744634a5e404ad24dfcc77fca314
+origin/main 5c0ee109305fc4f377c9326c712156b9ceb0e638
+LEDGER-MERGE: resolved tests/structure_budgets.json
 LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (861 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (863 entries)
   re-run the gate that owns this file before pushing
-192a33d68eb54cf4ab403d6e2229a8b514f15d3f
+693982d28e5caeadb2c289d7f1b33c00cf5e6d0e
 rc=0

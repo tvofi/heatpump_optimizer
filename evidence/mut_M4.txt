@@ -1,6 +1,6 @@
-applied M4_partial_load_counts
+applied M4
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index 63a43a1e7..454eb0cf7 100644
+index 0370008bc..88036fa64 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -9111,7 +9111,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
@@ -12,8 +12,7 @@ index 63a43a1e7..454eb0cf7 100644
      def _capacity_caps(
          self, outdoor_temps: np.ndarray, humidity: Any = None, model: Any = None
      ) -> np.ndarray | None:
-rc=1
 ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  ok   a pump command that FAILED is not remembered as done
   FAIL a measured partial-load heat seeds or raises its bucket, never counts and never lowers it (null control: the same interval unmetered is censored)  [[6.5, 1] [6.5, 8] [5.0, 8] None]
 1 of 4374 FEATURE CHECKS FAILED
+rc=1
