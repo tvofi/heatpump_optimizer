@@ -1,0 +1,64 @@
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=live rc=1 fails=5 verdict=killed
+    FAIL live 
+    FAIL rows carry the live class 
+    FAIL the summary strip counts live 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+RESULT mutant=blocked rc=1 fails=5 verdict=killed
+    FAIL blocked: an after target not done 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the blocked class 
+    FAIL the summary strip counts blocked 
+RESULT mutant=partial rc=1 fails=5 verdict=killed
+    FAIL partial: a merged R9-PART: title on an open group 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the partial class 
+    FAIL the summary strip counts partial 
+RESULT mutant=blocked-by-less-done rc=1 fails=6 verdict=killed
+    FAIL ready: its only after target is done 
+    FAIL blocked-by is the roster's after less the done groups 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the blocked class 
+    FAIL the summary strip counts blocked 
+RESULT mutant=pr-by-merge-commit rc=1 fails=1 verdict=killed
+    FAIL done: the PR is found by merge commit 
+RESULT mutant=pr-by-branch rc=1 fails=1 verdict=killed
+    FAIL done: the PR is found by branch when no merge commit matches 
+RESULT mutant=pr-sha8-fallback rc=1 fails=1 verdict=killed
+    FAIL done: no PR found falls back to the commit's sha8 
+RESULT mutant=branch-tail-fallback rc=1 fails=1 verdict=killed
+    FAIL the open PR maps by the branch-tail fallback 
+RESULT mutant=title-fallback rc=1 fails=1 verdict=killed
+    FAIL an open PR whose branch names no group maps by its title 
+RESULT mutant=closed-strike rc=1 fails=1 verdict=killed
+    FAIL a closed issue's chip is struck 
+RESULT mutant=tracking-excluded rc=1 fails=1 verdict=killed
+    FAIL the open-issue count leaves out the tracking issue 
+RESULT mutant=page-refuses-stale rc=1 fails=1 verdict=killed
+    FAIL a stale plan is refused, nothing written 
+RESULT mutant=freshness-rule rc=1 fails=6 verdict=killed
+    FAIL a stale plan is refused, nothing written 
+    FAIL and replan --check refuses the same plan 
+    FAIL a roster commit after the replan makes the plan stale: 
+    FAIL --check exits 1 on a stale plan: rc=0 
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+    FAIL self-test fails when freshness is deleted: anchor 'if have != want:' occurs 0 times in 'def stale_reason(plan: dict, repo: str, ref: str | None = None,'
+RESULT mutant=stamp-on-axis rc=1 fails=1 verdict=killed
+    FAIL a planned stamp is drawn 
+RESULT mutant=B-model-record-refusal rc=1 fails=1 verdict=killed
+    FAIL a fresh plan recording no duration model is refused, nothing written 
+RESULT mutant=C-check_plan-refusal rc=1 fails=2 verdict=killed
+    FAIL a fresh plan that check_plan refuses is refused, nothing written 
+    FAIL a stale plan is refused, nothing written 
+RESULT mutant=D-caption-drawn-count rc=1 fails=2 verdict=killed
+    FAIL the caption counts the links drawn (none drawn, one left) 
+    FAIL the caption counts the links drawn (one drawn, none left) 
+RESULT mutant=E-explicit-ref-wins rc=1 fails=3 verdict=killed
+    FAIL an explicit ref is read instead of generated.roster_ref: plan.json is stale: built from roster blob dccca9ab346d, but main:dev/programme/rosters/wave-r9-groups.json is now 50dff6acba6a; re-run tools/plan/replan.py --out <plan.json>
+    FAIL --check --roster-ref passes the plan at the ref it names: rc=1
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT survived=0

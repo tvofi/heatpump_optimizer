@@ -1,0 +1,7 @@
+541be6106c06457cfc4df04d1f65f26898af7208 tvofi record: the delivery row for #2833
+4a2d5c98546759382af85a76affeb9e2826c6e7c tvofi Merge remote-tracking branch 'origin/main' into fix/r10-plan-issues-chart-pr
+18cd6fdc2980a69de94ad9e26756900d2457dbdf tvofi harnesses: one FAIL-line grammar, shared by the plan-page and issues-chart mutant drivers
+97caf81235b9f93b6f66bec01e3bbc7ac1e95b73 tvofi issues chart: own classes for the closure line, so the stamp check stays unblinded
+a5237954836342c104798462c480d90300040723 tvofi classify the issues-chart mutant harness; document the section
+18c47d09b840ec90b232ffe13baed997d043522e tvofi plan_page self-test: tolerate the no-gh failure path
+60fc65e83764d36de9ed36dfc627015fded493bd tvofi plan_page: projected open issues chart as the first section
