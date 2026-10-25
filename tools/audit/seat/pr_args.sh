@@ -68,7 +68,7 @@ pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the 
   else o="the lock holder of run ${o:-unknown}, which has ended,"; fi
   echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
 }
-pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run and its push end, or exit 75 BUSY
+pr_branch_lock() { # <lock-file> <branch> <worktree> [detach]: hold the branch's lock until the run and its push end, or exit 75 BUSY
   # One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch the other
   # is pushing (R10-OPENPR-ROW-PUSH). $WT and $WT.log of update_pr.sh are fixed per branch, and the
   # line there that removes $WT force-removed a concurrent run's live worktree under its prepr
@@ -82,7 +82,9 @@ pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock unt
   # no `ps` and no process-group walk (R10-UPDATE-PR-SIGNALS: #2469's round-4 drain counted the
   # zombies a late-reaping PID 1 leaves, and failed 7 of 7). It ignores TERM, INT and HUP, so a
   # signal to the run's whole process group does not end it beside the push it guards; a stopped
-  # run's own reap ends that push. Its third field reads `drain` once the run has ended.
+  # run's own reap ends that push. Its third field reads `drain` once the run has ended. With
+  # `detach` it then leaves <worktree> detached, still holding the lock: never under a push and never
+  # under the next run, and a SIGKILLed run's too, whose own trap never runs (#2513, #2544, #2547).
   local k=0
   PR_PUSH_LOCK=$1.push
   python3 -I -c 'import fcntl, os, signal, sys, time
@@ -98,7 +100,8 @@ f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
 while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch
 f.truncate(0); f.write("%d %d drain\n" % (p, os.getpid())); f.flush()
 fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
-sys.exit(0)' "$1" </dev/null >/dev/null 2>&1 & LKP=$!
+if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): import subprocess; subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach
+sys.exit(0)' "$1" ${4:+"$4" "$3"} </dev/null >/dev/null 2>&1 & LKP=$!
   PR_REAP_SPARE=$LKP
   PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
   while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
@@ -108,12 +111,14 @@ pr_push_hold() { # inside `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`: lock 
   # The redirection is this shell's, opened before the fork, so a SIGKILL at any point leaves the
   # lock either with the push or with nobody; the shell's copy closes when the group ends. It waits
   # for this run's earlier push (open_pr.sh's first), which only a detached child of it still holds.
-  local rc=0
+  # git's auto-maintenance runs in the foreground from here on: a `git fetch` in the push otherwise
+  # daemonizes `git gc --auto`, which keeps fd 9 (daemonize closes 0-2 only), outlives the push as a
+  # child of PID 1 that no reap reaches, and holds the lock in `drain` for the whole gc (#2825 round
+  # 1). In the foreground it is part of the push: reaped with it, and named by its BUSY line.
+  local rc=0 n=${GIT_CONFIG_COUNT:-0}
+  [ -n "${PR_FG_GC:-}" ] || export "GIT_CONFIG_KEY_$n=gc.autoDetach" "GIT_CONFIG_VALUE_$n=false" "GIT_CONFIG_KEY_$((n + 1))=maintenance.autoDetach" "GIT_CONFIG_VALUE_$((n + 1))=false" GIT_CONFIG_COUNT=$((n + 2)) PR_FG_GC=1  # mut:fggc
   python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX)' || rc=$?  # mut:pushhold
   [ "$rc" = 0 ] || pr_refuse "could not lock $PR_PUSH_LOCK"
-}
-pr_push_ended() { # wait until no process of this run's push is left: its lock is free
-  python3 -I -c 'import fcntl, sys; fcntl.flock(open(sys.argv[1], "a"), fcntl.LOCK_EX)' "$PR_PUSH_LOCK"
 }
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
@@ -191,10 +196,75 @@ pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <co
   local first=${1:+$1; }
   trap "${first}"'pr_reap; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
 }
+pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
+  exec python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp(sys.argv[1], sys.argv[1:])' "$@"
+}
 pr_wait() { # <pid> <log>: wait for the asynchronous pusher -- a stop signal interrupts it
   local rc=0
   wait "$1" || rc=$?
   [ "$rc" = 0 ] || pr_push_failed "$2"
+}
+
+# ---- the self-test bound: a session of its own, a deadline, reaped on exit --
+# WHY IT EXISTS (Revision 12, 2026-10-21). An orphaned update_pr.sh self-test
+# spun 8.6 h at about 67% CPU. pr_bounded runs a self-test as a session of its
+# own, so its fixtures' process groups (sigrun's included) stay inside it, and
+# ends that whole session -- every process whose session id is its own, by pid,
+# never a pattern -- when the self-test exits, when the bound
+# PR_SELFTEST_SECONDS (default 1200) passes, or once the supervisor is gone, a
+# SIGKILLed one too: a watchdog outside the session reads a pipe only the
+# supervisor holds, whose EOF says so. A group or session kill is safe here and
+# only here: the session is the self-test's own (pr_kill's never-a-group is for a
+# pusher's tree, which shares its group with its caller). A self-test re-execs
+# itself through it once (PR_BOUND guards the second entry), so `--self-test`
+# keeps its name; a bound that ends one prints `<name>: BOUND: ...` and exits 124.
+PR_BOUND_PY='import os, select, signal, sys, time
+lim, name, cmd = float(sys.argv[1]), sys.argv[2], sys.argv[3:]
+def members(sid):  # live pids of the session; a zombie is no member, it holds nothing
+  if not os.path.isdir("/proc"):
+    import subprocess
+    return [int(x) for x in subprocess.run(["pgrep", "-s", str(sid)], capture_output=True, text=True).stdout.split()]
+  out = []
+  for d in os.listdir("/proc"):
+    try:
+      st = open("/proc/%s/stat" % d).read().rsplit(")", 1)[1].split()
+      if int(st[3]) == sid and st[0] != "Z": out.append(int(d))
+    except (OSError, IndexError, ValueError): pass
+  return out
+def end(sid):  # KILL the whole session, by pid, in rounds, for a child forked mid-sweep: how many
+  n = 0
+  for _ in range(20):
+    ps = members(sid)
+    if not ps: break
+    for p in ps:
+      try: os.kill(p, signal.SIGKILL); n += 1
+      except OSError: pass
+    time.sleep(0.05)
+  return n
+r, w = os.pipe(); tr, tw = os.pipe()  # the supervisor alive, to the watchdog; the deadline passed, back
+kid = os.fork()
+if kid == 0:
+  for f in (r, w, tr, tw): os.close(f)
+  os.setsid(); os.environ["PR_BOUND"] = "1"; os.execvp(cmd[0], cmd)
+dog = os.fork()
+if dog == 0:  # outside the session: at the deadline, or at EOF once the supervisor is gone, a SIGKILLed one too
+  os.close(w); os.close(tr)
+  if not select.select([r], [], [], lim)[0]:
+    sys.stderr.write("%s: BOUND: the self-test passed %d s, so its whole session is ended\n" % (name, lim)); os.write(tw, b"T")
+  end(kid)  # mut:dogend
+  os._exit(0)
+os.close(r); os.close(tw)
+def stop(sig, _):
+  end(kid); os._exit(128 + sig)
+for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(s, stop)
+code = os.waitstatus_to_exitcode(os.waitpid(kid, 0)[1])
+os.kill(dog, signal.SIGKILL); os.waitpid(dog, 0)
+if select.select([tr], [], [], 0)[0] and os.read(tr, 1) == b"T": end(kid); os._exit(124)
+left = end(kid)  # mut:boundreap
+if left: sys.stderr.write("%s: BOUND: the self-test left %d process(es) of its session, now ended\n" % (name, left))
+os._exit(128 - code if code < 0 else code)'
+pr_bounded() { # <name> <command...>: exec <command> under the self-test bound, PR_BOUND set inside it
+  exec python3 -I -c "$PR_BOUND_PY" "${PR_SELFTEST_SECONDS:-1200}" "$@"
 }
 
 # ---- the class: every pusher reaps its tree (R10-PUSHER-REAP) ---------------
@@ -436,7 +506,7 @@ STUB
   # started here descends from no pusher: it is the null control for "kills only
   # what it started", and the arm the by-pid rule is mutated against.
   ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
-  "$REAP_DIR/unrelated-sleep" 3600 & UNREL=$!
+  "$REAP_DIR/unrelated-sleep" "${PR_SELFTEST_SECONDS:-1200}" & UNREL=$!  # the bound's session ends it at the latest
   ralive() { # <pids file> -> how many of its pids are alive; polled, since a killed child can be a zombie for a moment
     local p n k=0
     while :; do
@@ -777,21 +847,23 @@ print("free")' "$1"
     rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$REAP_DIR/stubborn" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
     [ "$sig" = "$2" ] || : > "$REAP_DIR/stubborn"
     copyin "$1"; cp "$t/body.md" "$t/b1.md"
-    HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; os.setsid(); signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+    # A group of its own, not a session: the self-test's bound (pr_bounded) ends its session's members.
+    HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; os.setpgid(0, 0); signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
       bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
     while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     if [ "$sig" = "$2" ]; then kill -"$sig" "$up"; else kill -"$sig" -- "-$up"; fi 2>/dev/null
     k=0; while [ "$(cut -d' ' -f3 "$lf" 2>/dev/null)" != drain ] && [ "$(lockstate "$lf")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
-    lockstate "$lf" > "$t/state"; cut -d' ' -f3 "$lf" 2>/dev/null > "$t/mark" || :
+    lockstate "$lf" > "$t/state"; cut -d' ' -f3 "$lf" 2>/dev/null > "$t/mark" || :; wtstate > "$t/wt1"
     [ "$sig$1" != KILL- ] || { touch "$REAP_DIR/fast"; updt 2 "$sd"; }  # every later run's stub exits at once
-    rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"
+    rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"; wtstate > "$t/wt2"
     k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
     touch "$REAP_DIR/fast"; wait "$up" 2>/dev/null; updt 3 "$sd"
     rm -f "$REAP_DIR/stubborn"; rclean
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
   }
+  wtstate() { git -C "$sd/pr/upd-fix-t" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch || echo detached; }
   sigheld() { [ "$(cat "$t/treen")" -ge 4 ] && [ "$(cat "$t/mark")" = drain ] && [ "$(cat "$t/state")" = held ] && echo 0 || echo 1; }
   sigfreed() { [ "$(cat "$t/after")" = free ] && [ "$(cat "$t/pusher")" = gone ] && took_lock && echo 0 || echo 1; }
   sigrun - KILL 2>/dev/null  # the killed run's job notice
@@ -799,6 +871,11 @@ print("free")' "$1"
   ck "update_pr: and a run meanwhile is BUSY, naming that push" \
      "$( grep -qF "update_pr: BUSY: the push of run" "$t/out2" && echo 0 || echo 1 )"
   ck "update_pr: once that push ends the lock is free, and a later run takes it" "$(sigfreed)"
+  ck "update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended" \
+     "$( [ "$(cat "$t/wt1") $(cat "$t/wt2")" = "branch detached" ] && echo 0 || echo 1 )"
+  sigrun detach KILL 2>/dev/null
+  ck "  mutant mut:detach (its line deleted): the SIGKILLed run's worktree still holds fix/t" \
+     "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/wt2")" = branch ] && echo 0 || echo 1 )"
   sigrun drain KILL 2>/dev/null
   ck "  mutant mut:drain (its line deleted): the holder lets go once the run is gone, while the push runs" \
      "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/state")" = free ] && echo 0 || echo 1 )"
@@ -974,6 +1051,86 @@ STUB
   cp "$t/body.md" "$t/b.md"; run detach update_pr.sh fix/x - "$t/b.md"
   git -C "$t/s$i/pr/upd-fix-x" symbolic-ref -q HEAD >/dev/null
   ck "  mutant mut:detach (its line deleted): the worktree still holds fix/x" $?
+  # The push's auto-maintenance runs in the foreground (#2825 round 1: a `git fetch` in the push
+  # daemonized `git gc --auto`, which kept the push's fd 9, and so its lock, after the push). The
+  # fixture's git has auto-maintenance off (throwaway_git); fix/g's stub push turns gc.auto back on
+  # and runs real `git gc --auto` with its threshold met (two loose objects under objects/17), and
+  # git prints "in background" exactly when it detaches.
+  if [ ! -e "$t/fixg" ]; then
+    git -C "$o" checkout -q -b fix/g "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\ngit -C "$REAP_DIR/gcrepo" -c gc.auto=1 gc --auto > "$REAP_DIR/gc.out" 2>&1\nexit 1\n' > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m "gc stub" && git -C "$o" checkout -q main && touch "$t/fixg"
+  fi
+  gcrun() { # <mutant>
+    local sd=$t/gc-$1 k
+    rm -rf "$t/s$i" "$sd" "$REAP_DIR/gcrepo" "$REAP_DIR/gc.out"; git -C "$m" worktree prune
+    throwaway_git_init "$REAP_DIR/gcrepo" -q
+    for k in 212 650; do printf 'gc%s\n' "$k" | git -C "$REAP_DIR/gcrepo" hash-object -w --stdin >/dev/null; done  # blobs 17b370cc, 17e74e1d
+    copyin "$1"; cp "$t/body.md" "$t/b1.md"
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/g - "$t/b1.md" > "$t/out1" 2>&1
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-g" 2>/dev/null; rm -rf "$sd"
+  }
+  gcrun -
+  grep -qF 'Auto packing the repository for optimum performance' "$REAP_DIR/gc.out" && grep -qF "update_pr: REFUSE: the push failed" "$t/out1"
+  ck "update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock" $?
+  gcrun fggc
+  grep -qF 'Auto packing the repository in background' "$REAP_DIR/gc.out"
+  ck "  mutant mut:fggc (its line deleted): git detaches that gc, which keeps the push's fd 9 once the push has ended" $?
+  # The self-test bound (Revision 12). Each arm runs pr_bounded from a copy of this file; its child
+  # holds a lock and marks it, so "ended" is read by trying the lock, never by a pid.
+  cat > "$t/bchild.sh" <<'BCHILD'
+#!/bin/bash
+# <lock> <mark> <exit command>: a child holding <lock>, marked with its pid once it holds it
+python3 -I -c 'import fcntl, os, sys, time
+f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[2], "w").write("%d\n" % os.getpid()); time.sleep(20)' "$1" "$2" &
+k=0; while [ ! -s "$2" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+eval "$3"
+BCHILD
+  bndend() { # the child, by its pid, whatever the arm left
+    local p; p=$(cat "$t/bm" 2>/dev/null); case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; untilfree "$t/bl"
+  }
+  bnd() { # <mutant> <seconds> <exit command>: pr_bounded, from a copy of this file, over bchild.sh
+    copyin "$1"; rm -f "$t/bl" "$t/bm" "$t/berr"
+    PR_SELFTEST_SECONDS=$2 bash -c 'p=$1; shift; . "$p"; pr_bounded bt bash "$@"' bnd "$m/tools/audit/seat/pr_args.sh" \
+      "$t/bchild.sh" "$t/bl" "$t/bm" "$3" 2> "$t/berr"
+    echo $? > "$t/brc"; lockstate "$t/bl" > "$t/bstate"; bndend
+  }
+  rm -f "$t/blate"; bnd - 1 "sleep 3; touch $t/blate"
+  ck "pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so" \
+     "$( [ "$(cat "$t/brc") $(cat "$t/bstate")" = "124 free" ] && [ ! -e "$t/blate" ] && grep -qF 'bt: BOUND: the self-test passed 1 s' "$t/berr" && echo 0 || echo 1 )"
+  rm -f "$t/blate"; bnd dogend 1 "sleep 3; touch $t/blate"
+  ck "  mutant mut:dogend (its line deleted): the bound passes and nothing ends the self-test, which runs on" \
+     "$( [ -e "$t/blate" ] && echo 0 || echo 1 )"
+  bnd - 60 'exit 3'
+  ck "pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status" \
+     "$( [ "$(cat "$t/brc") $(cat "$t/bstate")" = "3 free" ] && grep -qF 'bt: BOUND: the self-test left 1 process(es)' "$t/berr" && echo 0 || echo 1 )"
+  bnd boundreap 60 'exit 3'
+  ck "  mutant mut:boundreap (its line deleted): the child outlives the self-test" "$( [ "$(cat "$t/bstate")" = held ] && echo 0 || echo 1 )"
+  # A SIGKILLed supervisor runs nothing; the watchdog reads its pipe's EOF and ends the session.
+  bndkill() { # <mutant>
+    local up k=0
+    copyin "$1"; rm -f "$t/bl" "$t/bm"
+    PR_SELFTEST_SECONDS=60 bash -c 'p=$1; shift; . "$p"; pr_bounded bt bash "$@"' bnd "$m/tools/audit/seat/pr_args.sh" \
+      "$t/bchild.sh" "$t/bl" "$t/bm" wait 2>/dev/null & up=$!
+    while [ ! -s "$t/bm" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"  # the child ran, so a free lock is an ending, not an absence
+    kill -KILL "$up"; wait "$up" 2>/dev/null
+    # A bound below the child's 20 s sleep, so a session nothing ends still reads held.
+    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    lockstate "$t/bl" > "$t/bstate"; bndend
+  }
+  bndkill - 2>/dev/null  # the killed supervisor's job notice
+  ck "pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog" "$( [ "$(cat "$t/bup") $(cat "$t/bstate")" = "up free" ] && echo 0 || echo 1 )"
+  bndkill dogend 2>/dev/null
+  ck "  mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on" "$( [ "$(cat "$t/bstate")" = held ] && echo 0 || echo 1 )"
+  # A `# mut:` line is a whole statement: copyin deletes one line, so a predicate continued from the
+  # line above leaves that line running on into the next (round 2's first mut:fggc did, and its arm
+  # read the broken copy as a pass). mutshape <files...>: exit 1 naming each such line.
+  mutshape() { awk 'prev ~ /\\$/ && /# mut:[A-Za-z0-9]+$/ { print FILENAME ":" FNR; bad = 1 } { prev = $0 } END { exit bad }' "$@"; }
+  (cd "$src" && mutshape open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh)
+  ck "every # mut: line is a whole statement, never one continued from the line above" $?
+  printf 'a \\\n  b  # mut:x\n' > "$t/mutshape.sh"; ! mutshape "$t/mutshape.sh" >/dev/null
+  ck "null control: a # mut: line continued from the line above is named" $?
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
@@ -986,7 +1143,7 @@ STUB
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case ${1:-} in
-    --self-test) pr_args_self_test; exit ;;
+    --self-test) [ -n "${PR_BOUND:-}" ] || pr_bounded pr_args bash "$0" --self-test; pr_args_self_test; exit ;;
     --pushers) pr_pushers "" "${2:-}"; exit ;;
     *) sed -n '2,6p' "$0" >&2; exit 2 ;;
   esac

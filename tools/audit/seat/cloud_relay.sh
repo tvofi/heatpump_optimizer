@@ -430,9 +430,12 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
     # The update is the reap's lead (pr_args.sh's PR_REAP_LEAD): a stopped relay TERMs it alone,
     # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+    # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
+    # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
+    # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
     # One launch for both routes, so the self-test's stub runs the production launch line.
     urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
-    "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
@@ -957,12 +960,33 @@ EOF
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
   chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  # #2549: a signal to the loop's whole process group reaches the update only through the loop's
+  # reap: the update runs in a group of its own (pr_own_group). grprelay <stub> <pids wanted>
+  # <signal>: one pass in a group of its own, and the signal to that whole group once the update's
+  # tree is up; then $t/go lets a surviving update finish, and its tree's survivors are counted.
+  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nk=0; while [ ! -e "%s/go" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done\necho done >> "%s/marks"\n' \
+    "$t" "$t" "$t" > "$t/finish.sh"; chmod +x "$t/finish.sh"
+  grprelay() {
+    rm -f "$t/state/cloud-handoff-failed" "$t/go"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+    HPO_RELAY_UPDATE=$1 python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp("bash", sys.argv[1:])' bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+    k=0; while [ "$(wc -l < "$t/tpids")" -lt "$2" ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -"$3" -- "-$rp"; wait "$rp" 2>/dev/null; touch "$t/go"
+    k=0; while [ "$3" = KILL ] && ! grep -q done "$t/marks" && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
+      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+    for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done; }
+  grprelay "$t/lead.sh" 2 TERM
+  chk "a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first" \
+    0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  grprelay "$t/finish.sh" 1 KILL 2>/dev/null
+  chk "a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock" \
+    0 test "$tn $(tr '\n' ' ' < "$t/marks")" = "1 done "
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
 
 case ${1:-} in
-  --self-test) self_test; exit $?;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || pr_bounded cloud_relay bash "$0" --self-test; self_test; exit $?;;  # pr_args.sh's bound
   held) shift; held "$@"; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
   pass) shift; pass "$@"; exit $?;;
