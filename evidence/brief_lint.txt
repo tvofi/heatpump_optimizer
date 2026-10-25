@@ -1,0 +1,8 @@
+bad-carry-R10-FLOW-POSTMERGE-882:   ERROR   [R10-FLOW-POSTMERGE] path: tools/audit/seat/merge_prZZ.sh: not in the tree, and not present at its cited tag ref(s) [c851f2a8, 2f5bf725] | TOTAL: 1 error(s) across 1 file(s)
+bad-carry-R10-ORCH-BEATD-1112:   ERROR   [R10-ORCH-BEATD] path: tools/policy/policy_lintZZ.mjs: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49 | TOTAL: 1 error(s) across 1 file(s)
+bad-carry-R10-ORCH-BEATD-604:   ERROR   [R10-ORCH-BEATD] path: tools/audit/seat/sweep_templateZZ.md: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55 | TOTAL: 1 error(s) across 1 file(s)
+bad-carry-R10-TRAIN-UPGRADE-515:   ERROR   [R10-TRAIN-UPGRADE] path: tools/audit/seat/merge_prZZ.sh: not in the tree, and no tag SHA is cited alongside it | TOTAL: 1 error(s) across 1 file(s)
+good-carry-R10-FLOW-POSTMERGE-882:  | TOTAL: 0 error(s) across 1 file(s)
+good-carry-R10-ORCH-BEATD-1112:  | TOTAL: 0 error(s) across 1 file(s)
+good-carry-R10-ORCH-BEATD-604:  | TOTAL: 0 error(s) across 1 file(s)
+good-carry-R10-TRAIN-UPGRADE-515:  | TOTAL: 0 error(s) across 1 file(s)
