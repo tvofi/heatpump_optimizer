@@ -1,0 +1,11 @@
+      3 Verdict: DEFER
+      2 Verdict: REJECT
+entries: 5
+host/home path grep over three-dot diff:
+0
+61:Verdict: DEFER -> R10-TRAIN-OVERLAP-GRADE (queued, not done; owns `merge_train.py` and the batch drain order; R10-TRAIN-UPGRADE and R10-FLOW-AUTOTRAIN are done, so neither takes a carry). One instance.
+62:Source: s6 `proposals.md` `## V42` (slip 2026-10-25, #2753 appended behind #2799/#2798; coordinator asked to route to R10-TRAIN-UPGRADE first).
+65:- R10-TRAIN-UPGRADE: done; it built the spool and `add`, so it is the right seam, but a done group takes no carry.
+66:- R10-FLOW-AUTOTRAIN: done (eaf10309, after #2780), so it takes no carry. R10-TRAIN-OVERLAP-GRADE: queued on the roster branch, files `merge_train.py` and `INSTRUMENTS.md`, the nearest live seam and the owner of any change to what the train drains first.
+67:- Drain by critical-path priority instead of a flag: `gate_lease` derives priority already, but a priority drain changes ordering for every add, a policy-visible behaviour change in a 2000-line hot file, for one instance.
+70:What would change the answer: a second critical-path PR queued behind non-critical ones (cite the spool order and the `add` log lines), or a second unlocked hand edit of the spool; either re-opens `--front` as an ACCEPT narrowed to the flag, carried to R10-TRAIN-OVERLAP-GRADE.
