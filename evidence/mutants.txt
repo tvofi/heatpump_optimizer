@@ -1,0 +1,22 @@
+# mutant A: planted writer removed (t: l + newline)
+70c70
+<     if (l.trim() && !/\bpr\b.*\bmerge\b/.test(l)) rows.push({ fam: 'planted', f, lead: l, t: l + ' gh pr merge 9 --subject x\n' })
+---
+>     if (l.trim() && !/\bpr\b.*\bmerge\b/.test(l)) rows.push({ fam: 'planted', f, lead: l, t: l + '\n' })
+files=289
+corpus planted=82735
+base origin/main: planted=0
+head 4aad9c117: planted=0 main_not_head=0 {}
+# mutant B: loss direction inverted (!B && H)
+81c81
+<   rows.forEach((r, i) => { if (r.fam !== 'null' && B[i] && !H[i]) { mnh++; if (r.lead !== undefined) { const k = shape(r.lead); bk[k] = (bk[k] || 0) + 1 } } })
+---
+>   rows.forEach((r, i) => { if (r.fam !== 'null' && !B[i] && H[i]) { mnh++; if (r.lead !== undefined) { const k = shape(r.lead); bk[k] = (bk[k] || 0) + 1 } } })
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head 4aad9c117: planted=74665 main_not_head=0 {}
+# mutant C: SCANNED drops md
+corpus lead-closer=192 control=96 null=4
+base origin/main: lead-closer=192 control=96 null=0
+head 4aad9c117: lead-closer=45 control=96 null=0 main_not_head=147

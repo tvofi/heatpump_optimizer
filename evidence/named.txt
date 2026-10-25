@@ -13,3 +13,19 @@ r6 683dd52cb wrapped argv               base=missed  head=missed  OPEN-AT-BOTH
 r7 e73424f24 case arm, no paren         base=refused head=missed  REGRESSION
 r8 4aad9c117 Markdown parenthetical     base=refused head=missed  REGRESSION
 r8 4aad9c117 list item 1)               base=refused head=missed  REGRESSION
+
+r1 b4dd11917 M13 shape (mutant only)    base=refused head=refused 
+r2 96ad30e87 continuation in the name   base=refused head=missed  REGRESSION
+r3 455d7c200 quoted word                base=refused head=missed  REGRESSION
+r3 455d7c200 flag between words         base=refused head=missed  REGRESSION
+r3 455d7c200 single-quoted argv         base=refused head=missed  REGRESSION
+r4 5d79db511 multi-word value in a gap  base=refused head=missed  REGRESSION
+r4 5d79db511 ${VAR:-} program           base=refused head=missed  REGRESSION
+r4 5d79db511 $(...) program             base=refused head=missed  REGRESSION
+r5 d0d35231c f-string program           base=missed  head=missed  OPEN-AT-BOTH
+r5 d0d35231c % program                  base=missed  head=missed  OPEN-AT-BOTH
+r5 d0d35231c ${cfg.gh} program          base=missed  head=missed  OPEN-AT-BOTH
+r6 683dd52cb wrapped argv               base=refused head=missed  REGRESSION
+r7 e73424f24 case arm, no paren         base=missed  head=missed  OPEN-AT-BOTH
+r8 4aad9c117 Markdown parenthetical     base=missed  head=missed  OPEN-AT-BOTH
+r8 4aad9c117 list item 1)               base=missed  head=missed  OPEN-AT-BOTH
