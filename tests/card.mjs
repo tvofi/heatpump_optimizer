@@ -1432,6 +1432,74 @@ check("a wide dialog gets larger chrome than a narrow one",
 check("a phone-width dialog stays legible", dlgOf(320) >= 12 - 1e-9);
 check("a very wide dialog does not turn the legend into a headline",
   dlgOf(4000) <= 21 + 1e-9);
+// R10-CARD-VOICE (the harmony study's H1, probe/card-harmony-design): an
+// ENLARGED view never sets its chrome under the tile's own 14 px base, which
+// it did at every dialog narrower than 1333 px; and its ceiling is one the
+// dialog's 1700 px width cap can actually reach (C3), where 21 never was.
+check("the dialog's chrome never renders under the tile's 14 px base",
+  dlgOf(320) === 14 && dlgOf(737) === 14 && dlgOf(1229) === 14,
+  `320 -> ${dlgOf(320)}, 737 -> ${dlgOf(737)}, 1229 -> ${dlgOf(1229)} px`);
+check("and its ceiling is reachable inside the dialog's 1700 px cap",
+  dlgOf(4000) === vm.runInContext("DIALOG_FONT_PX_MAX", ctx) &&
+  dlgOf(1700) >= vm.runInContext("DIALOG_FONT_PX_MAX", ctx) - 0.2 &&
+  /width: min\(96vw, calc\([^)]*\), 1700px\)/.test(cardSrc),
+  `cap ${vm.runInContext("DIALOG_FONT_PX_MAX", ctx)}, 1700 px -> ${dlgOf(1700)} px`);
+
+// R10-CARD-VOICE, the harmony study's other carries (probe/card-harmony-
+// design 6aea0d10, HARMONY.md section 4), read off the card's own stylesheet:
+// the rule each names, not a restatement of it.
+{
+  const ruleOf = (sel) => {
+    const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return [...cardSrc.matchAll(new RegExp(`(?:^|[\\s,}])${esc}\\s*\\{([^}]*)\\}`, "g"))]
+      .map((m) => m[1]).join(" ");
+  };
+  // H1 (b): no caption role on either surface renders under the ramp's
+  // smallest step, 12 px.
+  const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
+    ".setup-hint", ".setup-result", ".setup-dest", ".adv-basis", ".adv-note",
+    ".adv-text .adv-sub", ".health-mark", ".whatif .wi-hint", ".adv-row.unpriced .adv-value"];
+  const unfloored = captions.filter((c) =>
+    !/font-size: max\(12px, 0\.\d+em\)/.test(ruleOf(c)));
+  check("every caption role is floored at the ramp's 12 px step",
+    unfloored.length === 0, unfloored.length ? `unfloored: ${unfloored.join(", ")}` :
+      `${captions.length} roles`);
+  // H2: the dialog raises the layout bar's buttons with the chip the shared
+  // rule names beside them, and on a phone with the legend's touch row.
+  check("the layout bar's buttons take the chip's dialog size",
+    /font-size: 1em; border-radius: 1\.3em;/.test(ruleOf("dialog.expanded .layout-bar button")) &&
+    /dialog\.expanded \.layout-bar button \{ font-size: 1rem; \}/.test(cardSrc),
+    ruleOf("dialog.expanded .layout-bar button"));
+  // H3a, H3b: the rows' surface is their ink's pair, the heading the card's
+  // 600.
+  check("the health and advisor rows take the surface their ink is drawn for",
+    [".health-row", ".adv-inbox-row"].every((c) =>
+      /background: var\(--hpo-surface-2, #f7f9fb\)/.test(ruleOf(c)) &&
+      !/secondary-background-color/.test(ruleOf(c))),
+    [".health-row", ".adv-inbox-row"].map((c) => ruleOf(c).trim()).join(" | "));
+  check("the health headings are the card's 600, not the user agent's 700",
+    /font-weight: 600/.test(ruleOf(".health-h")), ruleOf(".health-h"));
+  // H4: the replay drawing scrolls on a phone instead of shrinking its
+  // labels under the chart floor.
+  check("the savings replay takes the setup map's phone treatment",
+    /overflow-x: auto/.test(ruleOf(".replay")) &&
+    /min-width: 560px/.test(ruleOf(".replay > svg")),
+    `${ruleOf(".replay")} | ${ruleOf(".replay > svg")}`);
+  // C1: the receipt's fallbacks agree with the token they stand in for.
+  const sm = vm.runInContext("CARD_SCALE_TOKENS", ctx)["--hpo-text-sm"];
+  check("the receipt's text-sm fallbacks are the token's own value",
+    !/var\(--hpo-text-sm, (?!13px)/.test(cardSrc) && String(sm).includes("13"),
+    `token ${JSON.stringify(sm)}`);
+  // H3c: the savings page with nothing settled is the card's one empty shape.
+  const empty = build(slotStates, {});
+  empty._onCardClick({});
+  empty.dialog.page = "savings";
+  empty._render();
+  const ep = collect(empty.shadowRoot).join("\n");
+  check("the savings page's empty state is the card's one empty shape",
+    /<div class="empty">No settled savings months yet\.<\/div>/.test(ep) &&
+    !/savings-empty/.test(ep), (/<[^>]*>No settled savings[^<]*/.exec(ep) || ["(none)"])[0]);
+}
 
 // D4-01: the COMPACT chart's rendered font is floored, not left to shrink
 // with the container. The audit measured a 287 px dashboard tile rendering
@@ -3242,7 +3310,8 @@ check("the hand-scheduled reason has a label",
       const cfg = groups.map((g) => ({
         title: titleOf(g),
         hits: (g.match(/class="setup-chip-hit"/g) || []).length,
-        page: (/<text class="setup-chip-page"[^>]*>([^<]*)</.exec(g) || [])[1],
+        page: [...((/<text class="setup-chip-page"[^>]*>([\s\S]*?)<\/text>/.exec(g) || [])[1] || "")
+          .matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)].map((m) => m[1]).join(" "),
       }));
       check("every card carries a Configure button that names its page",
         cfg.length === 8 && cfg.every((c) => c.hits === 1 && c.page) &&
@@ -3256,6 +3325,40 @@ check("the hand-scheduled reason has a label",
         (voice.active.match(/class="setup-dest"/g) || []).length === 1 &&
         /Advanced settings/.test(dest),
         dest || "(no caption)");
+      // The harmony study's reconciliation of the Badge (H2): the drawing's
+      // own tiers, and the disc hidden because the box's accessible name
+      // already says what it draws.
+      const rule = (sel) => (new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`)
+        .exec(cardSrc) || [])[1] || "";
+      check("the disc's glyph strokes on the icon tier, its page name on the 11-unit tier",
+        /stroke-width: 1\.5;/.test(rule(".type-badge ellipse")) &&
+        /font-size: 11px;/.test(rule(".setup-chip-page")) &&
+        /font-size: 11px;/.test(rule(".setup-slot.lead")) &&
+        (voice.active.match(/class="type-badge[^"]*" data-type="[a-z_]+" aria-hidden="true"/g) || []).length === 8,
+        `glyph {${rule(".type-badge ellipse").trim()}} page {${rule(".setup-chip-page").trim()}}`);
+      const names = (page) => groupsOf(page).map((g) => (/^<title>([^<]*)<\/title>/.exec(g) || [])[1]);
+      const woodName = (page) => names(page).find((n) => /^Wood furnace tank/.test(n || "")) || "";
+      check("each box's accessible name carries its type, the wood tank's its coil state",
+        names(voice.active).every(Boolean) &&
+        names(voice.active).includes("4-way mixing valve (manual), mixing valve") &&
+        names(voice.active).includes("Lower floor (slab), underfloor slab circuit") &&
+        woodName(voice.active) === "Wood furnace tank (500 L), heat store with a hot-water coil" &&
+        woodName(voice.off) ===
+          "Wood furnace tank (500 L), heat store with a hot-water coil that is not modelled" &&
+        woodName(voice.none) === "Wood furnace tank (500 L), heat store",
+        names(voice.off).join(" | "));
+      // A page name wider than the button's inside wraps inside a taller
+      // button rather than running past its border.
+      const pageW = (g) => Math.max(0, ...[...((/<text class="setup-chip-page"[^>]*>([\s\S]*?)<\/text>/.exec(g) || [])[1] || "")
+        .matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)]
+        .map((m) => vm.runInContext(`setupTextW(${JSON.stringify(m[1])}, 11, false)`, ctx)));
+      const inside = vm.runInContext("SETUP_COL_W - 2 * SETUP_PAD - 2 * SETUP_CHIP_PAD", ctx);
+      check("a page name never runs past its button",
+        groups.every((g) => pageW(g) <= inside) &&
+        // "Heating system and heat storage" is the name wider than it.
+        groups.some((g) => ((/<text class="setup-chip-page"[\s\S]*?<\/text>/
+          .exec(g) || [""])[0].match(/<tspan/g) || []).length === 2),
+        groups.map((g) => `${titleOf(g)}: ${pageW(g).toFixed(1)}/${inside}`).join("; "));
     }
   }
   {
@@ -6333,16 +6436,23 @@ const slotHit = (card, key) => {
     return {
       x: m && Number(m[1]), y: m && Number(m[2]),
       w: m && Number(m[3]), h: m && Number(m[4]),
-      rows: (g.match(/<tspan(?! class="setup-value")/g) || []).length +
+      // The Configure button's own page-name lines are the button's, not
+      // the box's rows: cut its text out before counting.
+      rows: (g.replace(/<text class="setup-chip-page"[\s\S]*?<\/text>/g, "")
+        .match(/<tspan(?! class="setup-value")/g) || []).length +
         (g.match(/<text class="setup-slot extra[" ]/g) || []).length,
       buttons: (g.match(/class="setup-chip-hit"/g) || []).length,
+      buttonH: Number((/<rect class="setup-chip" [^>]*height="([\d.]+)"/.exec(g) || [])[1]),
     };
   });
   // Plus the Configure button every card ends with (R10-CARD-VOICE): its
-  // own height and two units below the last row's band.
+  // own height, which grows by a line when the page name wraps, and two
+  // units below the last row's band.
   const chipH = vm.runInContext("SETUP_CHIP_H", ctx);
+  const chipLine = vm.runInContext("SETUP_CHIP_LINE", ctx);
   const heightWrong = perBox.filter((b) =>
-    b.buttons !== 1 || b.h !== 24 + b.rows * 17 + 8 + chipH + 2);
+    b.buttons !== 1 || (b.buttonH - chipH) % chipLine !== 0 ||
+    b.h !== 24 + b.rows * 17 + 8 + b.buttonH + 2);
   check("the row arithmetic that sets each box height is unchanged",
     perBox.length === boxes.length && heightWrong.length === 0,
     `${perBox.length} boxes; ` + perBox.map((b) =>
@@ -6474,7 +6584,9 @@ const slotHit = (card, key) => {
     const opened = collect(c.shadowRoot).join("\n");
     const g = opened.split("<g>")
       .find((x) => x.includes("Wood furnace tank")) || "";
-    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+    // Anchored on the carrier rect: the box's <g> opens with its <title>
+    // (R10-CARD-VOICE's accessible name), not with the rect.
+    const m = /<rect class="setup-box"[^>]*? x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
       .exec(g);
     const bottom = m ? Number(m[2]) + Number(m[4]) : 0;
     const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
