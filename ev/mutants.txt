@@ -1,0 +1,5 @@
+Head 8aa2f5177d3d03db9139a42741fa4a46782e11e0, scratch worktree copy of tools/policy/friction_issues.mjs, restored after each mutant.
+real: `if (!prior || cell.prs > prior.prs) census.set(c[4], cell)`  -> 105 passed, 0 failed, exit 0
+M3 first-write-wins: `if (!prior) census.set(c[4], cell)`        -> 104 passed, 1 failed, exit 1 (FAIL: and the larger count wins when it is the later row ... got 1, wanted 3)
+M2 last-write-wins: `census.set(c[4], cell)`                      -> 104 passed, 1 failed, exit 1 (FAIL: and the shared key keeps the larger PR count ... got 1, wanted 2)
+M5 tie: `cell.prs >= prior.prs`                                    -> 105 passed, 0 failed, exit 0 (survives; equal prs, only which row's entries is kept differs)
