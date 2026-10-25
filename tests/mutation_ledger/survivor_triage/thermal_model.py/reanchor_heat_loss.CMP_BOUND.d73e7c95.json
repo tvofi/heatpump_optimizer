@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND d73e7c95",
+  "old": "    new_scale = (root - lin) / (2.0 * quad) if lin <= 0 else -2.0 * const / (lin + root)",
+  "reason": "Equivalent (CMP_BOUND, `lin <= 0` -> `lin < 0`). The comparison only picks which of two algebraically identical forms of the same non-negative root is evaluated: (root - lin) / (2 * quad) and -2 * const / (lin + root). The mutant differs only at lin == 0, where both forms give sqrt(-4 * quad * const) / (2 * quad) (to rounding) whenever const != 0. The one input where they part is lin == 0 with const == 0, i.e. a zero zone total at full confidence, where the mutant divides 0 by 0. reanchor_heat_loss never sees it: heat_loss_anchor_pair refuses a total at or below 1e-9 on either side, and the stored scale is clipped to [0.3, 3.0] by _apply_house_heat_loss_scale. Survival measured by `mutation_table.py --pin-killed --scripts tests/features.py` against 9586fce08 on this branch (fix/r10-ratio-anchor, repair of the 3383fb2ac review).",
+  "verdict": "equivalent"
+}
