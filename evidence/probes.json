@@ -1,19 +1,122 @@
-[["x.sh","`command -v gh` pr merge 9 --subject x\n"],
- ["x.sh","\"$(command -v gh)\" pr merge 9 --subject x\n"],
- ["x.sh","${GH:-/usr/bin/gh} pr merge 9 --subject x\n"],
- ["x.sh","env gh pr merge 9 --subject x\n"],
- ["x.sh","gh pr --repo=\"o r\" merge 9 --subject x\n"],
- ["x.sh","gh pr -R \"${REPO}\" merge 9 -t x\n"],
- ["x.sh","gh pr -R $(cat r) merge 9 -t x\n"],
- ["x.py","os.system(f\"{GH} pr merge {n} --subject x\")\n"],
- ["x.py","os.system(f\"{gh_bin} pr merge {n} --subject x\")\n"],
- ["x.py","subprocess.run(f\"{self.gh} pr merge {n} -t x\", shell=True)\n"],
- ["x.py","os.system(\"%s pr merge %s --subject x\" % (GH, n))\n"],
- ["x.py","os.system(\"{} pr merge {} -t x\".format(GH, n))\n"],
- ["x.mjs","execSync(`${GH} pr merge ${n} --subject x`)\n"],
- ["x.mjs","execSync(`${cfg.gh} pr merge ${n} --subject x`)\n"],
- ["x.py","run([GH, \"pr\", \"--subject\", \"x y\", \"merge\", n])\n"],
- ["x.py","run([*GH, \"pr\",\t\"merge\", n, \"-t\", s])\n"],
- ["x.sh","gh pr merge 9 --merge -t\"x y\"\n"],
- ["x.py","os.system(f\"{GH} pr view {n} -t x\")\n"],
- ["x.py","os.system(f\"{GH} pr merge {n} --merge\")\n"]]
+[
+[
+"r5-1",
+"os.system(f\"{GH} pr merge {n} --subject x\")"
+],
+[
+"r5-2",
+"os.system(f\"{gh_bin} pr merge {n} --subject x\")"
+],
+[
+"r5-3",
+"subprocess.run(f\"{self.gh} pr merge {n} -t x\", shell=True)"
+],
+[
+"r5-4",
+"os.system(\"%s pr merge %s --subject x\" % (GH, n))"
+],
+[
+"r5-5",
+"os.system(\"{} pr merge {} -t x\".format(GH, n))"
+],
+[
+"r5-6",
+"execSync(`${cfg.gh} pr merge ${n} --subject x`)"
+],
+[
+"control",
+"execSync(`${GH} pr merge ${n} --subject x`)"
+],
+[
+"r5-f2",
+"gh pr -R $(cat r) merge 9 -t x"
+],
+[
+"benign-cmt",
+"# we used to pr merge here --subject x"
+],
+[
+"benign-xpr",
+"gh xpr merge 9 --subject x"
+],
+[
+"benign-merged",
+"gh pr merged 9 --subject x"
+],
+[
+"benign-$pr",
+"echo $pr merge 9 --subject x"
+],
+[
+"benign-view",
+"os.system(f\"{GH} pr view {n} -t x\")"
+],
+[
+"v-subscript",
+"run([GH, \"pr\", \"-R\", cfg[\"repo\"], \"merge\", n, \"--subject\", s])"
+],
+[
+"v-environ",
+"run([\"gh\", \"pr\", \"--repo\", os.environ[\"REPO\"], \"merge\", n, \"-t\", s])"
+],
+[
+"v-fstring",
+"run([\"gh\", \"pr\", \"-R\", f\"{owner}/{repo}\", \"merge\", n, \"--subject\", s])"
+],
+[
+"v-call2",
+"run([\"gh\", \"pr\", \"-R\", join(o, r), \"merge\", n, \"--subject\", s])"
+],
+[
+"v-index",
+"run([\"gh\", \"pr\", \"-R\", REPOS[0], \"merge\", n, \"--subject\", s])"
+],
+[
+"v-js-member",
+"execFileSync('gh', ['pr', '-R', cfg['repo'], 'merge', n, '--subject', s])"
+],
+[
+"v-js-tmpl",
+"execFileSync('gh', ['pr', '-R', `${o}/${r}`, 'merge', n, '--subject', s])"
+],
+[
+"v-sh-quote",
+"gh pr -R \"$O\"/\"$R\" merge 9 -t x"
+],
+[
+"g-comment-py",
+"run([\"gh\", \"pr\",  # merge it\n     \"merge\", n, \"--subject\", s])"
+],
+[
+"g-comment-js",
+"execFileSync('gh', ['pr', /* m */ 'merge', n, '--subject', s])"
+],
+[
+"g-implicit",
+"os.system(\"gh pr \" \"merge 9 --subject x\")"
+],
+[
+"g-sh-array",
+"MERGE=(pr merge); gh \"${MERGE[@]}\" 9 --subject x"
+],
+[
+"g-sh-var-1line",
+"CMD=\"pr merge\"; gh $CMD 9 --subject x"
+],
+[
+"g-newline-js",
+"execFileSync('gh', [\n  'pr',\n  'merge',\n  n,\n  '--subject',\n  s,\n])"
+],
+[
+"g-newline-py",
+"run([\n    \"gh\",\n    \"pr\",\n    \"merge\",\n    str(n),\n    \"--subject\",\n    s,\n])"
+],
+[
+"g-newline-py2",
+"subprocess.run(\n    [GH, \"pr\", \"merge\", str(n),\n     \"--subject\", s],\n    check=True)"
+],
+[
+"g-kwargs-js",
+"await execa('gh', ['pr', 'merge', String(n),\n  '--subject', s])"
+]
+]
