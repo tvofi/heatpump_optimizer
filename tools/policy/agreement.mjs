@@ -510,11 +510,6 @@ const SHARED_GRAMMARS = {
   "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
-  // R10-CARD-VOICE: the harness measures a base tree and a head tree with one file,
-  // so it cannot import a matcher only the head's tests/card.mjs would carry.
-  "Wood furnace tank": "identical:the wood tank's box title in the rig's coil fixtures, tests/card.mjs and r10_card_voice_states.mjs",
-  "class=\"setup-chip-hit\"": "identical:the setup page's Configure control, tests/card.mjs and r10_card_voice_states.mjs",
-  "class=\"setup-dest\"": "identical:the setup page's where-pages-are caption, tests/card.mjs and r10_card_voice_states.mjs",
   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
   "\\*\\*(\\d+)\\xb7([^*]+?)\\.?\\*\\*": "identical:the README flow-diagram bold-step grammar, doc_claims.py and entities.py",

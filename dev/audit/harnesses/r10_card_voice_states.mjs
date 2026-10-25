@@ -36,6 +36,9 @@ const page = (topo) => {
   c._onCardClick({}); c.dialog.page = "setup"; c._render();
   return { html: collect(c.shadowRoot).join("\n"), boxes: c.layoutEditor.boxes.length };
 };
+// Fixed markup is counted by string search, not by a regex literal: tests/card.mjs
+// spells the same three as regexes, and this file must also run on a base tree.
+const count = (s, lit) => s.split(lit).length - 1;
 const states = {
   active: { ...coil, dhw_wood_coil_configured: true },
   off: { ...twoTank, dhw_wood_coil_configured: true },
@@ -48,13 +51,13 @@ for (const [k, t] of Object.entries(states)) {
     state: k,
     boxes,
     badge_types: [...new Set([...html.matchAll(/data-type="([a-z_]+)"/g)].map((m) => m[1]))].length,
-    wood_badge: ((html.split("<g>").find((g) => /Wood furnace tank/.test(g)) || "")
+    wood_badge: ((html.split("<g>").find((g) => g.includes("Wood furnace tank")) || "")
       .match(/class="type-badge( off)?" data-type="([a-z_]+)"/) || ["", "", "none"])
       .slice(1).reverse().filter(Boolean).map((x) => x.trim()).join(" "),
     coil_pipes_accent: (html.match(/class="setup-pipe coil-pipe/g) || []).length,
-    configure_buttons: (html.match(/class="setup-chip-hit"/g) || []).length,
+    configure_buttons: count(html, 'class="setup-chip-hit"'),
     buttons_naming_page: (html.match(/class="setup-chip-page"/g) || []).length,
     dhw_coil_lines: [...dhw.matchAll(/<text class="setup-slot extra[^"]*"[^>]*>([^<]*)</g)].map((m) => m[1]),
-    dest_caption: (html.match(/class="setup-dest"/g) || []).length,
+    dest_caption: count(html, 'class="setup-dest"'),
   }));
 }
