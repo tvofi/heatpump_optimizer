@@ -415,8 +415,8 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
         parts.append(f'<line x1="{px(t):.1f}" y1="{T}" x2="{px(t):.1f}" y2="{H - B}" class="grid"/>'
                      f'<text x="{px(t):.1f}" y="{H - B + 16}" text-anchor="middle" class="tick">'
                      f'{t.strftime("%a %Hh")}</text>')
-    parts.append(f'<line x1="{px(cl):.1f}" y1="{T}" x2="{px(cl):.1f}" y2="{H - B}" class="stampline"/>'
-                 f'<text x="{px(cl) - 4:.1f}" y="{T + 10}" text-anchor="end" class="stamplab">'
+    parts.append(f'<line x1="{px(cl):.1f}" y1="{T}" x2="{px(cl):.1f}" y2="{H - B}" class="closeline"/>'
+                 f'<text x="{px(cl) - 4:.1f}" y="{T + 10}" text-anchor="end" class="closelab">'
                  f'closure {cl.strftime("%d %b %H:%M")}</text>')
     parts.append(f'<polygon points="{px(start):.1f},{py(0):.1f} {path} {px(end):.1f},{py(0):.1f}" '
                  f'class="issarea"/><polyline points="{path}" class="occ"/>'
@@ -878,6 +878,8 @@ svg{display:block;font-family:var(--mono)}
 .stampline{stroke:var(--done);stroke-width:1.2;stroke-dasharray:1 3}
 .stamplab{fill:var(--done);font-size:10px;font-weight:600}
 .issarea{fill:var(--accent);fill-opacity:.12}
+.closeline{stroke:var(--done);stroke-width:1.2;stroke-dasharray:1 3}
+.closelab{fill:var(--done);font-size:10px;font-weight:600}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-left:6px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:var(--muted);margin-top:10px}
 .legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;border:1px solid}
