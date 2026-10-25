@@ -1,0 +1,31 @@
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 5a4cab48f..22a377c0b 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,21 +1,21 @@
+ {
+- "class_excess_loc": 18103,
++ "class_excess_loc": 18102,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 143,
+  "coordinator_multiassigned_attrs": 110,
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+- "duplication_copies": 17,
++ "duplication_copies": 16,
+  "functions_cc_over_15": 30,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+- "max_class_loc": 8343,
++ "max_class_loc": 8311,
+  "max_method_loc": 373,
+  "methods_over_150": 17,
+  "methods_over_200": 9,
+  "name_kept_members": 38,
+- "recorded_at": "662a3809ced43b41dba2166f04277f2d3c95e991",
+- "seam_cut_total": 420
++ "recorded_at": "12b222007b67c4bc0ac931a509d8b1385c6458cf",
++ "seam_cut_total": 419
+ }

@@ -1,0 +1,3 @@
+FAIL seam_cut_total 424 > 418 (+6)
+1 STRUCTURE BUDGET(S) BREACHED
+rc=1
