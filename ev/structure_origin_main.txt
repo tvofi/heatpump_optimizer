@@ -1,0 +1,24 @@
+  ok   73 counting rules hold
+  ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
+  ok   custom_components/heatpump_optimizer/const.py  CONF_HOUSE_HEAT_LOSS_SCALE
+  ok   custom_components/heatpump_optimizer/const.py  CONF_LOWER_FLOOR_LOSS_RATIO
+  ok   custom_components/heatpump_optimizer/const.py  CONF_SOLAR_UPPER_FRACTION
+  ok   class_excess_loc 18103 <= 18103
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 143 <= 143
+  ok   coordinator_multiassigned_attrs 110 <= 110
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 17 <= 17
+  ok   functions_cc_over_15 30 <= 30
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 8343 <= 8343
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 420 <= 420
+STRUCTURE RATCHET PASSED

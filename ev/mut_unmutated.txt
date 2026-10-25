@@ -1,0 +1,10 @@
+tests/features.py rc=0
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+ALL 4388 FEATURE CHECKS PASSED
+tests/harness_headers.py rc=0
+ALL 112 HARNESS HEADER CHECKS PASSED
+tests/typing_ruler.py rc=0
+ALL 9 typing-ruler checks PASSED
+ALL 12 typing-ruler source checks PASSED
+DONE
