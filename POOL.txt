@@ -37,3 +37,4 @@ dispatch/fixer-r10-thermal-power-option-r3
 dispatch/fixer-r10-merge-subject-harden-r7
 dispatch/fixer-r10-thermal-power-option-r4
 dispatch/fixer-r10-learner-eta-r5
+dispatch/fixer-r10-thermal-power-option-r5
