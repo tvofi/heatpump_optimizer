@@ -1,8 +1,8 @@
 Fix review: merge 8a29702db07ec8fd3e760f7e73fe7cd7b9cd5b80
 
-bus-nonce: 24fda3f936fb088495f6df22aeb10fde
+bus-nonce: 01be551ceca7cdd1cf4b7eea62269bee
 
-This is review round 2. It follows the blocked round-1 verdict on `review/2770` (b5de86332), which was measured at ce6f6511e.
+This is a re-post of the round-2 merge verdict (review/2770 at 592c247f9, published as comment 6391986616), at the same live head and with the same evidence. The only change is dismissal markers on the three `## Evidence` bullets tools/audit/carry_audit.py read as deferrals: the harness and mutant bullets here end in one, and an added bullet names the three published items by id. This is review round 2. It follows the blocked round-1 verdict on `review/2770` (b5de86332), which was measured at ce6f6511e.
 
 I measured head `8a29702db07ec8fd3e760f7e73fe7cd7b9cd5b80`. It was still `refs/pull/2770/head` when I pushed this verdict. That head merges the code head b2ff00056 and then origin/main 662a3809c, which is the PR's current base. Every file this PR changes is byte-identical between b2ff00056 and the head. The round-2 code delta from ce6f6511e is `tools/ci/sweep.py` (one predicate plus its docstring), `tools/ci/sweep_selftest.py` (two fixtures), the race harness, and a header comment in `gate-sweep.yml`. `gate.py`, `prelude.py` and `ci.yml` are unchanged since round 1.
 
@@ -38,7 +38,7 @@ I measured head `8a29702db07ec8fd3e760f7e73fe7cd7b9cd5b80`. It was still `refs/p
     - `pair`: UNDECIDED-RED 2, DEADLOCK yes, RESIDUAL-RED 2.
     - `cascade`: 1.
     - `editcode`: 1.
-    - `single`: 0.
+    - `single`: 0. Carry: dismissed: evidence record, not a finding
 - **Null control, a real red is never masked.** `2754-red` shows MASKED 0 at all three trees and at every edit-s. At the head with edit-s 900, the review and edit gates publish `FAIL tests / closures: failure (run 40119473870)`. The code gate, which expired while deferring, stays red, and no sweep turns any verdict green.
 - **No-defect null.** `single` shows gate-wait 0 s and no red at all three trees.
 - **Mutants.** The driver and output are ev/mutants_driver.py and ev/mutants.txt. Each mutant was applied to the head alone and then restored; `git status` read clean afterwards. All 7 were killed:
@@ -49,7 +49,7 @@ I measured head `8a29702db07ec8fd3e760f7e73fe7cd7b9cd5b80`. It was still `refs/p
   - M6, the prelude waits until finished: 2 prelude fixtures fail, and the harness shows `2754` UNDECIDED-RED 2.
   - M1, judge never waits: 6 gate fixtures fail, and the harness shows `pair` DEADLOCK yes, RESIDUAL-RED 2.
   - M4, deferral published as PASS: the gate fixture "past the bound ..." fails.
-  - The body's M1 to M7 name the same failing fixtures.
+  - The body's M1 to M7 name the same failing fixtures. Carry: dismissed: evidence record, not a finding
 - **Self-tests at the head** (ev/selftests.txt), each with 0 failed:
   - `gate`: 37 checks.
   - `prelude`: 29.
@@ -76,4 +76,5 @@ I measured head `8a29702db07ec8fd3e760f7e73fe7cd7b9cd5b80`. It was still `refs/p
   - `dependabot.yml` passed, and `arm` was skipped.
   - Nothing has concluded red, so no red check is owed an answer yet. The heavy lanes have not reported, and I re-ran none of them.
   - On a PR, the gate job restores `tools/ci/*.py` from the base, so this PR's own gate runs main's program.
+- **Earlier evidence records.** carry_audit read three evidence bullets of the earlier verdicts as unrouted: the round-1 mutant record and this verdict's harness and mutant records, as first published. None of them is a finding. Carry: dismissed: evidence record, not a finding (item 966bc31f) Carry: dismissed: evidence record, not a finding (item 80cd9485) Carry: dismissed: evidence record, not a finding (item e516ff36)
 - **Not re-derived.** The body's `entities.py` count (2429) and its `BASH_ENV` explanation. This seat did not run the full suite; that is CI's job.
