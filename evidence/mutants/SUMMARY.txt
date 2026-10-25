@@ -1,16 +1,5 @@
-mutants run on fresh detached worktrees at f0a975b0ad3d75ffba004af26223a27af6247635, PYTHONPATH=tests/hastub python3 <script>
-base_features 0
-cmp_features 1
-base_entities 1
-cmp_entities 1
-M2 1
-M1 1
-M3 1
-M4 1
-M5 1
-NULL 0
-ALLDONE
-(entities re-run with full output)
-cmp_entities 1
-base_entities 1
-ENTDONE
+unmutated head: ALL 4369 FEATURE CHECKS PASSED rc=0
+cmp: -    return float(drawn_kw) if drawn_kw > floor else 0.0 +    return float(drawn_kw) if drawn_kw >= floor else 0.0  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+m3: -        shared=coord._immersion_active or signals.electric_heat.resistive_heat, +        shared=False,  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+m4: -        space_served=signals.space_heat or not signals.mode_observed, +        space_served=True,  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+null: -        space_served=signals.space_heat or not signals.mode_observed, +        space_served=signals.space_heat or not signals.mode_observed,  # null control  => ALL 4369 FEATURE CHECKS PASSED rc=0

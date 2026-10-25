@@ -1,3 +1,0 @@
-custom_components/heatpump_optimizer/coordinator.py:1012:    return _open_loop_plan_value(coord._optimization_result, "slab_temp_trajectory", now)
-custom_components/heatpump_optimizer/coordinator.py:1969:def _open_loop_plan_value(
-custom_components/heatpump_optimizer/coordinator.py:6369:            seed := _open_loop_plan_value(
