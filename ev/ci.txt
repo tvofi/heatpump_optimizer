@@ -1,0 +1,5 @@
+check-runs API on 19674e8034f6901775800446b5cefdc212461836 (pull_request_read get_check_runs), read 2026-10-25 after 09:14Z: 46 runs.
+conclusion failure/cancelled/timed_out: 0
+in_progress: governance / instrument-self-tests; prelude (runs 40179431441, 40179414582)
+all others: success or skipped (fast (3.14), closures, closure-scope, briefs, wave-script, policy-docs, delivery-status, nightly-status, mutation, budget-raise-gate, arch-score, env-matrix, hassfest, validate-hacs, codeql ...)
+no check-run named pr-contract appears in the listing at read time
