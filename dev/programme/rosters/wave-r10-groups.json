@@ -9135,9 +9135,7 @@
    "group": "R10-CLOSEOUT-CLEANUP",
    "after": [
     "R10-FLY-PRUNE-REFS",
-    "R10-FLY-WORKTREE-GC",
-    "R10-ARCH-DOCS",
-    "R10-ROUND-PLAYBOOK"
+    "R10-FLY-WORKTREE-GC"
    ],
    "files": [
     "tools/audit/seat/prune_refs.py",
