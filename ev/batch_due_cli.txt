@@ -1,0 +1,18 @@
+== plan_small push
+BATCH WAIT: 3 row(s) below the floor of 8, the oldest 3 commit(s) old (opens at 8)
+rc=4
+== plan_small schedule
+BATCH DUE: schedule flushes at any count (3 row(s))
+rc=0
+== plan_small workflow_dispatch
+BATCH DUE: workflow_dispatch flushes at any count (3 row(s))
+rc=0
+== plan_old push
+BATCH DUE: the oldest owed merge is 13 commit(s) old, at or past 8
+rc=0
+== plan_old schedule
+BATCH DUE: schedule flushes at any count (2 row(s))
+rc=0
+== plan_old workflow_dispatch
+BATCH DUE: workflow_dispatch flushes at any count (2 row(s))
+rc=0
