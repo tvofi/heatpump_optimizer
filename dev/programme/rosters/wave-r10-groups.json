@@ -9244,7 +9244,8 @@
    ],
    "carry": [
     "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes.",
-    "#2814 [D15]: the export does not label the frozen 7-day debug collection (no end time or age; days is a constant 7). The plan's stated age is wrong (0.8 min vs 14.1 min actual), and the download has no export time."
+    "#2814 [D15]: the export does not label the frozen 7-day debug collection (no end time or age; days is a constant 7). The plan's stated age is wrong (0.8 min vs 14.1 min actual), and the download has no export time.",
+    "D15 live-bundle lead L7 (owner install; unverified): `data.plan.plan_age_minutes` reads 0.8 while `debug.manifest.generated_at` is about 14 min after `last_optimization`, so the age may be the payload's age at publish, not at download. VERIFY: find where `plan_age_minutes` is computed and whether `diagnostics.py` recomputes it against the download time; if the value is the publish-time age, recompute it in the diagnostics export from `last_optimization` and the export clock. Controls: with a fixed clock 14 min after `last_optimization` the export reads 14 (null: a plan published a minute ago reads 1); one mutant that keeps the published value. (triage: dev/programme/triage/s6-batch24.md#P119)"
    ],
    "resume": {
     "stage": "not-started",
