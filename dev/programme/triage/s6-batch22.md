@@ -67,7 +67,7 @@ What would change the answer: nothing found; a long list of owed verdicts would 
 Carry text (for `roster_edit.py append-carry R10-ORCH-BEATD`, citing `triage: dev/programme/triage/s6-batch22.md#P103`): "In tools/audit/seat/pulse.py, make the verdict arm name every unconsumed verdict, not only the oldest: `judge_verdict` prints one line per owed verdict (PR, verdict word, head, age), and the standing-seat routing names the merge seat when any owed verdict is a merge and dispatch when any is not. Self-test: a blocked verdict older than a merge verdict names both PRs and both seats; the null control, one owed verdict, prints one line. Mutation proof: restoring the oldest-only summary fails the two-verdict case. Basis: #2749's MERGE verdict sat unqueued for 3.8 h behind #2780's blocked verdict on 2026-10-25."
 
 ## P104: recurring friction on gate-scoping.md, count 5 (issue #2768, re-files #2746)
-Verdict: REJECT the issue as a defect to fix in the rule: close #2768 with this reason. Of the five counted entries, three are P81's, and the two new ones (#2707, #2698) have a cause in the cloud container's environment, which the rule's text does not decide. P81's reopening condition ("a friction line naming the rule in a pull request merged after c686fe36 whose cause is the rule's text") is not met by either.
+Verdict: REJECT the issue as a defect to fix in the rule: the orchestrator closes it with this reason. Of the five counted entries, three are P81's, and the two new ones (#2707, #2698) have a cause in the cloud container's environment, which the rule's text does not decide. P81's reopening condition ("a friction line naming the rule in a pull request merged after c686fe36 whose cause is the rule's text") is not met by either.
 - REJECTED: a rule-text change. `dev/governance/rules/gate-scoping.md` is at its token cap (794/794, #2700), and naming the container trap there would add a sentence for a transitional condition that `INSTRUMENTS.md` already documents.
 - REJECTED: a new group for the container trap. Its fix is `cloud-setup.sh`'s profile (see Measured), which the pasted setup script already owns.
 Source: bot issue #2768 (filed 2026-10-24T21:38Z by the governance `record` job), re-filing #2746; the orchestrator's re-triage request.
@@ -84,3 +84,28 @@ Binding: the threshold counts the rule id a body writes after `gate-scoping:`, a
 What would change the answer: a third entry from the BASH_ENV family after the profile lands (then a cloud-setup or recorder defect, owed `env -u BASH_ENV` inside `derive_closures.sh`'s recorder), or a friction line whose cause is the rule's text.
 Unverified: that #2707's two failing checks are the same two shell-step checks as #2698's. #2707 names them by title, #2698 by behaviour, and I did not run `tests/entities.py` under a cloud container. If a seat shows they differ, #2707 is a separate cause (a recorder defect) and is DEFER to R10-FLOW-JIDOKA with that proof, not a rule-text finding.
 Disposition note: the bot's body updates in place while the window stands, so #2768 will keep reporting a count at or above 3 until the next stamp resets the window. Closing it with this reason is the orchestrator's to do; the bot never closes.
+
+## P105: roster-to-issue and carry-destination checks are opt-in or missing (S6-V38, owner-asked)
+Verdict: ACCEPT NARROWED -> R10-FLOW-POSTMERGE, parts (a) and (d) only; parts (b) and (c) are DEFER.
+- (a) ACCEPT: `roster_edit.py append-carry` refuses a destination whose stage is `done` (not `carries-open`, which exists to hold open carries), matching `roster_sync`.
+- (d) ACCEPT: `set-stage <group> done` prints the group's listed issues that are still open, in the same refusal-free output as P101's check.
+- (b) DEFER: the CARRY sweep in the default tick pass. Once (a) and P101 land, the two ways a carry reaches a done group are closed at their source; re-measure `carry_audit sweep --issues` BAD-DEST then. The sweep reads every open body and the issue list, which is API cost on a 4-minute tick for a count that should be 0.
+- (c) DEFER: a standing group-to-issue coverage check. (d) catches the open-issue case at the moment a group goes done, which is where the 6 measured cases arose. "Each live group has an issue" is unmeasured as a defect: V38 counts 4 live groups with none and does not show any needed one.
+- REJECTED: a hand-run sweep as the control. It found the 8 BAD-DEST only because the owner asked.
+Source: s6 `proposals.md` `## V38`, asked for directly by tvofi.
+Instances: V38's figures, from the orchestrator's measurement; I did not re-run the sweep.
+- 17 carries appended by `append-carry` to 8 groups after they were done.
+- `carry_audit sweep --issues`: 8 BAD-DEST to done groups.
+- 6 open issues owned only by done groups; 3 closed on verification, because the merges named the issue in prose, a code span or `issues`, not `fixes`.
+- 4 live groups with no issue.
+Measured on main:
+- `op_append_carry` (roster_edit.py, line 260) checks that the group exists and that the entry is not a duplicate, and nothing about the stage. `roster_sync` refuses a `Carry:` to a done group; `roster_edit` has no counterpart.
+- The CARRY section is added to the tick only under `--only CARRY` (orchestrator_tick.py, line 2061: "opt-in: never in the default pass"); its docstring says weekly and at closure.
+- The stage vocabulary has `carries-open` (roster_sync.py, lines 95-99), so the refusal in (a) must test `done` exactly, or a legitimate carry to an open-carry group would be refused.
+Cost:
+- (a) about 6 lines in `op_append_carry` plus a self-test: a carry to a done group refuses; the null control, a carry to a `carries-open` group, appends. Mutation proof: dropping the stage test fails the first case.
+- (d) about 10 lines: one `gh issue view` per listed issue at `set-stage done`, so about one call per issue per merged group, fail open for the print (it is information, not a refusal). Self-test with a stub.
+- Both in `roster_edit.py`, the file P101 already carries into; one group, so no new file and no extra hot-file contact.
+Binding: (a) closes the source of 17 appended carries and 8 BAD-DEST for 6 lines against a check that `roster_sync` already has, and the other arm (a body naming a done group) is P101. (d) prices at about one call per issue on a step that happens once per merge. (b) and (c) add standing API cost or an unmeasured rule for a count the first two should bring to zero.
+What would change the answer: BAD-DEST or open-issue-owned-by-done counts above 0 after (a), (d) and P101 land and a full sweep (then (b), rate-limited to 6 h, with the measured call count); or a live group shown to need an issue it lacks (then (c)).
+Carry text (for `roster_edit.py append-carry R10-FLOW-POSTMERGE`, citing `triage: dev/programme/triage/s6-batch22.md#P105`): "In tools/audit/seat/roster_edit.py: (a) `op_append_carry` refuses a destination group whose stage is `done` (not `carries-open`), naming the stage, as roster_sync does. Self-test: a carry to a done group refuses; the null control, a carry to a carries-open group, appends. Mutation proof: dropping the stage test fails the refusal case. (d) `set-stage <group> done` prints each issue in the group's `issues` and `fixes` that is still open, one `gh issue view` per issue; a failed read prints UNREADABLE for that issue and does not block the stage. Basis: 17 carries were appended to 8 done groups, 8 BAD-DEST were found, and 6 open issues were owned only by done groups (V38, 2026-10-25)."
