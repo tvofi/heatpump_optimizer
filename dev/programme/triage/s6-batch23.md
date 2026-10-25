@@ -44,3 +44,27 @@ Cost: (a) removes a seat and ~30 min per PR but pays in ruling defects reaching 
 Binding: a review that blocks 44% of triage PRs at least once, on judgement content no mechanical check reads, clearly outweighs the ~30 min it costs. The rounds that do not need a human are the 4 stale-`## Head` ones, and `policy_lint.mjs --pr-body` already catches them locally before handoff; fixing that is a fixer-habit gap (`ci-autofix.md`: repair what a red `prepr.sh` predicts), not a new instrument.
 Policy file that would change had this been ACCEPTed: `dev/governance/roles/orchestrator.md` section 11 ("A `merge` verdict from a reviewer that measured this head, or a carry"), by adding a bookkeeping exemption. Nothing changes; the merge condition is untouched.
 What would change the answer: a second window where fewer than 15% of triage PRs are blocked (the 48 h figure is 44%), or a measured per-round seat cost showing the review dominates the triage lane's wall-clock; for roster PRs alone, a window of 25 or more roster PRs with 0 judgement blocks (this window: 12 PRs, 1 block).
+
+## P109: a --model flag for the orchestrator's repair/render.py, or retire it for cloud_dispatch --model (S6-V41)
+Verdict: REJECT. `cloud_dispatch.py --model` already exists but does not replace `render.py`, and the 1-line fix belongs to the orchestrator's own out-of-tree script, not to the repository.
+Source: s6 `proposals.md` `## V41` (dispatch w30, the #2697 r10 render, 2026-10-25).
+Instances: 1, the scratch `render-sonnet.py` copy V41 records; I did not open it. Read: `repair/render.py` is 11 lines and hardcodes `claude-opus-5-5` twice (`_config(model=...)` and `render(model=...)`); `git show origin/main:tools/audit/seat/cloud_dispatch.py` has `--model M` on both the flag path and the group path (`grep -n -- '--model'`).
+Considered:
+- Retire `render.py` for `cloud_dispatch --model` (V41's second arm): the flag path (`--role --head --pr --topic --brief --model`) renders the same payload but only prints it or writes `--out`; `_publish` to `dispatch/<role>-<topic>` runs only on the `--group` path (`main`, `args.group`), and a repair round has a brief file and a PR, not a roster group. So the retire would lose the publish step, which is all `render.py` adds. Making the flag path publish is a new code path in a hot instrument (`cloud_dispatch.py`, owned by the finished R10-FLOW-DISPATCH, a nine-reference group) for one instance.
+- A `--model` argument on `render.py`: a one-line edit (`sys.argv[5]` or `$HPO_CLOUD_MODEL`, which `_config` already reads) to a file that is out of the tree, so there is nothing to merge or review and no ruling to make. The orchestrator may do it any time.
+- Moving `render.py` into `tools/audit/seat/` to cure the tools-live-in-repo slip: it hardcodes an orch-wt path and an overlay path; a moved copy would need both made flags, which is more than the slip is worth at one instance.
+Cost: ACCEPT of either repository arm is a hot-file change plus a self-test for no measured recurrence; the cheap arm costs nothing and needs no ruling.
+Binding: one instance, and the instrument it points at does not cover the use. An even or marginal trade is REJECT.
+What would change the answer: a second scratch copy of an out-of-tree dispatch instrument (cite the file), which re-opens a flag-path `--publish` as a ruling to a new group, since R10-FLOW-DISPATCH is done.
+
+## P110: merge_train add --front, or drain the spool by critical-path priority (S6-V42)
+Verdict: DEFER -> R10-FLOW-AUTOTRAIN (the open train-automation group; R10-TRAIN-UPGRADE is done, per the roster branch's HANDOVER, so cannot take a carry). One instance.
+Source: s6 `proposals.md` `## V42` (slip 2026-10-25, #2753 appended behind #2799/#2798; coordinator asked to route to R10-TRAIN-UPGRADE first).
+Instances: 1, #2753 as V42 records it; I did not re-run it. Read: `git show origin/main:tools/audit/seat/merge_train.py` has no `--front` (`grep -n -i front` hits only the `--overlap` up-front recarry); `train_add` appends under `QUEUE_LOCK` and the train drains the whole spool as the next batch, after the batches still pending (`spool_append`, the drain at the "Between batches" docstring).
+Considered:
+- R10-TRAIN-UPGRADE: done; it built the spool and `add`, so it is the right seam, but a done group takes no carry.
+- R10-FLOW-AUTOTRAIN (12 references on the roster branch): train automation, the nearest live seam; the owner of any change to what the train drains first.
+- Drain by critical-path priority instead of a flag: `gate_lease` derives priority already, but a priority drain changes ordering for every add, a policy-visible behaviour change in a 2000-line hot file, for one instance.
+Cost: `--front` is one flag plus one self-test arm in `merge_train.py`; the drain-by-priority form is larger. The hand edit of `queue-add.jsonl` it replaces is unlocked, a real hazard, but occurred once.
+Binding: the benefit is unmeasured (one slip, no count of how often a critical-path PR arrives behind others); an unmeasured benefit is DEFER, never ACCEPT.
+What would change the answer: a second critical-path PR queued behind non-critical ones (cite the spool order and the `add` log lines), or a second unlocked hand edit of the spool; either re-opens `--front` as an ACCEPT narrowed to the flag, carried to R10-FLOW-AUTOTRAIN.
