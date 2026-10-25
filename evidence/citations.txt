@@ -1,0 +1,60 @@
+######## dfcd8d9be
+tools/pr/app_push.sh:89: # It prefixes `## Head` with the note naming the new head, which pr-contract
+tools/pr/app_push.sh:442:     # The note goes under the `## Head` HEADING pr-contract reads, never the
+tools/audit/seat/open_pr.sh:17: PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+tools/audit/seat/update_pr.sh:3: # prefix ## Head with what happened, push as hpo-author. Prints HEAD. Uses a private worktree
+tools/audit/seat/update_pr.sh:24: PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+tools/audit/carry_audit.py:334:         return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
+tools/audit/seat/roster_lib.py:33: DONE_STAGES = ("done", "rca-done")
+tools/pr/prepr.sh:1417:   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --r
+tools/pr/prepr.sh:278: claims_check() { # prints env_drift's verdict; rc 0 holds, 1 refused, 2 no base
+tools/audit/seat/merge_train.py:5435:     b.add_argument("--tag", default=time.strftime("%Y%m%d-%H%M%S", time.gmtime()), help="proof branches are batch/<tag>-<n>")
+tools/audit/seat/merge_train.py:4880:     check("a pair on a red main merges nothing and is not bisected: no proof, no drop",
+tools/audit/seat/merge_train.py:1071:         self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
+.github/workflows/tests.yml:43: #   with GATE_SCOPE=auto: only the scripts the diff can actually reach
+.github/workflows/tests.yml:47: #   On a PUSH TO MAIN GATE_SCOPE is forced to full and every script
+.github/workflows/tests.yml:363:           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
+dev/governance/dimensions/D13.md:19: 1. **First-pass yield and rounds per merge.** Population: merged pull
+coordinator.py lines: 11299
+dev/governance/roles/architect-planner.md
+dev/governance/roles/design-review.md
+dev/governance/roles/designer.md
+tools/policy/figure_lint.mjs
+tools/policy/fixtures/figures/gh-arg.md
+tools/policy/fixtures/figures/gh-subcommand.md
+tools/policy/fixtures/figures/good.md
+tools/policy/fixtures/figures/missing-script.md
+tools/policy/fixtures/figures/prose-only.md
+tools/policy/fixtures/figures/unverifiable.md
+tools/policy/fixtures/policy-rot/prepr/wrong-head.md
+tools/pr/head_note.py
+######## c9cbe6b45
+tools/pr/app_push.sh:89: # It prefixes `## Head` with the note naming the new head, which pr-contract
+tools/pr/app_push.sh:442:     # The note goes under the `## Head` HEADING pr-contract reads, never the
+tools/audit/seat/open_pr.sh:17: PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+tools/audit/seat/update_pr.sh:3: # prefix ## Head with what happened, push as hpo-author. Prints HEAD. Uses a private worktree
+tools/audit/seat/update_pr.sh:24: PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+tools/audit/carry_audit.py:334:         return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
+tools/audit/seat/roster_lib.py:33: DONE_STAGES = ("done", "rca-done")
+tools/pr/prepr.sh:1417:   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --r
+tools/pr/prepr.sh:278: claims_check() { # prints env_drift's verdict; rc 0 holds, 1 refused, 2 no base
+tools/audit/seat/merge_train.py:5435:     b.add_argument("--tag", default=time.strftime("%Y%m%d-%H%M%S", time.gmtime()), help="proof branches are batch/<tag>-<n>")
+tools/audit/seat/merge_train.py:4880:     check("a pair on a red main merges nothing and is not bisected: no proof, no drop",
+tools/audit/seat/merge_train.py:1071:         self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
+.github/workflows/tests.yml:43: #   with GATE_SCOPE=auto: only the scripts the diff can actually reach
+.github/workflows/tests.yml:47: #   On a PUSH TO MAIN GATE_SCOPE is forced to full and every script
+.github/workflows/tests.yml:363:           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
+dev/governance/dimensions/D13.md:19: 1. **First-pass yield and rounds per merge.** Population: merged pull
+coordinator.py lines: 11299
+dev/governance/roles/architect-planner.md
+dev/governance/roles/design-review.md
+dev/governance/roles/designer.md
+tools/policy/figure_lint.mjs
+tools/policy/fixtures/figures/gh-arg.md
+tools/policy/fixtures/figures/gh-subcommand.md
+tools/policy/fixtures/figures/good.md
+tools/policy/fixtures/figures/missing-script.md
+tools/policy/fixtures/figures/prose-only.md
+tools/policy/fixtures/figures/unverifiable.md
+tools/policy/fixtures/policy-rot/prepr/wrong-head.md
+tools/pr/head_note.py
