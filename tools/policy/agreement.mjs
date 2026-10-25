@@ -204,6 +204,9 @@ const commentAt = (kind, text, i) => kind === 'js' ? text.startsWith('//', i) : 
 // bracket is read from the statement's first line, the line after the last
 // blank one, so an argv wrapped after its program or exploded one element per
 // line is one call; a line end there resets a quote as the forward read does.
+// With no bracket open the forward read starts at the line's start, as main's
+// line guard reads, and a closer before `pr` that matches nothing on the line
+// is skipped, not read as the call's end.
 function callExtent(text, at, kind) {
   const ls = text.lastIndexOf('\n', at - 1) + 1
   let ps = ls
@@ -234,7 +237,13 @@ function callExtent(text, at, kind) {
     if (n) { i += n - 1; continue }
     if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); if (e < 0) break; i = e - 1; continue }
     if ('([{'.includes(c)) depth++
-    else if (')]}'.includes(c) && --depth < 0) return text.slice(start, i + 1)
+    else if (')]}'.includes(c) && --depth < 0) {
+      // Before `pr`, a closer no opener of the line matches is the lead's -- a
+      // case arm, a list marker, a parenthetical wrapped from the line above --
+      // and closes nothing of the call's; past it, it closes what the call is in.
+      if (i < at) { depth = 0; continue }
+      return text.slice(start, i + 1)
+    }
   }
   return text.slice(start)
 }

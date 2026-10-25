@@ -12,7 +12,8 @@ MERGE_CALL and SUBJECT_ARG, L rows the lead (the program position, read only
 to anchor the line) and L5 the program read again, RV rows each site a
 shared part (GAP, OPTIONS) stands in, one site at a time, P rows the statement
 read the open bracket comes from (P1 restores the line-local scan), C rows the
-comment reader, G rows GAP's comment and literal-join arms. A survivor prints
+comment reader, G rows GAP's comment and literal-join arms, K rows the skip
+of a closer in the lead that matches nothing on its line. A survivor prints
 `N of N` and no FAIL. Expected survivors: Y9, Y10, each dispositioned in the
 PR body. A `NOT APPLIED` line means the mutated text moved.
 """
@@ -28,7 +29,9 @@ M = {
 'M4 backslash ignored':("&& text[i - 1] !== '\\\\')", ")"),
 'M5 depth ignored at line end':("if (!open.length && !depth && text","if (!open.length && text"),
 'M6 blank-line end deleted':("      if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)\n",''),
-'M7 enclosing close not end':("&& --depth < 0) return text.slice(start, i + 1)","&& --depth < -99) return text.slice(start, i + 1)"),
+'M7 enclosing close not end':("&& --depth < 0) {","&& --depth < -99) {"),
+'K1 a closer in the lead ends the call (the skip deleted)':("      if (i < at) { depth = 0; continue }\n",""),
+'K2 a closer in the lead skipped, its depth kept':("if (i < at) { depth = 0; continue }","if (i < at) continue"),
 'M8 start always line start':("const start = open.length ? open[open.length - 1] : ls","const start = ls"),
 'M10 quotes not read':('  if (c === \'"\' || c === "\'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }\n',''),
 'M11 escapes not read':("    else if (c === '\\\\') st.esc = true\n",''),
