@@ -1,3 +1,0 @@
-     10 Verdict: ACCEPT
-10
-no-host-paths

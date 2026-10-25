@@ -1,4 +1,0 @@
-record merges: 31 of 107 first-parent merges
-     32 A
-    105 M
-outside delivery/: 0

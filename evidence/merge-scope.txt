@@ -1,0 +1,15 @@
+## merge-tree origin/main 8aee66b77289f567617e9f9f852d72d5c4097aba vs 50da13119aa07e521077d13d9b912e2fabd404ad
+9842afdac8ae8fb58445e99a4f3b02a380662554
+exit 0
+## three-dot scope
+ dev/programme/delivery/2827.md     |   1 +
+ dev/programme/triage/s6-batch27.md | 106 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 107 insertions(+)
+## host/home paths in the diff
+none
+## verdict counts
+      4 Verdict: ACCEPT
+      6 Verdict: DEFER
+10
+## VERSION/manifest/notes untouched
+untouched
