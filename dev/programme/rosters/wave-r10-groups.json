@@ -4900,9 +4900,9 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "da12aa37dee15b9e9567bd6c848493436f2592dd",
     "last_step": null,
     "next_step": "rca",
     "note": null,
