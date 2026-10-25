@@ -1,0 +1,63 @@
+4:# watches them; the coordinator is left to start seats and handle blocks.
+166:  if [[ $1 =~ ^Fix\ review:\ blocked\ ([0-9a-f]{40})\ [a-z-]+:\ .+$ ]]; then printf '%s\n' "${BASH_REMATCH[1]}"; return 0; fi
+551:    # orphan. A stamp ahead of the clock reads as young, never as aged.
+802:  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N1" > "$W/stale.md"
+807:  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N2" > "$W/blocked.md"
+808:  out=$(seat push-verdict 7 "$W/blocked.md" "$W/ev2")
+812:  echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
+816:  # by a keyless seat after round 2's block, to supersede it.
+913:  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N3b" > "$W/ff2.md"
+938:  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N3d" > "$W/ff2-22.md"
+1084:  # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
+1089:  printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
+1093:  printf 'Fix review: blocked %s harness: the planted host path removed\n\nbus-nonce: %s\n' "$h1" "$NL" > "$W/merge-clean.md"
+
+watch_once() { # post? -> prints events; rc 0 when any, 3 when quiet, 1 on error
+  local post=$1 cur events line kind name sha
+  mkdir -p "$S" || die "watch: cannot create $S"
+  cur=$(snapshot) || die "watch: could not list the refs of $REMOTE"
+  if [ ! -f "$S/refs" ]; then
+    printf '%s\n' "$cur" | grep -v '^$' > "$S/refs"
+    printf 'bus: baseline of %s ref(s) recorded in %s/refs; changes from here on are reported\n' \
+      "$(grep -c . "$S/refs")" "$S"
+    return 3
+  fi
+  events=$(printf '%s\n' "$cur" | grep -v '^$' | awk '
+    FILENAME == ARGV[1] { old[$1] = $2; next }
+    { seen[$1] = 1; if (old[$1] != $2) print $1, $2 }
+    END { for (r in old) if (!(r in seen)) print r, "gone" }' "$S/refs" - | LC_ALL=C sort)
+  [ -n "$events" ] || return 3
+  while read -r name sha; do
+    line=$(kind_of "$name"); kind=${line%% *}
+    printf 'BUS %s %s %s\n' "$kind" "${line#* }" "$sha"
+    if [ "$post" = 1 ] && [ "$sha" != gone ]; then
+      case $kind in
+        review) review_status "${line#* }" "$sha" </dev/null ;;
+        verdict) grep -qx "${line#* } $sha" "$S/posted" 2>/dev/null || post_verdict "${line#* }" "$sha" </dev/null ;;
+      esac
+    fi
+  done <<EOF
+$events
+EOF
+  printf '%s\n' "$cur" | grep -v '^$' > "$S/refs.new" && mv "$S/refs.new" "$S/refs"
+  return 0
+}
+
+watch() {
+  local once=0 post=0 every=60 rc
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --once) once=1 ;;
+      --post) post=1 ;;
+      --every) shift; numeric "${1:-}" || die "watch: --every takes seconds"; every=$1 ;;
+      *) die "watch: unknown argument '$1'" ;;
+    esac
+    shift
+  done
+  while :; do
+    watch_once "$post"; rc=$?
+    [ $rc = 3 ] || return $rc
+    [ $once = 1 ] && return 0
+    sleep "$every"
+  done
+}
