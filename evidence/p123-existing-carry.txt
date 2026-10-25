@@ -1,0 +1,39 @@
+== tools/pr/app_approve.sh at 5e29f43f94309b03a97448b85cf444b3905d87fa (blob 3037537d8706f07f43e8a44b87f0ffc8e6b705c9)
+203:bot_author() { # subject -> the author email its writer commits as
+205:    "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
+211:bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
+214:    "ci: re-record closures") printf '%s\n' tests/closures.json ;;
+215:    "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
+221:carry() {
+243:        || { echo "$c is not the automatic merge of its parents"; return 1; }
+245:      echo "$c is a commit of the branch's own ($subj)"; return 1
+266:            || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
+705:g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
+707:g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+720:H_PINELSE=$(pin_commit "$V" "ci: re-record closures" tests/mutation_ledger/killed_by/a.json)
+1448:st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge"
+1495:st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
+1500:  git commit -qam "ci: re-record closures"
+
+== merge_train.py callers of app_approve --carry
+54:  3. carry    -- `app_approve.sh --carry <verdict> <head>` must say `CARRY: yes`:
+1698:        o = self.run(["bash", tool("app_approve"), "--carry", item["verdict"], h])[1]
+1997:            o = self.run(["bash", tool("app_approve"), "--carry", verdict, h])[1]
+2091:            o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
+2444:                o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
+
+== bus.sh header naming the carry predicate
+# THE ORDERING. `dispatch` refuses a head that carries no
+# `dev/programme/delivery/<pr>.md`, the pull request's own delivery row
+# (delivery-status-tracking.md). The row is the orchestrator's and lands
+# before the review: a row written after the verdict moves the head off the
+# one the reviewer measured, which `app_approve.sh --carry` refuses as a
+# commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
+# A verdict posts only against a dispatch's nonce, so this is the one place
+# that can keep the row from landing late.
+
+== orchestrator.md section 11 carry
+230:  with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
+== fix-review.md step 12
+91:    **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
+92:    section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
