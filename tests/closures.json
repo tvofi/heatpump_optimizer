@@ -3641,6 +3641,7 @@
    "dev/audit/harnesses/r10_night_folds_learners.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
+   "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_policy_lint_family_mutants.py",
    "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
