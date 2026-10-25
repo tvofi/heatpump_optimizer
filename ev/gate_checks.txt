@@ -1,0 +1,14 @@
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  File "<worktree>/tests/entities.py", line 40, in <module>
+    from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
+ModuleNotFoundError: No module named 'layout'
+entities exit=1
+STRUCTURE RATCHET PASSED
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 389 line(s) added since 102f74975840 judged, 0 refused
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 102f74975840
+VERSION/manifest/notes untouched
+no trailers
+  File "<worktree>/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+entities exit=1

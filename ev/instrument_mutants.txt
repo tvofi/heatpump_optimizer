@@ -1,0 +1,22 @@
+== m_refuse_nothing
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head origin/main: planted=0 main_not_head=82735 {"comment-line":12856,"unmatched-closer-in-lead":8856,"other":61023}
+head 4aad9c117: planted=0 main_not_head=82735 {"comment-line":12856,"unmatched-closer-in-lead":8856,"other":61023}
+exit=0
+== m_empty_tree
+files=0
+corpus 
+base origin/main: 
+head origin/main:  main_not_head=0 {}
+head 4aad9c117:  main_not_head=0 {}
+exit=0
+== m_no_diff
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head origin/main: planted=82735 main_not_head=0 {}
+head 4aad9c117: planted=74665 main_not_head=0 {}
+exit=0
+exit=2
