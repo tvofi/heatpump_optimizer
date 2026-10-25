@@ -454,8 +454,9 @@ jobs:
       # fed through the real coordinator cycle by cycle, every published
       # entity judged -- the lane #1499 argued for: a defect found in use
       # after seven synthetic audit rounds. Its own step, run whatever the
-      # suite above concluded, so its red is its own. Nightly rather than per
-      # pull request until a week of real data has been timed.
+      # suite above concluded, so its red is its own. The full run; a pull
+      # request runs it only when its diff reaches what it times (tests.yml's
+      # `replay` job, R10-REPLAY-SCOPED).
       - name: Replay recorded days through the real coordinator
         if: success() || failure()
         env:

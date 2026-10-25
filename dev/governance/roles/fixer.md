@@ -4,6 +4,10 @@ You own one PR group: one subsystem, at most five findings, at most about 400
 production lines. You work in your own worktree branched from `origin/main`.
 Read only your roster group (`jq`). Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
+Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
+API floor is theirs), woken once by its exit, never sleeping and polling;
+past the handoff, do not wait. Rotate to a fresh context between stages (rca,
+fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading** (`CLAUDE.md` rule 4). The rule is keyed on the manifest's
@@ -13,15 +17,18 @@ background task, whose exit wakes you; never end a turn on a detached one.
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
    the closure, paste the failing check names, restore. **Mutate the predicate,
-   not the tail**: a line appended past a script's own return changes nothing,
-   and a vacuous mutation reads exactly like a passing check — `exit 3` on the
-   end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
+   not the tail**: a line past a script's own return changes nothing, nor
+   `exit $?` to `exit 0` under `set -e` (write `|| true; exit 0`; #2709), and a
+   vacuous mutation reads exactly like a passing check.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included: the runner's, not the mutant's
    (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
    `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
    `## Unpinned sites` gives each its disposition: pinned by
-   `mutation-autofix`, a value check, or a written triage.
+   `mutation-autofix` (its lane mutates `custom_components/` only; a `tools/`
+   site needs an in-tree mutant harness), a value check, or a triage under
+   `tests/mutation_ledger/survivor_triage/` (the ratchet reads no body). Run the
+   ledger's own mutant before claiming a kill (#2445).
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
@@ -30,7 +37,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
    reports unverified, not refused. A harness measuring what the fix rightly
    leaves alone reads flat at both ends: say so, and add a sha1-cited companion
    applying the tree's own rule to the same inputs, reading the defect at the
-   baseline and not at the head (#1506, #1561, #1571).
+   baseline and not at the head (#1506, #1561, #1571). A fold deleting a name
+   the harness drives leaves only its count arm readable at the head;
+   the fixer ports the rest, as its own (`fix-review.md` step 9; #2365).
    **Every quantified claim carries a null control, not only cost, gain and
    time**: a count, a percentage, an "every" or a "none" is a measurement,
    owed the command that produced it and
@@ -60,7 +69,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
    (`ci-autofix.md`'s wait starts at the PR), and the body passes
-   `tools/pr/prepr.sh`; the orchestrator opens
+   `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`), and
+   `tools/audit/carry_audit.py check --body`, which prepr omits; the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
@@ -77,11 +87,13 @@ background task, whose exit wakes you; never end a turn on a detached one.
    with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
    body to the orphan `handoff-body/<topic>` (`seat/body_push.sh`),
    off the code head (`prepr.sh` step 1a); that push is the handoff; the
-   orchestrator writes the row.
+   orchestrator's `handoff_push.sh` opens the PR and writes the row.
 
-   **The handoff freezes the branch.** Until then, update it from `origin/main`
-   whenever you need to — `git merge origin/main`, never rebase. After it, the
-   head is the reviewer's measuring surface and **only the orchestrator, the
+   **The handoff freezes the branch.** Until then, merge `origin/main` (never
+   rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
+   conflict or the head is `DIRTY` (`nudge.md` step 9). A delta re-applied to
+   a branch cut from an older base is diffed line by line against its
+   sibling's head, or a stale copy reverts it (#2368). After it, the head is the reviewer's measuring surface and **only the orchestrator, the
    merge-main bot or `--carry` moves it**: a head that moves mid-review invalidates measurements taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
@@ -118,24 +130,19 @@ background task, whose exit wakes you; never end a turn on a detached one.
    function, marker or SHA, never a bare line number — and delete only when
    no such correction exists.** Delete on sight, not as a last resort, when
    the claim is only motivation or scaffolding the finished text doesn't
-   need. #386 took four repair rounds to correct 17 citations; only its last
-   two, bare line numbers a later merge falsified, were settled by deletion.
+   need (#386).
 10. **If the wrong text is generated, fix the generator first, and run it.**
     Correcting prose a script emits leaves the script emitting the old text on
-    its next run, so the correction is undone rather than kept — #539 found
-    `tools/audit/prepare_baseline.sh` writing the `mkdir` gate lock `CLAUDE.md`
-    forbids into every new auditor's `BASELINE.md`, alongside the same
-    instruction in agent prompt strings under `.claude/workflows/`. Grep for
-    the wrong form across the whole tree before deciding what to edit, because
-    a generator is rarely the only copy. **A generator fixed without being run
-    is a claim, not a fix**: run it and paste what it now emits, with the same
+    its next run, so the correction is undone rather than kept (#539). Grep for
+    the wrong form across the whole tree before deciding what to edit.
+    **A generator fixed without being run is a claim, not a fix**: run it and
+    paste what it now emits, with the same
     run at the merge base as the control. Distinguish text that *instructs*
     from a record that *recounts* — a measurement record stays as written.
 11. **A check pins the artifact it reads, not the one it is named for.** The
-    #546 set check was named for `apply_topology`'s schema and read the module
-    constant that schema is built from, so a schema that stopped agreeing with
-    the constant was invisible — `slab_shunt` plus a junk key passed all 2002
-    checks (#550). Read the registered artifact, as `tests/entities.py` does.
+    #546 check read the constant `apply_topology`'s schema is built from, so a
+    schema that stopped agreeing with it was invisible (#550). Read the
+    registered artifact, as `tests/entities.py` does.
     Then probe a key the read does **not** name: under `extra=vol.ALLOW_EXTRA`
     the read set is still exactly right while the schema accepts anything, so
     the probe is the reader's own null control.
@@ -170,12 +177,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
     and compare the two. Equal keys mean the entry blinds the pin at the site
     it watches, and the answer is to change the route until no entry is needed,
     or to widen the key until the two separate — never to add it and note the
-    risk. #714 declined an entry in `tests/nightly_ha.py`'s `KNOWN_BLOCKING`,
-    keyed on (call, file, source snippet): its report was legitimate only
-    because the caller was `atexit`, running after the loop was gone, and no
-    field of that key carries a caller — so the entry would equally have
-    matched that line reached from a coroutine, #525's class at the one site
-    the pin exists to watch.
+    risk. #714 declined a `KNOWN_BLOCKING` entry keyed on (call, file,
+    snippet): no field carries the caller, so it would equally have matched
+    that line reached from a coroutine (#525).
 
     **A fix that changes the route leaves the reported text where it was, so
     name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
@@ -187,13 +191,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
 15. **A bitwise-parity claim over numpy reductions is per-architecture.**
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
     reduction over a row VIEW of a batched array one over the fresh array
-    the scalar expression builds: numpy's pairwise loop treats alignment
-    and stride as inputs, and which paths it takes is a backend property —
-    #948's batched cost terms were bit-identical to the scalar objective
-    on the arm64 seat that wrote them (twice, under two designs) and
-    re-planned 19 of 51 stress scenarios on CI's x86_64, at the 96-step
-    production width only, so a 48-step parity grid passed unseen. Where
-    the contract is bitwise, run the SCALAR EXPRESSION per row, on the
+    the scalar expression builds: numpy's pairwise loop takes alignment and
+    stride as inputs, per backend (#948: arm64 parity, x86_64 drift, at the
+    96-step production width only). Where the contract is bitwise, run the
+    SCALAR EXPRESSION per row, on the
     fresh per-row arrays that expression's own elementwise ops allocate —
     batch only what is elementwise end to end — and drive the parity grid
     at the production width.
@@ -201,11 +202,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
     The same rule holds one level up and across interpreter versions: a
     reduction whose scalar form is a PYTHON BUILTIN is compensated
     arithmetic on CPython 3.12+ — builtin `sum` is Neumaier — and no
-    vectorized accumulation reproduces it. #948's terminal twin
-    accumulated plain vector adds against the scalar closure's `sum`:
-    1-2 ulp apart, which diverged both of optimality's jac races on CI's
-    3.14 runner while every 3.11 seat was green, because 3.11's `sum` is
-    plain accumulation.
+    vectorized accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14
+    runner, green on 3.11, whose `sum` is plain).
     Make the twin call the scalar closure's own function per row, and put
     detector rows on the parity grid that separate the two summations
     (measured: ~12% of random three-term sums), so the interpreter class
@@ -250,12 +248,15 @@ background task, whose exit wakes you; never end a turn on a detached one.
     null control (`fix-review.md` step 14). Never move a metric by a change
     that does not improve the code: a mechanical split, code moved to an
     unmeasured path, a triage on a killable mutant, or cases enumerated where
-    a structural fix exists (#1874: a spelling list, three review rounds,
-    class still open).
+    a structural fix exists (#1874, #2345: a spelling list, three review
+    rounds, class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`,
-    classified (step 5); a one-off probe may stay in scratch.
+    classified (step 5); a one-off probe, or a reviewer's driver, stays in
+    scratch or evidence. A new harness is a predicted closures red
+    (`tests/harness_headers.py` reads the directory) that
+    `tools/pr/ci_predict.py --apply-inert` repairs before the handoff.
     `git status` lists each (`git check-ignore -v` names a local exclude hiding
     one); `tools/audit/seat/tmp_paths.py` refuses temp or machine paths.
 
@@ -274,6 +275,7 @@ module. A method added outside that **class** moves none of the first group, so
 the payment question does not arise there. *Class*, not file: `coordinator.py`
 holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
 Derive the split (what `measure()` keys by that name) at your merge base; never carry it.
+`max_class_loc` is a span: a docstring line costs what a code line does.
 
 **An empty payment pool is a halt only where a payment was owed.** Let
 `python3 tests/structure.py` name what moved at your merge base. Outside the
