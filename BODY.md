@@ -175,6 +175,7 @@ Architecture score: dS +1.8325 IMPROVES against the merge base `dfcd8d9be` (`pyt
 - `tests / mutation-autofix` is red (skip-measure-failed, above). It is the bot's own report that it did not repair, not a defect of this diff.
 - `tests/entities.py` "every mark still names a mutant this tree generates" was red locally at `63c71616c`: three pins on `AccuracySample.from_dict.num`, the line round 3 rewrites (`bc6be4d0`). `ci_predict.py` named them. `b2a55c4a9` deletes them, and no new detector is owed.
 - Round 1's `tests/entities.py` P8 precondition red (`9ad5f78a9`, repaired in `c2dc1e39b`) stands as written then.
+- **tests / fast (3.14)**: red at 734ad21f on golden claim drift. The round-2 claims were the macOS reading (dhw_cold_tank, horizon_48h), but CI's Linux BLAS moves different scenarios (away_setback steps 40/44 to idle_coasting, 4 leaves; valve_storage_small_tank step 77 to idle_coasting, 1 leaf). This head replaces them with the Linux reading taken by the round-2 reviewer (`env_drift.py --all`, comment 6402015298), with `claims-for: 7.0.4` = VERSION. Both platforms are recorded on #996 (comment 6402685018). The cheaper detector is `tests/env_drift.py --all` on Linux. No seat can run it: the local Linux container lane was removed on 2026-10-04 and is CI-only, so its standing cost is a CI round per claim change. A macOS seat has no cheaper detector than CI `tests / fast` itself. That is the finding, and CI `tests / fast` at this head is the confirmation the reviewer gates on.
 
 ## Forward-carry
 
