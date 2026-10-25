@@ -8857,8 +8857,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "branch": null
+    "stage": "done",
+    "branch": null,
+    "commit": "5c0ee109305fc4f377c9326c712156b9ceb0e638"
    },
    "brief": "seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) and a bare getter that returns a tuple of state reads pays (rule 14, planted as `_cop_state()`, -2). Count distinct (seam, attribute) pairs reached, including through a callee, or refuse a callee whose only body is a tuple of state reads. A failing test first: plant the alias and the getter on a clean tree; neither may move the figure, and that plant is also the null control. Use the finder's harness, the plants plant_p2.diff and plant_p3.diff in the ev/ directory of probe/rev-2620-654004be. Any budget re-record the metric change forces goes in the commit message, per CLAUDE.md rule 2, and a raise needs the owner's confirmation before the branch is pushed. Follow dev/governance/roles/fixer.md."
   },
