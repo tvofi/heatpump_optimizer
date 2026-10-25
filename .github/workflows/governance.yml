@@ -385,7 +385,8 @@ jobs:
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
 
       # Which CodeQL legs a pull request may skip (O17): every skip arm against
-      # its analyze null control, and every non-pull_request event analyzing.
+      # its analyze null control, and every non-pull_request event analyzing
+      # but a train proof whose entry heads all analyzed the leg.
       # The tally line must say 0 failed.
       - name: Show the CodeQL leg scope refusing every unsafe skip
         run: |
