@@ -21667,18 +21667,31 @@ R.check(
             "issue #996",
             "runner is the judge of record",
             "BOTH captures",
-            "do NOT edit the claim file again",
+            "do NOT re-add this fixture's claim",
         )
     ),
     "the pre-agreed decision tree is the payload; a restatement of the "
     "generic stale-claim rule is what this arm replaced",
 )
 R.check(
-    "the fail-fast message says the third recorded instance re-opens the "
-    "grammar decision",
-    "third" in _R996_MSG.lower() and "re-opens" in _R996_MSG,
-    "the 2026-09-13 recorded decision priced two instances and deferred to "
-    "a third; the message must hand that trigger to the seat it fires on",
+    "the fail-fast message hands the seat the shape claim the #996 grammar "
+    "decision landed at its reopen threshold",
+    f"`{_env_drift.SHAPE_CLAIM_MARKER} <leaf paths> <from> -> <to>`" in _R996_MSG
+    and "claim-files.md" in _R996_MSG,
+    "the 2026-09-13 decision deferred the grammar to a third instance; "
+    "R10-996-RUNNER-CLAIMS landed it, and the seat a stale claim fires on "
+    "is the one that needs the form",
+)
+R.check(
+    "a stale shape claim gets its own message, not the per-fixture "
+    "runner-conditional tree",
+    _env_drift.runner_conditional_error(
+        "shape: space_reasons[*] * -> 'idle'", "origin/main"
+    ).startswith("SHAPE CLAIM MATCHED NOTHING")
+    and _R996_MSG.startswith("RUNNER-CONDITIONAL CANDIDATE"),
+    "no leaf moved in the shape anywhere on this host: there is no fixture "
+    "the runner failed to reproduce, and 'remove the claim, the runner is "
+    "judge' would hide that the change stopped doing what it claims",
 )
 R.check(
     "the fail-fast message shows the instance marker only inside prose, "
@@ -21721,6 +21734,173 @@ R.check(
     and _r996_calls(_R996_MAIN, "runner_conditional_error"),
     "the live path, not the module namespace, is the product; this is the "
     "pin that goes red when the wiring is deleted",
+)
+
+# R10-996-RUNNER-CLAIMS: the shape claim. One direction everywhere, a
+# host-dependent SET of fixtures (#2819 round 4): no per-fixture claim list
+# is green on every runner, because which fixtures move is the solve's basin.
+# A `shape:` line claims the leaves, not the fixtures. Driven through
+# `judge_drift` with each host reading the #996 thread recorded for the
+# parked classifier arm (comment 6404201979; #2819 comments 6402015298 and
+# 6403941902): leaf paths and values as each capture printed them.
+_SC_LINE = "shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'"
+_SC_CLAIMS = {_SC_LINE: ["the classifier arm idles a share the plan runs no pump at"]}
+
+
+def _sc_reasons(moves: dict[int, tuple[str, str]], n: int = 192) -> tuple[list, list]:
+    """(baseline, branch) reason lists moving exactly ``moves``' steps."""
+    base = ["scheduled"] * n
+    head = list(base)
+    for step, (old, new) in moves.items():
+        base[step], head[step] = old, new
+    return base, head
+
+
+def _sc_hosts() -> dict[str, list[tuple[str, str, dict[int, tuple[str, str]]]]]:
+    """Each recorded host reading: (fixture, reason key, {step: (from, to)})."""
+    ip = ("cheap_price", "idle_coasting")
+    oc = ("idle_other_channel", "idle_coasting")
+    sc = ("scheduled", "idle_coasting")
+    return {
+        "macos-arm64": [
+            ("dhw_cold_tank", "space_reasons", {26: ip}),
+            ("dhw_cold_tank", "dhw_reasons", {26: oc}),
+            ("horizon_48h", "space_reasons", {153: ip}),
+            ("horizon_48h", "dhw_reasons", {153: oc}),
+        ],
+        "cloud": [
+            ("away_setback", "space_reasons", {40: ip, 44: ip}),
+            ("away_setback", "dhw_reasons", {40: oc, 44: oc}),
+            ("valve_storage_small_tank", "space_reasons", {77: sc}),
+        ],
+        "runner-734ad21fa": [
+            ("valve_storage_small_tank", "space_reasons", {77: sc}),
+        ],
+        "runner-d710a5af5": [
+            ("valve_storage_flat_prices", "space_reasons",
+             {28: ip, 29: ip, 30: ip, 31: ip}),
+            ("valve_storage_low_target", "space_reasons", {
+                87: ("comfort_floor", "idle"), 88: sc,
+                90: ("terminal_value", "idle_coasting"),
+            }),
+        ],
+    }
+
+
+def _sc_captures(reading) -> tuple[dict, dict]:
+    """(branch, baseline) captures for one host reading, plus a still fixture."""
+    branch: dict = {"still": {"space_reasons": ["scheduled"] * 4}}
+    baseline: dict = {"still": {"space_reasons": ["scheduled"] * 4}}
+    for fixture, key, moves in reading:
+        base, head = _sc_reasons(moves)
+        baseline.setdefault(fixture, {})[key] = base
+        branch.setdefault(fixture, {})[key] = head
+    return branch, baseline
+
+
+def _sc_judge(branch, baseline, claims=None, may=None):
+    with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+        return _env_drift.judge_drift(
+            branch, baseline, _SC_CLAIMS if claims is None else claims,
+            may or {}, "base",
+        )
+
+
+_SC_VERDICTS = {
+    host: _sc_judge(*_sc_captures(reading)) for host, reading in _sc_hosts().items()
+}
+R.check(
+    "one shape claim holds on every recorded host reading of the parked "
+    "classifier arm: macOS, cloud and both runner readings",
+    all(v[0] == 0 and _SC_LINE in v[1] for v in _SC_VERDICTS.values()),
+    "per host (unclaimed, shape matched): "
+    + ", ".join(f"{h}=({v[0]}, {_SC_LINE in v[1]})" for h, v in _SC_VERDICTS.items()),
+)
+R.check(
+    "the same readings under the cloud's per-fixture claim list are not green "
+    "on every host (the #996 dilemma; the null of the check above)",
+    not all(
+        _sc_judge(*_sc_captures(r), claims={
+            "away_setback": ["r"], "valve_storage_small_tank": ["r"],
+        })[0] == 0
+        for r in _sc_hosts().values()
+    ),
+    "the cloud's claim list is unclaimed drift on the d710a5af5 runner",
+)
+
+
+def _sc_mutant(fixture: str, key: str, old, new, at: int | None = None):
+    """The cloud reading plus one more leaf move: ``key`` from ``old`` to ``new``."""
+    branch, base = _sc_captures(_sc_hosts()["cloud"])
+    if at is None:
+        base[fixture][key], branch[fixture][key] = old, new
+    else:
+        base[fixture][key][at], branch[fixture][key][at] = old, new
+    return _sc_judge(branch, base)[0]
+
+
+_SC_MUTANTS = {
+    "a value leaf": _sc_mutant("away_setback", "power_schedule", [0.1], [0.0]),
+    "the reverse pair": _sc_mutant(
+        "away_setback", "space_reasons", "idle_coasting", "cheap_price", at=5),
+    "another reason pair": _sc_mutant(
+        "away_setback", "space_reasons", "scheduled", "comfort_floor", at=6),
+    "another leaf path": _sc_mutant(
+        "away_setback", "setpoint_reasons", ["cheap_price"], ["idle_coasting"]),
+}
+R.check(
+    "a drift outside the claimed shape is refused: a value leaf, the reverse "
+    "pair, another reason pair, another leaf path",
+    all(v == 1 for v in _SC_MUTANTS.values()),
+    "unclaimed per mutant: " + ", ".join(f"{k}={v}" for k, v in _SC_MUTANTS.items()),
+)
+
+R.check(
+    "an unchanged tree with the shape claim present matches nothing, so the "
+    "claim reads stale (null control)",
+    _SC_LINE not in _sc_judge(*_sc_captures([]))[1],
+    "a shape claim nothing on this host moved in is a claim nothing uses",
+)
+_SC_WOOD = _sc_judge(
+    *_sc_captures([("wood_coil", "space_reasons", {3: ("cheap_price", "idle_coasting")})]),
+    may={"wood_coil": "#1207 directive"},
+)
+R.check(
+    "a may-drift fixture moving in the shape is evidence the shape occurred "
+    "on this host: the claim is live, and the fixture stays may-drift",
+    _SC_WOOD[0] == 0 and _SC_LINE in _SC_WOOD[1] and _SC_WOOD[2] == ["wood_coil"],
+    f"verdict={_SC_WOOD!r}",
+)
+
+_SC_REFUSED = {
+    "malformed": "shape: space_reasons[*] 'a' 'b'",
+    "both ways": "shape: space_reasons[*] 'idle'|'cheap_price' -> 'idle'",
+    "no literal path": "shape: *[*] * -> 'idle'",
+    "a float literal": "shape: power_schedule[*] * -> 0.0",
+    "a wildcard target": "shape: space_reasons[*] 'cheap_price' -> *",
+}
+R.check(
+    "a shape line that does not parse to one direction over named leaves "
+    "refuses the run (fail closed)",
+    all(_env_drift.shape_claim_error({ln: ["r"]}) for ln in _SC_REFUSED.values())
+    and _env_drift.shape_claim_error(_SC_CLAIMS) is None
+    and _env_drift.shape_claim_error({"away_setback": ["r"]}) is None,
+    "accepted: " + ", ".join(
+        k for k, ln in _SC_REFUSED.items()
+        if not _env_drift.shape_claim_error({ln: ["r"]})
+    ),
+)
+R.check(
+    "main() refuses a malformed shape line before any capture, in both the "
+    "--claims-only and the capture paths",
+    sum(
+        isinstance(sub, _ast_af.Call)
+        and isinstance(sub.func, _ast_af.Name)
+        and sub.func.id == "shape_claim_error"
+        for sub in _ast_af.walk(_R996_MAIN)
+    ) >= 2,
+    "an unparseable shape line must not fall through to a name claim that "
+    "matches no fixture",
 )
 
 # The instance counter. The #996 thread is the ledger -- the two historical
