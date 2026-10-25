@@ -1,5 +1,0 @@
-#2524: merged 2026-10-22T20:16:54Z. Forward-carry: "#2502 stays open; keep resume.stage at in-progress past #2524's merge." and the Revision-12 self-test isolation "is not built here". Both Carry: R10-UPDATE-PR-SIGNALS.
-#2671: merged 2026-10-23T23:20:07Z. Body: "ledger.py is the one module"; "no change to bus.sh (dispatch's reviewer-fire close is R10-ORCH-DISPATCH-REG's)".
-#2813 comment 6399377608: "Fix review: blocked bd88bca13... ruling-refuted: P117 ..." (coordinator.py:9335, D15-s1-05). Comment 6399500180: "Fix review: merge ac6c53581...".
-Open PRs (list_pull_requests state=open): 2822, 2821 (P127 policy edit, fix/r10-triage-opus), 2820, 2819, 2818, 2817, 2813, 2812, 2811, 2806, 2796, 2777, 2773, 2753, 2745, 2697, 2678. None is a PR of R10-FLOW-DESIGN-STAGES, R10-TRAIN-OVERLAP-GRADE, R10-ORCH-ROSTER-SCHEMA, R10-FLOW-TOOLKIT-MODEL, R10-ORCH-LEDGER, R10-ORCH-DISPATCH-REG, R10-ORCH-REVIEW-PACKET or R10-CLOSEOUT-CLEANUP.
-Not read: the merge-train spool and merge-STATE (orchestrator machine), the ruleset 23698884.

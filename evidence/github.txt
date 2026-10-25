@@ -1,0 +1,5 @@
+check-runs on e40e45eeb9509e44bb93d43373cf777cc62f40d8 (pull_request_read get_check_runs, 7 runs): cancel-superseded x2, prelude x2, refresh x2 queued (started 2026-10-25T17:07Z); arm completed skipped. None concluded red; none concluded green.
+PR #2822: head e40e45eeb9509e44bb93d43373cf777cc62f40d8, base da12aa37d, changed_files 2 (the batch file and dev/programme/delivery/2822.md), author hpo-author[bot], title "Merge remote-tracking branch 'origin/main' into triage/s6-batch26".
+PR #2524: merged_at 2026-10-22T20:16:54Z (fd9914851 on main). Its Forward-carry keeps the SIGKILL clause and the self-test isolation on R10-UPDATE-PR-SIGNALS.
+Issue #2502: open. PR #2753: open (draft).
+Open PRs (search is:open, 15): none for R10-ORCH-ROSTER-SCHEMA, R10-ORCH-DISPATCH-REG or R10-ORCH-LEDGER.

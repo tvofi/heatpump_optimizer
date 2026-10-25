@@ -1,0 +1,9 @@
+MUTANT drop carries from touched(), roster origin/main
+## R10-UPDATE-PR-SIGNALS stage=in-progress carries=5
+   R10-ARCH-DOCS [not-started] closes_round=None seam_note_names_P=False shared=[]
+   R10-FLOW-ROSTER-FREEZE [not-started] closes_round=None seam_note_names_P=False shared=['cloud_relay.sh', 'tools/audit/seat/cloud_relay.sh']
+   R10-FLOW-BODY-ONLY [not-started] closes_round=None seam_note_names_P=False shared=['cloud_relay.sh', 'pr_args.sh', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/update_pr.sh', 'update_pr.sh']
+   R10-FLY-OPENPR-ATOMIC [not-started] closes_round=None seam_note_names_P=False shared=[]
+   R10-FLY-RELAY-REVIEW-FF [carries-open] closes_round=None seam_note_names_P=False shared=['cloud_relay.sh', 'tools/audit/seat/cloud_relay.sh']
+   R10-FLY-ORPHANS-REWRITTEN [not-started] closes_round=None seam_note_names_P=False shared=['cloud_relay.sh', 'tools/audit/seat/cloud_relay.sh']
+   R10-FLY-GH-READ-RETRY [carries-open] closes_round=None seam_note_names_P=False shared=[]
