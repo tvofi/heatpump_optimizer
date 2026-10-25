@@ -1,0 +1,28 @@
+head 838cff1468273b8615d303a433fc0f7ab936c6e6
+origin/main ab3aade496371f1da01e96730188e2b0997e5536
+merge-base 7138516b4b03764b4e76afbfdf183bab2cb1396b
+ dev/programme/delivery/2787.md | 2 +-
+ dev/programme/delivery/2789.md | 2 +-
+ dev/programme/delivery/2791.md | 1 +
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+diff --git a/dev/programme/delivery/2787.md b/dev/programme/delivery/2787.md
+index c7bc92042..c4c2a2a6e 100644
+--- a/dev/programme/delivery/2787.md
++++ b/dev/programme/delivery/2787.md
+@@ -1 +1 @@
+-- [#2787](https://github.com/tvofi/heatpump_optimizer/pull/2787) — **open**, roster: round-10 batch 9 (roster ops on handoff/audit-r10-roster through c57fa3768: GATE-DEFER, TRAIN-UPGRADE, RATIO-ANCHOR and RCA-CODESCAN-WAIT set-stages; ORCH-BEATD carries P94 and P95)
++- [#2787](https://github.com/tvofi/heatpump_optimizer/pull/2787) — **merged `1aa765f`**, roster: round-10 batch 9 (roster ops on handoff/audit-r10-roster through c57fa3768: GATE-DEFER, TRAIN-UPGRADE, RATIO-ANCHOR and RCA-CODESCAN-WAIT set-stages; ORCH-BEATD carries P94 and P95).
+diff --git a/dev/programme/delivery/2789.md b/dev/programme/delivery/2789.md
+index 6c9919bc7..a81885551 100644
+--- a/dev/programme/delivery/2789.md
++++ b/dev/programme/delivery/2789.md
+@@ -1 +1 @@
+-- [#2789](https://github.com/tvofi/heatpump_optimizer/pull/2789) — **open**, record: delivery rows (autofix)
++- [#2789](https://github.com/tvofi/heatpump_optimizer/pull/2789) — **merged `7138516`**, record: delivery rows for #2765, #2788 (autofix).
+diff --git a/dev/programme/delivery/2791.md b/dev/programme/delivery/2791.md
+new file mode 100644
+index 000000000..b2a6ff4dd
+--- /dev/null
++++ b/dev/programme/delivery/2791.md
+@@ -0,0 +1 @@
++- [#2791](https://github.com/tvofi/heatpump_optimizer/pull/2791) — **open**, record: delivery rows (autofix)

@@ -1,0 +1,5 @@
+check-runs on 838cff1468273b8615d303a433fc0f7ab936c6e6 (PR #2791 get_check_runs, 46 runs, read 2026-10-25):
+no run concluded failure or cancelled.
+success: lane-proofs, graders-head-copy, arch-instrument, closures, browser, typing, fast (3.14), CodeQL, wave-script, policy-docs, delivery-status, env-matrix, nightly-status, briefs, budget-raise-gate, arch-score, hassfest, closure-scope, mutation, validate-hacs, codeql x3, refresh x3, cancel-superseded x2, prelude (run 40168447965)
+skipped: ci-ratchet, closures-autofix, claims-autofix, mutation-autofix, mutation-pins, coverage-ratchet, coverage, replay, nightly-ha, governance/record, delivery-status-publish, kernel-points, cancel-superseded, arm
+in_progress at read time: governance / instrument-self-tests, prelude (runs 40168455084, 40168449027)
