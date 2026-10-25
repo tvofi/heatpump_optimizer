@@ -1,0 +1,20 @@
+branch patch, 6e4e274a (mb ab00437c9) vs 9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1 (mb 21a1e04a7), index lines stripped:
+IDENTICAL (diff rc=0)
+
+ .../heatpump_optimizer/coordinator.py              | 125 +++------------------
+ custom_components/heatpump_optimizer/issues.py     |   3 +
+ .../heatpump_optimizer/setpoint_check.py           |  40 ++++++-
+ dev/programme/delivery/2762.md                     |   1 +
+ tests/features.py                                  |  53 +++++++++
+ ...tor._audit_comfort_band.GUARD_OFF.cfdeb929.json |   6 -
+ ...dinator._audit_grid_fee.CMP_BOUND.1caaf4ae.json |   6 +
+ ...dinator._audit_grid_fee.CMP_BOUND.d30c7c7a.json |   6 +
+ .../issues.py/set_issue.GUARD_OFF.266bc37b.json    |   6 +
+ .../ConfigNotices.report.GUARD_OFF.a6e43270.json   |   6 +
+ .../ConfigNotices.report.GUARD_OFF.b8e5c2f9.json   |   6 +
+ tests/structure_budgets.json                       |  10 +-
+ 12 files changed, 144 insertions(+), 124 deletions(-)
+
+merge-tree --write-tree origin/main(21a1e04a7) 9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1:
+04c4e72be5156c56c09ae661d85e5cd25b3c4ece
+rc=0
