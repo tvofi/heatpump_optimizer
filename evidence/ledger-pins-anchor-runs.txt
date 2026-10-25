@@ -1,0 +1,358 @@
+######## custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 68fe53c1
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 68fe53c1
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 68fe53c1: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/coordinator.py:5143 GUARD_OFF
+######## custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 9018e6e6
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 9018e6e6
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF 9018e6e6: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/coordinator.py:5128 GUARD_OFF
+######## custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF a69fbd20
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF a69fbd20
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF a69fbd20: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/coordinator.py:5124 GUARD_OFF
+######## custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF ae73b345
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF ae73b345
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived every driver
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair BOOLOP b990ee57
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair BOOLOP b990ee57
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair BOOLOP b990ee57: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2035 BOOLOP
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 868069c9
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 868069c9
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 868069c9: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2033 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 868069c9
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 868069c9
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 868069c9: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2033 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids BOOLOP 1fb2bcb6
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids BOOLOP 1fb2bcb6
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids BOOLOP 1fb2bcb6: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:1419 BOOLOP
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 96633601
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 96633601
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 96633601: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2092 BOOLOP
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 14836bf8
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 14836bf8
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 14836bf8: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2095 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL aad56f0c
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL aad56f0c
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL aad56f0c: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2094 RETURN_DEL
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CLAMP_DROP 3cca1373
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CLAMP_DROP 3cca1373
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 20s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CLAMP_DROP 3cca1373: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2028 CLAMP_DROP
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND b990ee57
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND b990ee57
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND b990ee57: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2035 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF b990ee57
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF b990ee57
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF b990ee57: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2035 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids CMP_BOUND 1fb2bcb6
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids CMP_BOUND 1fb2bcb6
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids CMP_BOUND 1fb2bcb6: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:1419 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 14836bf8
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 14836bf8
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 18s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 14836bf8: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2095 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 1ffa2999
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 1ffa2999
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 1ffa2999: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2098 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 2d6a1238
+ANCHOR -- 2 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 2d6a1238
+  2 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 2d6a1238: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 2d6a1238: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 2 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2031 CMP_BOUND
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2031 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 2d6a1238
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 2d6a1238
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 2d6a1238: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2031 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair RETURN_DEL 299cfe4d
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair RETURN_DEL 299cfe4d
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair RETURN_DEL 299cfe4d: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2037 RETURN_DEL
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids RETURN_DEL 1fb2bcb6
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids RETURN_DEL 1fb2bcb6
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids RETURN_DEL 1fb2bcb6: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:1419 RETURN_DEL
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 1ffa2999
+ANCHOR -- 2 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 1ffa2999
+  2 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 1ffa2999: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 1ffa2999: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 2 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2098 CMP_BOUND
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2098 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 96633601
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 96633601
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 96633601: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2092 GUARD_OFF
+######## custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF ae73b345
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF ae73b345
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/coordinator.py:514 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF ae73b345: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/coordinator.py:5136 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 3cca1373
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 3cca1373
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 3cca1373: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2028 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 3cca1373
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 3cca1373
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 3cca1373: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2028 GUARD_OFF
+######## custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis RETURN_DEL 4a9b3d82
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis RETURN_DEL 4a9b3d82
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis RETURN_DEL 4a9b3d82: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:1413 RETURN_DEL
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 1ffa2999
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 1ffa2999
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss BOOLOP 1ffa2999: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2098 BOOLOP
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 96633601
+ANCHOR -- 2 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 96633601
+  2 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 96633601: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss CMP_BOUND 96633601: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 2 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2092 CMP_BOUND
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2092 CMP_BOUND
+######## custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL 584ca0e8
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL 584ca0e8
+  1 mutant(s) over 1 file(s); drivers in play: tests/_rv_prefix.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/_rv_prefix.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/_rv_prefix.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/_rv_prefix.py
+  pin not re-verified custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss RETURN_DEL 584ca0e8: tests/features.py no run of it completed (killed by tests/_rv_prefix.py)
+PIN RE-VERIFICATION: 0 reproduced, 0 not reproduced, 1 not re-verified
+  killed by tests/_rv_prefix.py: custom_components/heatpump_optimizer/thermal_model.py:2100 RETURN_DEL

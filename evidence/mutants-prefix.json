@@ -1,0 +1,271 @@
+{
+ "E": {
+  "rc": 1,
+  "fails": [
+   "FAIL an inexpressible measurement resets, not clips onto a bound  [scale 0.12704094245945746, 300 samples]",
+   "FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 0.300000, ratio 1.018239 after the reset vs 0.322367 with no scale evidence, samples 310/147]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 3.000000, ratio 2.7116196913228943, samples 310/147]"
+  ],
+  "tail": [
+   "3 of 753 FEATURE CHECKS FAILED",
+   "Persisted price shape has a non-finite or unreadable bin; restarting it",
+   "Learned lower floor loss ratio 1.922 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration"
+  ]
+ },
+ "F": {
+  "rc": 1,
+  "fails": [
+   "FAIL an inexpressible measurement resets, not clips onto a bound  [scale 0.12704094245945746, 300 samples]",
+   "FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 0.300000, ratio 1.018239 after the reset vs 0.322367 with no scale evidence, samples 310/147]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 3.000000, ratio 2.7116196913228943, samples 310/147]"
+  ],
+  "tail": [
+   "3 of 753 FEATURE CHECKS FAILED",
+   "Persisted price shape has a non-finite or unreadable bin; restarting it",
+   "Learned lower floor loss ratio 1.922 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration"
+  ]
+ },
+ "G": {
+  "rc": 1,
+  "fails": [
+   "FAIL an inexpressible measurement resets, not clips onto a bound  [scale 1.0, 300 samples]",
+   "FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 1.000000, ratio 0.322367 after the reset vs 0.322367 with no scale evidence, samples 310/147]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 1.0, samples 310/0]"
+  ],
+  "tail": [
+   "3 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 1.922 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration"
+  ]
+ },
+ "H": {
+  "rc": 1,
+  "fails": [
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 1.0, samples 0/147]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned house heat loss scale 0.500 (fitted against 0.1720 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/\u00b0C: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "A": {
+  "rc": 1,
+  "fails": [
+   "FAIL a two-zone edit re-anchors on the zone total, not the upper zone  [effective total 0.3945 kW/\u00b0C (learned level was 0.40)]",
+   "FAIL an options reseed of both zones keeps each zone's learned heat loss  [upper 0.1567 lower 0.5210 vs learned 0.1567 0.2711 kW/\u00b0C (scale 1.000, ratio 1.922)]",
+   "FAIL a pre-reseed snapshot restored after the reseed keeps each zone  [upper 0.1567 lower 0.5210 vs learned 0.1567 0.2711 kW/\u00b0C]",
+   "FAIL an inexpressible ratio resets, not clips onto a bound  [ratio 1.922, 0 samples]",
+   "FAIL the scale beside a reset ratio is the scale with no ratio evidence  [scale 1.000000 after the reset vs 1.000000 unlearned (ratio 1.922)]",
+   "FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 1.000000, ratio 0.800000 after the reset vs 0.400000 with no scale evidence, samples 0/147]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 2.5, samples 0/0]",
+   "FAIL adding a power meter re-anchors both learners at zero confidence  [scale 1.0, ratio 1.922, samples 0/0, 1 save(s)]"
+  ],
+  "tail": [
+   "8 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "B": {
+  "rc": 1,
+  "fails": [
+   "FAIL adding a power meter re-anchors both learners at zero confidence  [scale 1.627768812595588, ratio 1.8066174899164773, samples 310/147, 1 save(s)]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "C1": {
+  "rc": 1,
+  "fails": [
+   "FAIL an inexpressible ratio resets, not clips onto a bound  [ratio 0.3, 147 samples]",
+   "FAIL the scale beside a reset ratio is the scale with no ratio evidence  [scale 0.601104 after the reset vs 1.000000 unlearned (ratio 1.0)]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 3.0, samples 0/147]"
+  ],
+  "tail": [
+   "3 of 753 FEATURE CHECKS FAILED",
+   "Learned house heat loss scale 0.500 (fitted against 0.1720 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/\u00b0C: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "C2": {
+  "rc": 1,
+  "fails": [
+   "FAIL the scale beside a reset ratio is the scale with no ratio evidence  [scale 0.601104 after the reset vs 1.000000 unlearned (ratio 1.0)]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "D": {
+  "rc": 1,
+  "fails": [
+   "FAIL and a second load over the reseeded configuration re-anchors nothing  [(0.15669972008393404, 0.2710596094847242) vs (0.15669969516726454, 0.27105963294231583), 1 extra save(s)]",
+   "FAIL an edit that keeps the nameplate split keeps the ratio and each zone  [ratio 1.803709146854835, upper 0.1630 lower 0.2647 vs learned 0.1567 0.2711 kW/\u00b0C]",
+   "FAIL a metered store reloaded metered keeps both learners verbatim  [scale 1.627768812595588, ratio 1.8066174899164773]",
+   "FAIL removing the power meter keeps both learners verbatim  [scale 1.627768812595588, ratio 1.8066174899164773]",
+   "FAIL a store without a recorded basis keeps both learners on a meter add  [scale 1.627768812595588, ratio 1.8066174899164773, basis adopted 'metered']",
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['split moved exactly step']]"
+  ],
+  "tail": [
+   "6 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "bS_floor": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['scale on its floor']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "bS_ceil": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['scale on its ceiling']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "bR_floor": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['ratio on its floor']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "bR_ceil": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['ratio on its ceiling']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "b_split": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['split moved exactly step']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "b_total": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['total moved exactly step']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "b_lower": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['lower anchor on the floor']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "b_upper": {
+  "rc": 1,
+  "fails": [
+   "FAIL a bound is inclusive and a step is below the gate, on every learner and zone  [failed: ['upper zone on the floor']]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "R1_recurse_zero_b": {
+  "rc": 1,
+  "fails": [
+   "FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 1.000000, ratio 1.000000 after the reset vs 0.322367 with no scale evidence, samples 0/147]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 1.0, samples 0/147]"
+  ],
+  "tail": [
+   "2 of 753 FEATURE CHECKS FAILED",
+   "Learned house heat loss scale 0.500 (fitted against 0.1720 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/\u00b0C: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "R2_ratio_reset_flag": {
+  "rc": 1,
+  "fails": [
+   "FAIL an inexpressible ratio resets, not clips onto a bound  [ratio 1.0, 147 samples]",
+   "FAIL a reset scale whose ratio is inexpressible beside it resets both  [scale 1.000000, ratio 1.0, samples 0/147]"
+  ],
+  "tail": [
+   "2 of 753 FEATURE CHECKS FAILED",
+   "Learned house heat loss scale 0.500 (fitted against 0.1720 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/\u00b0C: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "R3_lnow_guard": {
+  "rc": 1,
+  "fails": [],
+  "tail": [
+   "-- The learned heat-loss scale is re-anchored, not restored verbatim",
+   "                            ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~",
+   "ZeroDivisionError: division by zero"
+  ]
+ },
+ "R4_root_form": {
+  "rc": 0,
+  "fails": [],
+  "tail": [
+   "ALL 753 FEATURE CHECKS PASSED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "R5_basis_voids_lt": {
+  "rc": 1,
+  "fails": [
+   "FAIL removing the power meter keeps both learners verbatim  [scale 1.0, ratio 1.0]"
+  ],
+  "tail": [
+   "1 of 753 FEATURE CHECKS FAILED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ },
+ "R6_scale_a_guard": {
+  "rc": 0,
+  "fails": [],
+  "tail": [
+   "ALL 753 FEATURE CHECKS PASSED",
+   "Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration",
+   "Learned house heat loss scale 2.000 (fitted against 0.3250 kW/\u00b0C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/\u00b0C: resetting to the configuration"
+  ]
+ }
+}
