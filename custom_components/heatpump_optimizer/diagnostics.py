@@ -294,7 +294,7 @@ async def async_get_config_entry_diagnostics(
     # the debug bundle's payload snapshots and store documents included. The
     # value pass then finds what they removed under any other key.
     private = frozenset(_private_values([dict(entry.data), dict(entry.options)]))
-    return _without_values(async_redact_data(
+    redacted: dict[str, Any] = _without_values(async_redact_data(
         _without_private_ids(
             _coarsen(
                 {
@@ -316,3 +316,4 @@ async def async_get_config_entry_diagnostics(
         ),
         TO_REDACT,
     ), private)
+    return redacted
