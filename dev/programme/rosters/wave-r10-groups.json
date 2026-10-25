@@ -9762,7 +9762,9 @@
    "after": [
     "R10-MERGE-SUBJECT-HARDEN"
    ],
-   "carry": [],
+   "carry": [
+    "From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagation.md). The brief for R10-MERGE-SUBJECT-CASEARM must record two things. First, a regression-against-main control: over the finder's harness corpus plus the reviewer's unmatched-closer line (\"down) with gh pr merge 9 --subject x\"), every line refused at origin/main must still be refused at the head. Second, the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms."
+   ],
    "architect_note": null,
    "resume": {
     "stage": "not-started",
