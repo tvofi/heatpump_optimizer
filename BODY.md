@@ -1,8 +1,13 @@
-Roster for round 10, batch 12. It records the roster seat's 57 ops since #2797 (merged `b89fea13e`, roster tip `2c5b1b612`): the R10-IMMERSION-LATCH brief re-pin and carry, the R10-CONFIG-NOTICES done stage, the #2798 precondition carries, the rehome carries and carry drops of the 2026-10-25 hygiene pass, the three consolidation folds (R10-FLY-RECORD-BEAT, R10-FLY-POOL-INSTRUMENT and R10-ROUTING-INVARIANTS each set absorbed), and two carries on R10-ORCH-ROSTER-SCHEMA. Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 13, re-taken whole at the authored head. It records the roster seat's five commits since #2799 (merged `022d4aaec`, roster tip `54d78f9bb`), listed by command under Figures: an R10-MERGE-SUBJECT-CASEARM carry, a coordinator.py pin re-pin with R10-LEARNER-ETA set done, the roster_sync stage derivation for R10-MUTANT-SKIP, R10-MUTANT-SKIP and R10-FLOW-AUTOTRAIN set done, and the #2712 PIN-DRIVE carry on R10-FLY-LEDGER-SAMPLE. Part of #201. It closes nothing by keyword and leaves #201 open.
 
 ## Head
 
-The authored head is `a654772a1`, the tip of `handoff/audit-r10-roster`. The pull request merges origin/main (`b89fea13e`) into it. The roster file is the only file these ops touch (`git log --no-merges --format=%h 2c5b1b612..a654772a1` lists them; the delivery row apart). Each op is a `roster_edit.py` push whose lint gate printed `TOTAL: 0 error(s)`. The change is one file, `dev/programme/rosters/wave-r10-groups.json`.
+The authored head is `e64be204d8ba3255eb20d6f4df130cba364be0f4`, the tip of `handoff/audit-r10-roster`; the pull request merges origin/main `c29f3089beff847adbdd0ae3dc739f4a071f5756` into it (a clean merge, `git merge-tree --write-tree origin/main HEAD` printed a tree and no conflict). The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`; the pull request's own delivery row apart. `git diff --stat origin/main <merged tree>` prints:
+
+```
+ dev/programme/rosters/wave-r10-groups.json | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+```
 
 ## Mutation proof
 
@@ -10,22 +15,39 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-`git show 2c5b1b612:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin` and the same at `origin/main` both print a blob starting `ae5988d3415d`, so main's roster equals the base of these ops and nothing main wrote since is overwritten. Before the IMMERSION-LATCH re-pin, `node tools/policy/brief_lint.mjs` on main's unmodified roster at `de794b537` printed `TOTAL: 2 error(s)`, both in that brief; the re-pin cleared it.
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `d3b890726e4c580732d1d257318efe78730a7b34` and the merged tree prints `c3d331ec4ffe0732c1052a3a540311d9decc59ba`. The group figures come from `fig.py`, which loads both roster files as JSON and keys groups by their `group` field; it takes a group as an object holding both `group` and `resume`. Its output, pasted unedited:
+
+```
+groups main 189 head 189 removed [] new []
+changed 7
+  R10-FLOW-AUTOTRAIN ['resume'] stage in-progress->done
+  R10-FLY-LEDGER-SAMPLE ['carry'] carry 0->1
+  R10-IMMERSION-LATCH ['brief'] 
+  R10-LEARNER-DEFAULT ['brief'] 
+  R10-LEARNER-ETA ['resume'] stage in-progress->done
+  R10-MERGE-SUBJECT-CASEARM ['carry'] carry 2->3
+  R10-MUTANT-SKIP ['resume'] stage in-progress->done
+stages main {'absorbed': 4, 'carries-open': 5, 'done': 117, 'in-progress': 10, 'not-started': 47, 'queued': 6}
+stages head {'absorbed': 4, 'carries-open': 5, 'done': 120, 'in-progress': 7, 'not-started': 47, 'queued': 6}
+```
 
 ## Figures
 
-By op, from `git log --no-merges --format=%s 2c5b1b612..a654772a1` over the roster file: 20 append-carry, 16 drop-carry, 12 wire-issue, 4 set-stage, 3 set-resume, 1 set-after, 1 edit-brief; 57 in all.
+`git log --no-merges --reverse --format='%h %s' origin/main..HEAD -- dev/programme/rosters/` prints five commits, oldest first, tool path suffix dropped:
 
-- edit-brief R10-IMMERSION-LATCH (`5f94b943b`, "line shift after #2762; pins only"): coordinator.py:8860-8919 became 8761-8820 and 10221-10235 became 10122-10136, each range checked in source for the cited symbol, no other word changed.
-- set-stage R10-CONFIG-NOTICES done at `de794b537` (#2762): `fe2648fe7`.
-- The 16 drop-carry ops (`fa2de4493` to `3bbb06c33`) each name one entry by a unique `--match` prefix and dropped it; the pushed commit is the readback.
-- Folds: R10-FLY-RECORD-BEAT, R10-FLY-POOL-INSTRUMENT and R10-ROUTING-INVARIANTS are stage absorbed (`2553c1974`, `5993ed9fa`, `eb30e6233`), their carries and issues re-homed to R10-FLOW-POSTMERGE, R10-FLOW-DESIGN-STAGES and R10-ORCH-ROSTER-SCHEMA. R10-ARCH-DOCS's after list (`c4c2a2ed1`) dropped exactly those three: 82 edges to 79, none added.
+```
+dbd592fe4 roster_edit append-carry R10-MERGE-SUBJECT-CASEARM
+e96f70d34 roster: re-pin R10-LEARNER-DEFAULT and R10-IMMERSION-LATCH coordinator.py ranges to origin/main 60cd447a0; set-stage R10-LEARNER-ETA done
+027c38705 roster_sync: derive stages from pull requests
+eaf10309d roster: set-stage R10-MUTANT-SKIP and R10-FLOW-AUTOTRAIN done
+e64be204d roster_edit append-carry R10-FLY-LEDGER-SAMPLE
+```
 
-Measured by loading the roster as JSON at origin/main and at the head and comparing groups by id: 189 then 189 groups, none removed, none new, 27 changed. Groups by `resume.stage`, main then head: done 115 then 116, in-progress 12 then 11, not-started 50 then 47, queued 6 then 6, absorbed 1 then 4, carries-open 5 then 5.
+Two of the five are `roster_edit` carries; `e96f70d34` is a brief re-pin plus a set-stage, `027c38705` is the stage derivation by `roster_sync.py`, and `eaf10309d` sets two stages. Each push passed the roster lint gate.
 
 ## Red checks
 
-Not read by this seat for this body; this pull request changes only the roster JSON, which no red check on main reads. The orchestrator reads main's check-runs.
+Not read by this seat for this body; this pull request changes only the roster JSON and its delivery row. The orchestrator reads the check-runs.
 
 ## Forward-carry
 
@@ -33,4 +55,4 @@ none
 
 ## Friction
 
-`roster_queue.py run` passed a trailing `# comment` on a queue line as arguments to `roster_edit.py` (16 drop-carry ops refused rc=2); I re-ran them with the comments stripped. The orchestrator is routing the tool defect.
+none
