@@ -1,0 +1,8 @@
+RENDER: 14 table(s), 252 row(s), 4 list(s), 64 item(s) across 2 disposition document(s)
+
+dev/programme/plan-2026-09-open-issues.md
+  ERROR   [record] dev/programme/plan-2026-09-open-issues.md: no disposition in the plan of record or the living handover for merged pull request #2790 (Merge pull request #2790 from tvofi/triage/s6-batch21). Write its row as dev/programme/delivery/2790.md. A merge nobody recorded is a merge no later seat can resume from.
+
+KNOWN-BAD: 0 of 0 recorded record-class defect(s) still present, in 0 recorded occurrence(s)
+
+TOTAL: 1 error(s) over 6 merged pull request(s)
