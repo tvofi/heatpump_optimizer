@@ -2075,6 +2075,40 @@
     },
     "heat_loss_w_per_k": 150.0,
     "internal_gains_kw": null,
+    "learner_progress": {
+     "gains": {
+      "eta_days": null,
+      "phase": "off",
+      "progress": null,
+      "samples": 0,
+      "samples_needed": null,
+      "waiting_for": null
+     },
+     "house": {
+      "eta_days": null,
+      "phase": "counting",
+      "progress": 0.0,
+      "samples": 0,
+      "samples_needed": 50,
+      "waiting_for": null
+     },
+     "lower": {
+      "eta_days": null,
+      "phase": "off",
+      "progress": null,
+      "samples": 0,
+      "samples_needed": null,
+      "waiting_for": null
+     },
+     "solar": {
+      "eta_days": null,
+      "phase": "off",
+      "progress": null,
+      "samples": 0,
+      "samples_needed": null,
+      "waiting_for": null
+     }
+    },
     "lower_floor": {
      "learned": false,
      "ratio": 1.0,
