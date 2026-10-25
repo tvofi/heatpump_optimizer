@@ -765,6 +765,25 @@ async function selfTest() {
     && !wr('gh pr merge 9 --merge \\\n  --match-head-commit h\n\nprint("--subject")\n').length
     && !wr('Merge grant: merge_pull_request (merge commit, never squash\n\n-b and --body are the body flags.\n').length])
   probes.push(['a merge call that passes commit_title is refused', guard([], { ...writers, 'tools/x.js': 'merge_pull_request with commit_title Merge pull request #9\n' }).length === 1])
+  // The bracket a call opens in may stand lines before `pr`: an argv wrapped
+  // after its program, and one exploded one element per line (black's and
+  // prettier's shape), in each file kind. Each must be refused; a sibling argv
+  // of an enclosing table on earlier or later lines is not the call's.
+  const kinds = (src) => ['tools/x.py', 'tools/x.mjs', 'tools/x.sh'].map((f) => guard([], { ...writers, [f]: src }).length)
+  const WRAPPED = [
+    ['an argv wrapped after its program', 'subprocess.run(["gh",\n               "pr", "merge", str(n), "--squash",\n               "--subject", s], check=True)\n'],
+    ['an argv wrapped after a variable program', 'run([GH,\n     "pr", "merge", str(n),\n     "--subject", s])\n'],
+    ['an exploded argv', 'run([\n    "gh",\n    "pr",\n    "merge",\n    str(n),\n    "--subject",\n    s,\n])\n'],
+    ['an exploded JS argv', "execFileSync('gh', [\n  'pr',\n  'merge',\n  String(n),\n  '--subject',\n  s,\n])\n"],
+    ['an exploded call of separate arguments', 'os.spawnlp(\n    os.P_WAIT,\n    "gh",\n    "gh",\n    "pr",\n    "merge",\n    n,\n    "-t",\n    s,\n)\n'],
+  ]
+  for (const [what, src] of WRAPPED) probes.push([`extent: ${what} is one call in every file kind, its subject refused`, kinds(src).every((k) => k === 1)])
+  probes.push(['null control: a sibling argv of an enclosing table on earlier lines is not the call\'s',
+    kinds('TABLE = [\n    ["gh", "issue", "edit", "1", "--body", "x"],\n    ["gh",\n     "pr", "merge", "1"],\n]\n').every((k) => k === 0)
+    && kinds('for argv in (["gh",\n              "pr", "merge", "1"],\n             ["gh", "issue", "edit", "1", "--body", "x"]):\n').every((k) => k === 0)])
+  probes.push(['null control: the wrapped and exploded argv with no subject pass',
+    kinds('subprocess.run(["gh",\n               "pr", "merge", str(n), "--squash"],\n              check=True)\nother("--subject", s)\n').every((k) => k === 0)
+    && kinds('run([\n    "gh",\n    "pr",\n    "merge",\n    str(n),\n])\nother("--subject", s)\n').every((k) => k === 0)])
   probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
   // The walk itself, on a real repository: a recarried branch's own
   // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
