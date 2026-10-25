@@ -1,0 +1,19 @@
+# cwd: worktree at bd81b886388c840792fa69bf5a43cec1337bff02; instrument: dev/audit/rca/merge-subject-class-open/differential.mjs at 7c64db1b3
+$ node differential.mjs planted origin/main bd81b886388c840792fa69bf5a43cec1337bff02
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head bd81b886388c840792fa69bf5a43cec1337bff02: planted=82735 main_not_head=0 {}
+exit=0
+$ node differential.mjs planted origin/main origin/main
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head origin/main: planted=82735 main_not_head=0 {}
+exit=0
+$ node differential.mjs planted origin/main 4aad9c1175318dec0b90da4113259c3ddb38309f
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head 4aad9c1175318dec0b90da4113259c3ddb38309f: planted=74665 main_not_head=8070 {"unmatched-closer-in-lead":8016,"other":54}
+exit=0
