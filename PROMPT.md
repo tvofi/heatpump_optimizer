@@ -1,0 +1,16 @@
+CLOUD FIXER seat for PR #2697 of tvofi/heatpump_optimizer, at head 683dd52cbb938ad00b38857117710791f5581f4b. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 683dd52cbb938ad00b38857117710791f5581f4b for the base you were given.
+Output: push the code to refs/heads/handoff/r10-merge-subject-harden-r7, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-merge-subject-harden-r7 <body.md>`, which pushes refs/heads/handoff-body/r10-merge-subject-harden-r7; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Continue from PR #2697 head 683dd52cbb938ad00b38857117710791f5581f4b (branch fix/r10-merge-subject-harden; the round-6 handoff is handoff/r10-merge-subject-harden-r6, tip 46d41ddc3b4ae2c768be14f1c6c04f980b2a3dd4); do not restart from main. Merge origin/main first.
+Round 6 verdict, blocked at 683dd52c (git show origin/verdict/2697:VERDICT.md; read it whole). First line: "class-open: a writer the before end refused now passes, a wrapped argv whose open bracket is on the program's line and whose subject is on a later line (subprocess.run(["gh",\n "pr", "merge", str(n), "--squash",\n "--subject", s], check=True)), refused=1 at d0d35231 and refused=0 at the head under the finder's harness".
+This is round 7: the three-round rule binds. You RE-CUT, you do not repair.
+Step 1, regression first, failing test first: a wrapped argv with the open bracket on the program's line and the subject on a later line must be refused again. Write the failing test, show it red at the head, then fix. Use the finder's harness (the one in the verdict's evidence, argv_seam_before.txt and argv_seam_head.txt) at d0d35231c633ca447acf04770f9034281417b72d and at your new head: refused=1 at both ends, with a null control.
+Step 2, close the class if you can in this round (structural reader, not a seventh spelling patch).
+Step 3, if the class cannot be closed in this round, SPLIT the PR: the structural guard lands with the wrapped-argv shape kept refused by the old guard; the rest becomes a follow-up group with its carry (name it in the body's Forward-carry with verbatim text and say so plainly in `## Head`).
+Body: re-cut MINIMAL, only figures re-taken in this pass, each with its command and result.
+Push handoff/r10-merge-subject-harden-r7 (new 40-hex tip) and handoff-body/r10-merge-subject-harden-r7.
+no host or home paths in anything you push
