@@ -211,6 +211,20 @@ const NAV = (() => {
 }
 
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
+// The declarations of every rule in the card's stylesheet whose selector
+// list ends in `sel` (R10-CARD-VOICE), joined. A plain string search, so a
+// selector needs no escaping: the rule is found where `sel {` follows a
+// selector boundary.
+const cssRule = (sel) => {
+  const out = [];
+  for (let at = cardSrc.indexOf(`${sel} {`); at >= 0;
+    at = cardSrc.indexOf(`${sel} {`, at + 1)) {
+    if (at > 0 && !/[\s,}]/.test(cardSrc[at - 1])) continue;
+    const open = at + sel.length + 2;
+    out.push(cardSrc.slice(open, cardSrc.indexOf("}", open)));
+  }
+  return out.join(" ");
+};
 vm.runInContext(cardSrc, ctx);
 
 const names = Object.keys(ctx.customElements._d);
@@ -1449,11 +1463,7 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
 // design 6aea0d10, HARMONY.md section 4), read off the card's own stylesheet:
 // the rule each names, not a restatement of it.
 {
-  const ruleOf = (sel) => {
-    const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return [...cardSrc.matchAll(new RegExp(`(?:^|[\\s,}])${esc}\\s*\\{([^}]*)\\}`, "g"))]
-      .map((m) => m[1]).join(" ");
-  };
+  const ruleOf = cssRule;
   // H1 (b): no caption role on either surface renders under the ramp's
   // smallest step, 12 px.
   const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
@@ -3328,8 +3338,7 @@ check("the hand-scheduled reason has a label",
       // The harmony study's reconciliation of the Badge (H2): the drawing's
       // own tiers, and the disc hidden because the box's accessible name
       // already says what it draws.
-      const rule = (sel) => (new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`)
-        .exec(cardSrc) || [])[1] || "";
+      const rule = cssRule;
       check("the disc's glyph strokes on the icon tier, its page name on the 11-unit tier",
         /stroke-width: 1\.5;/.test(rule(".type-badge ellipse")) &&
         /font-size: 11px;/.test(rule(".setup-chip-page")) &&
