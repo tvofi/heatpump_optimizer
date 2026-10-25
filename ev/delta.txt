@@ -1,0 +1,33 @@
+mb(A)=f40142d66c9cc8e2f144a815990fc1fe1d99d9a8 mb(H)=de794b53765388da42b2b5f22da455ccfe3fe912
+627aea6dd97a1743b17a20efdff55d351f338f95 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-learner-eta-r3
+de794b53765388da42b2b5f22da455ccfe3fe912 tvofi Merge pull request #2762 from tvofi/fix/r10-config-notices
+b90dceaab91648a3ec073890e77490ac801a110d tvofi Merge remote-tracking branch 'origin/main' into fix/r10-config-notices
+102f74975840088fbb29ea37c40b47aa2c126d15 tvofi Merge pull request #2795 from tvofi/record/autofix
+41f882a9a095bf53307172c92d25cddba59f03b8 github-actions[bot] ci: pin killed mutants
+c16f12f5a031f1c4f7c4e6a66ef3a89e32622437 hpo-author[bot] ci: record delivery rows
+6f9eb1ac84555ddd1299b69b516ff8de31e02363 hpo-author[bot] ci: record delivery rows
+880b667aaa22e25cb0c16712374a7f29ac39b2d3 tvofi Merge pull request #2794 from tvofi/record/autofix
+ce3a77c5f5036767a951ab26d072f49ed05d3c05 tvofi Merge pull request #2792 from tvofi/fix/r10-roster-freeze-a
+f673505c7990629a39f6c95b380ed0b9aa066275 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-roster-freeze-a
+9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-config-notices
+bc75120cb7337969c46afa33efc05c9bd186b262 hpo-author[bot] ci: record delivery rows
+acf33ac31474c33bbf375c5d0be688f7a76b9962 hpo-author[bot] ci: record delivery rows
+63b811ab527c908d05a3aff27e344edeba091976 tvofi record: the delivery row for #2792
+c63bb76828b568b646818063011ebc66974e1a41 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-roster-freeze-a
+07cbe6fe18260380148c9ed7b7cce91d02f6bde9 Claude cloud_relay: freeze a head under review in the handoff arm (R10-FLOW-ROSTER-FREEZE a)
+6e4e274a4afc889228f867b8ac41edd2adc646c8 tvofi Merge commit 'd7017b683923008651481b37dd9d7f3d67d9393b' into fix/r10-config-notices
+7de06a49cc0528863a04e28aedfd95f08a25b7a9 github-actions[bot] ci: merge main
+d7017b683923008651481b37dd9d7f3d67d9393b Claude structure: restore seam_cut_total to main's 420 (merge carried a stale delta)
+1b70604c433de6ae45123de9a3b57f40d51e08f7 Claude Merge remote-tracking branch 'origin/main' into work/r10-config-notices-r2
+2f5bf7257adbb51aee04cac0e0bf6a465f8f13d2 github-actions[bot] ci: merge main
+c851f2a8d464bff58730c5351698eba8cffffff1 tvofi record: the delivery row for #2762
+2afcebba75721fd82582a560ab0d78df85c0e13f tvofi Merge remote-tracking branch 'origin/main' into fix/r10-config-notices
+e3be2a045e87e3248ec3b5c4ae5494e866fa6da2 Claude Record the five config-notice mutant pins (local --pin-killed against tests/features.py)
+b408c7230f763035e514ef51af45a0400cbb2efa Claude Pin the config-notice sites: a repeated create, the persistent flag, the fee bounds at their edge
+251f02987d4ffbc7e0fe66cac67ba551c7168dac Claude Merge remote-tracking branch 'origin/main' into work/r10-config-notices
+5b067738bd38010b0af9e54e78224b55234476e2 fixer Drop the stale mutation pin for the removed comfort-band guard
+aa71ba2aa2d43a7c6814201532d9d750fc137295 fixer Own the standing config notices in setpoint_check.ConfigNotices (ARCH2-s2 P1)
+files A: 49 H: 50
+28a29
+> tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.fc8f0966.json
+DIFFERS tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.fc8f0966.json
