@@ -9575,7 +9575,8 @@
    "carry": [],
    "resume": {
     "stage": "absorbed",
-    "branch": "handoff/r10-fly-record-beat"
+    "branch": "handoff/r10-fly-record-beat",
+    "note": "absorbed into R10-FLOW-POSTMERGE (consolidation audit 2026-10-25, tvofi existing-groups-first); brief and #2801 carried there"
    },
    "brief": "GROUP R10-FLY-RECORD-BEAT (new, size S, triage: dev/programme/triage/s6-batch4.md#P61). A new script, record_beat (taking <PR...>; the file does not exist yet): for each merged PR it resolves the FULL merge sha from git (never typed), posts the #201 record comment through gh_comment.py and reads it back, so the tick's search by full merge sha finds it (V8: 10 merges read unrecorded because comments cited short shas). The merge seat calls it after each merge. Controls: the comment carries the 40-char sha (null: a short-sha comment is what the tick misses; assert the tick's finder matches the new one and not the old); read-back mismatch exits nonzero; one mutant. NOT in this group: the HANDOVER updated-for refresh (deferred; measure first whether any check reads the field). Files: the new script under tools/audit/seat/ and tools/audit/seat/INSTRUMENTS.md."
   },
