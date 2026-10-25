@@ -1,0 +1,6 @@
+roster 63d8938eb: not-started or queued groups 54
+RESULT word rule 4 ['R10-RCA-HEADMOVED', 'R10-FLOW-MQ-PROBE', 'R10-BRIEFS-FOLD-D0', 'R10-REPLAY-REAL-DAY']
+RESULT substring rule 14
+RESULT empty files 3 ['R10-RCA-HEADMOVED', 'R10-CARD-VOICE', 'R10-LEARNER-DEFAULT']
+RESULT union 6
+R10-RCA-HEADMOVED kind ['study']
