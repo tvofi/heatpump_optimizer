@@ -1,35 +1,31 @@
-Fix review: merge bd1a5f31c7a25282420285197412882f4a40a162
+Fix review: blocked 45d083123c6f45482dae00bbef4b82bf6e50bc04 body-figure: the ## Head line says the head merges origin/main 50af6174f, but its main parent is 0825aee641c8 (886 commits later); the claim-file resolution itself is correct
 
-bus-nonce: cd884c7544f7b95b7a6e667c235c7384
+bus-nonce: 8d6f69e91b30d93aa360e010c67894f8
 
 ## Round
 
-Round 6 of review 2753 (R10-THERMAL-POWER-OPTION). This is a delta pass after the round-5 `merge 09aecd621` verdict (verdict/2753 at `e356239d8`). The authored code head is still `1339cf925` (`handoff/r10-thermal-power-option-r4`, `-r5` and `-r6` all point at it). The head `bd1a5f31c` adds two main merges on top of `09aecd621`: the bot's `28f134f6c` (merges origin/main `de794b537`) and `bd1a5f31c` (merges origin/main `b89fea13e`). Between them the body was re-taken (r6), which routes the two `## Evidence` items of review 6393281122. I judged the resolution delta of the two merges and the body. The code was not re-audited.
+Delta review of #2753 at the new head, after a prior merge verdict at bd1a5f31c7a25282420285197412882f4a40a162. Scope as briefed: only the merge of origin/main and its hand-resolved tests/golden/claimed_drift.txt. The fix itself was not re-reviewed.
+
+## Block
+
+The one line this pass added to the body, the first paragraph of `## Head`, says "`45d083123c6f...` merges origin/main `50af6174f` into this PR's previous head `bd1a5f31c7a2...`". That is false. `git log -1 --format='%H %P' 45d083123c6f45482dae00bbef4b82bf6e50bc04` gives parents bd1a5f31c7a25282420285197412882f4a40a162 and 0825aee641c8afb1e67be2a6af9d07e9c9dec9fa (main at #2780). 50af6174f is #2686 from 2026-10-24, 886 commits behind the merged parent. It is the merge base a shallow clone reports, not the commit that was merged. The head SHA the body names is right (step 7). The merged-main SHA is a figure in the body that does not re-derive (step 8). Later seats read it as the merge that brought in R10-LEARNER-ETA's claims, and 50af6174f does not hold them. Repair, body only: replace `50af6174f` with `0825aee64` in that sentence. Nothing else needs to change. Everything below holds at this head, so a re-review after the repair only has to check that sentence.
 
 ## Findings
 
-- none: the delta has no defect, surviving mutant or deferral. Carry: dismissed: no finding to carry
+- Body `## Head` names the wrong origin/main commit for the merge at 45d083123c6f (50af6174f; the actual parent is 0825aee641c8). This is the block above, and the PR settles it with a body edit before the merge. Carry: dismissed: blocking defect of this PR's own body, repaired on this PR before merge, nothing for a later stage
 
 ## Evidence
 
-- Head: the pulls API reads `bd1a5f31c7a25282420285197412882f4a40a162` both when the review started and at 13:29Z, when the verdict was written (`ev/HEAD.txt`). The body's `## Head` names this SHA and its parents correctly, and names `28f134f6c` as the bot merge of `de794b537` into `09aecd621`.
-- Role contract is current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, since the merge base is origin/main `b89fea13e`.
-- Resolution delta is empty for both merges (`ev/merges.txt`):
-  - `git merge-tree --write-tree 09aecd621 de794b537` gives tree `b8781a13d`, which equals the tree of `28f134f6c`.
-  - `git merge-tree --write-tree 28f134f6c b89fea13e` gives tree `6165c0934`, which equals the head's tree.
-  - Merging the code head `1339cf925` straight into origin/main `b89fea13e` also gives `6165c0934`.
-  - The only ledger work was LEDGER-MERGE on `tests/structure_budgets.json` (`class_excess_loc` 18202 plus both deltas gives 18096; `max_class_loc` 8442 plus both gives 8336) and on `tests/closures.json` (merged as a set).
-  - No MERGE-CLAIM line appears.
-- Three-dot patch: against `b89fea13e` it is 36 files, +840/-106, the same as round 5. Comparing it with the round-5 three-dot patch (base `8a11b8bdd`) shows only hunk offsets and index lines, plus `tests/structure_budgets.json`. There the branch's -7 is now taken from main's newer rows: 18103 to 18096, 8343 to 8336, with `recorded_at` `ab00437c9`. Every other row matches main. This is a payment and no budget is raised. `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched.
-- Merge with main: `git merge-tree --write-tree origin/main bd1a5f31c` exits 0 (origin/main is `b89fea13e`, an ancestor of the head).
-- RESULT structure_head rc=0 STRUCTURE RATCHET PASSED; class_excess_loc=18096 <= 18096, max_class_loc=8336 <= 8336 (`ev/structure_head.txt`). The improvement is recorded at this head, so the round-3 ratchet-unrecorded class does not recur.
-- RESULT features_head rc=0 ALL 4392 FEATURE CHECKS PASSED (`env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/features.py`, detached worktree of the head; `ev/features_head.txt`). This checks that main's newly merged code does not interact with the PR's code.
-- RESULT mutant_M1 (`flow_meter.read_heat_output_kw` line 61, `if cap.measured_heat:` changed to `if False:`, `ev/mutant_M1.diff`): rc=1, `7 of 4392 FEATURE CHECKS FAILED`. These are the same 7 checks the body names; the total grew from the body's 4374 through main's merges (`ev/mutant_M1_features.txt`). The worktree was discarded.
-- RESULT carry_audit: `python3 -I tools/audit/carry_audit.py check --body <live body> --comments <#2753 issue comments, 4>` printed `CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)`, rc=0 (`ev/carry_audit.txt`). This matches the body's re-take figure exactly. Items 58d790f9 and 51ece26b are dismissed in `## Red checks`, and their reasons are accurate: in review 6393281122 both bullets confirmed the body's nightly-ha claim and the RCA record and opened no defect.
-- RESULT body checks at the head:
-  - `node tools/policy/policy_lint.mjs --pr-body <body> --head bd1a5f31c --base b89fea13e --title ... --author hpo-author[bot]` printed `PR-BODY: 0 error(s)`, rc=0 (`ev/policy_lint_pr_body.txt`).
-  - `node tools/policy/figure_lint.mjs --pr-body <body>`, run in the head's tree, printed `FIGURES: 9 resolved, 1 not verified, 0 refused`, rc=0 (`ev/figure_lint_head.txt`). The one unverified figure is a `git diff --quiet` whose flags the linter never checks.
-  - The same linter run from a stale checkout refused `tests/features.py` as absent. That is an artefact of the checkout, not a defect in the body.
-- Forward-carry: on origin/main `dev/programme/rosters/wave-r10-groups.json`, R10-HEAT-METER and R10-COP-GATE each hold one `From R10-THERMAL-POWER-OPTION (#2753` carry ending in `Control:` (`ev/body_checks.txt`).
-- CI on this head, read from the check-runs API at 13:29:50Z (`ev/check_runs_head.txt`): 36 runs and none red. Concluded green: nightly-ha (stable) and (2025.2.0), typing, replay, arch-instrument, arch-score, budget-raise-gate, hassfest, validate-hacs, briefs, closure-scope, governance policy-docs/wave-script/delivery-status, and codeql actions and javascript. Not yet concluded at that time: fast (3.14), closures, coverage, mutation, governance/instrument-self-tests, codeql python and one prelude. pr-contract had not started. Per tvofi 2026-09-30, I cite the heavy lanes and did not re-run them. The merge train reads their conclusions at merge time.
-- Figures not re-derived at this head: the harness arms, `ci_predict.py`, the `closure.py select` mode line and the archscore dS. They are quoted from the round 3/4 passes over unchanged code, as in round 5.
+- (1) Three-way check on tests/golden/claimed_drift.txt (ev/claimed_drift_threeway.txt). The merge commit is 45d083123c6f, with parents PR bd1a5f31c7a2 and main 0825aee641c8, and merge base b89fea13e99f.
+  - Main's side (base -> 0825aee6): dropped the five R10-SCORES lines (`coord_all_features|coord_dhw|coord_grid_fee|coord_minimal|coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added`). Added the five R10-LEARNER-ETA lines for the same fixtures (`# R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)`). Added the 9-line `# R10-LEARNER-ETA (#2260): ...` comment block.
+  - The PR's side (base -> bd1a5f31) added one line: `config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved`.
+  - At the head: main -> head adds exactly that one config_flow line, and PR -> head is exactly main's change, byte for byte.
+  - So the result has every line main added, the PR's one line, and none of the five R10-SCORES claim lines, which only main removed. Nothing was invented, and every direction word is as each side wrote it. The `# R10-SCORES (#2258): ...` explanatory comment that both sides kept is still present.
+- The driver's refusal reproduces: `git merge-tree --write-tree bd1a5f31 0825aee6` prints `MERGE-CLAIM: refused tests/golden/claimed_drift.txt` ("both sides rewrote the claim list") and `LEDGER-MERGE: resolved tests/closures.json` (ev/merge_tree.txt). The refusal comes from the claim-list rewrite on both sides. It is not a defect in the authored work.
+- (2) VERSION at the head is 7.0.4. `# claims-for: 7.0.4` is in tests/golden/claimed_drift.txt (line 57) and tests/golden/card_claimed_drift.txt (line 22) (ev/claims_for.txt).
+- (3) `python3 tests/env_drift.py` in a detached worktree at the head gives rc=0, `NO UNCLAIMED DRIFT: 5 scenario(s) checked against origin/main` and `NO STALE FIXTURE`. There is no claimed-and-may-drift refusal. config_flow is reported "unjudged ... not captured in this mode", as expected without --all (ev/env_drift.txt). I did not re-run `--all` here; CI's env-matrix lane does that, and it passed.
+- (4) `git diff --stat bd1a5f31 45d08312` covers the same 67 paths as `git diff --stat b89fea13 0825aee6` (main's own commits). The added and removed line content matches file by file, with no DIFFERS line. Going the other way, `0825aee6 -> 45d08312` matches `b89fea13 -> bd1a5f31` file by file. That is the PR's original 36 files, 840 insertions and 106 deletions, the same set as the PR API's changed_files 36 (ev/diff_stat.txt). The three-dot diff against current origin/main shows the same 36 paths. Nothing outside the PR's original change set changed.
+- tests/golden/card_claimed_drift.txt was not touched by the PR, by the merge, or between bd1a5f31 and the head (all three diffs empty).
+- `git merge-tree --write-tree origin/main 45d08312` at origin/main bc52ad2af1d0 gives rc=0 and tree e1e8dedce95e: it merges clean against current main.
+- CI on 45d083123c6f45482dae00bbef4b82bf6e50bc04 (check-runs API, ev/ci_checkruns.txt): 36 runs and no failure. Seven were still in progress when I read them: tests / fast (3.14), tests / closures, tests / mutation, tests / coverage, governance / instrument-self-tests, codeql python and one prelude. Those seven have no conclusion yet and are not verified here.
+- The body's head SHA `45d083123c6f45482dae00bbef4b82bf6e50bc04` equals the head I measured. The body's "no code changed" is true: the merge's only change beyond main's own commits is the claim-file line.

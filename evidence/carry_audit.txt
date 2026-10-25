@@ -1,8 +1,0 @@
-NOTE body item bb862d20: dismissed:introduces the two carries below, each routed on its own line
-NOTE body item 2b027db9: R10-HEAT-METER
-NOTE body item 775b2289: R10-COP-GATE
-NOTE body item 44f6f0e2: dismissed:fixed in this diff
-NOTE body item 65b08d15: dismissed:a cloud-seat environment setting outside the tree, reported to the orchestrator in this seat's result
-NOTE review 6393281122 item 58d790f9: dismissed:the bullet confirms this section's nightly-ha claim against the job logs and opens no defect (item 58d790f9)
-NOTE review 6393281122 item 51ece26b: dismissed:the bullet confirms the cited RCA record and its countermeasures exist and opens no defect (item 51ece26b)
-CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
