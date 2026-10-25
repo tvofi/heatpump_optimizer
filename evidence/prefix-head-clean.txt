@@ -104,7 +104,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/tmp/tmp.Vel69x4ZSw/head/custom_components/heatpump_optimizer/coordinator.py", line 6009, in async_run_optimization
+  File "<scratch>/head/custom_components/heatpump_optimizer/coordinator.py", line 6005, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -722,23 +722,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   the default plant passes the arm-time identifiability gate
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/tmp/tmp.Vel69x4ZSw/head/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+  File "<scratch>/head/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/tmp/tmp.Vel69x4ZSw/head/tests/features_prefix.py", line 7312, in _wrapper
+  File "<scratch>/head/tests/_rv_prefix.py", line 7312, in _wrapper
     return method(self, *args, **kwargs)
-  File "/tmp/tmp.Vel69x4ZSw/head/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+  File "<scratch>/head/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/tmp/tmp.Vel69x4ZSw/head/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+  File "<scratch>/head/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/tmp/tmp.Vel69x4ZSw/head/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+  File "<scratch>/head/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -892,11 +892,16 @@ Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) 
   ok   an inexpressible ratio resets, not clips onto a bound
 Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) cannot be expressed against the newly configured 7.0192 kW/°C: resetting to the configuration
   ok   the scale beside a reset ratio is the scale with no ratio evidence
+Learned house heat loss scale 0.500 (fitted against 0.1720 kW/°C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/°C: resetting to the configuration
+  ok   the ratio beside a reset scale is the ratio with no scale evidence
+Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration
+Learned house heat loss scale 2.000 (fitted against 0.3250 kW/°C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/°C: resetting to the configuration
+  ok   a reset scale whose ratio is inexpressible beside it resets both
   ok   adding a power meter re-anchors both learners at zero confidence
   ok   a metered store reloaded metered keeps both learners verbatim
   ok   removing the power meter keeps both learners verbatim
   ok   a store without a recorded basis keeps both learners on a meter add
   ok   the anchor pair refuses a total not positive on either side, void or not
+  ok   a bound is inclusive and a step is below the gate, on every learner and zone
 
-ALL 750 FEATURE CHECKS PASSED
-rc=0
+ALL 753 FEATURE CHECKS PASSED
