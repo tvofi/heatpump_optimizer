@@ -1,0 +1,9 @@
+def op_set_stage(roster, group, stage, at_sha):
+    g = _need(roster, group)
+    if not isinstance(stage, str) or not stage.strip():
+        raise Refuse("stage must be a non-empty string")
+    if at_sha and not SHA_RE.match(at_sha):
+        raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
+    g.setdefault("resume", {})["stage"] = stage
+    if at_sha:
+        g["resume"]["commit"] = at_sha

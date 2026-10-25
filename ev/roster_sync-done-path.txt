@@ -1,0 +1,54 @@
+WHY. `resume.stage` is a human claim and nothing compared it with the refs:
+twelve complete handoffs sat unopened for up to 96 h while the roster recorded
+stale stages. This step is that comparison, run every pass by
+`state_docs.py beat --apply`, and it derives only what a read measures:
+
+  MERGED   a group whose branch answers for a merged pull request is `done` at
+           that merge commit (`resume.commit`); a merge first observed in this
+           pass also has its body's `Carry: <GROUP>` items appended to the
+           destination group's `carry` array.
+  OPEN     a group whose branch answers for an open pull request is
+           `in-progress`, with the number in `resume.pr`.
+  no PR    a branch with no open or merged pull request makes no change:
+           absence is not evidence, and a closed-unmerged PR is no evidence
+           either.
+
+def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
+    """(changes, skips, transitions): the stage writes a read supports, the
+    groups a human disposition protected, and the merged pull requests whose
+    group moves to done in this pass -- the only bodies read for `Carry:`."""
+    by_group = matches(roster, prs)
+    changes: list[Change] = []
+    skips: list[tuple] = []
+    transitions: list[PR] = []
+    for g in roster.get("groups", []):
+        gid = g["group"]
+        resume = g.get("resume") or {}
+        stage = resume.get("stage")
+        pr = chosen(by_group.get(gid) or [])
+        if pr is None:
+            continue
+        if stage not in DERIVABLE_STAGES:
+            skips.append((gid, stage, pr))
+            continue
+        if pr.state == OPEN:
+            if stage != "in-progress" or resume.get("pr") != pr.number:
+                changes.append(Change(gid, "in-progress", pr.number, None, stage,
+                                      pr.state))
+            continue
+        if not pr.merge_commit:
+            skips.append((gid, stage, pr, "the merge carries no commit"))
+            continue
+        # A transition only: a group already done is a settled record, and its
+        # commit is not re-recorded (the tick checks a done commit is in main;
+        # a pull request's head is, once merged).
+        if stage != "done":
+            changes.append(Change(gid, "done", pr.number, pr.merge_commit,
+                                  stage, pr.state))
+            transitions.append(pr)
+    return changes, skips, transitions
+
+
+def commit_verdict(prefix: str, commits: list[str],
+                   on_main: bool | None) -> str | None:
+    """Why a `resume.commit` record is invalid, or None (design 6.4, item 3):
