@@ -4040,18 +4040,15 @@ def _p2_registry(sources):
                      getattr(n.comparators[0], "value", None))),
              owners=["optimizer.py::channel_heating_steps"],
              dispositions={
-                 "accuracy.py::AccuracyTracker.power_ratio":
-                     "a ratio's denominator floor: below it a measured/predicted "
-                     "ratio is noise, whatever the plan says",
-                 "accuracy.py::delivered_ratio": "the same ratio floor, per sample",
+                 "accuracy.py::delivered_ratio":
+                     "a ratio's denominator floor on a sample's predicted and "
+                     "measured power: below it the ratio is noise, whatever the plan says",
                  "coordinator.py::HeatPumpOptimizerCoordinator._async_learn_buffer_cooling":
                      "distinct finding: #2238 P2 sweep instance "
                      "_async_learn_buffer_cooling.heating (the commanded action's power)",
                  "coordinator.py::HeatPumpOptimizerCoordinator._observe_frequency":
                      "distinct finding: #2238 P2 sweep instance "
                      "_observe_frequency.watch_active (the commanded power)",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._run_system_identification":
-                     "a manual override's on flag for the identification run, not a plan step",
                  "freq_control.py::FrequencyMap.observe":
                      "the frequency map's own no-evidence floor on a METERED draw",
                  "freq_control.py::FrequencyMap.recommend":
@@ -37340,12 +37337,9 @@ R.check(
 # None) and the reason. Blind spot, stated: a value handed to ANOTHER function
 # before its float() -- the price arrays' _raw_value(item) -- is not followed;
 # that seam is closed in price_model and pinned by tests/features.py.
-_P8_ALLOWED = {
-    ("coordinator.py", "_on_power_event", "float(raw_state)"): (
-        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
-    ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
-        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
-}
+# D7-s2-61 emptied it: the two coordinator power reads now parse through
+# inputs.state_power_kw, so their float() is inputs.py's.
+_P8_ALLOWED: dict[tuple[str, str, str], tuple[str | None, str]] = {}
 
 
 def _p8_state_obj(n, objs):
