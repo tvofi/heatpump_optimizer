@@ -17,21 +17,12 @@
 // indentation and file kind below.
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
+import { guardEval } from './merge_subject_guard_block.mjs'
 const git = (a) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 })
 const [mainRef, headRef] = process.argv.slice(2)
 if (!mainRef) { console.error('usage: r10_merge_subject_differential.mjs <main-ref> [<head-ref>]'); process.exit(2) }
 const AG = 'tools/policy/agreement.mjs'
-// The guard block of either shape: main's opens at its subject-flag comment.
-// nonTemplateMerges reads constants defined later in the file; cut it out, by
-// position, as the census does.
-const load = (src) => {
-  const h = src.indexOf('// WHAT A MERGE CALL IS'); const from = h < 0 ? src.indexOf('// What a merge call may not carry') : h
-  const to = src.indexOf("// WHICH LINE IS MAIN'S")
-  if (from < 0 || to < 0) { console.error('differential: guard block not found'); process.exit(2) }
-  let block = src.slice(from, to)
-  const nt = block.indexOf('function nonTemplateMerges'); if (nt >= 0) block = block.slice(0, nt) + block.slice(block.indexOf('\n}\n', nt) + 3)
-  return new Function(block + '\nreturn subjectWriters')()
-}
+const load = (src) => guardEval(src, 'subjectWriters', 'differential')
 const main = load(git(['show', `${mainRef}:${AG}`]))
 const head = load(headRef ? git(['show', `${headRef}:${AG}`]) : fs.readFileSync(AG, 'utf8'))
 const parts = {}

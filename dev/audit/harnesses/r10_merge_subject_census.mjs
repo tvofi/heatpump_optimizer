@@ -21,14 +21,8 @@
 // <new agreement.mjs> defaults to the working tree's, and is the guard read.
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
-const guard = (p) => {
-  const src = fs.readFileSync(p, 'utf8')
-  const from = src.indexOf('// WHAT A MERGE CALL IS') >= 0 ? src.indexOf('// WHAT A MERGE CALL IS') : src.indexOf('// What a merge call may not carry')
-  let block = src.slice(from, src.indexOf("// WHICH LINE IS MAIN'S"))
-  // nonTemplateMerges reads constants defined later in the file; cut it out, by position.
-  const nt = block.indexOf('function nonTemplateMerges'); if (nt >= 0) block = block.slice(0, nt) + block.slice(block.indexOf('\n}\n', nt) + 3)
-  return new Function(block + '\nreturn [MERGE_CALL, callExtent, SUBJECT_ARG]')()
-}
+import { guardEval } from './merge_subject_guard_block.mjs'
+const guard = (p) => guardEval(fs.readFileSync(p, 'utf8'), '[MERGE_CALL, callExtent, SUBJECT_ARG]', 'census')
 const files = execFileSync('git', ['ls-files', 'tools', '.claude/workflows'], { encoding: 'utf8' }).split('\n')
   // The guard's own file filter (mergeSubjectGuard), spelled with string tests so
   // this census registers no second copy of its grammar.
