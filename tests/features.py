@@ -46503,10 +46503,11 @@ def _t5_drive(coord, method, *args, **kwargs):
 # an entity the user never named is the one failure a heating integration
 # cannot take back.
 class _T5Plan:
-    """The two fields the pump driver reads off a solved plan."""
+    """The fields the pump driver reads off a solved plan."""
 
     def __init__(self, power_schedule, timestamps=None):
         self.power_schedule = power_schedule
+        self.dhw_power_schedule: list = []
         self.timestamps = timestamps or []
 
 
