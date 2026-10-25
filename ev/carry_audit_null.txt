@@ -1,0 +1,2 @@
+BAD-DEST body item bc5348b4: R10-POLICY-FIXER-MD: R10-POLICY-FIXER-MD is done (resume.stage done)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)

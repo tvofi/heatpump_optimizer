@@ -1,0 +1,1 @@
+no version edit: origin/main...9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1 moves none of VERSION, the manifest version or a notes heading
