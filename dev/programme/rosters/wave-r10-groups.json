@@ -6575,7 +6575,8 @@
    "rca": [],
    "after": [
     "R10-ROSTER-OPS",
-    "R10-FLOW-RELAY-HOLD"
+    "R10-FLOW-RELAY-HOLD",
+    "R10-UPDATE-PR-SIGNALS"
    ],
    "carry": [
     "Pre-study: the Lean flow pre-study, section K13.",
