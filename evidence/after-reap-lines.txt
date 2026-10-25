@@ -1,0 +1,2 @@
+tools/audit/seat/update_pr.sh:41:PR_AFTER_REAP="pr_push_ended && { [ ! -d \"\$WT\" ] || git -C \"\$WT\" checkout -q --detach; } 2>/dev/null || :; $PR_AFTER_REAP"  # mut:detach
+tools/audit/seat/pr_args.sh:103:  PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
