@@ -3551,6 +3551,7 @@
    "dev/audit/harnesses/pulse_replay.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_advisor_degree.py",
+   "dev/audit/harnesses/r10_anchor_vacuous.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
