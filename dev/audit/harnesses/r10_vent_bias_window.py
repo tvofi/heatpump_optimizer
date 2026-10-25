@@ -139,8 +139,8 @@ def run(days, seed, delivery, ua_true, control, vent_w_k, hours, step_day=None):
         dt_util.freeze(now)
         c._current_state = seen
         c._weather_forecast = [{"wind_speed": 0.0, "precipitation": 0.0}]
-        loop.run_until_complete(c._async_learn_lower_floor_loss())
-        loop.run_until_complete(c._async_learn_house_heat_loss())
+        loop.run_until_complete(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
+        loop.run_until_complete(c._async_learn_house_heat_loss(c._close_fabric_interval()))
         c._refresh_model_corrections()
         c._current_action = {"power": power, "dhw_power": 0.0}
         ua.append(ua_of(p, c))
