@@ -1,0 +1,28 @@
+roster dev/programme/rosters/wave-r10-groups.json
+R10-FLOW-JIDOKA in-progress pr None open True carries 21
+R10-ORCH-ROSTER-SCHEMA not-started pr None open True carries 17
+R10-ORCH-REVIEW-PACKET not-started pr None open True carries 3
+R10-ROUND-PLAYBOOK not-started pr None open True carries 1
+R10-FLOW-DESIGN-STAGES not-started pr None open True carries 12
+R10-ARCH-SHAPES in-progress pr 2819 open True carries 8
+R10-ADVISOR-RESIDUE not-started pr None open True carries 9
+R10-GATE-YIELD done pr None open False carries 1
+R10-FLY-YIELD-GUARD done pr None open False carries 3
+R10-FLOW-JIDOKA 11 P-Q (triage batch 9): prepr.sh --body-check (what body_push.sh and open_pr's prepr step 7 run) never calls carry_audit.py check --body, which pr-contract runs a
+R10-FLOW-JIDOKA 16 (triage: dev/programme/triage/s6-batch8.md#P67) `prepr.sh --fill-red` (passed by `body_push.sh` and `open_pr.sh`): when step 6d lists unpinned sites and `## Red
+R10-FLOW-JIDOKA 18 (triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tes
+R10-ORCH-ROSTER-SCHEMA 16 From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.py:205-206`) tests only `DONE_STAGES` (`("done", "rca-done")`, line 33), so `carry_audit.p
+roster dev/programme/rosters/wave-r10-groups.json
+R10-FLOW-JIDOKA in-progress pr None open True carries 21
+R10-ORCH-ROSTER-SCHEMA not-started pr None open True carries 21
+R10-ORCH-REVIEW-PACKET not-started pr None open True carries 4
+R10-ROUND-PLAYBOOK not-started pr None open True carries 7
+R10-FLOW-DESIGN-STAGES not-started pr None open True carries 15
+R10-ARCH-SHAPES in-progress pr 2819 open True carries 8
+R10-ADVISOR-RESIDUE not-started pr None open True carries 9
+R10-GATE-YIELD done pr None open False carries 1
+R10-FLY-YIELD-GUARD done pr None open False carries 3
+R10-FLOW-JIDOKA 11 P-Q (triage batch 9): prepr.sh --body-check (what body_push.sh and open_pr's prepr step 7 run) never calls carry_audit.py check --body, which pr-contract runs a
+R10-FLOW-JIDOKA 16 (triage: dev/programme/triage/s6-batch8.md#P67) `prepr.sh --fill-red` (passed by `body_push.sh` and `open_pr.sh`): when step 6d lists unpinned sites and `## Red
+R10-FLOW-JIDOKA 18 (triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tes
+R10-ORCH-ROSTER-SCHEMA 16 From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.py:205-206`) tests only `DONE_STAGES` (`("done", "rca-done")`, line 33), so `carry_audit.p

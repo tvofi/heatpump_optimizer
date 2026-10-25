@@ -1,0 +1,7 @@
+Check runs on head 5d093b09f4a1043f11f3d23123040481fa11fbfb (PR #2828 get_check_runs, 40 runs, read 2026-10-25 ~20:20Z):
+failure: governance / delivery-status (job 121276783645)
+in_progress: governance / instrument-self-tests
+queued: tests / lane-proofs
+success: fast (3.14), typing, coverage, coverage-ratchet, browser, closures, closure-scope, arch-instrument, mutation, nightly-status, briefs, graders-head-copy, policy-docs, wave-script, env-matrix, hassfest, validate-hacs, arch-score, budget-raise-gate, codeql x3, CodeQL, prelude, refresh, cancel-superseded
+skipped: closures-autofix, ci-ratchet, claims-autofix, mutation-autofix, mutation-pins, nightly-ha, replay, delivery-status-publish, record, kernel-points, arm
+no pr-contract run present at read time.
