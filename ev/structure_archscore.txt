@@ -1,0 +1,13 @@
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 419 <= 419
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +1.8325 IMPROVES
+  duplication_copies 38 -> 35  +1.0310
+  coord_footprint 2446 -> 2437  +0.0053
+  params_over_10 7 -> 6  +0.1926
+  layer_violations 17 -> 13  +0.3626
+  private_cross_module 12 -> 10  +0.2410
+---
+Architecture score: dS +1.8325 IMPROVES
+  coord_footprint 2446 -> 2437  +0.0053
