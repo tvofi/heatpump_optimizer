@@ -121,34 +121,41 @@ const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /^\S(?:.*\S)? \(
 // base, which is HEAD on the runner and never a commit on main. Reached only on
 // the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
-// WHAT A MERGE CALL IS, by the spellings gh's argv and the Python, JS and shell
-// call forms accept for one call, built from named parts; a part used at
-// several sites is pinned by a probe at each:
-//  - a word is bare or quoted (`gh`, "gh", 'gh', `gh` in backticks), and ends
-//    at a non-word character, so `merged` is not `merge`;
+// WHAT A MERGE CALL IS: the words `pr merge`, read as one call by the forms
+// gh's argv and the Python, JS and shell call forms give it, built from named
+// parts; a part used at several sites is pinned by a probe at each:
+//  - a word is bare or quoted (`pr`, "pr", 'pr', `pr` in backticks), starts and
+//    ends at a non-word character, so `merged`, `xpr` and `$pr` are not words;
 //  - a gap between words is any run of whitespace, `\`-newline continuations
 //    and argv commas (`gh pr \` + newline + `merge`, `["gh", "pr" , "merge"]`);
-//  - gh's options may stand in any gap, with or without a value, and a quoted
-//    value may hold whitespace (`gh --repo o/r pr merge`, `gh pr -t "x y" merge`,
-//    `"pr", "--repo", r, "merge"`);
-//  - the program is `gh` (or `gh.exe`) on any path, a shell variable with or
-//    without a default (`$GH`, `${GH:-gh}`) or a command substitution
-//    (`$(command -v gh)`); an argv whose program is a variable
-//    (`[GH, "pr", "merge"]`) is the quoted arm.
-// Plus the REST, MCP and GraphQL merges. What no lexical scan can read -- an argv
-// built across expressions, a word quoted or escaped inside itself, a gh alias --
-// is dispositioned in #2697's body; merges go through merge_pr.sh and
+//  - gh's options may stand in any gap, with or without a value, and a value
+//    may be a quoted run holding whitespace, a command substitution or an
+//    interpolation slot (`gh pr -t "x y" merge`, `-R $(cat r)`, `-R {repo}`);
+//  - the program is NOT read: whatever expression stands before `pr` -- `gh`
+//    on a path, `$GH`, `${cfg.gh}`, an f-string's `{GH}`, `%s`, `{}`, a list
+//    element, a concatenated variable, a wrapper or alias named anything --
+//    is the program, and none at all is a call too (a fake gh's `"pr merge"`).
+//    So no spelling of the program can fall outside the reader; the price,
+//    chosen here, is that prose naming the two words is read as a call, which
+//    can only refuse, never pass. LEAD is the token in program position, read
+//    only to anchor the call's first line, never to decide whether it is one.
+// Plus the REST, MCP and GraphQL merges. What no lexical scan can read -- the
+// two words in different expressions (`["gh", "pr"] + ["merge"]`), a word
+// quoted or escaped inside itself (`p"r"`), a gh alias for `pr merge` -- is
+// dispositioned in #2697's body; merges go through merge_pr.sh and
 // merge_train.py, which pass no subject.
 const QUOTE = '["\'`]'
 const GAP = String.raw`(?:\s|\\\n|,)+`
-const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\w-])`
-const VALUE = String.raw`(?:"[^"\n]*"|'[^'\n]*'|${'`'}[^${'`'}\n]*${'`'}|[^\s,'"${'`'}\]]+)`
-const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=${VALUE}?)?${QUOTE}?(?:${GAP}${VALUE})?`
-const OPTIONS = `(?:${GAP}${OPTION})*`
-const PROGRAM = String.raw`(?:(?<![\w$./-])(?:[\w./-]*\/)?gh(?:\.exe)?` +
-  String.raw`|\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*(?::?[-=?+][^}\n]*)?\}|\([^()\n]*\)))${QUOTE}?`
-const MERGE_CALL = new RegExp(`${PROGRAM}${OPTIONS}${GAP}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +
-  `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}` +
+const word = (w) => `${QUOTE}?(?<![\\w$./-])${w}${QUOTE}?(?![\\w-])`
+const SLOT = String.raw`\$?\{[^{}\n]*\}|\$\([^()\n]*\)`
+const VALUE = String.raw`(?:"[^"\n]*"|'[^'\n]*'|${'`'}[^${'`'}\n]*${'`'}|${SLOT}|[^\s,'"${'`'}\]]+)`
+const option = (gap) => String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=${VALUE}?)?${QUOTE}?(?:${gap}${VALUE})?`
+const OPTIONS = `(?:${GAP}${option(GAP)})*`
+// The lead's gaps cross a line only by a `\` continuation, so a lead is never
+// the last word of the line before.
+const LINE_GAP = String.raw`(?:[^\S\n]|\\\n|,)+`
+const LEAD = String.raw`([^\s,([{]+(?:${LINE_GAP}${option(LINE_GAP)})*${LINE_GAP})?`
+const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +
   String.raw`|merge_pull_request|mergePullRequest|\/pulls\/\S+\/merge\b`)
 // What a merge call may not carry: `gh pr merge`'s subject and body flags, long
 // (`--subject x`, `--subject=x`) or short, alone or in a cluster after the
@@ -219,7 +226,9 @@ function subjectWriters(files, read) {
     const text = read(f); const code = /\.(py|mjs|js|cjs)$/.test(f)
     for (const m of text.matchAll(new RegExp(MERGE_CALL.source, 'g'))) {
       calls.push(f)
-      if (SUBJECT_ARG.test(callExtent(text, m.index, code))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
+      // The extent opens at `pr`, so a bracket the lead closes or a sibling it
+      // shares a table with is not the call's; the line is the lead's.
+      if (SUBJECT_ARG.test(callExtent(text, m.index + (m[1] || '').length, code))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
     }
   }
   return { calls, bad }
@@ -659,6 +668,18 @@ async function selfTest() {
     ['the program in a variable with a default', `\${GH:-gh} pr merge 9 --merge --subject ${S}\n`],
     ['the program from a command substitution', `$(command -v gh) pr merge 9 --merge --subject ${S}\n`],
     ['the program as gh.exe', `gh.exe pr merge 9 --merge --subject ${S}\n`],
+    ['a program whose name only ends in "gh" (a wrapper)', `hgh pr merge 9 --subject ${S}\n`],
+    // An interpolated program in the one string literal.
+    ['an f-string program', `os.system(f"{GH} pr merge {n} --subject x")\n`],
+    ['an f-string program of another name', `os.system(f"{gh_bin} pr merge {n} --subject x")\n`],
+    ['an f-string attribute program under shell=True', `subprocess.run(f"{self.gh} pr merge {n} -t x", shell=True)\n`],
+    ['a %-format program', `os.system("%s pr merge %s --subject x" % (GH, n))\n`],
+    ['a .format program', `os.system("{} pr merge {} -t x".format(GH, n))\n`],
+    ['a JS template program that is no identifier', 'execSync(`${cfg.gh} pr merge ${n} --subject x`)\n'],
+    // An option value that is a substitution or slot holding whitespace.
+    ['an unquoted command substitution value between "pr" and "merge"', `gh pr -R $(cat r) merge 9 -t x\n`],
+    ['a braced default value holding whitespace between "pr" and "merge"', `gh pr -R \${REPO:-o/r x} merge 9 -t x\n`],
+    ['an f-string slot value holding whitespace between "pr" and "merge"', `os.system(f"gh pr -R {a or b} merge {n} -t x")\n`],
     ['a tuple argv with no spaces', `run(("gh","pr","merge",n,"--subject",s))\n`],
     ['os.spawnlp-style separate arguments', `os.spawnlp(os.P_WAIT, "gh", "gh", "pr", "merge", n, "--subject", s)\n`],
     ['asyncio.create_subprocess_exec arguments', `await asyncio.create_subprocess_exec("gh", "pr", "merge", n, "-t", s)\n`],
@@ -685,10 +706,37 @@ async function selfTest() {
     ['a backslash before CRLF is no continuation in bash: the next line is another command', `gh pr merge 9 --merge \\\r\n  --subject ${S}\n`],
     ['a comment line after a continuation ends the command', `gh pr merge 9 --merge \\\n  # note\n  --subject x\n`],
     ['-A takes a value, so "-Amt" is no -t', `gh pr merge 9 --merge -Amt@example.com\n`],
-    ['a program whose name only ends in "gh" is not gh', `hgh pr merge 9 --subject ${S}\n`],
+    ['a word that only ends in "pr" is not the pr command', `gh xpr merge 9 --subject ${S}\n`],
     ['the boolean flags alone set no subject', `gh pr merge 9 -m -d --match-head-commit h --auto\n`],
   ]
   for (const [what, src] of NOT_WRITERS) probes.push([`null control: ${what}`, !wr(src).length])
+  // The program is not read, so its class is every expression in program
+  // position. Each shape below interpolates each program expression; with
+  // `merge` the call's subject is refused at its line, with `view` nothing is.
+  const PROGRAMS = ['gh', '/usr/bin/gh', 'GH', 'gh_bin', 'self.gh', 'cfg.gh', 'os.environ["GH"]', 'shutil.which("gh")', 'hgh']
+  const SHAPES = [
+    ['an f-string', (p, v) => `os.system(f"{${p}} pr ${v} {n} --subject x")`],
+    ['an f-string under shell=True', (p, v) => `subprocess.run(f"{${p}} pr ${v} {n} -t x", shell=True)`],
+    ['a %-format', (p, v) => `os.system("%s pr ${v} %s --subject x" % (${p}, n))`],
+    ['a named %-format', (p, v) => `os.system("%(gh)s pr ${v} %(n)s -t x" % {"gh": ${p}, "n": n})`],
+    ['a .format', (p, v) => `os.system("{} pr ${v} {} -t x".format(${p}, n))`],
+    ['a named .format', (p, v) => `os.system("{gh} pr ${v} {n} -t x".format(gh=${p}, n=n))`],
+    ['a JS template literal', (p, v) => `execSync(\`\${${p}} pr ${v} \${n} --subject x\`)`],
+    ['a concatenation', (p, v) => `os.system(${p} + " pr ${v} " + n + " --subject x")`],
+    ['a JS concatenation', (p, v) => `execSync(${p} + ' pr ${v} ' + n + ' -t x')`],
+    ['a list join', (p, v) => `os.system(" ".join([${p}, "pr", "${v}", n, "--subject", x]))`],
+    ['an argv', (p, v) => `run([${p}, "pr", "${v}", n, "-t", x])`],
+    ['a JS argv', (p, v) => `execFileSync(${p}, ['pr', '${v}', n, '-t', x])`],
+    ['a shell command substitution', (p, v) => `$(${p}) pr ${v} 9 --subject x`],
+    ['a shell backtick substitution', (p, v) => `\`${p}\` pr ${v} 9 --subject x`],
+    ['a quoted shell parameter', (p, v) => `"\${${p}}" pr ${v} 9 -t x`],
+  ]
+  for (const [what, shape] of SHAPES) {
+    probes.push([`program class: ${what} of every program expression is a merge call, refused at its line`,
+      PROGRAMS.every((p) => ((r) => r.length === 1 && r[0].includes('tools/x:1:'))(wr(`${shape(p, 'merge')}\n`)))])
+    probes.push([`null control: ${what} of every program expression running pr view is not a merge call`,
+      PROGRAMS.every((p) => !wr(`${shape(p, 'view')}\n`).length)])
+  }
   probes.push(['an argv list broken between "pr" and "merge" is still a merge call', wr('cmd = ["gh", "pr",\n       "merge", n, "--subject", s]\n').length === 1])
   probes.push(["null control: a sibling argv in the call's own table is not the call's", !wr('for argv in ((["gh", "pr", "merge", "1"], False),\n             (["gh", "issue", "edit", "1", "--body", "x"], False)):\n').length])
   probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
