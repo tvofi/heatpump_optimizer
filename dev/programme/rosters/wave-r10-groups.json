@@ -4951,7 +4951,8 @@
    "rca": [],
    "carry": [
     "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py.",
-    "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
+    "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first.",
+    "D15 live-bundle lead L3 (owner install; unverified): `accuracy.power_ratio` is about 1.31 and `cost_error_percent` about -29 % over 210 samples (realised above predicted), the opposite direction to the planner over-booking that R10-DEMAND-OVERBOOK measured (the first carry here: the plan books about 38-40% more kWh than the relaxed DP optimum). VERIFY alongside that carry: state the definition and sign of `power_ratio` and `cost_error_percent` (which is numerator, which is predicted), then reconcile with the over-booking figure on the same model: either a sign or unit slip (fix and pin it) or two separate biases (name both with their sizes). Controls: a synthetic install where the plan over-books by a known 40 % reads the over-booking direction in both fields (null: a perfectly calibrated model reads 1.0 and 0 %); one mutant that flips the sign. (triage: dev/programme/triage/s6-batch24.md#P115)"
    ],
    "architect_note": null,
    "findings": [],
