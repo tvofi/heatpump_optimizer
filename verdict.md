@@ -1,0 +1,21 @@
+Fix review: merge 9d5c6afe928445223aaec2504bfee9a4d7489875
+
+bus-nonce: 76457dddd78e5b6e94ad2e01dd08f068
+
+Round r7 of #2712 (the seventh review round; `fix-review.md` asks for a re-cut from the fourth, but this round is a body-only repair of round r6's single carry-missing block, and the brief limits it to that). Head measured: 9d5c6afe928445223aaec2504bfee9a4d7489875, still `refs/pull/2712/head` when written (`ev/HEAD.txt`, `ev/pr.json`). Roles diff against the merge base is empty; contract read from origin/main 0825aee64.
+
+## Evidence
+
+- RESULT carry (step 10): `git show e64be204d8ba3255eb20d6f4df130cba364be0f4` is `roster_edit append-carry R10-FLY-LEDGER-SAMPLE`; it adds one `carry` entry to the group `R10-FLY-LEDGER-SAMPLE` (`files: tests/mutation_table.py`, `resume.stage: not-started`, after R10-MUTATION-ANCHOR) quoting the friction item R10-PIN-DRIVE-INCONCLUSIVE verbatim, its control included: four of the five `lives` sites were killed once `entities.py` left the `--scripts` set (`ev/roster_commit_e64be204.txt`, `ev/roster_holds.txt`). The string `R10-PIN-DRIVE-INCONCLUSIVE` appears exactly once in the roster at that SHA, under that group. e64be204d is the current tip of `handoff/audit-r10-roster` (`ev/refs.txt`). This is the repair round r6 named; its block is paid.
+- RESULT carry_audit: `python3 -I tools/audit/carry_audit.py pr 2712` (origin/main 0825aee64) prints `CARRY-AUDIT #2712: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)`, rc=0, with item 715d8327 routed to R10-FLY-LEDGER-SAMPLE (`ev/carry_audit.txt`).
+- Body delta: the `## Friction` line now ends `Carry: R10-FLY-LEDGER-SAMPLE (handoff/audit-r10-roster at e64be204d8ba3255eb20d6f4df130cba364be0f4)`; its text before the marker equals the r6 text the roster entry quotes (which ended `Carry: R10-FLOW-JIDOKA`). I could not diff the whole body against r6: no r6 body snapshot is on any ref, and GraphQL edit history is refused from this container. As a substitute, every r6-quoted body figure is still present unchanged at r7 (`## Head` 9d5c6afe9 / f7ee98672 / f40142d66, `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, `4385` checks, `7 unpinned site(s)` at a22eece4e, `dS +0.3255`, `coord_footprint 2463 -> 2464`, the two `## Red checks` entries, the four `## Forward-carry` lines) (`ev/body_r7.md`). That is my own check, not a full diff.
+- Merge: `git merge-tree --write-tree origin/main 9d5c6afe9` against 0825aee64 exits 0, tree a6b34a6f0, stderr `LEDGER-MERGE: resolved tests/closures.json` only, no claim-file line (`ev/merge_tree.*`); round r6 ran `tests/structure.py` on this same merged tree and it passed.
+- CI on this head (`ev/ci_checkruns_head.txt`): every concluded run is success or skipped, none red. `tests / mutation` (121180600924, started 13:21Z) and both `prelude` runs, including the body-edit run started 14:16:33Z, are still in progress; `pr-contract` has not reported on this head. No red check is owed an answer at this head; the train must still see `tests / mutation` and `pr-contract` conclude green.
+- Code: unchanged since round r6 (same head); its RESULT lines (structure pass, seven pins killed, null control, class census, architecture) stand as recorded on verdict/2712 61f741f4 and were not re-taken.
+
+## Findings
+
+- The new roster entry quotes the old marker (`... Carry: R10-FLOW-JIDOKA`) at its end, so the destination's text names another group as the destination; a reader of R10-FLY-LEDGER-SAMPLE's carry can be misled into thinking it was routed elsewhere. Cosmetic; the entry's own lead sentence states this group settles it. Carry: R10-FLY-LEDGER-SAMPLE
+- Carried from round r6, not reopened: `failing_count` in `tests/mutation_table.py` over-counts every red `tests/features.py` run by one (the script's own negative-control tracebacks); recurring, owes a `root-cause.md` seat. Carry: R10-FLY-LEDGER-SAMPLE
+- Carried from round r6, not reopened: the published `dhw_hours_since_legionella` value and the `check_ceiling()` call are pinned by no value check in `tests/features.py` (also on main). Carry: R10-DEMAND-OVERBOOK
+- Carried from round r6, not reopened: `## Red checks` does not name the same `tests / fast (3.14)` red at d9f8e2d16 nor `pr-contract` red at 0b03e095f/d9f8e2d16; the given cause covers it. Carry: R10-DEMAND-OVERBOOK
