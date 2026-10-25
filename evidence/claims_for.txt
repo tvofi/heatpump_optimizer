@@ -1,5 +1,0 @@
-VERSION at head: 7.0.4
-57:# claims-for: 7.0.4
-22:# claims-for: 7.0.4
-card_claimed_drift diffs (B..P, M..H, P..H):
-(empty = untouched)
