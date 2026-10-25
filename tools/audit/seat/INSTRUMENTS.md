@@ -333,6 +333,16 @@ sweep's standing-seat liveness step keep them alive.
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
+  updated either, so roster edits accumulate on the handoff ref and land between
+  reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
+  (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
+  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
+  detached worktree at it). A blocked verdict, or one at an older head, freezes
+  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
+  `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
+  freeze, never from the hold, for new work that voids a merge verdict.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
   `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
