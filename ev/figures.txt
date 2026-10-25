@@ -1,0 +1,13 @@
+main blob d3b890726e4c580732d1d257318efe78730a7b34
+head blob c3d331ec4ffe0732c1052a3a540311d9decc59ba
+groups main 189 head 189 removed [] new []
+changed 7
+  R10-FLOW-AUTOTRAIN ['resume'] stage in-progress->done
+  R10-FLY-LEDGER-SAMPLE ['carry'] carry 0->1
+  R10-IMMERSION-LATCH ['brief'] 
+  R10-LEARNER-DEFAULT ['brief'] 
+  R10-LEARNER-ETA ['resume'] stage in-progress->done
+  R10-MERGE-SUBJECT-CASEARM ['carry'] carry 2->3
+  R10-MUTANT-SKIP ['resume'] stage in-progress->done
+stages main {'absorbed': 4, 'carries-open': 5, 'done': 117, 'in-progress': 10, 'not-started': 47, 'queued': 6}
+stages head {'absorbed': 4, 'carries-open': 5, 'done': 120, 'in-progress': 7, 'not-started': 47, 'queued': 6}

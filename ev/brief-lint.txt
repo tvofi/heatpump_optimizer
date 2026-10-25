@@ -1,0 +1,10 @@
+node tools/policy/brief_lint.mjs at 09ed5f73f99a2b9048c18ac7bfb9b7832f3fce02
+FIXTURE ok: 14 error(s) pin the 931dffe acceptance (9 required)
+FIXTURE ok: 9 error(s) pin the shape-defects acceptance (9 required)
+COUNTS ok: 1 error(s) and 0 warning(s) on count-drift.json; 8 of 9 shared rule(s) run over a brief
+GUARD ok: an unexpected throw is reported as that roster's own error
+EXCLUDE ok: 1 symbol-search exclusion(s), each naming a prefix the tree has, none of the load-bearing ones dropped
+LOCATE ok: tools/audit/briefs/COMMON.md is read there beside a copy at dev/governance/roles/COMMON.md; a moved file and a directory resolve to the new path
+ROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, nothing for a non-numeric one, nothing a done group alone covers, and the live group where a done one also covers
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+EXIT 0
