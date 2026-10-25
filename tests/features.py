@@ -34046,14 +34046,12 @@ R.check(
     _ah_got == _ah_rows,
     f"got {_ah_got}",
 )
-from heatpump_optimizer import optimizer as _ah_opt  # noqa: E402
 from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
 import inspect as _ah_inspect  # noqa: E402
-# The slot merge, the reason classifiers and the DHW schedule sensor read the
-# same running rule (D8-s1-01's secondary arm): each step of ``_ah_steps`` the
-# plan calls off must sit in no slot and carry an idle reason, and the
-# schedule sensor counts no period from a raw draw. Null control: the steps
-# the plan runs keep their slot and their reason.
+# The slot merge and the DHW schedule sensor read the same running rule
+# (D8-s1-01's secondary arm): each step of ``_ah_steps`` the plan calls off
+# must sit in no slot, and the schedule sensor counts no period from a raw
+# draw. Null control: the steps the plan runs keep their slot.
 _ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
 _ah_sp = [s for s, _ in _ah_steps]
 _ah_dw = [d for _, d in _ah_steps]
@@ -34073,22 +34071,6 @@ R.check(
         [False, False, False, True, True, False],
     ],
     f"got {_ah_in_slot}",
-)
-_ah_space_why = _ah_opt.classify_space_steps(
-    np.array(_ah_sp), np.array([1.0] * 6), np.full(7, 21.0), np.full(6, 19.0),
-    np.ones(6), None, 6, other=np.array(_ah_dw),
-)
-_ah_dhw_why = _ah_opt.classify_dhw_steps(
-    np.array(_ah_dw), np.zeros(6, dtype=bool), np.zeros(6), None, 6,
-    idle=_ah_opt.IdleContext(other=np.array(_ah_sp)),
-)
-_ah_idle = {_ah_opt.REASON_IDLE, _ah_opt.REASON_IDLE_COASTING, _ah_opt.REASON_IDLE_DEARER,
-            _ah_opt.REASON_IDLE_SOLAR, _ah_opt.REASON_IDLE_FUSE, _ah_opt.REASON_IDLE_OTHER}
-R.check(
-    "a step the plan runs no pump at is idle to the reason classifiers (D8-s1-01)",
-    [c not in _ah_idle for c in _ah_space_why] == [True, False, False, True, False, False]
-    and [c not in _ah_idle for c in _ah_dhw_why] == [False, False, False, True, True, False],
-    f"space {_ah_space_why} dhw {_ah_dhw_why}",
 )
 _ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
 _ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()

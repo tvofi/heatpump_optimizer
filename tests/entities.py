@@ -4083,13 +4083,13 @@ def _p2_registry(sources):
                  "narrative.py::build":
                      "an energy display floor in kWh per narrative line, not a power",
                  "optimizer.py::classify_space_steps":
-                     "the owner module's idle line, compared against "
-                     "channel_heating_draw (zero on every step the plan does "
-                     "not run), so a declared-off step is idle here",
+                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
+                     "classifiers' idle line on the raw draw; its running-rule "
+                     "arm moves golden fixtures host-conditionally (#996)",
                  "optimizer.py::classify_dhw_steps":
-                     "the owner module's idle line, compared against "
-                     "channel_heating_draw (zero on every step the plan does "
-                     "not run), so a declared-off step is idle here",
+                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
+                     "classifiers' idle line on the raw draw; its running-rule "
+                     "arm moves golden fixtures host-conditionally (#996)",
                  "accuracy.py::delivered_ratio":
                      "a ratio's denominator floor on a sample's predicted and "
                      "measured power: below it the ratio is noise, whatever the plan says",
