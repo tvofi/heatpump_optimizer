@@ -1,0 +1,70 @@
+head 9da3cb7f85e372971d4ed6425dc1030b7cc2ecf1
+origin/main 8a11b8bdd6bfdca0b5f6bd356638fad2b234525f
+merge-base 1afbbceaea843b2c7ffe914e1aa9b7172cbc0161
+ dev/programme/delivery/2756.md | 2 +-
+ dev/programme/delivery/2758.md | 2 +-
+ dev/programme/delivery/2779.md | 2 +-
+ dev/programme/delivery/2782.md | 2 +-
+ dev/programme/delivery/2786.md | 2 +-
+ dev/programme/delivery/2788.md | 1 +
+ 6 files changed, 6 insertions(+), 5 deletions(-)
+diff --git a/dev/programme/delivery/2756.md b/dev/programme/delivery/2756.md
+index ba527df43..493be12d9 100644
+--- a/dev/programme/delivery/2756.md
++++ b/dev/programme/delivery/2756.md
+@@ -1 +1 @@
+-- [#2756](https://github.com/tvofi/heatpump_optimizer/pull/2756) — **open**, R10-RCA-CODESCAN-WAIT: root cause of the codescan wait race (R10-RCA-CODESCAN-WAIT)
++- [#2756](https://github.com/tvofi/heatpump_optimizer/pull/2756) — **merged `6939389`**, R10-RCA-CODESCAN-WAIT: root cause of the codescan wait race (R10-RCA-CODESCAN-WAIT).
+diff --git a/dev/programme/delivery/2758.md b/dev/programme/delivery/2758.md
+index bbf453bd1..d16575273 100644
+--- a/dev/programme/delivery/2758.md
++++ b/dev/programme/delivery/2758.md
+@@ -1 +1 @@
+-- [#2758](https://github.com/tvofi/heatpump_optimizer/pull/2758) — **open**, triage: s6 batch 15, P84 (the train posts the mandate approval its policy step requires)
++- [#2758](https://github.com/tvofi/heatpump_optimizer/pull/2758) — **merged `9082f26`**, triage: s6 batch 15, P84 (the train posts the mandate approval its policy step requires).
+diff --git a/dev/programme/delivery/2779.md b/dev/programme/delivery/2779.md
+index ec1caacdf..786b44034 100644
+--- a/dev/programme/delivery/2779.md
++++ b/dev/programme/delivery/2779.md
+@@ -1 +1 @@
+-- [#2779](https://github.com/tvofi/heatpump_optimizer/pull/2779) — **open**, R10-FLOW-ROSTER-FREEZE: carry_audit accepts a group open on the round roster ref (arm b) (R10-FLOW-ROSTER-FREEZE)
++- [#2779](https://github.com/tvofi/heatpump_optimizer/pull/2779) — **merged `c01d54b`**, R10-FLOW-ROSTER-FREEZE: carry_audit accepts a group open on the round roster ref (arm b).
+diff --git a/dev/programme/delivery/2782.md b/dev/programme/delivery/2782.md
+index 901aaab68..d5cbf7ddd 100644
+--- a/dev/programme/delivery/2782.md
++++ b/dev/programme/delivery/2782.md
+@@ -1 +1 @@
+-- [#2782](https://github.com/tvofi/heatpump_optimizer/pull/2782) — **open**, triage: s6 batch 20, P96 (carried single merges via the train; merge_pr.sh names the route)
++- [#2782](https://github.com/tvofi/heatpump_optimizer/pull/2782) — **merged `cc9d584`**, triage: s6 batch 20, P96 (carried single merges via the train; merge_pr.sh names the route).
+diff --git a/dev/programme/delivery/2786.md b/dev/programme/delivery/2786.md
+index 1e79f70b0..c3794dde7 100644
+--- a/dev/programme/delivery/2786.md
++++ b/dev/programme/delivery/2786.md
+@@ -1 +1 @@
+-- [#2786](https://github.com/tvofi/heatpump_optimizer/pull/2786) — **open**, record: delivery rows (autofix)
++- [#2786](https://github.com/tvofi/heatpump_optimizer/pull/2786) — **merged `1afbbce`**, record: delivery rows for #2692, #2698, #2704, #2706, #2761, #2763, #2766, #2767, #2770, #2772, #2781 (autofix).
+diff --git a/dev/programme/delivery/2788.md b/dev/programme/delivery/2788.md
+new file mode 100644
+index 000000000..4f873e447
+--- /dev/null
++++ b/dev/programme/delivery/2788.md
+@@ -0,0 +1 @@
++- [#2788](https://github.com/tvofi/heatpump_optimizer/pull/2788) — **open**, record: delivery rows (autofix)
+
+6939389f8c0cfbf684bd92e64f5e1c4552e89986 ancestor-of-origin/main Merge pull request #2756 from tvofi/fix/r10-rca-codescan-wait
+9082f264231448393938225931aa0218c5ecb76a ancestor-of-origin/main Merge pull request #2758 from tvofi/triage/s6-batch15
+c01d54b9811349f79599a915cf016ae7357842a2 ancestor-of-origin/main Merge pull request #2779 from tvofi/fix/r10-roster-freeze-b-r2
+cc9d584ac8f80280be28799c0dc8882fe74e8031 ancestor-of-origin/main Merge pull request #2782 from tvofi/triage/s6-batch20
+1afbbceaea843b2c7ffe914e1aa9b7172cbc0161 ancestor-of-origin/main Merge pull request #2786 from tvofi/record/autofix
+
+merge-tree:
+ab18ca754fa0a9b0a91398ecddf072d0f84186bb
+rc=0
+
+commit messages:
+9da3cb7f85e372971d4ed6425dc1030b7cc2ecf1 hpo-author[bot]
+ci: record delivery rows
+
+a8fecddb78d6959b56193ae6d34885e608f25ff1 hpo-author[bot]
+ci: record delivery rows
+
