@@ -1,0 +1,11 @@
+2124781cf86064c9bba6639755f73d60b5d54627
+ dev/audit/harnesses/r10_review_strength_mutants.py |  14 +-
+ dev/programme/carries/carry-201.json               |  16 ++-
+ dev/programme/delivery/2765.md                     |   1 +
+ tools/audit/seat/INSTRUMENTS.md                    |   5 +-
+ tools/audit/seat/review_strength.py                | 149 ++++++++++++++++++++-
+ 5 files changed, 177 insertions(+), 8 deletions(-)
+tree-diff rc=0 (empty above = byte-identical)
+eb8de68419d775602bd2df6c2db65d512e9498a0
+merge-tree rc=0
+roles-diff-done

@@ -1,0 +1,8 @@
+roster ref origin/handoff/audit-r10-roster = 2124781cf86064c9bba6639755f73d60b5d54627
+2124781cf86064c9bba6639755f73d60b5d54627 is on handoff/audit-r10-roster
+2124781cf86064c9bba6639755f73d60b5d54627 roster_edit set-stage R10-POLICY-FIXER-MD (tools/audit/seat/roster_edit.py)
+226307773a1cd527468148b114d8cc503d5a87e8 roster_edit append-carry R10-ORCH-DISPATCH-REG (tools/audit/seat/roster_edit.py)
+080152c524dd827e4fe08af3b887e039f4be9f5b roster_edit append-carry R10-ORCH-DISPATCH-REG (tools/audit/seat/roster_edit.py)
+R10-ORCH-DISPATCH-REG resume: {'stage': 'not-started', 'branch': None} carries: 10
+RESULT carry index=8 verbatim=True len_roster=1245 len_body=1245 precondition=True control=True
+RESULT carry index=9 verbatim=True len_roster=1397 len_body=1397 precondition=True control=True
