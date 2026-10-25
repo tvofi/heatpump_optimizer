@@ -760,6 +760,17 @@ async function selfTest() {
   probes.push(['null control: a bracket in a quote, past an escaped quote, opens no command', !wr('x="\\"(" ; gh pr merge 9 --merge\necho --body\n').length])
   probes.push(['a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused',
     wr('(cd repo) && gh pr merge 9 --merge --subject "Merge pull request #9 (x)"\n').length === 1])
+  // A closer in the lead that no opener on the line matches -- a wrapped
+  // parenthetical, a list marker, a case arm, an array closed on the call's line
+  // -- closes no bracket of the call's: main's line guard refuses each (#2697).
+  const md = (src) => guard([], { ...writers, 'tools/x.md': src })
+  probes.push(['a closer in the lead with no opener on its line does not end the call: a wrapped parenthetical\'s --subject is refused, at its line',
+    ((r) => r.length === 1 && r[0].includes('tools/x.md:2:'))(md('Merge it by hand (the train is\ndown) with `gh pr merge 9 --subject x`.\n'))])
+  probes.push(['the same for a list marker, a case arm and a shell array closed on the call\'s line', [
+    '1) gh pr merge 9 --subject x\n', ':) gh pr merge 9 -t x\n', 'case $m in\n  *) gh pr merge 9 --subject x ;;\nesac\n',
+    'case $m in\n[0-9]*) gh pr merge 9 -t x ;;\nesac\n', 'x=(\n a\n); gh pr merge 9 --subject x\n'].every((t) => wr(t).length === 1)])
+  probes.push(["null control: a closer in the lead before a merge with no subject, and a later line's flag, are not the call's",
+    !md('Merge it by hand (the train is\ndown) with `gh pr merge 9 --squash`,\nthen `gh pr edit 9 --title t`.\nnever) gh pr merge 9 ;;\ny) gh pr edit 9 --title t ;;\n').length])
   probes.push(['every merge call in a file is read: a --subject on the second is refused, at its line', ((r) => r.length === 1 && r[0].includes('tools/x:2:'))(
     wr('gh pr merge 1 --merge\ngh pr merge 2 --merge --subject "Merge pull request #2 (x)"\n'))])
   probes.push(["null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's",
