@@ -1,0 +1,17 @@
+diff --git a/dev/programme/triage/s6-batch26.md b/dev/programme/triage/s6-batch26.md
+index 58b3da6db..a273573b4 100644
+--- a/dev/programme/triage/s6-batch26.md
++++ b/dev/programme/triage/s6-batch26.md
+@@ -189,9 +189,9 @@ Carry text (for `roster_edit.py append-carry R10-ORCH-DISPATCH-REG`, citing `tri
+ 
+ ## P139: HEAT-METER: design approved; resize XL -> L when #2753 lands (S6-V60, plan-opt card V60; round 2)
+ Verdict: ACCEPT narrowed. The card's two operational steps have both happened since it was written. The designer delivered `design/R10-HEAT-METER` (04de6ae7f, 2026-10-25T16:34Z). The design review ran three rounds on `design-verdict/R10-HEAT-METER`:
+-- revise 04de6ae7f (fabd19b8a, 17:40Z);
+-- revise e23ace899 (636a85b36, 17:48Z);
+-- approve 21f4fbfe9 (ad376684f, 17:51Z, round 3).
++- revise 04de6ae7f (fabd19b8a, 16:40Z);
++- revise e23ace899 (636a85b36, 16:48Z);
++- approve 21f4fbfe9 (ad376684f, 16:51Z, round 3).
+ 
+ The approved note at 21f4fbfe9 reads "Size verdict: L, conditional on #2753" (line 39); #2753 is open. What remains:
+ - Resize XL -> L, citing the approved head 21f4fbfe9, once #2753 has merged with the names the note relies on.
