@@ -9940,6 +9940,43 @@
     "next_step": "dispatch a fixer",
     "note": null
    }
+  },
+  {
+   "group": "R10-PLAN-ISSUES-CHART",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/plan_page.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "GROUP R10-PLAN-ISSUES-CHART (new, size S, owner request tvofi 2026-10-25 in the orchestrator session: 'fold the issues chart into tools/audit/seat/plan_page.py via a small instrument PR'). Add a 'Projected open issues' section to plan_page.py, first section of the page: open GitHub issues carried by not-done roster groups, each projected to close at the planned finish of the last group carrying it; issues closed on GitHub dropped; issues on groups with no planned finish stay flat; other open issues excluded and counted in a note; closure line from plan summary. A reference implementation exists outside the tree; the fixer's brief carries it, and nothing in the tree may import it. The open-issue set must be injectable (a --issues-json fixture or equivalent) so the self-test needs no network; plan_page keeps working offline (no gh = chart omitted with a note, never a crash). Controls: a fixture where one issue sits on two groups closes at the later finish (mutant: earlier finish must fail); a closed-on-GitHub issue is not counted (mutant: count it must fail); a no-finish group stays flat. Seam: R10-ORCH-PLANPAGE owns everything else in plan_page.py; this group owns only the issues-chart section and its data function.",
+   "resume": {
+    "stage": "queued",
+    "branch": null
+   }
   }
  ]
 }
