@@ -1,0 +1,11 @@
+2026-10-25T04:38:56.2031755Z   [04:38:56] FAILED python3 tests/structure.py (14s)
+2026-10-25T04:44:24.3269369Z ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+2026-10-25T04:44:24.3272226Z   class_excess_loc = 18195 (every class's span past 300, summed; the coordinator's 410 helper lines count in its span)
+2026-10-25T04:44:24.3295305Z RESULT class_excess_loc=18195 count
+2026-10-25T04:44:24.3296172Z RESULT max_class_loc=8435 count
+2026-10-25T04:44:24.3296859Z   gain class_excess_loc 18195 (budget 18202, -7; not yet recorded -- see below)
+2026-10-25T04:44:24.3297726Z   gain max_class_loc 8435 (budget 8442, -7; not yet recorded -- see below)
+2026-10-25T04:44:24.3298370Z   class_excess_loc                        18202        18195         -7  BETTER (lower is better)
+2026-10-25T04:44:24.3298495Z   max_class_loc                            8442         8435         -7  BETTER (lower is better)
+2026-10-25T04:44:24.3299626Z 2 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED
+2026-10-25T04:44:24.3645774Z 1 TEST SCRIPT(S) FAILED
