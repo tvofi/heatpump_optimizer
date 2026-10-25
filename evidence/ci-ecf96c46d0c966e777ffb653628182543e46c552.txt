@@ -1,4 +1,0 @@
-Check runs on ecf96c46d0c966e777ffb653628182543e46c552 (check-runs API, 43 runs, read 2026-10-25 ~19:05Z):
-failure: governance / delivery-status -- DELIVERY STATUS OVERDUE on #2762 and #2795 (main's rows); the log says it is NOT a required context and blocks no merge; this PR's diff adds only its own row.
-in_progress: codeql / Analyze (python); prelude (run 40222357695).
-success: instrument-self-tests, closures, closure-scope, fast (3.14), mutation, typing, coverage, coverage-ratchet, briefs, policy-docs, wave-script, env-matrix, arch-score, budget-raise-gate, nightly-status, hassfest, validate-hacs, lane-proofs, graders-head-copy, browser, arch-instrument, codeql actions/js.

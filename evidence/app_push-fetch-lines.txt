@@ -1,3 +1,0 @@
-178:  git -C "$wt" fetch -q origin main 2>/dev/null || { _rv_no "origin/main could not be fetched"; return 1; }
-374:  git -C "$1" fetch -q origin main 2>/dev/null || { echo "app_push: origin/main could not be fetched" >&2; return 1; }
-638:  *"fetch -q origin main") ;;

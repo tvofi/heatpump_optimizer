@@ -1,0 +1,5 @@
+mut:detach deleted 1 line(s) of tools/audit/seat/pr_args.sh
+  FAIL update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
+  FAIL update_pr: the run leaves its worktree detached, so no worktree holds the branch
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 121 checks, 2 failed
