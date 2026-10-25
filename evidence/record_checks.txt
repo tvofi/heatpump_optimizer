@@ -1,0 +1,11 @@
+DELIVERY STATUS OK — 137 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #2765 8a11b8b 0 commit(s) since — R10-FLY-YIELD-GUARD: the review-strength guardrail
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+
+dev/programme/plan-2026-09-open-issues.md
+  ERROR   [record] dev/programme/plan-2026-09-open-issues.md: no disposition in the plan of record or the living handover for merged pull request #2765 (Merge pull request #2765 from tvofi/fix/r10-fly-yield-guard). Write its row as dev/programme/delivery/2765.md. A merge nobody recorded is a merge no later seat can resume from.
+
+KNOWN-BAD: 0 of 0 recorded record-class defect(s) still present, in 0 recorded occurrence(s)
+
+TOTAL: 1 error(s) over 2 merged pull request(s)
