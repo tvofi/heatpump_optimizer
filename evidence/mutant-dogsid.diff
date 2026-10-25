@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index b08a88fc7..78e8628fd 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -251,7 +251,6 @@ if kid == 0:
+ dog = os.fork()
+ if dog == 0:  # outside the session: at the deadline, or at EOF once the supervisor is gone, a SIGKILLed one too
+   os.close(w); os.close(tr)
+-  os.setsid()  # mut:dogsid
+   if not select.select([r], [], [], lim)[0]:
+     sys.stderr.write("%s: BOUND: the self-test passed %d s, so its whole session is ended\n" % (name, lim)); os.write(tw, b"T")
+   end(kid)  # mut:dogend

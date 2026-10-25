@@ -1,2 +1,0 @@
-before kill: pgid 7201 has 12 processes; fixture dir /tmp/tmp.I78duNRZHe/
-3 s after the group KILL: pgid 7201 has 0 live; processes naming the fixture dir: 0

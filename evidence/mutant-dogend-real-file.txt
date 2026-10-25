@@ -1,5 +1,0 @@
-mut:dogend deleted 1 line(s) of tools/audit/seat/pr_args.sh
-  FAIL pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so
-  FAIL pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog
-  ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 121 checks, 2 failed
