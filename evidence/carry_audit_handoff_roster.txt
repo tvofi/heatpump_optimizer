@@ -1,4 +1,0 @@
-BAD-DEST #2756 body item dfbf0d1f: R10-CI-LAYOUT-P2: R10-CI-LAYOUT-P2 is done (resume.stage done)
-BAD-DEST #2756 body item 8b4b28fb: R10-CI-LAYOUT-P2: R10-CI-LAYOUT-P2 is done (resume.stage done)
-BAD-DEST #2756 body item 2f832cef: R10-CI-LAYOUT-P2: R10-CI-LAYOUT-P2 is done (resume.stage done)
-CARRY-AUDIT #2756: 3 finding item(s): 0 routed, 0 unrouted, 3 bad destination(s)

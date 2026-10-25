@@ -1,2 +1,0 @@
-selftest: 9 checks, 5 failed ['inverted', 'ordered', 'red_inverted', 'red_ordered']
-rc=1
