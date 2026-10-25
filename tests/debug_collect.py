@@ -1546,9 +1546,9 @@ R.check(
     _carrying(planted_dl) == [],
     "; ".join(_carrying(planted_dl)),
 )
-_kept = {(path, repr(leaf)) for path, leaf in _leaves(planted_dl)}
+_untouched = {(path, repr(leaf)) for path, leaf in _leaves(planted_dl)}
 _moved = [path for path, leaf in _leaves(planted_open)
-          if not _private(path) and not _private(leaf) and (path, repr(leaf)) not in _kept]
+          if not _private(path) and not _private(leaf) and (path, repr(leaf)) not in _untouched]
 R.check(
     "the null control: every field of the planted download that holds no private value "
     "comes out as it would without the value pass",
