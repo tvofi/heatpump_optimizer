@@ -9178,7 +9178,8 @@
     "tools/audit/seat/INSTRUMENTS.md"
    ],
    "carry": [
-    "delete probe refs for #2654 #2656 #2657 (moved from R10-CI-LAYOUT-P2, appended after done; re-measured on origin 2026-10-25: refs/heads/fix/r10-ci-layout-p2-probe-B1, -B2, -Btwin and wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-{A,B1,B2}-* still exist. Delete them with tools/audit/seat/prune_refs.py as part of the closeout.)"
+    "delete probe refs for #2654 #2656 #2657 (moved from R10-CI-LAYOUT-P2, appended after done; re-measured on origin 2026-10-25: refs/heads/fix/r10-ci-layout-p2-probe-B1, -B2, -Btwin and wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-{A,B1,B2}-* still exist. Delete them with tools/audit/seat/prune_refs.py as part of the closeout.)",
+    "The instrument PR and the run are separate steps. Open the PR once R10-FLY-PRUNE-REFS and R10-FLY-WORKTREE-GC have merged; it lands the closeout instrument and its fixtures, and its merge sets the group carries-open, not done. The `--apply` run stays the round's final act, and the instrument enforces that itself: `--apply` reads the roster and refuses, naming each one, while any group other than R10-CLOSEOUT-CLEANUP is not done, R10-ARCH-DOCS and R10-ROUND-PLAYBOOK included. The dry plan runs at any time. Controls: `--apply` against a fixture roster with one other group open refuses and writes nothing (null: with every other group done it proceeds to step 1); a dry run with groups open prints the plan and writes nothing; one mutant that drops the roster check fails the refusal arm. triage: dev/programme/triage/s6-batch26.md#P130"
    ],
    "resume": {
     "stage": "not-started",
