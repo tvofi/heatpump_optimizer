@@ -3581,6 +3581,7 @@
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
    "dev/audit/harnesses/r10_carry_sweep_rows.py",
+   "dev/audit/harnesses/r10_channel_running_rule.py",
    "dev/audit/harnesses/r10_ci_gate_core.py",
    "dev/audit/harnesses/r10_ci_gate_ready.py",
    "dev/audit/harnesses/r10_ci_layout_p0_fast_offsets.py",
