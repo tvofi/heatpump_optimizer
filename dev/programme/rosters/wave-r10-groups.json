@@ -9589,9 +9589,7 @@
    "files": [
     "dev/audit/rca/R10-RCA-CODESCAN-WAIT.md"
    ],
-   "carry": [
-    "From R10-GATE-DEFER (handoff/r10-gate-defer 5150d172): of R10-RCA-CODESCAN-WAIT's countermeasures, M1 (non-code prelude waits for every code run at the head) and M4's prelude self-test case land in R10-GATE-DEFER. M3 (echo tools/ci/codescan_wait.py's FAIL line to the job log) does not and stays owed here; R10-CI-LAYOUT-P2, its former destination, is done."
-   ],
+   "carry": [],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-rca-codescan-wait"
