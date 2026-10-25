@@ -11,3 +11,4 @@ Pay the +7 by improving the code (move, delete, share or refactor so tools/audit
 Body: re-take the whole body; `## Red checks` names `tests / fast (3.14)` (structure.py seam_cut_total) and answers it with the cheaper detector (prepr / tests/structure.py before the handoff) and why it did not catch it earlier; name the race reds as the codescan wait race.
 Push handoff/r10-config-notices-r2 (new 40-hex tip) and handoff-body/r10-config-notices-r2 per the fixer contract.
 no host or home paths in anything you push
+Push your return refs (the handoff, then handoff-body as the return signal) as soon as prepr passes; a result left only in your session is lost work. The previous attempt at this brief ended with no ref pushed.
