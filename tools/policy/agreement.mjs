@@ -182,22 +182,33 @@ function quoted(st, text, i) {
   if (c === '"' || c === "'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }
   return 0
 }
+// Whether a comment opens at text[i], outside a quote, by the file's language
+// (`kind`): Python's `#`, a shell or Markdown word's leading `#`, JS's `//`. A
+// bracket or quote mark in a comment is prose, to either read below.
+const commentAt = (kind, text, i) => kind === 'js' ? text.startsWith('//', i) : text[i] === '#' && (kind === 'py' || !i || /\s/.test(text[i - 1]))
 // A call, not a line: what a merge call carries runs from the innermost bracket
-// open before it on its line (or the line's start) to where that bracket closes,
+// still open at it (or its line's start) to where that bracket closes,
 // or to the first line end that is outside every bracket it opened and not
 // escaped by `\`: an argv list or a call split over lines (merge_train.py's own
 // merge among them) and a shell continuation are one call, and a sibling in the
 // same table is not. A bracket inside a quote is text, and a line end inside a
 // Python triple-quoted string is the string's. A blank line ends it, so prose
-// with a stray parenthesis cannot run on, except in a Python or JS file (`code`),
-// where the language reads a blank line inside a bracket as nothing.
-function callExtent(text, at, code) {
+// with a stray parenthesis cannot run on, except in a Python or JS file,
+// where the language reads a blank line inside a bracket as nothing. The open
+// bracket is read from the statement's first line, the line after the last
+// blank one, so an argv wrapped after its program or exploded one element per
+// line is one call; a line end there resets a quote as the forward read does.
+function callExtent(text, at, kind) {
   const ls = text.lastIndexOf('\n', at - 1) + 1
+  let ps = ls
+  for (let p; ps > 0 && (p = text.lastIndexOf('\n', ps - 2) + 1, text.slice(p, ps - 1).trim()); ps = p);
   const open = []; let st = { q: '', esc: false }
-  for (let i = ls; i < at; i++) {
+  for (let i = ps; i < at; i++) {
     const c = text[i]
+    if (c === '\n' && st.q.length !== 3) { st = { q: '', esc: false }; continue }
     const n = quoted(st, text, i)
     if (n) { i += n - 1; continue }
+    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); i = (e < 0 || e > at ? at : e) - 1; continue }
     if ('([{'.includes(c)) open.push(i)
     else if (')]}'.includes(c)) open.pop()
   }
@@ -209,12 +220,13 @@ function callExtent(text, at, code) {
       if (st.q.length === 3) continue
       st = { q: '', esc: false }
       const next = text.indexOf('\n', i + 1)
-      if (!code && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
+      if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
       if (!open.length && !depth && text[i - 1] !== '\\') return text.slice(start, i)
       continue
     }
     const n = quoted(st, text, i)
     if (n) { i += n - 1; continue }
+    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); if (e < 0) break; i = e - 1; continue }
     if ('([{'.includes(c)) depth++
     else if (')]}'.includes(c) && --depth < 0) return text.slice(start, i + 1)
   }
@@ -223,12 +235,12 @@ function callExtent(text, at, code) {
 function subjectWriters(files, read) {
   const calls = []; const bad = []
   for (const f of files) {
-    const text = read(f); const code = /\.(py|mjs|js|cjs)$/.test(f)
+    const text = read(f); const kind = /\.py$/.test(f) ? 'py' : /\.(mjs|js|cjs)$/.test(f) ? 'js' : 'sh'
     for (const m of text.matchAll(new RegExp(MERGE_CALL.source, 'g'))) {
       calls.push(f)
       // The extent opens at `pr`, so a bracket the lead closes or a sibling it
       // shares a table with is not the call's; the line is the lead's.
-      if (SUBJECT_ARG.test(callExtent(text, m.index + (m[1] || '').length, code))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
+      if (SUBJECT_ARG.test(callExtent(text, m.index + (m[1] || '').length, kind))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
     }
   }
   return { calls, bad }
