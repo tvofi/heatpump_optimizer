@@ -12199,7 +12199,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
         "system_identification", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
