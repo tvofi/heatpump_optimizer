@@ -1,4 +1,4 @@
-<svg class="setup-svg" viewBox="0 0 720 356"
+<svg class="setup-svg" viewBox="0 0 720 380"
     xmlns="http://www.w3.org/2000/svg" role="group"
     aria-label="Configured system"><style>svg { background: #fff; font-family: sans-serif; }
 .setup-page { padding: 0.5em 0.25em; }
@@ -61,7 +61,7 @@
       }
       .type-badge path, .type-badge rect, .type-badge circle:not(.badge-disc),
       .type-badge ellipse {
-        fill: none; stroke: var(--hpo-accent, #026aa8); stroke-width: 1.6;
+        fill: none; stroke: var(--hpo-accent, #026aa8); stroke-width: 1.5;
         stroke-linecap: round; stroke-linejoin: round;
       }
       .type-badge { pointer-events: none; }
@@ -85,10 +85,12 @@
          the rows it stands for. */
       .setup-slot.folded { fill: var(--hpo-text-2, #727272); }
       .setup-slot.extra { fill: var(--hpo-text-2, #727272); }
+      /* The hot water box's coil wording, on the drawing's 11-unit tier. */
+      .setup-slot.lead { font-size: 11px; }
       .setup-value { font-weight: 600; }
-      /* The Configure control, in the product's chip: the same border,
-         radius and label size a legend chip wears, so a button drawn inside
-         the diagram is the same object as a button drawn beside it. */
+      /* The Configure control: the chip's border colour, on the drawing's
+         11-unit tier. A drawn label scales with the drawing, so it does not
+         render at a legend chip's size (C2). */
       .setup-chip {
         fill: transparent;
         stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
@@ -107,21 +109,21 @@
       }
       /* The options page the button means, under its verb. */
       .setup-chip-page {
-        font-size: 10px; fill: var(--hpo-text-2, #727272);
+        font-size: 11px; fill: var(--hpo-text-2, #727272);
         pointer-events: none;
       }
       /* Where the page each button names is, said once above the drawing. */
       .setup-dest {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.85em; margin: 0 0.25em 0.5em 0.25em; max-width: 70ch;
+        font-size: max(12px, 0.85em); margin: 0 0.25em 0.5em 0.25em; max-width: 70ch;
       }
       .setup-hint {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.85em; padding: 0.5em 0.25em;
+        font-size: max(12px, 0.85em); padding: 0.5em 0.25em;
       }
       .setup-result {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+        font-size: max(12px, 0.85em); padding: 0 0.25em 0.5em 0.25em;
       }
       .setup-hit { fill: transparent; cursor: pointer; }
       /* fill-opacity, not opacity: element opacity would fade the focus
@@ -187,22 +189,22 @@
       }</style><rect x="0" y="0" width="100%" height="100%" fill="#ffffff" /><path class="setup-pipe" data-edge="heat_pump>buffer_tank"
       d="M 216 168.5
       C 256 168.5,
-        220 168.5, 260 168.5" /><circle class="setup-pipe-dot" cx="216" cy="168.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="168.5" r="2" /><path class="setup-flow" d="M 235 171.5 L 240 168.5 L 235 165.5" /><path class="setup-pipe" data-edge="buffer_tank>mixing_valve"
-        d="M 284 97
-        L 284 111" /><circle class="setup-pipe-dot" cx="284" cy="97" r="2" /><circle class="setup-pipe-dot" cx="284" cy="111" r="2" /><path class="setup-flow" d="M 287 107 L 284 102 L 281 107" /><path class="setup-pipe" data-edge="wood_tank>mixing_valve"
-      d="M 216 263.5
-      C 256 263.5,
-        220 56.5, 260 56.5" /><circle class="setup-pipe-dot" cx="216" cy="263.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="56.5" r="2" /><path class="setup-flow" d="M 240.941 163.057 L 238.039 158 L 234.943 162.941" /><path class="setup-pipe" data-edge="mixing_valve>upper_zone"
-      d="M 460 56.5
-      C 500 56.5,
-        464 56.5, 504 56.5" /><circle class="setup-pipe-dot" cx="460" cy="56.5" r="2" /><circle class="setup-pipe-dot" cx="504" cy="56.5" r="2" /><path class="setup-flow" d="M 479 59.5 L 484 56.5 L 479 53.5" /><path class="setup-pipe" data-edge="mixing_valve>lower_zone"
-      d="M 460 56.5
-      C 500 56.5,
-        464 151.5, 504 151.5" /><circle class="setup-pipe-dot" cx="460" cy="56.5" r="2" /><circle class="setup-pipe-dot" cx="504" cy="151.5" r="2" /><path class="setup-flow" d="M 478.876 101.129 L 482.084 105.998 L 484.871 100.876" /><path class="setup-pipe" data-edge="heat_pump>dhw_tank"
+        220 186.5, 260 186.5" /><circle class="setup-pipe-dot" cx="216" cy="168.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="186.5" r="2" /><path class="setup-flow" d="M 234.421 175.222 L 238.434 179.452 L 240.278 173.921" /><path class="setup-pipe" data-edge="buffer_tank>mixing_valve"
+        d="M 284 109
+        L 284 123" /><circle class="setup-pipe-dot" cx="284" cy="109" r="2" /><circle class="setup-pipe-dot" cx="284" cy="123" r="2" /><path class="setup-flow" d="M 287 119 L 284 114 L 281 119" /><path class="setup-pipe" data-edge="wood_tank>mixing_valve"
+      d="M 216 269.5
+      C 256 269.5,
+        220 62.5, 260 62.5" /><circle class="setup-pipe-dot" cx="216" cy="269.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="62.5" r="2" /><path class="setup-flow" d="M 240.941 169.057 L 238.039 164 L 234.943 168.941" /><path class="setup-pipe" data-edge="mixing_valve>upper_zone"
+      d="M 460 62.5
+      C 500 62.5,
+        464 56.5, 504 56.5" /><circle class="setup-pipe-dot" cx="460" cy="62.5" r="2" /><circle class="setup-pipe-dot" cx="504" cy="56.5" r="2" /><path class="setup-flow" d="M 482.832 63.66 L 483.109 57.836 L 477.84 60.332" /><path class="setup-pipe" data-edge="mixing_valve>lower_zone"
+      d="M 460 62.5
+      C 500 62.5,
+        464 151.5, 504 151.5" /><circle class="setup-pipe-dot" cx="460" cy="62.5" r="2" /><circle class="setup-pipe-dot" cx="504" cy="151.5" r="2" /><path class="setup-flow" d="M 478.868 104.138 L 482.09 108.998 L 484.862 103.868" /><path class="setup-pipe" data-edge="heat_pump>dhw_tank"
       d="M 216 168.5
       C 256 168.5,
-        220 289, 260 289" /><circle class="setup-pipe-dot" cx="216" cy="168.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="289" r="2" /><path class="setup-flow" d="M 234.902 225.851 L 238.066 230.749 L 240.899 225.652" />
-      <g>
+        220 313, 260 313" /><circle class="setup-pipe-dot" cx="216" cy="168.5" r="2" /><circle class="setup-pipe-dot" cx="260" cy="313" r="2" /><path class="setup-flow" d="M 234.918 237.834 L 238.055 242.749 L 240.916 237.668" />
+      <g><title>Outside, outside air</title>
         <rect class="setup-box" x="16" y="16" width="200"
           height="98" rx="10" />
         <path class="setup-accent divider" d="M 32 37.5 L 200 37.5" />
@@ -224,9 +226,9 @@
       <text class="setup-chip-label" x="40"
         y="89">Configure</text>
       <text class="setup-chip-page" x="40"
-        y="101">Sensors and entities</text>
+        y="101"><tspan x="40" y="101">Sensors and entities</tspan></text>
       </g>
-      <g>
+      <g><title>Heat pump, heat source</title>
         <rect class="setup-box" x="16" y="128" width="200"
           height="81" rx="10" />
         <path class="setup-accent divider" d="M 32 149.5 L 200 149.5" />
@@ -249,11 +251,11 @@
       <text class="setup-chip-label" x="40"
         y="184">Configure</text>
       <text class="setup-chip-page" x="40"
-        y="196">Heat pump telemetry</text>
+        y="196"><tspan x="40" y="196">Heat pump telemetry</tspan></text>
       </g>
-      <g>
+      <g><title>Wood furnace tank (500 L), heat store</title>
         <rect class="setup-box" x="16" y="223" width="200"
-          height="81" rx="10" />
+          height="93" rx="10" />
         <path class="setup-accent divider" d="M 32 244.5 L 200 244.5" />
         <g class="type-badge" data-type="store" aria-hidden="true"><circle class="badge-disc" cx="214" cy="225" r="9" /><g transform="translate(214 225) scale(0.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /></g></g>
         <text class="setup-title" x="32"
@@ -267,18 +269,18 @@
         width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="wood_tank"
       tabindex="0" role="button"
       aria-label="Configure: Heating system and heat storage" x="32" y="266"
-      width="168" height="30"
+      width="168" height="42"
       rx="9"><title>Configure: Heating system and heat storage</title></rect>
       <rect class="setup-chip" x="32" y="266" width="168"
-        height="30" rx="9" />
+        height="42" rx="9" />
       <text class="setup-chip-label" x="40"
         y="279">Configure</text>
       <text class="setup-chip-page" x="40"
-        y="291">Heating system and heat storage</text>
+        y="291"><tspan x="40" y="291">Heating system and heat</tspan><tspan x="40" y="303">storage</tspan></text>
       </g>
-      <g>
+      <g><title>4-way mixing valve (manual), mixing valve</title>
         <rect class="setup-box" x="260" y="16" width="200"
-          height="81" rx="10" />
+          height="93" rx="10" />
         <path class="setup-accent divider" d="M 276 37.5 L 444 37.5" />
         <g class="type-badge" data-type="valve" aria-hidden="true"><circle class="badge-disc" cx="458" cy="18" r="9" /><g transform="translate(458 18) scale(0.92)"><path d="M-4-3 L4 3 L4-3 L-4 3 Z" /></g></g>
         <text class="setup-title" x="276"
@@ -292,62 +294,62 @@
         width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="mixing_valve"
       tabindex="0" role="button"
       aria-label="Configure: Heating system and heat storage" x="276" y="59"
-      width="168" height="30"
+      width="168" height="42"
       rx="9"><title>Configure: Heating system and heat storage</title></rect>
       <rect class="setup-chip" x="276" y="59" width="168"
-        height="30" rx="9" />
+        height="42" rx="9" />
       <text class="setup-chip-label" x="284"
         y="72">Configure</text>
       <text class="setup-chip-page" x="284"
-        y="84">Heating system and heat storage</text>
+        y="84"><tspan x="284" y="84">Heating system and heat</tspan><tspan x="284" y="96">storage</tspan></text>
       </g>
-      <g>
-        <rect class="setup-box" x="260" y="111" width="200"
-          height="115" rx="10" />
-        <path class="setup-accent divider" d="M 276 132.5 L 444 132.5" />
-        <g class="type-badge" data-type="store" aria-hidden="true"><circle class="badge-disc" cx="458" cy="113" r="9" /><g transform="translate(458 113) scale(0.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /></g></g>
+      <g><title>Heat pump tank (750 L), heat store</title>
+        <rect class="setup-box" x="260" y="123" width="200"
+          height="127" rx="10" />
+        <path class="setup-accent divider" d="M 276 144.5 L 444 144.5" />
+        <g class="type-badge" data-type="store" aria-hidden="true"><circle class="badge-disc" cx="458" cy="125" r="9" /><g transform="translate(458 125) scale(0.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /></g></g>
         <text class="setup-title" x="276"
-          y="128">Heat pump tank (750 L)</text>
-        <text class="setup-slot" x="276" y="148"><tspan x="276" y="148">Buffer tank</tspan><tspan x="276" y="165">temperature</tspan><tspan class="setup-value" x="444" y="148"
+          y="140">Heat pump tank (750 L)</text>
+        <text class="setup-slot" x="276" y="160"><tspan x="276" y="160">Buffer tank</tspan><tspan x="276" y="177">temperature</tspan><tspan class="setup-value" x="444" y="160"
           text-anchor="end">47.5 °C</tspan></text><rect class="setup-hit" data-key="buffer_tank_temp_entity"
         tabindex="0" role="button" aria-label="Buffer tank temperature — click to assign"
-        x="264" y="136" width="192"
+        x="264" y="148" width="192"
         height="32" rx="3">
         <title>Buffer tank temperature — click to assign</title></rect><text class="setup-slot extra" x="276"
-        y="182">stores up to 70 °C</text><rect class="setup-chip-hit" data-configure="buffer_tank"
+        y="194">stores up to 70 °C</text><rect class="setup-chip-hit" data-configure="buffer_tank"
       tabindex="0" role="button"
-      aria-label="Configure: Heating system and heat storage" x="276" y="188"
-      width="168" height="30"
+      aria-label="Configure: Heating system and heat storage" x="276" y="200"
+      width="168" height="42"
       rx="9"><title>Configure: Heating system and heat storage</title></rect>
-      <rect class="setup-chip" x="276" y="188" width="168"
-        height="30" rx="9" />
+      <rect class="setup-chip" x="276" y="200" width="168"
+        height="42" rx="9" />
       <text class="setup-chip-label" x="284"
-        y="201">Configure</text>
+        y="213">Configure</text>
       <text class="setup-chip-page" x="284"
-        y="213">Heating system and heat storage</text>
+        y="225"><tspan x="284" y="225">Heating system and heat</tspan><tspan x="284" y="237">storage</tspan></text>
       </g>
-      <g>
-        <rect class="setup-box" x="260" y="240" width="200"
+      <g><title>Hot water tank, hot water store</title>
+        <rect class="setup-box" x="260" y="264" width="200"
           height="98" rx="10" />
-        <path class="setup-accent divider" d="M 276 261.5 L 444 261.5" />
-        <g class="type-badge" data-type="hot_water" aria-hidden="true"><circle class="badge-disc" cx="458" cy="242" r="9" /><g transform="translate(458 242) scale(0.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /><path d="M0-0.6 c1.3 1.7 2.1 2.6 2.1 3.5 a2.1 2.1 0 0 1-4.2 0 C-2.1 2 -1.3 1.1 0-0.6 z" /></g></g>
+        <path class="setup-accent divider" d="M 276 285.5 L 444 285.5" />
+        <g class="type-badge" data-type="hot_water" aria-hidden="true"><circle class="badge-disc" cx="458" cy="266" r="9" /><g transform="translate(458 266) scale(0.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /><path d="M0-0.6 c1.3 1.7 2.1 2.6 2.1 3.5 a2.1 2.1 0 0 1-4.2 0 C-2.1 2 -1.3 1.1 0-0.6 z" /></g></g>
         <text class="setup-title" x="276"
-          y="257">Hot water tank</text>
+          y="281">Hot water tank</text>
         <text class="setup-slot extra lead" x="276"
-        y="277">no hot-water coil</text><text class="setup-slot extra lead" x="276"
-        y="294">wood heat only</text><rect class="setup-chip-hit" data-configure="dhw_tank"
+        y="301">no hot-water coil</text><text class="setup-slot extra lead" x="276"
+        y="318">wood heat only</text><rect class="setup-chip-hit" data-configure="dhw_tank"
       tabindex="0" role="button"
-      aria-label="Configure: Hot water tank and inlet" x="276" y="300"
+      aria-label="Configure: Hot water tank and inlet" x="276" y="324"
       width="168" height="30"
       rx="9"><title>Configure: Hot water tank and inlet</title></rect>
-      <rect class="setup-chip" x="276" y="300" width="168"
+      <rect class="setup-chip" x="276" y="324" width="168"
         height="30" rx="9" />
       <text class="setup-chip-label" x="284"
-        y="313">Configure</text>
+        y="337">Configure</text>
       <text class="setup-chip-page" x="284"
-        y="325">Hot water tank and inlet</text>
+        y="349"><tspan x="284" y="349">Hot water tank and inlet</tspan></text>
       </g>
-      <g>
+      <g><title>Upper floor, radiator circuit</title>
         <rect class="setup-box" x="504" y="16" width="200"
           height="81" rx="10" />
         <path class="setup-accent divider" d="M 520 37.5 L 688 37.5" />
@@ -369,9 +371,9 @@
       <text class="setup-chip-label" x="528"
         y="72">Configure</text>
       <text class="setup-chip-page" x="528"
-        y="84">Sensors and entities</text>
+        y="84"><tspan x="528" y="84">Sensors and entities</tspan></text>
       </g>
-      <g>
+      <g><title>Lower floor (slab), underfloor slab circuit</title>
         <rect class="setup-box" x="504" y="111" width="200"
           height="81" rx="10" />
         <path class="setup-accent divider" d="M 520 132.5 L 688 132.5" />
@@ -394,5 +396,5 @@
       <text class="setup-chip-label" x="528"
         y="167">Configure</text>
       <text class="setup-chip-page" x="528"
-        y="179">Sensors and entities</text>
+        y="179"><tspan x="528" y="179">Sensors and entities</tspan></text>
       </g></svg>
