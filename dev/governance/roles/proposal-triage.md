@@ -5,8 +5,8 @@ before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
 Proposals come from the orchestrator's sweep, its Proposals line, a seat's
 result and a verdict's optimisation note. A defect countermeasure policy
 already requires (a root-cause countermeasure, a carry for a red check, a
-finding's fix) is not a proposal and keeps its own route. One sonnet seat at
-medium effort: judgement with an oracle.
+finding's fix) is not a proposal and keeps its route. One opus seat at
+medium effort: rulings are checked against code.
 
 **The bar is "clearly".** A proposal is wired in only when its measured
 benefit clearly outweighs everything it adds: wall-clock or seat time on the
