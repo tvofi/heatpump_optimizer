@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (369 entries)
+  closures.tests/harness_headers.py: merged as a set (396 entries)
+  re-run the gate that owns this file before pushing
+d5de61656102358decac8218b8643d0e90c3155b
+merge-tree rc=0
