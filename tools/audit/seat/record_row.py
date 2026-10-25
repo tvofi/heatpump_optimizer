@@ -59,6 +59,8 @@ number anywhere; the record pull request disposes itself as record-class.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -318,7 +320,8 @@ def plan_merges(merges: list[dict], root: Path,
 # reached the same bound (direct pushes and record merges age a row without
 # adding one). `schedule` and `workflow_dispatch` flush at any count, so the
 # nightly drains every window and a dispatch drains one on demand (a stamp's:
-# `stamp.py` rule 5 refuses a rowless merge).
+# `stamp.py`'s rule "flush" dispatches one, because its rule 5 refuses a
+# rowless merge).
 BATCH_MARGIN_COMMITS = 4
 BATCH_AGE_COMMITS = delivery_status.STALE_AFTER_COMMITS - BATCH_MARGIN_COMMITS
 BATCH_FLOOR_ROWS = BATCH_AGE_COMMITS
@@ -1739,6 +1742,44 @@ def self_test() -> int:
     ok("pitch: the nightly and a dispatch never pitch",
        pitch_wait(_young, _fresh, 2, "schedule") is None
        and pitch_wait(_young, _fresh, 2, "workflow_dispatch") is None)
+    # The CLI's exit mapping, driven through main() over a plan file and a
+    # throwaway repository both ways: the nightly step keys on the exit alone,
+    # so `--batch-due` swapped to 0-on-wait would open a batch on every push,
+    # and to WAIT_RC-on-due would hold every flush, the nightly's and a
+    # dispatch's included, until the ledger read OVERDUE.
+    from throwaway_git import throwaway_git_init  # noqa: PLC0415  tests/ only here
+    with tempfile.TemporaryDirectory() as td:
+        g = Path(td)
+        genv = throwaway_git_init(g, "-q")
+
+        def _tip(msg: str) -> str:
+            subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", msg],
+                           cwd=g, env=genv, check=True)
+            return _git_out(g, "rev-parse", "HEAD") or ""
+
+        owed, rec = _tip("a rowless merge"), _tip("a record merge")
+        _tip("the tip")
+        (g / "plan.json").write_text(json.dumps([{"number": 7, "merge_sha": owed}]))
+        (g / "merges.json").write_text(json.dumps([
+            {"number": 7, "merge_sha": owed, "title": "fix: x", "head_ref": "fix/x",
+             "state": "closed"},
+            {"number": 8, "merge_sha": rec, "title": "record: rows",
+             "head_ref": RECORD_BRANCH, "state": "closed"}]))
+
+        def _cli(*flags: str) -> int:
+            argv, sys.argv = sys.argv, ["record_row.py", "--root", str(g), *flags]
+            try:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    return main()
+            finally:
+                sys.argv = argv
+
+        _batch = ("--batch-due", "--plan-file", str(g / "plan.json"), "--event")
+        _pitch = ("--pitch-check", "--merges-file", str(g / "merges.json"), "--event")
+        ok("cli: --batch-due exits WAIT_RC for 1 young row on a push, 0 on a dispatch",
+           (_cli(*_batch, "push"), _cli(*_batch, "workflow_dispatch")) == (WAIT_RC, 0))
+        ok("cli: --pitch-check exits WAIT_RC behind a young record merge on a push, "
+           "0 on the nightly", (_cli(*_pitch, "push"), _cli(*_pitch, "schedule")) == (WAIT_RC, 0))
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: "

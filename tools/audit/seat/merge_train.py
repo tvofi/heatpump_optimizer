@@ -3087,6 +3087,13 @@ def _self_test() -> int:
           and any(c[:4] == ["gh", "pr", "merge", "9"] and c[-1] == "e" * 40 for c in calls)
           and any("--automerge-check" in c and "--require-green" in c and c[c.index("--head") + 1] == "e" * 40
                   for c in calls))
+    # Directive [7] (tvofi, 2026-10-25): a record PR rides the train on the
+    # guard alone -- no review verdict, carry or app_approve.sh is read for it,
+    # while the queued #7 still pays all three (the null control).
+    check("--bot-prs admits the record PR with no review verdict: app_approve.sh runs for the "
+          "queued #7, never for #9",
+          rc == 0 and not any("app_approve.sh" in " ".join(c) and "9" in c for c in calls)
+          and any("app_approve.sh" in " ".join(c) and "7" in c for c in calls))
     for code, word in ((3, "pending"), (1, "refused by the guard")):
         rc, lines, calls = go({"bot_find": (0, "9"), "bot_guard": (code, "AUTOMERGE X #9: y")}, bot_prs=True)
         check(f"--bot-prs: a guard exit {code} never merges the record PR ({word}), and the train goes on",

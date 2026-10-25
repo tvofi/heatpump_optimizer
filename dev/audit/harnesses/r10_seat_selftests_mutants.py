@@ -99,6 +99,11 @@ MUTANTS = [
      'if False:\n        return f"{event} flushes'),
     ("record_row-3", "record_row.py", "if not 0 <= last_record_age_s < PITCH_S:",
      "if not 0 <= last_record_age_s:"),
+    # Round 2: the CLI's exit mapping, which the nightly step keys on.
+    ("record_row-4", "record_row.py", "        return 0 if why else WAIT_RC\n",
+     "        return WAIT_RC if why else 0\n"),
+    ("record_row-5", "record_row.py", "        return WAIT_RC if why else 0\n",
+     "        return 0 if why else WAIT_RC\n"),
     ("S20", "resume_doc.py", "done = {k for k in G if k not in open_}",
      "done = {k for k in G if k in open_}"),
     ("S21", "roster_edit.py", "    if r.returncode != 0:\n        raise Refuse(",
@@ -182,6 +187,10 @@ MUTANTS = [
     # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
     ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
     ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
+    # R10-FLOW-RECORD-PITCH round 2: rule "flush" -- nothing owed dispatches nothing; the default path flushes.
+    ("stamp-3", "tools/release/stamp.py", '    if not owed:\n        return [], "record flush: nothing owed',
+     '    if False:\n        return [], "record flush: nothing owed'),
+    ("stamp-4", "tools/release/stamp.py", "owed = [] if args.no_flush else owed_rows(last_tag)", "owed = []"),
     ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
     ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
     ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
