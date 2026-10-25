@@ -1,0 +1,16 @@
+# git grep at 4aad9c11: Markdown lines opening with an unmatched '<word>)' list marker
+md numbered/lettered ')' list items: 8
+files:
+RELEASE_NOTES.md
+dev/audit/rca/R10-RCA-2205.md
+dev/audit/rca/R9-RCA-1985.md
+dev/audit/rounds/round3/reports/ruling-tranche-2.md
+dev/audit/rounds/round7/D4/REPORT.md
+dev/audit/rounds/round8/JUDGE.md
+dev/programme/delivery/1120.md
+dev/programme/delivery/1130.md
+of them naming gh pr: 0
+# at 4aad9c11, in the guard's scan surface (tools/, .claude/workflows/ *.md)
+lines opening '<n|letter>) ': 0
+inline '<n>) ' anywhere on a line in those .md: 10
+LEAD-CLOSER 134 of 1639 line(s) over 5 .md file(s)
