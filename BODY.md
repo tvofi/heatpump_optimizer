@@ -52,7 +52,7 @@ On the unmodified tree, `critical_path_minutes` over the live 8-run window reads
 
 ## Forward-carry
 
-- `.github/workflows/tests.yml`, the comment above the "Fetch the recent push runs' durations" step, still says the critical path is "a CI run's span to its last `tests / *` job". It should say "a run's work to its last `tests / *` job with runner queue removed (see tests/ci_ratchet.py run_minutes)". It is left out of this hotfix on purpose, because a tests.yml edit forces MODE: FULL. It rides the next live group whose files already include tests.yml. Carry: R10-FLOW-RECORD-PITCH
+- `.github/workflows/tests.yml`, the comment above the "Fetch the recent push runs' durations" step, still says the critical path is "a CI run's span to its last `tests / *` job". It should say "a run's work to its last `tests / *` job with runner queue removed (see tests/ci_ratchet.py run_minutes)". It is left out of this hotfix on purpose, because a tests.yml edit forces MODE: FULL. It rides the next live group whose files already include tests.yml. Carry: R10-FLY-ROW-HEAD-CARRY
 
 ## Friction
 
