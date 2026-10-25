@@ -2680,10 +2680,10 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   touch "$WF/empty/none.yml"
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
-  grep -v 'heavy_run /tmp/prepr-owners.\$\$ python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check' "$PREPR_PATH" > "$WF/deleted.sh"
+  grep -v 'prepr-owners.\$\$ python3 -I ' "$PREPR_PATH" > "$WF/deleted.sh"
   [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^if test -f .*heavy_run /tmp/prepr-owners.*codeowners_gap\.py --check.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
+  sed 's|^if test -f .*prepr-owners.*codeowners_gap\.py --check.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
   [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
@@ -2942,7 +2942,7 @@ EOF
   # The call sites: no step from 3 to 3h runs a program in the foreground. The
   # section is the main flow's text between the two step markers.
   s3=$(awk '/^# --- 3\. /{f=1} /^# --- 4\. /{exit} f' <<<"$flow")
-  st "$(grep -cE '^[^#]*(node|python3|bash) [^|]*>>?/tmp/prepr-' <<<"$s3")" 0 "no step from 3 to 3h runs a program in the foreground"
+  st "$(grep -cE '^[^#]*(node|python3|bash) [^|]*>>? *[^ |]*prepr-[a-z]+\.[$][$]' <<<"$s3")" 0 "no step from 3 to 3h runs a program in the foreground"
   case "$s3" in *'heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and 3h's self-test, the heaviest, runs through heavy_run"
   case "$(declare -f closures_line)" in *'heavy_run "$cw/derive.out"'*) r=0 ;; *) r=1 ;; esac
@@ -3213,11 +3213,7 @@ fi
 # merge-subject history (`git log --first-parent` since the tag through HEAD),
 # so every branch that adds a commit provably reaches it and no file table can
 # call that read inert (`heavy_skip`'s block above). It runs unconditionally.
-if test -f .claude/workflows/agreement_py.py; then
-  heavy_run /tmp/prepr-ag.$$ python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json
-else
-  heavy_run /tmp/prepr-ag.$$ python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json
-fi \
+if test -f .claude/workflows/agreement_py.py; then heavy_run /tmp/prepr-ag.$$ python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json; else heavy_run /tmp/prepr-ag.$$ python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json; fi \
   && if test -f .claude/workflows/agreement.mjs; then heavy_run /tmp/prepr-ag.$$ node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json; else heavy_run /tmp/prepr-ag.$$ node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json; fi
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
