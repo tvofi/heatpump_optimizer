@@ -1,0 +1,21 @@
+commit e64be204d8ba3255eb20d6f4df130cba364be0f4
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sun Oct 25 15:15:16 2026 +0100
+
+    roster_edit append-carry R10-FLY-LEDGER-SAMPLE (tools/audit/seat/roster_edit.py)
+
+diff --git a/dev/programme/rosters/wave-r10-groups.json b/dev/programme/rosters/wave-r10-groups.json
+index fde0c15ae..52bac830f 100644
+--- a/dev/programme/rosters/wave-r10-groups.json
++++ b/dev/programme/rosters/wave-r10-groups.json
+@@ -9739,7 +9739,9 @@
+    "files": [
+     "tests/mutation_table.py"
+    ],
+-   "carry": [],
++   "carry": [
++    "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA"
++   ],
+    "model": {
+     "fixer": "sonnet",
+     "reviewer": "opus",
