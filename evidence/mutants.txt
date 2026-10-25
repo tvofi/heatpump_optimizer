@@ -1,0 +1,20 @@
+m0: control, unmutated git archive of d710a5af5bb2dd1263a5b72b77cdf8ecc011390b
+m1:
+10917c10917
+<             "heat_pump_on": planned_draw_runs(float(override)),
+---
+>             "heat_pump_on": override > 0.05,
+m2:
+123,124c123,130
+<             value = finite_float(data.get(key))
+<             return value if value is not None and value >= lo else None
+---
+>             value = data.get(key)
+>             if value is None:
+>                 return None
+>             try:
+>                 value = float(value)
+>             except (TypeError, ValueError, OverflowError):
+>                 return None
+>             return value if np.isfinite(value) and value >= lo else None
+run: PYTHONPATH=tests/hastub python3 tests/features.py in each copy
