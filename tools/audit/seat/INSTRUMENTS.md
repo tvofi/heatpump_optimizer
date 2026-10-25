@@ -352,7 +352,9 @@ sweep's standing-seat liveness step keep them alive.
   matches the handoff's tip, and retried only when the handoff moves. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
-  not recorded, and the next pass retries it. The
+  not recorded, and the next pass retries it. The update runs in a process
+  group of its own, so a signal to the loop's whole group reaches it only
+  through the loop's reap, and a KILL to that group leaves it to finish. The
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
   its topic has an open pull request, it is disposed at its sha, or main
@@ -664,8 +666,16 @@ sweep's standing-seat liveness step keep them alive.
   is held until its push has ended; the lock file's third field reads `drain`
   meanwhile. No `ps` and no process-group walk: on a host without `pgrep` a
   stopped run says it could not reap, and its lock is held until its push
-  ends. Only the lock exits 75; a step that does is reported as a stop and
-  exits 1. When: never by hand; `--self-test` drives both scripts end to end
+  ends. Inside `pr_push_hold` git's auto-maintenance runs in the foreground
+  (`gc.autoDetach`, `maintenance.autoDetach` off), so a `git gc --auto` a
+  push's fetch starts is part of that push rather than a PID-1 orphan holding
+  its lock. With `detach` the holder leaves the run's worktree detached once
+  the push has ended, a SIGKILLed run's too. Only the lock exits 75; a step
+  that does is reported as a stop and exits 1. `pr_bounded` runs a self-test
+  (its own, `update_pr.sh`'s, `cloud_relay.sh`'s) as a session of its own under
+  `PR_SELFTEST_SECONDS` (default 1200), and ends that whole session on exit,
+  at the bound (exit 124, a `BOUND:` line) or once its supervisor is gone;
+  `pr_own_group` starts a command as a process group's leader. When: never by hand; `--self-test` drives both scripts end to end
   in a scratch repository, offline, each refusal arm beside a mutant that
   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
   null controls that pass every check. Refusal: its self-test's tally.
@@ -1031,8 +1041,8 @@ sweep's standing-seat liveness step keep them alive.
   clean worktree on the branch only when origin has that worktree's HEAD; one
   holding commits origin lacks (a PR's unpushed row) is refused, naming it.
   Any later stop prints `update_pr: STOPPED: ...`, and a refused push names its log.
-  It leaves its own worktree detached once its push has ended, so no
-  worktree of it holds the branch.
+  Its lock's holder leaves its own worktree detached once its push has
+  ended, a SIGKILLed run's too, so no worktree of it holds the branch.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is

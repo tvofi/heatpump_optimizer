@@ -275,6 +275,8 @@ MUTANTS = [
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
+    # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
+    ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
