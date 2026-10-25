@@ -1,0 +1,4 @@
+merge-base: 2 of 2445 ENTITY CHECKS FAILED
+head: 2 of 2445 ENTITY CHECKS FAILED
+'force the FULL' occurrences: head=0 base=0
+closure select --diff merge-base at head: MODE: SCOPED -- 0 script(s) run, 33 scoped out.
