@@ -1,0 +1,30 @@
+  pinned   custom_components/heatpump_optimizer/legionella.py:50 CONST -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:345 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/legionella.py:610 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:623 RETURN_DEL -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:658 GUARD_OFF -- lives
+PIN KILLED: 3 pinned, 2 left unpinned (2 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+  pinned   custom_components/heatpump_optimizer/legionella.py:349 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:489 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:613 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:616 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:628 CLAMP_DROP -- killed by tests/features.py
+PIN KILLED: 5 pinned, 0 left unpinned
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:60 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/legionella.py:353 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:616 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:621 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:627 CLAMP_DROP -- killed by tests/features.py
+PIN KILLED: 4 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+  pinned   custom_components/heatpump_optimizer/legionella.py:57 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/legionella.py:611 CLAMP_DROP -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:621 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/legionella.py:628 RETURN_DEL -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:701 GUARD_OFF -- lives
+PIN KILLED: 3 pinned, 2 left unpinned (2 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+  pinned   custom_components/heatpump_optimizer/legionella.py:60 RETURN_DEL -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:350 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/legionella.py:614 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:621 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:655 BOOLOP -- lives
+PIN KILLED: 2 pinned, 3 left unpinned (3 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes

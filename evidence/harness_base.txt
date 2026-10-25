@@ -1,0 +1,46 @@
+RESULT reach commanded_steps 3
+RESULT reach completions 9
+RESULT reach attempt_hours []
+RESULT reach attempt_gaps_h []
+RESULT reach max_hours_since_planned 1584.5
+RESULT reach completion_age_days_end 0.9
+RESULT reach due_in_hours_end 146.2
+RESULT reach notices_ever ['dhw_legionella_above_setpoint']
+RESULT reach notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}}
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 57.0 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 57.0 °C against a 60 °C target; the tank is not being disinfected
+RESULT short commanded_steps 5
+RESULT short completions 0
+RESULT short attempt_hours [0.8, 145.8, 290.8]
+RESULT short attempt_gaps_h [145.0, 145.0]
+RESULT short max_hours_since_planned 1584.5
+RESULT short completion_age_days_end 80.0
+RESULT short due_in_hours_end 122.8
+RESULT short notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_unreachable']
+RESULT short notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '57.0', 'target': '60'}}
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached 59.3 °C but the completion could not be confirmed; it will be retried next interval
+DHW anti-legionella cycle reached 59.3 °C but the completion could not be confirmed; it will be retried next interval
+RESULT marginal commanded_steps 5
+RESULT marginal completions 0
+RESULT marginal attempt_hours [0.8, 145.8, 290.8]
+RESULT marginal attempt_gaps_h [145.0, 145.0]
+RESULT marginal max_hours_since_planned 1584.5
+RESULT marginal completion_age_days_end 80.0
+RESULT marginal due_in_hours_end 122.8
+RESULT marginal notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_unreachable']
+RESULT marginal notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '55.4', 'target': '60'}}
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+RESULT blind commanded_steps 5
+RESULT blind completions 0
+RESULT blind attempt_hours [0.8, 145.8, 290.8]
+RESULT blind attempt_gaps_h [145.0, 145.0]
+RESULT blind max_hours_since_planned 1584.5
+RESULT blind completion_age_days_end 80.0
+RESULT blind due_in_hours_end 122.8
+RESULT blind notices_ever ['dhw_legionella_above_setpoint']
+RESULT blind notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}}
+exit 0
