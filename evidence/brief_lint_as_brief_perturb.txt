@@ -1,0 +1,10 @@
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  ERROR   [R10-FLOW-ROSTER-FREEZE] path:line: tools/audit/seat/nonexistent_zz.py:40: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-CARRY-DISPOSITION] path:line: tools/audit/seat/nonexistent_zz.py:40: not in the tree, and not present at its cited tag ref(s) [78672bb, 558fcd6]
+  ERROR   [R10-ORCH-BEATD] path:line: tools/audit/seat/nonexistent_zz.py:40: not in the tree, and no tag SHA is cited alongside it
+  -- 3 error(s), 0 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 3 error(s) across 1 file(s)
