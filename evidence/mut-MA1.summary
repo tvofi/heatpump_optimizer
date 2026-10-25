@@ -1,0 +1,3 @@
+  FAIL the advisor publishes a verdict for the next-smaller fuse  [got {'month': '2026-10', 'current_fuse_a': 20, 'candidate_fuse_a': 16, 'candidate_kw': 11.04, 'feasible': True, 'comfort_shortfall_c': 0.0, 'worst_margin_kw': 7.04, 'cost_delta_sek_month': -35.0}]
+1 of 4407 FEATURE CHECKS FAILED
+rc=1

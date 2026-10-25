@@ -1,0 +1,4 @@
+  FAIL a negative-price day still ranks a hotter tank as the dearer one  [got [-8.73, -9.3, -9.87, -10.46, -11.06, -11.68, -12.3] — a negative price level inverts the ranking the whole advisor is]
+  FAIL and recommends what the mirrored positive day recommends  [got 60 at -1.0/kWh vs 48 at +1.0/kWh on the same 1500 L tank]
+2 of 4407 FEATURE CHECKS FAILED
+rc=1

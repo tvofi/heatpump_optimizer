@@ -1,0 +1,8 @@
+  CLAIMED coord_all_features: 1 leaves moved (R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval))
+  CLAIMED coord_dhw: 1 leaves moved (R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval))
+  CLAIMED coord_grid_fee: 1 leaves moved (R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval))
+  CLAIMED coord_minimal: 1 leaves moved (R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval))
+  CLAIMED coord_two_zone: 1 leaves moved (R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval))
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0
