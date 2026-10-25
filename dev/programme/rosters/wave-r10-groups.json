@@ -9765,7 +9765,8 @@
     "R10-MERGE-SUBJECT-HARDEN"
    ],
    "carry": [
-    "From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagation.md). The brief for R10-MERGE-SUBJECT-CASEARM must record two things. First, a regression-against-main control: over the finder's harness corpus plus the reviewer's unmatched-closer line (\"down) with gh pr merge 9 --subject x\"), every line refused at origin/main must still be refused at the head. Second, the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms."
+    "From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagation.md). The brief for R10-MERGE-SUBJECT-CASEARM must record two things. First, a regression-against-main control: over the finder's harness corpus plus the reviewer's unmatched-closer line (\"down) with gh pr merge 9 --subject x\"), every line refused at origin/main must still be refused at the head. Second, the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms.",
+    "From R10-RCA-MERGE-SUBJECT-CLASS-OPEN (#2798, dev/audit/rca/R10-RCA-MERGE-SUBJECT-CLASS-OPEN.md). Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it."
    ],
    "architect_note": null,
    "resume": {
