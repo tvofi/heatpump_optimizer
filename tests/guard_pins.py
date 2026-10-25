@@ -36,6 +36,18 @@ from heatpump_optimizer.wood_fuel import wood_slots_to_kw
 from homeassistant.util import dt as dt_util
 
 
+def _owned_params(params):
+    """A test owner of ``params``, as the coordinator's ``_publish_params`` owns
+    its own: the learner reads through ``params`` and publishes a new snapshot."""
+    from dataclasses import replace as _replace
+    box = [params]
+
+    def publish(**fields):
+        box[0] = _replace(box[0], **fields)
+
+    return {"params": lambda: box[0], "publish": publish}
+
+
 class _Learner(DhwProfileLearner):
     """The learner, with persistence stubbed so a cooling fold is visible."""
 
@@ -43,7 +55,7 @@ class _Learner(DhwProfileLearner):
         super().__init__(
             FakeHass(),
             "guard-pins",
-            ThermalParameters(),
+            **_owned_params(ThermalParameters()),
             frozen=lambda *_: None,
             heating_active=lambda: False,
             external_heat_active=lambda: False,
@@ -189,7 +201,7 @@ def _draw_folded_only_without_external_heat() -> bool:
         learner = DhwProfileLearner(
             FakeHass(),
             "guard-pins-draws",
-            params,
+            **_owned_params(params),
             frozen=lambda *_: None,
             heating_active=lambda: False,
             external_heat_active=lambda external=external: external,
@@ -224,7 +236,7 @@ def _ceiling_notice_is_deduplicated() -> bool:
     guard = LegionellaGuard(
         FakeHass(),
         "guard-pins-ceiling",
-        params,
+        lambda: params,
         {},
         action=lambda: {},
         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
@@ -254,7 +266,7 @@ def _write_failed_notice_is_memoised() -> bool:
     guard = LegionellaGuard(
         FakeHass(),
         "guard-pins-write-failed",
-        ThermalParameters(),
+        lambda _p=ThermalParameters(): _p,
         {},
         action=lambda: {},
         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
