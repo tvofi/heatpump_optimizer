@@ -157,7 +157,7 @@ def reanchor(admitted: bool, anchor: float, coefficient: float) -> tuple[bool, f
     coord = plant(admitted)
     coord._thermal_params.heat_loss_coefficient = coefficient
     coord._house_heat_loss_samples = 200
-    changed = coord._reanchor_house_heat_loss_scale(anchor)
+    changed = coord._reanchor_house_heat_loss_scale({"house_heat_loss_anchor": anchor})
     return bool(changed), float(coord._house_heat_loss_scale)
 
 

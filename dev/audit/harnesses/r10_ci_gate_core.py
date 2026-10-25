@@ -36,7 +36,8 @@ reddens the Tests push run (it runs on push and is not continue-on-error)
 and compares it with REQUIRED["push"]'s `tests / *` names; `--plant` drops
 `ci-ratchet` from REQUIRED first, and the parity must go red.
 
-`mutants` plants each predicate mutant below in tools/ci/gate.py, runs the
+`mutants` plants each predicate mutant below in tools/ci/gate.py (or, for
+`judging`, in tools/ci/prelude.py, where R10-GATE-DEFER moved it), runs the
 port's self-test and the replay, and prints KILLED or SURVIVED; the file's
 bytes are restored, and a dirty file refuses first.
 """
@@ -69,6 +70,7 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 DESIGN = "1371a0a6"
 GATE = ROOT / "tools" / "ci" / "gate.py"
+PRELUDE = GATE.parent / "prelude.py"
 sys.path.insert(0, str(GATE.parent))
 import gate as port  # noqa: E402
 import prelude  # noqa: E402
@@ -198,7 +200,8 @@ def b3_arm(opts: list[str]) -> int:
     return 0 if ok else 1
 
 
-# name, old (exactly once in gate.py), new: each removes or inverts one rule of the predicate.
+# name, old (exactly once in the file: gate.py unless a fourth item names it), new: each removes
+# or inverts one rule of the predicate.
 MUTANTS = [
     ("M1 prelude conclusion", 'if pre.get("conclusion") != "success":', 'if False:'),
     ("M2 prelude cross-check", 'if (pre.get("kind"), pre.get("pr", "")) != (kind, pr):', 'if False:'),
@@ -206,10 +209,10 @@ MUTANTS = [
     ("M4 unnamed dispatch at a PR head", 'elif ctx["sha"] in api.get("open_pr_heads", set()):', 'elif False:'),
     ("M5 fork PR (R3-4)", 'if lp.get("same_repo") is not True:', 'if False:'),
     ("M6 live base", 'judge_base = lp["base_ref"]', 'judge_base = base'),
-    ("M7 defer rule", 'if busy:\n', 'if False:\n'),
-    ("M8 judging: listed gate", 'if "gate" not in jobs or not all(', 'if not all('),
+    ("M7 defer rule", 'if waiting:\n', 'if False:\n'),
+    ("M8 judging: listed gate", 'if "gate" not in jobs or not all(', 'if not all(', PRELUDE),
     ("M9 judging: owed jobs (R3-2)", '            if st is None or st[0] != "completed":\n                return False\n    return True',
-     '            pass\n    return True'),
+     '            pass\n    return True', PRELUDE),
     ("M10 skipped is not success", 'elif st[1] != "success":', 'elif st[1] not in ("success", "skipped"):'),
     ("M11 source must judge the live base", 'if t[1] != pr or t[2] != judge_base or unit not in workset(t[0], t[1]):',
      'if t[1] != pr or unit not in workset(t[0], t[1]):'),
@@ -224,8 +227,8 @@ MUTANTS = [
 
 
 def mutants_arm() -> int:
-    if subprocess.run(["git", "diff", "--quiet", "--", str(GATE)], cwd=ROOT).returncode:
-        print(f"mutants: {GATE} has uncommitted edits; the restore would erase them")
+    if subprocess.run(["git", "diff", "--quiet", "--", str(GATE), str(PRELUDE)], cwd=ROOT).returncode:
+        print("mutants: gate.py or prelude.py has uncommitted edits; the restore would erase them")
         return 2
 
     def verdicts() -> tuple[int, int]:
@@ -236,19 +239,20 @@ def mutants_arm() -> int:
     print(f"mutants: unmutated self-test rc {base[0]}, replay rc {base[1]}")
     if base != (0, 0):
         return 1
-    orig = GATE.read_bytes()
     survived = 0
-    for name, old, new in MUTANTS:
+    for name, old, new, *where in MUTANTS:
+        target = where[0] if where else GATE
+        orig = target.read_bytes()
         text = orig.decode()
         if text.count(old) != 1:
             print(f"  {name}: NOT RUN, pattern found {text.count(old)} times")
             survived += 1
             continue
-        GATE.write_text(text.replace(old, new))
+        target.write_text(text.replace(old, new))
         try:
             st, rp = verdicts()
         finally:
-            GATE.write_bytes(orig)
+            target.write_bytes(orig)
         killed = st or rp
         survived += not killed
         print(f"  {name}: {'KILLED' if killed else 'SURVIVED'} (self-test rc {st}, replay rc {rp})")

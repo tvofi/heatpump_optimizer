@@ -110,6 +110,7 @@
   "_grid_view": "grid",
   "_guard_floor_hold": "core",
   "_horizon_step_starts": "core",
+  "_heat_loss_anchors": "core",
   "_house_heat_loss_anchor": "core",
   "_immersion_dhw_margin": "dhw",
   "_indoor_humidity_value": "core",

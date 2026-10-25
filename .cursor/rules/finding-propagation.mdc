@@ -24,8 +24,8 @@ that has not started:
 - **removes an option it was expected to have** — a dependency will not install,
   a budget it was to spend has been spent, an interface is not available.
 
-No "importance" threshold gates this, the adjective a seat under time pressure
-argues its way out of: if it changes what a later stage must do, it is carried.
+No "importance" threshold gates this: if it changes what a later stage must
+do, it is carried.
 
 ## A comment is not propagation
 
@@ -34,7 +34,7 @@ record the finding; they do not deliver it. The test is **where the seat who
 needs this will be looking**: its own brief, the role contract under
 `dev/governance/roles/`, `CLAUDE.md`. It will not read the comments of a PR that
 merged before it started; a finding left only there is re-derived or, usually,
-not at all, and the refused technique is attempted again.
+not at all.
 
 ## What to write
 
@@ -85,7 +85,8 @@ branch SHA: the reviewer opens that, not the claim.
 
 **Every finding a body or a `Fix review:` verdict records names its
 destination**: each `## Friction` and `## Forward-carry` line, non-blocking note
-or residual ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`.
+or residual ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`. So does
+a finding in the orchestrator's out-of-tree ledger, which only the next session reads.
 `tools/audit/carry_audit.py` refuses a missing marker and a destination gone or
 done (`pr-contract`; the train's pre-flight).
 

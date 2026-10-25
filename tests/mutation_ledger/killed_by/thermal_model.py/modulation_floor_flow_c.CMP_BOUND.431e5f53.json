@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:modulation_floor_flow_c CMP_BOUND 431e5f53",
-  "killed_by": "tests/entities.py",
-  "old": "    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 52011c69ae04f8a725c82040669b7c158290f834: CMP_BOUND (`return (inlet if gate is None or inlet >= gate else gate) + FLOW_MIN_LIFT_K`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

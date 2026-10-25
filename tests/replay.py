@@ -81,10 +81,13 @@ fixture, and regenerates the synthetic fixture through
 ``tools/replay/synthesize.py`` and requires it byte-identical to the committed
 one.
 
-The fixture replays are nightly, never per pull request (``tests/closure.py``
-NOT_A_TEST). The cheap half is not: ``tests/entities.py`` runs the controls,
-the sanitiser checks and the regeneration on every pull request that touches
-this file, a fixture, or ``tools/replay/``.
+The fixture replays are nightly, and never a gate script (``tests/closure.py``
+NOT_A_TEST); a pull request runs them only when its diff reaches what they
+time -- ``COST_FILES``, the optimizer, this file or a fixture -- in
+``tests.yml``'s unrequired ``replay`` job (``closure.replay_reach``). The cheap
+half runs wider: ``tests/entities.py`` runs the controls, the sanitiser checks
+and the regeneration on every pull request that touches this file, a fixture,
+or ``tools/replay/``.
 
     python3 tests/replay.py                  # every fixture
     python3 tests/replay.py --fixture F.json --step-minutes 60
