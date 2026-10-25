@@ -9339,7 +9339,8 @@
    "severity": "medium",
    "size": "M",
    "issues": [
-    2272
+    2272,
+    2810
    ],
    "fixes": [
     2272
