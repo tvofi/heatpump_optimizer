@@ -1,0 +1,23 @@
+# Proposal triage, session s6, batch 21 (P97-)
+
+Rulings from the s6 `proposals.md`, collected 4 or 5 to a pull request under
+tvofi's batching rule of 2026-10-24 (one PR per ruling only when it unblocks
+critical-path work). Numbering continues after `s6-batch20.md` (P93-P96, #2782,
+unmerged at this base).
+
+## P97: restarting a standing seat leaves its predecessor running (S6-V31)
+Verdict: ACCEPT, in two parts.
+- (a) No code, effective now: a restart stops the predecessor first. Before starting a replacement standing seat, the orchestrator runs `TaskStop` on the predecessor's task id, which is harmless if that seat has already ended. It then logs one line in the seat ledger: `<role> w<old> <old id> stopped (<TaskStop result>) -> w<new> <new id>`. A notice reading "completed ... waiting on its own background work" never counts as ended.
+- (b) Carry into R10-ORCH-BEATD's `--seat-alive` arm (P46, where P93 already deferred the seat-queue reading). Each seat touches an alive entry keyed by its own seat id, and `tools/audit/seat/pulse.py` prints `DUPLICATE seat <role>` when two ids of one role are fresh inside the stale window.
+Source: s6 `proposals.md` `## V31`; the orchestrator's seat ledger, 2026-10-25, entries 00:51Z to 01:00Z.
+Instances: 4 in one night: tick w14 beside w15, roster w12 beside w13, merge w7 beside w8, and dispatch w22 beside w23. The dispatch pair pushed duplicate reviewer-pool entries for #2765 and #2767, which then had to be removed by hand. This is the third or later instance of a class already known to the orchestrator: a "completed" notice for a seat whose own background job is still live is false. So a barrier is owed, not a note.
+Measured on main:
+- Each restart rule says only that a seat which is "absent, or finished with ... owed, is restarted on the same queue" (`dev/governance/roles/standing-dispatch.md`, the same wording in the merge, roster and tick contracts). The sweep's step (1b) in `tools/audit/seat/sweep_template.md` restarts a seat "absent from" the ledger or "finished with work still owed". None of these says to stop the predecessor, or what "finished" means when the harness notice is ambiguous.
+- `pulse.py` has no seat-identity input: `--seat-queue SEAT=FILE[:MIN]` reads a queue file, and the alive files are per role (for example `dispatch.alive`), so two seats of one role touch the same file and cannot be told apart.
+Cost:
+- (a) One tool call per restart and one ledger line, with no code. `TaskStop` is a harness tool, which no in-tree script can call, so this is a step for the restarting session, not a script.
+- (b) One entry per seat id beside the per-role file, and one count in pulse's seat-alive read, inside an arm R10-ORCH-BEATD already builds. Its test is two fresh ids of one role giving DUPLICATE, with one fresh id as the null control.
+- The cost of not doing this: four doubled seats in one night, each polling GitHub twice. One doubled dispatch seat wrote shared state (pool entries), which cost a cleanup pass and could have dispatched two reviewers to one head.
+Binding: (a) closes the cause at the one place a seat is started, at the price of one call. (b) is the detector for the case (a) misses, such as a restart by a session that skipped the step, and it costs almost nothing inside an arm already planned. A guard against duplicate pool writes is REJECTED for now: the pool is outside the tree, both duplicates came from one doubled seat, and (a) and (b) remove that source.
+What would change the answer: a duplicate seat after (a) is in the briefs, which would make it a skipped step (a review finding on that restart). Or duplicate pool writes from two legitimately distinct seats, which would make the pool guard worth building.
+Carry text (b) (for `roster_edit.py append-carry R10-ORCH-BEATD`, citing `triage: dev/programme/triage/s6-batch21.md#P97`): "In the `--seat-alive` arm of tools/audit/seat/pulse.py, read standing-seat liveness from one alive entry per seat id under each role, beside the per-role file, and print 'DUPLICATE seat <role>: <id> <id>' when two ids of one role are fresh inside the stale window. Step (1b) of tools/audit/seat/sweep_template.md then stops the older id before anything else, and logs both ids. Self-test: two fresh ids of one role give DUPLICATE; the null control, one fresh id plus one stale id, gives no DUPLICATE. Mutation proof: deleting the count fails the two-fresh case. Basis: on 2026-10-25 four standing-seat restarts (tick, roster, merge, dispatch) left the predecessor running, and the doubled dispatch seat pushed duplicate reviewer-pool entries for #2765 and #2767."
