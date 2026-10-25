@@ -1,0 +1,69 @@
+2295a2296,2325
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power BOOLOP 03ee6373",
+> +  "killed_by": "tests/features.py",
+> +  "old": "            if two_tank and state.wood_tank_temperature is not None:",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: BOOLOP (`if two_tank or state.wood_tank_temperature is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CLAMP_DROP.2bd515d1.json b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CLAMP_DROP.2bd515d1.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CLAMP_DROP.2bd515d1.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power CLAMP_DROP 2bd515d1",
+> +  "killed_by": "tests/features.py",
+> +  "old": "            power = min(required_thermal / cop, p.max_electrical_power)",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: CLAMP_DROP (`power = (required_thermal / cop)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power GUARD_OFF 03ee6373",
+> +  "killed_by": "tests/features.py",
+> +  "old": "            if two_tank and state.wood_tank_temperature is not None:",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+> +}
+2400a2431,2440
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.RETURN_DEL.26d08f36.json b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.RETURN_DEL.26d08f36.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.RETURN_DEL.26d08f36.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_baseline_target RETURN_DEL 26d08f36",
+> +  "killed_by": "tests/plan_view.py",
+> +  "old": "    return _baseline_targets(comfort_targets, i + 1, default)[i]",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+> +}
+2410a2451,2470
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.GUARD_OFF.7df02561.json b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.GUARD_OFF.7df02561.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.GUARD_OFF.7df02561.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_baseline_targets GUARD_OFF 7df02561",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    if comfort_targets is not None:",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.RETURN_DEL.e3ab3cc7.json b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.RETURN_DEL.e3ab3cc7.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.RETURN_DEL.e3ab3cc7.json
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_baseline_targets RETURN_DEL e3ab3cc7",
+> +  "killed_by": "tests/plan_view.py",
+> +  "old": "    return targets.tolist()",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+> +}
+2501,2502c2561,2562
+< - "class_excess_loc": 18209,
+< + "class_excess_loc": 18206,
+---
+> - "class_excess_loc": 18202,
+> + "class_excess_loc": 18199,

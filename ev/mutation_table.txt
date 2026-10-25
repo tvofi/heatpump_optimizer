@@ -1,0 +1,31 @@
+  3966 unpinned site(s) of 6333 candidate sites, 3969 at the ratchet base 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+  7 mutant(s) over 5 file(s); drivers in play: tests/arch_score_head.py, tests/backtest.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/harness_headers.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against '21a1e04a7e838545f43a6f9a8545f4bb2bc0548f' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/ledger.py:34 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/harness_headers.py: baseline and null control deferred until a mutant survives every shared driver
+  tests/stress.py: baseline and null control deferred until a mutant survives every shared driver
+  tests/arch_score_head.py: baseline and null control deferred until a mutant run of it is red
+  tests/backtest.py: baseline and null control deferred until a mutant run of it is red
+  tests/block_duty.py: baseline and null control deferred until a mutant run of it is red
+  tests/boost_drift_replay.py: baseline and null control deferred until a mutant run of it is red
+  tests/config_flow_steps.py: baseline and null control deferred until a mutant run of it is red
+  tests/debug_collect.py: baseline and null control deferred until a mutant run of it is red
+  tests/deployment_shape.py: baseline and null control deferred until a mutant run of it is red
+  tests/doc_claims.py: baseline and null control deferred until a mutant run of it is red
+  tests/edge.py: baseline and null control deferred until a mutant run of it is red
+  tests/entities.py: baseline and null control deferred until a mutant run of it is red
+  tests/features.py: baseline and null control deferred until a mutant run of it is red
+  tests/finite_boundary.py: baseline and null control deferred until a mutant run of it is red
+  tests/guard_pins.py: baseline and null control deferred until a mutant run of it is red
+  tests/manual_plan.py: baseline and null control deferred until a mutant run of it is red
+  tests/optimality.py: baseline and null control deferred until a mutant run of it is red
+  tests/plan_view.py: baseline and null control deferred until a mutant run of it is red
+  tests/solar_alignment.py: baseline and null control deferred until a mutant run of it is red
+  tests/structure.py: baseline and null control deferred until a mutant run of it is red
+  tests/typing_ruler.py: baseline and null control deferred until a mutant run of it is red
+  tests/validate.py: baseline and null control deferred until a mutant run of it is red
+  tests/wood_advisor.py: baseline and null control deferred until a mutant run of it is red
+  baseline tests/env_drift.py: rc=0 failed=0 348s
+  null control custom_components/heatpump_optimizer/ledger.py:34 NULL_COMMENT survived every driver
+  7 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)

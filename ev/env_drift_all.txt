@@ -1,0 +1,211 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f from scratch
+  key       f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d.json
+    baseline_commit  7879d52f5fda
+    baseline_tree    4c8f738f4082
+    cache_format     391552c099c1
+    driver_sha256    7e5272a739a5
+    environment      6c0b911d7e89
+    interpreter      2c0d5a52c59a
+    mode             5cf7504d9781
+    numeric_probe    37fadb5234b8
+    numpy_build      6411f37f1299
+    packages         3f060bd9af17
+    platform         753cfa5a9551
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 56 scenarios from branch
+  captured 56 scenarios from baseline
+  cached   the 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f baseline under key f70ffbec3aebe963 in ~/.cache/heatpump_optimizer/drift-baseline/f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d.json
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 55 fixture(s), 34614 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  CLAIMED building_preset: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 128.829 -> 126.452, savings % 49.36 -> 48.30; no plan key moves)
+         building_preset.baseline_cost: 128.828573 vs 126.451692
+         building_preset.deferred_energy_cost: 34.175769 vs 34.314685
+         building_preset.predicted_savings: 63.593772 vs 61.077975
+  CLAIMED capacity_curve: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.802, savings % 50.02 -> 48.60; no plan key moves)
+         capacity_curve.baseline_cost: 124.869053 vs 121.801881
+         capacity_curve.deferred_energy_cost: 33.899308 vs 34.094324
+         capacity_curve.predicted_savings: 62.455523 vs 59.193334
+  CLAIMED capacity_tariff: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.295, savings % 47.11 -> 45.86; no plan key moves)
+         capacity_tariff.baseline_cost: 124.869053 vs 122.295212
+         capacity_tariff.deferred_energy_cost: 27.016509 vs 27.180174
+         capacity_tariff.predicted_savings: 58.820711 vs 56.083204
+  CLAIMED capacity_tariff_15min: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.617, savings % 47.54 -> 45.97; no plan key moves)
+         capacity_tariff_15min.baseline_cost: 124.869053 vs 121.617372
+         capacity_tariff_15min.deferred_energy_cost: 27.812905 vs 28.019647
+         capacity_tariff_15min.predicted_savings: 59.364979 vs 55.906555
+  CLAIMED confidence_margins: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 124.002, savings % 46.67 -> 46.25; no plan key moves)
+         confidence_margins.baseline_cost: 124.869053 vs 124.002411
+         confidence_margins.deferred_energy_cost: 17.053289 vs 17.108462
+         confidence_margins.predicted_savings: 58.270943 vs 57.349128
+  ok    config_flow is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    cool_rainy_summer is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_all_features is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_dhw is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_grid_fee is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_minimal is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_two_zone is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  CLAIMED cop_scale_learned: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 101.508 -> 100.654, savings % 54.34 -> 53.90; no plan key moves)
+         cop_scale_learned.baseline_cost: 101.508492 vs 100.653603
+         cop_scale_learned.deferred_energy_cost: 16.953519 vs 17.007185
+         cop_scale_learned.predicted_savings: 55.16131 vs 54.252754
+  CLAIMED cycling_cost: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.462, savings % 49.83 -> 48.72; no plan key moves)
+         cycling_cost.baseline_cost: 124.869053 vs 122.461807
+         cycling_cost.deferred_energy_cost: 28.17013 vs 28.323208
+         cycling_cost.predicted_savings: 62.218716 vs 59.658391
+  CLAIMED dhw_cold_tank: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.302, savings % 48.02 -> 46.31; no plan key moves)
+         dhw_cold_tank.baseline_cost: 124.869053 vs 121.301974
+         dhw_cold_tank.deferred_energy_cost: 32.862424 vs 33.08921
+         dhw_cold_tank.predicted_savings: 59.96459 vs 56.170724
+  CLAIMED dhw_large_tank: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 139.789 -> 136.451, savings % 55.23 -> 53.98; no plan key moves)
+         dhw_large_tank.baseline_cost: 139.789026 vs 136.450665
+         dhw_large_tank.deferred_energy_cost: 32.235769 vs 32.44802
+         dhw_large_tank.predicted_savings: 77.200757 vs 73.650145
+  CLAIMED dhw_learned_windows: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.990, savings % 51.32 -> 50.02; no plan key moves)
+         dhw_learned_windows.baseline_cost: 124.869053 vs 121.989798
+         dhw_learned_windows.deferred_energy_cost: 30.720525 vs 30.903599
+         dhw_learned_windows.predicted_savings: 64.076803 vs 61.014473
+  CLAIMED dhw_schedule_off: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.990, savings % 50.91 -> 49.60; no plan key moves)
+         dhw_schedule_off.baseline_cost: 124.869053 vs 121.989714
+         dhw_schedule_off.deferred_energy_cost: 30.886096 vs 31.069176
+         dhw_schedule_off.predicted_savings: 63.571134 vs 60.508715
+  CLAIMED direct_flow_carnot: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 117.754 -> 113.795, savings % 39.09 -> 37.06; no plan key moves)
+         direct_flow_carnot.baseline_cost: 117.753564 vs 113.795213
+         direct_flow_carnot.deferred_energy_cost: 31.123069 vs 31.02318
+         direct_flow_carnot.predicted_savings: 46.030308 vs 42.171846
+  CLAIMED everything_on: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 137.182 -> 135.257, savings % 45.83 -> 43.21; no plan key moves)
+         everything_on.baseline_cost: 137.181655 vs 135.257293
+         everything_on.deferred_energy_cost: 14.038928 vs 16.536306
+         everything_on.predicted_savings: 62.869998 vs 58.448258
+  CLAIMED external_heat_active: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.381, savings % 51.84 -> 50.73; no plan key moves)
+         external_heat_active.baseline_cost: 124.869053 vs 122.381222
+         external_heat_active.deferred_energy_cost: 29.338391 vs 29.49659
+         external_heat_active.predicted_savings: 64.729066 vs 62.083035
+  CLAIMED extreme_prices: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 242.928 -> 237.503, savings % 63.72 -> 62.80; no plan key moves)
+         extreme_prices.baseline_cost: 242.92801 vs 237.503116
+         extreme_prices.deferred_energy_cost: 32.17283 vs 32.410377
+         extreme_prices.predicted_savings: 154.80299 vs 149.140549
+  CLAIMED flat_prices: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 101.817 -> 98.263, savings % 19.99 -> 16.77; no plan key moves)
+         flat_prices.baseline_cost: 101.816839 vs 98.262926
+         flat_prices.deferred_energy_cost: 5.747418 vs 6.066313
+         flat_prices.predicted_savings: 20.354659 vs 16.481851
+  CLAIMED fuse_guard: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 120.808, savings % 46.62 -> 44.61; no plan key moves)
+         fuse_guard.baseline_cost: 124.869053 vs 120.808437
+         fuse_guard.deferred_energy_cost: 34.818566 vs 35.076716
+         fuse_guard.predicted_savings: 58.208488 vs 53.889721
+  CLAIMED horizon_48h: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 245.358 -> 238.272, savings % 50.88 -> 49.32; no plan key moves)
+         horizon_48h.baseline_cost: 245.357715 vs 238.272091
+         horizon_48h.deferred_energy_cost: 32.608414 vs 32.828811
+         horizon_48h.predicted_savings: 124.827796 vs 117.521775
+  ok    horizon_6h is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  CLAIMED legionella_due: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.826, savings % 50.72 -> 49.33; no plan key moves)
+         legionella_due.baseline_cost: 124.869053 vs 121.825559
+         legionella_due.deferred_energy_cost: 31.217875 vs 31.411387
+         legionella_due.predicted_savings: 63.328764 vs 60.091758
+  CLAIMED legionella_due_low_setpoint: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 123.314 -> 120.271, savings % 50.05 -> 48.63; no plan key moves)
+         legionella_due_low_setpoint.baseline_cost: 123.314006 vs 120.270511
+         legionella_due_low_setpoint.deferred_energy_cost: 31.217875 vs 31.411387
+         legionella_due_low_setpoint.predicted_savings: 61.719941 vs 58.482934
+  CLAIMED legionella_off: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.022, savings % 50.61 -> 49.31; no plan key moves)
+         legionella_off.baseline_cost: 124.869053 vs 122.021759
+         legionella_off.deferred_energy_cost: 30.604817 vs 30.785861
+         legionella_off.predicted_savings: 63.201995 vs 60.173656
+  ok    mild_windy_rain is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  CLAIMED negative_prices: 3 leaves moved (R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -13.19 -> 16.17; no plan key moves)
+         negative_prices.deferred_energy_cost: 1.813187 vs 1.10906
+         negative_prices.predicted_savings: -0.316354 vs 0.387772
+         negative_prices.savings_percentage: -13.190908 vs 16.168811
+  CLAIMED peak_masked: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.022, savings % 50.62 -> 49.32; no plan key moves)
+         peak_masked.baseline_cost: 124.869053 vs 122.021964
+         peak_masked.deferred_energy_cost: 30.604508 vs 30.785538
+         peak_masked.predicted_savings: 63.205513 vs 60.177393
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  CLAIMED price_risk: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 136.316 -> 133.065, savings % 51.14 -> 49.81; no plan key moves)
+         price_risk.baseline_cost: 136.315946 vs 133.064792
+         price_risk.deferred_energy_cost: 38.423694 vs 38.613408
+         price_risk.predicted_savings: 69.715641 vs 66.274773
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  CLAIMED start_below_band: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 114.473, savings % 25.07 -> 17.68; no plan key moves)
+         start_below_band.baseline_cost: 124.869053 vs 114.473311
+         start_below_band.deferred_energy_cost: -13.579716 vs -12.919725
+         start_below_band.predicted_savings: 31.298508 vs 20.242775
+  CLAIMED summer_dhw_only: 3 leaves moved (R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -7.62 -> 5.88; no plan key moves)
+         summer_dhw_only.deferred_energy_cost: 1.692308 vs 1.375384
+         summer_dhw_only.predicted_savings: -0.17888 vs 0.138044
+         summer_dhw_only.savings_percentage: -7.621912 vs 5.881915
+  CLAIMED tariff_plus_two_zone: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 153.879 -> 150.687, savings % 38.82 -> 35.64; no plan key moves)
+         tariff_plus_two_zone.baseline_cost: 153.879316 vs 150.687017
+         tariff_plus_two_zone.deferred_energy_cost: 10.946829 vs 13.78143
+         tariff_plus_two_zone.predicted_savings: 59.733032 vs 53.706131
+  CLAIMED valve_storage: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 146.865 -> 129.315, savings % 53.22 -> 48.36; no plan key moves)
+         valve_storage.baseline_cost: 146.865119 vs 129.315141
+         valve_storage.deferred_energy_cost: 25.612042 vs 23.696326
+         valve_storage.predicted_savings: 78.165898 vs 62.531636
+  CLAIMED valve_storage_flat_prices: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 113.116 -> 99.209, savings % 25.91 -> 19.53; no plan key moves)
+         valve_storage_flat_prices.baseline_cost: 113.115665 vs 99.209464
+         valve_storage_flat_prices.deferred_energy_cost: -5.978986 vs -9.954911
+         valve_storage_flat_prices.predicted_savings: 29.309707 vs 19.379431
+  CLAIMED valve_storage_low_target: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 195.205 -> 185.896, savings % 55.77 -> 49.38; no plan key moves)
+         valve_storage_low_target.baseline_cost: 195.205 vs 185.895704
+         valve_storage_low_target.deferred_energy_cost: 24.981413 vs 32.748151
+         valve_storage_low_target.predicted_savings: 108.865994 vs 91.78996
+  CLAIMED valve_storage_small_tank: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 151.266 -> 126.974, savings % 50.88 -> 41.33; no plan key moves)
+         valve_storage_small_tank.baseline_cost: 151.266002 vs 126.974458
+         valve_storage_small_tank.deferred_energy_cost: 18.96343 vs 19.167328
+         valve_storage_small_tank.predicted_savings: 76.968054 vs 52.472612
+  CLAIMED valve_storage_smart_write: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 146.865 -> 119.927, savings % 53.76 -> 46.89; no plan key moves)
+         valve_storage_smart_write.baseline_cost: 146.865119 vs 119.927162
+         valve_storage_smart_write.deferred_energy_cost: 25.720346 vs 21.506456
+         valve_storage_smart_write.predicted_savings: 78.956104 vs 56.232037
+  CLAIMED valve_upper_direct_slab: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 125.709 -> 122.780, savings % 49.60 -> 48.70; no plan key moves)
+         valve_upper_direct_slab.baseline_cost: 125.70862 vs 122.779883
+         valve_upper_direct_slab.deferred_energy_cost: 21.604533 vs 21.233836
+         valve_upper_direct_slab.predicted_savings: 62.357535 vs 59.799495
+  CLAIMED wide_band: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.022, savings % 50.62 -> 49.32; no plan key moves)
+         wide_band.baseline_cost: 124.869053 vs 122.021964
+         wide_band.deferred_energy_cost: 30.604508 vs 30.785538
+         wide_band.predicted_savings: 63.205513 vs 60.177393
+  CLAIMED winter_single_dhw: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 122.022, savings % 50.62 -> 49.32; no plan key moves)
+         winter_single_dhw.baseline_cost: 124.869053 vs 122.021964
+         winter_single_dhw.deferred_energy_cost: 30.604508 vs 30.785538
+         winter_single_dhw.predicted_savings: 63.205513 vs 60.177393
+  CLAIMED winter_single_no_dhw: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 110.038 -> 107.550, savings % 52.18 -> 50.93; no plan key moves)
+         winter_single_no_dhw.baseline_cost: 110.03789 vs 107.550058
+         winter_single_no_dhw.deferred_energy_cost: 29.338391 vs 29.49659
+         winter_single_no_dhw.predicted_savings: 57.419499 vs 54.773468
+  CLAIMED winter_two_zone_dhw: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 153.879 -> 151.307, savings % 43.43 -> 40.59; no plan key moves)
+         winter_two_zone_dhw.baseline_cost: 153.879316 vs 151.307285
+         winter_two_zone_dhw.deferred_energy_cost: 17.692447 vs 20.52428
+         winter_two_zone_dhw.predicted_savings: 66.824258 vs 61.420393
+  CLAIMED winter_two_zone_no_dhw: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 139.048 -> 136.449, savings % 45.21 -> 42.09; no plan key moves)
+         winter_two_zone_no_dhw.baseline_cost: 139.048153 vs 136.448869
+         winter_two_zone_no_dhw.deferred_energy_cost: 17.076639 vs 19.908594
+         winter_two_zone_no_dhw.predicted_savings: 62.867515 vs 57.436276
+  CLAIMED wood_coil: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 150.751 -> 119.828, savings % 55.54 -> 47.24; no plan key moves)
+         wood_coil.baseline_cost: 150.750587 vs 119.827949
+         wood_coil.deferred_energy_cost: 28.083261 vs 24.282586
+         wood_coil.predicted_savings: 83.729209 vs 56.607247
+  CLAIMED wood_two_tank: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 109.200, savings % 58.56 -> 51.08; no plan key moves)
+         wood_two_tank.baseline_cost: 141.474684 vs 109.200167
+         wood_two_tank.deferred_energy_cost: 28.196573 vs 22.989391
+         wood_two_tank.predicted_savings: 82.841922 vs 55.774587
+  CLAIMED wood_two_tank_smart_write: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 115.172, savings % 59.45 -> 53.60; no plan key moves)
+         wood_two_tank_smart_write.baseline_cost: 141.474684 vs 115.172143
+         wood_two_tank_smart_write.deferred_energy_cost: 29.042659 vs 25.117177
+         wood_two_tank_smart_write.predicted_savings: 84.112644 vs 61.735585
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0
