@@ -9120,7 +9120,9 @@
     "tools/audit/worktree_gc.sh",
     "tools/audit/seat/INSTRUMENTS.md"
    ],
-   "carry": [],
+   "carry": [
+    "delete probe refs for #2654 #2656 #2657 (moved from R10-CI-LAYOUT-P2, appended after done; re-measured on origin 2026-10-25: refs/heads/fix/r10-ci-layout-p2-probe-B1, -B2, -Btwin and wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-{A,B1,B2}-* still exist. Delete them with tools/audit/seat/prune_refs.py as part of the closeout.)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-closeout-cleanup"
