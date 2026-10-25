@@ -1,0 +1,57 @@
+# Dependabot version updates (R10 topic r10-codeql-dependabot, tvofi 2026-10-24).
+#
+# One entry per manifest directory the tree installs from. The PR contract
+# reads THIS file (from the base) to decide what a Dependabot pull request may
+# touch: tools/policy/dependabot_contract.mjs `dependabotManifests` maps each
+# entry's ecosystem and directory to its manifest files, and a Dependabot pull
+# request changing any other path is refused by pr-contract. So keep every
+# entry in the plain shape below -- `package-ecosystem:` then `directory:`, one
+# directory per entry -- which the entities census checks against a real YAML
+# parse.
+#
+# Grouped weekly, one pull request per directory, so the open-PR count stays
+# small; .github/workflows/dependabot-automerge.yml lands patch and minor
+# updates once `gate` is green and leaves a major for a seat.
+version: 2
+updates:
+  # Hash-locked (`pip install --require-hashes`): Dependabot rewrites the
+  # version line and every hash line of the package it bumps.
+  - package-ecosystem: "pip"
+    directory: "/tests"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    groups:
+      pip:
+        patterns: ["*"]
+
+  # The browser lane's playwright; the Chromium cache is keyed on the lock.
+  - package-ecosystem: "npm"
+    directory: "/tests/pwlane"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      pwlane:
+        patterns: ["*"]
+
+  # The Pages build's mermaid (tools/site/ is code-owned: tvofi reviews it).
+  - package-ecosystem: "npm"
+    directory: "/tools/site"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      site:
+        patterns: ["*"]
+
+  # SHA-pinned actions with the tag in a trailing comment (#960): Dependabot
+  # bumps the SHA and the comment together. Workflows are code-owned.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ["*"]
