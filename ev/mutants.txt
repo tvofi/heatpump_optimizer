@@ -1,0 +1,24 @@
+RESULT unmutated 104 passed, 0 failed
+RESULT mutant=M1-old-comparison 102 passed, 2 failed
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
+RESULT mutant=M2-last-write-wins 103 passed, 1 failed
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
+RESULT mutant=M3-first-write-wins 104 passed, 0 failed
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
+RESULT mutant=M4-no-row-increment Node.js v22.22.0
+  FAIL a completed histogram with one would-open line parses (got false, wanted true)
+  FAIL and yields exactly one entry (got 0, wanted 1)
+RESULT mutant=M5-loose-geq 103 passed, 1 failed
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
+RESULT mutant=M6-loose-leq 104 passed, 0 failed
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
