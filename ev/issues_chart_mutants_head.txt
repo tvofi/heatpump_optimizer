@@ -1,0 +1,25 @@
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=earlier-finish rc=1 fails=1 verdict=killed
+    FAIL issue on two groups closes at the later finish 
+RESULT mutant=closed-counted rc=1 fails=2 verdict=killed
+    FAIL an issue closed on GitHub is not counted (7 is absent from the open set) 
+    FAIL an open issue on a done group or none is excluded and counted 
+RESULT mutant=unplanned-dropped rc=1 fails=3 verdict=killed
+    FAIL a group with no planned finish stays flat 
+    FAIL an issue with one unplanned carrier is flat, not also closing 
+    FAIL an open issue on a done group or none is excluded and counted 
+RESULT mutant=unplanned-also-closes rc=1 fails=2 verdict=killed
+    FAIL an issue with one unplanned carrier is flat, not also closing 
+    FAIL an open issue on a done group or none is excluded and counted 
+RESULT mutant=other-uncounted rc=1 fails=2 verdict=killed
+    FAIL an open issue on a done group or none is excluded and counted 
+    FAIL the issues chart is the first section, drawn from the open set 
+RESULT mutant=offline-not-omitted rc=1 fails=2 verdict=killed
+    FAIL no GitHub state: the chart is omitted with a note 
+    FAIL no gh binary: the page is still written, chart omitted, no crash 
+RESULT mutant=gh-missing-crashes rc=1 fails=1 verdict=killed
+    FAIL no gh binary: the page is still written, chart omitted, no crash 
+RESULT mutant=not-first rc=1 fails=2 verdict=killed
+    FAIL the issues chart is the first section, drawn from the open set 
+    FAIL no gh binary: the page is still written, chart omitted, no crash 
+RESULT survived=0
