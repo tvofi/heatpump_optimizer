@@ -1,0 +1,8 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-diag-redact, at head da12aa37dee15b9e9567bd6c848493436f2592dd. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch da12aa37dee15b9e9567bd6c848493436f2592dd for the base you were given.
+Output: push the code to refs/heads/handoff/r10-diag-redact, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-diag-redact <body.md>`, which pushes refs/heads/handoff-body/r10-diag-redact; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+D15 production triage (2026-10-24) found that the diagnostics bundle exposes owner data that should be redacted. The full finding is the first carry. R10-DIAG-REPLAY, the group that held it, is done, so this S group owns the redaction. Controls: a test that fails on the unredacted field, and a null control that keeps every non-sensitive field byte-identical.
