@@ -1,0 +1,3 @@
+FAIL a red gate on a HIGHER-id run is re-run (an id orders nothing)
+FAIL a HIGHER-id gate still waiting is polled, and re-run once it expires red
+sweep self-test: 23 checks, 2 failed
