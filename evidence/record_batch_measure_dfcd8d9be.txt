@@ -1,0 +1,21 @@
+UTC day, merges (rows owed), record merges
+2026-10-15 29 15
+2026-10-16 29 12
+2026-10-17 18 8
+2026-10-18 40 14
+2026-10-19 47 23
+2026-10-20 37 23
+2026-10-21 52 26
+2026-10-22 53 16
+2026-10-23 40 8
+2026-10-24 56 21
+2026-10-25 40 8
+
+record merges: 174
+rows: n=174 min=2 median=3.0 p90=5 max=21
+wait_c: n=174 min=0 median=1.0 p90=3 max=10
+wait_s: n=174 min=322 median=2629.0 p90=6129 max=17215
+age: n=173 min=1 median=3 p90=7 max=20
+chain: 170/173 record merges rowed the previous record merge
+conflicts: 0/174 record merges with a row file main also changed while open
+moved: 73/174 record merges the next merged non-record head did not contain
