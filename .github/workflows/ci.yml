@@ -98,11 +98,17 @@ jobs:
           INPUT_BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail
-          # push and a dispatch naming no base run main's or the ref's own copy.
+          # push and a dispatch naming no base run main's or the ref's own copy,
+          # except a train proof (a dispatch on a batch/ ref): its codeql legs
+          # may skip (codeql_scope.py), so it runs main's copy, at the proof's
+          # merge base with main, never its entries' (r10-proof-codeql).
           if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
             [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
             git fetch -q --no-tags origin "refs/heads/$INPUT_BASE"
             PINNED=$(git rev-parse FETCH_HEAD)
+          elif [ -z "$PINNED" ] && [[ "$GITHUB_REF" == refs/heads/batch/* ]]; then
+            git fetch -q --no-tags origin refs/heads/main
+            PINNED=$(git merge-base FETCH_HEAD HEAD)
           fi
           if [ -n "$PINNED" ]; then
             git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
