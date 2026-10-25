@@ -1,0 +1,17 @@
+$ python3 tools/audit/carry_audit.py --roster-ref handoff/audit-r10-roster(3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9) pr 2712
+CARRY-AUDIT #2712: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
+
+R10-ORCH-MACHINERY on origin/main and on handoff/audit-r10-roster 3d1c5efcc:
+  origin/main R10-UX-HEALTH holds 1 carry(ies) from r10-demand-overbook
+  origin/main R10-PREPR-UNPINNED-RED stage= done
+  origin/main R10-BUFFER-STORE holds 2 carry(ies) from r10-demand-overbook
+  origin/main stage= absorbed carries= 12 holding PREPR-UNPINNED/demand-overbook/2712: 0
+  origin/main R10-LEARNER-DEFAULT holds 1 carry(ies) from r10-demand-overbook
+  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-UX-HEALTH holds 1 carry(ies) from r10-demand-overbook
+  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-PREPR-UNPINNED-RED stage= done
+  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-BUFFER-STORE holds 2 carry(ies) from r10-demand-overbook
+  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 stage= absorbed carries= 12 holding PREPR-UNPINNED/demand-overbook/2712: 0
+  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-LEARNER-DEFAULT holds 1 carry(ies) from r10-demand-overbook
+
+tools/pr/prepr.sh on origin/main still appends the bare name:
+787:  [ -n "${7:-}" ] && [ -s "$7" ] && reds+=(mutation)
