@@ -7362,7 +7362,8 @@
    "kind": "instrument",
    "class": "instrument",
    "issues": [
-    2722
+    2722,
+    2806
    ],
    "fixes": [],
    "findings": [],
