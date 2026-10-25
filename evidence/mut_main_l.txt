@@ -1,0 +1,17 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 6b698cdec..397f9310b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6462,7 +6462,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         await self._legionella.async_track_cycle(
+             dhw.value if dhw.ok else None
+         )
+-        self._legionella.check_ceiling()
+ 
+         _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
+ 
+tests/features.py rc=0
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+ALL 4374 FEATURE CHECKS PASSED
+DONE

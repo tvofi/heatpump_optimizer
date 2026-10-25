@@ -1,0 +1,21 @@
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index af72d9f7a..d7eeeb1a6 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -484,7 +484,7 @@ class LegionellaGuard:
+         self.disinfect.observe(reader)
+         await self.async_track_cycle(dhw_temp)
+         self.check_ceiling()
+-        return self.hours_since()
++        pass
+ 
+     def check_ceiling(self) -> None:
+         """Say so when disinfection takes the tank above the charge limit.
+tests/features.py rc=0
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+ALL 4388 FEATURE CHECKS PASSED
+tests/typing_ruler.py rc=1
+2 of 10 typing-ruler checks FAILED
+1 of 12 typing-ruler source checks FAILED
+DONE

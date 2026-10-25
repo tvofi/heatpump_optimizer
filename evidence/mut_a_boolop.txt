@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index e4a3c2204..6555e55f2 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5430,7 +5430,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # every-10-samples cadence: both share the thermal learning store.
+         cop_samples_before = self._cop_samples
+         self._learn_measured_cop(self._accuracy.draw)
+-        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
++        if self._cop_samples != cop_samples_before or self._cop_samples % 10 == 0:
+             await self._async_save_thermal_learning()
+         return await _propagated_slab(self, prior, prior_at) if slab_unsensed else None
+ 
+tests/features.py rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+3 of 4388 FEATURE CHECKS FAILED
+DONE

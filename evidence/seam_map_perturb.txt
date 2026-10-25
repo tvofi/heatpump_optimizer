@@ -1,0 +1,8 @@
+[core]   seam_cut_total = 422
+[core] RESULT seam_cut_total=422 count
+[core] FAIL seam_cut_total 422 > 419 (+3)
+[core] 1 STRUCTURE BUDGET(S) BREACHED
+[dhw]   seam_cut_total = 440
+[dhw] RESULT seam_cut_total=440 count
+[dhw] FAIL seam_cut_total 440 > 419 (+21)
+[dhw] 1 STRUCTURE BUDGET(S) BREACHED
