@@ -1474,7 +1474,8 @@ async def _planted_download(value_pass=True):
     coord.mode = _leak_text("mode")
     coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
                   "problem_messages": [_leak_text("input")],
-                  "current_action": _leak_text("plan")}
+                  "current_action": _leak_text("plan"),
+                  "dhw_cooling_rate": _leak_text("learning")}
     collector.rows = [_row(note=_leak_text("row"), lon=float(EXACT[1]), **{TOKEN: 1})]
     collector.snapshots = [{"t": T0.isoformat(), "cycle": 1,
                             "data": json.dumps({"msg": _leak_text("snapshot")})}]
@@ -1522,15 +1523,22 @@ def _carrying(download):
 planted_dl = asyncio.run(_planted_download())
 planted_open = asyncio.run(_planted_download(value_pass=False))
 planted_paths = _carrying(planted_open)
-SECTIONS = (".config.", ".config_setup.", ".coordinator.", ".last_diagnosis", ".inputs.",
-            ".plan.", ".debug.manifest.self_tests", ".debug.cycle_rows",
-            ".debug.payload_snapshots", ".debug.stores", ".debug.diagnostics.")
+# The census of sections is the download's own keys, and the bundle's, so a
+# section a later change adds is refused here until the fixture plants in it.
+# The exempt ones carry no text the install supplies: a constant, the names of
+# config keys, the version stamps, and the replay half, which ``seal`` refuses
+# rather than write with a dropped value in it (the checks above).
+EXEMPT = {".entry", ".config_overridden_by_options", ".domain", ".debug.schema",
+          ".debug.replay"}
+SECTIONS = {f".{key}" for key in planted_open if key != "debug"} | {
+    f".debug.{key}" for key in planted_open["debug"]}
+_unplanted = sorted(section for section in SECTIONS - EXEMPT if not any(
+    path == section or path.startswith((f"{section}.", f"{section}[")) for path in planted_paths))
 R.check(
-    "the fixture plants a private value in every section of the download: the live and "
-    "setup config, the coordinator snapshot, the last diagnosis, the inputs, the plan, "
-    "and the bundle's self-tests, cycle rows, payload snapshots and store documents",
-    all(any(path.startswith(section) for path in planted_paths) for section in SECTIONS),
-    "; ".join(planted_paths),
+    "the fixture plants a private value in every section of the download and of its "
+    "debug bundle, bar the exempt ones, and every exempt one is still a section",
+    _unplanted == [] and EXEMPT <= SECTIONS,
+    f"unplanted={_unplanted} exempt-gone={sorted(EXEMPT - SECTIONS)}",
 )
 R.check(
     "Download diagnostics carries none of the values its redaction removes -- the "
