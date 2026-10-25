@@ -1,0 +1,14 @@
+base
+CENSUS 13 of 37 keys unread: ['buffer_cooling_rate', 'buffer_cooling_samples', 'buffer_cooling_rate_learned', 'house_heat_loss_samples', 'lower_floor_loss_samples', 'lower_floor_loss_learned', 'defrost_measured_samples', 'defrost_flag_configured', 'defrost_store_migrated', 'immersion_active', 'immersion_evidence', 'heat_curve', 'snapshots']
+head
+CENSUS 13 of 38 keys unread: ['buffer_cooling_rate', 'buffer_cooling_samples', 'buffer_cooling_rate_learned', 'house_heat_loss_samples', 'lower_floor_loss_samples', 'lower_floor_loss_learned', 'defrost_measured_samples', 'defrost_flag_configured', 'defrost_store_migrated', 'immersion_active', 'immersion_evidence', 'heat_curve', 'snapshots']
+buffer_cooling_rate 0
+buffer_cooling_samples 0
+buffer_cooling_rate_learned 0
+defrost_measured_samples 0
+defrost_flag_configured 0
+defrost_store_migrated 0
+immersion_active 0
+immersion_evidence 0
+heat_curve 0
+snapshots 0

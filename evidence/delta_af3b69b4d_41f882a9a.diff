@@ -1,0 +1,12 @@
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.fc8f0966.json b/tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.fc8f0966.json
+new file mode 100644
+index 000000000..9a5dc5548
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.fc8f0966.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:learner_progress_view CMP_BOUND fc8f0966",
++  "killed_by": "tests/features.py",
++  "old": "    solar_wait = \"sunnier\" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE else house_cold",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`solar_wait = \"sunnier\" if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE else house_cold`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
