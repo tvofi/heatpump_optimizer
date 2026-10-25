@@ -1,88 +1,65 @@
-Fix review: blocked 204ffce804bbf0f602ad258b42c6fea0c9ddbf15 released-early: P133's carries-open rule plus P137's set-stage releases R10-FLOW-BODY-ONLY, R10-FLOW-ROSTER-FREEZE, R10-FLY-ORPHANS-REWRITTEN and R10-FLY-OPENPR-ATOMIC from R10-UPDATE-PR-SIGNALS, whose owed carries edit the same update_pr.sh, pr_args.sh and cloud_relay.sh those edges exist to sequence
+Fix review: blocked e40e45eeb9509e44bb93d43373cf777cc62f40d8 claims: P139 dates the three design-verdict commits 17:40Z, 17:48Z and 17:51Z, but in UTC they are 16:40Z, 16:48Z and 16:51Z (committed at 17:xx+01:00)
 
-bus-nonce: 3ac21dce537c5c1da2d95df4bb916978
+bus-nonce: e9262f0997080aec766c9e26ec2bc314
 
-## Round
-
-Round 1 for this reviewer seat on #2822. Reviewed at head 204ffce804bbf0f602ad258b42c6fea0c9ddbf15, merge base da12aa37dee15b9e9567bd6c848493436f2592dd (origin/main at read time). The roles diff from the merge base to origin/main is empty, so the contracts I read are current. Roster read at aa679f28b (the ruling's ref) and at the roster tip 558125209.
+Round 2 (a delta review of #2822; round 1 blocked released-early at 204ffce804bbf0f602ad258b42c6fea0c9ddbf15, comment 6400503903). Measured head: e40e45eeb9509e44bb93d43373cf777cc62f40d8.
 
 ## Block
 
-P133 releases dependents that still need the carries it treats as unrelated.
-
-- P133's Binding rests on one premise: "a merged group's leftover carries holding unrelated work is a schedule defect". Its Instances list only the dependents of the five carries-open groups at aa679f28b.
-- P137, in the same file, moves R10-UPDATE-PR-SIGNALS to carries-open. Its Verdict says: "P133 then releases its dependents except the round-closing ones." The orchestrator has already made that move on the roster (d87475fe1, `set-stage R10-UPDATE-PR-SIGNALS`, stage `carries-open`, commit `fd9914851`).
-- That makes a sixth carries-open group. It has four not-started dependents that are not round-closing, and P133's enumeration never considers them (ev/roster.txt):
-  - R10-FLOW-BODY-ONLY shares `update_pr.sh`, `pr_args.sh`, `cloud_relay.sh` and `INSTRUMENTS.md`.
-  - R10-FLOW-ROSTER-FREEZE shares `cloud_relay.sh`. Its own roster text gives the reason for the edge: "R10-UPDATE-PR-SIGNALS (in-progress) also edits cloud_relay.sh; add it as an after-edge for ROSTER-FREEZE".
-  - R10-FLY-ORPHANS-REWRITTEN shares `cloud_relay.sh`.
-  - R10-FLY-OPENPR-ATOMIC's carry reads "Rebase on R10-UPDATE-PR-SIGNALS (also edits pr_args.sh)".
-- The carries R10-UPDATE-PR-SIGNALS still owes are in exactly those files:
-  - carry 0, the SIGKILL drain of `update_pr.sh`'s lock;
-  - carry 1, self-test isolation and lock ownership;
-  - carry 2, `update_pr.sh`'s worktree on exit;
-  - carry 4, the process-group residual in `cloud_relay.sh` and `update_pr.sh`.
-  #2524's own Forward-carry keeps the SIGKILL clause and the isolation owed, and #2502 is still open.
-- So for this group the leftover carries are not unrelated work. They are the work these edges sequence. Once ROSTER-SCHEMA lands the `blocks()` predicate as carried, four groups start editing the seam the owed follow-on edits, which is the conflict the edges were added to prevent. The brief asks me to check that P133 releases no group early. These four are released early.
-- The defect is in the ruling text: the P133 carry has no exception for this case, and P137 relies on the release.
-
-What would settle it is a revision of P133 and P137 in this file. Two shapes would work:
-1. Narrow `blocks()`. A carries-open group still blocks a dependent whose `files` intersect its own while it has carries left. The `closes_round` exception stays. Add a control: a dependent that shares a file with a carries-open group stays blocked (null: one with no shared file is released).
-2. Or have P137 name those four dependents and keep them blocked by an explicit edge.
-
-Either way, P133's Instances must enumerate the dependents at the roster the rule will run on, R10-UPDATE-PR-SIGNALS included.
-
-No other ruling blocks.
+- P139, lines 192-194 at the head: "revise 04de6ae7f (fabd19b8a, 17:40Z)", "revise e23ace899 (636a85b36, 17:48Z)", "approve 21f4fbfe9 (ad376684f, 17:51Z, round 3)". The commits read `2026-10-25T17:40:56+01:00`, `17:48:41+01:00` and `17:51:54+01:00`, which are 16:40:56Z, 16:48:41Z and 16:51:54Z (`ev/p139-times.txt`). The same entry gives the design commit 04de6ae7f correctly as 16:34Z (17:34:27+01:00), so the record now says 66 minutes passed between delivery and the first review, when the real gap was 6 minutes. These are local times labelled as UTC in a durable record that later seats will read as fact. The fix is to replace the three times with 16:40Z, 16:48Z and 16:51Z. Nothing else in the entry depends on them: the cite `design-verdict/R10-HEAT-METER@ad376684f`, the approved head 21f4fbfe9 and the note's line 39 ("## Size verdict: L, conditional on #2753") all hold.
 
 ## Findings
 
-- P139's operational premise was overtaken before the head was cut. It says "No `design-verdict/R10-HEAT-METER` ref exists". But `fabd19b8a`, "design-verdict R10-HEAT-METER: revise 04de6ae7f (round 1)", is dated 17:40:56+01:00, one minute before 840fab86f (17:41:57+01:00). `636a85b36` (revise e23ace899, round 2) followed. The carry's "First use" cites `design/R10-HEAT-METER at 04de6ae7f`, a note that has been revised. When the carry is appended, `set-size` should cite the head that `Design review: approve` names. The revised note e23ace899 still reads "Size verdict: L, conditional on #2753" (line 33). Carry: R10-ORCH-ROSTER-SCHEMA
-- P136's carry tells R10-ORCH-LEDGER to edit `ledger.py` `review_owed`. That group's roster `files` are `cloud_relay.sh` and `orchestrator_tick.py`, and no group lists `ledger.py`, although #2671 created it ("ledger.py is the one module"). Add `ledger.py` to R10-ORCH-LEDGER's files when the carry lands, or the scope gate may refuse the edit. R10-ORCH-DISPATCH-REG's carry 4 can also move REVIEW OWED's dispatch arm "in the same PR", and P133 has removed its edge on ORCH-LEDGER. The two groups now edit the same function with no ordering between them. Carry: R10-ORCH-LEDGER
-- The carries for P131(a) and P133 to R10-ORCH-ROSTER-SCHEMA edit `tools/plan/replan.py`, `orchestrator_tick.py`, `plan_page.py`, `plan_table.py` and `handover_prompt.py`. That group's `files` are `roster_lib.py`, `roster_sync.py` and `roster_edit.py`. P133 names the hot-file overlap, but neither ruling widens the files list. Widen it when the carries are appended. Carry: R10-ORCH-ROSTER-SCHEMA
-- P130's Cost says "two `set-after` ops, one `edit-brief` and one carry", and arm C says "plus the brief edit in the carry text below". The file gives only `append-carry` text and no `edit-brief` text. In the meantime the roster has already dropped CLOSEOUT's edges on ARCH-DOCS and PLAYBOOK (3b5942aac). Until the P130 carry is appended, nothing on the roster says that `--apply` must run last. Append the carry together with the edge change, as one step. Carry: R10-CLOSEOUT-CLEANUP
-- P137 says "Set R10-UPDATE-PR-SIGNALS to carries-open with pr 2524". The roster at 558125209 has `resume.pr` null (commit `fd9914851`). The tick and ledger rules key on the PR, so the record should carry 2524. Carry: R10-ORCH-ROSTER-SCHEMA
-- Several line citations are off by one. LIVE_STAGES is read at `replan.py:322`, not 319-321, and the P131 carry repeats the error. The ALREADY test in `train_add` is at `merge_train.py:808-810`, not 806-809. The symbols are named, so a fixer finds them. Carry: dismissed: symbol names resolve each citation; line numbers drift with main anyway
-- P127's ACCEPT names a policy edit opened by the orchestrator (#2821), not a roster group or a new group as `proposal-triage.md` asks. The ruling says why: no open group owns that contract, and a group for one word costs more than the edit. #2821 is open. Carry: dismissed: the destination is named (#2821) and the contract's group form would add a brief, a fixer and a review for one word
-- The PR title is a merge-commit subject. The delivery row repeats it: "Merge remote-tracking branch 'origin/main' into triage/s6-batch26". Carry: dismissed: the orchestrator sets the title at merge; no ruling change follows
+- The PR title, and the delivery row `dev/programme/delivery/2822.md` that copies it, read "Merge remote-tracking branch 'origin/main' into triage/s6-batch26". That is a merge-commit subject, not a description of the batch. It was the same at the round-1 head, so it lies outside this round's delta and is not part of the block. Carry: dismissed: outside the round-2 delta and no ruling depends on it; the orchestrator can retitle the PR and re-render its row with the repair push.
+- The DISPATCH-REG release is still owed. P133 rules that `set-after R10-ORCH-DISPATCH-REG -`, already applied on the roster branch (DISPATCH-REG `after: []` at origin/handoff/audit-r10-roster), holds only with a seam-split architect note naming R10-ORCH-LEDGER. No group carries one at any of the three rosters read (`ev/p133-test.txt`, seam_note_names_P=False everywhere). If no note exists, the edge goes back. This is an orchestrator task owed after the merge. Carry: R10-ORCH-DISPATCH-REG
+- After the merge, P137 says the follow-on fixer must still set `resume.pr` 2524 on R10-UPDATE-PR-SIGNALS, which is `pr: None` at origin/main and at the roster tip. A follow-on dispatch ref now exists: `dispatch/fixer-r10-update-pr-signals`, 2026-10-25T16:53Z. Carry: R10-UPDATE-PR-SIGNALS
 
 ## Evidence
 
-- ev/HEAD.txt holds the head reviewed, 204ffce804bbf0f602ad258b42c6fea0c9ddbf15.
-- ev/head_and_merge.txt:
-  - `git merge-tree --write-tree origin/main 204ffce804bbf0f602ad258b42c6fea0c9ddbf15` returns tree 92960f783, rc 0.
-  - The three-dot diff adds only `dev/programme/triage/s6-batch26.md` and `dev/programme/delivery/2822.md`, and 204ffce80 touches only the row (1 file, +1).
-  - There are no host or home paths (grep rc 1).
-  - `^Verdict:` counts 13 ACCEPT, which matches the body.
-- ev/ruling_verdict.txt: `roster_edit.ruling_verdict` at the head returns ACCEPT for P127-P139 and None for P140, the body's null control, which I re-ran.
-- ev/ci.txt: the check-runs API shows 7 runs on the head: `arm` skipped, and `prelude`, `refresh` and `cancel-superseded` queued in two runs. No run concluded red, so there is no red check to answer. `gate` had not reported at read time.
-- Destinations at the roster tip 558125209 (ev/roster.txt) and open PRs (ev/github_reads.txt):
-  - R10-FLOW-DESIGN-STAGES: not-started, holds `cloud_dispatch.py` and `orchestrator_tick.py`. P128 and P132 route there.
-  - R10-TRAIN-OVERLAP-GRADE: queued, holds `merge_train.py`. P129 routes there.
-  - R10-ORCH-ROSTER-SCHEMA: not-started, every after-group done, holds `roster_edit.py`. P131(a), P133 and P139 route there.
-  - R10-FLOW-TOOLKIT-MODEL: not-started, holds `replan.py`. P131 routes there.
-  - R10-ORCH-LEDGER: carries-open (#2671 merged), holds `orchestrator_tick.py`. P132, P136 and P137 route there.
-  - R10-ORCH-DISPATCH-REG: not-started, holds `bus.sh`. P134 and P138 route there.
-  - R10-ORCH-REVIEW-PACKET: not-started, holds `bus.sh` and `review_packet.py`. P135 routes there.
-  - R10-CLOSEOUT-CLEANUP: not-started. P130 routes there.
-  - None of these groups is done or absorbed, and none has an open PR. I did not find a destination that is done or closing. The merge-train spool and merge-STATE live on the orchestrator machine, so I could not read them.
-- Roster edits already made since aa679f28b (ev/roster.txt):
-  - 29b0b8ff2: DISPATCH-REG after `[]`.
-  - 3b5942aac: CLOSEOUT after PRUNE-REFS and WORKTREE-GC.
-  - d87475fe1: UPDATE-PR-SIGNALS carries-open.
-  - 558125209: PLAYBOOK loses ARCH-DOCS.
-  - These match P130 B/C, P133 and P137 as written. ARCH-DOCS keeps its after list, so the owner's constraint holds. Nothing orphans CLOSEOUT, PLAYBOOK or ARCH-DOCS: each keeps its other edges, and no group lists CLOSEOUT in its after list.
-  - DISPATCH-REG's release is sound. The need behind its only edge is on main (`ledger.py:108` `OPS = ("open", "close", "attempt")`, the 542 command path, the 655-657 `reviewer-fire` closes), and it shares no file with ORCH-LEDGER.
-- Facts re-derived at da12aa37d (ev/code_reads.txt), at least one per ruling:
-  - P127: `proposal-triage.md:8-9`, "One sonnet seat at / medium effort: judgement with an oracle.", is 36 lines and 294 words against caps of 36 and 489. Comment 6399377608 is the ruling-refuted block on P117, and 6399500180 is the merge at ac6c53581.
-  - P128: `cloud_dispatch.py:122` "read CI on this head from the check-runs API" (no wait instruction), refusal at 182, `dispatch/reviewer-r10-x` at 391, `self_test` at 503. In `merge_train.py`: `NOT_GATING` at 328, `classify` at 417, the classify parser at 5471 (rc 0/1/3/2), `wait_ci` at 1103 with all-completed at 1134-1136. `ci.yml:74` is `prelude:`. `ci-watch.sh:2` is "alerts only on NEW states".
-  - P129: `train_add` at 787, the pending/spool ALREADY test at 808-810, ADDED at 817-819, `skip` at 2286-2296 with a row of pr, phase and reason and no head, `seen` seeded at 2317, the `queue_take` drop at 2367-2370. I could not read the s40 `train.log` (not in the tree).
-  - P130: the CLOSEOUT brief carries the quoted halves sentence. ARCH-DOCS files are `docs/architecture.md` and `README.md`, and PLAYBOOK files are `dev/audit/README.md` and `CLAUDE.md`, so the two share no file. I did not re-derive the -15.7 h and -13.7 h figures (card V49 is out of tree).
-  - P131: `replan.py:174-175` `is_done` in ("done", "rca-done"), against `roster_lib.py:33`. aa679f28b has 4 absorbed and 5 carries-open groups. ROSTER-SCHEMA carry 14 is the replan phantom-work carry and carry 1 the absorbed-edge closure (0-indexed). `durations.json` sizes_hours are S 13.1, M 11.4, L 20.1, XL 30.2. `replan.py` has no inflow term, `--slots` is at 1292, `--durations` at 1281, the default of 6 at 97 with "the owner's cap", and "No network" at 13. I did not re-derive card V50's figures.
-  - P132: tick UNBLOCKED line at 1161-1163; `critical_path` at `roster_lib.py:239`. I did not re-derive card V52's ages.
-  - P133: `is_open` at 205-206. Tick blockers at 1154 via `open_groups` at 1148. `depth_of` at 232. Openness tests at `plan_page.py:189`, `plan_table.py:81` and `handover_prompt.py:49`. #2671 merged at 2026-10-23T23:20:07Z. I did not re-derive card V57's -3.1 h.
-  - P134: `bus.sh:22-32` ordering note, `dispatch()` at 382, `open_pr.sh:48` automatic merge, `app_approve.sh:243`. I did not re-derive card V53's figures.
-  - P135: `carry_audit.py:414-418` returns 1 on unrouted or bad items; `head_note.py:20` is `head_offset`. I did not re-derive card V54's counts.
-  - P136: `ledger.py:505-515` `review_owed` with no carry test; `tick_loop.sh:16-18`; `sweep_template.md:41-44`; `orchestrator.md:109`; `CLAUDE.md:122`.
-  - P137: #2524 merged at 2026-10-22T20:16:54Z, and its Forward-carry keeps the stage in-progress for the SIGKILL clause and the isolation. `dispatch/fixer-r10-flow-jidoka` now exists (7d3e293b8, after the head), so the dispatch has happened.
-  - P138: `fixer.md:307-314`, `bus.sh:23`, `fix-review.md:140`. I did not re-derive card V56's counts.
-  - P139: in `roster_edit.py` the op choices at 655-657 have no size op, and "size" occurs 0 times. 04de6ae7f's note has the size verdict at line 20 and the XL fallback at line 5. HEAT-METER's after list has four groups done and three in progress.
+- Merge: `git merge-tree --write-tree origin/main <head>` exited 0, and no claim driver ran (`ev/merge-tree.txt`).
+- Scope: the PR changes only `dev/programme/triage/s6-batch26.md` and `dev/programme/delivery/2822.md` (`ev/pr-stat.txt`). The round-2 delta touches only the batch file (`ev/delta-stat.txt`). No host or home path appears in the diff, and no Claude or Co-Authored-By trailer appears in the commits.
+- Body figure: `grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' ... | sort | uniq -c` gives 13 ACCEPT, matching the body (`ev/verdict-count.txt`). The body's per-ruling summaries match the file, and so do its Head and Null-control sections (P140 is absent from the file).
+- Rulings outside the four the coordinator named (`ev/rulings-delta.txt`): P127, P128, P132, P135 and P138 are byte-identical to the round-1 head. Four others moved, all as round-1 repairs that the body's Head section names:
+  - P129: the `merge_train.py` citations went from 806-809 and 817-819 to 808-809 and 819. At da12aa37d and origin/main, 808 is `if str(pr).isdigit() and int(pr) in pending | {...}:`, 809 is `t.log(f"ALREADY #{pr}: ...")` and 819 is `t.log(f"ADDED #{pr} to the live train ...")`. Correct.
+  - P131: `:319-321` became `:322`. replan.py 322 is `is_live = stage in LIVE_STAGES`. Correct.
+  - P130: Cost now says one carry that is the brief addition, with no separate edit-brief, appended alongside CLOSEOUT's edge change. The roster tip confirms CLOSEOUT-CLEANUP `after` is `[R10-FLY-PRUNE-REFS, R10-FLY-WORKTREE-GC]` and no longer names ARCH-DOCS or PLAYBOOK.
+  - P134: the verdict line now ties the DISPATCH-REG release to P133's seam note. Its destination is unchanged.
+- Released-early is closed (check 1). I wrote my own harness, `ev/p133_reviewer_harness.py`, which implements P133's file test from the ruling text: `files` plus carry tokens under the seven prefixes, bare *.py/*.sh/*.mjs names matched by basename, INSTRUMENTS.md excluded, and the seam note and `closes_round` checks. At origin/main 20e9f0219, at 1ac59f510 and at the roster tip 9e5f5cf1c, it blocks each of the four named dependents on R10-UPDATE-PR-SIGNALS:
+  - FLOW-ROSTER-FREEZE: cloud_relay.sh, pr_args.sh, update_pr.sh
+  - FLOW-BODY-ONLY: the same three
+  - FLY-OPENPR-ATOMIC: merge_train.py, open_pr.sh, pr_args.sh, update_pr.sh
+  - FLY-ORPHANS-REWRITTEN: cloud_relay.sh
+  
+  All four still name R10-UPDATE-PR-SIGNALS in `after`. UPDATE-PR-SIGNALS itself is `in-progress` at origin/main and at the roster tip, so no stage releases anything. Every other P133 instance reproduces exactly: GH-READ-RETRY blocks CARRY-DOC-CONTEXT on `tools/pr/app_approve.sh`; LEDGER and RELAY-REVIEW-FF block ARCH-DOCS; ROUND-PLAYBOOK shares no file; LEDGER and DISPATCH-REG share ledger.py, orchestrator_tick.py, bus.sh and cloud_relay.sh at origin/main, where the edge is still present; SUITE-ENV-FLAKES and NO-FOOTERS have no open dependent.
+- Mutant on that harness: with the carry arm dropped from touched() (`ev/p133-mutant-nocarry.txt`), FLY-OPENPR-ATOMIC and FLY-GH-READ-RETRY are released from UPDATE-PR-SIGNALS. So the carry arm the ruling adds is load-bearing, not vacuous, and the carry text's control "drop the carries from touched()" has a real target.
+- Destinations (check 2), at the roster tip and at origin/main:
+  - R10-ORCH-ROSTER-SCHEMA (P133, P139): not-started, every after-group done.
+  - R10-ORCH-DISPATCH-REG (P136): not-started.
+  - R10-ORCH-LEDGER (P137): carries-open, its PR #2671 merged.
+  
+  None is done or absorbed, and no open PR names any of them (search of the 15 open PRs, `ev/github.txt`). I could not read the merge-train spool, because it lives on the orchestrator's machine; with no open PR for these groups, there is nothing that could be spooled.
+- Verdict words: P133 ACCEPT narrowed, P136 ACCEPT on (a) and DEFER on (b), P137 ACCEPT narrowed, P139 ACCEPT narrowed. Each carries Source, Instances, Cost, Binding and carry text with a `triage: dev/programme/triage/s6-batch26.md#P<n>` citation, and each carry names controls and a mutant.
+- File:line claims at origin/main f54f40cc1 (check 3), quoted in `ev/line-claims-origin-main.txt`. All hold at da12aa37d and origin/main:
+  - `roster_lib.py:33` `DONE_STAGES = ("done", "rca-done")`
+  - 205-206 `def is_open` ... `not in DONE_STAGES`
+  - 232 `oa = [a for a in g.get("after") or [] if is_open(G[a])]`
+  - `orchestrator_tick.py:1154` `blockers = [a for a in (g.get("after") or []) if a in open_g]`
+  - 704 `def _dispatched(self, S: str)`
+  - `plan_page.py:189`, `plan_table.py:81`, `handover_prompt.py:49` each test openness themselves
+  - `replan.py:175` `in ("done", "rca-done")`
+  - `ledger.py:108` `OPS = ("open", "close", "attempt")`, 542 the open/close arm, 655-657 the close self-test
+  - 505-515 `def review_owed` ... `REVIEW OWED: #{n} {head[:12]}`
+  - `tick_loop.sh:16-18` `$HPO_STATE_DIR/tick.txt, written whole then renamed`
+  - `sweep_template.md:41-44` the tick_alive/tick_log/tick_brief/tick_stale_min rows
+  - `roster_sync.py:392` `...setdefault("resume", {})["pr"] = c.pr`
+  - `orchestrator.md:109` the four standing seats, `CLAUDE.md:122` the `standing-tick.md` row
+  - `roster_edit.py` op choices (655-657): exactly the nine P139 lists. `size` occurs 0 times. `set-resume --field <stage|commit|branch|last_step|next_step|note>` has no `pr`.
+- Other figures re-derived:
+  - #2524 merged_at 2026-10-22T20:16:54Z (fd9914851); #2502 open; #2753 open.
+  - The `archive/handoff/r10-pusher-reap` tag (a0cb0cdd7) is an ancestor of main.
+  - `dispatch/fixer-r10-pusher-reap` dates from 2026-10-22T18:32Z.
+  - HEAT-METER is after seven groups, four done. PARAMS-OWNER (#2817) and ARCH-SHAPES (#2819) are in-progress at the roster tip (still not-started at origin/main's older roster copy); THERMAL-POWER-OPTION is in-progress with #2753.
+  - P137's "no ref matches `jidoka`" held when it was written. `dispatch/fixer-r10-flow-jidoka` appeared at 2026-10-25T16:47Z, before this head was committed at 17:03Z, and is the operational step the ruling asks for (`ev/refs.txt`).
+- Figures I did not re-derive: the card figures (P133's -3.1 h and C0 161.58 -> 158.50 h, P136's 5.4M cache-read per hour, P137's -3.1 h, P139's -13.9 h) are the cards' own and are cited as such.
+- CI on the head, from the check-runs API (`ev/github.txt`): 7 runs. Six are queued (prelude, refresh and cancel-superseded, twice each) and arm is skipped. None has concluded red, so step 11 owes nothing. The body's "Red checks: none" stands for now.
+- Mutation proof: n/a. The diff writes no production code line.
