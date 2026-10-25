@@ -21847,14 +21847,28 @@ _SC_MUTANTS = {
         "away_setback", "space_reasons", "scheduled", "comfort_floor", at=6),
     "another leaf path": _sc_mutant(
         "away_setback", "setpoint_reasons", ["cheap_price"], ["idle_coasting"]),
+    "a move inside the to-set": _sc_mutant(
+        "away_setback", "space_reasons", "idle", "idle_coasting", at=7),
+    "a non-string from": _sc_mutant(
+        "away_setback", "space_reasons", None, "idle_coasting", at=8),
 }
 R.check(
     "a drift outside the claimed shape is refused: a value leaf, the reverse "
-    "pair, another reason pair, another leaf path",
+    "pair, another reason pair, another leaf path, a move inside the to-set, "
+    "a non-string from",
     all(v == 1 for v in _SC_MUTANTS.values()),
     "unclaimed per mutant: " + ", ".join(f"{k}={v}" for k, v in _SC_MUTANTS.items()),
 )
 
+_SC_FROM = "shape: space_reasons[*] 'cheap_price' -> 'idle_coasting'"
+R.check(
+    "an explicit from-set excuses only its own values: the cloud reading's "
+    "scheduled -> idle_coasting leaf stays unclaimed under a cheap_price claim",
+    _sc_judge(*_sc_captures(_sc_hosts()["cloud"]), claims={_SC_FROM: ["r"]})[:2]
+    == (2, [_SC_FROM]),
+    "away_setback's dhw leaves and valve_storage_small_tank's scheduled leaf "
+    "are outside it; its cheap_price leaves keep the claim live",
+)
 R.check(
     "an unchanged tree with the shape claim present matches nothing, so the "
     "claim reads stale (null control)",
