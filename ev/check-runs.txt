@@ -1,0 +1,5 @@
+check-runs on 3783fe271cc524fd1fd97fb5dccfc66a4b55f4bf, read 2026-10-25 ~01:15Z via the PR check-runs API (35 runs):
+completed success: budget-raise-gate (x2), prelude (x2), refresh (x2), cancel-superseded (x2), .github/dependabot.yml
+completed skipped: governance / record, kernel-points (x2), governance / delivery-status-publish, hassfest, codeql, governance, tests, validate, arm
+queued: tests / nightly-status, codeql / Analyze (python|actions|javascript-typescript), tests / briefs, arch-score (x2), tests / closure-scope, governance / delivery-status, governance / policy-docs, tests / mutation, governance / wave-script, validate / validate-hacs, hassfest / hassfest, governance / env-matrix, governance / instrument-self-tests
+completed failure: none. No pr-contract run listed yet.

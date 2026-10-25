@@ -1,0 +1,12 @@
+== from outside-repo
+BAD-DEST body item 8e54495e: R10-NO-SUCH-GROUP: R10-NO-SUCH-GROUP is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+  record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: none
+  ERROR   [pr-body] $W/body-seeded.md: `## Head` does not name 3783fe2, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 3783fe2 is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+PR-BODY: 1 error(s) in $W/body-seeded.md
+== from worktree
+BAD-DEST body item 8e54495e: R10-NO-SUCH-GROUP: R10-NO-SUCH-GROUP is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+  record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: none
+  ERROR   [pr-body] $W/body-seeded.md: `## Head` does not name 3783fe2, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 3783fe2 is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+PR-BODY: 1 error(s) in $W/body-seeded.md
