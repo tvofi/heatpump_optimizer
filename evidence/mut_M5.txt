@@ -1,0 +1,24 @@
+mutated custom_components/heatpump_optimizer/coordinator.py
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc=1
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+numpy.linalg.LinAlgError: Singular matrix
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+  FAIL #2223: a heat-loss level exactly on the confidence threshold has converged  [on the threshold True, one sample under True]
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+  FAIL R10-LEARNER-ETA: the gates are counted on the learners' own predicates  [house 50 gains 50]
+RuntimeError: no HTTP session available in the test stub
+ValueError: D1-01: malformed month wedges the freezer
+RuntimeError: tariff exploded
+RuntimeError: solver exploded
+RuntimeError: boom
+RuntimeError: boom
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
