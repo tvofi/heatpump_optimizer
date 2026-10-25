@@ -51,6 +51,7 @@ from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
+from .optimizer import CHANNEL_ACTIVE_KW
 from .thermal_model import feedback_gaps
 
 if TYPE_CHECKING:
@@ -1193,13 +1194,13 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
                 # #1644 (D8-s1-02): count periods the way the plan does.
-                # The plan view merges consecutive steps above 0.05 kW
-                # into one slot (coordinator _plan_slots), so a period of
-                # several steps made this step-count disagree with the
-                # plan's slot count. Read the plan's own slot list when it
-                # is published; a payload without the plan dict still
-                # answers, by merging the same contiguous runs at the
-                # same threshold.
+                # The plan view merges consecutive steps above
+                # CHANNEL_ACTIVE_KW into one slot (coordinator _plan_slots),
+                # so a period of several steps made this step-count disagree
+                # with the plan's slot count. Read the plan's own slot list
+                # when it is published; a payload without the plan dict
+                # still answers, by merging the same contiguous runs at the
+                # same threshold, read from the same constant.
                 plan = self.coordinator.data.get("dhw_plan")
                 if isinstance(plan, dict) and isinstance(plan.get("slots"), list):
                     periods = len(plan["slots"])
@@ -1207,10 +1208,10 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
                     periods = sum(
                         1
                         for i, s in enumerate(schedule)
-                        if s.get("dhw_power", 0) > 0.05
+                        if s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW
                         and (
                             i == 0
-                            or schedule[i - 1].get("dhw_power", 0) <= 0.05
+                            or schedule[i - 1].get("dhw_power", 0) <= CHANNEL_ACTIVE_KW
                         )
                     )
                 return f"{periods} heating period{'s' if periods != 1 else ''}"
@@ -1387,10 +1388,8 @@ def _dhw_min_ceiling(setpoint: Any) -> float | None:
     Returns ``None`` when the setpoint is not known yet, so the card can tell
     "no answer" from a real limit and fall back rather than clamp to zero.
     """
-    try:
-        return round(float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN, 1)
-    except (TypeError, ValueError):
-        return None
+    value = _as_float(setpoint)
+    return None if value is None else round(value - DHW_MIN_TEMP_SETPOINT_MARGIN, 1)
 
 
 class _PlanSensorBase(HeatPumpOptimizerSensorBase):

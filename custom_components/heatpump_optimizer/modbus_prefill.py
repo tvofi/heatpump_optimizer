@@ -42,7 +42,6 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 """
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Mapping
 from typing import Any, NamedTuple
 
@@ -66,6 +65,7 @@ from .const import (
     CONF_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
 )
+from .inputs import finite_float
 from .mixing_valve import WRITE_TARGET_FLOW
 from .thermal_model import ThermalParameters
 
@@ -178,11 +178,8 @@ def snapshot(
 
 
 def _number(snap: Mapping[str, tuple[str, str, float]], label: str) -> float | None:
-    try:
-        value = float(snap[label][1])
-    except (KeyError, ValueError):
-        return None
-    return value if math.isfinite(value) else None
+    row = snap.get(label)
+    return None if row is None else finite_float(row[1])
 
 
 def _register(snap: Mapping[str, tuple[str, str, float]], addr: int) -> int | None:

@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_MIN_TEMP,
     WOOD_TANK_MAX_TEMP,
 )
+from .inputs import finite_float
 from .payload import NightAdvice, WoodFuel, WoodSlot
 
 WOOD_KWH_M3 = {
@@ -28,24 +29,6 @@ WOOD_KWH_M3 = {
     "mixed": {"packed": 1700.0, "loose": 1020.0},
 }
 PUMP_HOUR_KW = 0.05
-
-
-def _optional_float(value: object) -> float | None:
-    if value is None or value == "":
-        return None
-    try:
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
-        if isinstance(value, str):
-            return float(value)
-    except (TypeError, ValueError):
-        return None
-    return None
-
-
-def _force_float(value: object, default: float = 0.0) -> float:
-    got = _optional_float(value)
-    return default if got is None else got
 
 
 def wood_tank_soc_from_probes(
@@ -143,12 +126,12 @@ def cheaper_hour_count(
 ) -> int:
     n = 0
     for price, cop, space, dhw in zip(prices, cops, space_kw, dhw_kw, strict=False):
-        if max(_force_float(space), _force_float(dhw)) <= threshold:
+        if max(finite_float(space, 0.0), finite_float(dhw, 0.0)) <= threshold:
             continue
-        cop_f = _force_float(cop)
+        cop_f = finite_float(cop, 0.0)
         if cop_f <= 0.0:
             continue
-        if wood_sek < _force_float(price) / cop_f:
+        if wood_sek < finite_float(price, 0.0) / cop_f:
             n += 1
     return n
 
@@ -169,10 +152,10 @@ def _scan_wood_night(
         when = timestamps[i]
         if when < now or when >= horizon_end:
             continue
-        cop = _force_float(cops[i] if i < len(cops) else 0.0)
+        cop = finite_float(cops[i] if i < len(cops) else 0.0, 0.0)
         if cop <= 0.0:
             continue
-        pump = _force_float(prices[i]) / cop
+        pump = finite_float(prices[i], 0.0) / cop
         margin = pump - float(wood_sek)
         hour = when.hour + when.minute / 60.0
         if (hour >= 18.0 or hour < 6.0) and margin > best_margin:
@@ -361,7 +344,7 @@ def simulate_wood_slots(
     typed_slots = [slot for slot in slots if isinstance(slot, dict)]
     wtype, packing, price, eff = fuel
     kw = wood_slots_to_kw(typed_slots, stamps, dt_hours, wtype, packing, eff)
-    wood_sek = price * sum(_force_float(slot.get("liters")) for slot in typed_slots) / 1000.0
+    wood_sek = price * sum(finite_float(slot.get("liters"), 0.0) for slot in typed_slots) / 1000.0
     return None, kw, wood_sek
 
 
@@ -381,7 +364,7 @@ def detected_wood_slots(
     run_start = None
     n = min(len(timestamps), len(forecast_kw))
     for i in range(n):
-        if _force_float(forecast_kw[i]) > 0.0:
+        if finite_float(forecast_kw[i], 0.0) > 0.0:
             if run_start is None:
                 run_start = i
         elif run_start is not None:
@@ -413,7 +396,7 @@ def _cops(outdoor: Iterable[object], cop_at: Callable[[float], object]) -> list[
             out.append(0.0)
             continue
         try:
-            out.append(_force_float(cop_at(_force_float(temp))))
+            out.append(finite_float(cop_at(finite_float(temp, 0.0)), 0.0))
         except (TypeError, ValueError):
             out.append(0.0)
     return out
@@ -436,8 +419,8 @@ def build_wood_fuel_view(
     """Ready/cheaper/slots. cheaper is False when not ready."""
     wtype = config.get(CONF_WOOD_TYPE)
     packing = config.get(CONF_WOOD_PACKING)
-    price = _optional_float(config.get(CONF_WOOD_PRICE_SEK_M3))
-    eff = _optional_float(config.get(CONF_WOOD_FURNACE_EFFICIENCY))
+    price = finite_float(config.get(CONF_WOOD_PRICE_SEK_M3))
+    eff = finite_float(config.get(CONF_WOOD_FURNACE_EFFICIENCY))
     sek = None
     if (
         wtype in WOOD_KWH_M3

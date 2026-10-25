@@ -40,6 +40,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from numbers import Real
 from collections.abc import Callable
 from typing import Any, Literal, overload
 from weakref import WeakKeyDictionary
@@ -383,11 +384,12 @@ def finite_float(value: Any, default: float | None = None) -> float | None:
     The one coercion every reader shares (D7-s2-58): ``None``, text that is
     not a number, NaN, an infinity and an int past a double (an attribute-
     or service-fed value orjson never parsed) are all unreadable, never a
-    raise and never a non-finite number handed on to the solver. A ``bool``
-    is not a number here, although ``float()`` takes it: ``True`` read as
-    1.0 kW, 1.0 degC or a 1.0 price is a guess, not a reading.
+    raise and never a non-finite number handed on to the solver. Only a real
+    number or text is read: a ``bool`` is not a number here, although
+    ``float()`` takes it -- ``True`` read as 1.0 kW, 1.0 degC or a 1 degC
+    away target is a guess, not a reading -- and neither are bytes.
     """
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, (Real, str)):
         return default
     try:
         result = float(value)

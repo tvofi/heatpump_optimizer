@@ -953,11 +953,6 @@ async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: da
         await _write(coord, inp, slot, getattr(command, slot), now)
 
 
-def _night_clock(hour: float) -> tuple[int, int]:
-    minutes = int(round(hour * 60.0)) % (24 * 60)
-    return minutes // 60, minutes % 60
-
-
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
     """Hold the GCHV night-mode start/end for the next silent window (#1913).
 
@@ -977,8 +972,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
     nxt = quiet_windows.next_gchv_window(now, spec)
     if nxt is None:
         return
-    start_h, start_m = _night_clock(nxt[0])
-    end_h, end_m = _night_clock(nxt[1])
+    start_h, start_m = quiet_windows.wall_clock(nxt[0])
+    end_h, end_m = quiet_windows.wall_clock(nxt[1])
     if (start_h, start_m) == (end_h, end_m):
         return
     values = {

@@ -1999,23 +1999,24 @@ def _domain_arm() -> None:
         f"declared={_store.DOMAINS['dhw_profile']['hourly_profile/#'].hi}",
     )
     _overflow_sites()
+    _finite_float_census()
 
 
 def _overflow_sites() -> None:
     """The float() sites a Python int past a double reaches in production.
 
     orjson (storage, config entries, HTTP) never yields such an int and the
-    store boundary scrubs one, so these four are the ones fed by what orjson
-    does not parse: entity attributes and service-call fields (the F3.3 lead,
-    D1-s5-03's shape). Each must refuse it as unreadable, not raise.
+    store boundary scrubs one, so these are the ones fed by what orjson does
+    not parse: entity attributes and service-call fields (the F3.3 lead,
+    D1-s5-03's shape). ``inputs.finite_float`` is the one coercion the
+    coordinator's forecast reads, ``freq_control`` and ``inputs`` share
+    (D7-s2-58). Each must refuse it as unreadable, not raise.
     """
-    from heatpump_optimizer import freq_control, inputs, wood_fuel
+    from heatpump_optimizer import inputs, wood_fuel
     huge = 10 ** 400
     got = {}
     for name, call, want in (
-        ("coordinator._as_float", lambda: _coord_mod._as_float(huge, 1.5), 1.5),
-        ("freq_control._finite", lambda: freq_control._finite(huge), None),
-        ("inputs._finite", lambda: inputs._finite(huge), None),
+        ("inputs.finite_float", lambda: inputs.finite_float(huge, 1.5), 1.5),
         ("wood_fuel._wood_slots_error",
          lambda: wood_fuel._wood_slots_error([{"liters": huge}], []), "invalid_wood_slots"),
     ):
@@ -2028,6 +2029,97 @@ def _overflow_sites() -> None:
         all(v is True for v in got.values()),
         f"{got}",
     )
+
+
+#: Coercers the finite-float census returns that are not the owner, each with
+#: why it does not call it. An entry the census no longer returns is stale.
+_FINITE_FLOAT_DISPOSITIONS = {
+    "const.py::buffer_tank_surface_area":
+        "a tank's geometry, not a reading: and const.py is what inputs.py "
+        "imports, so it cannot call the owner",
+}
+#: Probe -> the owner's answer with default 1.5 (the round-10 bool policy:
+#: True is not a number; text is read when it is a finite number).
+_FINITE_FLOAT_PROBES = (
+    (None, 1.5), (0, 0.0), (2.5, 2.5), (np.float32(1.5), 1.5), (np.int64(4), 4.0),
+    ("2.5", 2.5), ("", 1.5), ("warm", 1.5), ("nan", 1.5), ("inf", 1.5),
+    (float("nan"), 1.5), (float("-inf"), 1.5), (10 ** 400, 1.5),
+    (True, 1.5), (False, 1.5), (np.bool_(True), 1.5), (b"3", 1.5), ([1], 1.5),
+)
+
+
+def _finite_float_coercers(sources: dict[str, str]) -> set[str]:
+    """Every module-level function that coerces one value to a float itself.
+
+    The seam rule (D7-s2-58): at most two positional parameters, a return of
+    ``float`` or ``float | None``, and a builtin ``float()`` call either
+    inside a ``try`` that catches ``ValueError`` or ``TypeError`` or under
+    an ``isinstance`` test -- the two shapes the nine pre-owner coercers took.
+    """
+    found = set()
+    for name, text in sources.items():
+        for fn in ast.parse(text).body:
+            if not isinstance(fn, ast.FunctionDef) or fn.args.vararg:
+                continue
+            ret = ast.unparse(fn.returns) if fn.returns else ""
+            if ret not in ("float", "float | None") or len(fn.args.args) > 2:
+                continue
+
+            def calls_float(node) -> bool:
+                return any(isinstance(c, ast.Call) and getattr(c.func, "id", None) == "float"
+                           for c in ast.walk(node))
+            guarded = any(
+                isinstance(n, ast.Try) and calls_float(ast.Module(body=n.body, type_ignores=[]))
+                and any(h.type is not None and any(e in ast.unparse(h.type)
+                                                   for e in ("ValueError", "TypeError"))
+                        for h in n.handlers)
+                for n in ast.walk(fn))
+            typed = any(
+                isinstance(n, (ast.If, ast.IfExp)) and "isinstance(" in ast.unparse(n.test)
+                and calls_float(n)
+                for n in ast.walk(fn))
+            if guarded or typed:
+                found.add(f"{name}::{fn.name}")
+    return found
+
+
+def _finite_float_census() -> None:
+    """One finite-float coercion, ``inputs.finite_float`` (D7-s2-58, #2239).
+
+    Nine module-level coercers each answered "is this a finite number" with
+    its own bool, text, NaN and overflow policy. The census enumerates every
+    function the seam rule returns, refuses one that is neither the owner nor
+    dispositioned, refuses a stale disposition, and drives the owner on the
+    probe table. Its precondition is asserted: the rule must return the
+    owner, and must return a planted coercer (the rule's null control)."""
+    from heatpump_optimizer.inputs import finite_float
+    sources = {p.name: p.read_text() for p in sorted(PKG.glob("*.py"))}
+    found = _finite_float_coercers(sources)
+    owner = "inputs.py::finite_float"
+    stray = sorted(found - {owner} - set(_FINITE_FLOAT_DISPOSITIONS))
+    stale = sorted(set(_FINITE_FLOAT_DISPOSITIONS) - found)
+    planted = _finite_float_coercers({**sources, "topology.py": sources["topology.py"] + (
+        "\n\ndef _ff_plant(v) -> float | None:\n    try:\n        return float(v)\n"
+        "    except (TypeError, ValueError):\n        return None\n")})
+    R.check(
+        "every finite-float coercion is inputs.finite_float or a dispositioned site, "
+        "and the census reaches the owner and a planted sibling (D7-s2-58)",
+        not stray and not stale and owner in found and "topology.py::_ff_plant" in planted,
+        f"stray={stray} stale={stale} owner_found={owner in found} "
+        f"plant_found={'topology.py::_ff_plant' in planted}",
+    )
+    wrong = {}
+    for probe, want in _FINITE_FLOAT_PROBES:
+        got = finite_float(probe, 1.5)
+        if not (got == want and type(got) is float):
+            wrong[repr(probe)] = got
+    R.check(
+        "inputs.finite_float reads a real number or numeric text, and nothing else "
+        "-- not a bool, bytes, NaN, an infinity or an int past a double",
+        not wrong and finite_float(None) is None,
+        f"wrong={wrong}",
+    )
+    print(f"RESULT finite_float_coercers={len(found)} count")
 
 
 # ---------------------------------------------------------------------------

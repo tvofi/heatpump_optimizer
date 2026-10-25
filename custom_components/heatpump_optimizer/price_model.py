@@ -47,7 +47,7 @@ from .const import (
     DEFAULT_PRICE_VAT,
     PRICE_SOURCE_ENTITY,
 )
-from .inputs import normalize_price_per_kwh
+from .inputs import finite_float, normalize_price_per_kwh
 from .payload import PricePrior
 
 _LOGGER = logging.getLogger(__name__)
@@ -756,15 +756,7 @@ def _raw_value(item: dict[str, Any]) -> float | None:
         raw = item.get("total")
     if raw is None:
         raw = item.get("price")
-    if raw is None:
-        return None
-    try:
-        value = float(raw)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    if not np.isfinite(value):
-        return None
-    return value
+    return finite_float(raw)
 
 
 def apply_price_adjustments(

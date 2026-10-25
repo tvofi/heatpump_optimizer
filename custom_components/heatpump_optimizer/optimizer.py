@@ -1331,6 +1331,27 @@ def idle_codes(
     return list(codes.tolist())
 
 
+#: A channel's own draw above which a plan step counts that channel as heating,
+#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
+#: their idle reasons against, and the line a plan view merges slots on. It sits
+#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
+#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
+CHANNEL_ACTIVE_KW = 0.05
+
+
+def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
+    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
+
+    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
+    pump at all (``planned_draws_run`` over both channels): a channel is never
+    "heating now" on a step the plan's on schedule calls off.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    other = np.zeros_like(channel) if other_kw is None else np.asarray(other_kw, dtype=float)
+    runs = planned_draws_run(channel, other)
+    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
+
 def classify_space_steps(
     power: np.ndarray,
     prices: np.ndarray,
@@ -1339,7 +1360,7 @@ def classify_space_steps(
     heat_loss_factors: np.ndarray,
     surplus: np.ndarray | None,
     n_steps: int,
-    threshold: float = 0.05,
+    threshold: float = CHANNEL_ACTIVE_KW,
     *,
     other: np.ndarray | None = None,
     caps: np.ndarray | None = None,
@@ -1413,7 +1434,7 @@ def classify_dhw_steps(
     ready_temps: np.ndarray,
     legionella_step: int | None,
     n_steps: int,
-    threshold: float = 0.05,
+    threshold: float = CHANNEL_ACTIVE_KW,
     idle: IdleContext | None = None,
 ) -> list[str]:
     """Why each hot-water step is where it is.

@@ -337,12 +337,14 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
+    CHANNEL_ACTIVE_KW,
     ForecastSeries,
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
     SolveInputs,
     SolveLimits,
+    channel_heating_steps,
     optimize_in_process,
     slab_settlement_cap,
 )
@@ -1005,18 +1007,20 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
 
 
 def _freq_fold_blocked(coord: Any) -> bool:
-    """The COP gate, a defrost, cooling or a pinned unusable power reading.
+    """The COP gate, a defrost, a pump freeze or a pinned unusable power reading.
 
     The map is a kW-per-Hz curve for the compressor, so it asks
     :func:`_cop_fold_blocked` itself -- immersion and distorted draw, never a
     copy of either -- and :func:`defrost_interval`, the one defrost predicate
-    its watchdog asks too (D7-s2-01), plus its own two. #781 records why a
+    its watchdog asks too (D7-s2-01), plus its own two: any freeze reason
+    ``pump_signals`` returns (offline, fault, cooling -- none is the
+    compressor's own curve) and a pinned reading. #781 records why a
     bad fold matters here: the map is keyed by decile only, so it is
     inherited when the user later switches to control.
     """
     if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
         return True
-    if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
+    if coord._pump_signals.freeze_reason is not None:
         return True
     frozen = coord._learning_frozen(CONF_POWER_ENTITY)
     return bool(frozen and ":" in frozen)
@@ -4187,7 +4191,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         powers: list[float],
         prices: list[float],
         dt_hours: float,
-        threshold: float = 0.05,
+        threshold: float = CHANNEL_ACTIVE_KW,
         reasons: list[str] | None = None,
         other_powers: list[float] | None = None,
     ) -> list[PlanSlot]:
@@ -4423,7 +4427,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "total_cost": round(
                 sum(p * pr for p, pr in zip(raw_space, raw_prices)) * dt_hours, 2
             ),
-            "active_now": bool(raw_space and raw_space[0] > 0.05),
+            "active_now": bool(
+                raw_space and channel_heating_steps(raw_space[:1], raw_dhw[:1])[0]
+            ),
         }
         # Only when a hold schedule was adopted (smart_write), so every
         # existing capture of the plan view stays byte-for-byte identical.
@@ -4440,7 +4446,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "total_cost": round(
                     sum(p * pr for p, pr in zip(raw_dhw, raw_prices)) * dt_hours, 2
                 ),
-                "active_now": bool(raw_dhw and raw_dhw[0] > 0.05),
+                "active_now": bool(
+                    raw_dhw and channel_heating_steps(raw_dhw[:1], raw_space[:1])[0]
+                ),
             },
         }
 

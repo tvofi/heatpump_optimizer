@@ -3930,25 +3930,18 @@ def _p2_registry(sources):
                  lambda n: n.id == "_PEAK_TIE_BAND" and isinstance(n.ctx, ast.Load)),
              owners=["tariff.py::_plateau_aware_topk_sum",
                      "tariff.py::_plateau_aware_topk_sum_batch"], dispositions={}),
-        # D7-s2-59 (R10-TARIFF): a range over a named cycle (months, weekdays)
-        # wraps where its end precedes its start; _parse_cyclic_range owns it.
+        # D7-s2-59 (R10-TARIFF, R10-ARCH-SHAPES): a range over a named cycle
+        # (months, weekdays) wraps where its end precedes its start;
+        # dhw_schedule.cyclic_span owns it, and grid_fee's month and weekday
+        # ranges and the hot-water day selector and its renderer all read it.
         dict(fact="cyclic_range_wrap", finding="D7-s2-59",
              match=_p2_match_node(
                  (ast.BinOp,), r"% (7|12|size)$",
                  lambda n: isinstance(n.op, ast.Mod) and (
                      getattr(n.right, "value", None) in (7, 12)
                      or getattr(n.right, "id", None) == "size")),
-             owners=["grid_fee.py::_parse_cyclic_range"],
-             dispositions={
-                 "dhw_schedule.py::_parse_day_selector":
-                     "distinct finding (#2238 / R10-ARCH-SHAPES): the hot-water weekday "
-                     "selector spells the same wrap in its own tokens; "
-                     "dev/audit/harnesses/r10_weekday_range_twins.py reads 0 of "
-                     "49 pairs disagreeing",
-                 "dhw_schedule.py::_format_day_selector":
-                     "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
-                     "selector's renderer walks the wrap back to a range",
-             }),
+             owners=["dhw_schedule.py::cyclic_span"],
+             dispositions={}),
         # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
         # once per plant, by the valve flag, in compute_cop. The flag is a
         # SPACE-circuit fact -- it says whether a passed flow temperature is
@@ -4010,6 +4003,63 @@ def _p2_registry(sources):
                      "floored instant: it returns a slot number between 0 and "
                      "QUARTERS_PER_HOUR, and no datetime at all",
              }),
+        # D7-s2-57 (R10-ARCH-SHAPES): an hour-of-day as whole minutes reduced
+        # by a day. Two owners, because the two names state the one real
+        # difference: a window LABEL keeps 24:00 (format_clock), a wall clock
+        # folds it to 00:00 (wall_clock). dhw_draws, pump_arbiter and the
+        # GCHV clock each spelled it before.
+        dict(fact="hour_clock", finding="D7-s2-57",
+             match=_p2_match_node(
+                 (ast.BinOp, ast.AugAssign), r"%=? \(?24 \* 60\)?$",
+                 lambda n: isinstance(n.op, ast.Mod)),
+             owners=["dhw_schedule.py::format_clock", "quiet_windows.py::wall_clock"],
+             dispositions={}),
+        # D7-s2-61 (R10-ARCH-SHAPES): a power state as kW. state_power_kw is
+        # the live-state parse (finite in, finite out, the caller's sign
+        # policy); InputReader.read_power_kw is the configured input's, which
+        # adds its staleness. The quiet-window ceiling, the peak listener and
+        # the PV production read each parsed it themselves, three ways.
+        dict(fact="power_state_kw", finding="D7-s2-61",
+             match=_p2_match_node(
+                 (ast.Call,), r"^normalize_power_kw\(|\.normalize_power_kw\(",
+                 lambda n: getattr(n.func, "id", getattr(n.func, "attr", None))
+                 == "normalize_power_kw"),
+             owners=["inputs.py::state_power_kw", "inputs.py::InputReader.read_power_kw"],
+             dispositions={}),
+        # D8-s1-01 (R10-ARCH-SHAPES): the draw above which a channel counts as
+        # heating is optimizer.CHANNEL_ACTIVE_KW, and whether a channel heats
+        # at a step is channel_heating_steps (its own draw above the line, on
+        # a step planned_draws_run runs). The plan view's active_now, its slot
+        # merge and the DHW schedule sensor's fallback each spelled 0.05. Every
+        # other literal 0.05 power comparison is a hit, dispositioned below.
+        dict(fact="channel_active_kw", finding="D8-s1-01",
+             match=_p2_match_node(
+                 (ast.Compare,), r"power|_kw\b|\bkw\b|dhw",
+                 lambda n: len(n.ops) == 1 and 0.05 in (
+                     getattr(n.left, "value", None),
+                     getattr(n.comparators[0], "value", None))),
+             owners=["optimizer.py::channel_heating_steps"],
+             dispositions={
+                 "accuracy.py::AccuracyTracker.power_ratio":
+                     "a ratio's denominator floor: below it a measured/predicted "
+                     "ratio is noise, whatever the plan says",
+                 "accuracy.py::delivered_ratio": "the same ratio floor, per sample",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._async_learn_buffer_cooling":
+                     "distinct finding: #2238 P2 sweep instance "
+                     "_async_learn_buffer_cooling.heating (the commanded action's power)",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._observe_frequency":
+                     "distinct finding: #2238 P2 sweep instance "
+                     "_observe_frequency.watch_active (the commanded power)",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._run_system_identification":
+                     "a manual override's on flag for the identification run, not a plan step",
+                 "freq_control.py::FrequencyMap.observe":
+                     "the frequency map's own no-evidence floor on a METERED draw",
+                 "freq_control.py::FrequencyMap.recommend":
+                     "distinct finding: #2238 P2 sweep instance FrequencyMap.recommend",
+                 "freq_control.py::FrequencyMap.evidence_exhausted":
+                     "distinct finding: #2238 P2 sweep instance "
+                     "FrequencyMap.evidence_exhausted",
+             }),
         # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
         # compressor's own evidence -- the meter reads the cycle the pump runs
         # to clear its own coil, and the reported Hz is what executes the
@@ -4054,6 +4104,11 @@ _P2_CENSUSES = {
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
+    # D7-s2-58 (#2239): a value coerced to a finite float is inputs.finite_float's;
+    # the census enumerates every coercer by its seam rule and drives the owner.
+    "finite_float_owner": (
+        "tests/finite_boundary.py",
+        "every finite-float coercion is inputs.finite_float or a dispositioned site"),
     # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
@@ -4191,6 +4246,15 @@ _P2_PLANTS["slot_floor_rule"] = (
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+)
+_P2_PLANTS["hour_clock"] = (
+    "\n\ndef _p2_plant(hour):\n    return int(round(hour * 60)) % (24 * 60)\n"
+)
+_P2_PLANTS["power_state_kw"] = (
+    "\n\ndef _p2_plant(state):\n    return normalize_power_kw(float(state.state), 'kW')\n"
+)
+_P2_PLANTS["channel_active_kw"] = (
+    "\n\ndef _p2_plant(space_power):\n    return space_power[0] > 0.05\n"
 )
 _P2_PLANTS["defrost_standoff"] = (
     "\n\ndef _p2_plant(signals):\n"

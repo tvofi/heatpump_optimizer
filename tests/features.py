@@ -22162,6 +22162,24 @@ R.check(
     _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
     repr(_cdf0._freq_map.buckets),
 )
+# D7-s2-01's pump_offline arm (R10-ARCH-SHAPES carry): an offline or faulted
+# pump's metered draw against its reported Hz is not its kW-per-Hz curve, and
+# every other learner already stands down on the freeze reason pump_signals
+# returns. The map admitted both; only cooling was refused.
+from heatpump_optimizer import pump_signals as _ps_mod  # noqa: E402
+_cfz = {}
+for _cfz_reason, _cfz_online in ((_ps_mod.FREEZE_OFFLINE, False),
+                                 (_ps_mod.FREEZE_FAULT, True),
+                                 (_ps_mod.FREEZE_COOLING, True)):
+    _cfz_c = _freq_coord()
+    _cfz_c._pump_signals = PumpSignals(online=_cfz_online, freeze_reason=_cfz_reason)
+    _cfz_c._observe_frequency(_T6)
+    _cfz[_cfz_reason] = bool(_cfz_c._freq_map.buckets)
+R.check(
+    "an offline, faulted or cooling pump's interval never teaches the frequency map",
+    _cfz == {r: False for r in _cfz},
+    repr(_cfz),
+)
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
 _cnone = []
@@ -33402,6 +33420,47 @@ def _db_drive(probe="healthy", configured=True, feed=True, cycles=_DB_CYCLES):
 def _db_band(coord, solve_time=_DB_T0):
     """The published DHW forecast for this coordinator's tank record."""
     return coord._build_plan_views(_db_plan(solve_time))["dhw_plan"]["forecast"]
+
+
+# D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
+# plan's own on schedule calls off -- active_now read the channel's draw
+# against 0.05 kW, the running rule reads the step's whole ask against
+# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# Null control: the rows where the step runs keep their verdicts.
+def _ah_active(space0, dhw0):
+    plan = _db_plan(_DB_T0)
+    plan.power_schedule[0], plan.dhw_power_schedule[0] = space0, dhw0
+    views = _ah_coord._build_plan_views(plan)
+    return views["space_plan"]["active_now"], views["dhw_plan"]["active_now"]
+
+
+_ah_coord = _db_drive(cycles=1)
+_ah_rows = {
+    (0.07, 0.0): (False, False),  # the step's ask is under the running rule: off
+    (0.0, 0.07): (False, False),
+    (0.07, 0.07): (True, True),   # the step runs, and both channels carry it
+    (2.0, 0.0): (True, False),
+    (0.04, 2.0): (False, True),   # running, but space's own share is idle
+}
+_ah_got = {k: _ah_active(*k) for k in _ah_rows}
+R.check(
+    "a plan channel is heating now only on a step the plan runs (D8-s1-01)",
+    _ah_got == _ah_rows,
+    f"got {_ah_got}",
+)
+from heatpump_optimizer import optimizer as _ah_opt  # noqa: E402
+from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
+import inspect as _ah_inspect  # noqa: E402
+R.check(
+    "the plan view's slot merge and the DHW schedule sensor's fallback read the "
+    "channel line from its owner, optimizer.CHANNEL_ACTIVE_KW (D8-s1-01)",
+    _ah_inspect.signature(Coord._plan_slots).parameters["threshold"].default
+    is _ah_opt.CHANNEL_ACTIVE_KW
+    and _ah_sensor.CHANNEL_ACTIVE_KW is _ah_opt.CHANNEL_ACTIVE_KW
+    and _ah_inspect.signature(_ah_opt.classify_space_steps).parameters["threshold"].default
+    is _ah_opt.CHANNEL_ACTIVE_KW,
+    "a literal re-spelled at one reader is the drift D8-s1-02 named",
+)
 
 
 # --- the record fills only from a configured, usable probe -----------------
@@ -46392,7 +46451,7 @@ import io as _io  # noqa: E402
 import pickle as _t6_pickle  # noqa: E402
 from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
 from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
-from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.inputs import finite_float as _t6_as_float  # noqa: E402
 from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
 from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
 from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
@@ -47172,7 +47231,7 @@ R.check(
 
 
 # -- the module helpers every reader in the class goes through ------------
-# `_as_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
+# `finite_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
 # small, and that is exactly why they are worth pinning: a wrong answer in
 # any of them is wrong everywhere at once, and none of them has a caller
 # that would notice.
@@ -48201,14 +48260,14 @@ R.check(
 )
 
 
-# -- away._as_num and _parse_return_time -----------------------------------
+# -- away's numbers (inputs.finite_float) and _parse_return_time -----------------------------------
 _g8_nums = {
-    "None": _g8_away._as_num(None, 7.0),
-    "int": _g8_away._as_num(3, 7.0),
-    "bool": _g8_away._as_num(True, 7.0),
-    "numeric string": _g8_away._as_num("3.5", 7.0),
-    "text": _g8_away._as_num("warm", 7.0),
-    "list": _g8_away._as_num([1], 7.0),
+    "None": _t6_as_float(None, 7.0),
+    "int": _t6_as_float(3, 7.0),
+    "bool": _t6_as_float(True, 7.0),
+    "numeric string": _t6_as_float("3.5", 7.0),
+    "text": _t6_as_float("warm", 7.0),
+    "list": _t6_as_float([1], 7.0),
 }
 R.check(
     "a configured number takes the default unless it really is one",
@@ -48552,16 +48611,16 @@ _G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
 _G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
 
 
-# -- _optional_float: the difference between "not set" and "set to zero" ----
+# -- wood numbers (inputs.finite_float): "not set" against "set to zero" ----
 _g8_wof = {
-    "None": _g8_wf._optional_float(None),
-    "empty string": _g8_wf._optional_float(""),
-    "zero": _g8_wf._optional_float(0),
-    "float": _g8_wf._optional_float(2.5),
-    "numeric string": _g8_wf._optional_float("2.5"),
-    "bool": _g8_wf._optional_float(True),
-    "text": _g8_wf._optional_float("lots"),
-    "list": _g8_wf._optional_float([2.5]),
+    "None": _t6_as_float(None),
+    "empty string": _t6_as_float(""),
+    "zero": _t6_as_float(0),
+    "float": _t6_as_float(2.5),
+    "numeric string": _t6_as_float("2.5"),
+    "bool": _t6_as_float(True),
+    "text": _t6_as_float("lots"),
+    "list": _t6_as_float([2.5]),
 }
 R.check(
     "an unset wood number is None and a zero one is 0.0, which are not the same",

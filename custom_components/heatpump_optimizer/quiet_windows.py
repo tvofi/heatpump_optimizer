@@ -275,10 +275,20 @@ def _gchv_merge(segments: list[Window]) -> list[tuple[float, float]]:
     return out
 
 
+def wall_clock(hour: float) -> tuple[int, int]:
+    """An hour-of-day as the wall clock's ``(hour, minute)``, rounded to the minute.
+
+    The end of the day folds to ``(0, 0)``: a clock -- a ``datetime.time``, a
+    pump's schedule register -- has no 24:00. A window LABEL keeps 24:00
+    (``dhw_schedule.format_clock``).
+    """
+    minutes = int(round(hour * 60.0)) % (24 * 60)
+    return minutes // 60, minutes % 60
+
+
 def _gchv_at(day: Any, hour: float, tz: Any) -> datetime:
     """``day`` at ``hour`` (hours past midnight) in ``tz``."""
-    minutes = int(round(hour * 60.0)) % (24 * 60)
-    return datetime.combine(day, time(minutes // 60, minutes % 60), tzinfo=tz)
+    return datetime.combine(day, time(*wall_clock(hour)), tzinfo=tz)
 
 
 def _silent_plan_spec(
@@ -640,5 +650,5 @@ def _overlaps(a: Window, b: Window) -> bool:
 
 def _fmt(hour: float) -> str:
     """An hour-of-day as ``HH:MM``, the grammar's own form."""
-    minutes = int(round(hour * 60.0)) % (24 * 60)
-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+    clock_h, clock_m = wall_clock(hour)
+    return f"{clock_h:02d}:{clock_m:02d}"

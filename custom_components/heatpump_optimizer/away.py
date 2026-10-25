@@ -31,6 +31,7 @@ from homeassistant.util import dt as dt_util
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
 from .entry_config import EntryConfig
+from .inputs import finite_float
 from .payload import AwayView
 from .store import QuarantiningStore, load_mapping
 
@@ -289,10 +290,10 @@ def empty_override() -> dict[str, Any]:
 def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:
     return AwayConfig(
         presence_entity=config.get(CONF_AWAY_PRESENCE_ENTITY),
-        away_temperature=_as_num(
+        away_temperature=finite_float(
             config.get(CONF_AWAY_TEMPERATURE), DEFAULT_AWAY_TEMPERATURE
         ),
-        away_dhw_min_temperature=_as_num(
+        away_dhw_min_temperature=finite_float(
             config.get(CONF_AWAY_DHW_MIN_TEMP), DEFAULT_AWAY_DHW_MIN_TEMP
         ),
     )
@@ -422,19 +423,6 @@ async def _migrate_helpers(
         if updater is not None:
             updater(coord.entry, options=options)
     return payload
-
-
-def _as_num(value: object, default: float) -> float:
-    if value is None:
-        return default
-    try:
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
-        if isinstance(value, str):
-            return float(value)
-    except (TypeError, ValueError):
-        return default
-    return default
 
 
 async def _apply_return(
