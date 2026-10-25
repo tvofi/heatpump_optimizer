@@ -1634,8 +1634,8 @@ R.check(
     f'{ahead["plan"]["plan_age_minutes"]}',
 )
 R.check(
-    "the download carries its own export time, outside the debug half, and the debug "
-    "manifest's generated_at is the same instant",
+    "the download carries its own export time, outside the debug half, read from the "
+    "clock the debug manifest's generated_at reads",
     aged["exported_at"] == (PUBLISHED + timedelta(minutes=14)).isoformat()
     == aged["debug"]["manifest"]["generated_at"],
     f'{aged.get("exported_at")} / {aged["debug"]["manifest"]["generated_at"]}',
