@@ -189,7 +189,7 @@ from .const import (
     TEMPERATURE_UNIT_TO_C,
     OUTDOOR_AIR_RANGE_C,
 )
-from .finite import finite_float
+from .const import finite_float
 from .inputs import (
     UNBOUNDED,
     InputHealth,

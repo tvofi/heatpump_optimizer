@@ -4104,11 +4104,11 @@ _P2_CENSUSES = {
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
-    # D7-s2-58 (#2239): a value coerced to a finite float is finite.finite_float's;
+    # D7-s2-58 (#2239): a value coerced to a finite float is const.finite_float's;
     # the census enumerates every coercer by its seam rule and drives the owner.
     "finite_float_owner": (
         "tests/finite_boundary.py",
-        "every finite-float coercion is finite.finite_float or a dispositioned site"),
+        "every finite-float coercion is const.finite_float or a dispositioned site"),
     # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (

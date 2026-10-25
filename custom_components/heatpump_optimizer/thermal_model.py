@@ -110,7 +110,7 @@ from .const import (
     topology_layout_valid,
 )
 from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
-from .finite import finite_float
+from .const import finite_float
 from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
     DHWWindowError,

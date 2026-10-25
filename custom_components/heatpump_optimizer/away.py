@@ -31,7 +31,7 @@ from homeassistant.util import dt as dt_util
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
 from .entry_config import EntryConfig
-from .finite import finite_float
+from .const import finite_float
 from .payload import AwayView
 from .store import QuarantiningStore, load_mapping
 

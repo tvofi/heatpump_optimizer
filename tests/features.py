@@ -46475,7 +46475,7 @@ import io as _io  # noqa: E402
 import pickle as _t6_pickle  # noqa: E402
 from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
 from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
-from heatpump_optimizer.finite import finite_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.const import finite_float as _t6_as_float  # noqa: E402
 from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
 from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
 from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
@@ -48284,7 +48284,7 @@ R.check(
 )
 
 
-# -- away's numbers (finite.finite_float) and _parse_return_time ------------------
+# -- away's numbers (const.finite_float) and _parse_return_time ------------------
 _g8_nums = {
     "None": _t6_as_float(None, 7.0),
     "int": _t6_as_float(3, 7.0),
@@ -48635,7 +48635,7 @@ _G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
 _G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
 
 
-# -- wood numbers (finite.finite_float): "not set" against "set to zero" ----
+# -- wood numbers (const.finite_float): "not set" against "set to zero" ----
 _g8_wof = {
     "None": _t6_as_float(None),
     "empty string": _t6_as_float(""),

@@ -47,7 +47,7 @@ from .const import (
     DEFAULT_PRICE_VAT,
     PRICE_SOURCE_ENTITY,
 )
-from .finite import finite_float
+from .const import finite_float
 from .inputs import normalize_price_per_kwh
 from .payload import PricePrior
 

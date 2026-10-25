@@ -20,7 +20,7 @@ from .const import (
     DEFAULT_MIN_TEMP,
     WOOD_TANK_MAX_TEMP,
 )
-from .finite import finite_float
+from .const import finite_float
 from .payload import NightAdvice, WoodFuel, WoodSlot
 
 WOOD_KWH_M3 = {

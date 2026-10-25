@@ -58,7 +58,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
-from .finite import finite_float
+from .const import finite_float
 from .log_latch import log_held
 from .payload import InputProblem
 
