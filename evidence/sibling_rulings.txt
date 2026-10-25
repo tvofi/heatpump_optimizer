@@ -1,9 +1,16 @@
-== triage/s6-batch28 5d093b09f
+== P153 on batch28 head 5d093b09f
 ## P153: CI results cached by measured closure (S6-V74)
 Verdict: DEFER. What would change the answer: the count of recarries and batch-proof reruns whose measured closure was unchanged (head-to-head `tests/closures.json` script sets against the files each recarry changed), with their CI minutes, from the check-runs of the last 48 h of proofs and recarries. (Round-1 re-cut, verdict 6402369226 item 1.)
-== triage/s6-batch29 9ddadc766
-## P158: CodeQL on the train's batch proofs is the measured bottleneck (orchestrator measurement, folded into S6-V79 and V81)
-Verdict: ACCEPT as a trial -> new group R10-PROOF-CODEQL (S, no after-edges; files `tools/pr/codeql_scope.py`, `tools/ci/prelude.py`). A train batch proof stops waiting on a CodeQL leg that every entry's own PR head already judged. The trial is measured, with a removal criterion: proof wall time over the next three batches, against the orchestrator's measured s41 instance. The skip is reverted if CodeQL's tail beyond the other checks was under 5 min.
-== triage/s6-batch31 b6df9b2b9
+Source: s6 `proposals.md` `## V74` (orchestrator, 2026-10-25, tvofi-accepted idea 12).
+== P176 on batch31 head b6df9b2b9
 ## P176: a versioned review rubric (S6-V94)
 Verdict: DEFER -> D11 (governance mechanisms) owns the measurement in round 11: the count of round-10 blocked verdicts whose reason a fixer could have pre-checked against a numbered rubric item, by verdict id. No rubric renumbering in round 10: it would invalidate the citations in open verdicts. (Round-1 re-cut, verdict 6402374814: an unmeasured benefit is DEFER, never ACCEPT.)
+- The rubric exists: `fix-review.md` is the reviewer's contract, and its block verdicts are already coded by class (`blocked <sha> mutation-vacuous` at line 12, `class-open` at 28, `carry-missing` at 46, `head-moved` at 88, `architecture-unsound` at 134), which a fixer can pre-check today.
+== P135 on main
+origin/main:dev/programme/triage/s6-batch26.md:131:## P135: refuse a reviewer dispatch on exact mechanical signals (S6-V56, plan-opt card V54)
+origin/main:dev/programme/triage/s6-batch26.md-132-Verdict: ACCEPT narrowed -> R10-ORCH-REVIEW-PACKET. Its packet already computes `carry_audit` and `figure_lint` at the head at dispatch. The narrowing keeps the owner's rejection of card 5 (the group's second carry): a reviewer is dispatched while the gate runs, so nothing here waits on CI, and a pending check is never a refusal. Only exact signals refuse; everything else prints as advisory.
+origin/main:dev/programme/triage/s6-batch26.md-133-Source: s6 `proposals.md` `## V56`.
+== P158 / batch29
+## P158: CodeQL on the train's batch proofs is the measured bottleneck (orchestrator measurement, folded into S6-V79 and V81)
+Verdict: ACCEPT as a trial -> new group R10-PROOF-CODEQL (S, no after-edges; files `tools/pr/codeql_scope.py`, `tools/ci/prelude.py`). A train batch proof stops waiting on a CodeQL leg that every entry's own PR head already judged. The trial is measured, with a removal criterion: proof wall time over the next three batches, against the orchestrator's measured s41 instance. The skip is reverted if CodeQL's tail beyond the other checks was under 5 min.
+- Running CodeQL only nightly on main would break the rule that main keeps a full analysis of every merged tree (`codeql_scope.py:29-31`).
