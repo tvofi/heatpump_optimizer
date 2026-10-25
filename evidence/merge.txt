@@ -1,0 +1,8 @@
+origin/main dfcd8d9be1dab28cfe52f684764befd1e19291de
+85ea8cd45d39704fdbc90a04a18b1a985648f372
+exit=0
+merge-tree vs da12aa37d (base): exit 0, tree a6bb337d99074ddf5fade2b6603b1d212b627019
+--- three-dot diff stat vs merge base
+ dev/governance/roles/proposal-triage.md | 4 ++--
+ dev/programme/delivery/2821.md          | 1 +
+ 2 files changed, 3 insertions(+), 2 deletions(-)

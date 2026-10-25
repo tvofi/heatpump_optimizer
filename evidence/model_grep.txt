@@ -1,0 +1,63 @@
+== sonnet/opus anywhere near triage
+.claude/workflows/web-triage.js
+RELEASE_NOTES.md
+dev/archive/rosters/wave-4-groups.json
+dev/audit/config/bugclasses.json
+dev/audit/rca/R9-ORPHAN-HANDOFF.md
+dev/audit/rounds/round10/D13/yield-probe.md
+dev/audit/rounds/round9/fixplan/data.py
+dev/audit/rounds/round9/prestudy/ALT-ROSTER.json
+dev/audit/rounds/round9/prestudy/friction-prestudy-r2-groups.json
+dev/audit/rounds/round9/prestudy/friction-prestudy-r2.md
+dev/audit/rounds/round9/prestudy/friction-prestudy.md
+dev/governance/roles/architect-planner.md
+dev/governance/roles/nudge.md
+dev/governance/roles/plan-review.md
+dev/governance/roles/proposal-triage.md
+dev/governance/roles/standing-roster.md
+dev/programme/delivery/2821.md
+dev/programme/plan-2026-09-open-issues.md
+dev/programme/rosters/wave-r10-groups.json
+dev/programme/rosters/wave-r9-groups.json
+dev/programme/triage/s5-batch1.md
+dev/programme/triage/s6-batch2.md
+dev/programme/triage/s6-batch23.md
+dev/programme/triage/s6-batch8.md
+tools/audit/seat/review_strength.py
+tools/policy/agreement_py.py
+tools/policy/fixtures/wave-1b-931dffe.json
+## .claude/workflows/web-triage.js
+91:const RANK = { haiku: 0, sonnet: 1, opus: 2 }
+164:  agent(judgePrompt(it), { model: 'opus', effort: 'high', label: `judge #${it.issue}`, phase: 'Judge', schema: SCHEMA })))
+172:    { model: 'opus', effort: 'high', label: `judge #${it.issue} (quiet)`, phase: 'Judge', schema: SCHEMA }))
+## dev/governance/roles/nudge.md
+15:Opus seats that die are replaced by a new Task on grok-4.7-high. Do not resume a dead Opus agent. Sonnet seats use cursor-grok-4.6-high. Haiku seats use composer-2.5.
+## dev/governance/roles/architect-planner.md
+5:opus seat, read-only on code, writing only the plan. The plan goes to
+## dev/governance/roles/plan-review.md
+3:One opus seat, never the architect's. You review the plan
+## dev/governance/roles/standing-roster.md
+3:One of the four standing seats (`orchestrator.md` section 5); sonnet, medium
+## tools/audit/seat/review_strength.py
+484:        more = [dict(group="R1-FINDS", issues=[], findings=["x1"], model=dict(fixer="opus")),
+488:        r1 = mk(None, {RP: json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet"), fix, *more]))},
+490:        r2 = mk(r1, {RP: json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet"), fix, *more]))},
+563:        check("fixer: the joined group's model.fixer, opus for 5 and sonnet for 6",
+564:              (f4[5]["fixer"], f4[6]["fixer"]) == ("opus", "sonnet"))
+928:        "  opus                     E      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+929:        "  opus                     L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+930:        "  sonnet                   E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+## tools/policy/agreement_py.py
+408:        "fix: x\n\n" + coauthor + ": Claude Opus 5.5 <noreply@anthropic.com>",
+CLAUDE.md:121:| `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
+dev/governance/config/policy_budgets.json:84:    "dev/governance/roles/proposal-triage.md": 36,
+dev/governance/config/policy_budgets.json:138:    "dev/governance/roles/proposal-triage.md": 489,
+dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md:1:# 0015 — The architect's plan, seam grouping, proposal triage and the standing seats
+dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md:7:`claude/dazzling-gauss-7l3u2b`) and of 2026-10-22 (proposal triage; the four
+dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md:44:4. **Proposal triage** (tvofi, 2026-10-22): every process, tooling or
+dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md:45:   instrument proposal passes `proposal-triage.md`'s cost/benefit gate before
+dev/governance/dimensions/D11.md:77:   goes to `proposal-triage.md` as a mechanisation proposal, costed in its
+dev/governance/roles/orchestrator.md:113:- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
+dev/governance/roles/standing-roster.md:6:carries its triage ruling (`proposal-triage.md`); the tool refuses one that
+tools/audit/seat/roster_edit.py:84:passes dev/governance/roles/proposal-triage.md before it reaches the roster, so
+tools/audit/seat/sweep_template.md:69:(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) is sent to triage on `dev/governance/roles/proposal-triage.md`, never implemented or routed before its ruling; an ACCEPT reaches the roster through the roster seat, citing its ruling.
