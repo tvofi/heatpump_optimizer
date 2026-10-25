@@ -1,0 +1,26 @@
+applied M7
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index 14fc3e5c7..ef82533e8 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -133,7 +133,7 @@ def space_reference_cop(
+     before: the commanded inference already carries the lift in the draw
+     (``_cop_reference_curve``'s #1067 note).
+     """
+-    if heat_kw is None or supply_c is None:
++    if supply_c is None:
+         return float(model.compute_cop(outdoor_c))
+     return float(model.compute_cop_dhw(outdoor_c, supply_c))
+ 
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL the reference with a 55 °C supply reading IS the plan's bare curve  [mapped 2.203206872972318, its own curve 3.546730970103845, unmapped 3.546730970103845]
+  FAIL at 55 °C, supply mapped, the credited COP is the pump's true COP  [credited 1.384350209377092 against true 2.2285323367948506 (8 °C outdoor, measured 4.8294 kW for 3.0 kW commanded)]
+  FAIL and that value is the reviewer's control, 2.2285, not the double count 1.3844  [credited 1.384350209377092; a reference lifted as well would credit 1.3844]
+  FAIL mapping the supply slot changes nothing the learner credits, bit for bit  [mapped [(1.384350209377092, False)] / 0.9886358104819082; unmapped [(2.2285323367948506, False)] / 0.9886358104819082]
+  FAIL the accuracy residual reads the true gap between the plan's curve and the pump  [residual -2.2031; the credit and the curve it subtracts are the same curve's]
+  FAIL the envelope's thermal kW is the heat actually delivered  [6.6856 kW against 10.7625]
+  FAIL option on, the reference is compute_cop(outdoor): the lift the plan priced  [reference at 55 1.8314503404633884, at 45 2.145563747363297, priced 2.371011028703499]
+  FAIL and the credited COP is the pump's true COP at 55 and at 45 degC, not a double count  [55: credited 1.4146751360399996 true 1.8314503404633884; 45: credited 1.941553092022883 true 2.145563747363297]
+  FAIL a metered interval is judged at the supply it ran at; no heat reading or no supply is the plan's own price
+9 of 4374 FEATURE CHECKS FAILED
+rc=1

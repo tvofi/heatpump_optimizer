@@ -1,0 +1,19 @@
+applied M2
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index 14fc3e5c7..770250a85 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -116,7 +116,7 @@ def cop_evidence(
+         observed = modelled_cop * commanded_kw / electrical_kw
+         return observed, cop_scale * commanded_kw / electrical_kw
+     observed = heat_kw / electrical_kw
+-    return observed, cop_scale * observed / modelled_cop
++    return observed, observed / modelled_cop
+ 
+ 
+ def space_reference_cop(
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL without a heat reading the evidence is the commanded inference, bit for bit; with one, COP is heat over electricity  [commanded (3.6391304347826092, 1.1386956521739133) metered (3.0000000000000004, 0.9677419354838711)]
+  FAIL a measured COP holds cop_scale at the pump's own 0.9 across the weather (null control: the commanded inference walks with the lift)  [metered {-15.0: 0.9486832980514549, -10.0: 0.9486832980505135, -5.0: 0.9486832980505135, -2.0: 0.9486832980505135, 5.0: 0.9486832980505135, 8.0: 0.9486832980505133, 12.0: 0.9486832980505133} (spread 0.0000); commanded {-15.0: 0.6356240522177531, -10.0: 0.6400423078242689, -5.0: 0.6477914552738737, -2.0: 0.654736282090155, 5.0: 0.6820441609346654, 8.0: 0.7077401377469226, 12.0: 0.7677123614725306} (spread 0.1321)]
+2 of 4374 FEATURE CHECKS FAILED
+rc=1

@@ -1,0 +1,18 @@
+applied M5
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index 14fc3e5c7..b6f05a4bf 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -61,7 +61,7 @@ def read_heat_output_kw(
+     if cap.measured_heat:
+         heat = reader.read_power_kw(const.CONF_THERMAL_POWER_ENTITY)
+         kw = heat.value if heat.ok else None
+-        return kw if kw is not None and kw >= 0.0 else None
++        return kw if kw is not None and kw > 0.0 else None
+     if (
+         not cfg.get(const.CONF_FLOW_METER_ENTITY)
+         or cap.measured_power
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a heat meter reading zero is a measured 0 kW, not absent (the pump at rest)  [None]
+1 of 4374 FEATURE CHECKS FAILED
+rc=1

@@ -1,0 +1,19 @@
+applied M10
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index 14fc3e5c7..4a21c461a 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -61,7 +61,8 @@ def read_heat_output_kw(
+     if cap.measured_heat:
+         heat = reader.read_power_kw(const.CONF_THERMAL_POWER_ENTITY)
+         kw = heat.value if heat.ok else None
+-        return kw if kw is not None and kw >= 0.0 else None
++        if kw is not None and kw >= 0.0:
++            return kw
+     if (
+         not cfg.get(const.CONF_FLOW_METER_ENTITY)
+         or cap.measured_power
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL an unusable heat reading is absent, and the flow meter is not consulted in its place (null control: 20 min old is read)  [{'unavailable': 5.222035, 'negative': 5.222035, 'stale': 5.222035, 'unknown unit': 5.222035} fresh 4.2]
+1 of 4374 FEATURE CHECKS FAILED
+rc=1
