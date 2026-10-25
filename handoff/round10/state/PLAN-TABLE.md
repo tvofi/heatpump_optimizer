@@ -139,7 +139,7 @@ gantt
 | R10-CONFIG-NOTICES | PS | 1 | done | #2232 | sonnet/opus | - | ARCH2-s2 P1: a config-notices owner in custom_components/heatpump_optimizer/setpoint_check.py instead of coordinator fields written from several places (`dev... |  |
 | R10-SERVICES-GUARD | PM | 1 | done | #2238 | sonnet/opus | - | D10-s1-51: `handle_apply_schedule` in custom_components/heatpump_optimizer/services.py stays silent on a bogus entry while its siblings raise; one guard for... |  |
 | R10-ARCHSCORE-COVERAGE | IN | 1 | done | #2228, #2235, **#2259** | opus/opus | yes: code-owned: archscore weights.json and calibration/expected.json | Fold the arch seats' leads into the archscore, one group on tools/audit/archscore/. |  |
-| R10-PARAMS-OWNER | AR | 1 | not-started | **#2232**, #2248, #2249, #2258, #2674 | opus/opus | - | ARCH2-s1: a single owner of the thermal parameters with copy-on-write (`dev/audit/rounds/round10/D7/arch2-s1/P1_thermal_params_single_owner.patch` at 2c30ada... |  |
+| R10-PARAMS-OWNER | AR | 1 | in-progress | **#2232**, #2248, #2249, #2258, #2674 | opus/opus | - | ARCH2-s1: a single owner of the thermal parameters with copy-on-write (`dev/audit/rounds/round10/D7/arch2-s1/P1_thermal_params_single_owner.patch` at 2c30ada... |  |
 | R10-SENSOR-PAYLOAD | AR | 1 | done | #2238, #2242 | opus/opus | - | Defect first: D8-s1-01 (low), the hot-water schedule sensor publishes "heating now" on 1 of 36 off-step snapshots through its fallback. |  |
 | R10-ARCH-SHAPES | AR | 1 | not-started | **#2236**, #2238, **#2239** | opus/opus | - | Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. |  |
 | R10-LEARNER-ETA | LR | 1 | done | #2260 | opus/opus | - | G-ID-4. |  |
