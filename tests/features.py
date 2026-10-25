@@ -8938,6 +8938,42 @@ R.check(
     f"{_ra_none._house_heat_loss_scale:.6f} unlearned (ratio {_ra_none._lower_floor_loss_ratio})",
 )
 
+# The mirror: a scale that cannot be expressed against the new nameplates
+# resets, so the ratio beside it lands where the same edit lands over a store
+# whose scale never learned and whose ratio holds the same lower-zone
+# measurement (ratio s*r). A ratio solved jointly with the inexpressible
+# scale kept that scale's share of the lower zone (fix review of #2698).
+_RA_SR_EDIT = dict(_RA_CFG, upper_floor_heat_loss=_RA_U * 1.8, lower_floor_heat_loss=_RA_L * 1.4)
+_ra_sr = _ra_reload(_RA_SR_EDIT, _ra_learned(_RA_CFG, scale=0.5, ratio=0.8))
+_ra_sr_twin = _ra_reload(
+    _RA_SR_EDIT, _ra_learned(_RA_CFG, scale=1.0, ratio=0.5 * 0.8, samples=(0, _RA_NR))
+)
+R.check(
+    "the ratio beside a reset scale is the ratio with no scale evidence",
+    abs(_ra_sr._house_heat_loss_scale - 1.0) < 1e-12
+    and (_ra_sr._house_heat_loss_samples, _ra_sr._lower_floor_loss_samples) == (0, _RA_NR)
+    and abs(_ra_sr._lower_floor_loss_ratio / _ra_sr_twin._lower_floor_loss_ratio - 1.0) < 1e-12
+    and _ra_sr._lower_floor_loss_ratio != 1.0,
+    f"scale {_ra_sr._house_heat_loss_scale:.6f}, ratio {_ra_sr._lower_floor_loss_ratio:.6f} "
+    f"after the reset vs {_ra_sr_twin._lower_floor_loss_ratio:.6f} with no scale evidence, "
+    f"samples {_ra_sr._house_heat_loss_samples}/{_ra_sr._lower_floor_loss_samples}",
+)
+
+# And where the ratio solved again beside the reset scale is inexpressible
+# too, both reset and both say so: the edit lands on the configuration.
+_ra_sr2 = _ra_reload(
+    dict(_RA_CFG, upper_floor_heat_loss=_RA_U * 0.6, lower_floor_heat_loss=_RA_L * 0.5),
+    _ra_learned(_RA_CFG, scale=2.0, ratio=2.5),
+)
+R.check(
+    "a reset scale whose ratio is inexpressible beside it resets both",
+    abs(_ra_sr2._house_heat_loss_scale - 1.0) < 1e-12
+    and (_ra_sr2._lower_floor_loss_ratio, _ra_sr2._house_heat_loss_samples,
+         _ra_sr2._lower_floor_loss_samples) == (1.0, 0, 0),
+    f"scale {_ra_sr2._house_heat_loss_scale:.6f}, ratio {_ra_sr2._lower_floor_loss_ratio}, "
+    f"samples {_ra_sr2._house_heat_loss_samples}/{_ra_sr2._lower_floor_loss_samples}",
+)
+
 # G-ID-3: a power meter added under a learned state. The learners replayed
 # commanded power until now, so what they hold is void against the metered
 # basis: both start again from the configuration, and the store says so once.
@@ -8997,6 +9033,35 @@ R.check(
     all(v is None for v in _ra_refused.values())
     and _ra_pair((0.3, 0.1), (0.3, 0.1), 1.0, void=True, step=0.05) is not None,
     f"{_ra_refused!r} -- and a void basis over the same live total must still re-express",
+)
+
+# Every bound is inclusive, as the store's domains and the clip are: a value
+# landing on its bound is expressible, and a change of exactly ``step`` is
+# below the gate, on the total and on the split alike. The ``1e-9`` floors
+# are exclusive: an anchor on the floor is no lower zone. Each input is exact
+# in binary, so the boundary is hit, not approached.
+from heatpump_optimizer.thermal_model import reanchor_heat_loss as _ra_law  # noqa: E402
+
+_RA_BOUNDS = {"scale_bounds": (0.3, 3.0), "ratio_bounds": (0.3, 3.0)}
+_ra_edges = {
+    "scale on its ceiling": _ra_law((3.0, 0.0), (1.0, 0.0), 1.0, 1.0, (1.0, 0.0), **_RA_BOUNDS)
+    == (3.0, 1.0, False, False),
+    "scale on its floor": _ra_law((0.3, 0.0), (1.0, 0.0), 1.0, 1.0, (1.0, 0.0), **_RA_BOUNDS)
+    == (0.3, 1.0, False, False),
+    "ratio on its ceiling": _ra_law((1.0, 1.0), (1.0, 0.5), 1.0, 1.5, (1.0, 1.0), **_RA_BOUNDS)
+    == (1.0, 3.0, False, False),
+    "ratio on its floor": _ra_law((1.0, 1.0), (1.0, 2.0), 1.0, 0.6, (1.0, 1.0), **_RA_BOUNDS)
+    == (1.0, 0.3, False, False),
+    "total moved exactly step": _ra_pair((1.0, 0.0), (1.25, 0.0), 1.0, void=False, step=0.25) is None,
+    "split moved exactly step": _ra_pair((2.0, 1.0), (2.25, 1.25), 1.0, void=False, step=0.25) is None,
+    "lower anchor on the floor": _ra_pair((3.0, 1e-9), (3.0, 1.0), 1.0, void=False, step=0.05) is None,
+    "upper zone on the floor": _ra_pair((3.0, 1.0), (2e-9, 1e-9), 1.0, void=False, step=0.05)
+    == ((3.0, 0.0), (2e-9, 0.0)),
+}
+R.check(
+    "a bound is inclusive and a step is below the gate, on every learner and zone",
+    all(_ra_edges.values()),
+    f"failed: {[k for k, v in _ra_edges.items() if not v]}",
 )
 
 # --- The savings baseline follows the comfort schedule ---------------------

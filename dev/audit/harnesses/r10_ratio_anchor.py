@@ -18,10 +18,19 @@ Arms:
   snapshot        a pre-reseed snapshot restored onto reseed_both's config
   meter_add       the same nameplates, a power meter added: RESULT prints
                   the scale, ratio and samples the load leaves
+  scale_reset     the fix review's rows (verdict/2698 at 1132f8777): an edit
+                  whose joint solve puts the scale outside its bounds.
+                  lower_rel_err is the lower zone against the same edit over
+                  a store whose scale never learned and whose ratio holds the
+                  same lower-zone measurement (ratio s*r); rows whose s*r is
+                  outside the ratio bounds have no such store and print the
+                  state the load leaves
 Perturbation: --ratio 1.0 -- with no learned split every zone row reads 0
     on any tree (the defect needs a ratio to misattribute).
 Null control: --scale 1.0 --ratio 1.0: the nameplates are already right,
     every zone row reads 0 and meter_add's learners are already at 1.0.
+    scale_reset's rows are fixed and ignore both flags; its in-bounds row
+    (s 1.2, r 1.1, edit x1.1, x0.9) resets nothing on any tree.
 """
 from __future__ import annotations
 
@@ -125,6 +134,28 @@ def main():
     asyncio.run(c._async_load_thermal_learning())
     print(f"RESULT meter_add.scale={c._house_heat_loss_scale:.4f} ratio={c._lower_floor_loss_ratio:.4f} "
           f"samples={c._house_heat_loss_samples}/{c._lower_floor_loss_samples}")
+
+    def load(ss, rr, samples, fu, fl):
+        src = coordinator(cfg, MemStore({}))
+        src._apply_house_heat_loss_scale(ss)
+        src._apply_lower_floor_loss_ratio(rr)
+        src._house_heat_loss_samples, src._lower_floor_loss_samples = samples
+        asyncio.run(src._async_save_thermal_learning())
+        c = coordinator(dict(cfg, upper_floor_heat_loss=U * fu, lower_floor_heat_loss=L * fl),
+                        MemStore(src._thermal_learning_store.data))
+        asyncio.run(c._async_load_thermal_learning())
+        return c
+
+    for ss, rr, fu, fl in ((0.5, 0.8, 1.8, 1.4), (0.4, 1.6, 1.5, 1.2), (2.0, 2.5, 0.6, 0.5),
+                           (2.6, 1.3, 0.7, 0.9), (2.6, 1.3, 0.8, 0.6), (1.2, 1.1, 1.1, 0.9)):
+        c = load(ss, rr, (310, 147), fu, fl)
+        row = (f"scale_reset[s={ss},r={rr},edit=({fu},{fl})] scale={c._house_heat_loss_scale:.4f} "
+               f"ratio={c._lower_floor_loss_ratio:.4f} samples={c._house_heat_loss_samples}/"
+               f"{c._lower_floor_loss_samples}")
+        if 0.3 <= ss * rr <= 3.0:
+            twin, got = zones(load(1.0, ss * rr, (0, 147), fu, fl))[1], zones(c)[1]
+            row += f" lower_rel_err={abs(got / twin - 1.0):.4f} ({got * 1000:.1f} vs {twin * 1000:.1f} W/K)"
+        print("RESULT " + row)
 
 
 if __name__ == "__main__":

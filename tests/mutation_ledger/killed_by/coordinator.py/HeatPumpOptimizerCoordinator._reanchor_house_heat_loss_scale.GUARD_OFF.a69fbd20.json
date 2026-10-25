@@ -2,5 +2,5 @@
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale GUARD_OFF a69fbd20",
   "killed_by": "tests/features.py",
   "old": "        if pair is None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 }

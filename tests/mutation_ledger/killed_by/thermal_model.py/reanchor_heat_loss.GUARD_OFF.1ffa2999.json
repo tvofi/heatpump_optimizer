@@ -2,5 +2,5 @@
   "anchor": "custom_components/heatpump_optimizer/thermal_model.py:reanchor_heat_loss GUARD_OFF 1ffa2999",
   "killed_by": "tests/features.py",
   "old": "    if b and not ratio_bounds[0] <= new_ratio <= ratio_bounds[1]:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
 }
