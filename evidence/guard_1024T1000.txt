@@ -1,5 +1,5 @@
 REAL = the study's list + claim-false, claim-refuted, control-failed, flaky-arm, null-control-false, red-at-head, regression, rule-dropped, tests-red
-verdicts on the bus: 798; outside the grammar: 0
+verdicts on the bus: 813; outside the grammar: 0
 taught real: architecture-unsound, class-open, harness, metric-gamed, mutation-vacuous, product-tradeoff-regression
 taught bookkeeping: carry-missing, claims, conflict, head-moved, null-control, other, preflight-mismatch, root-cause-detectable, root-cause-unanswered, root-cause-unrecorded, version
 untaught real: claim-false, claim-refuted, control-failed, defect, figures-false, flaky-arm, mutant-survives, mutation, mutation-survivor, mutation-untriaged, null-control-false, policy-regression, red-at-head, regression, rule-dropped, test-vacuous, tests-red, vacuous-check, vacuous-test
