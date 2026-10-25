@@ -1,126 +1,114 @@
-A TERM, INT, HUP or SIGKILL of a running `update_pr.sh`, sent to the run alone or to its whole process group, no longer frees the branch lock while the run's push is still running. Every self-test arm waits on a condition, and the lock is read by trying it, never through a holder pid.
-
-**The defect, at the base `da12aa37d`.** `pr_branch_lock`'s holder (a `python3` child of the run) exited when its parent died (`os.getppid()` polled every 2 s) and had no handler for TERM or HUP. That left two gaps:
-- a SIGKILLed run's lock was freed while the push it had started kept running in the worktree;
-- a signal to the whole process group ended the holder beside the push it was meant to guard.
-
-#2469's round 4 tried to close the first gap by draining the run's process group. In this container, whose PID 1 reaps orphans late, that drain counted zombies and failed 7 of 7.
-
-**The fix** (`tools/audit/seat/pr_args.sh`):
-- The holder ignores TERM, INT and HUP. It lets go on USR1 from `PR_AFTER_REAP`, which `pr_exit_trap` runs after its reap, or when its parent is gone. Before it exits it blocks on the push's own lock, `<lock>.push`, and its lock line's third field reads `drain` meanwhile.
-- `pr_push_hold` takes that push lock. Each push runs as `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`. The shell opens fd 9 before the fork, so every process of the push inherits it. The kernel frees a flock when the last fd on it closes, and a process closes its fds at exit, before it is reaped. So a zombie never holds the lock, and neither `ps` nor a group walk is needed.
-- `pr_stopped` maps a 75 seen under errexit to exit 1, so only `pr_lock_busy` can say BUSY.
-- On a stop with no `pgrep` on PATH, `pr_reap` prints that it could not reap.
-- A BUSY caused by a draining run names that run's push.
-
-`update_pr.sh` runs its push under `pr_push_hold`. It also leaves its worktree detached in `PR_AFTER_REAP`, after `pr_push_ended` and before the lock is freed. That is never under a running push and never under the next run. `open_pr.sh` runs both of its pushes under `pr_push_hold`. **`open_pr.sh` is outside this group's `files`**: it is the other caller of `pr_branch_lock`, so the class rule below reaches it.
-
-Alternatives considered:
-- (a) Drain the run's process group by `ps`. This is #2469 round 4's approach: it counts zombies and needs `ps`.
-- (b) Keep the holder alive for a fixed window. That is a window, not a condition.
-- (c) Give the run's shell the push fd. Every child of the shell would inherit it, which is #2469 round 1's detached `git gc --auto` again.
-
-The fd lock is the one option that reads the kernel's own liveness of the push.
+A TERM, INT, HUP or SIGKILL of a running `update_pr.sh`, sent to the run alone or to its whole process group, no longer frees the branch lock while the run's push is still running. Round 2 adds four things, one per open item of the round-1 block (issue comment 6401966563):
+- every self-test of this group's files runs as a session of its own under a deadline, and that whole session is ended when it exits (`pr_bounded`, Revision 12);
+- git's auto-maintenance inside a push runs in the foreground, so a `git gc --auto` that a push's `git fetch` starts can no longer outlive the push holding its lock;
+- the branch lock's holder leaves `update_pr.sh`'s worktree detached once the push has ended, so a SIGKILLed run's worktree is detached too;
+- `cloud_relay.sh` starts the update in a process group of its own, so a signal to the loop's whole group reaches the update only through the loop's reap.
 
 Part of #2502.
 
+**Round 1's mechanism, unchanged** (`tools/audit/seat/pr_args.sh`). The holder ignores TERM, INT and HUP and, once the run has ended, blocks on the push's own lock `<lock>.push` (`pr_push_hold`), an fd every process of the push inherits. The kernel frees that lock when the push's last process exits, so a zombie never holds it and no `ps` or group walk is needed. `pr_stopped` maps a 75 seen under errexit to exit 1, so only `pr_lock_busy` says BUSY.
+
+**Round 2** (`tools/audit/seat/pr_args.sh`, `update_pr.sh`, `cloud_relay.sh`; the seat mutant harness):
+- `pr_bounded <name> <command...>` (`pr_args.sh`, section "the self-test bound"). It execs a Python supervisor, which forks the self-test into a new session (`setsid`) and a watchdog outside that session. The watchdog ends the session (every live pid whose session id is the self-test's, by pid, KILL) at `PR_SELFTEST_SECONDS` (default 1200; exit 124 and a `BOUND:` line), or when its pipe from the supervisor reads EOF, which happens when the supervisor is gone, a SIGKILLed one included. When the self-test exits, the supervisor ends whatever of the session is left, prints how many it ended, and keeps the self-test's status. A TERM, INT or HUP to the supervisor ends the session too. `pr_args.sh --self-test`, `update_pr.sh --self-test` and `cloud_relay.sh --self-test` re-exec themselves through it once (`PR_BOUND` guards the second entry). `open_pr.sh --self-test` runs `pr_args.sh --self-test`, so its long part is bounded too.
+- Why a session kill is sound here when `pr_kill` never signals a group: the session belongs to the self-test alone, while a pusher's group is shared with its caller. `sigrun`'s fixture now takes a process group (`setpgid`) rather than a session, so it stays inside the bound. The bystander sleeper lives as long as the bound (it was 3600 s in round 1, up from 300), and the bound's session ends it at the latest.
+- `pr_push_hold` exports `gc.autoDetach=false` and `maintenance.autoDetach=false` through `GIT_CONFIG_COUNT`, appended once (`PR_FG_GC`). It runs before the fork, so the push inherits them. This is the reviewer's option (a). A gc in the foreground is part of the push: the reap reaches it, the drain waits for it, and the BUSY line ("the push of run N") is true while it runs.
+- `pr_branch_lock <lock> <branch> <worktree> detach`: after the drain, still holding the branch lock, the holder runs `git -C <worktree> checkout -q --detach`. That is never under a push and never under the next run, and it runs whether the run's trap ran or not. `update_pr.sh` passes `detach`; `open_pr.sh` does not, so its behaviour is unchanged. `update_pr.sh`'s `PR_AFTER_REAP` detach and `pr_push_ended` are deleted: the holder covers both.
+- `pr_own_group <command...>` execs a command as the leader of its own process group. `cloud_relay.sh`'s update launch line runs through it. The update is still the reap's lead (`PR_REAP_LEAD`, found by parent pid), so a stopped relay TERMs it alone and in order. A group-wide TERM or HUP to the loop reaches the update only through that reap, and a group-wide KILL leaves the update to finish under its own lock.
+
+Alternatives considered:
+- (a) For the gc, close fd 9 in git's daemonized child. git exposes no hook for that.
+- (b) For the gc, set `gc.auto=0` for the push. That turns maintenance off where the reviewer asked for it to be counted.
+- (c) For the self-test bound, `timeout(1)` per CI step. It covers neither a local run (the 8.6 h orphan was local) nor a SIGKILLed parent.
+- (d) For the detach, detach on the next run's start. That leaves the branch held between runs, which is exactly when the merge train's recarry reads it.
+
 ## Head
 
-`af05e52e49f1eb2f601ddc861ad474520a9dcf86`, cut from origin/main `da12aa37dee15b9e9567bd6c848493436f2592dd`, the dispatch head. Measured 2026-10-25 between about 17:10Z and 17:58Z.
-- origin/main has since moved to `dfcd8d9be1dab28cfe52f684764befd1e19291de`.
-- `git merge-tree --write-tree origin/main HEAD` reports no conflict, so the branch was not merged (`fixer.md` step 6).
+`0ca3e5b7185347f7c28784513e53147471f0a2be` (code), a fast-forward of `origin/handoff/r10-update-pr-signals` (`af05e52e49f1`) through the PR head `ecf96c46d0c966e777ffb653628182543e46c552`. Merge base with origin/main `dfcd8d9be1dab28cfe52f684764befd1e19291de`. origin/main was `c9cbe6b458a7053f914649eb02d5296d6cd8c0f4` at 2026-10-25T19:44Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged (`fixer.md` step 6). The self-test figures were measured 2026-10-25 19:44:35Z to 19:49:55Z, git 2.43.0, Python 3.14.
 
 ## Mutation proof
 
-Each `# mut:<name>` line is a predicate. The self-test deletes it from a copy and requires its arm to fail; all of these arms pass in the `109 checks, 0 failed` run at the head:
+Each `# mut:<name>` line is a predicate. The self-test deletes it from a copy and requires its arm to fail. All of these arms pass in the head's `121 checks, 0 failed` run. Round 2's mutants:
 
 | mutant | what goes red |
 |---|---|
-| `mut:drain` | `mutant mut:drain (its line deleted): the holder lets go once the run is gone, while the push runs` |
-| `mut:pushhold` | `mutant mut:pushhold (its line deleted): the push holds no lock, so the holder lets go while it runs` |
-| `mut:holdsig` | `mutant mut:holdsig (its line deleted): the group's TERM ends the holder, which never drains` |
-| `mut:busy75` | `mutant mut:busy75 (its line deleted): that step's 75 reaches the caller, which would read it as BUSY` |
-| `mut:nopgrep` | `mutant mut:nopgrep (its line deleted): the run stops without saying its tree was not reaped` |
-| `mut:detach` | `mutant mut:detach (its line deleted): the worktree still holds fix/x` |
-| `mut:watch` | `mutant mut:watch (the holder's wait line deleted): the holder lets go at once, so the run never holds the lock and refuses` |
-| `mut:stop` | `mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)` |
+| `mut:fggc` | `mutant mut:fggc (its line deleted): git detaches that gc, which keeps the push's fd 9 once the push has ended` (git prints `Auto packing the repository in background`) |
+| `mut:detach` (now the holder's line) | `mutant mut:detach (its line deleted): the SIGKILLed run's worktree still holds fix/t`, and the clean-run arm `the worktree still holds fix/x` |
+| `mut:dogend` | `mutant mut:dogend (its line deleted): the bound passes and nothing ends the self-test, which runs on`; `... the SIGKILLed supervisor's self-test runs on` |
+| `mut:boundreap` | `mutant mut:boundreap (its line deleted): the child outlives the self-test` |
+| `cloud_relay-29` (`dev/audit/harnesses/r10_seat_selftests_mutants.py`: `pr_own_group "${upd[@]}"` back to `"${upd[@]}"`) | `KILLED rc=1 \| cloud_relay self-test: 270 checks, 2 failed`, the two failing being `a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first` and `a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock` |
 
-The four central lines were also deleted from the real `pr_args.sh`, one per detached worktree at `4fd49ab07`. That commit's production code equals the head's; the head adds only the census rule. The whole self-test ran each time and the line was restored:
-- `mut:drain`: `107 checks, 2 failed`: `FAIL update_pr: a SIGKILLed run's lock stays held while its push runs`, `FAIL update_pr: and a run meanwhile is BUSY, naming that push`.
-- `mut:holdsig`: `107 checks, 2 failed`: `FAIL update_pr: TERM to the run's whole group: the holder outlives it and drains, ...`, `FAIL update_pr: HUP to the run's whole group: ...`.
-- `mut:busy75`: `107 checks, 1 failed`: `FAIL update_pr: a step exiting 75 is reported as a stop and exits 1, never 75 (BUSY)`.
-- `mut:pushhold`: `107 checks, 3 failed`: the SIGKILL hold arm, its BUSY arm, and `mutant mut:stop: and the lock stays held while that push runs ...`.
+`mut:fggc` and `mut:detach` were also deleted from the real `pr_args.sh`, each in its own detached worktree at the head, and the whole self-test was run:
+- `mut:fggc`: `pr_args self-test: 121 checks, 1 failed`: `FAIL update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock`
+- `mut:detach`: `pr_args self-test: 121 checks, 2 failed`: `FAIL update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended`, `FAIL update_pr: the run leaves its worktree detached, so no worktree holds the branch`
 
-Before the external runs, `mut:pushhold`'s deletion emptied its function, which is a syntax error: the arm passed only because nothing ran. The predicate now sits on a `|| rc=$?` line, and the arm also requires the push's tree to have started (`treen = 4`).
+Round 1's mutants (`mut:drain`, `mut:pushhold`, `mut:holdsig`, `mut:busy75`, `mut:nopgrep`, `mut:watch`, `mut:stop`, `mut:unlock`) still have their arms. All of them pass in the head run.
 
-**Failing test first.** The new self-test ran against main's production code: `pr_args.sh` above the census, with `update_pr.sh` and `open_pr.sh` at `da12aa37d`, and the head's arms below. Result: `107 checks, 9 failed`. Seven positive arms fail:
-- `a step exiting 75 is reported as a stop and exits 1`
-- `a SIGKILLed run's lock stays held while its push runs`
-- `and a run meanwhile is BUSY, naming that push`
-- `TERM to the run's whole group: ...`
-- `HUP to the run's whole group: ...`
-- `with no ps or pgrep a TERMed run says it cannot reap, and keeps the lock while its push runs`
-- `the run leaves its worktree detached`
+**Failing test first.** The head's self-test was run against round 1's production code (`ecf96c46d`): its `pr_args.sh` up to the pusher census, with the head's self-test below it, and `update_pr.sh` at `ecf96c46d`. It ran with `PR_BOUND=1`, since `pr_bounded` does not exist there. Result: `pr_args self-test: 121 checks, 8 failed`. The 5 positive arms that fail are the defect measured: `the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended`, `the push's git gc --auto runs in the foreground ...`, `a self-test past its bound is ended ... exits 124 saying so`, `a self-test that exits leaving a child is reaped on exit, keeping its status` and `a SIGKILLed supervisor's self-test is ended all the same, by its watchdog`. The other 3 failures are mutant arms whose line does not exist at that base (`mut:dogend` twice and `mut:boundreap`).
 
-The SIGKILL and group-signal rows are the defect measured. The group-signal half had been "reasoned from the code, not measured" in the carry. The other 2 failures are mutant arms whose line does not exist at the base.
+A round-1 lesson, now pinned: `mut:fggc`'s first placement spanned two lines with a `\` continuation. `copyin` deletes one line, so the copy was broken and the arm read it as a pass. The new arm `every # mut: line is a whole statement, never one continued from the line above` refuses that shape, and its null control names a synthetic continued line.
 
 ## Null control
 
-- `null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push`: a holder pid that has died frees the lock.
-- `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start`: on a clean run the drain returns at once.
-- `update_pr: the lock holder has exited by the time a run returns`, with `mut:unlock` red.
-- `open_pr: the null control -- an unrelated sleeper survives`.
-- The census null control `the same runner without its branch lock needs no push lock`: the push-lock rule binds only runners that take the branch lock.
-- The SIGKILL arm fails at the base (above) and passes at the head: it reads `held` after the `drain` mark, then `free` once the fixture ends the push's pids, and a later run takes the lock.
+- `pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status`. Its status 3 comes back unchanged, so the bound changes no verdict.
+- `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start`. The bystander sleeper survives (`unrel = alive`).
+- `update_pr: the push's git gc --auto runs in the foreground ...` reads git's own message. Run outside the push, with the same fixture repository and git, `git -c gc.auto=1 gc --auto` prints `Auto packing the repository in background for optimum performance.` That is git's default, and it is what the arm must not see.
+- The SIGKILL worktree arm reads `branch` at the drain mark, while the push runs, and `detached` only after the push lock is free. So the detach is never made under a push.
+- `with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order` and the per-pid TERM arms still pass. The relay's reap order is unchanged.
+- Stopping two of this session's own bounded self-test runs (`update_pr.sh --self-test` and a mutant `pr_args.sh --self-test`) through the task runner left no process of either. `ps -eo pid,ppid,etimes,stat,args` afterwards listed only the separate, unbounded failing-first run, whose sleeper was still alive under its own shell as expected.
 
 ## Figures
 
-All at `af05e52e4`, merge base `da12aa37d`, Python 3.14.
+All at the head `0ca3e5b71`, merge base `dfcd8d9be`, unless a row says otherwise.
 
 | command | result |
 |---|---|
-| `bash tools/audit/seat/pr_args.sh --self-test` | `pr_args self-test: 109 checks, 0 failed` (93 at the base: 16 arms added, 2 rewritten, the `ps`-based zombie check and its `afterreap` sed mutant removed); about 2m13s here against 1m25s at the base |
-| the same, three runs at once on 4 CPUs (at `4fd49ab07`) | `107 checks, 0 failed`, three times |
-| `bash tools/audit/seat/pr_args.sh --pushers` | rc 0, 19 `ok` lines, no `OPEN` |
-| `bash tools/audit/seat/cloud_relay.sh --self-test` (at `4fd49ab07`) | `cloud_relay self-test: 268 checks, 0 failed` |
-| `bash tools/audit/seat/handoff_push.sh --self-test` (at `4fd49ab07`) | `handoff_push self-test: 3 checks, 0 failed` |
-| `python3 -I tools/audit/seat/ledger.py --self-test` (at `4fd49ab07`) | `ledger self-test: 56 checks, 0 failed` |
-| `python3 -I tools/audit/seat/selftest_wiring.py --self-test` (at `4fd49ab07`) | `selftest_wiring self-test: 18 checks, 0 failed` |
+| `bash tools/audit/seat/update_pr.sh --self-test` (bounded; runs `delivery_row.sh`'s, then `pr_args.sh`'s inside the same session) | `delivery_row self-test: 6 checks, 0 failed`, `pr_args self-test: 121 checks, 0 failed`, rc 0, real 2m25s |
+| `bash tools/audit/seat/cloud_relay.sh --self-test` | `cloud_relay self-test: 270 checks, 0 failed`, rc 0, real 41s |
+| `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py cloud_relay-29` (at `1b2ce21b`, whose `cloud_relay.sh` equals the head's) | `== cloud_relay-29 cloud_relay.sh: KILLED rc=1 \| cloud_relay self-test: 270 checks, 2 failed`, `RESULT survivors=0` |
+| `bash tools/audit/seat/pr_args.sh --pushers` | rc 0, no `OPEN` |
+| `python3 tests/throwaway_git.py --check` | `throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD` |
+| `python3 -I tools/audit/seat/ref_privacy.py --check` | `0 refused` |
+| `python3 -I tools/audit/seat/tmp_paths.py --check` | `tmp_paths: 0 refused, 0 stale allow entries at HEAD` |
 | `PYTHONPATH=tests/hastub python3 tests/structure.py` | `STRUCTURE RATCHET PASSED`; no `*_budgets.json` in the diff |
-| `python3 tools/audit/archscore/score.py --diff da12aa37d HEAD` | `Architecture score: dS +0.0000 NULL` |
-| `python3 tests/closure.py select --diff da12aa37d` | `MODE: SCOPED -- 0 script(s) run, 33 scoped out`; `scope.run` empty |
-| `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` | `CI PREDICT: no closures, fast, wave-script or instrument red predicted against da12aa37dee1` |
+| `python3 tools/audit/archscore/score.py --diff dfcd8d9be HEAD` | `Architecture score: dS +0.0000 NULL` |
+| `python3 tests/closure.py select --diff dfcd8d9be` | `MODE: SCOPED -- 0 script(s) run, 33 scoped out`; `scope.run` empty |
+| `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` | `CI PREDICT: no closures, fast, wave-script or instrument red predicted against dfcd8d9be1da` |
 
-Determinism: every new wait polls a condition with a bound: the push's 4 recorded pids, the `drain` field, a `lockstate` lock attempt, or the run's own output line. Past the bound the arm fails; the bound is not a window inside which the arm passes. The SIGKILL arm reads the lock right after the `drain` mark. At that point the push's pids are alive by construction, so `held` is the only correct reading. The group arms read the mark after the lock is free. The mark is written before the drain, so its absence at that point means the holder never drained.
+Determinism: every new wait polls a condition, and its bound only decides how fast a broken tree fails:
+- the bound arms wait on the child's mark file, then read the child's lock by trying it, never by pid;
+- the supervisor-KILL arm waits for that lock to free, with a 5 s bound below the child's 20 s sleep, so a session that nothing ends still reads `held`;
+- the gc arm reads git's own detach message;
+- the relay arms wait on the update's pid file and its `done` mark.
 
-**Class (step 8).** The class is "a run holding the branch lock whose push could outlive the run".
-- `git grep -n 'pr_branch_lock ' -- tools`, less `pr_args.sh`, returns `open_pr.sh:34` and `update_pr.sh:37`. Both are closed in this diff.
-- `git grep -nE 'bash "\$_push"' -- tools/audit/seat/open_pr.sh tools/audit/seat/update_pr.sh` returns `open_pr.sh:58`, `open_pr.sh:71` and `update_pr.sh:83`. Each runs under `pr_push_hold`.
-- The rule is now registered in the self-tested pusher census (`pr_pushers`): a runner that takes `pr_branch_lock` and has a push line without `pr_push_hold` prints `OPEN ... a push under the branch lock holds no push lock`. The census arm and its null control are listed above.
-- The other runners (`handoff_push.sh`, `remerge_main.sh`, `tools/pr/app_push.sh`) take no branch lock, so they have no lock that could free early.
+### Carries, item by item
 
-The `ps` dependency: `git grep -nw ps -- tools/audit/seat/pr_args.sh tools/audit/seat/update_pr.sh tools/audit/seat/open_pr.sh` returns one comment in `pr_branch_lock` and three self-test lines that build and name the PATH without it. No production line runs `ps`, and no self-test arm calls it. `pgrep` runs only in the reap and the fixture's cleanup. The arm with neither command on PATH passes.
-
-**This group's carries, closed in this diff:**
-
-- #2469 round-4 SIGKILL: closed here (`pr_push_hold`, the drain).
-- Group-wide TERM/HUP reaching the holder: closed (`mut:holdsig`).
-- 75 under `set -e`: closed (`mut:busy75`).
-- R10-ROSTER-OPS's `ps` carry: closed (the arm with no `ps`/`pgrep`).
-- `update_pr.sh` leaving its worktree on the branch: closed (`mut:detach`).
-- #2549's note that a group signal takes an in-flight relay with it: the lock half is closed, since the holder outlives the group's signal and drains. The relay's `update_pr.sh` itself still stops on its group's signal, which is a stop the reap handles.
-- Revision 12, the stale lock: a flock cannot outlive its holder, and a holder that outlives its run is draining and says so (`drain`). It is already guarded by the dead-run null control above, and it is never broken by force while a push runs.
+- **[0] #2469 round-4 split.**
+  - SIGKILL frees the lock early: met in round 1 (`mut:drain`, `mut:pushhold`). The reviewer measured it from the real file.
+  - A group signal reaches the holder: met (`mut:holdsig`, the grpTERM and grpHUP arms).
+  - 75 under `set -e`: met (`mut:busy75`).
+- **[1] Revision 12.**
+  - Lock half: shown not to apply, as the round-1 review accepted. A flock cannot outlive its holder, and a holder that outlives its run is draining and says `drain`. A lock left by a dead run is covered by the null control `a lock left by a dead run (the kernel freed it) does not block`.
+  - Self-test half: met by `pr_bounded` (`pr_args.sh`, section "the self-test bound"). It is wired into the entries of `pr_args.sh`, `update_pr.sh` and `cloud_relay.sh`, with arms for the bound, the exit reap and a SIGKILLed supervisor (`mut:dogend`, `mut:boundreap`). The sleeper now lives as long as the bound, not 3600 s.
+  - The class: `git grep -lE -- '--self-test' -- 'tools/audit/seat/*.sh'` returns 16 files.
+    - Bounded here: `pr_args.sh`, `update_pr.sh` and `cloud_relay.sh` (this group's files), and `open_pr.sh`, whose long part is `pr_args.sh --self-test`.
+    - Not bounded: the other 12 (`body_patch.sh`, `bus.sh`, `ci-watch.sh`, `cloud-setup.sh`, `delivery_row.sh`, `failure_logs.sh`, `handoff_push.sh`, `heartbeat.sh`, `merge_pr.sh`, `seat_venv.sh`, `tick_loop.sh`, `train.sh`). They are outside this group's files, and none of them is the instance Revision 12 measured. `delivery_row.sh`'s self-test runs inside the bound when it is reached through `update_pr.sh` or `open_pr.sh`. They are routed in Forward-carry.
+- **[2] The worktree left on the branch.** Met for every stop, SIGKILL included: the holder's detach (`pr_args.sh`, `pr_branch_lock`'s `detach` line), the arm `update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended`, and `mut:detach`. The clean-run arm `update_pr: the run leaves its worktree detached` still passes.
+- **[3] Quiet output.** Not built. The roster ties its flag convention to `prepr.sh`'s, which R10-FLOW-JIDOKA owns and has not landed (`git log origin/main -- tools/pr/prepr.sh` shows no quiet flag). It is routed to that group in Forward-carry, so it does not close with this one.
+- **[4] #2549's relay half.** Met: `cloud_relay.sh`'s launch through `pr_own_group`, the two group arms, and the harness mutant `cloud_relay-29`. `git grep -iE 'setsid|pgid|process group' -- tools/audit/seat/cloud_relay.sh tools/audit/seat/update_pr.sh` is now non-empty: the launch comment and the self-test.
+- **Round-1 block 2, the detached `git gc --auto`.** Met by `pr_push_hold`'s export (`mut:fggc`, real-git arm with auto-maintenance turned on).
+  - The class is "a process the push starts that outlives it holding fd 9". `git grep -nE 'start_new_session|os\.setsid|daemoniz|nohup|disown' -- tools tests`, less `pr_args.sh`, `daemonize.py` and comments, returns `tests/entities.py:15586`, `tests/gate_lock.py:887` and `tools/audit/judge_batch.py:275`. Each is a `subprocess.Popen` with `close_fds` left at its default (true; `gate_lock`'s `pass_fds` names its own fds), so none of them inherits fd 9.
+  - `git grep -n daemonize -- tools/pr/app_push.sh tools/pr/prepr.sh tools/pr/app_mint.sh` is empty.
+  - git's own auto-detach is the remaining seam, and it is closed here.
 
 ## Red checks
 
-none. This head has no CI run yet; the orchestrator's push is its first.
+none. This head has no CI run yet. Round 1's `delivery-status` red was on main's own overdue rows (#2762, #2795), not this PR's, and it is not a required check.
 
 ## Forward-carry
 
-Two are not built here:
-- Revision 12's "every self-test runs under a timeout in its own process group, reaped on exit". It reaches CI wiring and every self-test, outside this group's files, and a group kill conflicts with `pr_kill`'s never-a-group rule. Carry: R10-UPDATE-PR-SIGNALS
-- The quiet-output convention for `update_pr.sh`, `open_pr.sh` and `merge_train.py`. The roster asks for it to share R10-FLOW-JIDOKA's flag convention for `prepr.sh`, which another seat is building now, and building it in parallel would let the two diverge. It needs an after-edge on R10-FLOW-JIDOKA. Carry: R10-UPDATE-PR-SIGNALS
+- The quiet-output convention (roster carry [3]) for `tools/audit/seat/update_pr.sh`, `tools/audit/seat/open_pr.sh` and the per-car progress of `tools/audit/seat/merge_train.py` follows `prepr.sh`'s quiet flag once that lands: one result line per step, the failing step's tail, the full output in a printed log, a verbose switch, and every key line kept. It has the same controls (a seeded failure's tail in quiet mode, equal exit codes, a mutant per rule). `update_pr.sh` already sends the push's whole output to `$WT.log` and prints its refusal or the log's last 20 lines (`pr_push_failed`), so the remaining work there is the switch and the step lines. Carry: R10-FLOW-JIDOKA
+- Self-test hygiene, to sit beside that group's items (a)-(d): a seat self-test enters through `pr_args.sh`'s `pr_bounded`, which ends its whole session on exit, at `PR_SELFTEST_SECONDS` or when its supervisor is gone. 12 seat self-tests outside this group's files do not enter through it yet: `body_patch.sh`, `bus.sh`, `ci-watch.sh`, `cloud-setup.sh`, `delivery_row.sh`, `failure_logs.sh`, `handoff_push.sh`, `heartbeat.sh`, `merge_pr.sh`, `seat_venv.sh`, `tick_loop.sh`, `train.sh`. Carry: R10-FLOW-JIDOKA
 
 ## Friction
 
-- `fixer.md#2`: unclear: `mut:pushhold`'s first placement emptied its function, a syntax error, and its arm passed because nothing ran. The step's "a vacuous mutation reads exactly like a passing check" caught it only because every mutant arm was also run against the real file. Requiring a mutant arm to show that its fixture reached the mutated code (here `treen = 4`) would make that cheap to catch. Carry: R10-UPDATE-PR-SIGNALS
+- `fixer.md#2`: unclear: a `# mut:` predicate continued from the line above (`\`) is broken by a one-line deletion, and its arm read the broken copy as a pass (`mut:fggc`'s first placement). The step's "a vacuous mutation reads exactly like a passing check" did not name this shape. It is now pinned in this group's self-test by the `mutshape` arm, but other in-file mutant harnesses have no such check. Carry: R10-FLOW-JIDOKA
