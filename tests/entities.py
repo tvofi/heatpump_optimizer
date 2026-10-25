@@ -3833,8 +3833,7 @@ def _p2_registry(sources):
                  # hot-water SPEC to judge an off window against it; it
                  # never answers whether hot water is enabled.
                  "services.py::_refuse_quiet_conflicts": "overlap validation",
-                 "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
-                     "windows update",
+                 "coordinator.py::_thermal_param_changes": "windows update",
                  "quick_setup.py::stored_answers": answer,
                  # F1.2's two reads (its carry-in to this registry):
                  "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_dhw":
@@ -4551,9 +4550,11 @@ if _EntryConfig is not None:
 # value) is not a mapping read and is not returned.
 #: (module, function, CONF name) -> why the read is not an entry-config read.
 _EC_DISPOSITIONS = {
-    ("coordinator.py", "async_update_thermal_params", key): "the set_thermal_params service's call data"
-    for key in ("CONF_BUFFER_COOLING_RATE", "CONF_DHW_COOLING_RATE",
-                "CONF_DHW_SCHEDULE_ENABLED", "CONF_DHW_WINDOWS")
+    ("coordinator.py", function, key): "the set_thermal_params service's call data"
+    for function, key in (
+        ("async_update_thermal_params", "CONF_BUFFER_COOLING_RATE"),
+        ("async_update_thermal_params", "CONF_DHW_COOLING_RATE"),
+        ("_thermal_param_changes", "CONF_DHW_WINDOWS"))
 }
 #: Modules whose readers still take the merged mapping, and why.
 _EC_RESIDUAL = {

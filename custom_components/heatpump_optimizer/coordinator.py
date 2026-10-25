@@ -2175,14 +2175,14 @@ def _publish_params(coord: Any, /, **fields: Any) -> None:
     """The one writer of ``coord``'s thermal parameters: a new snapshot, never an edit.
 
     D7-s1-82: a solve's record or a learner mid-await keeps the snapshot it
-    read, and ``replace`` re-runs the divisor floor. The context is read
-    here, never one bound before an await, which would republish that
-    context's stale hubs with it. The live model is the snapshot's one
-    subscriber; every other reader reads the context.
+    read, and ``replace`` re-runs the divisor floor. Published through the
+    ``_hub`` facade, which reads the context it replaces at the write --
+    never one bound before an await, which would republish that context's
+    stale hubs -- and serves a harness with no context alike. The live model
+    is the snapshot's one subscriber; every other reader reads the context.
     """
-    ctx = _ctx_of(coord)
-    params = replace(ctx._thermal_params, **fields)
-    coord._ctx = replace(ctx, _thermal_params=params)
+    params = replace(coord._thermal_params, **fields)
+    coord._thermal_params = params  # the ``_hub`` facade rebinds the context
     coord._thermal_model.params = params
 
 

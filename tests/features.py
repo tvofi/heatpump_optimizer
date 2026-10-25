@@ -7954,6 +7954,7 @@ class _PredGate:
         self._mode = mode
         self._config = EntryConfig()
         self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
 
         class _Res:
             room_temp_trajectory = [21.0, 21.4, 21.8]
@@ -8014,6 +8015,7 @@ class _LearnPersist:
         # The entry's settings: the payload records the power basis (#2239).
         self._config = {}
         self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
         self._buffer_cooling_rate = 6.0
         self._buffer_cooling_samples = 3
         self._house_heat_loss_scale = 1.1
@@ -19080,6 +19082,19 @@ R.check(
     and _env_grade(replace(_env_zoned, room_thermal_mass=5 * _env_zoned.room_thermal_mass))
     == _env_grade(_env_zoned),
     f"floor {_env_grade(_env_floor)}, two-zone {_env_grade(_env_zoned)}",
+)
+
+# A time constant is a ratio, so the band is logarithmic: halving the loss --
+# doubling the time constant -- moves every unclipped house by the same points.
+_env_doubling = [
+    _env_grade(replace(_p, house_heat_loss_scale=0.5)) - _env_grade(_p)
+    for _p in (_env_params(), _env_params(era="pre_1960", structure="masonry"))
+]
+R.check(
+    "doubling the house's time constant moves its grade by the same points "
+    "wherever it starts",
+    abs(_env_doubling[0] - _env_doubling[1]) < 1e-6 and _env_doubling[0] > 0,
+    f"{_env_doubling}",
 )
 
 # --- persistence: the detectors' memory rides the thermal store ----------------------
