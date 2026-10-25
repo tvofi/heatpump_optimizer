@@ -1,10 +1,9 @@
+dispatch/fixer-r10-thermal-power-option-r6
 dispatch/fixer-r10-merge-subject-harden-r9
 dispatch/fixer-r10-rca-merge-subject-class-open
 dispatch/fixer-r10-roster-freeze-a
-dispatch/fixer-r10-thermal-power-option-r5
 dispatch/fixer-r10-flow-autotrain-r2
 dispatch/fixer-r10-train-upgrade-r2
-dispatch/fixer-r10-thermal-power-option
 dispatch/fixer-r10-config-notices
 dispatch/fixer-r10-replay-scoped
 dispatch/fixer-r10-fly-cipredict-layout
