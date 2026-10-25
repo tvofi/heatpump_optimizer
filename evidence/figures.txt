@@ -1,8 +1,37 @@
-$ grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' dev/programme/triage/s6-batch28.md | sort | uniq -c
-      8 Verdict: ACCEPT
-$ grep -c '^## P'
+verdict lines:
 8
-$ host/home path grep (home and temp prefixes)
-rc=1 (1 = none)
-$ roster_edit.ruling_verdict P150..P158
-{'P150': 'ACCEPT', 'P151': 'ACCEPT', 'P152': 'ACCEPT', 'P153': 'ACCEPT', 'P154': 'ACCEPT', 'P155': 'ACCEPT', 'P156': 'ACCEPT', 'P157': 'ACCEPT', 'P158': None}
+0
+8
+host/home grep:
+none
+ACCEPT mentions:
+5:Round-1 re-cut (verdict 6402369226, 2026-10-25): every entry is DEFER. P150 and P151 name their owning carries and state their REJECT arm. P152-P157 name the measurement that would change the answer. The owner's acceptance of these ideas can reach R10-ROUND-PLAYBOOK as an owner-sourced carry citing tvofi, not through a triage ACCEPT. P157's carry, which also restated P144's daemon, is dropped.
+7:A roster op citing an ACCEPT below resolves only once this file is on the roster branch or origin/main (`roster_edit.py` reads the ruling from there).
+10:Verdict: DEFER -> owned by the carries named below (Head notes already generated; red-check fill is R10-FLOW-JIDOKA carry 16; Figures go to P154's measurement). The UTC-timestamp generator is REJECTED on its binding cost: a body tool has no source event to render a time from, so it would need the author to name the event, which is the hand step it claims to remove. (Round-1 re-cut, verdict 6402369226 item 3: an ACCEPT that routes nothing is a DEFER that names its owner.)
+P150 DEFER
+P151 DEFER
+P152 DEFER
+P153 DEFER
+P154 DEFER
+P155 DEFER
+P156 DEFER
+P157 DEFER
+P158 None
+body Figures command:
+      8 Verdict: DEFER
+delivery_status.py:
+100644 blob 63cbc7c9144374420d46ddd2dbf90bb31b1eac33	tests/delivery_status.py
+8:reported main's `record` conclusion as a red check on every open pull request,
+24:it at five false refusals per true one, for exactly that reason. A check that is
+87:    python3 tests/delivery_status.py --from ledger.json --check
+338:def unchecked_line(unattributed: list[dict]) -> str:
+373:    because OVERDUE is the state a seat can act on today and is what `--check`
+INERT dev/programme:
+269:    # living handover is the hole is_handover cuts, under dev/programme/ as
+274:    "dev/programme/",
+522:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+batch27 on main?
+17:## P141: move `_plan_slots` out of `coordinator.py` (S6-V62)
+59:## P144: wake the orchestrator on each fire-owed line, as a trial; the trigger-rights daemon is DEFER (S6-V65)
+8a5155e1e7ddecb31542b3acb6d09d6150fc49cd
+merge-tree rc=0
