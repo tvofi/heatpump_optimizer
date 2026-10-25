@@ -1,2 +1,1 @@
-ok: main --guardrail cuts at the latest window's until, and prints '-' with no unclassified word
 review_strength self-test: 114 checks, 0 failed

@@ -1,9 +1,4 @@
-8
-prelude	queued	null
-cancel-superseded	queued	null
-refresh	queued	null
-refresh	queued	null
-prelude	queued	null
-cancel-superseded	queued	null
-arm	completed	skipped
-.github/dependabot.yml	completed	success
+check-runs on 46bf82435f4060d449788b704210f3e0bc33054e (MCP get_check_runs, read 2026-10-25): total_count 7
+arm: completed, skipped
+cancel-superseded x2, refresh x2, prelude x2: queued (started 2026-10-25T01:17:40Z)
+no run red; no pr-contract or mutation run concluded on this head
