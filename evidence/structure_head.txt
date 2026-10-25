@@ -224,8 +224,8 @@ RESULT name_kept_members=38 count
 RESULT seam_cut_total=420 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at e463e95e255d) ##########
-  gain class_excess_loc 18195 (budget 18202, -7; not yet recorded -- see below)
+########## ratchet vs structure_budgets.json (recorded_at ab00437c94bd) ##########
+  ok   class_excess_loc 18195 <= 18195
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 146 <= 146
   ok   coordinator_multiassigned_attrs 114 <= 114
@@ -237,32 +237,12 @@ RESULT thread_factor=1.0 ratio
   ok   functions_cc_over_25 8 <= 8
   ok   import_cycle_modules 0 <= 0
   ok   max_cc 44 <= 44
-  gain max_class_loc 8435 (budget 8442, -7; not yet recorded -- see below)
+  ok   max_class_loc 8435 <= 8435
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
   ok   name_kept_members 38 <= 38
   ok   seam_cut_total 420 <= 420
 
-########## 2 metric(s) IMPROVED and not yet recorded ##########
-  metric                                 budget     measured      delta
-  class_excess_loc                        18202        18195         -7  BETTER (lower is better)
-  max_class_loc                            8442         8435         -7  BETTER (lower is better)
-
-  You made the tree better here, so write it down. The ratchet only
-  guards numbers that are recorded: for everything in the gap between
-  a budget and a better tree the gate is not loose, it is ABSENT, and
-  the improvement can be given back without anything failing (#350).
-  This belongs in the PR that earned it -- that is the only PR that can
-  say what moved and why.
-
-  Run this, and commit the result with this change:
-
-      python3 tests/structure.py --record
-
-  Then say in the COMMIT message which rows moved and why -- the
-  history of main keeps a commit message, never a PR body.
-
-2 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED
-Nothing here is a violation. Run the command above, commit the
-table with this change, and say in the commit which rows moved.
+STRUCTURE RATCHET PASSED
+rc=0
