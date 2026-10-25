@@ -1,0 +1,7 @@
+M1 trip forced False:
+FAIL: a planted miss of each class trips: 4/30 trips the all arm (P = 0.0495), 5/30 does not (0.1161)
+FAIL: the seat-family arm at the carry's point: 2/20 is ok (P = 0.0526 > ALPHA), 1/20 trips (0.0123)
+FAIL: the all arm prints its span, incidence and four-decimal P
+M7 P0 0.24:
+review_strength self-test: 114 checks, 4 failed
+restored-identical
