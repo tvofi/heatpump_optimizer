@@ -315,11 +315,15 @@ from .thermal_model import (
     ThermalParameters,
     ThermalState,
     is_sunlit_interval,
+    heat_loss_anchor_pair,
+    heat_loss_basis,
+    heat_loss_basis_voids,
     learner_newton_step,
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
     planned_draw_runs,
+    reanchor_heat_loss,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -1358,6 +1362,8 @@ HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
 # per-interval limit: one sample moves the estimate by at most
 # ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
 HOUSE_LOSS_MAX_STEP = 0.05
+# What the re-anchor reads back; a store missing any is adopted on load.
+_HEAT_LOSS_ANCHOR_KEYS = ("house_heat_loss_anchor", "lower_floor_loss_anchor", "house_heat_loss_basis")
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
@@ -4019,10 +4025,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # on load, before anything solves -- not restored verbatim. The
         # gated write adopts an anchor for a pre-fix store and re-anchors;
         # `updated_at` defeats the content-hash skip, so not unconditionally.
-        _had_anchor = "house_heat_loss_anchor" in stored
-        _reanchored = self._reanchor_house_heat_loss_scale(
-            stored.get("house_heat_loss_anchor")
-        )
+        _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
+        _reanchored = self._reanchor_house_heat_loss_scale(stored)
         if _reanchored or not _had_anchor:
             await self._async_save_thermal_learning()
 
@@ -4151,14 +4155,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return {
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
-            # The configured UA the scale was fitted against, so an options
-            # edit that changes it can be corrected on load instead of
-            # multiplying a correction fitted against the old nameplate by
-            # the new one (issue #86). The KNOWN DEFECT note that was here
-            # is resolved by _reanchor_house_heat_loss_scale; the shape of
-            # the fix and the four attempts that did not ship are recorded
-            # in dev/archive/backlog.md's "Open" entry and its decisions.
-            "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
+            # The configured UA and power basis the learners were fitted
+            # against, so an options edit can be corrected on load instead of
+            # multiplying a correction by the new nameplate (issue #86, #2239;
+            # _reanchor_house_heat_loss_scale; dev/archive/backlog.md "Open").
+            **self._heat_loss_anchors(),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
@@ -5086,89 +5087,89 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         return float(p.heat_loss_coefficient)
 
-    def _reanchor_house_heat_loss_scale(self, anchor: float | None) -> bool:
-        """Re-express the learned scale against the UA now configured.
+    def _heat_loss_anchors(self) -> dict[str, Any]:
+        """The ``_HEAT_LOSS_ANCHOR_KEYS`` as the configuration in force writes them."""
+        ctx = getattr(self, "_ctx", self)
+        return {
+            "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
+            "lower_floor_loss_anchor": ctx._thermal_params.lower_floor_heat_loss
+            if ctx._thermal_params.two_zone_enabled else None,
+            "house_heat_loss_basis": heat_loss_basis(ctx._config),
+        }
 
-        An options edit reloads the entry with a new nameplate while the
-        store still holds a scale fitted against the old one; restoring
-        it verbatim left the model up to 1.94x wrong (issue #86, four
-        prior attempts recorded in dev/archive/backlog.md). The law, from the
-        recorded decisions:
+    def _reanchor_house_heat_loss_scale(self, stored: Mapping[str, Any]) -> bool:
+        """Re-express the learned scale and ratio against the UA now configured.
 
-        ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
+        An options edit reloads the entry with new nameplates while the store
+        still holds corrections fitted against the old ones; restoring them
+        verbatim left the model up to 1.94x wrong (issue #86, four prior
+        attempts recorded in dev/archive/backlog.md), and re-expressing the
+        scale alone mis-split the zones (#2239). The law is
+        ``reanchor_heat_loss``'s, on the nameplates ``heat_loss_anchor_pair``
+        reads from the anchors the payload records. Two guards, both from
+        the recorded decisions:
 
-        written in absolute UA on the zone-total basis, where
-        ``measured_UA = scale * anchor`` and phi is
-        ``house_loss_confidence(samples)``. Path-independent and sign-
-        preserving at convergence, and the nameplate at zero samples --
-        an install that has learned nothing keeps its configuration
-        edits, which is where round 1 did its damage.
+        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` change of the
+          total and of the nameplate split the store is kept verbatim: below
+          convergence the law is a measured regression against today's
+          behaviour on exactly that path (the 30-hop walk), and the learner's
+          EWMA closes a small edit on its own.
+        * **Clamp means reset.** A re-anchored value outside its bounds
+          cannot be expressed against the new nameplate: reset that learner
+          explicitly and log it. Clipping onto a bound instead lets the next
+          edit read that bound as the learner's own signal.
 
-        Two guards, both from the recorded decisions:
-
-        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` nameplate
-          change the stored scale is kept verbatim: below convergence
-          the law is a measured regression against today's behaviour on
-          exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner's EWMA closes a
-          small edit on its own, ``HOUSE_LOSS_ALPHA`` of the way to its
-          target per accepted sample.
-        * **Clamp means reset.** If the re-anchored scale falls outside
-          ``[0.3, 3.0]`` the measurement cannot be expressed against
-          the new nameplate: reset explicitly and log it. Clipping onto
-          a bound instead lets the next edit read that bound as the
-          learner's own signal.
+        A basis earlier than the one configured (G-ID-3: a power meter added)
+        voids both learners' evidence, so the law runs at zero confidence.
 
         Returns whether the stored state changed, so callers can gate
         the one persistence write (``updated_at`` moves every save, so
         the content-hash skip cannot gate this store).
         """
-        if anchor is None:
-            # A pre-fix store carries no anchor: nothing to re-express,
-            # and the caller adopts one on its next save.
+        anchor = _as_float(stored.get("house_heat_loss_anchor"), 0.0)
+        live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
+        current = live["house_heat_loss_anchor"]
+        void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
+        pair = heat_loss_anchor_pair(
+            (anchor, _as_float(stored.get("lower_floor_loss_anchor"), 0.0)),
+            (current, live["lower_floor_loss_anchor"]),
+            ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
+        )
+        if pair is None:
+            # Below the gate, or a pre-fix store with no anchor to re-express,
+            # which the caller adopts on its next save.
             return False
-        try:
-            anchor = float(anchor)
-        except (TypeError, ValueError, OverflowError):
-            return False
-        current = self._house_heat_loss_anchor()
-        if anchor <= 1e-9 or current <= 1e-9 or not np.isfinite(anchor):
-            return False
-        if abs(current / anchor - 1.0) <= HOUSE_LOSS_MAX_STEP:
-            return False
-        phi = house_loss_confidence(self._house_heat_loss_samples)
-        measured_ua = self._house_heat_loss_scale * anchor
-        effective = (1.0 - phi) * current + phi * measured_ua
-        new_scale = effective / current
-        if (
-            new_scale < HOUSE_HEAT_LOSS_SCALE_MIN
-            or new_scale > HOUSE_HEAT_LOSS_SCALE_MAX
-        ):
+        if void:
+            self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
+        phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
+        new_scale, new_ratio, scale_reset, ratio_reset = reanchor_heat_loss(
+            *pair, self._house_heat_loss_scale, ratio, phi,
+            scale_bounds=(HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX),
+            ratio_bounds=(LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX),
+        )
+        if ratio_reset:
             _LOGGER.warning(
-                "Learned house heat loss scale %.3f (fitted against "
-                "%.4f kW/°C, %d samples) cannot be expressed against the "
-                "newly configured %.4f kW/°C: resetting to the "
-                "configuration",
-                self._house_heat_loss_scale,
-                anchor,
-                self._house_heat_loss_samples,
-                current,
+                "Learned lower floor loss ratio %.3f (%d samples) cannot be expressed against "
+                "the newly configured lower floor loss: resetting to the configuration",
+                ratio, self._lower_floor_loss_samples,
             )
-            self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
-            self._house_heat_loss_samples = 0
-            return True
+            self._lower_floor_loss_samples, phi = 0, (phi[0], 0.0)
+        if scale_reset:
+            _LOGGER.warning(
+                "Learned house heat loss scale %.3f (fitted against %.4f kW/°C, %d samples) cannot be "
+                "expressed against the newly configured %.4f kW/°C: resetting to the configuration",
+                self._house_heat_loss_scale, anchor, self._house_heat_loss_samples, current,
+            )
+            self._house_heat_loss_samples, phi = 0, (0.0, phi[1])
         _LOGGER.info(
-            "Re-anchored learned house heat loss scale %.3f -> %.3f "
-            "against the configured UA %.4f -> %.4f kW/°C (%d samples, "
-            "confidence %.2f)",
-            self._house_heat_loss_scale,
-            new_scale,
-            anchor,
-            current,
-            self._house_heat_loss_samples,
-            phi,
+            "Re-anchored learned house heat loss scale %.3f -> %.3f and ratio %.3f -> %.3f "
+            "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "
+            "evidence voided by a later power basis: %s)",
+            self._house_heat_loss_scale, new_scale, ratio, new_ratio,
+            anchor, current, *phi, void,
         )
         self._apply_house_heat_loss_scale(new_scale)
+        self._apply_lower_floor_loss_ratio(new_ratio)
         return True
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
@@ -9408,9 +9409,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # against the new configuration. The same law the loader uses,
             # without the save -- snapshots are restores, and the next
             # regular save records the fresh anchor.
-            self._reanchor_house_heat_loss_scale(
-                thermal.get("house_heat_loss_anchor")
-            )
+            self._reanchor_house_heat_loss_scale(thermal)
         profile = learners.get("dhw_profile")
         if isinstance(profile, dict):
             self._dhw_learner.apply_payload(profile)
