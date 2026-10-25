@@ -1,10 +1,12 @@
-head da139892f101eada76b1b394ff6909ad80fe97eb
-merge-base c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
-origin/main c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
+head 9ddadc7666829f2550c61f1bfc9e6d7d2745aa2f merge-base c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
  dev/programme/delivery/2829.md     |   1 +
- dev/programme/triage/s6-batch29.md | 143 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 144 insertions(+)
-merge-tree:
-b55574bcf9975a9aa60b9aadc685399fb723fda4
+ dev/programme/triage/s6-batch29.md | 139 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 140 insertions(+)
+
+merge-tree origin/main 8aee66b77:
+20fdec822951de797d7651e7c52fbb2a05b85f54
 rc=0
-     10 Verdict: ACCEPT
+
+      3 Verdict: ACCEPT
+      7 Verdict: DEFER
+no host or home path
