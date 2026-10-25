@@ -1,0 +1,4 @@
+  FAIL an experiment command under the running floor does not mark the pump on (D8-s1-01)  [2.0 kW -> True, 0.07 kW -> True]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+2 of 4411 FEATURE CHECKS FAILED
+rc=1
