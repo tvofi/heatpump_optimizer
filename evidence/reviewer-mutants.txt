@@ -1,15 +1,43 @@
-== R1 mutant: merge_train re-inlines merge pattern
- tools/audit/seat/merge_train.py | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-  FAIL queue: the verdict grammar is proof_watch.parse_verdict's, not a copy -- a grammar swapped there admits #11 under it and leaves #11 under the old spelling
-merge_train self-test: 267 checks, 1 failed
-RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.2
-AGREEMENT ok
-== R2 mutant: orchestrator_tick re-inlines merge pattern
- tools/audit/seat/orchestrator_tick.py | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-  FAIL verdict grammar: null control: under the swapped grammar the old spelling is no merge verdict
-orchestrator_tick self-test: 214 checks, 1 failed
-RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.8
-AGREEMENT ok
-0
+== R1 tools/audit/seat/merge_train.py: rc=1 last='  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),' fails=1
+    FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest posted merge verdict names 222222222222,
+== R2 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 2 failed' fails=2
+    FAIL add beside a train.sh still holding train.pid with no queue open waits it out, then starts nothing beside it (one-train, rc 2)
+    FAIL sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it
+== R3 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 1 failed' fails=1
+    FAIL add beside a train.sh still holding train.pid with no queue open waits it out, then starts nothing beside it (one-train, rc 2)
+== R4 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 3 failed' fails=3
+    FAIL admit_add: a verdict that carries to the head is admitted; one that does not is refused as `carry`
+    FAIL add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
+    FAIL null control: a head carrying a non-main delta past its verdict is refused by the `carry` rule (app_approve.sh's own CARRY: no), nothing spooled
+== R5 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 4 failed' fails=4
+    FAIL admit_add: a verdict that carries to the head is admitted; one that does not is refused as `carry`
+    FAIL add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
+    FAIL add, a train live: a CARRIED single (verdict an ancestor of its head, main's merge the gap) passes app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)
+== R6 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 3 failed' fails=3
+    FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+    FAIL sweep: null control -- a new verdict at a moved head is a new entry, added once
+    FAIL sweep: an add admit_add refused is counted, not recorded -- the next pass offers it again
+== R7 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 2 failed' fails=2
+    FAIL sweep: an open train-stop in the ledger holds the sweep -- no read, nothing added
+    FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== R8 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 1 failed' fails=1
+    FAIL sweep: an add that started no train refuses the sweep (rc 2) at that entry, the rest untried
+== R9 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 6 failed' fails=6
+    FAIL admit_add refuses by its `verdict` rule, naming it: verdict: no confirmed verdict on the bus (verdict/7)
+    FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the verdict bus could not be read
+    FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest verdict is blocked
+== R10 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 2 failed' fails=2
+    FAIL add, a train live: a CARRIED single (verdict an ancestor of its head, main's merge the gap) passes app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)
+    FAIL RACE: two concurrent adds with no train live start exactly ONE train (one launch, one train.pid) and spool exactly the other entry
+== R11 tools/audit/seat/merge_train.py: rc=1 last='merge_train self-test: 318 checks, 3 failed' fails=3
+    FAIL add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, nothing spooled twice, nothing started
+    FAIL add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
+    FAIL null control: a head carrying a non-main delta past its verdict is refused by the `carry` rule (app_approve.sh's own CARRY: no), nothing spooled
+== R12 tools/audit/seat/bus.sh: rc=1 last='bus self-test: 74 checks, 1 failed' fails=1
+    FAIL a posted merge verdict is added to the train at its head, after the post (the event add)
+== R13 tools/audit/seat/bus.sh: rc=1 last='bus self-test: 74 checks, 1 failed' fails=1
+    FAIL a posted blocked verdict adds nothing to the train
+== R14 tools/audit/seat/tick_loop.sh: rc=1 last='tick_loop self-test: 17 checks, 3 failed' fails=3
+    FAIL --sweep: one sweep after the tick, its last line after the banner, its whole output in <out>.sweep.log
+    FAIL null control: a pass once the interval has passed sweeps again
+    FAIL a refused sweep is reported with its rc and the pass still completes
