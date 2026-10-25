@@ -8656,8 +8656,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "branch": null
+    "stage": "done",
+    "branch": null,
+    "commit": "8a11b8bdd6bfdca0b5f6bd356638fad2b234525f"
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration) left by R10-FLOW-YIELD-PROBE; re-derive the two figures in the second carry at your merge base first. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
