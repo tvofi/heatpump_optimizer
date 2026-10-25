@@ -1,5 +1,0 @@
-Architecture score: dS +1.2702 IMPROVES
-  duplication_copies 39 -> 37  +0.6607
-  coord_footprint 2445 -> 2435  +0.0059
-  layer_violations 17 -> 13  +0.3626
-  private_cross_module 12 -> 10  +0.2410

@@ -1,5 +1,5 @@
-== base
-RESULT finite_float_coercers=13 count
+== rule base
+RESULT coercers=13
    away.py::_as_num
    const.py::buffer_tank_surface_area
    coordinator.py::_as_float
@@ -13,6 +13,54 @@ RESULT finite_float_coercers=13 count
    sensor.py::_dhw_min_ceiling
    thermal_model.py::_optional_float
    wood_fuel.py::_optional_float
-== head
-RESULT finite_float_coercers=1 count
+== rule head
+RESULT coercers=1
    const.py::finite_float
+== wide(small fns) base
+RESULT coercers=28
+   accuracy.py::num
+   away.py::_as_num
+   boost.py::_due_inside_horizon
+   const.py::buffer_tank_surface_area
+   coordinator.py::_as_float
+   coordinator.py::_dhw_probe_temperature
+   coordinator.py::_refuses_non_finite
+   coordinator.py::guarded
+   defrost.py::_elapsed
+   diagnostics.py::_coordinate
+   draw_range.py::_command_cells
+   entry_config.py::_number
+   inputs.py::_finite
+   inputs.py::parse_bool
+   modbus_prefill.py::_number
+   price_model.py::_raw_value
+   price_tiles.py::monthly_figure
+   pump_arbiter.py::_finite_or_none
+   quiet_windows.py::_power_entity_kw
+   replay_doc.py::json_decimal_places
+   replay_doc.py::numeric
+   replay_doc.py::text_ok
+   sensor.py::_dhw_min_ceiling
+   store.py::_poisoned
+   thermal_model.py::_optional_float
+   thermal_model.py::dhw_inlet_reference
+   thermal_model.py::internal_gains_at
+   wood_fuel.py::_optional_float
+== wide(small fns) head
+RESULT coercers=16
+   accuracy.py::num
+   boost.py::_due_inside_horizon
+   const.py::finite_float
+   coordinator.py::_dhw_probe_temperature
+   coordinator.py::_refuses_non_finite
+   coordinator.py::guarded
+   defrost.py::_elapsed
+   diagnostics.py::_coordinate
+   draw_range.py::_command_cells
+   inputs.py::parse_bool
+   replay_doc.py::json_decimal_places
+   replay_doc.py::numeric
+   replay_doc.py::text_ok
+   store.py::_poisoned
+   thermal_model.py::dhw_inlet_reference
+   thermal_model.py::internal_gains_at

@@ -1,0 +1,9 @@
+2817 head 935a7a6b1fa123b16ba85f3e38756a29527f36ca
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18103 + both deltas = 18086
+  max_class_loc: 8343 + both deltas = 8270
+  re-run the gate that owns this file before pushing
+d9f88ab9cbcea10258be24ea9776421caff697b5
+rc=0
+ tests/entities.py | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
