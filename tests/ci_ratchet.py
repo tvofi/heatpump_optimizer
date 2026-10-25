@@ -1001,14 +1001,34 @@ def self_test() -> int:
        mc is None, msg or f"got {mc}")
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "runs.json"
+        # Ten runs: seven of 32.1, two of 41.2, one of 51.2 -- median 32.1,
+        # p90 (the 9th smallest) 41.2, max 51.2, so each statistic is told
+        # apart from the other two.
+        run_t = {**run_q, "jobs": queued[:-2] + [j("tests / ci-ratchet", 54.6, 58.6, 79.7)]}
         f.write_text(json.dumps({"workflow_runs": [
-            {**run_q, "id": i} for i in range(1, 4)] + [{**run_s, "id": 9}]}))
+            {**run_q, "id": i} for i in range(1, 8)]
+            + [{**run_s, "id": 8}, {**run_s, "id": 9}, {**run_t, "id": 10}]}))
         g, msg = safe(lambda: critical_path_minutes(f))
         r, msg2 = safe(lambda: critical_path_minutes(f, stat="p90"))
         ck("the grade is the window's median, a record its p90 (headroom for the "
-           "metric's own noise, never for the queue)",
+           "metric's own noise, never for the queue; not its max)",
            g is not None and abs(g - 32.1) < 0.05 and r is not None and abs(r - 41.2) < 0.05,
            msg or msg2 or f"median {g} p90 {r}")
+        md = Path(td) / "m"
+        md.mkdir()
+        (md / "ci-metrics-fast.tsv").write_text("fast\tmode\tfull\t1\t0\tpush\t77\n")
+        real = globals()["archscore_metrics"]
+        globals()["archscore_metrics"] = lambda only=None: {}
+        try:
+            dg, msg = safe(lambda: derive(md, f))
+            dr, msg2 = safe(lambda: derive(md, f, record=True))
+        finally:
+            globals()["archscore_metrics"] = real
+        ck("derive grades the median and a --record derive writes the p90",
+           (dg or {}).get("critical_path_minutes") is not None
+           and abs(dg["critical_path_minutes"] - 32.1) < 0.05
+           and abs((dr or {}).get("critical_path_minutes", 0) - 41.2) < 0.05,
+           msg or msg2 or f"grade {dg} record {dr}")
 
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
