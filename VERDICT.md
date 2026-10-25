@@ -1,40 +1,53 @@
-Fix review: blocked b5a7138f59118ca4a103f806de4c8b64be980fdb ruling-incomplete: none of P176-P183 carries the Instances: field, and all eight are ACCEPT on an unmeasured benefit
+Fix review: merge b6df9b2b91bc45b7a2d405716312546f2d4d47d1
 
-bus-nonce: 49f90f9fd90e2391937862da48681edb
+bus-nonce: ee2af5889089c385943c97f9d0468184
 
-Round 1. Reviewed against `dev/governance/roles/proposal-triage.md` and `fix-review.md` at origin/main `c9cbe6b45`. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contracts are current.
+Round 2, a delta review of the re-cut. Reviewed against `dev/governance/roles/proposal-triage.md` and `fix-review.md` at origin/main `f3ffb1c63`. No role contract changed between the merge base `c9cbe6b45` and origin/main (`ev/contracts_drift.txt`).
 
-## Block
+## Block findings of round 1: did the re-cut close them?
 
-1. **The `Instances:` field is missing from all eight rulings.** `proposal-triage.md` says a ruling carries `Verdict:`, `Source:`, `Instances:` (each counted instance with the command or log reference beside its figure), `Cost:` and `Binding:`. `grep -c '^Instances:'` gives 0 for `s6-batch31.md` at the head. Every other triage batch file on origin/main gives at least 1, and so does the sibling `s6-batch30.md` (8, including "Instances: none measured"); see `ev/instances.txt`. Without the field, no reviewer can re-run a per-ruling instance figure, because none is stated.
-2. **All eight rulings are ACCEPT, but none has a measured benefit.** The contract says "an unmeasured benefit is DEFER, never ACCEPT". Each ruling's own `Binding:` says "Closure saving: 0 h in round 10", and none states a counted instance or a measured round-11 benefit. The tree's own precedent on this point is `s6-batch11.md:12`, `s6-batch14.md:14`, `s6-batch21.md:60`, `s6-batch22.md:22` and `s6-batch23.md:16` (`ev/precedent.txt`). The "tvofi-accepted F10/Q1..Q10" tags in `Source:` cite an out-of-tree `proposals.md` that I could not open. If the owner's acceptance is the decision, the ruling should say so and cite it as the owner ruling that decides, rather than present a cost/benefit ACCEPT the gate does not support.
-3. **P176's destination names no owner.** "round-11 policy design item" names no dimension or group. Yet the P183 carry text ends "Each item states its round-11 owner seat", and its item (1) states none. The other seven name D0, D2, D3, D7, D10, D13 or D14.
+1. **`Instances:` missing: closed.** Every ruling now carries an `Instances:` line: `grep -c '^Instances:'` gives 8, at `s6-batch31.md` lines 16, 23, 30, 37, 49, 56, 63 and 74 (`ev/fields.txt`). The P177 instance command re-derives: `git grep -l hypothesis -- 'tests/*.py'` prints nothing at `dfcd8d9be`, at origin/main and at the head (`ev/facts.txt`). P181 and P183 say "none measured" and cite nothing. That matches the `s6-batch30.md` precedent the round-1 verdict accepted, because no instance was counted, so there is no figure to cite.
+2. **ACCEPT on an unmeasured benefit: closed.** All eight rulings are now `Verdict: DEFER`, and none is ACCEPT. Each DEFER names the measurement that would change its answer, which is what the contract requires ("DEFER names what would change the answer, or the group already owning the item"). Examples are line 13 for P176, the P177 line "the count of round-10 optimizer defects that a stated property ... would have caught", and the P183 line "post-release defects and time-to-detect per stamp". Each cites the re-cut: "(Round-1 re-cut, verdict 6402374814 ...)". The id is the round-1 verdict's PR comment `issuecomment-6402374814`, posted by `hpo-approver[bot]`.
+3. **P176 names no owner: closed.** Line 13 reads "Verdict: DEFER -> D11 (governance mechanisms) owns the measurement in round 11". The carry whose item (1) lacked an owner is dropped from the file, with "P183's carry is dropped" at line 5.
 
-What would clear the block: add an `Instances:` line to each ruling (for example "none measured" plus the figure the filing gives, cited). Then re-rule each as DEFER, naming R10-ROUND-PLAYBOOK as the owning carry and the measurement that would change the answer. Alternatively, keep ACCEPT only where an owner ruling in the tree is cited as deciding it. Name P176's owner as well (D11 governance is the natural one). The carry text can stay as it is apart from item (1).
+The route the owner chose is sound. Line 5 says the owner's acceptance reaches R10-ROUND-PLAYBOOK as an owner-sourced carry rather than through a triage ACCEPT. That carry already exists on `handoff/audit-r10-roster` at `2b7fe35c6`: carry 6 of R10-ROUND-PLAYBOOK reads "Triage batches 27-31 re-ruled the ones it could not measure in round 10 as DEFER ... in triage PRs #2827-#2831. Round-11 planning takes each deferred item as owner-accepted" (`ev/playbook_carry.txt`). So no deferred item is left unpropagated.
 
-Rulings I would change: P176-P183 from ACCEPT to DEFER (reason 2), and P176's owner (reason 3).
+## Rulings re-checked
+
+- **Verdict and destination.** All 8 are DEFER, each to a dimension brief that exists: D0, D2, D3, D7, D10, D11, D13 and D14 are all present under `dev/governance/dimensions/`. A dimension is never done or absorbed. The contract lets a DEFER name what would change the answer instead of a group, and each one does.
+- **Source.** Each cites the s6 `proposals.md` `## V9x/V10x` entry with its owner tag. The file is out of tree. Carry 6 above records the owner's acceptance of V63-V103 in the tree.
+- **Instances.** See block finding 1. These facts re-derive at the head:
+  - P176: `fix-review.md` holds the five block classes at lines 12, 28, 46, 88 and 134, unchanged at origin/main.
+  - P178: `tests/optimality.py:3` reads "Not an optimality proof", and `:8` is the BLAS-noise headroom.
+  - P179: `tests/mutation_budgets.json` has a single `max_survivor_fraction` with no per-module key, and `tests/mutation_ledger/` exists.
+  - P180: all three HA instruments exist.
+  - P182: `tests/typing_ruler.py:12-14` covers errors, by_code, and type_ignores "a separate hard metric at 0".
+  - P183: `defect-root-cause.md:18` is the "reached a released version" trigger, and `tools/release/stamp.py` exists.
+  
+  All of this is in `ev/facts.txt`.
+- **Cost and Binding.** Present on all 8. Each Binding states the round-10 constraint ("Closure saving: 0 h in round 10"), which is consistent with DEFER.
+- **Roster.** R10-ROUND-PLAYBOOK and R10-ORCH-REVIEW-PACKET (P176 cites the latter's carry 0 on zero headroom) are both at stage not-started on origin/main and on the roster branch. Neither is done or absorbed (`ev/roster.txt`). The carry 0 text cites `fix-review.md` "at zero headroom".
+- **Re-cuts and duplicates.** The batch re-cuts its own round-1 rulings and cites the verdict on every entry. No ruling duplicates another, and none duplicates an existing group (the round-1 keyword search stands, and the delta adds no new subject).
+
+Rulings I would change: none.
 
 ## Findings
 
-- `roster_edit.ruling_verdict` reads only the `Verdict:` line. It returns ACCEPT for all eight rulings even though none has an `Instances:` line (`ev/ruling_verdict.txt`), so the tool that routes an ACCEPT does not enforce the ruling shape the contract requires. A field-presence check is a tooling proposal, so it is for the triage seat, not something this review builds. Carry: dismissed: a proposal for the triage gate, routed by the orchestrator's sweep rather than carried from a review; the reviewer check on this PR caught it at a cost of one round.
+- Line 7 still reads "A roster op citing an ACCEPT below resolves only once this file is on the roster branch or origin/main". After the re-cut the file holds no ACCEPT, so the sentence is stale boilerplate. It misleads no tool: `roster_edit.ruling_verdict` returns DEFER for every pid. Carry: dismissed: an inert sentence in a ruling record, and a third round to delete it costs more than it buys.
 
 ## Evidence
 
-- RESULT head reviewed `b5a7138f59118ca4a103f806de4c8b64be980fdb` (`ev/HEAD.txt`), which is also the PR head the API reports.
-- RESULT scope: the diff against the merge base `c9cbe6b45` is `dev/programme/delivery/2831.md` (+1) and `dev/programme/triage/s6-batch31.md` (+68) only, so it changes only the batch file and its delivery row (`ev/merge.txt`).
-- RESULT merge: `git merge-tree --write-tree origin/main <head>` exits 0 with tree `0b8e5f61e`, so there is no conflict.
-- RESULT host paths: `grep -E '/home|/Users|/tmp|~/'` on the batch file finds nothing.
-- RESULT body figure: `grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' | uniq -c` gives 8 ACCEPT, 0 DEFER, 0 REJECT, which matches the body.
-- RESULT null control re-run: `roster_edit.ruling_verdict(text, P176..P183)` gives ACCEPT for each, and P184 gives None (`ev/ruling_verdict.txt`). The body's figure holds when the function is passed the file's text. Passed the path, it returns None for every pid.
-- RESULT per-ruling facts, re-derived at the stated base `dfcd8d9be`:
-  - P176: `fix-review.md` lines 12, 28, 46, 88 and 134 hold mutation-vacuous, class-open, carry-missing, head-moved and architecture-unsound. R10-ORCH-REVIEW-PACKET exists, is not-started, lists `fix-review.md` among its files, and its carry 0 cites zero headroom.
-  - P177: no Python file under the tree imports hypothesis, and no requirements file names it. The only "hypothesis" hit is a comment in `tests/card.mjs:7112`.
-  - P178: the `tests/optimality.py` docstring says "Not an optimality proof".
-  - P179: `tests/mutation_budgets.json` holds `max_survivor_fraction` {changed, full}, which is not per module.
-  - P180: `ha_contract.py`, `ha_floor.py` and `nightly_ha.py` all exist.
-  - P181: `stress.py`, `backtest.py` and `golden.py` all exist.
-  - P182: the `typing_ruler.py` docstring ratchets three numbers (errors, by_code, type_ignores). `typing_budgets.json` exists, and `tests.yml:709` runs the ruler.
-  - P183: `defect-root-cause.md:18` is the "reached a released version" trigger. D13, D14 and `tools/release/stamp.py` exist.
-- RESULT destination: R10-ROUND-PLAYBOOK is present on the origin/main roster and on `handoff/audit-r10-roster` (`32ffe43c0`) at stage not-started, so it is live, with 5 carries.
-- RESULT duplicates: no roster group or triage file on origin/main mentions the rubric, property-based tests, a per-module mutation score, escaped defects, unit types or a full-year gate (searched by keyword), and neither does `s6-batch32.md`. No ruling duplicates another in this file. `s6-batch30.md` P174 refers forward to V94 "ruled in batch 31", which is consistent.
-- CI on the head: 7 check runs, 1 skipped (`arm`) and 6 queued (`prelude`, `refresh`, `cancel-superseded`, twice each). None has concluded and none is red, so the red-check trigger cannot apply yet. `pr-contract` has not reported on this head.
+- RESULT head reviewed: `b6df9b2b91bc45b7a2d405716312546f2d4d47d1` (`ev/HEAD.txt`). This is the PR head the API reports. The PR author is `hpo-author[bot]`.
+- RESULT scope: the three-dot diff against the merge base `c9cbe6b45` is `dev/programme/delivery/2831.md` (+1) and `dev/programme/triage/s6-batch31.md` (+77) only (`ev/merge.txt`). The re-cut commit touches only the batch file (`ev/recut.diff`).
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` exits 0 with tree `746ec7ec5`, so there is no conflict (`ev/merge.txt`).
+- RESULT host paths: a grep for `/home|/Users|/tmp|~/` matches nothing in the batch file or the delivery row.
+- RESULT body figures:
+  - `grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' | sort | uniq -c` gives 8 DEFER, matching the body.
+  - `grep -c '^Instances:'` gives 8, matching the body.
+  - The body's per-ruling destinations match the file's lines.
+- RESULT null control re-run: `roster_edit.ruling_verdict(text, pid)` gives DEFER for P176-P183 and None for P184, as the body states (`ev/ruling_verdict.txt`).
+- RESULT mutation proof: n/a, because the PR changes no code or check. It is a ruling record, and its consumer reads all eight as DEFER.
+- CI on the head (`ev/ci.txt`): no required check is red.
+  - `governance / delivery-status` failed. Its log names six overdue rows from other PRs, none of them #2831, and states it is NOT a required context and blocks no merge. So the red-check trigger does not apply to this PR.
+  - `tests / fast (3.14)`, `typing`, `env-matrix`, `instrument-self-tests`, `coverage-ratchet` and `graders-head-copy` were still running at read time.
+  - Every other concluded check passed or was skipped.

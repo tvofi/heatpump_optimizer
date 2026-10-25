@@ -1,0 +1,12 @@
+== origin/main
+R10-ROUND-PLAYBOOK carry 1 False mentions batch31: False False False
+  resume: {"stage": "not-started", "branch": "handoff/r10-round-playbook", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every `after` group is done", "note": "Owner request 2026-10-21; the last group before the closure stamp."}
+R10-ORCH-REVIEW-PACKET carry 3 False mentions batch31: False False False
+  carry0: "tvofi 2026-10-24 card 8 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): placed after R10-ORCH-DISPATCH-REG, because bus.sh dispatch renders the packet, and before R10-ORCH-BEATD. R10-POLICY-FIXER-MD is also an after-edge because it edits fix-review.md at zero headroom 
+  resume: {"stage": "not-started", "branch": "handoff/r10-orch-review-packet", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "owner card 8, 2026-10-24"}
+== 2b7fe35c67cafb7e7ac87df934529b9f27275716
+R10-ROUND-PLAYBOOK carry 7 False mentions batch31: False False True
+  resume: {"stage": "not-started", "branch": "handoff/r10-round-playbook", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every `after` group is done", "note": "Owner request 2026-10-21; the last group before the closure stamp."}
+R10-ORCH-REVIEW-PACKET carry 4 False mentions batch31: False False False
+  carry0: "tvofi 2026-10-24 card 8 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): placed after R10-ORCH-DISPATCH-REG, because bus.sh dispatch renders the packet, and before R10-ORCH-BEATD. R10-POLICY-FIXER-MD is also an after-edge because it edits fix-review.md at zero headroom 
+  resume: {"stage": "not-started", "branch": "handoff/r10-orch-review-packet", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "owner card 8, 2026-10-24"}

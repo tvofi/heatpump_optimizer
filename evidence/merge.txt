@@ -1,8 +1,7 @@
-reviewed head: b5a7138f59118ca4a103f806de4c8b64be980fdb
-origin/main: c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
-merge-base: c9cbe6b458a7053f914649eb02d5296d6cd8c0f4
-0b8e5f61e559bc3e71719313ae7a339afaaa42ac
-merge-tree exit: 0
+merge-tree origin/main(f3ffb1c63) b6df9b2b91bc45b7a2d405716312546f2d4d47d1
+746ec7ec5c0dbcab17c8689dad03223809c60c94
+rc=0
+
  dev/programme/delivery/2831.md     |  1 +
- dev/programme/triage/s6-batch31.md | 68 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 69 insertions(+)
+ dev/programme/triage/s6-batch31.md | 77 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 78 insertions(+)
