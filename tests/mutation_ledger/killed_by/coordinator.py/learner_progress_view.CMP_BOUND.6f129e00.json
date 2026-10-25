@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:learner_progress_view CMP_BOUND 6f129e00",
-  "killed_by": "tests/features.py",
-  "old": "    solar_wait = \"sunnier\" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE else house_wait",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: CMP_BOUND (`solar_wait = \"sunnier\" if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE else house_wait`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

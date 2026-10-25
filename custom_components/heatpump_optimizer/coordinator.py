@@ -1420,14 +1420,19 @@ def learner_progress_view(
     rates = snapshot_rates(snapshots, dt_util.now(), counts)
     outdoor = state.outdoor_temperature
 
+    # The house, lower and gains folds' own dark gate (#2223), on the reading now.
+    darker = "darker" if is_sunlit_interval(state.solar_radiation) else None
+
     def colder(zone: float) -> str | None:
         # The house and lower folds' own ΔT gate, on the reading in force now.
         return "colder" if zone - outdoor < HOUSE_LOSS_MIN_DELTA else None
 
-    house_wait = colder(_learned_zone_temperature(state, params))
-    # The aperture folds inside the house learner, behind its ΔT gate.
+    house_cold = colder(_learned_zone_temperature(state, params))
+    house_wait = house_cold or darker
+    # The aperture folds inside the house learner, behind its ΔT gate and
+    # ahead of its dark one.
     irradiance = float(state.solar_radiation or 0.0)
-    solar_wait = "sunnier" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE else house_wait
+    solar_wait = "sunnier" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE else house_cold
     learners = {
         "house": LearnerInputs(
             True, counts["house"], house_loss_converged, house_loss_confidence,
@@ -1436,7 +1441,7 @@ def learner_progress_view(
         "lower": LearnerInputs(
             params.two_zone_enabled and bool(config.lower_floor_temp_entity),
             counts["lower"], None, house_loss_confidence,  # the same HOUSE_LOSS_ALPHA step
-            colder(state.lower_floor_temperature), rates["lower"],
+            colder(state.lower_floor_temperature) or darker, rates["lower"],
         ),
         "solar": LearnerInputs(
             bool(config.solar_aperture_learning_enabled), counts["solar"],
