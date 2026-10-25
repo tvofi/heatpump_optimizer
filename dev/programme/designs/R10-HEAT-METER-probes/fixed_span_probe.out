@@ -1,0 +1,4 @@
+true 0.6 kW: all 20000 spans refused (resolution bound)
+true 1.5 kW: accepted 20000, mean of span means 1.500 kW (sd 0.289), refused 0
+true 2.2 kW: accepted 20000, mean of span means 2.200 kW (sd 0.306), refused 0
+true 3.0 kW: accepted 20000, mean of span means 3.000 kW (sd 0.333), refused 0

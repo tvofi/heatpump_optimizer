@@ -1,0 +1,6 @@
+N=1 true 0.6 kW: accepted 6000, refused spans 2000; energy-weighted mean 0.857 kW, mean of span means 1.111 kW
+N=1 true 1.5 kW: accepted 15000, refused spans 0; energy-weighted mean 1.500 kW, mean of span means 1.667 kW
+N=1 true 3.0 kW: accepted 20000, refused spans 0; energy-weighted mean 3.000 kW, mean of span means 3.000 kW
+N=2 true 0.6 kW: no accepted span
+N=2 true 1.5 kW: accepted 7500, refused spans 0; energy-weighted mean 1.500 kW, mean of span means 1.556 kW
+N=2 true 3.0 kW: accepted 10000, refused spans 0; energy-weighted mean 3.000 kW, mean of span means 3.000 kW

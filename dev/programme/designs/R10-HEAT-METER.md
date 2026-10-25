@@ -1,139 +1,177 @@
 # R10-HEAT-METER design note (designer seat)
 
-The group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/R10-HEAT-METER` only and is never merged. Issue #2261, owner request 2026-10-15. **No finder harness: owner report.** The evidence is the owner's report as #2261 quotes it.
+This is the group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/R10-HEAT-METER` only and is never merged. Issue #2261, owner request 2026-10-15. **No finder harness: owner report.**
 
-**Read at.** `origin/main` is `da12aa37dee15b9e9567bd6c848493436f2592dd`. The predecessor that moves this group's ground is R10-THERMAL-POWER-OPTION, PR #2753, open and unmerged, head `8a133f390df73f560b588ab570aedbab95ee5ae1`, whose merge base is `da12aa37d`. Every symbol below marked "(#2753)" exists at that head and not at main. **This note relies on #2753 merging with those names.** If it merges changed, or does not merge, step 9's revalidation applies, and without #2753 the XL size stands.
+**Revision 1** answers the design review `design-verdict/R10-HEAT-METER` at `fabd19b8a`, which returned revise on `04de6ae7f` with points 1-5. It also follows two sets of orchestrator rulings under mandate 6329234399:
+- Combination modes fall back to #2753's whole-unit treatment.
+- The mode entity becomes optional and the refusal goes.
+- Adding a meter does not wipe the scale unless the replay will use the meter.
+- "Clamp means reset" is kept, routed as a carry.
+- The fixer is held until #2753 merges.
+
+**Read at.** `origin/main` `da12aa37dee15b9e9567bd6c848493436f2592dd`, and R10-THERMAL-POWER-OPTION's head `8a133f390df73f560b588ab570aedbab95ee5ae1` (PR #2753, open, merge base `da12aa37d`). Symbols marked "(#2753)" exist only at that head.
+
+**Hold.** Dispatch no fixer until #2753 merges. Then re-check every "(#2753)" name at its merge SHA within the 1 h box (step 9), or report `revalidation failed`.
 
 ## Premise, measured
 
-- **At main, the premise still holds.** `git grep CONF_THERMAL_POWER_ENTITY da12aa37d -- custom_components` returns nothing.
-- **At #2753's head, it is superseded.** `probe_install(cfg).measured_heat` (#2753) flags a thermal power entity. `read_heat_output_kw` in `custom_components/heatpump_optimizer/flow_meter.py` answers it first, with no fallback. `cop_evidence` (#2753) folds heat over electricity and skips `MeasuredCop.judge_ratio`. `space_reference_cop` (#2753) judges the result at the supply it ran at. `_interval_measured_heat_kw` replays measured heat. `replay_freeze` (#2753) lifts the (c) freeze. `_fold_capacity_envelope` samples at all loads.
-- **What #2753 leaves undone.** These seven items were measured at `8a133f390`:
-  1. **No energy counter.** `dir(const)` has no `HEAT_ENERGY` key. `CONF_ENERGY_ENTITY` is read into `_measured_energy` and only published. No counter delta exists anywhere: a grep for `delta|rollover|total_increasing` over `custom_components/heatpump_optimizer/*.py` finds only tariff and ledger month rollover.
-  2. **A mixed interval is refused, not split.** `_interval_measured_heat_kw` returns `None` whenever the commanded `dhw_kw > 0`.
-  3. **The mode is never timed.** No reader of the mode keeps time. `PumpSignals` holds one cycle's mode; `pump_signals.read` sees the state object, so `last_changed` is in reach there.
-  4. **The mode entity is not required.** The config flow lets the thermal key be saved without a mode entity. #2753's config-flow diff is two lines: an import and an `_F` row.
-  5. **Adding the meter does not re-anchor.** A probe run with the venv-ha interpreter at `8a133f390` gives `heat_loss_basis({power, thermal}) == "metered"`, the same as `{power}` alone. `heat_loss_basis_voids("metered", ...)` is `False`, so adding the meter voids nothing.
-  6. **The ledger splits by plan, not by mode.** `_accumulate_energy` splits by `planned_dhw / planned_total` (SAV carry).
-  7. **The time share cannot split a COP.** Split H and E by any share s, and both halves read H/E (probe: s = 0.25, 0.5 and 0.75 all give 3.0/3.0). One interval's time share carries no information about a per-mode COP.
+- **At main, the premise holds.** `git grep CONF_THERMAL_POWER_ENTITY da12aa37d -- custom_components` returns nothing.
+- **At #2753's head, it is superseded on the consumer side.**
+  - `read_heat_output_kw` in `custom_components/heatpump_optimizer/flow_meter.py` answers a thermal key first, with no fallback.
+  - `cop_evidence` (#2753) folds heat over electricity and skips `judge_ratio`.
+  - `space_reference_cop` (#2753) and `replay_freeze` (#2753) are wired in.
+  - `_interval_measured_heat_kw` replays measured heat on commanded space-only intervals.
+  - `_fold_capacity_envelope` samples at all loads.
+- **What is still owed, measured at `8a133f390`:**
+  1. No energy counter, and no counter delta anywhere.
+  2. A mixed interval is refused, never split.
+  3. Nothing keeps time on the mode.
+  4. Adding a meter re-anchors nothing: `heat_loss_basis({power, thermal}) == "metered"` (venv-ha probe).
+  5. The ledger and the diagnosis triple split by the plan.
+  6. Splitting by time share cannot give a per-mode COP. Splitting H and E by any share gives H/E on both sides (probe: 3.0/3.0 at s = 0.25, 0.5 and 0.75).
 
-## Size verdict: L, not XL, conditional on #2753
+## Size verdict: L, conditional on #2753
 
-#2753 is size M. Its production diff is 173 added and 84 deleted lines over 8 files (`git diff --numstat da12aa37d...8a133f390 -- custom_components`), and it delivered the consumer side: the COP sample site, the house replay, the freeze lift, the envelope and the reference COP. The residual is items 1 to 7: a new pure module, two coordinator wiring calls, four rule changes at existing sites, one config refusal and one basis entry. Estimated at about 1.2 to 1.4 times #2753's production lines, with about eight owed checks. That fits L (6 h in the plan's nominal size table, `tools/plan/replan.py`). XL priced the consumer side twice.
+#2753 (size M) is 173+/84- production lines over 8 files (`git diff --numstat da12aa37d...8a133f390 -- custom_components`) and delivers the consumer side. What remains is a pure module, two wiring calls, span-aligned sampling for counter installs, four call-site swaps to one owner, and one basis entry. The reviewer confirmed L against #2753's head, and XL against main alone.
+
+## Selector semantics (review point 1)
+
+`CONF_HEAT_PUMP_MODE_ENTITY` is the pump's mode **selector**: what it may do, never what it is doing (`custom_components/heatpump_optimizer/pump_mode.py`). Under a single-duty selector (`heat`, `DHW`, `cool`), the pump cannot run the other duty, so the selector's dwell is the duty split. Under a combination selector (`HEATDHW`, `COOLDHW`, `concurrent`), the duty is unobserved: the pump charges hot water on its own initiative and the selector does not change.
+
+The mode source of each segment:
+- An observed single-duty mode, read or written by the arbiter (`mode_owned`, its step decision), is **observed**.
+- Everything else falls back to **#2753's whole-unit rule** for that interval, bit-identical to #2753, by ruling. "Everything else" covers a combination mode, owned or not, an unobserved or absent mode, and a `MODE_SOURCE_LAST_GOOD` reading.
+- An interval is observed only when every segment in it is.
+
+**Activity signal: rejected.** A rising `CONF_DHW_TEMP_ENTITY` names a charge but not its share. A flat tank does not exclude a charge masked by a draw. Under the ruling it could only refine the combination arm, which takes #2753's rule anyway.
+
+**The mode entity is optional.** `heat_meter_needs_mode` is removed: without the mode entity, every interval takes #2753's rule. That is the owner's request, overruled under the mandate; record it so in the pull request.
 
 ## Owning seam
 
-**The new module `custom_components/heatpump_optimizer/heat_energy.py` (would be new) owns interval energy accounting.** It is pure and has no `homeassistant` import. It holds:
-- `CounterDelta`: one cumulative counter's previous reading and the delta rule. It serves the heat counter and the existing electric `CONF_ENERGY_ENTITY` alike.
-- `ModeDwell`: a bounded log of `(start, mode_class)` segments, with `shares(since, until) -> DwellShares(space, dhw, blended, other)` summing to 1.
+**The new module `custom_components/heatpump_optimizer/heat_energy.py` (would be new) owns interval energy accounting and attribution.** It is pure and has no `homeassistant` import. It holds:
+- `CounterDelta`: one counter's fixed-span delta rule.
+- `ModeDwell`: segments with `(start, duty, observed)`, and `shares(since, until) -> DwellShares | None`. `None` means some segment in the window is not observed.
+- `HeatEnergyMeter`: the per-coordinator holder of the heat counter, the electric counter (`CONF_ENERGY_ENTITY`), the dwell and the span state.
+- **Attribution, one owner** (review point 4): `attribution(shares, plan_split) -> Attribution(space_frac, dhw_frac, observed)`.
+  - With `shares` it returns the observed fractions; with `None`, the caller's `plan_split` fractions.
+  - Its consumers are pure functions next to it:
+    - `space_heat_kw(heat_kw, a)`: observed returns `heat_kw * space_frac`; else #2753's rule, `heat_kw` iff `dhw_frac == 0 and space_frac > 0`, else `None`.
+    - `cop_duty(a, share_limit)`: space, DHW or blended, against the caller's `_COP_CURVE_SHARE`.
+    - `dhw_share(a)`.
 
 **Callers only:**
-- `flow_meter.read_heat_output_kw` stays the single answer to "how much heat this cycle" and gains one source.
-- `coordinator.py` holds one `HeatEnergyMeter` per coordinator and calls it at two edges.
-- `pump_signals.read` publishes `mode_changed_at`.
-- `thermal_model.heat_loss_basis` and `const.HEAT_LOSS_BASES` gain one basis.
-- `config_flow.py` gains one refusal.
-
-No concern needs two owners.
+- `flow_meter.read_heat_output_kw`: the single heat answer, which gains the counter source.
+- `pump_signals.read`: adds `mode_changed_at` from `last_changed`.
+- `thermal_model.heat_loss_basis` and `const.HEAT_LOSS_BASES`.
+- Five coordinator sites, which compute nothing. Each passes the plan split it reads today, so the unobserved arm is unchanged:
+  - `_interval_measured_heat_kw`: commanded split;
+  - `_cop_reference_curve`: commanded split;
+  - `_accumulate_energy`: `pending` split;
+  - `_settle_interval_diag`: `pending` split;
+  - the re-anchor.
 
 ## Shape
 
-- **Key.** `CONF_HEAT_ENERGY_ENTITY = "heat_pump_heat_energy_entity"`: a kWh counter, `reader.read`, which already normalises kWh through `normalize_energy_kwh`. Its `INPUT_MAX_AGE_MINUTES` is beside `CONF_ENERGY_ENTITY`'s, and its `INPUT_ON_CHANGE_MAX_AGE_MINUTES` is `math.inf`, because a counter holds while the pump idles (INPUT-STALENESS carry). Add the `_F` row in `entities_metering` and its strings in en and sv.
-  - `probe_install(...).measured_heat` becomes true for either heat key. It is the one predicate "has a heat meter", and COP-GATE keys on it.
-- **Precedence (carry from #2753).** The heat counter wins over the thermal power entity, which wins over the flow meter. A configured source whose reading is unusable answers `None` and never falls back. Why the counter wins: it integrates compressor cycling over the interval, where a power entity is a point sample. That is the reason `CONF_ENERGY_ENTITY`'s own description gives.
-- **Counter rule** (`CounterDelta.observe(value_kwh, at) -> kWh | None`):
-  - The first reading, or one after a restart, is `None` and sets the baseline. Nothing persists.
-  - A delta below 0 is a reset: `None`, and re-baseline.
-  - A delta above the physical bound (`p_max_thermal * span_h * HEAT_COUNTER_SLACK`) is a rollover or a meter swap: `None`, and re-baseline.
-  - A delta in `(0, HEAT_ENERGY_MIN_DELTA_KWH)` is quantised: `None`.
-  - A delta of exactly 0 counts as 0 only when the electric side reads idle. Otherwise it is `None`: the counter was silent while the pump drew.
-  - The baseline advances every cycle, so a span is always one read-to-read cycle.
-  - Each literal is justified next to its constant, in the new module.
-- **Interval mean.** `heat_kw = delta / span_h`. The house replay uses it only when `span_h` matches the replay's `dt_h` to within one cycle; otherwise it is `None`.
-- **COP.**
-  - With the counter as the source, the electrical figure is the electric counter's delta over the same read instants, never the point `_measured_power`.
-  - With no electric counter, the COP fold refuses with a new code, `COP_REFUSED_UNALIGNED = "unaligned_meters"` in `custom_components/heatpump_optimizer/accuracy.py`. The house replay still uses the heat.
-  - Either counter older than `HEAT_COUNTER_MAX_LAG_MINUTES` at the read is also `unaligned_meters`.
-  - `cop_evidence` (#2753) is called unchanged.
-- **Mode classes.**
-  - Each read classes `PumpSignals.mode`: `space` (`space_heat` and not `dhw`), `dhw` (`dhw` and not `space_heat`), `blended` (`concurrent`, or both flags set), and `other` (cooling, or mode unobserved).
-  - `pump_signals.read` adds `mode_changed_at` from the state's `last_changed`. A change inside the interval splits it at that instant.
-  - The same class at both ends with a change inside the interval means at least two changes, which cannot be split: that span is `blended`.
-- **Space heat for the house replay** (`_interval_measured_heat_kw`):
-  - Mode observed, with `blended + other == 0`: the replay gets `heat_kw * shares.space`, which may be 0 for an all-DHW interval: the replay's "no space heat".
-  - Mode observed with blended or other time: `None`.
-  - Mode not observed: #2753's commanded rule, unchanged.
-  - `replay_freeze` (#2753) reads this figure, so a DHW charge the mode shows is never replayed as space heat. This closes #2753's carry for every pump whose mode shows the charge.
-- **COP bin** (`_cop_reference_curve`). Only when heat is measured and the mode is observed, observed shares replace the commanded split against the existing `_COP_CURVE_SHARE`: space if `shares.space >= 1 - share`, DHW if `shares.dhw >= 1 - share`, otherwise `COP_REFUSED_BLENDED`. Probe 7 is why a mixed interval is not time-split for COP. Installs without a heat meter keep the commanded split, which is COP-GATE's ground.
-- **Ledger** (`_accumulate_energy`). When the mode is observed, `dhw_share = shares.dhw + (shares.blended + shares.other) * planned_dhw / planned_total`. With no mode entity it is bit-identical.
-- **Required mode.** The options step refuses either heat key without `CONF_HEAT_PUMP_MODE_ENTITY`, with the error key `heat_meter_needs_mode` (strings, en, sv). At runtime, an entry saved before this, or a stale mode, falls back to the not-observed rules above: the result is #2753's behaviour, never a guess.
-- **Re-anchor.** `HEAT_LOSS_BASES = ("commanded", "metered", "measured_heat")`, and `heat_loss_basis` returns the third entry when `measured_heat` is set. Adding either heat key then voids the earlier evidence through RATIO-ANCHOR's `heat_loss_basis_voids` path, and `reanchor_heat_loss` runs at zero confidence.
+- **Key.** `CONF_HEAT_ENERGY_ENTITY = "heat_pump_heat_energy_entity"` (kWh, `reader.read`).
+  - Its max age sits beside `CONF_ENERGY_ENTITY`'s, and its on-change limit is `math.inf` (INPUT-STALENESS carry).
+  - It gets an `_F` row in `entities_metering`, with strings in en and sv.
+  - `probe_install(...).measured_heat` is true for either heat key.
+- **Precedence.** Counter, then thermal kW, then flow meter. A configured source that reads unusable gives `None` and never falls back. The counter wins because it integrates cycling, where the thermal key is a point sample.
+- **Counter rule** (review point 2; probe `dev/programme/designs/R10-HEAT-METER-probes/fixed_span_probe.py`).
+  - The span is fixed in advance at `K = max(1, floor(HOUSE_LOSS_MAX_SAMPLE_HOURS / interval_h))` cycles: 3 at the 30 min default.
+  - At span close, `delta = counter_now - counter_at_span_start`, divided by the whole span.
+  - A span is accepted or refused on an independent figure, never on the quantised delta itself. The test is `q / expected_kwh <= HEAT_RESOLUTION_EPS`, where:
+    - `expected_kwh` is the electric counter's span delta times the reference COP, or with no electric counter the commanded energy times the modelled COP;
+    - `q` is the smallest positive step the counter has shown, and the span is refused until one is seen.
+  - Refused spans re-baseline at the close. A negative delta (reset) or one above `p_max_thermal * span_h * HEAT_COUNTER_SLACK` (rollover) refuses and re-baselines.
+  - Alignment is by read instant (carry dr1-lag-idle): both counters are read in the same cycle, so the paired deltas share instants.
+  - Probe, integer-kWh counter, `EPS = 0.5`: 0.6 kW refuses every span; 1.5 kW reads 1.500 (sd 0.289); 2.2 kW reads 2.200; null 3.0 reads 3.000. #04de6ae7f's rule read 0.6 kW as 2.000 (the reviewer's probe).
+- **Span-aligned learners** (counter installs only).
+  - The house and lower-floor learners take their sample at span close, from the snapshot at span start. Their `dt_h` therefore equals `span_h` by construction.
+  - The COP fold runs at span close on the paired deltas. Each per-cycle gate (frozen, frost, distorted, duty floor) is ANDed across the span: one gated cycle refuses the span.
+  - With a thermal-kW or flow source, sampling stays per cycle, as #2753 has it.
+- **COP.** On a counter span, the electrical figure is the electric counter delta. With no electric counter, the fold refuses with `COP_REFUSED_UNALIGNED = "unaligned_meters"` (`custom_components/heatpump_optimizer/accuracy.py`); the house replay still uses the heat. `cop_evidence` (#2753) is called unchanged.
+- **Re-anchor, earned not configured.** `HEAT_LOSS_BASES = ("commanded", "metered", "measured_heat")`.
+  - The learner's live basis becomes `measured_heat` at the **first fold whose replay used a non-`None` `space_heat_kw`**. That fold runs the existing void path (`heat_loss_basis_voids`, then `reanchor_heat_loss` at confidence 0) before it applies.
+  - A meter the replay never uses, such as an install whose selector stays a combination mode on mixed plans, keeps its scale.
+  - The upgrade flag persists with the learner, through the store's versioned migration.
+- **Invariants.**
+  - No heat key and no mode entity: bit-identical.
+  - Thermal key with no observed single-duty mode: #2753's figures.
+  - A refusal is `None` or a code, never 0.
 
 ```
-cycle: reader --> HeatEnergyMeter.observe_counters(heat, elec, at) --> IntervalEnergy{heat_kwh, elec_kwh, span_h | refusal}
-       observe_water --> read_heat_output_kw: counter > thermal kW > flow (no fallback) --> bias.heat_output_kw
-       pump_signals.read(+mode_changed_at) --> HeatEnergyMeter.observe_mode --> ModeDwell
-learners/COP/ledger: shares(since, until) --> _interval_measured_heat_kw | _cop_reference_curve | _accumulate_energy
+cycle: reader -> HeatEnergyMeter.observe_counters(heat, elec, at) -> span close? IntervalEnergy | refusal
+       observe_water -> read_heat_output_kw: counter > thermal kW > flow (no fallback)
+       pump_signals.read(+mode_changed_at, mode_owned) -> HeatEnergyMeter.observe_mode -> ModeDwell
+sites: attribution(dwell.shares(span), their plan split) -> space_heat_kw | cop_duty | dhw_share
 ```
-
-**Invariants.**
-- No heat key and no mode entity: bit-identical goldens.
-- Thermal key only, with no mode: #2753's figures.
-- A refusal is `None` or a code, never 0.
 
 ## Alternatives rejected
 
-- **The counter in `flow_meter.py`.** The counter rule serves the electric counter too, and the dwell log is mode accounting. Neither is "heat off the water", and flow_meter would gain cross-cycle state, where today its functions are stateless.
-- **Sampling the mode once per cycle**, the start or end word. With the 30 min default interval, a person's mid-interval change books the whole interval to one mode. `last_changed` is already on the state object `pump_signals.read` holds.
-- **The HA recorder for dwell.** That is a database read per cycle on Pi-class hardware (D9) and a new edge.
-- **Time-split COP into both bins.** Probe 7: both bins would get the same ratio.
-- **Refusing both heat keys together in the config flow.** That forces a user to delete a working key, and precedence already answers which one is used.
-- **Electric COP side from `_measured_power`.** A point sample divided into a 30 min mean is the misalignment the brief names.
+- **Counter state in `flow_meter.py`:** its functions are stateless, and the dwell is mode accounting.
+- **Per-cycle counter deltas,** with zero refused and the baseline advanced: a selection on the quantised value, so 0.6 kW reads 2.0 (verdict probe).
+- **Keep the baseline and accept at the first quantum:** the stopping rule still biases. `dev/programme/designs/R10-HEAT-METER-probes/first_quantum_probe.py`, N=1: the mean of span means reads 1.667 at 1.5 kW.
+- **Refuse combination modes:** strictly worse than #2753 on every such install (review point 1).
+- **Void on configuration:** it wipes the scale for a meter the replay may never use (ruling).
+- **The policy at each site:** three owners of one concern (review point 4).
+- **The recorder for dwell:** a database read per cycle (D9).
 
-## Sibling sites (enumerated at `8a133f390`)
+## Sibling sites
 
-`git grep -nE "_commanded_split\(\)|planned_dhw / planned_total" -- custom_components` returns 8 sites. In scope: `_interval_measured_heat_kw`, `_cop_reference_curve` and `_accumulate_energy`. Out of scope, each with its reason:
-- `_fold_flow_lift` and `_commanded_power`: these are about the plan's ask, not the delivered split.
-- `_interval_space_power` and `_propagated_slab`: electric replay without a heat meter. A mode-dwell rewrite of those is a behaviour change no finding names.
-- `draw_range.fold`: the draw-follows evidence, which is COP-GATE's.
-
-`git grep -n "heat_output_kw\|measured_heat\b"` adds `sensor.py`'s `measured_heat_output_kw` attribute. It needs no change, because the counter mean is published there as the cycle's kW.
+`git grep -nE "_commanded_split\(\)|planned_dhw / planned_total|space_share\(" -- custom_components` at `8a133f390` returns these sites.
+- **In scope:** `_interval_measured_heat_kw`, `_cop_reference_curve`, `_accumulate_energy` and `_settle_interval_diag` (review point 3). The last apportions the diagnosis triple by the same `dhw_share`, so its docstring stays true.
+- **Out of scope:**
+  - `_fold_flow_lift` and `_commanded_power`: these concern the plan's ask.
+  - `_interval_space_power` and `_propagated_slab`: electric replay without a heat meter, a behaviour no finding names.
+  - `draw_range.fold` and `draw_range.space_share`'s own use in `space_draw_kw`: the draw evidence, which belongs to COP-GATE.
 
 ## Evidence plan, by file
 
-- **Failing tests first**, in `tests/features.py`, beside #2753's checks:
-  - a synthetic plant with a known COP gives an exact fold through `cop_evidence`;
-  - null: heat = modelled COP x elec keeps `target_scale == cop_scale`;
-  - a planted reset is refused, then re-baselines;
+- **Failing tests first** in `tests/features.py`:
+  - exact fold on a known-COP plant;
+  - null: heat equal to COP times electric keeps the scale;
+  - a planted reset is refused;
   - a planted rollover is refused;
-  - a sub-quantum delta is refused;
-  - a mixed space/DHW interval splits the replay heat by `last_changed`;
-  - a two-change interval is `blended`;
-  - a concurrent mode gives `None`;
-  - precedence: a counter outranks the thermal kW, and an unusable counter does not fall back (mirror #2753's M1 check);
-  - `heat_meter_needs_mode` refuses in the options step;
-  - the basis voids on adding the counter.
-  - A dead-counter test re-reports the unchanged value first (INPUT-STALENESS carry).
-- **Harness.** Port `dev/audit/harnesses/r10_thermal_power_option.py` (#2753) to `dev/audit/harnesses/r10_heat_meter.py` (would be new). The synthetic counter plant runs at the base (no key: refused or absent) and at the head.
-- **Null controls.** The flat-COP plant reads a fold of zero, and an install without the heat key or the mode entity reproduces the base goldens. Expected moving goldens: none. If the store schema golden moves for `HEAT_LOSS_BASES`, the fixer claims it in `tests/golden/claimed_drift.txt`.
+  - a planted integer counter at 0.6 kW is refused and at 1.5 kW reads unbiased over N spans;
+  - single-duty `heat` then `DHW` inside one span splits at `last_changed`;
+  - an owned single-duty step counts as observed;
+  - a combination mode and a last-good mode both reproduce #2753's figure;
+  - precedence and no fallback (mirroring #2753's M1);
+  - the basis upgrades only on the first measured-heat fold;
+  - the ledger and the diagnosis triple share one split;
+  - a dead counter re-reports first (INPUT-STALENESS carry).
+- **Harness:** `dev/audit/harnesses/r10_heat_meter.py` (would be new), ported from `dev/audit/harnesses/r10_thermal_power_option.py` (#2753), run at the base and at the head.
+- **Goldens** (review point 5):
+  - `tests/golden/config_flow.json` moves with the new `_F` row, claimed as `config_flow` in `tests/golden/claimed_drift.txt`, as #2753 claimed it.
+  - The coordinator goldens `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` all publish mode `"Unknown"` (unobserved; `mode_observed` is absent from every one), so attribution takes the plan arm and none of them moves. The fixer re-checks this.
 - **Mutation targets:**
-  - the `delta < 0` branch;
-  - the min-delta comparison;
-  - the counter-first precedence guard in `read_heat_output_kw`;
-  - the `last_changed` split arithmetic;
-  - the `blended` two-change rule;
-  - the third `HEAT_LOSS_BASES` index.
-- **Classification.** `heat_energy.py` goes into a measured closure (`tests/closures.json`), or `tests/entities.py` refuses it.
+  - the span-close condition;
+  - the `q / expected_kwh` bound;
+  - the reset branch;
+  - counter-first precedence;
+  - the `observed` test in `attribution`;
+  - the `last_changed` split;
+  - the earned-basis upgrade.
+- **Classification:** `heat_energy.py` goes into a measured closure.
 
 ## Hot files and serial position
 
-`files` must grow by: `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py` and `custom_components/heatpump_optimizer/translations/sv.json`. No open group other than ARCH-SHAPES (`thermal_model.py`, already before us) and UX-HEALTH (`strings.json`, already after us) touches them.
+`files` grows by `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py`, `custom_components/heatpump_optimizer/store.py` (the upgrade flag's migration) and `custom_components/heatpump_optimizer/translations/sv.json`. Open groups on these files are R10-ARCH-SHAPES (already before) and R10-UX-HEALTH (after).
 
-Position: `config_flow.py` 2 of 3 (after RATIO-ANCHOR, before CONFIGFLOW-PAGES); `const.py` last; `coordinator.py` after THERMAL-POWER-OPTION and before COP-GATE.
+Serial positions:
+- `config_flow.py`: 2 of 3.
+- `const.py`: last.
+- `coordinator.py`: after THERMAL-POWER-OPTION, before COP-GATE.
 
 ## Notes for the fixer
 
-- **The #2698 clamp-reset decision: keep "clamp means reset".** It is orthogonal to this group. The void path enters `reanchor_heat_loss` at confidence 0, and its clamp test is `if a and not ...`, so a basis change can never trip it. Main's total-only law hands the upper zone the lower zone's share, which is the failure `reanchor_heat_loss`'s docstring records. Carry: dismissed: decided by this design, recorded decision kept.
-- **SAV carry: partly closed, the rest unobservable.** The dwell split fixes attribution where the mode shows the duty. Under a concurrent mode, one whole-unit meter cannot separate the channels, so the plan split and its docstrings stay. Carry: dismissed: unobservable with one whole-unit meter under a concurrent mode.
-- Carry: R10-COP-GATE. "Has a heat meter" is `probe_install(...).measured_heat`, which now covers both heat keys. Render the new codes `unaligned_meters` and the counter refusals, and override neither.
-- Carry: R10-UX-HEALTH. Two new input rows (`heat_pump_heat_energy_entity`, and #2753's `heat_pump_thermal_power_entity`) take their role labels from `strings.json`'s `entities_metering` data. The COP refusal `unaligned_meters` needs a Health string.
+- Carry: R10-RATIO-ANCHOR. On #2698's clamp-reset item, the decision under mandate 6329234399 is **keep "clamp means reset"**. It is orthogonal to this group: the void path enters `reanchor_heat_loss` at confidence 0, where both clamp branches (`if a and not`, `if b and not`) are skipped. The re-measurement at this group's merge base stays with the fixer.
+- Carry: dismissed: unobservable with one meter under a combination selector. The SAV attribution residue: the observed split fixes single-duty intervals, and under a combination selector the plan split and its docstrings stay.
+- Carry: R10-HEAT-METER (item dr1-basis-mix). After the upgrade, an interval with `None` heat still replays draw-inferred heat under `measured_heat`, as #2753 does. Say so in `HEAT_LOSS_BASES`'s comment, because freezing them would be worse than #2753 on combination selectors.
+- Carry: R10-HEAT-METER (item dr1-store-choice). `house_heat_loss_basis` is a `Domain("choice")` (`custom_components/heatpump_optimizer/store.py`). Test a downgrade reading `measured_heat` and the schema check's acceptance of the third choice.
+- Carry: R10-HEAT-METER (item dr1-lag-idle). Align on the read instant, never on `last_updated`. An idle counter is old and correct.
+- Carry: R10-HEAT-METER (item dr1-last-good). A `MODE_SOURCE_LAST_GOOD` reading's `last_changed` is the stale state's own, so the segment is unobserved.
+- Carry: R10-COP-GATE. "Has a heat meter" is `probe_install(...).measured_heat`, for either heat key. Render and do not override `unaligned_meters` and the counter refusals. On a counter install, COP folds at span close, not per cycle.
+- Carry: R10-UX-HEALTH. New input rows for `heat_pump_heat_energy_entity` and `heat_pump_thermal_power_entity`, labelled from `strings.json` `entities_metering`. A Health string for `unaligned_meters`. The mode entity is optional; no refusal string.
