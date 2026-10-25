@@ -6592,7 +6592,7 @@
     "branch": "handoff/r10-flow-roster-freeze",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "dispatch arm (a) fixer",
     "note": "arm (b) merged #2779 c01d54b98; arm (a) relay freeze owed as its own PR; six carries (hold-file grammar, P-H hold, card 1 seat retirement) ride arm (a)"
    }
   },
