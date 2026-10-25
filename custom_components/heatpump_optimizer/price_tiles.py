@@ -32,7 +32,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, TypedDict, cast
 from weakref import WeakKeyDictionary
 
-from .inputs import finite_float
+from .finite import finite_float
 from .payload import PriceTile
 
 #: The owner's horizon (#2257 item 6): "a 30-day rolling average".

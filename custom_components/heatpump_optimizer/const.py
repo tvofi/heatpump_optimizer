@@ -6,6 +6,8 @@ import re
 from datetime import timedelta
 from typing import Final
 
+from .finite import finite_float
+
 DOMAIN: Final = "heatpump_optimizer"
 #: Entity ids that name a person or a household calendar, anywhere in a
 #: string: the away presence and holiday calendar options hold them, and an
@@ -1289,10 +1291,10 @@ def buffer_tank_surface_area(volume_litres: float) -> float:
     wide, which is what accumulators of every size look like. Exactness does not
     matter here; the volume^(2/3) growth does.
     """
-    try:
-        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0
-    except (TypeError, ValueError):
+    volume = finite_float(volume_litres)
+    if volume is None:
         return 0.0
+    volume_m3 = max(volume, 1e-6) / 1000.0
     diameter: float = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
     return 9.42 * diameter * diameter  # side + both ends
 

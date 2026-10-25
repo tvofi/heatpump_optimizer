@@ -23,7 +23,7 @@ from typing import Any
 from . import mixing_valve
 from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
 from . import const
-from .inputs import finite_float
+from .finite import finite_float
 
 Parse = Callable[[Any, Any], Any]
 

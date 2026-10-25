@@ -47,7 +47,8 @@ from .const import (
     DEFAULT_PRICE_VAT,
     PRICE_SOURCE_ENTITY,
 )
-from .inputs import finite_float, normalize_price_per_kwh
+from .finite import finite_float
+from .inputs import normalize_price_per_kwh
 from .payload import PricePrior
 
 _LOGGER = logging.getLogger(__name__)

@@ -65,7 +65,7 @@ from .const import (
     CONF_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
 )
-from .inputs import finite_float
+from .finite import finite_float
 from .mixing_valve import WRITE_TARGET_FLOW
 from .thermal_model import ThermalParameters
 

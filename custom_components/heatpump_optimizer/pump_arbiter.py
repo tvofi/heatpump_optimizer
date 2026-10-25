@@ -156,9 +156,9 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
+from .finite import finite_float
 from .inputs import (
-    InputReader, finite_float, quantise_setpoint_c, read_setpoint, setpoint_range_c,
-    write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import CurrentAction

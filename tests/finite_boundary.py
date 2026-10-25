@@ -2008,15 +2008,15 @@ def _overflow_sites() -> None:
     orjson (storage, config entries, HTTP) never yields such an int and the
     store boundary scrubs one, so these are the ones fed by what orjson does
     not parse: entity attributes and service-call fields (the F3.3 lead,
-    D1-s5-03's shape). ``inputs.finite_float`` is the one coercion the
+    D1-s5-03's shape). ``finite.finite_float`` is the one coercion the
     coordinator's forecast reads, ``freq_control`` and ``inputs`` share
     (D7-s2-58). Each must refuse it as unreadable, not raise.
     """
-    from heatpump_optimizer import inputs, wood_fuel
+    from heatpump_optimizer import finite, wood_fuel
     huge = 10 ** 400
     got = {}
     for name, call, want in (
-        ("inputs.finite_float", lambda: inputs.finite_float(huge, 1.5), 1.5),
+        ("finite.finite_float", lambda: finite.finite_float(huge, 1.5), 1.5),
         ("wood_fuel._wood_slots_error",
          lambda: wood_fuel._wood_slots_error([{"liters": huge}], []), "invalid_wood_slots"),
     ):
@@ -2033,11 +2033,7 @@ def _overflow_sites() -> None:
 
 #: Coercers the finite-float census returns that are not the owner, each with
 #: why it does not call it. An entry the census no longer returns is stale.
-_FINITE_FLOAT_DISPOSITIONS = {
-    "const.py::buffer_tank_surface_area":
-        "a tank's geometry, not a reading: and const.py is what inputs.py "
-        "imports, so it cannot call the owner",
-}
+_FINITE_FLOAT_DISPOSITIONS: dict[str, str] = {}
 #: Probe -> the owner's answer with default 1.5 (the round-10 bool policy:
 #: True is not a number; text is read when it is a finite number).
 _FINITE_FLOAT_PROBES = (
@@ -2084,7 +2080,7 @@ def _finite_float_coercers(sources: dict[str, str]) -> set[str]:
 
 
 def _finite_float_census() -> None:
-    """One finite-float coercion, ``inputs.finite_float`` (D7-s2-58, #2239).
+    """One finite-float coercion, ``finite.finite_float`` (D7-s2-58, #2239).
 
     Nine module-level coercers each answered "is this a finite number" with
     its own bool, text, NaN and overflow policy. The census enumerates every
@@ -2092,17 +2088,17 @@ def _finite_float_census() -> None:
     dispositioned, refuses a stale disposition, and drives the owner on the
     probe table. Its precondition is asserted: the rule must return the
     owner, and must return a planted coercer (the rule's null control)."""
-    from heatpump_optimizer.inputs import finite_float
+    from heatpump_optimizer.finite import finite_float
     sources = {p.name: p.read_text() for p in sorted(PKG.glob("*.py"))}
     found = _finite_float_coercers(sources)
-    owner = "inputs.py::finite_float"
+    owner = "finite.py::finite_float"
     stray = sorted(found - {owner} - set(_FINITE_FLOAT_DISPOSITIONS))
     stale = sorted(set(_FINITE_FLOAT_DISPOSITIONS) - found)
     planted = _finite_float_coercers({**sources, "topology.py": sources["topology.py"] + (
         "\n\ndef _ff_plant(v) -> float | None:\n    try:\n        return float(v)\n"
         "    except (TypeError, ValueError):\n        return None\n")})
     R.check(
-        "every finite-float coercion is inputs.finite_float or a dispositioned site, "
+        "every finite-float coercion is finite.finite_float or a dispositioned site, "
         "and the census reaches the owner and a planted sibling (D7-s2-58)",
         not stray and not stale and owner in found and "topology.py::_ff_plant" in planted,
         f"stray={stray} stale={stale} owner_found={owner in found} "
@@ -2114,7 +2110,7 @@ def _finite_float_census() -> None:
         if not (got == want and type(got) is float):
             wrong[repr(probe)] = got
     R.check(
-        "inputs.finite_float reads a real number or numeric text, and nothing else "
+        "finite.finite_float reads a real number or numeric text, and nothing else "
         "-- not a bool, bytes, NaN, an infinity or an int past a double",
         not wrong and finite_float(None) is None,
         f"wrong={wrong}",

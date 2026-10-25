@@ -189,12 +189,12 @@ from .const import (
     TEMPERATURE_UNIT_TO_C,
     OUTDOOR_AIR_RANGE_C,
 )
+from .finite import finite_float
 from .inputs import (
     UNBOUNDED,
     InputHealth,
     InputReader,
     age_of,
-    finite_float,
     normalize_price_per_kwh,
     parse_bool,
     price_per_kwh,

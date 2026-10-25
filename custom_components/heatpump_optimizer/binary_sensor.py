@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 from .payload import Payload
-from .inputs import finite_float
+from .finite import finite_float
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle

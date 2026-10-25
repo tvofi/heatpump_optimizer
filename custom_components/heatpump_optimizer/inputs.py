@@ -40,9 +40,8 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from numbers import Real
 from collections.abc import Callable
-from typing import Any, Literal, overload
+from typing import Any, Literal
 from weakref import WeakKeyDictionary
 
 from .const import (
@@ -59,6 +58,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
+from .finite import finite_float
 from .log_latch import log_held
 from .payload import InputProblem
 
@@ -370,32 +370,6 @@ def normalize_energy_kwh(value: float, unit: Any) -> float | None:
 def state_unit(state: Any) -> Any:
     """The ``unit_of_measurement`` a state declares, or ``None``."""
     return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
-
-
-@overload
-def finite_float(value: Any) -> float | None: ...
-@overload
-def finite_float(value: Any, default: float) -> float: ...
-@overload
-def finite_float(value: Any, default: float | None) -> float | None: ...
-def finite_float(value: Any, default: float | None = None) -> float | None:
-    """``value`` as a finite float; anything else is ``default``.
-
-    The one coercion every reader shares (D7-s2-58): ``None``, text that is
-    not a number, NaN, an infinity and an int past a double (an attribute-
-    or service-fed value orjson never parsed) are all unreadable, never a
-    raise and never a non-finite number handed on to the solver. Only a real
-    number or text is read: a ``bool`` is not a number here, although
-    ``float()`` takes it -- ``True`` read as 1.0 kW, 1.0 degC or a 1 degC
-    away target is a guess, not a reading -- and neither are bytes.
-    """
-    if isinstance(value, bool) or not isinstance(value, (Real, str)):
-        return default
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return default
-    return result if math.isfinite(result) else default
 
 
 def state_power_kw(

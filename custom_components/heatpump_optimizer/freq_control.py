@@ -30,7 +30,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .inputs import finite_float
+from .finite import finite_float
 from .payload import FreqMapBucket
 
 #: The two stages. Anything unrecognised in config reads as observe.
