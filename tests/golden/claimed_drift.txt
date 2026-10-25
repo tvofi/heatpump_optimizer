@@ -59,11 +59,19 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_dhw  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_minimal  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+coord_all_features  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_dhw  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_grid_fee  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_minimal  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+# R10-ADVISOR-RESIDUE (#2257): the grid view gains `recent_kwh_price`, the
+# ledger's recent kWh price the advisors' monthly rows are priced at, so each
+# coord fixture's data gains that one key, null (no interval has settled in
+# a fixture's ledger); nothing else moves, the hot-water sweep included (with
+# no recent price it prices at the feed's window, as before). Measured with
+# env_drift --all against origin/main da12aa37d in one environment: exactly
+# these five move, in that one key, "present on one side only". The committed
+# files were patched in that path alone; no other leaf was re-recorded.
 # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
 # coord fixture's data gains that one key and its 24 leaves (house counting at
 # zero samples toward its gate, the other three off, no

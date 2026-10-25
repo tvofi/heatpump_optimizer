@@ -40,11 +40,17 @@ Arms (each prints RESULT lines, then the arm's VERDICT):
           on the null series and on the varying one. The held pair's gap
           (warmer + cooler) against its mean magnitude. Whether anything
           reads the two tiles together is a grep, not this arm.
+  mixing  The 30-day mean folds days priced at different schedules (after a
+          target change, or under an away setback). Perturbation: the whole
+          schedule moved -2..+2 K; per shift, the held degree (half of warmer
+          minus cooler) at three instants, on the null and the varying series.
+          A figure that does not move with where the schedule sits is not
+          biased by a mean that mixes schedules.
 
-    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_residue.py [whatif] [inbox] [asym]
+    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_residue.py [whatif] [inbox] [asym] [mixing]
 
-With no arm named, all three run. ``whatif`` and ``asym`` solve: about 40
-and 72 solves.
+With no arm named, all four run. ``whatif``, ``asym`` and ``mixing`` solve:
+about 90, 72 and 90 solves.
 """
 from __future__ import annotations
 
@@ -244,7 +250,39 @@ def arm_asym() -> bool:
     return True
 
 
+def arm_mixing() -> bool:
+    """The held degree priced from schedules moved -2, -1, 0, +1, +2 K: the
+    days a 30-day mean folds after a target change or an away setback."""
+    opt, model = deg._optimizer()
+    hours = opt.config.horizon_hours
+    # Every comfort level the schedule has set, a kelvin down (the cooler tile's).
+    down = price_tiles.specs(opt.config, 6.0)[0][1]
+    worst = 0.0
+    for label, flat in (("null", True), ("varying", False)):
+        pr, wx = _series(flat)
+        for hour in HOURS:
+            j = int(hour / DT)
+            row = []
+            for shift in (-2.0, -1.0, 0.0, 1.0, 2.0):
+                base = deg._shadow(opt, model, {k: round(v + 1.0 + shift, 1) for k, v in down.items()})
+                room, slab = deg.STARTS[0]
+                live = _solve(base, j, room, slab, pr, wx)
+                c, w = (price_tiles.per_month(_solve(deg._shadow(base, model, o), j, room, slab, pr, wx).baseline_cost
+                                              - live.baseline_cost, hours)
+                        for _, o in price_tiles.specs(base.config, 6.0)[:2])
+                row.append((c, w))
+            mags = [0.5 * (w - c) for c, w in row]
+            spread = (max(mags) - min(mags)) / float(np.mean(mags))
+            worst = max(worst, spread)
+            print(f"RESULT mixing {label} {hour:02d}:00 per-degree by schedule shift -2..+2 "
+                  f"{' '.join(f'{m:6.2f}' for m in mags)} spread {spread * 100:.1f} %")
+    print(f"RESULT mixing worst spread {worst * 100:.1f} % of the per-degree figure")
+    print(f"VERDICT mixing {'the held degree does not move with where the schedule sits' if worst < 0.01 else 'the held degree moves with where the schedule sits'}")
+    return True
+
+
 if __name__ == "__main__":
-    arms = sys.argv[1:] or ["whatif", "inbox", "asym"]
-    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym}[a]() for a in arms]
+    arms = sys.argv[1:] or ["whatif", "inbox", "asym", "mixing"]
+    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym, "mixing": arm_mixing}[a]()
+               for a in arms]
     sys.exit(0 if all(results) else 1)
