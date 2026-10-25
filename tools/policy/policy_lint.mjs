@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -79,8 +79,9 @@ import {
   ROSTER_FILE_RE,
   CARRY_FILE_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, cutoverDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
+import { DEPENDABOT_AUTHORS, dependabotManifests, dependencyBumpProblems, parseCommits } from './dependabot_contract.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -1094,7 +1095,7 @@ function requiredContextsOverTree() {
   }
   const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
   return [
-    ...cutoverDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
+    ...requiredContextsDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
     ...sites.flatMap((rel) => checkRequiredContexts(rel, read(rel), live)),
   ]
 }
@@ -3948,6 +3949,44 @@ function assertAcceptance(derived) {
     }
   }
 
+  // The Dependabot arm (tools/policy/dependabot_contract.mjs). The arm: a
+  // Dependabot PR changing one configured manifest, its one commit
+  // Dependabot's own, no red -- silent, with a body carrying no heading at
+  // all. The controls, each one clause broken, must each refuse: the SAME
+  // body and paths as tvofi or the hpo-author App (the full contract keeps
+  // its teeth), a path no dependabot.yml entry configures, a configured
+  // manifest's name under a directory no entry names, a non-manifest file
+  // in a configured pip and in a configured npm directory, a human commit
+  // on the branch, an unsigned one, no commit list, and a red check.
+  {
+    const rel = path.relative(ROOT, path.join(prepr, 'dependabot-body.txt'))
+    const own = [{ sha: 'a'.repeat(40), author: 'dependabot[bot]', committer: 'web-flow', verified: true }]
+    const bump = { head: ZERO, paths: ['tests/requirements-build.txt'], commits: own }
+    const arm = checkPrBody(rel, { ...bump, author: 'dependabot[bot]' })
+    const armGql = checkPrBody(rel, { ...bump, author: 'app/dependabot' })
+    if (arm.length || armGql.length) {
+      console.log(`\nFIXTURE VACUOUS: the Dependabot arm refused a clean dependency bump: ${[...arm, ...armGql].map((e) => e.message).join(' | ')}`)
+      return 1
+    }
+    const controls = {
+      'tvofi, same body': checkPrBody(rel, { ...bump, author: 'tvofi' }),
+      'the App, same body': checkPrBody(rel, { ...bump, author: 'hpo-author[bot]' }),
+      'unconfigured path': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tools/unconfigured.py'] }),
+      'manifest in an unconfigured directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tools/requirements-build.txt'] }),
+      'non-manifest in a configured pip directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tests/README.md'] }),
+      'non-manifest in a configured npm directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/pwlane/package-lock.json', 'tests/pwlane/README.md'] }),
+      'human commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [...own, { sha: 'b'.repeat(40), author: 'tvofi', committer: 'tvofi', verified: true }] }),
+      'unsigned commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [{ ...own[0], verified: false }] }),
+      'no commit list': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: null }),
+      'a red check': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', red: ['tests / fast (3.14)'] }),
+    }
+    const silent = Object.entries(controls).filter(([, f]) => !f.length).map(([k]) => k)
+    if (silent.length) {
+      console.log(`\nFIXTURE VACUOUS: the Dependabot contract's control(s) stayed silent: ${silent.join(', ')}`)
+      return 1
+    }
+  }
+
   // The attribution arm (R10-FLY-NO-FOOTERS): attribution.md is a healthy body
   // plus the footer and a session link, so the arm and only the arm fires on
   // it; good-claude-ai.md names claude.ai in another sense and quotes the
@@ -5235,44 +5274,6 @@ function assertAcceptance(derived) {
   }
   const RC_THREE = { contexts: ['policy-docs', 'probe-a', 'probe-b'], count: 3, rulesets: [1] }
   const rcFixture = (contexts, rulesets = [1]) => JSON.stringify({ contexts, rulesets })
-  // THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). The record names the post-PUT set
-  // (`gate`) and, as `pre_cutover`, the set the ruleset holds until
-  // ruleset_cutover.py --enable. Either WHOLE shape is accepted, and the
-  // pre-cut-over match is said out loud; a set that is neither -- half
-  // migrated, or anything else -- is refused as before. Without the arm P2b's
-  // own `policy-docs` reads its record against the live 17 and is red, on its
-  // head and on main's push between P2b's merge and the PUT.
-  pins += 4
-  const RC_POST = { contexts: ['gate'], count: 1, rulesets: [1] }
-  const rcBoth = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [1] } })
-  const preMatch = driveRC(RC_THREE, rcBoth, [])
-  if (preMatch.found.length || !preMatch.said.some((l) => /PRE-CUT-OVER/.test(l))) {
-    console.log(`\nFIXTURE VACUOUS: a live set equal to the recorded pre_cutover shape produced ${preMatch.found.length} finding(s)${preMatch.said.some((l) => /PRE-CUT-OVER/.test(l)) ? '' : ' and no PRE-CUT-OVER line'}; the cut-over window must pass, and say why`)
-    rc = 1
-  }
-  if (driveRC(RC_POST, rcBoth, []).found.length) {
-    console.log('\nFIXTURE VACUOUS: a live set equal to the recorded post-PUT shape is refused once pre_cutover is recorded beside it')
-    rc = 1
-  }
-  if (!driveRC({ contexts: ['gate', 'policy-docs'], count: 2, rulesets: [1] }, rcBoth, []).found.length) {
-    console.log('\nFIXTURE VACUOUS: a half-migrated live set (gate plus one of the old contexts) passed; only a whole recorded shape may')
-    rc = 1
-  }
-  if (!driveRC(RC_THREE, rcFixture(['gate']), []).found.length) {
-    console.log('\nFIXTURE VACUOUS: the old set passed a record with no pre_cutover, so the comparison is not reading the record at all (null control)')
-    rc = 1
-  }
-  // WHOLE, not contexts alone (#2658 review): a pre shape whose rulesets differ from the
-  // post-PUT record's. A comparison that took only `contexts` from pre_cutover and the rest
-  // from the post-PUT record refuses this live set; the whole-shape arm accepts it.
-  pins += 1
-  const RC_PRE2 = { contexts: RC_THREE.contexts, count: 3, rulesets: [2] }
-  const rcBoth2 = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [2] } })
-  const pre2 = driveRC(RC_PRE2, rcBoth2, [])
-  if (pre2.found.length || !pre2.said.some((l) => /PRE-CUT-OVER/.test(l))) {
-    console.log(`\nFIXTURE VACUOUS: a live set equal to a pre_cutover whose rulesets differ from the post-PUT record's produced ${pre2.found.length} finding(s); pre_cutover must be compared WHOLE, not on contexts alone`)
-    rc = 1
-  }
   const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
   const rcRotText = read(rcRot)
   if (rcRotText == null) {
@@ -6737,7 +6738,21 @@ function raiseJustification(bodyPath, body, { base = '', head = '', paths = [] }
   return `budget_raise_gate.py --check-body could not judge this body's \`## Raise justification\` or the raise it owes it for (${r.error ? r.error.message : `exit ${r.status}`}${said ? `: ${said.slice(0, 160)}` : ''}). A raise nobody checked is not one the gate will accept.`
 }
 
-function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
+// .github/dependabot.yml as the BASE has it (the pull request cannot widen what
+// it is admitted under); '' when unreadable, which configures nothing.
+function dependabotYmlAt(base) {
+  if (base) return git(['show', `${base}:.github/dependabot.yml`], { allowFail: true, quiet: true })
+  try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
+}
+
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null } = {}) {
+  // A Dependabot pull request answers the dependency-bump contract instead
+  // (tools/policy/dependabot_contract.mjs); every other author, the full one.
+  if (author != null && DEPENDABOT_AUTHORS.has(author)) {
+    notes.push('DEPENDABOT: judged on the dependency-bump contract (tools/policy/dependabot_contract.mjs)')
+    return dependencyBumpProblems({ paths, commits, red, manifests: dependabotManifests(dependabotYmlAt(base)) })
+      .map((message) => ({ severity: 'error', check: 'pr-body', where: bodyPath, message }))
+  }
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
@@ -6932,7 +6947,19 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
+  // `pulls/{n}/commits` as `sha<TAB>author<TAB>committer<TAB>verified` lines,
+  // read only by the Dependabot arm; unreadable refuses, like --paths-file.
+  const commitsFile = val('--commits-file')
+  let commits = null
+  if (commitsFile != null) {
+    try {
+      commits = parseCommits(fs.readFileSync(commitsFile, 'utf8'))
+    } catch {
+      console.log(`  ERROR   [pr-body] --commits-file ${commitsFile}: unreadable.`)
+      return 1
+    }
+  }
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

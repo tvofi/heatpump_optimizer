@@ -118,10 +118,15 @@ def main(argv: list[str] | None = None) -> int:
             hit = None if run.timed_out else mt.killed(driver, run, base)
             with lock:
                 results.append((arm, driver, anchor, hit))
+            # A never row's kill is the claim under test: print the checks
+            # that went red, or a flake reads exactly like a lost killer.
+            red = ([f"\n      {ln.strip()[:400]}" for ln in run.stdout.splitlines()
+                    if ln.lstrip().startswith("FAIL")]
+                   if hit and arm == "null" else [])
             print(f"  {arm} {driver} {anchor}: "
                   f"{'KILLED' if hit else 'timed out' if hit is None else 'survived'}"
-                  f" (rc={run.rc} failed={run.failed}, baseline rc={base.rc})",
-                  flush=True)
+                  f" (rc={run.rc} failed={run.failed}, baseline rc={base.rc})"
+                  + "".join(red), flush=True)
 
     try:
         mt._share(a.jobs, work_on)
