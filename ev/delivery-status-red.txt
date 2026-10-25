@@ -1,0 +1,5 @@
+governance / delivery-status on 754ab29f7aab253c26981159034d292cc45d4256 (pull/2826/merge 172eaddc1):
+DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 2 overdue (overdue at 12 commits)
+  overdue  #2762 de794b5 12 commit(s) since — R10-CONFIG-NOTICES
+  overdue  #2795 102f749 13 commit(s) since — record: delivery rows for #2792, #2793, #2794 (autofix)
+This check is NOT a required context and a red here blocks no merge.
