@@ -5159,7 +5159,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             anchor, current, *phi, void,
         )
         self._apply_house_heat_loss_scale(new_scale)
-        self._apply_lower_floor_loss_ratio(new_ratio)
         return True
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
