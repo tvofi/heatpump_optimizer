@@ -44,6 +44,26 @@ plant 'a .format program' "$MT" add "if False:  # agreement_py imports this modu
     "'os.system("{} pr merge {} -t x".format(GH, n))' "$MT"
 plant 'a JS template program ${cfg.gh}' "$WF" add 'execSync(`${cfg.gh} pr merge ${n} --subject x`)' "$WF"
 plant 'gh pr -R $(cat r) merge' "$MP" add "false && gh pr -R \$(cat r) merge 1 -t x" "$MP"
+plant 'an argv wrapped after its program' "$MT" add "if False:  # agreement_py imports this module
+    subprocess.run([\"gh\",
+                    \"pr\", \"merge\", str(n), \"--squash\",
+                    \"--subject\", s], check=True)" "$MT"
+plant 'an exploded argv' "$MT" add "if False:  # agreement_py imports this module
+    run([
+        \"gh\",
+        \"pr\",
+        \"merge\",
+        str(n),
+        \"--subject\",
+        s,
+    ])" "$MT"
+plant 'a subscript value between pr and merge' "$MT" add "if False:  # agreement_py imports this module
+    "'run(["gh", "pr", "-R", cfg["repo"], "merge", n, "--subject", s])' "$MT"
+plant 'null: an argv wrapped after its program, no subject' "$MT" add "if False:  # agreement_py imports this module
+    subprocess.run([\"gh\",
+                    \"pr\", \"merge\", str(n), \"--squash\"],
+                   check=True)
+    other(\"--subject\", s)" "$MT"
 plant 'null: an f-string program running pr view' "$MT" add "if False:  # agreement_py imports this module
     "'os.system(f"{GH} pr view {n} -t x")' "$MT"
 plant 'null: gh pr view -t "x y"' "$MP" add "false && gh pr view 1 -t $S --json title" "$MP"

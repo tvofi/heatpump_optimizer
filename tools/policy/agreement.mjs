@@ -126,11 +126,15 @@ const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // parts; a part used at several sites is pinned by a probe at each:
 //  - a word is bare or quoted (`pr`, "pr", 'pr', `pr` in backticks), starts and
 //    ends at a non-word character, so `merged`, `xpr` and `$pr` are not words;
-//  - a gap between words is any run of whitespace, `\`-newline continuations
-//    and argv commas (`gh pr \` + newline + `merge`, `["gh", "pr" , "merge"]`);
+//  - a gap between words is any run of whitespace, `\`-newline continuations,
+//    argv commas, comments (`#` or `//` to the line end, `/* */`) and the join of
+//    two adjacent string literals (`gh pr \` + newline + `merge`,
+//    `["gh", "pr" , "merge"]`, `"pr",  # c` + newline + `"merge"`, `"gh pr " "merge`);
 //  - gh's options may stand in any gap, with or without a value, and a value
-//    may be a quoted run holding whitespace, a command substitution or an
-//    interpolation slot (`gh pr -t "x y" merge`, `-R $(cat r)`, `-R {repo}`);
+//    is one expression with no gap in it: a run of quoted runs (holding
+//    whitespace), command substitutions, interpolation slots, bracketed
+//    subscripts or call arguments and bare characters (`gh pr -t "x y" merge`,
+//    `-R $(cat r)`, `-R {repo}`, `cfg["repo"]`, `join(o, r)`, `f"{o}/{r}"`, `"$O"/"$R"`);
 //  - the program is NOT read: whatever expression stands before `pr` -- `gh`
 //    on a path, `$GH`, `${cfg.gh}`, an f-string's `{GH}`, `%s`, `{}`, a list
 //    element, a concatenated variable, a wrapper or alias named anything --
@@ -145,10 +149,12 @@ const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // dispositioned in #2697's body; merges go through merge_pr.sh and
 // merge_train.py, which pass no subject.
 const QUOTE = '["\'`]'
-const GAP = String.raw`(?:\s|\\\n|,)+`
+const GAP = String.raw`(?:\s|\\\n|,|(?:#|\/\/)[^\n]*\n|\/\*[\s\S]*?\*\/|["'${'`'}][^\S\n]*["'${'`'}])+`
 const word = (w) => `${QUOTE}?(?<![\\w$./-])${w}${QUOTE}?(?![\\w-])`
 const SLOT = String.raw`\$?\{[^{}\n]*\}|\$\([^()\n]*\)`
-const VALUE = String.raw`(?:"[^"\n]*"|'[^'\n]*'|${'`'}[^${'`'}\n]*${'`'}|${SLOT}|[^\s,'"${'`'}\]]+)`
+// No two parts of a value can open at the same character, and a bare part is
+// one character, so a run of them is read in one way and fails in linear time.
+const VALUE = String.raw`(?:"[^"\n]*"|'[^'\n]*'|${'`'}[^${'`'}\n]*${'`'}|${SLOT}|\[[^[\]\n]*\]|\([^()\n]*\)|\$(?![{(])|[^\s,'"${'`'}()[\]{}$])+`
 const option = (gap) => String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=${VALUE}?)?${QUOTE}?(?:${gap}${VALUE})?`
 const OPTIONS = `(?:${GAP}${option(GAP)})*`
 // The lead's gaps cross a line only by a `\` continuation, so a lead is never
@@ -208,7 +214,7 @@ function callExtent(text, at, kind) {
     if (c === '\n' && st.q.length !== 3) { st = { q: '', esc: false }; continue }
     const n = quoted(st, text, i)
     if (n) { i += n - 1; continue }
-    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); i = (e < 0 || e > at ? at : e) - 1; continue }
+    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); if (e < 0) break; i = e - 1; continue }
     if ('([{'.includes(c)) open.push(i)
     else if (')]}'.includes(c)) open.pop()
   }
@@ -815,6 +821,26 @@ async function selfTest() {
     probes.push([`gap: ${what} is still a merge call, refused at its line`, ((r) => r.length === 1 && r[0].includes('tools/x:1:'))(wr(src('merge')))])
     probes.push([`null control: ${what} running pr view is not a merge call`, !wr(src('view')).length])
   }
+  // A comment is prose to the extent's two reads, by the file's language; a
+  // line end resets a quote there except a Python triple quote's.
+  const in_ = (f, src) => guard([], { ...writers, [f]: src }).length
+  probes.push(['null control: a parenthesis in a comment line opens no call, in a shell or Python file',
+    !in_('tools/x.sh', '# see (the note\ngh pr merge 9 --merge\necho --body\n') && !in_('tools/x.py', '# see (the note\nrun(["gh", "pr", "merge", n])\nother("--subject", s)\n')])
+  probes.push(['a closing bracket in a comment inside the argv does not end the call: its --subject is refused',
+    in_('tools/x.py', 'run(["gh",  # the program)\n     "pr", "merge", n, "--subject", s])\n') === 1])
+  probes.push(["a Python comment needs no space before its '#': a bracket in it does not end the call",
+    in_('tools/x.py', 'run(["gh", "pr",#)\n     "merge", n, "--subject", s])\n') === 1])
+  probes.push(["a JS line comment's bracket does not end the call: its --subject is refused",
+    in_('tools/x.mjs', "execFileSync('gh', ['pr', // the call)\n  'merge', n, '--subject', s])\n") === 1])
+  probes.push(['a prose apostrophe on an earlier line ends with its line: the wrapped argv after it is still read',
+    in_('tools/x.md', "Don't\nrun([\"gh\",\n     \"pr\", \"merge\", n,\n     \"--subject\", s])\n") === 1])
+  probes.push(["a Python triple quote's line end is the string's: a bracket in it does not close the argv",
+    in_('tools/x.py', 'x = ["""a\n)""", "gh",\n     "pr", "merge", n,\n     "--subject", s]\n') === 1])
+  probes.push(["null control: a prose apostrophe's quote ends with its line, so a bracket it would hide closes the call",
+    !in_('tools/x.md', "gh pr merge 9 --merge (don't\nwait) and\n--subject x\n")])
+  probes.push(["null control: a shell '#' inside a word opens no comment, so ${#a[@]} leaves no bracket open",
+    !in_('tools/x.sh', 'n=${#a[@]}\ngh pr merge 9 --merge\necho --body\n')])
+  probes.push(['an unquoted parameter value between "pr" and "merge" is still a merge call', in_('tools/x.sh', 'gh pr -R $REPO merge 9 -t x\n') === 1])
   probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
   // The walk itself, on a real repository: a recarried branch's own
   // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
