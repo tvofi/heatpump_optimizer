@@ -1,0 +1,8 @@
+True None
+b'3' None
+'3.5' 3.5
+nan None
+100000000000 None
+2 2.0
+None None
+'1e400' None
