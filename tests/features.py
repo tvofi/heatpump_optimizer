@@ -21544,6 +21544,314 @@ R.check(
     f"cycle {_sc_per_cycle} writes {_sc_per_write}",
 )
 
+# --- R10-LEARNER-ETA: phase, progress and wait per learner; a day count only ----
+# --- where a gate opens at a sample count (R10-IDENT Q3) ---------------------------
+from dataclasses import replace as _le_replace  # noqa: E402
+
+from homeassistant.util import dt as _le_dt  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HOUSE_LOSS_MIN_DELTA as _LE_MIN_DT,
+    house_loss_confidence as _le_confidence,
+    _solar_aperture_walked as _le_solar_walked,
+    internal_gains_gate_open as _le_gains_gate,
+)
+from heatpump_optimizer.const import (  # noqa: E402
+    HEAT_LOSS_MAX_SOLAR_W_M2 as _LE_DARK_MAX,
+    SOLAR_APERTURE_ALPHA as _LE_SOLAR_ALPHA,
+    SOLAR_APERTURE_MIN_IRRADIANCE as _LE_MIN_IRR,
+    SOLAR_APERTURE_MIN_SAMPLES as _LE_SOLAR_MIN,
+)
+from heatpump_optimizer.learner_progress import gate_count as _le_gate_count  # noqa: E402
+
+_LE_NOW = datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc)
+
+
+def _le_coord(house=0, solar=0, lower=0, cold=True, sunny=True, **cfg):
+    c = _t2_coord(**cfg)
+    c._house_heat_loss_samples = house
+    c._solar_aperture["n"] = float(solar)
+    c._lower_floor_loss_samples = lower
+    zone = 20.0
+    c._current_state = _le_replace(
+        c._current_state, room_temperature=zone, upper_floor_temperature=zone,
+        lower_floor_temperature=zone,
+        outdoor_temperature=zone - (_LE_MIN_DT + 4.0 if cold else _LE_MIN_DT - 2.0),
+        solar_radiation=_LE_MIN_IRR + 100.0 if sunny else 0.0,
+    )
+    return c
+
+
+def _le_snap(c, days_ago, **counts):
+    """A real snapshot `days_ago` before _LE_NOW, the learners at `counts` then."""
+    now_counts = (c._house_heat_loss_samples, c._solar_aperture["n"], c._lower_floor_loss_samples)
+    c._house_heat_loss_samples = counts.get("house", now_counts[0])
+    c._solar_aperture["n"] = float(counts.get("solar", now_counts[1]))
+    c._lower_floor_loss_samples = counts.get("lower", now_counts[2])
+    c._snapshot_ring.take(_LE_NOW - timedelta(days=days_ago), c._learner_snapshot_payloads(), {}, True)
+    c._house_heat_loss_samples, c._lower_floor_loss_samples = now_counts[0], now_counts[2]
+    c._solar_aperture["n"] = float(now_counts[1])
+
+
+def _le_progress(c):
+    _le_dt.freeze(_LE_NOW)
+    try:
+        return c._learning_view()["learner_progress"]
+    finally:
+        _le_dt.freeze(None)
+
+
+# The house gate is the convergence predicate itself, and the gains gate the
+# fold's own: no second threshold exists for either.
+_le_house_need = _le_gate_count(_sc_converged, 0)
+_le_gains_need = _le_gate_count(_le_gains_gate, 0)
+R.check(
+    "R10-LEARNER-ETA: the gates are counted on the learners' own predicates",
+    _sc_converged(_le_house_need) and not _sc_converged(_le_house_need - 1)
+    and _le_gains_gate(_le_gains_need) and not _le_gains_gate(_le_gains_need - 1)
+    and _le_house_need < _le_gains_need,
+    f"house {_le_house_need} gains {_le_gains_need}",
+)
+
+# Counting at a measured rate: 10 house samples a day over a two-day window.
+_le_c = _le_coord(house=30, solar=4, internal_gains_learning_enabled=True,
+                  solar_aperture_learning_enabled=True)
+_le_snap(_le_c, 2.0, house=10, solar=0)
+_le_p = _le_progress(_le_c)
+R.check(
+    "R10-LEARNER-ETA: a counting gate's ETA is its remaining count at the measured rate",
+    _le_p["house"]["phase"] == "counting"
+    and _le_p["house"]["eta_days"] == round((_le_house_need - 30) / 10.0, 1)
+    and _le_p["house"]["samples_needed"] == _le_house_need
+    and _le_p["house"]["progress"] == round(30 / _le_house_need, 3)
+    and _le_p["gains"]["phase"] == "counting"
+    and _le_p["gains"]["eta_days"] == round((_le_gains_need - 30) / 10.0, 1)
+    and _le_p["solar"]["phase"] == "counting"
+    and _le_p["solar"]["eta_days"] == round((_LE_SOLAR_MIN - 4) / 2.0, 1),
+    f"{_le_p}",
+)
+
+# The defect: a day count for a settling learner. Past every gate, on any
+# weather and any rate, no learner carries one; its progress is the walk.
+_le_settle = []
+for _le_cold in (True, False):
+    for _le_sunny in (True, False):
+        for _le_rate in (True, False):
+            _le_c = _le_coord(house=_le_gains_need + 40, solar=_LE_SOLAR_MIN + 40, lower=200,
+                              cold=_le_cold, sunny=_le_sunny, internal_gains_learning_enabled=True,
+                              solar_aperture_learning_enabled=True)
+            if _le_rate:
+                _le_snap(_le_c, 3.0, house=_le_gains_need, solar=_LE_SOLAR_MIN)
+            _le_p = _le_progress(_le_c)
+            _le_settle.append((_le_cold, _le_sunny, _le_rate,
+                               {k: (v["phase"], v["eta_days"]) for k, v in _le_p.items()}))
+R.check(
+    "R10-LEARNER-ETA: no settling learner carries a day count, on any weather or rate",
+    all(v[1] is None for *_, row in _le_settle for v in row.values())
+    # each settles wherever its own gates admit a sample now, or it has a rate
+    and all(row["house"][0] == "settling"
+            for cold, sunny, rate, row in _le_settle if (cold and not sunny) or rate)
+    and all(row["solar"][0] == "settling"
+            for cold, sunny, rate, row in _le_settle if (cold and sunny) or rate),
+    f"{_le_settle}",
+)
+_le_c = _le_coord(house=_le_gains_need + 40, solar=_LE_SOLAR_MIN + 40, sunny=False,
+                  internal_gains_learning_enabled=True, solar_aperture_learning_enabled=True)
+_le_p = _le_progress(_le_c)
+R.check(
+    "R10-LEARNER-ETA: settling progress is the learner's own EWMA walk, never a time",
+    _le_p["house"]["progress"] == round(_le_confidence(_le_gains_need + 40), 3)
+    # the aperture walks from its gate, one SOLAR_APERTURE_ALPHA step a sample
+    and _le_p["solar"]["progress"] == round(1.0 - (1.0 - _LE_SOLAR_ALPHA) ** 40, 3)
+    and _le_p["gains"]["phase"] == "settling" and _le_p["gains"]["progress"] is None,
+    f"{_le_p}",
+)
+
+# Waiting: nothing counted over the window and the weather blocks the gate.
+_le_c = _le_coord(house=30, solar=4, cold=False, sunny=False,
+                  solar_aperture_learning_enabled=True)
+_le_snap(_le_c, 2.0)  # the same counts two days ago: nothing counted since
+_le_p = _le_progress(_le_c)
+_le_c2 = _le_coord(house=30, solar=4, cold=True, sunny=False,
+                   solar_aperture_learning_enabled=True)
+_le_p2 = _le_progress(_le_c2)
+R.check(
+    "R10-LEARNER-ETA: a stalled learner says what weather it waits for, with no day count",
+    _le_p["house"]["phase"] == "waiting" and _le_p["house"]["waiting_for"] == "colder"
+    and _le_p["solar"]["phase"] == "waiting" and _le_p["solar"]["waiting_for"] == "sunnier"
+    and _le_p["house"]["eta_days"] is None and _le_p["solar"]["eta_days"] is None
+    # the null arm: cold enough, the house learner is counting, not waiting
+    and _le_p2["house"]["phase"] == "counting" and _le_p2["house"]["waiting_for"] is None,
+    f"warm {_le_p} cold {_le_p2}",
+)
+
+# The dark gate (#2223): the house, lower and gains folds take no sunlit
+# interval, so in the sun with nothing counted they wait for dark, while the
+# aperture, which folds ahead of that gate, counts. The null arm: the same
+# house in the dark is counting.
+_le_c = _le_coord(house=30, solar=4, lower=20, lower_floor_temp_entity="sensor.lower",
+                  internal_gains_learning_enabled=True, solar_aperture_learning_enabled=True)
+_le_c._thermal_params.two_zone_enabled = True
+_le_sun = _le_progress(_le_c)
+_le_c._current_state = _le_replace(_le_c._current_state, solar_radiation=0.0)
+_le_dark = _le_progress(_le_c)
+R.check(
+    "R10-LEARNER-ETA: in the sun the dark-gated learners wait for dark, and the aperture counts",
+    all(_le_sun[k]["phase"] == "waiting" and _le_sun[k]["waiting_for"] == "darker"
+        for k in ("house", "lower", "gains"))
+    and _le_sun["solar"]["phase"] == "counting" and _le_sun["solar"]["waiting_for"] is None
+    and all(_le_dark[k]["waiting_for"] != "darker" for k in _le_dark)
+    and _le_dark["house"]["phase"] == "counting",
+    f"sun {_le_sun} dark {_le_dark}",
+)
+
+# Off where the learner is disabled or unmeasurable, and the two ends of the
+# evidence range: a fresh install and one far past every gate.
+_le_off = _le_progress(_le_coord())
+_le_fresh = _le_progress(_le_coord(house=0, sunny=False, internal_gains_learning_enabled=True))
+_le_clamp = _le_progress(_le_coord(house=10**6, sunny=False))
+R.check(
+    "R10-LEARNER-ETA: off when disabled or unmeasurable; zero evidence counts with no ETA",
+    _le_off["lower"]["phase"] == "off" and _le_off["solar"]["phase"] == "off"
+    and _le_off["gains"]["phase"] == "off"
+    and _le_fresh["house"] == {"phase": "counting", "progress": 0.0, "waiting_for": None,
+                               "eta_days": None, "samples": 0, "samples_needed": _le_house_need}
+    and _le_clamp["house"]["phase"] == "settling" and _le_clamp["house"]["progress"] == 1.0
+    and _le_clamp["house"]["eta_days"] is None,
+    f"off {_le_off} fresh {_le_fresh} clamp {_le_clamp}",
+)
+
+# A non-finite aperture count (#773's corrupted store) counts as none, and
+# the snapshot it is compared against with it.
+_le_c = _le_coord(solar=float("nan"), solar_aperture_learning_enabled=True)
+_le_snap(_le_c, 2.0)
+_le_nan = _le_progress(_le_c)["solar"]
+R.check(
+    "R10-LEARNER-ETA: a non-finite aperture count reads as zero samples, with no day count",
+    _le_nan["samples"] == 0 and _le_nan["eta_days"] is None,
+    f"{_le_nan}",
+)
+
+# The rate window: a snapshot stamped ahead of the clock has an unknowable
+# age, and a count below the snapshot's (a restore) gives no rate -- neither
+# may produce a day count. The null arm is the same snapshot a day back.
+_le_rate_rows = []
+for _le_days, _le_then in ((-1.0, 10), (2.0, 40), (0.5, 10), (1.5, 15), (1.0, 20)):
+    _le_c = _le_coord(house=30)
+    _le_snap(_le_c, _le_days, house=_le_then)
+    _le_rate_rows.append(_le_progress(_le_c)["house"]["eta_days"])
+R.check(
+    "R10-LEARNER-ETA: no rate from a future stamp, a count rolled back or a window under a day",
+    _le_rate_rows[:3] == [None, None, None]
+    # the null arms, ten samples a day: a day and a half, and exactly one day
+    and _le_rate_rows[3:] == [round((_le_house_need - 30) / 10.0, 1)] * 2,
+    f"{_le_rate_rows}",
+)
+
+# A snapshot entry the loader keeps (``SnapshotRing.from_dict`` drops only a
+# non-dict one) but whose stamp does not parse, whose learners are malformed,
+# or which predates a count, gives no rate and no raise.
+_le_taken = (_LE_NOW - timedelta(days=2.0)).isoformat()
+_le_bad_rows = []
+for _le_bad in (
+    {"taken_at": "not a time", "learners": {"thermal_learning": {"house_heat_loss_samples": 10}}},
+    {"taken_at": _le_taken, "learners": "x"},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {}}},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": "10"}}},
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": True}}},
+):
+    _le_c = _le_coord(house=30)
+    _le_c._snapshot_ring.snapshots.append(_le_bad)
+    try:
+        _le_bad_rows.append(_le_progress(_le_c)["house"]["eta_days"])
+    except Exception as _le_err:  # noqa: BLE001
+        _le_bad_rows.append(f"{type(_le_err).__name__}: {_le_err}")
+_le_c = _le_coord(house=30)
+_le_c._snapshot_ring.snapshots.append(
+    {"taken_at": _le_taken, "learners": {"thermal_learning": {"house_heat_loss_samples": 10}}})
+_le_good = _le_progress(_le_c)["house"]["eta_days"]
+R.check(
+    "R10-LEARNER-ETA: a malformed or count-less snapshot gives no rate and never raises",
+    _le_bad_rows == [None] * 5 and _le_good == round((_le_house_need - 30) / 10.0, 1),
+    f"bad {_le_bad_rows} good {_le_good}",
+)
+
+# The gates' edges are the learners' own: a fold is admitted at exactly
+# HOUSE_LOSS_MIN_DELTA, at exactly HEAT_LOSS_MAX_SOLAR_W_M2 (the dark gate) and
+# at exactly SOLAR_APERTURE_MIN_IRRADIANCE, so none is a wait; a learner
+# exactly on its gate count is settling.
+_le_edge = {}
+for _le_irr in (_LE_DARK_MAX, _LE_MIN_IRR):
+    _le_c = _le_coord(house=30, solar=4, solar_aperture_learning_enabled=True)
+    _le_c._current_state = _le_replace(
+        _le_c._current_state, outdoor_temperature=20.0 - _LE_MIN_DT, solar_radiation=_le_irr)
+    _le_edge[_le_irr] = _le_progress(_le_c)
+_le_edge = {"house": _le_edge[_LE_DARK_MAX]["house"], "solar": _le_edge[_LE_MIN_IRR]["solar"]}
+_le_c = _le_coord(house=_le_house_need)
+_le_snap(_le_c, 2.0, house=_le_house_need - 20)
+_le_on_gate = _le_progress(_le_c)["house"]
+R.check(
+    "R10-LEARNER-ETA: the ΔT and irradiance edges admit a sample, and the gate count settles",
+    _le_edge["house"]["phase"] == "counting" and _le_edge["house"]["waiting_for"] is None
+    and _le_edge["solar"]["phase"] == "counting" and _le_edge["solar"]["waiting_for"] is None
+    and _le_on_gate["phase"] == "settling" and _le_on_gate["eta_days"] is None
+    and _le_solar_walked(_LE_SOLAR_MIN - 5) == 0.0,
+    f"edge {_le_edge} on gate {_le_on_gate}",
+)
+
+# The lower learner is measurable only with the two-zone model AND a
+# lower-floor sensor (the learner's own two preconditions).
+_le_lower = []
+for _le_two, _le_sensor in ((True, True), (True, False), (False, True)):
+    _le_c = _le_coord(lower=20, **({"lower_floor_temp_entity": "sensor.lower"} if _le_sensor else {}))
+    _le_c._thermal_params.two_zone_enabled = _le_two
+    _le_lower.append(_le_progress(_le_c)["lower"]["phase"])
+R.check(
+    "R10-LEARNER-ETA: the lower learner is off unless both the two-zone model and its sensor exist",
+    _le_lower[0] != "off" and _le_lower[1:] == ["off", "off"],
+    f"{_le_lower}",
+)
+
+# The Health tab's one source is the model status sensor: the card reads its
+# attributes by its entity id's suffix, so the view reaches the
+# card through that sensor or not at all. The null arm: a payload with no
+# learner_progress publishes none, and the other rows are untouched.
+import re as _le_re  # noqa: E402
+from pathlib import Path as _le_Path  # noqa: E402
+
+_le_card_src = _le_Path(
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+).read_text(encoding="utf-8")
+_le_card_suffix = _le_re.search(r'const HEALTH_MODEL_SUFFIX = "([a-z_]+)";', _le_card_src)
+_le_pub = []
+for _le_house in (30, _le_gains_need + 40):  # counting, then settling
+    _le_c = _le_coord(house=_le_house, sunny=False, internal_gains_learning_enabled=True)
+    _le_snap(_le_c, 2.0, house=_le_house - 20)
+    _le_dt.freeze(_LE_NOW)
+    try:
+        _le_c.data = _le_c._learning_view()
+        _le_status = _rs_sensor.ModelStatusSensor(_le_c, _FakeEntry(data={}))
+        _le_attrs = _le_status.extra_state_attributes
+    finally:
+        _le_dt.freeze(None)
+    _le_pub.append((_le_status, _le_c.data["learner_progress"], _le_attrs.get("learner_progress")))
+_le_c.data = {k: v for k, v in _le_c.data.items() if k != "learner_progress"}
+_le_bare = _rs_sensor.ModelStatusSensor(_le_c, _FakeEntry(data={})).extra_state_attributes
+R.check(
+    "R10-LEARNER-ETA: the Health tab's source sensor publishes learner_progress as the view has it",
+    _le_card_suffix is not None
+    and _le_pub[0][0].entity_id.endswith(_le_card_suffix.group(1))
+    and all(view and attr == view for _, view, attr in _le_pub)
+    and _le_pub[0][2]["house"]["phase"] == "counting"
+    and _le_pub[0][2]["house"]["eta_days"] is not None
+    and _le_pub[1][2]["house"]["phase"] == "settling"
+    and _le_pub[1][2]["house"]["eta_days"] is None
+    and "learner_progress" in type(_le_pub[0][0])._unrecorded_attributes
+    and _le_bare.get("learner_progress") is None
+    and {k: v for k, v in _le_bare.items() if k != "learner_progress"}
+    == {k: v for k, v in _le_attrs.items() if k != "learner_progress"},
+    f"suffix {_le_card_suffix and _le_card_suffix.group(1)} pub {[(v, a) for _, v, a in _le_pub]}",
+)
+
 # --- #29 the narrative -----------------------------------------------------------
 for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
     R.check(
