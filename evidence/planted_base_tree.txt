@@ -1,0 +1,6 @@
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head origin/main: planted=82735 main_not_head=0 {}
+head 09b1d002c: planted=74251 main_not_head=8484 {"unmatched-closer-in-lead":8412,"other":56,"comment-line":16}
+head 4aad9c117: planted=74665 main_not_head=8070 {"unmatched-closer-in-lead":8016,"other":54}
