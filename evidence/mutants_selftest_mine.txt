@@ -1,4 +1,0 @@
-B1-boundary-le: SELF-TEST 180 of 180 probes held 
-B2-boundary-at-minus-3: SELF-TEST 180 of 180 probes held 
-B3-skip-only-at-line-start:   FAIL a closer in the lead with no opener on its line does not end the call: a wrapped parenthetical's --subject is refused, at its line   FAIL the same for a list marker, a case arm and a shell array closed on the call's line SELF-TEST 178 of 180 probes held 
-K2-depth-kept:   FAIL null control: a closer in the lead before a merge with no subject, and a later line's flag, are not the call's SELF-TEST 179 of 180 probes held 

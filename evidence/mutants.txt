@@ -84,4 +84,3 @@ C2 the forward read skips no comment | SELF-TEST 178 of 180 probes held | FAIL a
 C3 a Python '#' opens a comment only at a word's start | SELF-TEST 179 of 180 probes held | FAIL a Python comment needs no space before its '#': a bracket in it does not end the call
 C4 no JS line comment | SELF-TEST 179 of 180 probes held | FAIL a JS line comment's bracket does not end the call: its --subject is refused
 C5 a shell # opens a comment anywhere | SELF-TEST 179 of 180 probes held | FAIL null control: a shell '#' inside a word opens no comment, so ${#a[@]} leaves no bracket open
-exit=0
