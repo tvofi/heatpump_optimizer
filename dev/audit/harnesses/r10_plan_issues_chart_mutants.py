@@ -21,9 +21,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from r10_plan_page_mutants import fail_name  # noqa: E402 -- the one FAIL-line grammar
+from r10_plan_page_mutants import fail_name, repo_root  # noqa: E402 -- the FAIL-line grammar and root walk
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = repo_root(__file__)
 PAGE = "tools/audit/seat/plan_page.py"
 
 MUTANTS = [
