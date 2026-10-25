@@ -1,8 +1,0 @@
-== review 8 census
-evidence/census.txt
-TOTAL old=63 new=63 over 290 file(s)
-== split rule grep
-origin/main:dev/governance/config/policy_budgets.json:6:  "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
-origin/main:dev/governance/roles/designer.md:20:   split the concern.
-== review census
-refs=141 verdicts=300 class-open=16 prs= 2524:1 2545:1 2577:2 2658:1 2697:6 2706:1 2707:1 2711:2 2770:1

@@ -1,0 +1,17 @@
+== 3cd2bab6a67d6ee3361b523b13e049dc1454d1a2 ancestor-of-roster: yes
+      2 "R10-MERGE-SUBJECT-HARDEN"
+      1 Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0
+      1 "R10-MERGE-SUBJECT-CASEARM"
+      1 "R10-MERGE-SUBJECT-HARDEN"
+== 00ceb9aa4455b0f1270ef6c7755d51838a2dd536 ancestor-of-roster: yes
+      2 "R10-MERGE-SUBJECT-HARDEN"
+      1 Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0
+      1 "R10-MERGE-SUBJECT-CASEARM"
+      1 "R10-MERGE-SUBJECT-HARDEN"
+      1 Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0
+== FETCH_HEAD ancestor-of-roster: yes
+      2 "R10-MERGE-SUBJECT-HARDEN"
+      1 Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0
+      1 "R10-MERGE-SUBJECT-CASEARM"
+      1 "R10-MERGE-SUBJECT-HARDEN"
+      1 Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0
