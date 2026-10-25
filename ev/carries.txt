@@ -1,0 +1,9 @@
+handoff/audit-r10-roster at 2124781cf86064c9bba6639755f73d60b5d54627 (fetched this review; tip 2124781cf86064c9bba6639755f73d60b5d54627)
+carries from r10-demand-overbook by group (stage):
+  R10-UX-HEALTH (not-started): 1 -- nometer unobservability
+  R10-BUFFER-STORE (queued): 2 -- DP optimality lead; dhw_temp_trajectory tank seed
+  R10-LEARNER-DEFAULT (not-started): 1 -- owner_i03 zero samples
+  R10-COP-PARTLOAD (queued): 0
+  R10-HEAT-METER (not-started): 0
+  R10-ORCH-MACHINERY (absorbed): 0 -- neither R10-FIXER-DISPATCH-REF nor R10-HARNESS-COPY-NAME
+body Carry markers: R10-UX-HEALTH, R10-LEARNER-DEFAULT, R10-COP-PARTLOAD (optimality), R10-HEAT-METER (tank seed), R10-ORCH-MACHINERY x2

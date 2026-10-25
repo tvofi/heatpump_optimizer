@@ -1,0 +1,38 @@
+ tests/structure_budgets.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+7afd9452b 033fb4581 662a3809c tvofi Merge remote-tracking branch 'origin/main' into fix/r10-demand-overbook
+033fb4581 9a827783f 1193fd228 tvofi Merge commit '1193fd2280fd01d6b91ef8164caeb44d889ee2e4' into fix/r10-demand-overbook
+662a3809c 9d0ddf8af 879dd65be tvofi Merge pull request #2704 from tvofi/fix/r10-policy-fixer-md
+9a827783f f0a975b0a 9d0ddf8af github-actions[bot] ci: merge main
+9d0ddf8af 5c0ee1093 2319a59a8 tvofi Merge pull request #2776 from tvofi/record/autofix
+5c0ee1093 c6ef25a65 893787b08 tvofi Merge pull request #2711 from tvofi/fix/r10-structure-alias
+2319a59a8 bd4fa38d1 hpo-author[bot] ci: record delivery rows
+bd4fa38d1 fe5884445 hpo-author[bot] ci: record delivery rows
+1193fd228 4edfc44a6 c176ee55d Claude Merge remote-tracking branch 'origin/main' into work/r10-demand-overbook-r4
+4edfc44a6 65d37a7cb a717ded9a Claude Merge remote-tracking branch 'origin/fix/r10-demand-overbook' into work/r10-demand-overbook-r4
+879dd65be ea1bc9347 a260e5630 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-policy-fixer-md
+ea1bc9347 859b74ba8 e1af66910 tvofi Merge commit 'e1af669109c862b1f7dbc7a8112b8c167123c973' into fix/r10-policy-fixer-md
+893787b08 1df4ec324 646dbaa65 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias
+1df4ec324 b43ea5411 86d4dba1c tvofi Merge commit '86d4dba1c4091beebe087b208b8c873a315ed199' into fix/r10-structure-alias
+e1af66910 859b74ba8 Claude policy(R10-POLICY-FIXER-MD): land roster carries 10, 11 and 12
+86d4dba1c a5c58c0c0 tvofi structure: re-record seam_cut_total 367 -> 420 (definition changed)
+a5c58c0c0 f6e83cd28 tvofi structure: price every channel and reach of a state-handing callee (O19 round 3)
+f6e83cd28 b43ea5411 e463e95e2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias-r3
+b43ea5411 508fad0d7 73b69fe0a tvofi Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias
+508fad0d7 5021b50de 28987b7ce tvofi Merge commit '28987b7cef417bc1fce3dce115f1853c06706fa7' into fix/r10-structure-alias
+28987b7ce 78d8fe6ed Claude structure: the seam_cut_total line states the return-value rule
+78d8fe6ed 1c882ad10 Claude fix(R10-STRUCTURE-ALIAS): a called function's name holds nothing it is handed
+1c882ad10 d73a3bf1f Claude fix(R10-STRUCTURE-ALIAS): pin the annotated context alias as a hop; drop an unreachable keyword branch
+d73a3bf1f 186788164 Claude structure: re-record seam_cut_total 710 -> 367 under the return-value rule
+186788164 c7949357b Claude fix(R10-STRUCTURE-ALIAS): price a callee by what escapes through its return value
+c7949357b 5021b50de e97f5749b Claude Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias
+5021b50de 13e87ee0f tvofi record: the delivery row for #2711
+13e87ee0f ddadd4d4e fa4dad4a7 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias
+859b74ba8 04860ee0a tvofi record: the delivery row for #2704
+04860ee0a 2788ce349 ac5788f26 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-policy-fixer-md
+ddadd4d4e 0fd39b403 e8a08cf9e Claude Merge remote-tracking branch 'origin/main' into fix/r10-structure-alias
+0fd39b403 fb13363ee Claude harness(R10-STRUCTURE-ALIAS): find the checkout with the canonical repo_root walk
+fb13363ee 5a2fe0f34 Claude closures: record the new harness's inert read
+5a2fe0f34 4c870ee10 Claude harness(R10-STRUCTURE-ALIAS): replay the alias and getter plants in memory; census bare getters and cross-seam properties
+4c870ee10 145bfe197 Claude fix(R10-STRUCTURE-ALIAS): price the seam cut in distinct pairs, see through bare getters
+2788ce349 50af6174f hpo-fixer-seat policy(R10-POLICY-FIXER-MD): dispose #2378's recurring fixer.md friction

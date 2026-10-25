@@ -1,0 +1,5 @@
+unmutated head: ALL 4369 FEATURE CHECKS PASSED rc=0
+cmp: -    return float(drawn_kw) if drawn_kw > floor else 0.0 +    return float(drawn_kw) if drawn_kw >= floor else 0.0  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+m3: -        shared=coord._immersion_active or signals.electric_heat.resistive_heat, +        shared=False,  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+m4: -        space_served=signals.space_heat or not signals.mode_observed, +        space_served=True,  => 1 of 4369 FEATURE CHECKS FAILED rc=1
+null: -        space_served=signals.space_heat or not signals.mode_observed, +        space_served=signals.space_heat or not signals.mode_observed,  # null control  => ALL 4369 FEATURE CHECKS PASSED rc=0
