@@ -1,0 +1,32 @@
+Fix review: merge d4f71c00acdedb70f9fcdbf619030a7766b76d04
+
+bus-nonce: 1abe0df0de65243670104e7a434fb71f
+
+## Verdict
+
+Round 3 (round 1 blocked ef926de78 verdict-word, verdict 6402517605; round 2 blocked 8584e8158 head-moved, verdict 6402780794). Delta review at d4f71c00acdedb70f9fcdbf619030a7766b76d04 against `dev/governance/roles/proposal-triage.md` and `dev/governance/roles/fix-review.md` (current: no diff to origin/main under `dev/governance/roles/`). Every ruling is DEFER (P168 with a REJECT arm) and names its measurement or its owner; no ACCEPT remains, so no destination has to be live, and every group a DEFER names is live at origin/main. Every figure left in the file carries its command and I re-derived the one count it states. I would change no ruling.
+
+Round-1 verdict, item by item, at this head:
+1. Block 1 (P169, P170, P173, P174 ACCEPT unmeasured): closed. P169 "Verdict: DEFER -> D13 owns the measurement: the share of round-10 blocked verdicts a shadow reviewer ... would have pre-empted, by verdict id"; P170 "Verdict: DEFER ... the train's recarry CI wait per batch from the train logs, against the CI minutes a background refresh ... would spend"; P173 "Verdict: DEFER. What would change the answer is the count of blocked verdicts whose class is a missing body section, harness or mutant scaffold"; P174 "Verdict: DEFER -> needs the rubric (P176 ...) and a scoring harness".
+2. Block 2 (P172, P175 ACCEPT to D13): closed. Both "Verdict: DEFER -> D13 owns the measurement", and P175's carry to R10-ROUND-PLAYBOOK is gone (body: "P175's carry is dropped").
+3. Block 3 (P168): closed. "Verdict: DEFER (ordering) ... The cancel-on-first-red arm is REJECTED on its binding cost"; `ruling_verdict` reads DEFER, so no roster op can cite it as an ACCEPT (ev/ruling_verdict.txt).
+4. Block 4 (P171): closed. "Verdict: DEFER -> owned by the carries named below", each carry named (JIDOKA 11 and 18, `prepr.sh:1417`, `prepr.sh:278`, P135 -> R10-ORCH-REVIEW-PACKET).
+5. Finding P175 38/71: closed. "117/255 (0.46), from `python3 tools/audit/seat/flow_metrics.py --window 2026-10-15T12:37:57Z..2026-10-25T19:00:00Z --roster origin/main:dev/programme/rosters/wave-r10-groups.json --prefix R10-`"; re-derived: "first-pass yield 117/255 (0.46)" (ev/flow_metrics.txt).
+6. Finding, uncited figures: closed. P168's hours, P170's 920 s / 10.4 and P172's 63 blocks are gone; P169 "(The plan-opt study's mean of 2.26 rounds per fix PR is out of tree and not re-derived here; it is not used as a figure.)"; P172 "the plan-opt study's offline counts are out of tree and not used as a figure".
+7. Finding, dependencies stated as settled: closed. P168 "P158 (R10-PROOF-CODEQL, an ACCEPT trial on #2829, not yet on main)"; P170 "P153 (closure cache; itself DEFER on #2828, not on main)"; P174 "P176, itself DEFER on #2831, not on main". All three match the sibling branches (ev/sibling_rulings.txt), and R10-PROOF-CODEQL is absent from origin/main's roster (ev/roster_main.txt).
+8. Finding, citations beside their claim: closed. P168 "`ci.yml:169-241`" (each unit job `needs: prelude`) and "`ci.yml:301-302`" (`gate: needs: [prelude, pr-contract]`); P169 "step 2 at `fix-review.md:13-14` for the finder's harness" (ev/citations.txt).
+
+## Findings
+
+- **"D13 owns the measurement" (P168, P169, P172, P175) is recorded only in this batch file.** `dev/governance/dimensions/D13.md` is unchanged by the PR, so no round-11 D13 seat is bound to take the four measurements; the DEFERs satisfy the contract by naming what would change the answer, but D13 is a dimension brief, not a roster group, and "owns" is a claim this PR does not propagate (`finding-propagation.md`). The round-11 playbook group is where a later stage's brief inputs are gathered. Carry: R10-ROUND-PLAYBOOK
+
+## Evidence
+
+- Head reviewed: d4f71c00acdedb70f9fcdbf619030a7766b76d04 (ev/HEAD.txt), still the PR head and the body's `## Head` at ~20:32Z. Diff vs merge base c9cbe6b45 (three-dot): only `dev/programme/triage/s6-batch30.md` (+85) and `dev/programme/delivery/2830.md` (+1) (ev/diffstat.txt). No host or home path in the batch file (`grep -nE '/home|/Users|/root|/tmp|~/'`: no match).
+- `git merge-tree --write-tree origin/main d4f71c00acdedb70f9fcdbf619030a7766b76d04` at origin/main f3ffb1c63: exit 0, tree 67b77516e (ev/merge_tree.txt).
+- Body figure "8 DEFER": `grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' dev/programme/triage/s6-batch30.md | sort | uniq -c` gives `8 Verdict: DEFER`. `roster_edit.ruling_verdict`: DEFER for P168-P175, None for P167, P176, P177 (the body's null control, re-run) (ev/ruling_verdict.txt).
+- Named groups at origin/main (ev/roster_main.txt): R10-FLOW-JIDOKA stage in-progress, R10-FLOW-BODY-ONLY not-started, R10-ORCH-REVIEW-PACKET not-started, R10-ROUND-PLAYBOOK not-started; none absorbed or done. JIDOKA carry indices 11 (carry_audit in `--body-check`) and 18 (ref_privacy) and BODY-ONLY carry index 8 (card 4, hold part (a)) say what P170/P171 claim. P135 on main (`s6-batch26.md:131`) is "ACCEPT narrowed -> R10-ORCH-REVIEW-PACKET".
+- Citations re-checked at origin/main f3ffb1c63 (ev/citations.txt): `prepr.sh:1417` (unnamed-red refusal), `prepr.sh:278` (`claims_check`), `tests.yml:197-203` (`fail-fast: true`), `merge_train.py:574-581` (MainMoved recarry), `D13.md:19-24`, `fix-review.md` lines 12, 28, 46, 88, 134 (mutation-vacuous, class-open, carry-missing, head-moved, architecture-unsound), `ci.yml:169-241`, `:301-302`, `fix-review.md:3-4`, `:13-14`.
+- No duplicate inside the file and none of an existing group; each re-cut cites the verdicts it applies (6402369226, 6402374814 on the siblings; 6402517605 here).
+- No mutation proof applies: the diff writes no code or check line.
+- CI at this head (check-runs API, ~20:32Z, ev/ci_checks.txt): `governance / delivery-status` failed with "DELIVERY STATUS OVERDUE", naming eight overdue rows none of which is this PR's; the diff only adds its own row, and its log says "This check is NOT a required context and a red here blocks no merge" (fix-review.md step 11: a red `delivery-status` is not this pull request's unless its diff reaches what it reads). Every other completed run is success or skipped; tests fast/typing/closures/browser/arch-instrument/coverage queued, instrument-self-tests and env-matrix in progress, pr-contract and gate not yet run. CI had not concluded when I read it; this merge verdict does not certify the gate.
