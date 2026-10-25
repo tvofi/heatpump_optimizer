@@ -1,6 +1,6 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-fly-depgraph-stale, at head de69745ffcab66b566b3e75aee0b572023f80857. Never send push notifications.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-fly-depgraph-stale, at head b89fea13e99f23cc75f01bb1604030cabea4ca66. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
-Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch de69745ffcab66b566b3e75aee0b572023f80857 for the base you were given.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch b89fea13e99f23cc75f01bb1604030cabea4ca66 for the base you were given.
 Output: push the code to refs/heads/handoff/r10-fly-depgraph-stale, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-fly-depgraph-stale <body.md>`, which pushes refs/heads/handoff-body/r10-fly-depgraph-stale; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
