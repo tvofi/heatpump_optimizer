@@ -1,3 +1,4 @@
+dispatch/fixer-r10-flow-autotrain-r3
 dispatch/fixer-r10-flow-autotrain-r2
 dispatch/fixer-r10-train-upgrade-r2
 dispatch/fixer-r10-thermal-power-option
