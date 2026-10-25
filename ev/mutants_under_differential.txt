@@ -1,0 +1,18 @@
+# my local (unpushed) mutant commits on head bd81b8863, under the RCA differential, cwd worktree at origin/main
+$ planted origin/main <mutants>
+files=289
+corpus planted=82735
+base origin/main: planted=82735
+head 46163f81d7fe918154132e6c6f3285bce50bc359: planted=74665 main_not_head=8070 {"unmatched-closer-in-lead":8016,"other":54}
+head 25d2bb308e30262078e955916de4f536949d5551: planted=82735 main_not_head=0 {}
+head fff84de6e40d1c6af272ecd5cb3d1dc216d4cb28: planted=82735 main_not_head=0 {}
+head aaed5d1f0a18a8f2c4c5e4ecac28b496b3c0b3c1: planted=82735 main_not_head=0 {}
+head cb780d7f27ff01297c51121ac49d377bf9d10c4d: planted=75415 main_not_head=7320 {"unmatched-closer-in-lead":7266,"other":54}
+$ corpus origin/main <mutants>
+corpus lead-closer=192 control=96 null=8
+base origin/main: lead-closer=192 control=96 null=0
+head 46163f81d7fe918154132e6c6f3285bce50bc359: lead-closer=45 control=96 null=0 main_not_head=147
+head 25d2bb308e30262078e955916de4f536949d5551: lead-closer=192 control=96 null=0 main_not_head=0
+head fff84de6e40d1c6af272ecd5cb3d1dc216d4cb28: lead-closer=192 control=96 null=0 main_not_head=0
+head aaed5d1f0a18a8f2c4c5e4ecac28b496b3c0b3c1: lead-closer=192 control=96 null=0 main_not_head=0
+head cb780d7f27ff01297c51121ac49d377bf9d10c4d: lead-closer=63 control=96 null=0 main_not_head=129

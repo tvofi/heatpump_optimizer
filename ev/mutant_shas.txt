@@ -1,0 +1,5 @@
+K1-skip-deleted 46163f81d7fe918154132e6c6f3285bce50bc359
+K2-depth-kept 25d2bb308e30262078e955916de4f536949d5551
+B1-boundary-le fff84de6e40d1c6af272ecd5cb3d1dc216d4cb28
+B2-boundary-at-minus-3 aaed5d1f0a18a8f2c4c5e4ecac28b496b3c0b3c1
+B3-skip-only-at-line-start cb780d7f27ff01297c51121ac49d377bf9d10c4d
