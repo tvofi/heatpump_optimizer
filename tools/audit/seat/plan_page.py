@@ -782,7 +782,7 @@ def _self_test() -> int:
             rc = f"raised {type(exc).__name__}"
         check("no gh binary: the page is still written, chart omitted, no crash",
               rc == 0 and out.is_file() and "Omitted" in out.read_text(encoding="utf-8"), rc)
-        out.unlink()
+        out.unlink(missing_ok=True)
 
         def refused(variant: dict, why: str) -> tuple:
             """main on a fresh variant of the plan: rc, a file, the refusal."""
