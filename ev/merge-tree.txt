@@ -1,0 +1,19 @@
+$ git merge-tree --write-tree origin/main 274e6975c1b7a4334d181879c4ad2bef532c4134
+6a1c3ccb9c4574d9995d605e4f6a906ea7952f4e
+rc=0
+merged tree differs from head only in:
+dev/programme/delivery/2739.md
+dev/programme/delivery/2759.md
+dev/programme/delivery/2764.md
+dev/programme/delivery/2769.md
+dev/programme/delivery/2776.md
+
+re-check at origin/main 662a3809ced43b41dba2166f04277f2d3c95e991:
+7ad002ef0c0005d08cb47d771eb047cd5cf127fb
+rc=0
+.claude/rules/finding-propagation.md
+.cursor/rules/finding-propagation.mdc
+dev/governance/roles/fix-review.md
+dev/governance/roles/fixer.md
+dev/governance/rules/finding-propagation.md
+dev/programme/delivery/2704.md

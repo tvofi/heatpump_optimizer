@@ -1,0 +1,3 @@
+  ok   ARCH2-s2 P6: a cancelled tile solve skips its spec on this pass, so the next solve takes the next spec (behaviour change, stated in the PR)
+
+ALL 4371 FEATURE CHECKS PASSED
