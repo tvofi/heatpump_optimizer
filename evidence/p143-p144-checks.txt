@@ -1,0 +1,8 @@
+## P143 spot re-derivation: handoff commit time vs PR created_at (GitHub API list_pull_requests)
+r10-flow-mq-probe #2826 handoff a03b799bf 2026-10-25T19:32:32+00:00 open 2026-10-25T18:53:24Z wait_min=-39
+r10-update-pr-signals #2825 handoff 0ca3e5b71 2026-10-25T19:44:19+00:00 open 2026-10-25T18:36:59Z wait_min=-67
+r10-diag-redact #2824 handoff 70b57a370 2026-10-25T20:07:12+00:00 open 2026-10-25T18:28:56Z wait_min=-98
+r10-legionella-completion #2832 handoff 439bc041a 2026-10-25T18:40:29+00:00 open 2026-10-25T19:49:49Z wait_min=69
+r10-plan-issues-chart #2833 handoff 18cd6fdc2 2026-10-25T19:58:01+01:00 open 2026-10-25T20:10:18Z wait_min=72
+## ROUND-PLAYBOOK carries naming P144/V65
+exists True resume not-started

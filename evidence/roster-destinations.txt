@@ -1,12 +1,61 @@
-R10-FLOW-DESIGN-STAGES not-started after= [] carries= 15
-R10-ADVISOR-RESIDUE not-started after= [] carries= 9
-R10-FLOW-RECORD-PITCH not-started after= ['R10-CI-LAYOUT-P2', 'R10-FLOW-PULL'] carries= 10
-R10-FLY-OPENPR-ATOMIC not-started after= ['R10-UPDATE-PR-SIGNALS'] carries= 10
-R10-ROUND-PLAYBOOK not-started after= ['R10-FLOW-ARCH-PLANNER', 'R10-FLOW-AUDIT-PLAN', 'R10-ORCH-LEDGER', 'R10-ORCH-DISPATCH-REG', 'R10-ORCH-BEATD', 'R10-ORCH-PLANPAGE', 'R10-HANDOVER-REFRESH', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-MAIN-GATE', 'R10-FLOW-DISPATCH', 'R10-CI-LAYOUT-P2', 'R10-FLY-RELAY-REVIEW-FF', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-BODY-ONLY'] carries= 5
-R10-ORCH-REVIEW-PACKET not-started after= ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD'] carries= 4
-R10-FLOW-POSTMERGE not-started after= ['R10-ROSTER-OPS'] carries= 9
-R10-ORCH-ROSTER-SCHEMA not-started after= ['R10-ROSTER-OPS', 'R10-CI-LAYOUT', 'R10-TICK-OWED-LEVEL', 'R10-FLOW-MAIN-GATE', 'R10-CI-LAYOUT-P1'] carries= 21
-R10-FLOW-MQ-PROBE done after= ['R10-CI-LAYOUT-P2'] carries= 0
-R10-UPDATE-PR-SIGNALS in-progress after= [] carries= 5
-R10-ROSTER-OPS done after= [] carries= 6
-roster branch handoff/audit-r10-roster at 32ffe43c052f892dc9daec053b9036255d5f7f41
+keys: ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues', 'kind', 'lane', 'model', 'owner_gate', 'rca', 'resume', 'reviewerModel', 'severity', 'size', 'wave']
+== roster-2b7fe35c.json
+R10-FLOW-DESIGN-STAGES stage= None after= [] pr= None carries= 15 absorbed= None
+R10-ADVISOR-RESIDUE stage= None after= [] pr= None carries= 9 absorbed= None
+R10-FLY-OPENPR-ATOMIC stage= None after= ['R10-UPDATE-PR-SIGNALS'] pr= None carries= 10 absorbed= None
+R10-FLOW-RECORD-PITCH stage= None after= ['R10-CI-LAYOUT-P2', 'R10-FLOW-PULL'] pr= None carries= 10 absorbed= None
+R10-ORCH-REVIEW-PACKET stage= None after= ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD'] pr= None carries= 4 absorbed= None
+R10-ORCH-BEATD stage= None after= ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD', 'R10-ORCH-REVIEW-PACKET', 'R10-FLOW-ROSTER-FREEZE'] pr= None carries= 24 absorbed= None
+R10-ORCH-DISPATCH-REG stage= None after= [] pr= None carries= 15 absorbed= None
+R10-FLOW-POSTMERGE stage= None after= ['R10-ROSTER-OPS'] pr= None carries= 9 absorbed= None
+R10-UPDATE-PR-SIGNALS stage= None after= [] pr= None carries= 5 absorbed= None
+R10-FLOW-MQ-PROBE stage= None after= ['R10-CI-LAYOUT-P2'] pr= None carries= 0 absorbed= None
+R10-ARCH-DOCS stage= None after= ['R10-RATIO-ANCHOR', 'R10-INPUT-STALENESS', 'R10-CONFIG-NOTICES', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-LEARNER-ETA', 'R10-HEAT-METER', 'R10-COP-GATE', 'R10-UX-HEALTH', 'R10-CONFIGFLOW-PAGES', 'R10-REPLAY-SCOPED', 'R10-POLICY-FIXER-MD', 'R10-POLICY-GATE-SCOPING', 'R10-RCA-HEADMOVED', 'R10-SAV-COMFORT', 'R10-MUTATION-ANCHOR', 'R10-MERGE-SUBJECT-HARDEN', 'R10-CEILING-PROBE', 'R10-DEMAND-OVERBOOK', 'R10-BUFFER-STORE', 'R10-COP-PARTLOAD', 'R10-UPDATE-PR-SIGNALS', 'R10-CARD-VOICE', 'R10-THERMAL-POWER-OPTION', 'R10-LEARNER-DEFAULT', 'R10-MUTANT-SKIP', 'R10-CI-LAYOUT-P2', 'R10-FLOW-BOARD', 'R10-FLOW-DESIGN-STAGES', 'R10-FLOW-JIDOKA', 'R10-FLOW-MQ-PROBE', 'R10-FLOW-POSTMERGE', 'R10-FLOW-RECORD-PITCH', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-WIP', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-BODY-ONLY', 'R10-FLY-OPENPR-ATOMIC', 'R10-FLY-ROW-HEAD-CARRY', 'R10-FLOW-AUDIT-PLAN', 'R10-FLY-RELAY-REVIEW-FF', 'R10-FLY-CAP-LINE', 'R10-FLY-CARRY-DISPOSITION', 'R10-FLY-ORPHANS-REWRITTEN', 'R10-FLY-CARRY-DOC-CONTEXT', 'R10-FLY-DEPGRAPH-STALE', 'R10-FLOW-TOOLKIT-MODEL', 'R10-FLY-STAMP-CHECK-NOTES', 'R10-FLY-MANDATE-REVOKE-GUARD', 'R10-RCA-FRICTION-RESIDUE', 'R10-TRAIN-OVERLAP-GRADE', 'R10-NIGHTLY-HB-RESPAWN', 'R10-FLY-PRUNE-REFS', 'R10-ORCH-LEDGER', 'R10-ORCH-DISPATCH-REG', 'R10-ORCH-BEATD', 'R10-ORCH-PLANPAGE', 'R10-ORCH-ROSTER-SCHEMA', 'R10-FLY-WORKTREE-GC', 'R10-FLY-DAEMONIZE-ARGV', 'R10-FLY-CIPREDICT-LAYOUT', 'R10-FLY-CLOUD-SETUP-TOOLCHAIN', 'R10-FLY-YIELD-GUARD', 'R10-FLY-ENVMATRIX-NOREMOTE', 'R10-STRUCTURE-ALIAS', 'R10-ORCH-REVIEW-PACKET', 'R10-POLICY-ROLE-PACK', 'R10-ARCH-DOCS-FIRST', 'R10-IMMERSION-LATCH', 'R10-DIAG-REDACT', 'R10-ADVISOR-RESIDUE', 'R10-BRIEFS-FOLD-D0', 'R10-REPLAY-REAL-DAY', 'R10-ARCHSCORE-SPELLINGS', 'R10-SAV-ACTUATION', 'R10-RCA-CODESCAN-WAIT', 'R10-GATE-DEFER', 'R10-TRAIN-UPGRADE', 'R10-FLY-LEDGER-SAMPLE', 'R10-LEGIONELLA-COMPLETION', 'R10-PLAN-ISSUES-CHART'] pr= None carries= 7 absorbed= None
+R10-ARCH-SHAPES stage= None after= ['R10-SENSOR-PAYLOAD', 'R10-FREQ-DEFROST', 'R10-LIVESTATE', 'R10-INPUT-STALENESS'] pr= None carries= 8 absorbed= None
+R10-HEAT-METER stage= None after= ['R10-LEARNER-ETA', 'R10-INPUT-STALENESS', 'R10-UX-SETUP', 'R10-RATIO-ANCHOR', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-THERMAL-POWER-OPTION'] pr= None carries= 14 absorbed= None
+R10-FLOW-BODY-ONLY stage= None after= ['R10-UPDATE-PR-SIGNALS', 'R10-FLOW-BODY-PATCH'] pr= None carries= 10 absorbed= None
+R10-ORCH-ROSTER-SCHEMA stage= None after= ['R10-ROSTER-OPS', 'R10-CI-LAYOUT', 'R10-TICK-OWED-LEVEL', 'R10-FLOW-MAIN-GATE', 'R10-CI-LAYOUT-P1'] pr= None carries= 21 absorbed= None
+R10-ROSTER-OPS stage= None after= [] pr= None carries= 6 absorbed= None
+== roster-origin_main.json
+R10-FLOW-DESIGN-STAGES stage= None after= [] pr= None carries= 12 absorbed= None
+R10-ADVISOR-RESIDUE stage= None after= [] pr= None carries= 9 absorbed= None
+R10-FLY-OPENPR-ATOMIC stage= None after= ['R10-UPDATE-PR-SIGNALS'] pr= None carries= 9 absorbed= None
+R10-FLOW-RECORD-PITCH stage= None after= ['R10-CI-LAYOUT-P2', 'R10-FLOW-PULL', 'R10-FLOW-MQ-PROBE'] pr= None carries= 7 absorbed= None
+R10-ORCH-REVIEW-PACKET stage= None after= ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD'] pr= None carries= 3 absorbed= None
+R10-ORCH-BEATD stage= None after= ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD', 'R10-ORCH-REVIEW-PACKET', 'R10-FLOW-ROSTER-FREEZE'] pr= None carries= 24 absorbed= None
+R10-ORCH-DISPATCH-REG stage= None after= [] pr= None carries= 10 absorbed= None
+R10-FLOW-POSTMERGE stage= None after= ['R10-ROSTER-OPS'] pr= None carries= 9 absorbed= None
+R10-UPDATE-PR-SIGNALS stage= None after= [] pr= None carries= 5 absorbed= None
+R10-FLOW-MQ-PROBE stage= None after= ['R10-CI-LAYOUT-P2'] pr= None carries= 3 absorbed= None
+R10-ARCH-DOCS stage= None after= ['R10-RATIO-ANCHOR', 'R10-INPUT-STALENESS', 'R10-CONFIG-NOTICES', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-LEARNER-ETA', 'R10-HEAT-METER', 'R10-COP-GATE', 'R10-UX-HEALTH', 'R10-CONFIGFLOW-PAGES', 'R10-REPLAY-SCOPED', 'R10-POLICY-FIXER-MD', 'R10-POLICY-GATE-SCOPING', 'R10-RCA-HEADMOVED', 'R10-SAV-COMFORT', 'R10-MUTATION-ANCHOR', 'R10-MERGE-SUBJECT-HARDEN', 'R10-CEILING-PROBE', 'R10-DEMAND-OVERBOOK', 'R10-BUFFER-STORE', 'R10-COP-PARTLOAD', 'R10-UPDATE-PR-SIGNALS', 'R10-CARD-VOICE', 'R10-THERMAL-POWER-OPTION', 'R10-LEARNER-DEFAULT', 'R10-MUTANT-SKIP', 'R10-CI-LAYOUT-P2', 'R10-FLOW-BOARD', 'R10-FLOW-DESIGN-STAGES', 'R10-FLOW-JIDOKA', 'R10-FLOW-MQ-PROBE', 'R10-FLOW-POSTMERGE', 'R10-FLOW-RECORD-PITCH', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-WIP', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-BODY-ONLY', 'R10-FLY-OPENPR-ATOMIC', 'R10-FLY-ROW-HEAD-CARRY', 'R10-FLOW-AUDIT-PLAN', 'R10-FLY-RELAY-REVIEW-FF', 'R10-FLY-CAP-LINE', 'R10-FLY-CARRY-DISPOSITION', 'R10-FLY-ORPHANS-REWRITTEN', 'R10-FLY-CARRY-DOC-CONTEXT', 'R10-FLY-DEPGRAPH-STALE', 'R10-FLOW-TOOLKIT-MODEL', 'R10-FLY-STAMP-CHECK-NOTES', 'R10-FLY-MANDATE-REVOKE-GUARD', 'R10-RCA-FRICTION-RESIDUE', 'R10-TRAIN-OVERLAP-GRADE', 'R10-NIGHTLY-HB-RESPAWN', 'R10-FLY-PRUNE-REFS', 'R10-ORCH-LEDGER', 'R10-ORCH-DISPATCH-REG', 'R10-ORCH-BEATD', 'R10-ORCH-PLANPAGE', 'R10-ORCH-ROSTER-SCHEMA', 'R10-FLY-WORKTREE-GC', 'R10-FLY-DAEMONIZE-ARGV', 'R10-FLY-CIPREDICT-LAYOUT', 'R10-FLY-CLOUD-SETUP-TOOLCHAIN', 'R10-FLY-YIELD-GUARD', 'R10-FLY-ENVMATRIX-NOREMOTE', 'R10-STRUCTURE-ALIAS', 'R10-ORCH-REVIEW-PACKET', 'R10-POLICY-ROLE-PACK', 'R10-ARCH-DOCS-FIRST', 'R10-IMMERSION-LATCH', 'R10-DIAG-REDACT', 'R10-ADVISOR-RESIDUE', 'R10-BRIEFS-FOLD-D0', 'R10-REPLAY-REAL-DAY', 'R10-ARCHSCORE-SPELLINGS', 'R10-SAV-ACTUATION', 'R10-RCA-CODESCAN-WAIT', 'R10-GATE-DEFER', 'R10-TRAIN-UPGRADE', 'R10-FLY-LEDGER-SAMPLE', 'R10-LEGIONELLA-COMPLETION', 'R10-PLAN-ISSUES-CHART'] pr= None carries= 7 absorbed= None
+R10-ARCH-SHAPES stage= None after= ['R10-SENSOR-PAYLOAD', 'R10-FREQ-DEFROST', 'R10-LIVESTATE', 'R10-INPUT-STALENESS'] pr= None carries= 8 absorbed= None
+R10-HEAT-METER stage= None after= ['R10-LEARNER-ETA', 'R10-INPUT-STALENESS', 'R10-UX-SETUP', 'R10-RATIO-ANCHOR', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-THERMAL-POWER-OPTION'] pr= None carries= 14 absorbed= None
+R10-FLOW-BODY-ONLY stage= None after= ['R10-UPDATE-PR-SIGNALS', 'R10-FLOW-BODY-PATCH'] pr= None carries= 9 absorbed= None
+R10-ORCH-ROSTER-SCHEMA stage= None after= ['R10-ROSTER-OPS', 'R10-CI-LAYOUT', 'R10-TICK-OWED-LEVEL', 'R10-FLOW-MAIN-GATE', 'R10-CI-LAYOUT-P1'] pr= None carries= 17 absorbed= None
+R10-ROSTER-OPS stage= None after= [] pr= None carries= 6 absorbed= None
+== resume on roster 2b7fe35c
+R10-FLOW-DESIGN-STAGES resume= {"stage": "not-started", "branch": "handoff/r10-flow-design-stages", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "Lean flow study 2026-10-21 (owner-adopted)"}
+R10-ADVISOR-RESIDUE resume= {"stage": "not-started", "branch": "handoff/r10-advisor-residue"}
+R10-FLY-OPENPR-ATOMIC resume= {"stage": "not-started", "branch": "handoff/r10-fly-openpr-atomic", "commit": null, "last_step": null, "next_step": "dispatch a fixer (fly-in, lane F)", "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."}
+R10-FLOW-RECORD-PITCH resume= {"stage": "not-started", "branch": "handoff/r10-flow-record-pitch", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "Lean flow study 2026-10-21 (owner-adopted)"}
+R10-ORCH-REVIEW-PACKET resume= {"stage": "not-started", "branch": "handoff/r10-orch-review-packet", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "owner card 8, 2026-10-24"}
+R10-ORCH-BEATD resume= {"stage": "not-started", "branch": null}
+R10-ORCH-DISPATCH-REG resume= {"stage": "not-started", "branch": null}
+R10-FLOW-POSTMERGE resume= {"stage": "not-started", "branch": "handoff/r10-flow-postmerge", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "Lean flow study 2026-10-21 (owner-adopted)"}
+R10-UPDATE-PR-SIGNALS resume= {"stage": "in-progress", "branch": null, "commit": "fd9914851", "last_step": null, "next_step": "fix", "note": "In progress 2026-10-20 with an added deliverable: a stopped pusher leaves its whole descendant tree running. Six survivors measured on this box, 26 to 62 minutes old, every one needing a k
+R10-FLOW-MQ-PROBE resume= {"stage": "done", "branch": "handoff/r10-flow-mq-probe", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "Lean flow study 2026-10-21 (owner-adopted)"}
+R10-ROSTER-OPS resume= {"stage": "done", "branch": "handoff/r10-roster-ops", "commit": "929275e8a3f79ad5e118a82f94ec6ecee306e7c0", "last_step": "fixer", "next_step": "open the ops handoff at 9969e3ca (set-after, drop-carry, mutant driver) as a draft PR; then dispatch the brief's second deliverable at a new head: the roste
+R10-ARCH-SHAPES resume= {"stage": "in-progress", "branch": "handoff/r10-arch-shapes", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every `after` group is done", "note": null, "pr": 2819}
+== R10-FLOW-DESIGN-STAGES carries 1,10,11
+1 "Merge after R10-FLOW-DESIGN-POLICY (the templates cite its contracts); build beside it."
+10 "From #2709 (r10-fly-cloud-setup-toolchain), Forward-carry: cloud_dispatch.py's rendered setup line runs `bash tools/audit/seat/cloud-setup.sh --check` and stops the seat on REFUSE, so a cloud seat never starts on a toolchain the setup check refuses. The verdict at 5e4fbb0d3 found the carry routed to R10-ORCH-MACHINERY, which is absorbed; R10-FLOW-DESIGN-STAGES is the live group whose files includ
+11 "GROUP R10-FLY-POOL-INSTRUMENT (new, size S, triage: dev/programme/triage/s6-batch4.md#P55 and #P60). Owns the cloud seat pool as tracked code. New tools/audit/seat/pool.py (+ a self-test, an INSTRUMENTS.md entry; cloud_dispatch.py gains only a call into it): `append` writes a POOL line on dispatch/pool-<session> and READS THE REF BACK, refusing on mismatch and surfacing git's stderr (V2: the push
+== R10-ORCH-BEATD carry 10, 22
+10 "R10-ORCH-BEATD: LANDED \"The handoff job keeps cloud_relay.sh's ledger calls unchanged; the tick job only reads the ledger (the tick writes no store, pinned). HPO_LEDGER_AGING is read by the tick from its environment: the beat's tick job must pass it through.\" Carry: R10-ORCH-BEATD"
+22 "From P97 (triage: dev/programme/triage/s6-batch21.md#P97): In the `--seat-alive` arm of tools/audit/seat/pulse.py, read standing-seat liveness from one alive entry per seat id under each role, beside the per-role file, and print 'DUPLICATE seat <role>: <id> <id>' when two ids of one role are fresh 
+== R10-ORCH-DISPATCH-REG carry 5
+"R10-ORCH-DISPATCH-REG: LANDED \"The ledger's reviewer-fire close is `python3 -I tools/audit/seat/ledger.py close reviewer-fire <pr> <head40> <how>` (beside the relay's log; one writer module). REVIEW OWED reads `$HPO_BUS_STATE/dispatched` as `pr head ...`; the worker registry must keep that record 
+== R10-FLY-OPENPR-ATOMIC carry 7
+"(triage: dev/programme/triage/s6-batch8.md#P70) `ci_predict.py --rekey-body BODY --from <code-sha>`, called by `open_pr.sh` after its `git merge origin/main` and by `update_pr.sh` after its main merge: rewrite an `## Unpinned sites` key in place only when its line at `<code-sha>` maps through `git 
+== R10-FLOW-POSTMERGE carry 3
+"Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel addit
