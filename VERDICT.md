@@ -1,0 +1,35 @@
+Fix review: blocked 1a7225e826d44b009a37905e19512ab0eafb1035 carry-dest-done: P110 defers to R10-FLOW-AUTOTRAIN, which the roster set done at eaf10309d after #2780 merged
+
+bus-nonce: 211c7eb41b0e690b0990015d2ef1feed
+
+## Round
+
+Round 1 for this review seat. Head reviewed: 1a7225e826d44b009a37905e19512ab0eafb1035, on merge base 60cd447a0. Roles current: `git diff 60cd447a0...origin/main -- dev/governance/roles/` is empty.
+
+## Block
+
+P110's verdict reads `DEFER -> R10-FLOW-AUTOTRAIN (the open train-automation group ...)`, and its "What would change the answer" carries a future ACCEPT to the same group. That group is no longer open. On `origin/handoff/audit-r10-roster` at eaf10309d (2026-10-25T13:49:40Z, "roster: set-stage R10-MUTANT-SKIP and R10-FLOW-AUTOTRAIN done") its `resume.stage` is `done`, pr 2780, commit 0825aee64, which is the current `origin/main` tip ("Merge pull request #2780 from tvofi/fix/r10-flow-autotrain-r2"). When the ruling was written it was `in-progress` (roster 0574da74a and origin/main 60cd447a0), so this is a change of state after authoring, not a misreading. Still, the ruling now does what its own Considered list refuses for R10-TRAIN-UPGRADE ("a done group takes no carry"), and the brief requires a DEFER to name a group that is neither done nor absorbed (ev/roster.txt).
+
+The re-cut is small. Either route the DEFER to a live owner of `tools/audit/seat/merge_train.py`. R10-FLOW-POSTMERGE is the only one on the roster tip: `not-started`, and its files include `merge_train.py`. Or drop the group and keep only the re-open condition, as proposal-triage.md allows ("DEFER names what would change the answer, or the group"), with a future ACCEPT routed to a new group, the way P109 already does for the done R10-FLOW-DISPATCH. Two more fixes belong in the same edit:
+- P110 calls `merge_train.py` "a 2000-line hot file". It has 4978 lines at 60cd447a0 and 5553 at origin/main (ev/roster.txt). Correcting the figure strengthens the argument rather than changing it.
+- The PR body's opening says "four rulings, P106-P109 (S6-V38 to S6-V41)". The file has five, P106-P110 (V38-V42). The body's Verdicts list and Figures are correct.
+
+Ruling I would change: P110 only, its destination as above. The DEFER verdict word stands.
+
+## Findings
+
+- The PR's title is the merge-commit subject "Merge remote-tracking branch 'origin/main' into triage/s6-batch23". The delivery row `dev/programme/delivery/2807.md` copies it. This is the same slip P106 records for #2804. `tools/audit/seat/handoff_push.sh` (line 4, "retitles the PR"; `gh pr edit --title` at 180/201) is the tool that sets it at the re-cut push. If the orchestrator instead hand-rolls the retitle on `tools/pr/app_mint.sh`, that is the second instance P106's re-open condition counts. Carry: dismissed: the orchestrator retitles at the re-cut push with handoff_push.sh; a hand-rolled retitle is counted under P106's own re-open condition, not here.
+
+## Evidence
+
+- Scope: the three-dot diff touches exactly `dev/programme/triage/s6-batch23.md` (+70) and `dev/programme/delivery/2807.md` (+1). No host or home path appears in it (a grep for home and host path prefixes found nothing). See ev/diff-merge.txt.
+- Merges: `git merge-tree --write-tree origin/main 1a7225e8...` exits 0 (tree ff6ca150a), with no conflict.
+- Verdict figure: `grep -oE '^Verdict: ...' | sort | uniq -c` gives 3 DEFER and 2 REJECT over 5 `## P` entries, 0 ACCEPT. This matches the body.
+- Consumer: `roster_edit.ruling_verdict` at the head returns P106 DEFER, P107 DEFER, P108 REJECT, P109 REJECT, P110 DEFER. The null control P111 returns None. A mutant that misspells P110's `Verdict:` line reads `unreadable`, so the consumer does key on the line (ev/ruling_verdict.txt).
+- P106: R10-FLOW-BODY-ONLY exists and is `not-started` on both origin/main and the roster tip. Its files are update_pr.sh, cloud_relay.sh, pr_args.sh and INSTRUMENTS.md, as the ruling says. R10-POLICY-LINT-FAMILY is done and R10-ORCH-MACHINERY absorbed, as stated. The cost premise checks out: open_pr.sh:61 and handoff_push.sh:180,201 set the title with `gh pr edit`. The DEFER is sound. I did not open #2804, so the instance count of 1 rests on V39.
+- P107: R10-ROUTING-INVARIANTS has `resume.stage` `absorbed` on the roster tip ("absorbed into R10-ORCH-ROSTER-SCHEMA ..."). On origin/main it is still `not-started`, and the ruling says main does not yet carry the fold. R10-ORCH-ROSTER-SCHEMA is `not-started` and owns roster_lib.py, roster_sync.py and roster_edit.py. Carry 14 (added at 2308e06b1) asks to "refuse a Carry: to an absorbed group as it refuses one to a done group". Carry 13 holds the measured instances and states "roster_edit append-carry accepts a done destination; roster_sync refuses one". Carry 10 holds the three invariants. The re-cut of the round-1 ACCEPT is sound. On the figures: the 17 carries, 8 BAD-DEST, 6 issues and 4 groups match carry 13 verbatim. The "1115 roster commits" I could not re-derive. `git rev-list --count` on the roster file at the parent of fca6af2a6, the commit that wrote that carry, gives 1128. I had to choose my own definition of the walk, so the figure is unverified and is quoted from the carry. It decides nothing in the ruling.
+- P108: re-derived. 18 triage merges on origin/main from 2026-10-23T13:00Z to 2026-10-25T13:00Z (#2734 to #2790). Counting `Fix review: blocked` first lines over each `origin/verdict/<n>` VERDICT.md history gives 11 blocks on 8 PRs (#2734 1, #2735 2, #2738 3, #2743 1, #2755 1, #2758 1, #2759 1, #2767 1), plus #2797 1 and #2804 1, exactly as stated. 8/18 = 44%. I did not re-read each block's Findings for the judgement/mechanical split. The REJECT is sound (ev/p108-rederive.txt).
+- P109: `cloud_dispatch.py` on origin/main has `--model` (lines 6-7, 614). `_publish` is called only from `dispatch_group` (line 285). The flag path (lines 637-650) renders and prints or writes `--out`, so the premise holds. R10-FLOW-DISPATCH is done on both refs. `repair/render.py` is out of tree and I did not read it. The REJECT is sound.
+- P110: the premise holds. `merge_train.py` has no `--front`: the `front` hits are the `--overlap` up-front recarry and its docstring at 1661. `spool_append` is at 763, `train_add` at 787, and the "Between batches" drain at 2357 on origin/main. R10-TRAIN-UPGRADE is done. The destination defect is under Block.
+- CI on 1a7225e8 (check-runs API, read about 13:55Z): no check concluded red. Success: closures, fast (3.14), typing, browser, arch-instrument, arch-score, policy-docs, closure-scope, wave-script, nightly-status, delivery-status, env-matrix, instrument-self-tests, mutation, briefs, budget-raise-gate, hassfest, validate-hacs and the codeql analyses. Skipped: the autofix jobs, nightly-ha, replay, record, kernel-points. Not concluded when read (`in_progress`): `tests / coverage` and one `prelude` (run 40198972320). The body's `## Red checks: none` is consistent so far.
+- I did not run bus.sh. This verdict returns on probe/rev-2807-211c7eb4.
