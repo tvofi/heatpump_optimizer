@@ -1,6 +1,6 @@
 #!/bin/bash
 # R10-MERGE-SUBJECT-HARDEN (#2697): the finder's harness at both ends, under one
-# plant per spelling the round-3 review found unseen.
+# plant per spelling a review found unseen, and one null plant.
 #
 #   bash dev/audit/harnesses/r10_merge_subject_plants.sh [<ref>]   (from the repository root)
 #
@@ -29,5 +29,12 @@ plant 'gh pr -R o/r merge' "$MP" add "false && gh pr -R o/r merge 1 --merge --su
 plant 'gh \-newline pr merge' "$MP" add "false && gh \\
   pr merge 1 --merge --subject $S" "$MP"
 plant 'a -mt cluster' "$MP" add "false && gh pr merge 1 -mt $S" "$MP"
+plant 'gh pr --subject "x y" merge' "$MP" add "false && gh pr --subject $S merge 1 --merge" "$MP"
+plant 'gh pr -t "x y" merge' "$MP" add "false && gh pr -t $S merge 1 --merge" "$MP"
+plant '${GH:-gh} pr merge' "$MP" add "false && \${GH:-gh} pr merge 1 --merge --subject $S" "$MP"
+plant '$(command -v gh) pr merge' "$MP" add "false && \$(command -v gh) pr merge 1 --merge --subject $S" "$MP"
+plant "a blank line inside the argv at $MT:$line" "$MT" sed -i.bak "${line}s/self.run(\[\"gh\", \"pr\", \"merge\", n,/self.run([\"gh\", \"pr\", \"merge\", n,\n\n            \"--subject\", \"Merge pull request #%s (x)\" % n,/" "$MT"
+rm -f "$MT.bak"
+plant 'null: gh pr view -t "x y"' "$MP" add "false && gh pr view 1 -t $S --json title" "$MP"
 cp "$T/agreement.mjs" "$AG"
 git status --short -- "$AG" "$MP" "$MT"

@@ -122,16 +122,19 @@ const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /^\S(?:.*\S)? \(
 // the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // WHAT A MERGE CALL IS, by the spellings gh's argv and the Python, JS and shell
-// call forms accept for one call, built from named parts so no gap or word can
-// be narrowed alone:
+// call forms accept for one call, built from named parts; a part used at
+// several sites is pinned by a probe at each:
 //  - a word is bare or quoted (`gh`, "gh", 'gh', `gh` in backticks), and ends
 //    at a non-word character, so `merged` is not `merge`;
 //  - a gap between words is any run of whitespace, `\`-newline continuations
 //    and argv commas (`gh pr \` + newline + `merge`, `["gh", "pr" , "merge"]`);
-//  - gh's options may stand in any gap, with or without a value
-//    (`gh --repo o/r pr merge`, `gh pr -R o/r merge`, `"pr", "--repo", r, "merge"`);
-//  - the program is `gh` on any path, or a shell variable (`$GH pr merge`); an
-//    argv whose program is a variable (`[GH, "pr", "merge"]`) is the quoted arm.
+//  - gh's options may stand in any gap, with or without a value, and a quoted
+//    value may hold whitespace (`gh --repo o/r pr merge`, `gh pr -t "x y" merge`,
+//    `"pr", "--repo", r, "merge"`);
+//  - the program is `gh` (or `gh.exe`) on any path, a shell variable with or
+//    without a default (`$GH`, `${GH:-gh}`) or a command substitution
+//    (`$(command -v gh)`); an argv whose program is a variable
+//    (`[GH, "pr", "merge"]`) is the quoted arm.
 // Plus the REST, MCP and GraphQL merges. What no lexical scan can read -- an argv
 // built across expressions, a word quoted or escaped inside itself, a gh alias --
 // is dispositioned in #2697's body; merges go through merge_pr.sh and
@@ -139,10 +142,11 @@ const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 const QUOTE = '["\'`]'
 const GAP = String.raw`(?:\s|\\\n|,)+`
 const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\w-])`
-const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=[^\s,'"${'`'}\]]*)?${QUOTE}?` +
-  `(?:${GAP}${QUOTE}?[^\\s,'"${'`'}\\]]+${QUOTE}?)?`
+const VALUE = String.raw`(?:"[^"\n]*"|'[^'\n]*'|${'`'}[^${'`'}\n]*${'`'}|[^\s,'"${'`'}\]]+)`
+const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\w-]*(?:=${VALUE}?)?${QUOTE}?(?:${GAP}${VALUE})?`
 const OPTIONS = `(?:${GAP}${OPTION})*`
-const PROGRAM = String.raw`(?:(?<![\w$./-])(?:[\w./-]*\/)?gh|\$\{?[A-Za-z_]\w*\}?)${QUOTE}?`
+const PROGRAM = String.raw`(?:(?<![\w$./-])(?:[\w./-]*\/)?gh(?:\.exe)?` +
+  String.raw`|\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*(?::?[-=?+][^}\n]*)?\}|\([^()\n]*\)))${QUOTE}?`
 const MERGE_CALL = new RegExp(`${PROGRAM}${OPTIONS}${GAP}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +
   `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}` +
   String.raw`|merge_pull_request|mergePullRequest|\/pulls\/\S+\/merge\b`)
@@ -157,26 +161,36 @@ function nonTemplateMerges(log) {
   return log.split('\n').filter(Boolean).map((l) => l.split('\t')).filter(([, parents, subject], i) =>
     parents.split(' ').length >= 2 && !(i === 0 && TEST_MERGE.test(subject)) && !TEMPLATE_SUBJECT.some((r) => r.test(subject)))
 }
-// One step of the quote reader: true when `c` is quoted text (the quote marks
-// themselves included), so a bracket there opens nothing.
-function quoted(st, c) {
-  if (st.q) { if (st.esc) st.esc = false; else if (c === '\\') st.esc = true; else if (c === st.q) st.q = ''; return true }
-  if (c === '"' || c === "'") { st.q = c; return true }
-  return false
+// One step of the quote reader at text[i]: how many characters there are quoted
+// text (the quote marks included, a Python triple quote read as one mark), or 0,
+// so a bracket there opens nothing.
+function quoted(st, text, i) {
+  const c = text[i]
+  if (st.q) {
+    if (st.esc) st.esc = false
+    else if (c === '\\') st.esc = true
+    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }
+    return 1
+  }
+  if (c === '"' || c === "'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }
+  return 0
 }
 // A call, not a line: what a merge call carries runs from the innermost bracket
 // open before it on its line (or the line's start) to where that bracket closes,
 // or to the first line end that is outside every bracket it opened and not
 // escaped by `\`: an argv list or a call split over lines (merge_train.py's own
 // merge among them) and a shell continuation are one call, and a sibling in the
-// same table is not. A blank line ends it whatever its brackets, so prose with
-// a stray parenthesis cannot run on. A bracket inside a quote is text.
-function callExtent(text, at) {
+// same table is not. A bracket inside a quote is text, and a line end inside a
+// Python triple-quoted string is the string's. A blank line ends it, so prose
+// with a stray parenthesis cannot run on, except in a Python or JS file (`code`),
+// where the language reads a blank line inside a bracket as nothing.
+function callExtent(text, at, code) {
   const ls = text.lastIndexOf('\n', at - 1) + 1
   const open = []; let st = { q: '', esc: false }
   for (let i = ls; i < at; i++) {
     const c = text[i]
-    if (quoted(st, c)) continue
+    const n = quoted(st, text, i)
+    if (n) { i += n - 1; continue }
     if ('([{'.includes(c)) open.push(i)
     else if (')]}'.includes(c)) open.pop()
   }
@@ -185,13 +199,15 @@ function callExtent(text, at) {
   for (let i = start + (open.length ? 1 : 0); i < text.length; i++) {
     const c = text[i]
     if (c === '\n') {
+      if (st.q.length === 3) continue
       st = { q: '', esc: false }
       const next = text.indexOf('\n', i + 1)
-      if (!text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
+      if (!code && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
       if (!open.length && !depth && text[i - 1] !== '\\') return text.slice(start, i)
       continue
     }
-    if (quoted(st, c)) continue
+    const n = quoted(st, text, i)
+    if (n) { i += n - 1; continue }
     if ('([{'.includes(c)) depth++
     else if (')]}'.includes(c) && --depth < 0) return text.slice(start, i + 1)
   }
@@ -200,10 +216,10 @@ function callExtent(text, at) {
 function subjectWriters(files, read) {
   const calls = []; const bad = []
   for (const f of files) {
-    const text = read(f)
+    const text = read(f); const code = /\.(py|mjs|js|cjs)$/.test(f)
     for (const m of text.matchAll(new RegExp(MERGE_CALL.source, 'g'))) {
       calls.push(f)
-      if (SUBJECT_ARG.test(callExtent(text, m.index))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
+      if (SUBJECT_ARG.test(callExtent(text, m.index, code))) bad.push(`${f}:${text.slice(0, m.index).split('\n').length}`)
     }
   }
   return { calls, bad }
@@ -630,6 +646,19 @@ async function selfTest() {
     ['an argv option with a quoted value between "pr" and "merge"', `run(["gh", "pr", "--repo", "o/r", "merge", n, "--subject", s])\n`],
     ['a shell option with a quoted value between "pr" and "merge"', `gh pr -R "$REPO" merge 9 --merge --subject ${S}\n`],
     ['an argv whose program is a variable', `run([GH, "pr", "merge", n, "-t", s])\n`],
+    // The quoted arm's own gap, in the shapes the first arm's gaps are pinned in.
+    ['a variable-program argv with whitespace before a comma', `run([GH, "pr" , "merge", n, "-t", s])\n`],
+    ['a variable-program argv split over lines', `run([GH, "pr",\n    "merge", n, "-t", s])\n`],
+    ['a variable-program argv with an option between "pr" and "merge"', `run([GH, "pr", "--repo", r, "merge", n, "-t", s])\n`],
+    ['a variable-program JS argv with a run of spaces', `execFileSync(GH, ['pr',  'merge', n, '--subject', s])\n`],
+    ['a quoted multi-word option value between "pr" and "merge"', `gh pr --subject "x y" merge 9 --merge\n`],
+    ['a quoted multi-word short-option value between "pr" and "merge"', `gh pr -t 'x y' merge 9 --merge\n`],
+    ['a quoted multi-word option value before "pr"', `gh -R "o/r x" pr merge 9 --subject x\n`],
+    ['an argv option with a multi-word value between "pr" and "merge"', `run(["gh", "pr", "--subject", "x y", "merge", n])\n`],
+    ['a quoted multi-word option=value between "pr" and "merge"', `gh pr --subject="x y" merge 9 --merge\n`],
+    ['the program in a variable with a default', `\${GH:-gh} pr merge 9 --merge --subject ${S}\n`],
+    ['the program from a command substitution', `$(command -v gh) pr merge 9 --merge --subject ${S}\n`],
+    ['the program as gh.exe', `gh.exe pr merge 9 --merge --subject ${S}\n`],
     ['a tuple argv with no spaces', `run(("gh","pr","merge",n,"--subject",s))\n`],
     ['os.spawnlp-style separate arguments', `os.spawnlp(os.P_WAIT, "gh", "gh", "pr", "merge", n, "--subject", s)\n`],
     ['asyncio.create_subprocess_exec arguments', `await asyncio.create_subprocess_exec("gh", "pr", "merge", n, "-t", s)\n`],
@@ -669,6 +698,19 @@ async function selfTest() {
     wr('gh pr merge 1 --merge\ngh pr merge 2 --merge --subject "Merge pull request #2 (x)"\n'))])
   probes.push(["null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's",
     !wr('run(["gh", "pr", "merge", n,  # it\'s\n    "--merge"])\nother(["--subject", s])\n').length])
+  // A Python triple-quoted string is one quote, whose line ends are its own; a
+  // blank line inside a Python or JS bracket is nothing to the language.
+  const py = (src) => guard([], { ...writers, 'tools/x.py': src })
+  probes.push(['a GraphQL merge in a triple-quoted string opened on its line is refused, its commitHeadline on a later line',
+    py('Q = """mutation { mergePullRequest(input: {\n  commitHeadline: "x"\n}) { id } }"""\n').length === 1])
+  probes.push(['a quote mark inside a triple-quoted string does not close it: a commitHeadline past it is refused',
+    py('Q = """mutation { mergePullRequest(input: {pullRequestId: "x",\n  commitHeadline: "y"}) { id } }"""\n').length === 1])
+  probes.push(['null control: the same triple-quoted merge with no subject passes, and the next statement is not its own',
+    !py('Q = """mutation { mergePullRequest(input: {\n  pullRequestId: "x"\n}) { id } }"""\nother(commit_title=x)\n').length])
+  probes.push(['a blank line inside a Python argv does not end the call: its --subject is refused',
+    py('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length === 1])
+  probes.push(['null control: a blank line inside a bracket in a shell or prose file still ends the call',
+    !wr('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length])
   probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
   probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
     !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
