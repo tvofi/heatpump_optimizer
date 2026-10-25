@@ -40,9 +40,9 @@ Alternatives considered:
 
 ## Head
 
-cd87041dd2977d42009510b39ac86935ec8e4eef
+fd23cf4807d696fb59b6925841ad69c0fbb35802
 
-Base `da12aa37dee15b9e9567bd6c848493436f2592dd` (the dispatched base). `origin/main` was `dfcd8d9be1dab28cfe52f684764befd1e19291de` at 2026-10-25T19:19:29Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict, and main's commits since the base touch no file this branch measures (roster, delivery, triage and `tools/site` only), so it was not merged in.
+Merge base `f3ffb1c635327365841ad430ce8fad7488a02d61`: `origin/main` was merged in (commit `29e4a13c3`, no conflict) after the first handoff `cd87041dd` was refused by prepr. The branch was cut at `da12aa37d`; main's 167 commits between the two touch no file under `custom_components`, `tests/golden` or the card rig (`git diff --name-only da12aa37d f3ffb1c` lists delivery, triage, roster, `tools/site`, merge-subject harnesses, `tests/closures.json`, `tools/policy/agreement.mjs` and `friction_issues.mjs`, one role file). The figures below marked `f3ffb1c` were re-run at this merge base; those marked `da12aa37d` measure card and solver output that file list shows main did not move.
 
 ## Mutation proof
 
@@ -110,16 +110,16 @@ Failing first: the head's `tests/card.mjs` run against the base card goes red on
   - **Badge disc:** — → 14.0 / 17.1 / 29.4 px rendered. Glyph stroke 1.5px; box stroke 1px and pipe stroke 1.5px at both ends.
   - **Savings replay labels at 375:** 5.89–6.42 → 10.27–11.20 px. Unchanged at 768 (12.65–13.81) and at 1280 (21.67–23.64).
   - **Health/advisor row contrast, unthemed dark arm:** 1.20 → 11.08:1. Themed arm 14.44 → 11.08:1. Health heading weight 700 → 600.
-- Card drift, from `node tests/card_drift.mjs da12aa37dee15b9e9567bd6c848493436f2592dd`: `44 state(s) moved and claimed, 1 identical` (45 states). The classification rule: strip the one stylesheet node from both sides of each diff and sequence-diff the rest.
+- Card drift, from `node tests/card_drift.mjs f3ffb1c635327365841ad430ce8fad7488a02d61` (and `da12aa37d` before the merge, same line): `44 state(s) moved and claimed, 1 identical` (45 states). The classification rule: strip the one stylesheet node from both sides of each diff and sequence-diff the rest.
   - 6 states move in setup markup: `setup_single_buffer`, `setup_two_tank`, `setup_coil`, `layout_editing_dragged`, `layout_editing_tidy`, `picker_open_filtered`.
   - Every dialog state moves the dialog's inline `fontSize` 12.00px → 14.00px.
   - `savings_empty` also moves its empty element; `savings_page` also moves its receipt stylesheet.
   - 10 card-face states move in stylesheet text only.
   - `editor_schema` is identical.
 - Solver drift, from `python3 tests/env_drift.py --all da12aa37dee15b9e9567bd6c848493436f2592dd`: `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56 committed fixture(s)`. The five coordinator captures are claimed for 2 add-only leaves each (`setup_topology.dhw_wood_coil_configured`, false), patched in exactly those 10 paths from `golden.capture_coordinator` at the head.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff da12aa37dee15b9e9567bd6c848493436f2592dd HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff f3ffb1c635327365841ad430ce8fad7488a02d61 HEAD`: `Architecture score: dS +0.0000 NULL`.
 - Production lines: `git diff --numstat da12aa37dee15b9e9567bd6c848493436f2592dd...HEAD -- custom_components` gives +311 −101 (topology.py +6 −1, the card +305 −100).
-- Scoped gate, from `python3 tests/closure.py select --diff da12aa37dee15b9e9567bd6c848493436f2592dd`: `MODE: SCOPED -- 24 script(s) run, 9 scoped out`.
+- Scoped gate, from `python3 tests/closure.py select --diff f3ffb1c635327365841ad430ce8fad7488a02d61`: `MODE: SCOPED -- 24 script(s) run, 9 scoped out`.
   - Run with `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=da12aa37d tests/run.sh`: 23 of the 24 green.
   - `tests/entities.py` fails 2 of 2445 checks at this head and the same 2 at the merge base (see Red checks).
 
@@ -129,7 +129,8 @@ Failing first: the head's `tests/card.mjs` run against the base card goes red on
   - These fail identically at the merge base `da12aa37d` in this container, so they are not this branch's; no file this diff touches is read by either.
   - Both drive a workflow step under `bash -e` against stub `git`/`python` executables and read every case as `step rc 1`. Direct execution of a stub in the temp root works here, so a noexec mount is ruled out; the cause is not established in this seat.
   - For the same reason, `tools/pr/prepr.sh` refuses its `closures` step here (`failed while being recorded: tests/entities.py`).
-- **The agreement lane** went red on this branch: `UNREGISTERED "[.*+?^${}()|[\\]\\\\]" in .claude/workflows/policy_lint.mjs, tests/card.mjs`. It was answered before the handoff by replacing the second spelling with `cssRule`, a plain string search (commit `4c9985b80`); the lane now reads `AGREEMENT ok`. The cheaper detector already exists and ran here: `prepr.sh` step 3f4, about 2 s.
+- **The agreement lane** went red on this branch: `UNREGISTERED "[.*+?^${}()|[\\]\\\\]" in .claude/workflows/policy_lint.mjs, tests/card.mjs`. It was answered before the handoff by replacing the second spelling with `cssRule`, a plain string search (commit `4c9985b80`); that answer was incomplete. The first handoff (`cd87041dd`) was refused by the same lane for three literals shared by `tests/card.mjs` and this PR's own harness `r10_card_voice_states.mjs`: `"Wood furnace tank"`, `class="setup-chip-hit"` and `class="setup-dest"`. Registering them in `SHARED_GRAMMARS` (commit `15de3f725`) turned the branch's lane green, but `tools/pr/ci_predict.py` predicted `governance / wave-script` red anyway: that job runs the base's copy of `agreement.mjs` over the branch, so a registry entry added on a branch is not read. Commit `fd23cf480` reverts the registration (`agreement.mjs` is byte-identical to main's) and has the harness count the three by string search instead. Its output at this head is byte-identical before and after (`cmp` of the four JSON lines). The lane now reads `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`. The cheaper detector existed and ran in this seat (`prepr.sh` step 3f4, about 7 s, and the `ci predict` step).
+- **The claim-files line** names both `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` as changed. Both are real claims, kept: each line names its fixture and direction (the five coord captures ADD-ONLY, 2 leaves each; the 44 card states as classified under Figures), and both files' `claims-for:` reads `7.0.4`, equal to `VERSION`. The removed `R10-LEARNER-ETA` and `R10-SCORES` lines are main's earlier branches' claims, which `claim-files.md` says excuse only the diff that wrote them.
 - **Two closure INERT READS reds** were predicted for the new harnesses (`tools/pr/ci_predict.py`) and repaired before the handoff with `--apply-inert`.
 
 ## Forward-carry
