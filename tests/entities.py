@@ -33520,7 +33520,7 @@ try:
         _PIN_NEW([_pin_a], [_pin_a]),
         _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
                    "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
-                   _mut.ScriptRun(0, 0, 1.0, ""), "abc123"),
+                   _mut.ScriptRun(0, 0, 1.0, "")),
     )
 except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
     _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
@@ -33533,6 +33533,27 @@ R.check(
     and "rc=0 failed=0 to rc=1 failed=3" in _PIN_GOT[2].get("reason", "")
     and "verdict" not in _PIN_GOT[2],
     f"(new over base, unpinned at both ends, entry) -> {_PIN_GOT}",
+)
+# Triage P-L (#2632): a pin's bytes are its mutant's, never its base's. A
+# bot's pin and a fixer's pin of one mutant, measured on different bases, are
+# then the same file, and their add/add merges under git's default merge on
+# GitHub too; the base is in git's history already. Pins of two different
+# mutants still differ (the null control).
+try:
+    _pin_row = lambda site, failed: _mut.row_text(site["anchor"], _PIN_ENTRY(  # noqa: E731
+        dict(site, kind="GUARD_OFF", new="    if False:"), "tests/x.py",
+        _mut.ScriptRun(1, failed, 1.0, ""), _mut.ScriptRun(0, 0, 1.0, "")))
+    _PIN_BYTES = (_pin_row(_pin_b, 3), _pin_row(dict(_pin_b), 3),
+                  _pin_row(_pin_a, 3))
+except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PIN_BYTES = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+R.check(
+    "two pins of one mutant are byte-identical whatever base measured them, "
+    "and pins of different mutants differ (P-L)",
+    len(_PIN_BYTES) == 3 and _PIN_BYTES[0] == _PIN_BYTES[1]
+    and _PIN_BYTES[0] != _PIN_BYTES[2] and " against " not in _PIN_BYTES[0],
+    f"rows -> {_PIN_BYTES!r:.600} -- a base sha in the reason makes the same "
+    "pin two different files, an add/add conflict",
 )
 R.check(
     "--pin-killed is wired: new sites from the base's own unpinned list, "
@@ -33568,11 +33589,11 @@ try:
         [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
          (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
         {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
-        _pr_base, _PR_SITES, "abc123")
+        _pr_base, _PR_SITES)
     _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
-                    _pr_base, [_pr_k], "abc123")
+                    _pr_base, [_pr_k])
     # A verdict that claims a kill with no kept run is not a kill.
-    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k], "abc123")
+    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k])
     _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
                sorted(_PR_NORUN[0]), _PR_NORUN[2],
                _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
@@ -35850,7 +35871,7 @@ try:
                            lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
 except TypeError:
     _MUT_T_OUT = []
-_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE], "r")[0]
+_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE])[0]
                if _MUT_T_OUT else None)
 R.check(
     "a mutant whose driver only overran its timeout is not killed, not "
@@ -36271,7 +36292,7 @@ _MUT_AB_OUT = _mut_pool(_MUT_AB_POOL, 1, {"tests/a.py": 10}, _mut_ab_drive,
 _MUT_AB_PINS = _mut.pin_results(
     _MUT_AB_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
                   for m, v in _MUT_AB_OUT if v.startswith("killed")},
-    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL, "r",
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL,
     how="--drain")[0]
 _mut_drain_surv = getattr(_mut, "drain_survivors", None)
 _MUT_AB_SURV = (_mut_drain_surv(_MUT_AB_OUT, _MUT_AB_PINS)
@@ -36319,7 +36340,7 @@ _MUT_NA_OUT = _mut_pool(_MUT_NA_POOL, 1, {"tests/a.py": 10, "tests/z.py": 100},
 _MUT_NA_PINS = _mut.pin_results(
     _MUT_NA_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
                   for m, v in _MUT_NA_OUT if v.startswith("killed")},
-    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL, "r",
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL,
     how="--drain")[0]
 R.check(
     "a twin granted with its anchor is started even after a dearer site "
@@ -36469,7 +36490,7 @@ def _mut_e_run(schedule, workers):
     out = schedule(_MUT_E_POOL, workers, _MUT_E_COST, drive)
     entries, _, _ = _mut.pin_results(
         out, kills, {s: _mut.ScriptRun(0, 0, 1.0) for s in _MUT_E_DRIVERS},
-        _MUT_E_POOL, "r")
+        _MUT_E_POOL)
     return [v for _, v in out], json.dumps(entries, sort_keys=True, indent=2)
 
 
@@ -36504,7 +36525,7 @@ _MUT_H_OUT = (_mut_pin(_MUT_H_SITE, 4,
                        {"tests/a.py": 1, "tests/b.py": 2,
                         "tests/features.py": 500}, _mut_h_drive)
               if _mut_pin is not None else [])
-_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE, "r")[0]
+_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE)[0]
                if _MUT_H_OUT else None)
 R.check(
     "under the split a timed-out driver is never a kill: the mutant runs "
@@ -36932,36 +36953,67 @@ _MUT_AN_BUDGETS = _mut.load_budgets()
 _MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
 
 
-def _mut_an_clone(dest):
+# The third stub reads no code at all: it is TRIAGE_JUDGE's ledger check in
+# miniature, red iff a row in the tree it runs in names a site that tree's
+# file does not generate. Pinned to it, a re-drive is a kill only by the row
+# the mutant itself made stale -- vacuous, as an equivalent rewrite read
+# killed by tests/entities.py (R10's anchor finding) -- so it must not
+# reproduce. The clone carries the pin's row so the judge has one to read.
+_MUT_AN_JUDGE = "tests/stub_ledger_judge.py"
+_MUT_AN_ROWS = _mut.ledger_dir().relative_to(_mut.ROOT)
+
+
+def _mut_an_clone(dest, row=None):
     (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
     (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    if row is not None:
+        _at = dest / _MUT_AN_ROWS / _mut.ledger_relpath("killed_by", _MUT_AN)
+        _at.parent.mkdir(parents=True, exist_ok=True)
+        _at.write_text(_mut.row_text(_MUT_AN, row))
     return dest
+
+
+def _mut_an_stale(cwd):
+    rows = _mut.read_rows(cwd / _MUT_AN_ROWS)
+    text = (cwd / _MUT_AN_REL).read_text()
+    sites = _mut.anchor_sites(text, [dict(_s, file=_MUT_AN_REL) for _s in
+                                     _mut.candidates(cwd / _MUT_AN_REL)])
+    return bool(rows["killed_by"]) and bool(_mut.completeness_problems(
+        {"killed_by": rows["killed_by"]}, sites))
 
 
 def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
     text = (cwd / _MUT_AN_REL).read_text()
-    red = (script == _MUT_AN_KILL and text != _MUT_AN_TEXT
-           and "(null control)" not in text)
+    red = ((script == _MUT_AN_KILL and text != _MUT_AN_TEXT
+            and "(null control)" not in text)
+           or (script == _MUT_AN_JUDGE and _mut_an_stale(cwd)))
     return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
                           "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
                           else "ok\n")
 
 
-def _mut_anchor(pinned):
+def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
+    # The one row it re-drives, not the live ledger: main() refuses a ledger
+    # that disagrees with the live inventory, so a whole-ledger stub went red
+    # on ANY pinned line a mutant rewrote -- the vacuous kill (R10
+    # mutation-anchor). That agreement is the mutation lane's own refusal.
     budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
-    budgets["killed_by"][_MUT_AN]["killed_by"] = pinned
+    budgets["killed_by"] = {_MUT_AN: dict(budgets["killed_by"][_MUT_AN],
+                                          killed_by=pinned)}
+    budgets["survivor_triage"] = {}
+    _row = budgets["killed_by"][_MUT_AN] if _MUT_AN_JUDGE in drivers else None
     _saved = {n: getattr(_mut, n) for n in
               ("load_budgets", "load_closures", "clone_tree", "drop_tree", "run_script")}
     _mut.load_budgets = lambda: budgets
-    _mut.load_closures = lambda: {_MUT_AN_KILL: [_MUT_AN_REL],
-                                  _MUT_AN_PASS: [_MUT_AN_REL]}
-    _mut.clone_tree, _mut.drop_tree = _mut_an_clone, lambda dest: None
+    _mut.load_closures = lambda: {d: [_MUT_AN_REL] for d in drivers}
+    _mut.clone_tree = lambda dest: _mut_an_clone(dest, _row)
+    _mut.drop_tree = lambda dest: None
     _mut.run_script = _mut_an_run
     _log = tempfile.TemporaryFile("w+")
     try:
         with _pv_ctx.redirect_stdout(_log):
             _rc = _mut.main(["--scope", "full", "--anchor", _MUT_AN, "--jobs", "1",
-                             "--scripts", f"{_MUT_AN_KILL},{_MUT_AN_PASS}"])
+                             "--scripts", ",".join(drivers)])
     finally:
         for _n, _v in _saved.items():
             setattr(_mut, _n, _v)
@@ -36982,6 +37034,61 @@ R.check(
     and f"pinned to {_MUT_AN_PASS}, killed by {_MUT_AN_KILL}" in _MUT_AN_WRONG[1]
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
     f"has pin={_MUT_AN_HAS} real={_MUT_AN_REAL!r:.500} wrong={_MUT_AN_WRONG!r:.500}",
+)
+_MUT_AN_VAC = (_mut_anchor(_MUT_AN_JUDGE, (_MUT_AN_JUDGE, _MUT_AN_KILL))
+               if _MUT_AN_HAS else (None, ""))
+R.check(
+    "a re-driven pin is not reproduced by a driver that only sees the row the "
+    "mutant made stale: the row is hidden from the mutant's tree, and a code "
+    "check still kills it (R10 mutation-anchor)",
+    _MUT_AN_VAC[0] == 0
+    and f"pinned to {_MUT_AN_JUDGE}, killed by {_MUT_AN_KILL}" in _MUT_AN_VAC[1]
+    and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_VAC[1],
+    f"has pin={_MUT_AN_HAS} judge-pinned={_MUT_AN_VAC!r:.600} -- reproduced "
+    "means the ledger judge read the mutant's own stale row as a kill",
+)
+# The rows a rewrite invalidates, on the real ledger: a pinned line rewritten
+# equivalently (a trailing comment) loses exactly the rows pinned to it, and
+# the ledger without them agrees with the rewritten file again; a line no row
+# pins loses none (the null control).
+_MUT_IR = getattr(_mut, "invalidated_rows", None)
+_MUT_IR_LINES = _MUT_AN_TEXT.splitlines(True)
+_MUT_IR_SITES = _mut.anchor_sites(_MUT_AN_TEXT, list(_mut.candidates(_mut.ROOT / _MUT_AN_REL)))
+_MUT_IR_LN = next((s["line"] for s in _MUT_IR_SITES if s["anchor"] == _MUT_AN), 0)
+_MUT_IR_FREE = next((i for i, ln in enumerate(_MUT_IR_LINES, 1)
+                     if ln.strip() and not ln.lstrip().startswith("#")
+                     and i not in {s["line"] for s in _MUT_IR_SITES}), 0)
+
+
+def _mut_ir(ln):
+    lines = list(_MUT_IR_LINES)
+    lines[ln - 1] = lines[ln - 1].rstrip("\n") + "  # equivalent\n"
+    after = "".join(lines)
+    gone = _MUT_IR(_MUT_AN_BUDGETS, _MUT_AN_REL, _MUT_AN_TEXT, after)
+    keep = {m: {k: e for k, e in _MUT_AN_BUDGETS.get(m, {}).items()
+                if k.startswith(_MUT_AN_REL + ":")
+                and _mut.ledger_relpath(m, k) not in gone}
+            for m in _mut.LEDGER_MAPS}
+    sites = _mut.anchor_sites(after, list(_mut.candidates(
+        _mut.ROOT / _MUT_AN_REL, src=after)))
+    return gone, _mut.completeness_problems(keep, sites)
+
+
+_MUT_IR_OUT = (_mut_ir(_MUT_IR_LN), _mut_ir(_MUT_IR_FREE)) if (
+    _MUT_IR and _MUT_IR_LN and _MUT_IR_FREE) else None
+_MUT_IR_ON = {_mut.ledger_relpath(m, s["anchor"]) for s in _MUT_IR_SITES
+              if s["line"] == _MUT_IR_LN for m in _mut.LEDGER_MAPS
+              if s["anchor"] in _MUT_AN_BUDGETS.get(m, {})}
+R.check(
+    "invalidated_rows names exactly the rows pinned to a rewritten line, the "
+    "ledger without them agrees with the rewritten file, and an unpinned line "
+    "names none (R10 mutation-anchor)",
+    _MUT_IR_OUT is not None
+    and set(_MUT_IR_OUT[0][0]) == _MUT_IR_ON and bool(_MUT_IR_ON)
+    and _MUT_IR_OUT[0][1] == [] and _MUT_IR_OUT[1] == ([], []),
+    f"pinned line {_MUT_IR_LN} -> {_MUT_IR_OUT and _MUT_IR_OUT[0]!r}, want rows "
+    f"{sorted(_MUT_IR_ON)}; unpinned line {_MUT_IR_FREE} -> "
+    f"{_MUT_IR_OUT and _MUT_IR_OUT[1]!r}",
 )
 _MUT_PV_NIGHT = _workflow_job(_NIGHTLY_YML, "mutation-nightly")
 R.check(
@@ -37540,6 +37647,67 @@ R.check(
     and "./tests/run.sh" not in _SLOW_STEPS
     and "GATE_SCOPE: full" not in _SLOW_STEPS,
     "slow still re-runs run.sh, or dropped rolling/replay/the value report",
+)
+
+# The timed lane on the pull request that reaches what it times
+# (R10-REPLAY-SCOPED; tvofi 2026-10-15: "Hard no, only when relevant").
+# `closure.replay_reach` is the rule `closure-scope` runs; it reads the lane's
+# own COST_FILES, so the pins below drive it with the lane's tuple, imported,
+# and with a source that names none (the fail-closed arm). The null controls are
+# paths beside the reach that must not run it: a package file outside the
+# cost set, a cost-file name one directory down, the export tooling, a gate file.
+_RR_PKG = "custom_components/heatpump_optimizer/"
+_RR_IN = ([_RR_PKG + _f for _f in (*_replay.COST_FILES, "optimizer.py")]
+          + ["tests/replay.py", "tests/replay/synthetic-dhw-only.json"])
+_RR_OUT = [_RR_PKG + "const.py", _RR_PKG + "translations/coordinator.py",
+           "tools/replay/export.py", ".github/workflows/tests.yml", "README.md",
+           "tests/entities.py", "tests/replay/notes.md"]
+_RR_MISS = [_f for _f in _RR_IN if _closure.replay_reach([_f]) != [_f]]
+_RR_FALSE = [_f for _f in _RR_OUT if _closure.replay_reach([_f])]
+R.check(
+    "replay reach: the rule reads the lane's own COST_FILES",
+    _closure.replay_cost_files() == _replay.COST_FILES,
+    f"closure read {_closure.replay_cost_files()!r}, the lane names {_replay.COST_FILES!r}",
+)
+R.check(
+    "replay reach: every cost file, the optimizer, the lane and a fixture run "
+    "the timed lane; nothing beside them does",
+    not _RR_MISS and not _RR_FALSE and _closure.replay_reach(_RR_IN + _RR_OUT) == _RR_IN
+    and _closure.replay_reach([]) == [],
+    f"missed {_RR_MISS}; ran on {_RR_FALSE}",
+)
+R.check(
+    "replay reach: a lane source naming no COST_FILES runs the lane, never skips it",
+    _closure.replay_decision(["README.md"], source="X = 1\n")[0] is True
+    and _closure.replay_decision(["README.md"], source="def (\n")[0] is True
+    and _closure.replay_decision(["README.md"])[0] is False
+    and _closure.replay_decision([_RR_PKG + "optimizer.py"])[0] is True,
+    f"{_closure.replay_decision(['README.md'], source='X = 1')!r}",
+)
+_RP_JOB = _workflow_job(_TESTS_YML, "replay")
+_RP_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+_RP_REACH: list = []
+try:
+    for _rv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _rf in ("true", "false", ""):
+            _rgot = _gh_eval(_gh_if(_RP_JOB), {"github.event_name": _rv,
+                                               "needs.closure-scope.outputs.replay": _rf})
+            if _rgot != (_rv == "pull_request" and _rf == "true"):
+                _RP_REACH.append((_rv, _rf, _rgot))
+except Exception as _rp_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _RP_REACH = [f"{type(_rp_exc).__name__}: {_rp_exc}"]
+R.check(
+    "the timed replay runs on a pull request whose diff reaches it, and on "
+    "nothing else in tests.yml (nightly runs it in full)",
+    not _RP_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _RP_JOB, re.M) is not None
+    and "replay: ${{ steps.decide.outputs.replay }}" in _RP_SCOPE
+    and 'python tests/closure.py replay-reach --files-from "$RUNNER_TEMP/changed.txt"'
+        ' >> "$GITHUB_OUTPUT"' in _RP_SCOPE
+    and 'echo "replay=false" >> "$GITHUB_OUTPUT"' in _RP_SCOPE
+    and "run: python3 tests/replay.py\n" in _RP_JOB
+    and re.search(r"^      HPO_JOB_GRADES: nothing$", _RP_JOB, re.M) is not None,
+    f"(event, replay, ran) wrong: {_RP_REACH}",
 )
 
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran

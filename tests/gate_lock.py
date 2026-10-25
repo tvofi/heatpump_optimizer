@@ -163,16 +163,35 @@ class Owner:
         return "".join(lines)
 
     def write(self, path: Path) -> None:
-        path.write_text(self._text())
+        """Replace the owner file whole (``_write_whole``).
+
+        A torn owner file is parsed as no owner, and ``_free_slot`` unlinked a
+        live holder's slot while it renewed.
+        """
+        _write_whole(path, self._text())
 
     def create(self, path: Path) -> bool:
-        """Write only if no owner exists: two takes in one instant cannot both win."""
+        """Write only if no owner exists: two takes in one instant cannot both win.
+
+        The file appears at ``path`` already complete: written beside it, then
+        hard-linked in (``link`` fails if ``path`` exists, as ``O_EXCL`` did).
+        An ``O_EXCL`` create followed by a write leaves an empty file a reader
+        parses as no owner, and ``_free_slot`` unlinks an unparseable slot, so a
+        second taker deleted the first one's just-created slot and both held it.
+        """
+        tmp = path.with_name(f".create-{os.urandom(6).hex()}-{path.name}")
         try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileNotFoundError:
+            return False
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(self._text())
+            os.link(tmp, path)
         except (FileExistsError, FileNotFoundError):
             return False
-        with os.fdopen(fd, "w") as f:
-            f.write(self._text())
+        finally:
+            tmp.unlink(missing_ok=True)
         return True
 
     @property
@@ -229,6 +248,18 @@ def _new_owner(label: str, lease_seconds: int, pid: int | None = None) -> Owner:
         expires_at=now + timedelta(seconds=lease_seconds),
         pid=pid,
     )
+
+
+def _write_whole(path: Path, text: str) -> None:
+    """Replace ``path`` so a concurrent reader sees the old text or the new.
+
+    ``write_text`` truncates first, and the readers here treat an unparseable
+    file as garbage to delete; a staged sibling moved in by ``os.replace`` is
+    never seen empty.
+    """
+    tmp = path.with_name(f".write-{os.urandom(6).hex()}-{path.name}")
+    tmp.write_text(text)
+    os.replace(tmp, path)
 
 
 def _ensure_lock_dir(lock_dir: Path) -> None:
@@ -775,7 +806,8 @@ def mark_unleased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR,
     pool = pool_dir(lock_dir)
     _ensure_lock_dir(pool)
     path = _marker_path(pool, label)
-    path.write_text(f"pid={os.getpid() if pid is None else pid}\nlabel={label}\n")
+    # Whole: ``_unleased`` deletes a torn (unparseable) marker as garbage.
+    _write_whole(path, f"pid={os.getpid() if pid is None else pid}\nlabel={label}\n")
     return path
 
 
@@ -1533,6 +1565,54 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
         ok = queued and sorted(got) == ["a", "b"] and overlaps[0] == 0
         return ok, f"queued={queued} overlaps={overlaps[0]} order={got}"
 
+    def torn_create(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A rival takes at the instant a's slot is being created -- the window an
+        # O_EXCL-then-write create leaves as an empty file, which _free_slot read
+        # as a broken holder, unlinked, and so let both hold the one slot.
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        real = g.Owner._text
+
+        def racing(self) -> str:
+            if self.label == "a":
+                try:
+                    g.take_slot("rival", lock_dir=d, slots=1, lease_seconds=60, wait=False)
+                    got.append("rival")
+                except BlockingIOError:
+                    pass
+            return real(self)
+
+        g.Owner._text = racing
+        try:
+            if g._new_owner("a", 60, os.getpid()).create(g._slot_path(pool, 0)):
+                got.append("a")
+        finally:
+            g.Owner._text = real
+        return len(got) == 1, f"winners={got}"
+
+    def torn_write(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A holder renews its slot while a waiter polls it: the reader must
+        # never see the file empty (truncated by write_text) and steal it.
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        path = g._slot_path(pool, 0)
+        owner = g._new_owner("holder", 60, os.getpid())
+        owner.write(path)
+        stop, torn = threading.Event(), [0]
+
+        def reader() -> None:
+            while not stop.is_set():
+                if g._read_at(path) is None:
+                    torn[0] += 1
+
+        t = threading.Thread(target=reader, daemon=True)
+        t.start()
+        for _ in range(4000):
+            owner.write(path)
+        stop.set()
+        t.join(20)
+        return torn[0] == 0, f"torn reads={torn[0]} of 4000 rewrites"
+
     cases = [
         ("priority: an urgent waiter takes before an older normal one, after its ticket rewrite",
          priority_first),
@@ -1546,6 +1626,10 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
         ("priority: the heavy-slot pool orders by the same rule", slot_priority),
         ("concurrency control: two waiters released in one poll, exactly one holds the slot",
          one_winner),
+        ("concurrency control: a rival taking while a slot is being created cannot also hold it",
+         torn_create),
+        ("concurrency control: a slot being renewed is never read as empty by a waiter",
+         torn_write),
     ]
     out: list[tuple[str, bool, str]] = []
     try:
@@ -1666,6 +1750,34 @@ def _slot_hold_cases(g) -> list[tuple[str, bool, str]]:
         return before and cleared and pruned, \
             f"counted={before} cleared={cleared} dead_pruned={pruned}"
 
+    def torn_marker(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A run re-marks itself unleased while slot-status polls: the marker
+        # must never be read empty (truncated by write_text), which _unleased
+        # destroys as unparseable and so deletes a live run's witness.
+        g.mark_unleased("prepr-x", lock_dir=d, pid=os.getpid())
+        stop, lost = threading.Event(), [0]
+
+        def reader() -> None:
+            while not stop.is_set():
+                if "prepr-x" not in g._unleased(pool(d)):
+                    lost[0] += 1
+
+        t = threading.Thread(target=reader, daemon=True)
+        t.start()
+        for _ in range(1000):
+            g.mark_unleased("prepr-x", lock_dir=d, pid=os.getpid())
+        stop.set()
+        t.join(20)
+        return lost[0] == 0, f"polls missing it={lost[0]} during 1000 rewrites"
+
+    def pool_contents(d: Path, got: list[str]) -> tuple[bool, str]:
+        # Every write stages a private sibling file: none may outlive its write.
+        g.take_slot("a", lock_dir=d, slots=2, lease_seconds=60, wait=False)
+        g.take_slot("a", lock_dir=d, slots=2, lease_seconds=60, wait=False)
+        g.mark_unleased("prepr-x", lock_dir=d, pid=os.getpid())
+        names = sorted(p.name for p in pool(d).iterdir())
+        return names == [g.FLOCK_NAME, "slot-000", "unleased-prepr-x"], f"pool={names}"
+
     cases = [
         ("a live holder keeps its slot past its lease, and a fifth taker is blocked",
          live_holds),
@@ -1677,6 +1789,10 @@ def _slot_hold_cases(g) -> list[tuple[str, bool, str]]:
          queues_then_takes),
         ("slot-status counts past-lease holders and unleased runs, and prunes a dead marker",
          witnesses),
+        ("an unleased marker being rewritten is never lost to a polling slot-status",
+         torn_marker),
+        ("a take, a renewal and a marker leave no staging file in the pool",
+         pool_contents),
     ]
     out: list[tuple[str, bool, str]] = []
     try:
