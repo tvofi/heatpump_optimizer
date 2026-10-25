@@ -104,7 +104,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6073, in async_run_optimization
+  File "$WT", line 6074, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -722,23 +722,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   the default plant passes the arm-time identifiability gate
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+  File "$WT", line 1726, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "<W>/m_M3/tests/features.py", line 7312, in _wrapper
+  File "$WT", line 7312, in _wrapper
     return method(self, *args, **kwargs)
-  File "<W>/m_M3/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+  File "$WT", line 2272, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "<W>/m_M3/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+  File "$WT", line 2307, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "<W>/m_M3/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+  File "$WT", line 1010, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -880,6 +880,29 @@ Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) 
   ok   a second load over the same configuration re-anchors nothing
   ok   a two-zone edit re-anchors on the zone total, not the upper zone
   ok   a snapshot restore re-anchors a pre-edit scale, not restores it
+
+-- The lower-floor ratio is re-anchored with the scale (#2239)
+  ok   an options reseed of both zones keeps each zone's learned heat loss
+  ok   and a second load over the reseeded configuration re-anchors nothing
+  ok   an edit that keeps the nameplate split keeps the ratio and each zone
+  ok   a pre-reseed snapshot restored after the reseed keeps each zone
+  ok   an unlearned install keeps a lower-nameplate edit
+Learned lower floor loss ratio 1.922 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration
+Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) cannot be expressed against the newly configured 7.0192 kW/°C: resetting to the configuration
+  ok   an inexpressible ratio resets, not clips onto a bound
+Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) cannot be expressed against the newly configured 7.0192 kW/°C: resetting to the configuration
+  ok   the scale beside a reset ratio is the scale with no ratio evidence
+Learned house heat loss scale 0.500 (fitted against 0.1720 kW/°C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/°C: resetting to the configuration
+  ok   the ratio beside a reset scale is the ratio with no scale evidence
+Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration
+Learned house heat loss scale 2.000 (fitted against 0.3250 kW/°C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/°C: resetting to the configuration
+  ok   a reset scale whose ratio is inexpressible beside it resets both
+  ok   adding a power meter re-anchors both learners at zero confidence
+  ok   a metered store reloaded metered keeps both learners verbatim
+  ok   removing the power meter keeps both learners verbatim
+  ok   a store without a recorded basis keeps both learners on a meter add
+  ok   the anchor pair refuses a total not positive on either side, void or not
+  ok   a bound is inclusive and a step is below the gate, on every learner and zone
   ok   a night setback lowers the reference, not the reported savings
   ok   while the schedule agrees, so do the baselines
   ok   a heated basement scales the slow store once, not twice
@@ -890,6 +913,17 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -899,10 +933,6 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -910,13 +940,6 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
   ok   every configurable parameter is reachable from a config key
   ok   wood tank volume is reachable once the furnace toggle is on
@@ -1166,10 +1189,10 @@ mixing_valve_write_target_kind=flow needs two-zone
   ok   every mode the service accepts can be persisted and restored
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1681,10 +1704,10 @@ No snapshot qualifies for restore (healthy inputs and in-band accuracy at captur
   ok   restore with an empty ring refuses instead of pretending
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1730,10 +1753,10 @@ Prediction bias out of band for 5 days on healthy inputs; learned state rolled b
   ok   #1936: recommend-only -- a heartbeat with a refit on offer applies nothing
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1748,10 +1771,10 @@ No heat-loss refit is on offer: it needs an active drift alarm and 3 settled day
 Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1832,10 +1855,10 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   a pre-T4b payload loads clean and every learner starts inert
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1889,10 +1912,10 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
   ok   a non-numeric lead_sigma key is skipped, not raised out of from_dict
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1967,7 +1990,7 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
   ok   #2258: one advice per cycle, none per advisor-sensor write
   ok   R10-LEARNER-ETA: the gates are counted on the learners' own predicates
   ok   R10-LEARNER-ETA: a counting gate's ETA is its remaining count at the measured rate
-  FAIL R10-LEARNER-ETA: no settling learner carries a day count, on any weather or rate  [[(True, True, {'house': ('settling', None), 'lower': ('off', None), 'solar': ('settling', None), 'gains': ('settling', None)}), (True, False, {'house': ('settling', None), 'lower': ('off', None), 'solar': ('settling', None), 'gains': ('settling', None)}), (False, True, {'house': ('waiting', None), 'lower': ('off', None), 'solar': ('waiting', None), 'gains': ('waiting', None)}), (False, False, {'house': ('waiting', None), 'lower': ('off', None), 'solar': ('waiting', None), 'gains': ('waiting', None)})]]
+  ok   R10-LEARNER-ETA: no settling learner carries a day count, on any weather or rate
   ok   R10-LEARNER-ETA: settling progress is the learner's own EWMA walk, never a time
   ok   R10-LEARNER-ETA: a stalled learner says what weather it waits for, with no day count
   ok   R10-LEARNER-ETA: off when disabled or unmeasurable; zero evidence counts with no ETA
@@ -1998,10 +2021,10 @@ Compressor efficiency has drifted 20% below its own baseline (~0 SEK/month at cu
   ok   predicted + contributions + unexplained always accounts for actual
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2040,10 +2063,10 @@ No electricity price data available; skipping optimization until prices can be f
   ok   a perfectly partitioned month reconciles whatever the rounding does
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/ledger.py", line 564, in roll_receipts
+  File "$WT", line 564, in roll_receipts
     kept[month] = freeze(month)
                   ~~~~~~^^^^^^^
-  File "<W>/m_M3/tests/features.py", line 21897, in _exploding_freeze
+  File "$WT", line 22165, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
   ok   a crashing month no longer takes _roll_month down with it
@@ -2108,7 +2131,7 @@ Compressor frequency control stood down: number.freq reports 90.0 Hz against a c
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
   ok   an entry's setup neither adds a service nor replaces a handler
   ok   setup hands the coordinator to the entry as runtime_data
-<W>/m_M3/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+$WT:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   every service is still registered after the last entry unloads
@@ -2160,14 +2183,14 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6030, in async_run_optimization
+  File "$WT", line 6031, in async_run_optimization
     record = self._solve_record(solve_now, horizon)
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 5910, in _solve_record
+  File "$WT", line 5911, in _solve_record
     config, params, state = self._solve_hubs(n, banded=True)
                             ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 5842, in _solve_hubs
+  File "$WT", line 5843, in _solve_hubs
     tariff = self._capacity_tariff()
-  File "<W>/m_M3/tests/features.py", line 23041, in _tariff_boom
+  File "$WT", line 23309, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
   ok   run_optimization when the solve raises raises a translated operational error
@@ -2212,9 +2235,9 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   before any solve the plan has no age and is not stale
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6003, in async_run_optimization
+  File "$WT", line 6004, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "<W>/m_M3/tests/features.py", line 23523, in _g_boom
+  File "$WT", line 23791, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
   ok   three consecutive failed solves raise exactly one repair issue
@@ -2571,16 +2594,16 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   the plan's action keeps its own price, not the current one
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 5688, in _async_update_data
+  File "$WT", line 5689, in _async_update_data
     await self._fetch_tibber_prices()
-  File "<W>/m_M3/tests/features.py", line 25556, in _fr_fetch_raises
+  File "$WT", line 25824, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 5804, in _async_first_refresh_light
+  File "$WT", line 5805, in _async_first_refresh_light
     await self._fetch_tibber_prices()
-  File "<W>/m_M3/tests/features.py", line 25556, in _fr_fetch_raises
+  File "$WT", line 25824, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
   ok   both refresh wrappers raise a translated UpdateFailed (update_failed)
@@ -2588,20 +2611,20 @@ RuntimeError: boom
 -- Unload lifecycle and Tibber failure semantics (D10-06/07/09)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
   ok   a failed Tibber fetch raises UpdateFailed, failing the update cycle
   ok   the outage latch's UpdateFailed carries its translation (#1546)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
   ok   two failed fetches count two outage cycles (the ERROR logged once)
@@ -2641,7 +2664,7 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   and the handover is single-use on the coordinator
 
 -- #236/#237/#240 — the coordinator's lifecycle seam
-<W>/m_M3/tests/features.py:26170: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+$WT:26438: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   cb()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   1 ConfigEntryNotReady retries leak no listener or subscription, eager (HA 2024.3+) (#236)
@@ -3320,10 +3343,10 @@ The heat pump's operating mode entity has been unreadable for over 180 min; the 
   ok   and the very same value with the entity configured IS one -- the configuration is the whole difference
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "<W>/m_M3/custom_components/heatpump_optimizer/coordinator.py", line 6709, in _fetch_tibber_prices
+  File "$WT", line 6710, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "<W>/m_M3/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "$WT", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -3741,4 +3764,1841 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a month booked before its coverage began scales by the calendar-day ratio
   ok   a negative month covered from its first settlement keeps the hours' scale
   ok   an interval of no length settles no hours: the stored coverage takes no sample
-rc=143
+  ok   the booked thermostat step is independent of the plan's start state (single-zone)
+  ok   the predicted saving moves less with the start state than the plan's cost (single-zone)
+  ok   the booked thermostat step is the steady holding power at target
+  ok   the held house at the booked power is a steady state of the plant model
+  ok   past the comfort schedule's end the thermostat holds the default setpoint; with no weather the held state is the measured one
+  ok   the booked thermostat step is independent of the plan's start state (two-zone, DHW)
+  ok   the predicted saving moves less with the start state than the plan's cost (two-zone, DHW)
+  ok   precondition: the pre-heated start carries heat above the caps
+  ok   with a thermostat that buys nothing, the start is settled at the caps
+  ok   with demand to displace, the pre-heated start is debited past the caps
+  ok   between the two, the debit past the caps stops at the thermostat's cost
+  ok   a negative thermostat cost (negative prices) never turns the debit into a credit
+  ok   a start colder than the held house is settled at the caps, with no surplus to debit
+  ok   with no demand at the held target the slab sits at the target, not below it
+  ok   the hot-water path bounds the start debit by the space reference's cost, not the tank's
+  ok   baseline_power_schedule pickles as a plain float list
+  ok   get_current_action copies the current step's baseline kW
+  ok   a 0.0 baseline step is copied, not treated as missing
+  ok   inside a short optional schedule get_current_action reads every key
+  ok   past a short optional schedule get_current_action falls back on every key and raises nothing
+  ok   a DHW-only step reads hot_water, not off (#1499)
+  ok   a space step at the pump's minimum modulation reads eco, not off
+  ok   off is kept for a step where neither circuit runs, boost for full power
+  ok   _build_result writes baseline_power_schedule
+  ok   both solve paths pass the baseline array into _build_result
+  ok   with a pending baseline both savings lines move
+  ok   without a pending baseline neither savings line is written
+  ok   zero metered energy still books savings when a baseline exists
+  ok   savings_actual is spot+immersion metered kWh, not the carved spot line
+  ok   coordinator publishes savings_months and never the baseline series
+  ok   interval-start pending copies baseline_kw from the current action
+
+-- 3L-G8 — wood fuel math
+  ok   birch packed is 1900 kWh/m3
+  ok   pine packed is 1500 kWh/m3
+  ok   mixed packed is 1700 kWh/m3
+  ok   loose is 0.60 of packed
+  ok   useful kWh applies efficiency
+  ok   SEK/kWh is price over useful
+  ok   50 L of that birch is 71.25 kWh
+  ok   500 L volume alone does not infer a furnace
+  ok   a top probe infers on
+  ok   explicit off wins over a probe
+  ok   complete config is ready
+  ok   price 0 is not ready
+  ok   idle plan is not cheaper
+  ok   one pump hour above 0.05 kW cheaper is on
+  ok   that hour counts
+  ok   cheap night and an empty tank advises light
+  ok   expensive next day and a full tank advises skip
+  ok   probe span at 34.2 C is soc 0.2
+  ok   no live tank temp is no soc
+  ok   a non-positive span is no soc
+  ok   toggle off means no wood tank even if a probe is stored
+  ok   toggle off zeroes the 500 L default volume
+  ok   toggle off disables the DHW wood coil in the model
+  ok   toggle off disables detection even if it is stored on
+  ok   data wood_fuel cheaper is false when not ready
+  ok   ready publishes cheaper
+  ok   ready idle plan publishes cheaper false
+  ok   wood_fuel_from_parts is the publish helper
+  ok   cheap night and a 34.2 C tank advises light
+  ok   omitted comfort floor still lights at 34.2 C
+  ok   no tank temperature attaches no night advice
+  ok   config wood_tank_soc does not override the probes
+  ok   wood_tank_soc in config is not a source
+  ok   expensive next day and an 87.4 C tank advises skip
+  ok   from_coordinator uses the live wood-tank temperature
+  ok   from_coordinator without a tank temperature attaches nothing
+
+-- 3L-G9 — what-if wood slots
+  ok   wood_slots_to_kw spreads 50 L birch over two overlapping hours
+  ok   what-if wood injects external_heat_kw on the shadow solve
+  ok   cost_delta adds wood SEK to the electricity delta
+  ok   what-if wood overrides do not write the config entry
+  ok   liters 0 is invalid_wood_slots
+  ok   wood slots without fuel params are wood_fuel_not_ready
+  ok   live async_run_optimization source does not mention wood_slots
+
+-- #193 S5 — effective house heat loss over plain values
+  ok   _effective_house_heat_loss is importable from the coordinator module (#193 S5)
+  ok   the published effective house heat loss is what the helper computes from the params and scale the coordinator holds (#193 S5)
+  ok   the published figure still equals the helper at a scale that is not 1.0, where the two would part company (#193 S5)
+  ok   and that number tracks the learned scale, so the equality is not vacuous (#193 S5)
+  ok   every attribute _init_thermal_learning assigns is present on a constructed coordinator, so the split dropped none of them (#193 S5)
+
+-- #193 S6 — the grid fee entity read over plain values
+  ok   _grid_fee_entity_value is importable from the coordinator module (#193 S6)
+  ok   the helper returns the fee entity's own value (#193 S6)
+  ok   and that number tracks the entity, so the equality is not vacuous (#193 S6)
+  ok   an unreadable, absent or unconfigured fee entity reads as None (#193 S6)
+  ok   every attribute _init_frequency assigns is present on a constructed coordinator, so the split dropped none of them (#193 S6)
+
+-- apply_topology accepts every place the setup page draws (#546)
+  ok   every place the setup description homes a slot at is named in one of the card's box() declarations (#546)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   the positions apply_topology accepts are readable from the schema it registered, and the reading agrees with what it refuses (#550)
+  ok   every box the card draws files its position under a place apply_topology accepts (#546)
+  ok   and accepts them all in one call, for every selectable layout (#546)
+  ok   and accepts no position the setup description never homes a slot at (#546, #550)
+  ok   a setup page whose Outside box was dragged saves, and the position is the one that was sent (#546)
+
+-- process_worker.py (#505)
+  ok   _describe names a value that prints
+  ok   _describe survives a __str__ that raises
+  ok   _dump writes a picklable ok frame in one blob
+  ok   _dump degrades an unpicklable ok result to err, not a published plan (#524)
+  ok   _bootstrap drops the package directory so datetime is stdlib
+  ok   run_worker returns on EOF without writing
+  ok   run_worker dumps ok and the function result
+  ok   run_worker dumps err when the job raises
+  ok   run_worker dumps load-err and stops when the frame will not unpickle
+  ok   python process_worker.py as __main__ runs the worker on stdin
+
+-- W5-G7 t1: the coordinator's core lifecycle and error paths (#195)
+  ok   an ECL110 state payload's displace lands on both the attribute and the state
+  ok   a nested command.displace is read when the top-level key is absent
+  ok   the top-level displace wins over the nested one, never the other way
+  ok   effective_displace is published without a command displace beside it
+  ok   a bytes payload carrying a bare JSON number is the direct topic's shape
+  ok   a malformed payload leaves the last good displace standing and raises nothing
+  ok   a NaN/inf ECL110 payload is not stored; the last good values stand
+  ok   a dropped ECL110 payload is logged once at DEBUG, a valid one not at all
+  ok   the ECL110 handler swallows only parse errors, not every exception
+  ok   no production entity configured reads as no measurement, not as zero
+  ok   a watt reading is converted to kW rather than trusted as kW
+  ok   an absent entity, and the three non-values Home Assistant publishes, read as None
+  ok   a non-numeric state and an unrecognised unit both read as None, not as a guess
+  ok   a negative production reading is clamped to zero, not propagated
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   setting away with a future return stores the override and its parsed instant
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   a return time arriving as a picker string is parsed, not stored verbatim
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   clearing away drops the return time with it, so a later enable starts clean
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   a return time already in the past expires the override on the spot
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   omitting the return time leaves the stored one alone
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   each setter skips its refresh under refresh=False and requests one by default
+  ok   a mode change survives a restart with no completed cycle, and one whose refresh fails
+  ok   a mode set while the accuracy load is in flight keeps the stored state
+  ok   a comfort-weight reset while the accuracy load is in flight keeps the stored mode
+  ok   every entity action and coordinator setter is a durability row or says where its state lives
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   every entity action returns before the solve it asks for completes
+  ok   every entity action's state survives a restart before any cycle completes
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-27T04:08:23.567612+00:00 is ahead of the clock; bounded to 2026-10-26 00:08:23.673552+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-27T04:08:23.567612+00:00 is ahead of the clock; bounded to 2026-10-26 00:08:23.676709+00:00
+  ok   a manual plan applied, then cleared, each survives a restart that cancels its refresh
+  ok   a store writer that races the startup read waits for it, so the persisted learned state survives the restart (D1-s2-52)
+  ok   every set_thermal_parameters field that changes state survives a restart (D1-s2-53)
+  ok   a store that raises is swallowed here and leaves the trackers untouched
+  ok   a store holding the wrong type is refused as firmly as one that raises
+  ok   a stored optimization mode is adopted, and the defrost derate reaches the params
+  ok   a mode the tree does not define is left on the floor, not published
+  ok   with comfort learning disabled an override records nothing at all
+  ok   a cheap-hour override is recorded at half weight and banked, not spent
+  ok   a zero-mean price curve records the override neutral, and that is worth more
+  ok   a sub-threshold nudge is not recorded as a complaint
+
+-- W5-G7 t2: the learning seam's guards and store arms (#195)
+  ok   an accepted buffer-cooling sample moves the rate, counts, and persists
+  ok   the learned rate reaches the thermal parameters the optimizer reads
+  ok   a tighter-looking interval is taken 12.5x harder than a leakier one
+  ok   a frozen learner records why it froze and learns nothing
+  ok   the freeze still advances the sample, so the next interval is not stale
+  ok   a throttling mixing valve rejects every interval, not just noisy ones
+  ok   the first reading after a restart is a baseline, not a sample
+  ok   an interval the pump heated part-way through is rejected, not absorbed
+  ok   an interval under 0.15 h is too short to read a decay from
+  ok   an interval over 3 h is too long to have stayed quiet throughout
+  ok   a tank that got warmer is not a cooling sample
+  ok   a tank starting within 4 K of ambient carries too little signal
+  ok   a tank that ended within 4 K of ambient is rejected on the end delta
+  ok   a rate above this tank's worst plausible insulation is discarded
+  ok   a rate below this tank's best plausible insulation is discarded too
+  ok   no rejected buffer-cooling sample reached the store (null control)
+  ok   a well-formed thermal-learning payload loads every key (null control)
+  ok   a non-numeric house heat loss scale drops that key and keeps the rest
+  ok   a non-numeric lower floor split leaves the configured one standing
+  ok   a non-numeric COP scale leaves the nameplate figure uncorrected
+  ok   a corrupt COP baseline bucket is skipped one entry at a time
+  ok   a non-numeric snow accumulation is reset to zero, not left standing
+  ok   an unparseable last-heavy-snow date is cleared, not left standing
+  ok   an unparseable accumulator clock is cleared, not left standing
+  ok   a thermal-learning store that cannot be read starts the priors, not an error
+Frequency control is standing down from an earlier watchdog trip; switch the frequency mode to observe and back to control to re-arm it
+  ok   a stored frequency stand-down is restored and warns in control mode
+  ok   a truthy-but-not-True stand-down does not latch, so garbage cannot arm it
+  ok   a complete hourly day is folded into the shape and persisted once
+  ok   the same prices on the next refresh are folded in again zero times
+  ok   a 15-minute day trains the hourly shape and the quarter factors both
+  ok   the quarter seen-set has its own skip, checked separately from the hourly one
+  ok   a 23-hour day trains neither shape and is not marked seen
+  ok   a day averaging zero is rejected AND left unseen, so it can be retried
+  ok   with the price prior off nothing is learned and nothing is written
+  ok   a quiet stretch under swinging prices banks negative evidence
+  ok   the tipping quiet period lowers the weight the optimizer actually solves with
+  ok   300 flat-price quiet periods move the weight nowhere, 300 swinging ones do
+  ok   with comfort learning off a quiet stretch is not evidence of anything
+  ok   before the first solve there is no trajectory to call quiet
+  ok   a plan that solved with no room trajectory records nothing
+  ok   a plan solved without prices cannot say whether flatness was free
+  ok   a zero-mean price curve is not a spread worth trading comfort against
+  ok   flat prices are not evidence, because holding flat cost nothing
+  ok   a plan with no heating in it holds nothing flat at any cost
+  ok   a 5 K indoor swing is not a quiet period however flat the complaints
+  ok   a defrost dip is not a comfort miss: the tracker's gate sees THIS cycle's flag, not the previous cycle's
+Comfort miss (margin -0.40 °C) with curve bias -0.6 K applied; bias reset to 0
+  ok   and the same dip with no defrost is a genuine miss that still resets
+  ok   a defrost interval with the house still warm collects no evidence either
+  ok   a clean quiet period is still evidence: the gate is not a blanket refusal
+  ok   a defrost interval is not a quiet period: the plan is flat, the house is not
+  ok   a dead indoor sensor is not a quiet period: the plan is seeded from the pin
+  ok   a replayable interval corrects the house heat loss scale (null control)
+  ok   the tenth house-heat-loss sample is written to the store
+  ok   the ninth sample does not persist (the modulo is the gate)
+  ok   the two-zone fit moves with the upper zone's mass and not the house's
+  ok   no trustworthy interval power means no sample, not a replay at zero
+  ok   a 5 K indoor-outdoor difference is too small to identify a UA from
+  ok   a simulation that raises costs the sample and nothing else
+  ok   a non-finite residual is rejected before it reaches the Newton step
+  ok   a zero heat loss coefficient yields no step rather than a division
+  ok   a replayable interval corrects the lower floor split (null control)
+  ok   the lower floor learner skips an interval with no trustworthy power too
+  ok   an interval outside 0.15-1.5 h is rejected on one combined bound
+  ok   the lower floor's own minimum difference is measured from the lower zone
+  ok   a lower floor simulation that raises costs the sample and nothing else
+  ok   a non-finite lower floor residual is rejected before the Newton step
+  ok   a zero lower floor UA yields no step rather than a division
+  ok   ten accepted lower floor samples reach the store exactly once
+
+-- W5-G7 t3: the fetch and grid seams (#195)
+  ok   with no option set the Home Assistant home location is used
+  ok   a configured coordinate wins over the home location
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+  ok   a non-numeric coordinate falls back to home rather than to zero
+  ok   a half-filled coordinate is not half-used
+  ok   an option that is not a mapping at all is ignored, not indexed
+  ok   an incomplete home location reads as no coordinate, on either axis
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+  ok   a junk option and no home location together read as no coordinate
+Open-Meteo solar is selected but no coordinate is available; set one in the integration options or configure the Home Assistant home location
+  ok   the first refresh builds a client at the configured coordinate
+  ok   a second refresh at the same coordinate reuses the client and refetches
+  ok   an edited coordinate rebuilds the client rather than serving the old place
+  ok   selecting Open-Meteo with no coordinate available drops the client
+  ok   selecting another irradiance source drops the client too
+  ok   with no Open-Meteo client the forecast view is empty, not an error
+  ok   the view drops the past and the beyond-horizon samples, keeping the rest
+  ok   each point is anchored at the interval START, not its end
+  ok   the horizon argument is honoured, so a shorter one keeps fewer samples
+  ok   a stored price model restores both seen-sets, coercing each entry to text
+  ok   a payload with no lists, or a string where a list belongs, adds nothing
+  ok   a store that has never been written leaves an empty model, not an error
+  ok   a price model store that raises leaves the model it had and does not abort setup
+  ok   with no entity the configured export price is used
+  ok   a live export-price entity wins over the configured number
+  ok   the three non-values, a non-numeric state and a missing entity all fall back
+  ok   an untimestamped forecast is read positionally, four steps to the entry
+  ok   an unparseable timestamp takes the same positional path, not a crash
+  ok   and the positional read genuinely disagrees with the timestamped one
+  ok   an empty step grid is covered by nothing, checked before any parsing
+  ok   untimestamped prices cover nothing: no row is placed by its position (R10 #2236 -- 95 of 96 startless quarters landed in the wrong slot)
+  ok   prices that begin after the grid does cover none of it, rather than the first
+  ok   a single published entry covers exactly one hour, then the run stops
+  ok   an unset month mask is empty, which reads as every month
+  ok   a range, a list, a semicolon list and surrounding space all parse
+  ok   a non-wrapping month mask is its span, not the year
+Invalid peak tariff months 'Nov-Mar,Smarch' (Unknown month 'smarch'); applying the tariff in every month
+  ok   a spec whose FIRST chunk is valid is still discarded whole, not narrowed
+  ok   an unset hour mask is empty, which reads as every hour
+  ok   one window and two windows both parse into ordered pairs
+Invalid peak tariff hours 'breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
+Invalid peak tariff hours '25:00-26:00' (Invalid hour in '25:00'); treating every hour as peak
+Invalid peak tariff hours '07:00-09:00,breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
+  ok   a malformed hour spec, and a partly valid one, both read as every hour
+  ok   the house meter is preferred, then the pump meter, then the commanded power
+  ok   with the capacity tariff off no reading is folded at all
+  ok   a usable reading is folded, and the fold instant is recorded
+  ok   no state, a non-numeric state, an unknown unit and NaN are each refused
+  ok   with neither a capacity tariff nor a fuse limit the listener does no work
+  ok   a second reading inside the spacing window is throttled, not folded
+  ok   a transition before the first plan refreshes listeners and publishes nothing
+Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+  ok   a naive stored tick adopts the clock's zone and detects the same gap
+  ok   a recent tick, an unparseable one and an absent one open no window
+  ok   with staggered recovery disabled even a five-hour gap opens no window
+  ok   a well-formed ledger payload restores the day book and the score (null control)
+  ok   a non-numeric field drops the day book and keeps the rest of the payload
+  ok   a non-finite number and an unnamed day are both refused, not clipped
+  ok   a stored score is clipped into 0-100, and a non-numeric one is dropped
+  ok   a ledger store that cannot be read leaves the defaults and does not abort setup
+  ok   one save carries every rider the method declares, so no generation of money state is split
+  ok   #2257: the ledger save carries the price tiles' book, day by day
+  ok   a failed ledger write is swallowed rather than raised into the settlement
+  ok   the horizon list appears only once a plan exists, and is capped at 48 steps
+  ok   the plan's hot water is added to its space heating before the subtraction
+  ok   a plan over the limit reports zero headroom, and an empty one reports none
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   a spec that raises advances the cursor, so it cannot block the other tiles
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   an errored answer advances the cursor but publishes nothing; a good one publishes
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   turning the tiles off clears what was published, rather than freezing it
+No weather entity configured. Plans continue on the last forecast, marked stale.
+  ok   with no weather entity the forecast is marked stale, not fabricated
+
+-- W5-G7 t4: the core seam and the learning tail (#195)
+  ok   no entity and an empty entity id both read as absent, before any lookup
+  ok   an entity that is configured but absent from the bus reads as absent too
+  ok   a present entity yields its state and a COPY of its attributes
+  ok   a state with no attributes still yields its state and an empty mapping
+  ok   a pinned experiment is taken at full weight, not blended against the passive learner
+  ok   a half-bar experiment moves the scale half way and claims half the samples
+  ok   the two-zone base is the ZONES' sum, not the whole-house coefficient
+  ok   a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing
+  ok   an adopted result is marked adopted, so the next cycle cannot adopt it twice
+
+=== Stress and economics ===
+  ok   #1329/#942: an UNSEEDED slab pair is still refused, by name (the gate's own null control)
+  ok   #1329/#942: the gate does not price the slab coupling -- the shipped plants and the judge's k_s x100 perturbation all pass it
+  ok   #1401: a degenerate slab triple gives tau_fast 0.0 (the helper's own guard)
+  ok   #1401: the one-state identifiability guard refuses unset slab constants by name
+  ok   #1401: the two-state fit's shared refusal still rejects an implausible sign
+  ok   #1401: fewer than five intervals gives None (the one-state fit's own floor)
+  ok   #1401: a non-wrapping night window (start_hour <= end_hour) is honoured
+  ok   #1401: arming on a plant whose slab pair cannot be seeded is refused, by name
+  ok   #1329/#942: the same fit on the fast-slab plant adopts THROUGH the gate
+
+-- #1329: the sysid arm/adopt gate opens on the plants the tree ships
+  ok   #1329: the named gate admits every preset the integration ships
+  ok   #1329: every preset-answer combination arms (the finding measured 0/360)
+  ok   #1329: every derivable two-zone preset arms (the finding measured 0/80)
+  ok   #1329: the item-18 button arms on a default install (was inert)
+  ok   #1329: a completed shipped-plant fit adopts through the gate (was refused)
+  ok   #1329: the cadence-gap fallback refuses a slow-slab plant BY NAME, not by handing it to the one-state regression
+  ok   a gate-passing plant arms WITH its slab pair recorded for the two-state fit, and the fit that ran is the slab fit (absent before the wave)
+  ok   the ported ridge lands the slab fit's UA bias inside the pre-study's ported band (+-10% p5/p95) at 0.01 degC (pre-study ported -6.7/+4.2 light_new, -6.5/+4.7 fast-slab; unridged -91/+112)
+  ok   the band holds at the ratification's noise ceiling 0.02 degC (+-15%; pre-study ported -9.6/+6.9 on light_new, -8.6/+9.5 fitted-arm fast-slab)
+  ok   armed without a plant the fit is still the one-state regression (null control: the slab fit does not run ungated, so gate-refused presets keep the #942 refusals)
+  ok   estimator act 2: a completed fitted result publishes the re-derived slab mode for the config-class decision
+  ok   estimator act 2: adoption is decided by the fitted UA's own interval (#1410, superseding the residual-scatter gate): a 0.02 C noisy window on the shipped natural slab is refused (its UA interval admits > +-10 %) and a clean window's interval collapses to ~0 and admits, so it is a refusal of the unidentifiable fits, not a blanket
+  ok   round-7 D7-01 (#1459): a two-state result publishes the UA interval its intercept prior itself contributes, and on a window whose UA is a function of the assumed free heat that term dwarfs the profile interval the gate bounded alone
+  ok   round-7 D7-01 (#1459): the gate does not hand the learner the whole intercept prior's bias -- at most three quarters of the fit's UA offset is adopted, because the prior term alone is over a third of the bar
+  ok   round-7 D7-01 (#1459): a result that published no interval adopts nothing and raises nothing
+  ok   round-7 D7-01 (#1459): the gate's combiner answers all four arms of its own contract -- an interval published on both sides, on either one, and on neither
+
+-- sysid two-state fit survives a drifting room sensor (R6 D7-03)
+  ok   a 0.05 degC/h drifting sensor does not raise out of the two-state fit
+  ok   a 0.03 degC/h drifting sensor does not hang the two-state fit
+  ok   the drift never pushes a candidate UA past the loose band (substeps stay bounded, no divergence)
+  ok   null control: a zero-drift heavy_old experiment still completes and adopts (the fix does not shut the healthy fit)
+  ok   #1308: at 0.10 C/h of sensor drift no fit the adoption gate accepts leaves the shipped +-10 % UA band
+  ok   #1308 null control: with NO drift the same gate still adopts, and every adopted fit is inside the band -- the discount is not a blanket refusal
+  ok   #1330: a >2 h cadence gap on a DECLARED gate-passing plant is refused BY NAME, never routed to the one-state regression and then admitted
+  ok   #1330 null control: with NO gap the two-state fit still runs and still adopts, at the plant's own UA -- the refusal is the gap's, not the plant's
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   forcing an optimization while one runs is dropped, not queued (the solve entry point the press and the service share, F1.3 #1644)
+  ok   arming re-reads the option at call time, so an edit needs no reload
+  ok   a refused arm still refreshes, which is what publishes the refusal
+  ok   resetting the comfort weight clears the evidence, republishes and persists
+  ok   a defrost transition records on, off, and 'no reading' as three states
+  ok   the listener is arithmetic only and raises on nothing it is handed
+  ok   with no frequency entity the reading and its range are all zero
+  ok   the range comes from the entity's own min and max, with a documented default
+  ok   a configured feedback sensor is preferred, and its absence is not a fallback
+  ok   a non-numeric and a NaN feedback reading are both dropped, range intact
+  ok   a corrupt capacity-envelope bucket is skipped one entry at a time
+  ok   one corrupt aperture field is skipped and the LATER fields still load
+  ok   a non-finite aperture field keeps the value it had, rather than becoming NaN
+  ok   a 24-hour gains profile loads; a corrupt one is CLEARED, a short one ignored
+  ok   a failed thermal-learning write is swallowed, not raised into the learner
+  ok   a corrupt value in a snapshot skips that setter and runs the three after it
+  ok   five stored anchors re-express nothing, and each says so by returning False
+  ok   an anchor a factor of four out IS re-expressed, and reports that it was
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   an explicit buffer cooling rate replaces the learned one AND resets its samples
+  ok   an options write that names no rate touches neither the rate nor its samples
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   the two hot-water flags are coerced with bool, in both directions
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "$WT", line 6710, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "$WT", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+  ok   three hot-water numbers arrive as ints and are stored as floats
+
+-- W5-G7 t5: the lifecycle methods (#195)
+  ok   with neither pump configured the driver commands nothing at all
+  ok   each configured pump is commanded on its own, by entity id
+  ok   a pump already in the commanded state is not commanded again
+Could not command pump switch.vvc: entity briefly unavailable
+  ok   a pump command that FAILED is not remembered as done
+  ok   the space pump follows a solved plan, indexed from the plan's own clock
+  ok   comfort and boost publish an action the optimizer never solved for
+  ok   boost commands more power than comfort, which is the whole difference
+Frequency command skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+Pump scheduling skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+  ok   the cycle survives all three accessory sub-steps raising at once
+Error updating Heat Pump Optimizer: sub-step exploded
+Traceback (most recent call last):
+  File "$WT", line 5689, in _async_update_data
+    await self._fetch_tibber_prices()
+  File "$WT", line 46165, in _boom
+    raise RuntimeError("sub-step exploded")
+RuntimeError: sub-step exploded
+  ok   a core step raising becomes UpdateFailed, in the entity layer's own language
+  ok   every cycle clears its own refresh task, on the failing path too
+  ok   a smart valve's target is read through, and its absence leaves the default
+  ok   an unreadable valve target does not overwrite the default with a guess
+  ok   a local pyranometer wins, and reaches BOTH the attribute and the state
+Wood tank probe stale or missing; falling back to the single-tank abstraction until it recovers
+  ok   a live wood tank is modelled, a stale one is DROPPED rather than held
+  ok   reconfiguring the two-tank model away drops the state it left behind
+  ok   none of the optional-sensor arms raises on a house that has none of them
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   a covering price list solves, which is what every check below rests on
+  ok   a what-if before the first solve answers no_plan rather than solving one
+  ok   a second what-if inside the window returns the CACHE, flagged rate-limited
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   a window spec the user typed wrong is refused by name, not silently dropped
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   an explicitly EMPTY window spec is a legitimate what-if, not an error
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   an hour override is truncated to an int, so 7.5 and 7 plan identically
+  ok   six overrides of three different types all apply without error
+  ok   the what-if leaves the live configuration untouched, which is the whole point
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   economy mode widens the comfort floor FOR THE SOLVE and unwinds it after
+  ok   a detected open window relaxes the floor by its own, smaller amount
+  ok   every solve here succeeded, so the widenings are measured on real plans
+  ok   a solve already in flight is skipped rather than run a second time
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   a configured main fuse still solves, with the per-step ceiling applied
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   a good solve clears the consecutive-failure count that raises the repair issue
+
+-- W5-G7 t6: the tail (#195)
+  ok   seven published properties and views each read the attribute they front, not a neighbour
+  ok   the target temperature comes from the optimizer config, as a float
+  ok   the system-identification property follows the experiment, not a copy
+  ok   a diagnosis run that produced nothing leaves the last real one standing
+  ok   without a house meter the baseline is zero, not a guess
+  ok   with both meters the baseline is the difference, floored at zero
+  ok   the learned price shape is offered only while its option is on
+  ok   an empty month reports its channel as zero rather than as absent
+  ok   a recovered forecast clears both the outage count and the staleness
+  ok   republishing before the first plan sends nothing, rather than a zero displace
+  ok   four stores whose WRITE fails swallow it rather than breaking the cycle
+  ok   three stores whose READ fails start from the defaults rather than aborting setup
+  ok   a stored total lower than the live one is refused; a higher one is adopted
+  ok   a non-finite total and a payload that is not a mapping are both refused
+  ok   the accumulator's start time is restored only when it is a non-empty string
+  ok   the humidity entry nearest NOW wins, not the first in the list
+  ok   an untimestamped forecast falls back to the first entry carrying a humidity
+  ok   no forecast and no humidity in it both read as absent
+  ok   a non-numeric humidity, and one outside 0-100, are each refused
+  ok   shutdown raises on nothing, including a worker whose pipe and kill both fail
+  ok   at interpreter exit the worker is KILLED; otherwise it is asked to terminate
+  ok   a worker that already exited is left alone, and a closed pipe does not stop the rest
+  ok   a job that RAISED comes back as its own exception, not as a transport error
+  ok   absent pipes and a truncated reply are all the WORKER being unusable
+  ok   a job the child could not UNPICKLE is the worker's fault, and retires it
+  ok   with no interval recorded the diagnosis payload is a pair of Nones
+  ok   the payload carries the record and a COPY of the parameters
+  ok   the captured inputs carry the state and the plan's own assumptions
+  ok   a weather source that raises costs the wind, not the whole capture
+  ok   the captured electrical power is the SPACE channel only
+  ok   a legible flag feeds the MEASURED estimator and the inference not at all
+  ok   a window far from the interval length is a restart, not a measurement
+  ok   a too-long window falls through to NEITHER estimator, not back to the inference
+  ok   outside the frosting band the inference does not fire, and no outdoor reading stops both
+  ok   D7-s2-02: an immersion-latched interval is not folded into the derate as an inferred defrost
+  ok   a value that is not a finite number falls back to the default, four ways
+  ok   a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock
+  ok   a matching pair passes through and an unparseable timestamp reads as absent
+  ok   numpy scalars and arrays are flattened to plain Python, recursively
+  ok   a known wind unit is converted and an unknown one falls back to m/s
+  ok   no weather entity state reads as m/s
+  ok   a planned window the solver produced is what the optimizer plans against
+  ok   a MALFORMED planned window falls back to the configured ones, and raises nothing
+  ok   and an ABSENT plan takes the same configured path, by the falsiness guard
+  ok   a configured fixed price is settled over the SAME metered kWh
+  ok   `cheapest` is decided by cost and not by name
+  ok   and a lone contract is not reported as the cheapest of one
+  ok   clearing a manual plan persists the removal and then re-solves
+  ok   and the override is already gone by the time the store is written
+
+-- W5-G8 a: the corruption barriers (#195)
+  ok   a confirmed start needs consecutive samples, and a meter outage breaks the run
+  ok   and the immersion element freezes the detector rather than clamping it
+  ok   the month map is evicted oldest-first when a start pushes it over the cap
+  ok   an unparseable lifetime and one bad month leave the rest of the counter
+  ok   a non-finite residual is refused before it can touch the statistic
+  ok   an unparseable stored timestamp reads as never fed, not as a crash
+  ok   and a naive stored timestamp is taken as UTC rather than left to raise later
+  ok   a snapshot whose timestamp will not parse makes the next one DUE
+  ok   bias returning to band clears a raised alarm and reports the change
+Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
+  ok   a malformed entry is quarantined and an unparseable day count reads zero
+  ok   the first decay only anchors the clock, and a backwards clock decays nothing
+  ok   only a genuinely FLAT stretch is evidence that comfort is over-weighted
+  ok   an unparseable learned weight discards the learning rather than half-loading it
+  ok   and an unparseable last_update leaves the weight it has already loaded
+  ok   a draw reservoir keeps its finite numbers and drops the rest, event by event
+  ok   a whole-day window is labelled 24:00 at its end, never 00:00
+
+-- W5-G8 b: advisories and the worker bootstrap (#195)
+  ok   a weekend comfort pair is refused on its own terms, not the weekday pair's
+  ok   and a consistent weekend pair is silent
+  ok   a narrow band and a flat price both recommend the ceiling, for DIFFERENT reasons
+  ok   and the recommendation never goes above the comfort ceiling
+  ok   one learner's raising summary is reported as unavailable, and the rest survive
+  ok   the worker drops its own package directory and KEEPS an unresolvable entry
+  ok   a set-point reads through the state, then the attribute, then gives up
+  ok   a balky entity skips the consistency check rather than breaking the solve
+  ok   a registry that refuses the clear is logged, not raised
+
+-- W5-G8 c: away and boost (#195)
+  ok   a midnight end is the day the holiday ENDS, not a day it covers
+  ok   and the calendar has to be ON, present, and configured at all
+  ok   a year-long event is capped, and a backwards one collapses to its start
+  ok   the away set-back lowers all four comfort numbers and both DHW floors
+  ok   and the configured objects it read are never written (#1736): there is nothing to unwind, so a write landing while the solve runs survives (#1517)
+  ok   and RECOVERY ends it, because recovery is the plan buying heat back
+  ok   an away state with no temperatures of its own falls back to the defaults
+  ok   a NaN away target leaves the configured comfort numbers as they were
+  ok   economy and the open-window relax widen the solve's floor in turn, never below the absolute floor
+Optimization failed: the solve is not the point here
+Traceback (most recent call last):
+  File "$WT", line 6055, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+        self.hass, solve_optimizer, record.inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "$WT", line 48420, in _g8_cyc_mid_solve
+    raise RuntimeError("the solve is not the point here")
+RuntimeError: the solve is not the point here
+  ok   a service write during the production solve outlives the cycle (#1517)
+  ok   a configured number takes the default unless it really is one
+  ok   a return time parses, or reads as absent -- never as a raise
+  ok   a store that refuses the save is logged, and the save was attempted
+  ok   a store that refuses the LOAD still runs the one-shot helper migration
+  ok   and the old helper options are dropped, once, in the same write
+  ok   an already-migrated payload is applied and writes nothing back
+  ok   a boost runs for its two hours on the channel asked for, and no other
+  ok   the published view expires a stale channel rather than advertising it
+  ok   a stored boost end parses from either a datetime or its isoformat
+  ok   a boost store that refuses either direction costs the boost, not the setup
+  ok   restore keeps a live boost, drops an expired one and steps over a malformed entry
+
+-- W5-G8 d: the wood-fuel arithmetic (#195)
+  ok   an unset wood number is None and a zero one is 0.0, which are not the same
+  ok   wood pricing turns on only when all five of its inputs are there
+  ok   a slot timestamp is coerced to the plan grid's own awareness, both ways
+  ok   and a timestamp is rendered by its own isoformat when it has one
+  ok   a burn slot's energy lands on the steps it covers, at a constant rate
+  ok   a malformed slot list is REFUSED, while an empty one is simply no fires
+  ok   consecutive burning steps merge into ONE slot, and a gap starts another
+  ok   a run still burning at the end of the grid is closed one step past it
+  ok   and a forecast shorter than the grid is read only as far as it goes
+  ok   a COP the curve cannot produce becomes zero, per step, not per plan
+  ok   wood is priced per useful kWh, and a zero-efficiency furnace is refused
+
+-- W5-G8 e: the price feed's edges (#195)
+  ok   a price row's start is read under any of the three spellings in the wild
+  ok   a price reads through value, total then price, and refuses a non-finite one
+  ok   VAT and surcharge are applied per row, and a bad row is dropped not zeroed
+  ok   a half-formed price series yields the rows it can and an error when it cannot
+  ok   an unavailable price sensor still counts if it carries the series anyway
+  ok   each Tibber failure names itself, and today and tomorrow both land
+  ok   every Tibber total the parse returns is a finite float; the rest drop
+  ok   the spot price never returns a raw total: a floatable one coerces, an unfloatable one is no price (None, never 0.0)
+  ok   the entity source refuses without an entity, and survives an unparseable VAT
+  ok   a refused token asks for REAUTH while a broken API is an ordinary failure
+  ok   a contract with no quarter-hourly prices falls back to the hourly query
+  ok   a quarter-price day is folded in only when it is whole, finite and priced
+Persisted quarter factors has a non-finite or unreadable bin; restarting it
+Persisted price variance has a non-finite or unreadable bin; restarting it
+  ok   an unparseable quarter payload loads as the model that has learned nothing
+
+-- W5-G8 f: the extracted DHW learner and legionella guard (#195)
+  ok   a stored profile is normalised to average one, or refused whole
+  ok   a learner whose stores will not load keeps the configured defaults
+  ok   a payload half of whose fields are the wrong shape loads the half that is not
+  ok   and neither save breaks the cycle that asked for it
+  ok   a restart loads the DHW profile the learner saved, unchanged
+  ok   and the projection keeps the daily volume while respecting the clamp
+  ok   a snapshot restore takes the same per-field care as the store loader
+  ok   an unreadable legionella store starts the clock now, and writes it back
+  ok   a stored attempt that fell short is restored beside the cycle it did not complete
+  ok   a store that refuses the save costs the record, not the cycle
+  ok   all four legionella notices survive a registry that refuses to clear them
+
+-- W5-G8 g: the last loaders and the window arithmetic (#195)
+  ok   every accepted spelling of a window spec normalises to the same string
+  ok   a weekday selector accepts a list or a range, and wraps the week
+  ok   a full-day window's 24:00 end includes the last hour, and a wrap includes both sides
+  ok   the overlap of a step with the demand windows is a fraction of the step
+  ok   a peak tracker reloads mid-window, and a pre-v4 payload loads unmasked
+  ok   an accuracy sample needs a readable instant, and each field falls back alone
+  ok   a frequency map keeps the buckets that are whole and plausible, one by one
+  ok   a slot's awareness is matched to the reference before anything compares them
+  ok   a stored override is refused on its expiry and forgiving about the rest
+
+-- W5-G8 h: the repair flow and the away instant (#195)
+  ok   the DHW Fix shows a form first, then writes the floor to the pump
+  ok   and it speaks the right service for the entity's own domain
+  ok   a registry that refuses to clear the notice does not undo the write
+  ok   each issue id gets its own flow, and an unknown one still gets a usable dialog
+  ok   the away return instant is published when there is one, and absent otherwise
+  ok   and setting it goes to the away service rather than to the entity's own state
+  ok   the sensor-gap panel appears only when a gap is worth money, and shows five
+  ok   a Tibber Pulse power meter is recognised, and a price sensor is not
+
+-- W5-G8 i: the system-identification experiment (#195)
+  ok   a house with no loss or no mass predicts an INFINITE excursion, not a small one
+  ok   the experiment starts only in its own window, in a safe temperature band
+  ok   a converged house RETIRES the experiment; a cold night merely postpones it
+  ok   the experiment settles, injects a sized step, relaxes and finishes
+  ok   a room that drifts past the comfort bound aborts the run, and it stays aborted
+  ok   and aborting an experiment that was never armed records nothing
+  ok   no step that fits the comfort bound aborts; no house physics falls back to 30 %
+
+-- W5-G8 j: the wood night advisory (#195)
+  ok   a cheap night with a low tank says LIGHT, and names the hour
+  ok   and an expensive next day with a full tank says SKIP
+  ok   and it says nothing at all rather than guessing, six ways
+  ok   the scan ignores hours already past and hours beyond its 48-hour horizon
+  ok   a what-if override replaces the configured fuel field by field, or is refused
+
+-- #1067 W1067-G7 — pre-filling options from the GCHV Modbus package
+  ok   a package in the name spelling (sensor.hp_gchv_r404_0194h) infers every row
+  ok   the same package in the unique_id spelling (sensor.hp_gchv_r404) infers the same
+  ok   with both spellings present the unique_id spelling wins, and the snapshot names it
+  ok   every candidate the module lists for a raw register is one of the two yaml spellings
+  ok   the prefix resolver scales registers 404, 405 and 406 by 0.1 and nothing else
+  ok   a custom prefix is read from the entity ids it names
+  ok   a resolver returning non-prefix ids gives the same suggestions for the same values
+  ok   and snapshot() tries a role's ids in the order the resolver gives them
+  ok   the same role at scale 1.0 reading 50 and at scale 0.1 reading 500 both suggest 50.0
+  ok   null control: no Modbus entities, an empty snapshot and no suggestions
+  ok   the notes carry the count read and the backup heater type register
+  ok   setpoints are the raw register times 0.1: 635 -> 63.5, 700 -> 70.0, 405 -> 40.5
+  ok   times are hour*256+minute: 23:45-00:15 and 21:05-04:59
+  ok   an hour past 23, a minute past 59, or an unreadable time suggests no window
+  ok   a start equal to its stop is no window
+  ok   the legionella interval is 7 // days set in r714: 1 day 7, 2 days 3, 3 days 2, 4 or 7 days 1, none unset
+  ok   the hot water window is suggested only while the DHW schedule r711 has a day set
+  ok   water temperature control (r4109 = 0) suggests flow set-points; ambient control suggests neither
+  ok   the valve's write target is suggested as flow only where the two-zone model the building page requires exists
+  ok   maximum electrical power is the unit's thermal capacity over the configured nominal COP
+  ok   an unreadable register suggests nothing for its key and leaves the rest
+  ok   an entity slot already set is not suggested; an empty or None one is
+  ok   a value equal to the one in force is not suggested, so the save cannot rewrite it
+  ok   no suggestion is ever blank or None
+  ok   an entity slot is suggested when its entity exists, whatever its state
+
+-- #1067 W1067-G7b-1 — pre-filling options from a heat-pump device
+  ok   the tuya_heat_pump table resolves each role to the fixture's own entity, at scale 1.0
+  ok   the plate outlet Tout is not offered for any role
+  ok   50 from the device at scale 1.0 and 500 from register 404 at scale 0.1 both suggest 50
+  ok   a filled entity slot and a set-point already in force are not suggested again
+  ok   a user-renamed entity id resolves to the renamed id, because the match is on unique_id
+  ok   a device from an integration with no source table resolves nothing through the table, and is read by name alone (W1067-G7b-3)
+  ok   …and the supply role it leaves out is the near-tie rule, not a miss: the same device read by name alone is checked in the W1067-G7b-3 section
+  ok   a device with no entity a table names resolves nothing through either stage
+  ok   a 'Heat Night' device's mode select does not fill the capacity-limited flag
+  ok   and with the night_mode switch present the flag resolves to that switch
+  ok   the longest key wins, so temp_current_f is the tank and temp_current the supply
+  ok   a tuya_heat_pump device carrying none of the model-unique keys resolves nothing through the table
+  ok   the fixture records the upstream repository, path and commit it was built from
+
+-- #1067 W1067-G7b-2 — the tuya_local table and the localtuya decision
+  ok   the tuya_local table resolves outdoor and return from the config's own two sensor entities, at scale 1.0
+  ok   …and no other role: the config's water_heater and climate attributes cannot fill an entity slot, and its plate outlet (dp 106, Tout) is not the supply
+  ok   a tuya_local device carrying only one of the config-proving pair resolves nothing: the table proves the config, then reads it
+  ok   …while a proved device whose inlet sensor is gone resolves the outdoor role alone: the proof is the config's identity, not the roles
+  ok   a tuya_local device from another config in the same corpus resolves nothing
+  ok   dp 107 is pinned as each source's own reading: tuya-local's water_heater current temperature against tuya_heat_pump's wired controller (T6)
+  ok   …each table follows its own source: the tank is dp 26 in tuya_heat_pump, whose table fills the DHW slot from it, and dp 107 in tuya-local, whose water_heater can fill no entity slot at all
+  ok   a localtuya device resolves nothing: the DP-keyed table is refused, and the device goes to the fallback
+  ok   both maintained localtuya lines build local_<device>_<dp>, so the DP is recoverable from the unique id on either line
+  ok   each fixture records the repository, tag and commit it was built from
+  ok   the tuya_local fixture records the config's own product identity, which is how the config the table was derived from is established
+
+-- #1067 W1067-G7b-3 — the fuzzy fallback and its labelled corpus
+  ok   the corpus measurement suggests nothing wrongly, over every device it holds
+  ok   the measured table: per role, suggested, correct, wrong, missed
+  ok   no role is suggested where the corpus has no entity for it, and no labelable role is missed
+  ok   the shipped threshold and margin are the pair the corpus grid picks
+  ok   the page's composite resolver adds exactly the roles the measured matcher returns
+  ok   the corpus is generated, records where it was read from, and marks its hand-shaped sets
+  ok   every corpus label names a record the role's own hard filter accepts
+  ok   the fallback adds nothing to either generated fixture
+  ok   a platform with no table resolves nothing through the table and the fallback's roles through the composite
+  ok   a genuine tie is no suggestion at all, not the first candidate
+  ok   the T1/Tout pair resolves to T1 and never to the plate outlet
+  ok   and at no margin does the plate outlet win the supply role
+  ok   a near-tie between the pinned source's own two outlet sensors is refused: T1 against the zone-2 outlet, five hundredths apart
+  ok   an energy total and a power reading are neither of them the unit's capacity
+  ok   unit families separate: kWh is no family here, W and kW are one
+  ok   a sensor with the role's own words and the wrong unit suggests nothing
+  ok   an entity that scores for two roles is suggested for at most one
+  ok   a device from an unknown integration gets fallback suggestions only, each named in the disclaimer
+  ok   a table's suggestions are named by their source, and none of them is a name match
+  ok   the empty disclaimer is the page's existing spelling of nothing read
+  ok   null control: with the name scores zeroed the matcher suggests nothing
+  ok   null control: the hard filter admits candidates but picks none of them
+  ok   every distinctive word the pinned definitions name a mapped entity with is in that role's own synonym vocabulary
+  ok   the synonym lists carry the roles' own words, in both languages the plan names
+  ok   the roles with no physical unit are out of the fallback's reach
+
+-- #1067 W1067-G5 — the disinfection switch, observe first
+  ok   observe mode (the default) refuses to turn the switch on
+  ok   control mode with no switch refuses to write, and reads no state at all
+  ok   ON while the pump's mode blocks hot water is refused, and logged once
+  ok   a successful ON writes once, the memo stops the repeat, and the switch is owned
+  ok   a switch already on is not written and not claimed
+  ok   a write that raises warns, returns False and records neither memo nor ownership
+  ok   …so the next call retries the write, and success clears the failure
+  ok   every write asks Home Assistant to block until the service call has finished
+Could not turn_on the disinfection switch switch.pump_disinfection: 
+  ok   a write that does not finish within the timeout is a failed write: no memo, no ownership, retried next cycle
+  ok   the write timeout is bounded well inside one update cycle
+  ok   control for the test registry: a rejected write raises only for blocking=True, as in Home Assistant core
+  ok   a switch with no state is not written, is not a failed write, and is not claimed
+  ok   …and an unload keeps the record of an owned switch that has no state
+The disinfection switch switch.pump_disinfection did not read back on after turn_on
+  ok   an accepted ON that does not read back on is a failed write with no ownership
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+  ok   …and an unload OFF that does not read back off keeps the record
+  ok   control for the test registry: a blocking call to an id with no state returns without raising and without reaching a handler, as in booted core
+  ok   release writes nothing for a switch that is not owned, even one that reads on
+  ok   release of the configured owned switch: unavailable waits, on writes OFF, off ends ownership without a write
+  ok   the configured owned switch, unavailable past the grace, is still waited for
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+  ok   an owned switch that is no longer configured and cannot be read is kept through the grace, then dropped into lost with no write
+  ok   the grace the repair's text calls half an hour is thirty minutes
+Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable
+  ok   a blind release (unload) writes OFF to every owned switch unread, and keeps only the record whose OFF failed
+  ok   control: the boost-start edge turns the switch ON exactly once across three commanded cycles, and owns it
+  ok   …and the ownership is in the cycle's store, where a restart reads it
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   …and the boost close turns it OFF exactly once, and ownership ends when it reads off
+  ok   with the optimizer off a legionella action still current never turns the disinfection switch on (null control above: on, it does)
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   the boost bound closes the window and turns the switch OFF once
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   a boost the bound closed is not switched back on by the same command
+  ok   …and once the plan has moved on, the next commanded boost turns it on
+  ok   disabling disinfection during a boost turns the switch OFF
+  ok   no ON while this cycle's mode reading blocks hot water, logged once
+  ok   …and the ON goes out on the first cycle the mode allows hot water, with no solve between
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   a switch that was already on is left alone through a whole boost and after it
+  ok   an idle control install writes nothing, not even OFF
+Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
+  ok   a failed write raises a non-persistent repair naming the switch
+  ok   …the next cycle retries the ON, and its success clears the repair
+Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   a failed OFF at the close is retried on the next idle cycle, once
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+  ok   an OFF the switch ignored is re-sent while it still reads on, and stops once it reads off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   an owned switch that goes unavailable is waited for, then turned OFF when it is back on
+  ok   restart mid-boost: the next run turns off the switch the last one turned on
+  ok   …and once it read off, the store no longer names it
+  ok   reload into observe mid-boost: the owned switch is turned OFF and never back ON
+  ok   reload onto another switch mid-boost: the new switch ON, the old one OFF, in the same cycle
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+  ok   renamed switch: the old record is kept through the grace, then dropped with a persistent repair naming it, and nothing is written blind
+  ok   …and the drop is in the store, so a restart does not resurrect the record
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   deleted switch, new one configured: a boost drives the new switch on and off while the old record waits out its grace
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+  ok   deleted switch with the option unset and observe chosen: the record is dropped with its repair
+  ok   switch unset while it reads on: OFF is sent to the recorded id and the record ends
+  ok   a switch that loads after the optimizer at startup is still turned off, with no repair
+  ok   unload turns off the switch the integration owns and, the OFF having landed, forgets it
+  ok   …so a program the user starts while it is unloaded is left on at the next setup
+Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
+  ok   an unload OFF that failed keeps the record, and the next setup turns the switch off
+  ok   …and unload leaves a switch it does not own alone
+  ok   the ownership record is on disk at the moment the ON is written
+Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
+  ok   …and an ON that failed withdraws it from disk again
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   a restart while the stale plan still commands keeps the bound's latch: no re-ON, until the plan moves on
+  ok   crash, restart before the switch loads, unload inside the grace: the record survives the unload and the next setup turns the switch off
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+  ok   a renamed switch unloaded inside the grace keeps its record, and past the grace the lost repair names it
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+  ok   an unload OFF that returns but leaves the switch on keeps the record, and the next setup turns it off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   observe: the switch's state is published in the hot water attributes
+  ok   observe: a full boost cycle writes nothing
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+  ok   null control: unconfigured, a boost cycle writes nothing and publishes no key
+
+-- #1067 W1067-POST1 — the qualifying minimum, read off the corpus
+  ok   the qualifying minimum is the corpus's smallest hand-shaped fallback count
+  ok   the generated rows fill no fallback role, so no minimum can be read off them
+  ok   the offer reads a device through the options page's resolver, not a second copy
+  ok   the corpus's smallest hand-shaped device qualifies, at exactly the minimum
+  ok   a device a source table proves qualifies, though the fallback filled nothing on it
+  ok   a device that resolves nothing is not offered, and the offer page never opens for it
+  ok   the offer names exactly the qualifying devices, in device-id order
+  ok   an install whose devices all resolve nothing has nothing to offer
+
+-- Quick setup: the answer-to-config mapping
+  ok   a 1-zone answer writes the off override and never the two-zone presence keys
+  ok   a 2-zone answer writes the on override and the derived zone keys
+  ok   buffer-tank yes writes a store-sized volume; no writes nothing
+  ok   dhw-tank no writes the explicit off override
+  ok   dhw-tank yes is the default and writes on
+  ok   wood-furnace yes writes the flag; no writes off
+  ok   wood-buffer-tank yes writes the tank volume; no writes nothing
+  ok   the wood-tank probes are written through, and they activate the two-tank model
+  ok   the building questionnaire is recorded and the preset enabled
+  ok   a non-default structure answer is honoured, not defaulted away
+  ok   quick-setup answers are accepted by the thermal model
+  ok   the shipped answers are one source with derive's own fallbacks
+  ok   an entry that answered nothing records no answer
+  ok   derive of stored answers reproduces derive of the answers, every cell of a 6-answer grid
+  ok   and with the all-yes cell dropped the identity still holds
+  ok   the suggestions are the shipped answers with the stored ones over them
+
+-- P8 — a price or temperature entity's unit is read at the seam (#1513)
+  ok   normalize_price_per_kwh takes each unit to major currency per kWh
+  ok   and a unit it cannot parse returns None rather than a guess
+  ok   the price entity's today/tomorrow rows are read in their unit
+  ok   and an unparseable unit keeps the raw rows, as before
+  ok   the export-price entity is read in its unit
+  ok   the grid-fee entity is read in its unit
+  ok   an unparseable price unit raises one repair notice naming the entity and unit
+  ok   and it clears once the unit is one the reader understands
+  ok   the DHW inlet probe is read in its unit (50 degF is 10 degC)
+  ok   a degF DHW set-point is compared in degC (122 degF is below a 55 degC floor)
+  ok   and its Fix writes the floor in the entity's own unit (131 degF)
+  ok   null control: a degC set-point raises the same notice and writes 55
+  ok   the repair flow writes the converted value, not the degC target
+  ok   and a stale, implausible or non-numeric inlet reading is refused
+  ok   an unavailable export-price entity falls back to the configured price
+  ok   an unavailable grid-fee entity reads as no fee entity at all
+  ok   a repair with no entity id writes nothing
+  ok   a degF weather entity's forecast is planned in degC (50 degF is 10 degC)
+  ok   null control: a degC or unit-less weather entity's forecast is untouched
+  ok   the rows are the same object when nothing converts (goldens cannot move)
+  ok   a row whose temperature will not parse keeps it for the consumers' fallback
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+  ok   the fabricated trajectory of a failed first fetch is converted too
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+  ok   and its wind is scaled once, not twice (3.6 km/h is 1 m/s)
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+  ok   the current wind the learners read is m/s on both paths (3.6 km/h is 1 m/s)
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+  ok   null control: an m/s entity's current wind is its own number on both paths
+
+-- R8-P8 round 3: mutation survivors on lines this diff's files carry
+  ok   a zero or negative tank volume still has a real, positive surface area
+  ok   a stale reading still holds its number but is not ok
+  ok   null control: a fresh reading is ok and holds its number
+  ok   a new day folds the previous day's worst margin into the curve learner once
+  ok   an idle plan or a pump below its running range is not watched
+  ok   null control: a running plan with the pump in range is watched
+  ok   the watchdog's two bounds: the floor is exclusive, the minimum inclusive
+  ok   a wood tank under the floor draws the coil's own heat, per step
+  ok   the window-floor planner reports the tank's own capacity
+  ok   a sub-floor capacity reaches the linear-cost planner
+  ok   a sub-floor capacity reaches the greedy planner's slot ranking
+  ok   a falling ceiling is repaired from the tank's own decay
+  ok   a tank under the floor cannot be said to cover a window it cannot hold
+  ok   a folded draw's energy is proportional to the tank's own capacity
+  ok   a zero-capacity tank yields no plan rather than a division error
+  ok   the capacity clamp's epsilon is a division guard, not a threshold
+  ok   a stored 24-hour DHW profile is restored on load
+  ok   a drop that is all standby loss books no draw
+  ok   the DHW cost program plans under space-heating contention
+  ok   _plan_dhw_min_cost reads the tank's own standby coefficient at any volume
+  ok   _repair_dhw_floor reads the tank's own standby coefficient at any volume
+  ok   _dhw_legionella_ceilings reads the tank's own standby coefficient at any volume
+  ok   _plan_dhw_min_cost's answer moves with the tank's loss rate (liveness)
+  ok   _repair_dhw_floor's answer moves with the tank's loss rate (liveness)
+  ok   _dhw_legionella_ceilings's answer moves with the tank's loss rate (liveness)
+  ok   a DHW trajectory shorter than the schedule is read only where it exists
+  ok   a quieter cooling reading closes a quarter of the gap each time
+
+-- #1513 follow-up: a forecast's precipitation_unit is honoured
+  ok   an inch entity's 0.1 in/h is planned and read as 2.54 mm/h
+  ok   a cm entity's 0.1 cm/h is planned and read as 1.0 mm/h
+  ok   null control: a mm or unit-less entity's rain is its own number
+
+-- pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 21.4 degC; set its unit to Flow temperature. Not writing it.
+  ok   #2351: an indoor set-point whose minimum is exactly the tolerance above the room target is written; one beyond it is refused as a declared flow set-point
+  ok   null control: a DHW-only mode blocks space heat in observe, and under control with the optimizer off
+  ok   the arbiter's own DHW-only write does not block space heat in the next solve
+  ok   …while capability, which the learners read, still says the pump is not heating
+  ok   a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate
+  ok   the space step at the next boundary writes heating only and the heating flow, and nothing else
+  ok   a space block on a space step serves the idle row, not heating
+  ok   a block on both channels serves idle: the mode select is not written
+  ok   a DHW block stays idle through the hot-water lease instead of handing space heat back
+  ok   a space block keeps the lease expiry on hot water, not the baseline's both duties
+  ok   with no DHW-only mode (GCHV Modbus) the space set-point is the gate, at the entity's minimum
+  ok   a differing reading inside the fork's echo window is not rewritten yet
+  ok   a change the arbiter did not make is written back at once, and the optimizer stays on
+  ok   a rewrite the pump holds is the end of it: no warning, nothing written again
+  ok   a later change over a rewrite that held is written back again, still with no warning
+  ok   switching the optimizer off writes nothing, not even the baseline, and nothing over a person's setting
+  ok   a hot-water-only stretch is released to Heating + DHW past the 90-minute lease
+  ok   below the cold rail the lease is 30 minutes
+  ok   at exactly the cold rail the lease is the 90-minute one, not the cold one
+  ok   a stale plan gets the baseline, never a hot-water-only step
+  ok   unloading writes the baseline over a mode the arbiter still owns
+  ok   off and observe write nothing, and off subscribes to nothing
+  ok   a pump in a cooling mode is left alone: cooling is the user's season
+  ok   a set-point reading that differs 25 s after the write is a device report, and is written back
+  ok   outside the plan's horizon there is no step, so no duty
+  ok   a cooling mode is never the arbiter's, and a heating-only mode in observe still blocks hot water
+  ok   an indoor space set-point gets the step's planned room temperature, and none without one
+  ok   a heating flow above the entity's maximum is clamped to it
+  ok   an experiment and a missing plan each get the baseline, not hot water only
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 40.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+  ok   a disinfection hold keeps a both step on Heating + DHW, and so does comfort
+  ok   a both step writes DHW only for its hot-water share of the 15 minutes, then heating only
+  ok   a share under the minimum sub-slot goes to the other duty for the whole step
+  ok   with no single-duty mode (Modbus) a both step keeps Heat + DHW; a boost's both step is not split
+  ok   the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold
+  ok   a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off
+  ok   a block drops that duty: a space step goes idle, a both step keeps heating, and a stale plan releases the block onto the baseline
+  ok   a space draw below half the pump's minimum is not a space duty: the step stays hot water only
+  ok   a space step ends the lease: the next hot-water stretch gets its own 90 minutes
+  ok   a half-degree change, one step of the pump's own set-point, is written back
+  ok   a changed space set-point is written back too
+  ok   switching the optimizer off leaves the pump as it was, and what a person sets while it is off is theirs
+  ok   unloading with the optimizer off writes nothing; null control: with it on, the baseline
+  ok   one state subscription per coordinator, and none with no pump entity configured
+  ok   the plan step decides the duty: hot water, space, both and idle
+  ok   the arbiter's own heating-only write does not block hot water in the next solve
+  ok   with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum
+  ok   the arbiter's own hot-water gate raises no disinfection-floor notice; a person's 40 does
+  ok   a disinfection cycle held on turns a space-only step into Heating + DHW, with no hot-water gate
+  ok   an idle step writes no mode, and a flow set-point drops to the gate
+  ok   below the plan's room temperature the hot-water-only lease keeps counting across idle steps
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+  ok   a write the pump never took is sent again at once, and warned about when that does not hold either
+  ok   a write the pump does not hold is sent again after five minutes, and the first one that holds clears the warning
+  ok   a return to the old value after our write held is written back
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+  ok   the warning stays while any ignored write is still pending, and leaving control clears it
+Pump duty: the pump does not hold a write, select.pump_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 40.0 (set by the optimizer: 48.0); retrying
+  ok   the warning stays while a second slot is still retrying, even once the mode's own rewrite holds
+  ok   an unavailable mode select is no reading: neither a manual change nor an ignored write
+  ok   a write the pump ignored before a restart is retried after it, not read as a manual change
+  ok   a change over a write that held before the restart is written back after it
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+  ok   a set-point the fork echoes for a few seconds and the device never took is sent again, then warned about
+  ok   a v6.6.12 record with no prior readings is written again, not read as a manual change
+  ok   the pump's state listener runs on the event loop: @callback, not an executor job
+  ok   a set-point the pump resets while switched off is not a manual change, and is written again once it is on
+  ok   null control: the same reading with the pump on throughout is written back at once
+  ok   the first solve after a restart does not read the arbiter's own DHW-only as a block
+  ok   a DHW-only the arbiter wrote is still its own while the pump has not yet shown the next mode
+  ok   a DHW-only write that lands after it was read as ignored is still the arbiter's own
+  ok   in a house above the plan's room temperature the DHW-only lease does not write Heating + DHW
+  ok   observe keeps a per-step ledger: delivered, idle-instead, space-instead, dhw-instead
+  ok   the ledger holds the last 24 hours of steps, and no more
+  ok   a draw exactly at the meter's threshold is a run; one hair below is not
+  ok   without a power meter or a tank rise the ledger says unknown, not delivered
+  ok   _differs treats an unread reading (either side None) as no difference
+  ok   a step observed with no plan behind it logs as baseline, not unknown
+  ok   listening wires one time interval and one state-change subscription
+  ok   the tick and the state-change callback both drive apply() without raising
+  ok   a repair issue the registry refuses to clear does not raise (best-effort)
+Pump duty: writing DHW to select.pump_mode failed: pump offline
+Pump duty: writing 48.0 to number.dhw_set failed: pump offline
+Pump duty: writing 25.0 to number.water_set failed: pump offline
+  ok   a write the pump raises on is not recorded as landed
+  ok   a failed persist or load is swallowed, not raised (best-effort)
+  ok   a malformed written entry is skipped, not raised, and leaves nothing recorded
+  ok   the real coordinator's action pass writes a hot-water-only step to the pump
+  ok   the real coordinator's next read marks that mode as the arbiter's own, not a block
+  ok   the diagnostics carry what the arbiter wrote
+  ok   unloading the real coordinator writes the baseline over the mode it owns
+  ok   an unknown stored duty mode is off
+  ok   the ownership record survives a restart
+  ok   after a restart, a value that differs from the restored record is written back
+  ok   a change the arbiter writes back keeps its record, on disk too
+  ok   a v6.6.12 stand-down on record clears its repair on load, and unloading writes nothing
+  ok   once the option leaves control, its own mode is evidence again and unloading writes nothing
+Pump duty: the pump does not hold a write, select.pump_mode: DHW (Hot Water) (set by the optimizer: heat); retrying
+Pump duty: the pump does not hold a write, number.water_set: 25.0 (set by the optimizer: 55.0); retrying
+  ok   a new step's write the pump ignores is sent again once, then warned about
+  ok   a set-point reading within the tolerance of the written value is ours, not a person's
+  ok   on the real curve a heating-plus-hot-water step's heating share writes Heating and the level's flow
+  ok   null control: the model's real curve at 5 degC outdoors is below the 25 degC flow floor
+  ok   on the real curve a space-heating step writes the level's flow, not the 25 degC floor
+  ok   on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor
+  ok   the baseline follows the curve where it is above 35 degC
+  ok   the baseline never holds above the heating flow, however hot the curve
+  ok   with no DHW-only mode a flow gate stays at 25 degC where the entity accepts 10
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+  ok   an indoor-declared entity that cannot hold the room target (min 25) is not written
+  ok   a flow set-point never goes below 25 °C, even where the entity accepts less
+  ok   an indoor space set-point is gated at 5 °C (or the entity's minimum) with no DHW-only mode
+  ok   the disinfection-floor excuse holds for the gate as written, not a person's value beside it
+  ok   a written set-point at the configured value is no gate, so it excuses nothing
+  ok   a fixed-rule mode gets the baseline, and a disinfection switch held off changes nothing
+  ok   a space draw the plan books is a space duty, below half the pump's minimum modulation or not (R9-F2.4: the duty reads the plan, and the ledger beside it reads a meter)
+  ok   the lease ends after 90 minutes, not at them; at exactly -10 °C it is not the cold lease
+  ok   the ledger: a DHW-only mode is hot water, a small drift is not, a space run delivers both, no plan is baseline
+  ok   inside a silent window the night-mode switch is held on, and the space step is still the plan's
+  ok   a capacity-limited reading the arbiter caused still skips the learners, and blocks no duty
+  ok   outside a silent window the switch is held off, and the space step still heats
+  ok   where an off row overlaps a silent row the switch is held off, not on
+  ok   an install with no silent rows never writes the switch
+  ok   a read-only flag and a silent-as-mode select are not written
+Pump duty: the pump does not hold a write, switch.pump_night_mode: False (set by the optimizer: True); retrying
+  ok   a silent switch that does not echo is rewritten after the grace, warned on the next miss, and retried
+  ok   an on echo clears the miss, so the next off is rewritten once and not yet a warning
+  ok   the silent write is in the ownership record a restart restores
+  ok   while the power switch reads off the silent slot is not compared or written
+  ok   a boost releases the silent switch for its duration and the window holds it again after
+  ok   the global boost mode releases the silent switch too
+  ok   switching the optimizer off inside a silent window writes nothing and leaves the switch on
+  ok   an off window writes the idle row and nothing else: no extra gate, never the power switch
+  ok   the live silent-switch reading is not an input to the plan's ceiling
+
+-- N-service-clamp/P1 — the manual plan's expiry clamps to its window and a store sample count loads bounded (D1-s2-54, D1-s2-03)
+  ok   a manual plan's expiry is clamped to MANUAL_PLAN_WINDOW_HOURS at the one constructor every apply goes through, and a slot starting beyond the window is refused rather than stored past the store's lead (D1-s2-54)
+  ok   a stored sample count past int64 never loads, so no cycle wedges on it (D1-s2-03)
+
+-- P1/P2 — a stored instant loads aware, or not at all (D1-s1-01, D1-s3-01, D1-s1-02, D1-s3-05)
+  ok   the stored-instant rule reads a naive stamp as UTC, keeps an aware one, drops garbage, and honours the zone it is given
+  ok   a naive persisted stamp no longer raises in the snapshot, curve or comfort consumer against an aware clock (D1-s1-01)
+  ok   a last curve step stamped in the future moves the bias nowhere
+  ok   best_restore skips a non-numeric or out-of-band stored bias instead of raising, and still restores an in-band numeric one (D1-s1-02)
+  ok   a tz-less set_away return_time is read in the user's zone and expires against an aware clock without raising (D1-s3-01)
+  ok   boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware (D1-s3-01)
+  ok   a boost outlives a backward clock step by no more than its two hours (D1-s3-05); unstepped it still runs the full two
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   the fuse advisor loads a naive stored stamp aware in the loader's zone and ages it without raising, holding the stored verdict (D14-s1-01)
+
+-- P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)
+  ok   an apply queued before the unload arms no listener and writes nothing after it (D1-s3-02); a live coordinator re-arms both (null control)
+  ok   an apply queued behind the lock across an unload arms no listener and writes nothing; one queued across Off writes nothing (D1-s3-02); a live coordinator still writes (null control)
+  ok   the arbiter restores only a record it could have written: no malformed record loads or raises on the next pass (D1-s3-03)
+  ok   an honest arbiter record still loads, every slot (null control)
+heatpump_optimizer_pa151_pump_duty: stored instant 2027-07-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00+00:00
+  ok   a write instant stored ahead of the clock is bounded, so the echo grace closes on time (FI-sw5); an honest one inside the grace still holds (null control)
+  ok   the arbiter writes the mode through the target's own domain, and never writes a read-only sensor slot (D12-s2-02)
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+  ok   the store bounds a naive stored instant in its loader's zone: an honest one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+  ok   an instant beyond the store's lead is bounded to exactly now plus the lead, aware or naive, and one inside it is kept
+  ok   the frequency map loads only a decile in [0, FREQ_DECILES) and a ratio up to FREQ_MAX_KW_PER_HZ, the domain observe() folds (D1-s3-06)
+
+-- P1/P2/N-min-gap — the defrost, price-shape and peak stores and the feed parsers (D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04)
+  ok   a stored defrost duty outside [0, 1] restarts only its own bucket unmeasured, with a warning; a healthy store loads as written (D1-s4-01)
+  ok   one unreadable cell in a v2 defrost store costs one bucket, and neither it nor a wholly unreadable measured half is labelled migrated; a v1 store is (D1-s4-03)
+  ok   a stored price shape, quarter factor or variance outside what the learner writes is brought back into its domain; a learned model loads as written (D1-s5-02)
+  ok   the price loader called directly restarts shapes holding a 'nan' bin flat and keeps day counts that are not a two-list at zero (D1-s5-02)
+  ok   a negative stored peak is dropped and an out-of-domain open window restarts empty; a real tracker loads as written (D1-s5-02)
+  ok   a huge JSON integer drops its own price or irradiance row, not the whole payload (D1-s5-03)
+  ok   one off-grid stamp does not shrink Open-Meteo's inferred resolution, and one missing sample does not double it (D1-s5-04)
+
+-- P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)
+  ok   #1523 null control: a clean night reaches the step phase and records its tick
+  ok   #1523: every condition the house learner freezes on aborts the experiment by that freeze's own name, and records nothing
+  ok   #1523: a mode that cannot heat still aborts by its own name (the mode gate moved into the same predicate)
+  ok   #1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)
+  ok   #1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason
+  ok   #1525: an interval the fit could not bound is published as unbounded, never as a '+-inf %' width
+  ok   #1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)
+  ok   #1525: an unfinished result offered on a later cycle is left as it is and logs nothing
+  ok   #1525: the cases drive every return of _adopt_system_identification too (a guard added in the wrapper, where #1410 put the silent one, is a path)
+  ok   a service write resetting both learners saves once, with both resets in it; either alone still saves once, and neither saves nothing
+  ok   #1523 class check: every learner feeder in coordinator.py consults the freeze or carries a disposition, and no disposition is stale
+  ok   #1523 class check null control: dropping the experiment's consult re-opens exactly its seam
+
+-- Actuation routing: every accepted domain reaches its consumer (#1526)
+  ok   every slot accepting a commandable domain is a driven writer or a named reading
+  ok   every domain a written slot accepts is commanded through a service that domain implements (#1526)
+  ok   and the census refuses an accepted domain with no route, an unclassified slot that also accepts sensor, and a command to a read-only domain
+  ok   null control: with the optimizer on, every writer issues a call
+  ok   with the optimizer off, no writer issues any call: switch, ECL110, valve, frequency, circulation pump
+
+-- R8-P3 — one COP law, one humidity, at every planning seam (#1520, #1530)
+  ok   cop_flow_carnot on: marginal_cop('dhw') == marginal_cop('buffer') at equal water temperature, every outdoor x flow cell (#1530)
+  ok   and with the flag off the two laws differ (the null arm)
+  ok   a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)
+  ok   and without a forecast the ambient humidity does move the plan (the derate is live: the equality above is not vacuous)
+  ok   the planner's step helper and its tank simulation read each step's own forecast humidity, not the horizon's mean
+  ok   _mean_humidity is the NaN-skipping mean, and no series stays no series
+  ok   a per-step planner seam prices each step at its own humidity, not the mean
+  ok   a mean-outdoor valuation prices the horizon's mean humidity, not a step's and not the ambient
+  ok   the capacity envelope caps each forecast step at that step's humidity
+  ok   classify_space_steps reads a short surplus and heat-loss series inside them and classifies past them as if absent
+  ok   ...and a short heat-loss series marks weather pre-heat inside it only
+  ok   classify_dhw_steps reads short ready and window series inside them and pre-heats past them
+  ok   group_by_reason books steps past a short reasons list as untagged
+  ok   step_duty reads short schedules inside them and reads idle past them
+  ok   a step past short holiday flags gets the ordinary DHW windows
+  ok   the baseline thermostat holds the configured target past short comfort targets and burns no free heat past a short external-heat series
+  ok   the DHW safety release reads a short tank trajectory as cold past its end
+  ok   a plan slot counts shared energy and reasons only where the shorter series reach
+  ok   the published schedule reads short displace and on/off series inside them and falls back past them
+  ok   the plan forecast carries a reason inside a short reasons list and None past it, on both circuits
+  ok   the capacity envelope prices a step past short humidity at the ambient
+  ok   every humidity-aware call in optimizer.py, dhw_planner.py, thermal_model.py and coordinator.py passes a humidity, and every function taking one reads it (the seam rule, #1520)
+  ok   and every allow-list entry still names a live call (none is stale)
+  ok   and the rule finds every pre-fix shape -- no humidity, an alias, an explicit None by keyword or position, a dropped pass-through, an unread parameter -- and passes the positional and forwarded ones
+  ok   R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback
+  ok   R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired
+  ok   R9-F2.1 P7 (spring): a clock 30 min before a 15-min plan is beyond one step, so the action idles
+  ok   R9-F2.1 P7 (null): a clock 30 min before a 15-min plan is beyond one step, so the action idles
+  ok   R9-F2.1 P7 (autumn): the step covering now is the one whose instant precedes it, not the one whose wall clock does
+  ok   R9-F2.1 P7 (null): the step covering now is the one whose instant precedes it, not the one whose wall clock does
+  ok   R9-F2.1 P3: an on/off pump at full power publishes 'boost' at 1.0, and off publishes 0.0 -- never outside [0, 1]
+  ok   R9-F2.1 P3 (null arm): a modulating pump's fraction inside its band is unchanged
+  ok   R9-F2.1 P3: a modulating pump's published fraction is clipped to [0, 1] outside its band
+  ok   R9-F2.1 P3: every site that normalises planned power puts an on/off pump's full-power step at the top of its range and off at the bottom
+  ok   R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (scalar)
+  ok   R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (batch)
+  ok   R9-F2.1 P3 (null arm): the quadratic undershoot stays averaged over the zones -- half the single-zone curvature
+  ok   R9-F2.1 P3 (null arm): one zone over max_temp still costs half the single-zone overshoot -- only the floor's linear price changed
+RESULT f21_p3_two_zone=1 j_plain=110.436573 j_continuation_off=111.373704 continuation_gain=+0.937131 j_seeded_half_price=110.427085
+  ok   R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it
+RESULT f21_p3_two_zone=0 j_plain=67.730056 j_continuation_off=67.730056 continuation_gain=+0.000000 j_seeded_half_price=67.678046
+  ok   R9-F2.1 P3 (null arm, single-zone): a single-zone solve ships the same storage plan bit-identically with the continuation removed
+  ok   R9-F2.1 P3: the continuation leaves each zone's floor at the full linear price once the solve returns
+  ok   R9-F2.1 P3: the continuation refines the first plain start, after the extra starts, within the multi-start's own iteration budget
+  ok   R9-F2.1 P3 (null arm, single-zone): a single-zone solve runs no continuation -- its floor price never changed
+  ok   R9-F2.1 N-sign-floor: the objective charges surplus-covered energy at the export price whatever the sign of import - export
+  ok   R9-F2.1 N-sign-floor: a hot-water block's blended price is the same identity at every sign of the margin
+  ok   R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty make the same calls for 97 rows as for 2 (no per-row interpreter loop)
+  ok   R9-F2.2: every batched comfort and cycling row is its scalar twin byte for byte, C- and Fortran-order, widths 1 to 192 including the production 96
+  ok   R9-F2.2: the scalar cycling penalty is still numpy's own sum of the swings, to the byte
+  ok   R9-F2.2 D9-s1-02: a batched solve never evaluates the scalar objective inside L-BFGS-B
+  ok   R9-F2.2 D9-s1-02: the fused solve lands on the scalar path's point, byte for byte
+  ok   R9-F2.2 D9-s1-04: a refused weak slot stops simulating at its first breach rather than checking the whole suffix
+  ok   R9-F2.2 D9-s1-04: every min-run accept/refuse decision is the whole suffix's, on stepped ceilings and breaches on both sides of a chunk boundary
+  ok   R9-F2.2 D9-s1-71: 50 reads of the tank UA, the inlet reference and the windowed draw pattern compute each once
+  ok   R9-F2.2 D9-s1-71: every input change reaches the next read, and a caller mutating the returned pattern cannot reach the memo
+  ok   R9-F2.2 D9-s1-71: a pattern that is not 24 hours long falls back to the default, and one the windows mask to nothing comes back unscaled
+  ok   R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (single-zone C=0.5 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (single-zone C=1.0 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone Cu=0.25 Cl=1.55 Cs=0.843 k=5): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, radiator row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, radiator row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, floor row): a zero-input day stays inside the passive envelope [T_out, hottest store]
+  ok   R9-F2.3 D2-s1-01 (two-zone valved, floor row): the sub-step matrix is monotone -- no negative entry -- with spectral radius at or under 1
+  ok   R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1
+  ok   R9-F2.3 D2-s1-01 (design delta-T 0.5 K): the count is the step's own stiffness -- monotone at n_sub, and one sub-step fewer is not
+  ok   R9-F2.3 D2-s1-01 (COP 0.5, delta-T 0.5 K): the count is the step's own stiffness -- monotone at n_sub, and one sub-step fewer is not
+  ok   R9-F2.3 D2-s1-01 (empty buffer): the count is the step's own stiffness -- monotone at n_sub
+  ok   R9-F2.3 D2-s1-02: the coil takes from the wood tank exactly the heat it spares the DHW tank, below the mixed-use temperature as above it
+  ok   R9-F2.3 D2-s1-02 (control): the coil genuinely draws on the wood tank in every cell, so the identity above is not an empty zero
+  ok   R9-F2.3 D2-s1-02: the tank debit, the coil's wood debit and the planner's capacity clamp read one draw-scale rule
+  ok   R9-F2.3 D2-s1-02: an inlet at or above the mixed-use temperature scales the draw to 1 above it and 0 at it, never past [0, 1]
+  ok   R9-F2.3 D2-s1-02: with no wood tank the coil passes the draw through untouched
+  ok   R9-F2.3 D2-s2-03: the hot-water settle-up's plan end is the published trajectory's last state, store for store
+  ok   R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than its no-coil twin -- it owns the coil the plan owns
+  ok   R9-F2.3 D2-s2-03: with the coil switched off, the reference's draws leave its wood tank as its no-coil twin's
+  ok   R9-F2.3 D7-s1-71: every site resolving the cold-water inlet default follows DEFAULT_DHW_INLET_TEMP when it moves
+  ok   R9-F2.3 D5-s2-03: no second cold-water constant claims to be the draw model's cold end
+  ok   R9-P3: every floor on a thermal parameter lives in one function with one constant, and nothing divides by that parameter raw
+  ok   R9-P3: and the rule keys a range spelt two ways alike, a product in either operand order alike, a floor through a local, a second constant and a raw divisor, and passes a local's floor
+  ok   R9-P3: the power-fraction helper is the named exception -- it branches on a sub-floor band and floors nothing
+  ok   R9-P3: cop_nominal_floored holds its floor below it and passes through above
+  ok   R9-P3: emitter_design_delta_t_floored holds its floor below it and passes through above
+  ok   R9-P3: slab_heat_transfer_floored holds its floor below it and passes through above
+  ok   R9-P3: flow_lift_power_floor_kw holds its floor below it and passes through above
+  ok   R9-P3/#1741: a naive start walks the wall clock and stays naive
+  ok   R10-LEAF-IMPORTS: store loads without the solver
+  ok   R10-LEAF-IMPORTS: silent_mode loads without the solver
+  ok   R10-LEAF-IMPORTS: quiet_windows loads without the solver
+  ok   R10-LEAF-IMPORTS: legionella loads without the solver
+  ok   R10-LEAF-IMPORTS: the payload owns every reason code the optimizer writes
+  ok   R9-P3: a tank below the tank-room ambient has no standby loss (window planner's ready temperatures)
+  ok   R9-P3: a tank below the tank-room ambient has no standby loss (setpoint advisor's daily costs)
+  ok   R9-P3: one kelvin-step under the floor in the upper zone costs what it costs a single-zone room (scalar twin)
+  ok   R9-P3: one kelvin-step under the floor in the lower zone costs what it costs a single-zone room (scalar twin)
+  ok   R9-P3: one kelvin-step under the floor in the upper zone costs what it costs a single-zone room (batch twin)
+  ok   R9-P3: one kelvin-step under the floor in the lower zone costs what it costs a single-zone room (batch twin)
+  ok   #1524: light_new two_zone=False finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: heavy_old two_zone=False finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: typical_slab two_zone=False finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: light_new two_zone=True finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: heavy_old two_zone=True finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: typical_slab two_zone=True finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: light_new two_zone=True valve=manual finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: heavy_old two_zone=True valve=manual finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: typical_slab two_zone=True valve=manual finishes inside the 0.8 K allowance and adopts within the bar, or is refused by the interval gate by name
+  ok   #1524: the two-zone derivation adopts on at least as many presets as the single-zone one (the null-control arm)
+  ok   R8-P5c: the two-zone derivation behind a throttling valve adopts on as many presets as without one
+  ok   R8-P5c: light_new behind a valve regulating at the held temperature is refused by name, inside the 0.8 K allowance
+  ok   R8-P5c: heavy_old behind a valve regulating at the held temperature is refused by name, inside the 0.8 K allowance
+  ok   R8-P5c: typical_slab behind a valve regulating at the held temperature is refused by name, inside the 0.8 K allowance
+  ok   R8-P5c: behind a valve the held state's zones and slab are the plant's own fixed point, under the 1.0 floors on COP and emitter lift
+  ok   #1524: light_new two_zone=False on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: heavy_old two_zone=False on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: typical_slab two_zone=False on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: light_new two_zone=True on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: heavy_old two_zone=True on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: typical_slab two_zone=True on a plant 15 % leakier and 50 % heavier than declared finishes inside 0.8 K and adopts the plant's own heat loss within 1 %, or is refused by the interval gate
+  ok   #1524: on the mismatched plant the two-zone derivation still adopts on at least as many presets as the single-zone one
+  ok   R8-P5c: light_new behind a valve on the mismatched plant finishes inside 0.8 K and adopts its heat loss within 1 %, or is refused by the interval gate
+  ok   R8-P5c: heavy_old behind a valve on the mismatched plant finishes inside 0.8 K and adopts its heat loss within 1 %, or is refused by the interval gate
+  ok   R8-P5c: typical_slab behind a valve on the mismatched plant finishes inside 0.8 K and adopts its heat loss within 1 %, or is refused by the interval gate
+  ok   R8-P5c: on the mismatched plant the valve arm adopts on as many presets as the unvalved two-zone arm
+  ok   R9-F2.4 P2: on a fixed-speed pump every step the plan books heat for is switched on, not off at half the rating
+  ok   R9-F2.4 P2 (null arm): a step the plan books no heat for stays off, on a fixed-speed and on a modulating pump alike
+  ok   R9-F2.4 P2: one result cannot publish a compressor start on a step its own on schedule calls off
+  ok   R9-F2.4 P2: the owner's scalar and batch forms are the same fact, equal over a grid that straddles the floor
+  ok   R9-F2.4 P2: with no on schedule to read, the action decides on both circuits by the plan's own rule -- a 0.15 kW space step and a 0.9 kW hot-water step run, a step booking nothing does not
+  ok   R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold
+  ok   R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the modulation floor -- and is not the plan's
+  ok   R9-F2.4 P2: no seam this PR owns re-derives the meter's threshold -- the formula is the owner's alone
+  ok   R9-F2.5 RC-rca1: peak_cost_batch makes the same calls for 97 rows as for 2, on separated peaks and on full plateaus (no per-row interpreter loop in the windowing, day peaks or the smooth top-k)
+  ok   R9-F2.5 RC-rca1: every peak_cost_batch row is peak_cost_smooth on that row, byte for byte -- per-window lengths 1/3/4/8/12, both memory orders, masked factors, midnight and autumn-fold day labels, distinct days on and off, plateau, k+1-tie and NaN rows, at the production width
+  ok   R9-F2.5 RC-rca1: the row parity holds at widths 8 to 192, where the day-run and top-k reduction lengths cross the pairwise block edges
+  ok   R9-F2.5 RC-rca2: the terminal twin prices a 97-row batch without building a name-keyed ends dict on any row (single-sum and split-COP)
+  ok   R9-F2.5 RC-rca2: every terminal twin row is its scalar closure on the same end temperatures, byte for byte (single-sum and split-COP arms, the latter with the buffer store's survival-weighted term)
+RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-start': (12, 0)} scalar_valued={'relaxed': (1, 67), 'continuation': (1, 117), 'multi-start': (12, 491)}
+  ok   R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the continuation, the relaxed candidate and the multi-start's own runs on the batched jac
+  ok   R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the scalar trajectory -- the value rides in the gradient's batch
+  ok   R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the same runs is seen by the meter
+  ok   R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit
+  ok   R10-SOLVER (O1): bounds _bounds_supported_by_batch refuses run on scipy's own estimate -- no batch call, the plain scalar run's point
+  ok   R9 N-fit-integrator (D7-s2-01): on a noise-free continuous house read every 30 min, every adopted fit is within 2 % of the plant's heat loss, and at least one preset adopts
+  ok   R9-P5: every declared quantity the experiment is handed has a role in the adoption gate and a bias axis in the adoption sweep
+  ok   R9-P5: a night whose plant differs from the declaration in what the fit is told either adopts within the bar of the plant's own heat loss or is refused
+  ok   R9-P5 (#1655): the night's free-heat prior is the learned profile over the night window, the configured value by day-only evidence, and the configured value again on a plant with no profile
+  ok   R9-P5 (D2-s4-81): on the declared plant every night adopts or is refused before its step, by the noise-free prediction
+  ok   R9-P5 (D2-s4-81): a night the noise-free prediction stops never drives the pump above its hold power, and at least one night is stopped
+  ok   R9-P5: the told slab-pair width keeps the older derived presets live -- at least 6 of 8 declared nights adopt, each within the bar of the plant
+  ok   R10-P5: the census finds every CUSUM a learning freeze reads, the open-window one among them
+  ok   R10-P5: each measures from a tracked reference; four days of a bias up to the learner's rejection -- steady, or scaling with the heat put in or the sun -- leave it untripped, and a window on top of it trips it
+  ok   #1752 null control: a never-boosted no_prices cycle keeps the plan's own action -- off, 0 kW, the plan's own displace, pump off, no boost keys (the values a dropped base registration would have to fake)
+  ok   #1752 probe/no_prices: a cancelled space boost does not survive a no_prices cycle -- what cycle 2 publishes, actuates and sends to the ECL is exactly the never-boosted null's
+  ok   #1752 probe/solve_failed: a cancelled space boost does not survive a failed solve either -- the probe arm's outcome equals the null arm's
+  ok   #1752 null control: a cancelled boost followed by a SUCCESSFUL solve also reads as the null (the solve replaces the action)
+  ok   #1752 probe/dhw: a cancelled DHW boost does not survive a no_prices cycle -- the whole outcome equals the never-boosted DHW null's, not max hot water
+  ok   #1752 null/dhw control: a cancelled DHW boost followed by a successful solve clears the DHW boost keys, and the never-boosted DHW null keeps the plan's own action
+  ok   #1752 persistence: through a price outage a cancelled boost never actuates -- every cycle publishes the plan's own mode and writes the pump command that mode commands, never a boost's turn_on
+  ok   #1753 null/tile control: with no overlap a user what-if is answered and cached
+  ok   #1753 probe(a)/tile: a user what-if issued inside the tile solve window is answered with its own target, not rate-limited with the previous answer
+  ok   #1753 probe(b)/tile: a user what-if that runs and finishes inside the tile window keeps its answer and its limiter slot -- the cache is not reverted and the stamp is not reset
+  ok   #1753 null/fuse control: with no overlap a user what-if is answered and cached
+  ok   #1753 probe(a)/fuse: a user what-if issued inside the fuse solve window is answered with its own target, not rate-limited with the previous answer
+  ok   #1753 probe(b)/fuse: a user what-if that runs and finishes inside the fuse window keeps its answer and its limiter slot -- the cache is not reverted and the stamp is not reset
+  ok   UX-4 receipt: a closed month is announced once, with the month, the total and the saving against the plain thermostat
+  ok   UX-4 receipt: the same month on later refreshes fires nothing (null control), and the next month fires again
+  ok   UX-4 receipt: a receipt already held when the notifier first runs is adopted silently, the next month's is announced
+  ok   UX-4 comfort: a plan whose coldest step is below the floor fires once with the predicted minimum, when, and the floor; a plan at the floor and a comfortable plan fire nothing
+  ok   UX-4 comfort: the same risk on later refreshes, even a deeper one, fires nothing; once it clears a new risk fires again
+  ok   UX-4 input stale: a stale input fires once with its name, age and limit; an input with another problem fires nothing
+  ok   UX-4 input stale: a repeat fires nothing, a second input fires on its own, and a recovered input fires again when it goes stale again
+  ok   UX-4 plan stale: fires once with the age, nothing on a repeat (null control), and again after the plan was fresh in between
+  ok   UX-4 manual plan released: fires once per channel for an override, with the channel, the steps and the reason; none while nothing is released
+  ok   UX-4 manual plan released: a later override fires again once the first is over
+  ok   UX-4 a plan with no readable room temperature fires nothing; a stored value that is not text is dropped on load and the store stays at version 1
+  ok   UX-4 a payload carrying none of the signals fires nothing and does not re-arm what was sent (an unchanged refresh stays silent)
+  ok   UX-4 restart: the first run fires all five events, a notifier rebuilt over the same store fires none of them for the same signals, and one that saw them clear fires them again
+  ok   UX-4 each event carries exactly the data keys the module declares for it, and all five were seen firing
+  ok   UX-4 the entry sets the notifier up beside the coordinator it listens to (and coordinator.py names no notifier)
+  ok   UX-4 setup subscribes to coordinator updates, fires on one, and the subscription is dropped when the entry unloads
+  ok   UX-4 every event the notifier can fire is documented in docs/automations.md with each key of its data, and routed by the blueprint
+  ok   UX-4 the blueprint takes a notify target, one toggle per event and quiet hours that the comfort alert passes through
+  ok   #1736 no field of the three hubs moves while a solve is parked on its await, with away, economy, the learned corrections and a burn all live
+  ok   #1736 and none has moved after the solve returns: nothing is left to unwind
+  ok   #1736 H1: the comfort band and DHW floor the views publish during an away solve are the configured ones, never the setback
+  ok   #1736 the solve itself still plans with every per-solve value: the setback target and DHW floor, economy's floor, the learned corrections, the burn
+  ok   #1736 null: with none of them live, the solve plans with the configured band and the inert corrections
+  ok   #1736 the record (and the what-if's base) shares no mutable object with the three hubs, a nested container included
+  ok   #1736 H3: a solve leaves the learner's draw pattern in the parameters, so its corrupt-row fallback is never the day-type blend; the blend reached only the solve
+  ok   #1736 H4: the DHW learner's burn freeze follows the live detector, not a solve's copy of it
+  ok   #1736 H2: economy and away solves hand the quiet-period learner the configured comfort band
+  ok   UX-5 the price tile and the card's what-if both price the active setback
+  ok   #1736 the card's what-if prices with this moment's tariff and DHW inputs, not the last solve's
+  ok   #1736 post-outage recovery prices a month with no peak reference from zero; outside recovery the term stays off (an infinite threshold)
+  ok   #1736 a house already over its fuse caps the pump at 0 kW, never below
+  ok   #1736 the post-outage DHW queue holds a tank at its floor, releases a colder one, judges against the floor the solve passes when it does, and holds regardless of the tank when there is no hot water
+  ok   #1736 the learned aperture scale applies at exactly its minimum sample count (30); one sample under it does not
+  ok   #1736 the learned gains profile reaches the record only when learning is on AND the learner has one: None in both mixed arms, never a stale profile and never a raise over list(None)
+  ok   #1736 the day-type blend a solve plans with follows the calendar day: a Saturday takes the weekend pattern
+  ok   #1736 the learned heavy-day targets carry exactly the demand windows with draw evidence: one populated window in, the evidence-free one out
+  ok   #1736 the elastic legionella ceiling prices the days the remaining interval spans, the deadline day included and its weekend bit intact: a window that gains a Saturday reads a different ceiling
+  ok   #1736 a mean price exactly at the 1e-6 floor runs on schedule (no ceiling); one just over it shops
+  ok   #1736 the learned capacity envelope composes into the record's fuse caps through the same channel -- min(fuse, envelope), never the fuse caps alone with the envelope dropped
+  ok   EG-A2 a DHW requirement above its step's ceiling is held to the ceiling, elementwise
+  ok   EG-A2 an absurdly leaky tank's decay is clamped at 0, never a negative (unstable) factor
+  ok   EG-A2 a fit worse than the mean reads confidence 0, not a negative R^2
+  ok   EG-A2 data whose spread is at the 1e-9 floor reads no confidence (the floor is strict)
+  ok   EG-A2 a buffer of exactly 1e-6 kWh/K is judged at its own mass, not the 0.04 fallback (the fallback is for a mass under the floor)
+  ok   EG-A2 a residual-free fit reads its spread against the 1e-9 noise floor, never a division by zero
+/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+  ok   EG-A2 a slab fit with no residuals reads confidence 0, not a division by zero
+  ok   EG-A2 a DHW breach is a shortfall of MORE than 0.05 K: exactly 0.05 is met, 0.06 is the first breach
+  ok   UX-5 an idle step dearer than every hour that ran says so
+  ok   UX-5 an idle step at the floor and not dearer than the hours used stays idle
+  ok   UX-5 an idle step whose fuse cap leaves no room says the fuse
+  ok   UX-5 an idle step whose other channel is drawing says so, ahead of the fuse
+  ok   UX-5 an idle step with solar before the next run is waiting for solar
+  ok   UX-5 a hot-water step with no prices or tank stays idle, and one whose other channel is drawing names that
+  ok   UX-5 every idle sub-code is a zero-energy narrative reason
+  ok   UX-5 the comfort event names the coldest step's reason, and a plan with no forecast still fires with no cause
+  ok   UX-5 without a setback the what-if band and the published floor stay configured
+  ok   UX-5 during a setback the thermal view publishes the floor the plan uses and names the configured one beside it
+  ok   D14-s1-01 the away recovery estimate is handed off the loop, and a switch written during its await is not reverted by the resolve's publish
+  ok   an unexpired away override is not re-persisted each cycle; a lapsed one is cleared and saved once
+  ok   UX-5 idle_reason with no signal is idle
+  ok   UX-5 no trajectory is not above the floor
+  ok   UX-5 a step past the floor array is not above it
+  ok   UX-5 the last temperature sample is the one past the trajectory
+  ok   UX-5 a step exactly 0.15 above the floor is not coasting
+  ok   UX-5 no prices is not dearer than the hours that ran
+  ok   UX-5 a step past the price array is not dearer
+  ok   UX-5 dearer compares the hours both arrays cover
+  ok   UX-5 an hour exactly at the run threshold did not run
+  ok   UX-5 a channel that never ran is not dearer
+  ok   UX-5 a step at the dearest hour that ran is not dearer
+  ok   UX-5 no surplus is not a wait for solar
+  ok   UX-5 a step past the surplus array is not a wait
+  ok   UX-5 dust on this step still leaves a later surplus as a wait
+  ok   UX-5 no surplus before the next run is not a wait
+  ok   UX-5 an hour exactly at the threshold is still before the next run
+  ok   UX-5 surplus that ends before the look-ahead is not a wait
+  ok   UX-5 dust ahead is not surplus to wait for
+  ok   UX-5 a one-step horizon with no surplus is not a wait
+  ok   UX-5 surplus that arrives with the next run is not a wait
+  ok   UX-5 a negative step count has no idle codes
+  ok   UX-5 a step past the other channel is idle
+  ok   UX-5 the other channel exactly at the threshold is not drawing
+  ok   UX-5 a step past the fuse cap is idle
+  ok   UX-5 a fuse cap exactly at the threshold is the fuse
+  ok   UX-5 home publishes no second floor
+  ok   UX-5 recovery does not publish the setback floor
+  ok   UX-5 away with no target keeps the configured floor
+  ok   UX-5 a setback equal to the floor does not name a second one
+  ok   UX-5 a plan that is not a dict has no cause
+  ok   UX-5 a non-dict forecast step is skipped
+  ok   UX-5 an empty reason is no cause
+  ok   DBG-1 a cycle row carries the pre-study's slim fields, read from the payload and the coordinator's public views
+  ok   DBG-1 a field the cycle did not carry is absent from its row, not stored as null
+  ok   DBG-1 setup subscribes one listener, and a listener call that publishes no new payload adds no row (the null control)
+  ok   DBG-1 the row after a solve carries that solve's wall time; the row before none
+  ok   DBG-1 the ring is saved once an hour of half-hour rows, not once per row
+  ok   DBG-1 a reload mid-week keeps every row, the unsaved one included, and the unloaded entry records nothing more
+  ok   DBG-1 without the unload flush the reload loses the row written since the last hourly save (the flush's own control)
+  ok   DBG-1 a collection stops itself at seven days: 336 half-hour rows, the last one inside the week, final on disk, one payload snapshot a day
+  ok   DBG-1 with the option off nothing subscribes and a collected ring is deleted
+  ok   DBG-1 a stored row or snapshot outside its declared domain is dropped alone; the rest of the ring loads
+  ok   DBG-1 the bundle has the pre-study's hpo-debug/1 sections
+  ok   DBG-1 the bundle carries this entry's own store documents, not another entry's, not the ring itself and not Home Assistant's
+  ok   DBG-1 a payload snapshot comes back as the payload, its datetimes as ISO text
+  ok   DBG-1 Download diagnostics carries the bundle through its own redaction: a name is redacted and a coordinate coarsened inside a payload snapshot
+  ok   DBG-1 an entry not collecting downloads no bundle (the inclusion's control)
+  ok   DBG-1 the debug_collect action reports a collection's status
+  ok   DBG-1 stopping a collection that is not running is refused with a translated error
+  ok   DBG-1 stop finalizes and saves; start on a finalized collection clears it
+  ok   DBG-1 start on an entry with the option off turns the option on (the reload starts it)
+  ok   DBG-1 the finalize button is always present, unavailable while the option is off, and a press finalizes the collection and makes it unavailable
+  ok   DBG-1 the option is one boolean on the learning page, off by default, with a label and a description in strings.json and both translations
+  ok   DBG-1 the entry sets the collector up and flushes it at unload, and coordinator.py names no debugger
+  ok   a switch-plus-setpoint install clamps a sub-minimum level up to p_min and keeps off off
+  ok   null control: the duty-cycle reading of 0.3 kW still runs when no floor is passed
+  ok   the probe reports a fully metered install only when power and frequency are both present
+  ok   from_mapping clamps only the unmetered write surface, and an explicit false opts out
+  ok   the heating flow is the ceiling at full power and the floor set-point at p_min, and a configured ceiling moves it
+  ok   the house learner freezes on an unmetered switch-plus-setpoint install and not on a metered one
+  ok   flow_heat_c defaults to the arbiter's heating-flow constant
+  ok   the baseline flow ceiling is the configured heating flow, not the literal 55
+  ok   a curve under the rated hold still holds 35 when the ceiling is configured
+  ok   every combination of inlet sensors writes the first rung's reading plus the lift at the modulation floor, and the ceiling at full power
+  ok   a tank at 29 degC writes 34 at the floor, not the 35 the return-or-hold anchor wrote
+  ok   null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung
+  ok   a stale rung falls to the next fresh one
+  ok   the floor helper refuses an unmeasured inlet rather than guessing one
+  ok   a buffered rounded install with price spread books above the floor in the cheapest steps, and its own objective scores the plan lower than the solve without the relaxed start
+  ok   with hot water on, the space solve around the hot-water plan carries the relaxed start: it lowers the objective in at least one of four cells and raises it in none
+  ok   flat-price null control: at flat prices the relaxed start never ships a plan its own objective scores worse, on either path
+  ok   a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after
+  ok   an install that can duty-cycle gains none and never scores rounded; a start past the last (the warm pass) adds none
+
+-- #1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519
+  ok   the GCHV prefix is the binary-sensor slug before night_mode_frequency_reduction_active
+  ok   night-mode start/end resolve by that prefix to the package's hour and minute numbers
+  ok   the schedule is usable only when the flag matches and all four numbers resolve
+  ok   a GCHV flag with resolved start/end numbers enforces one daily silent window (the next)
+  ok   two silent windows: the next is capped and the rest are marked not enforced
+  ok   inside a wrapping window that shares the day with a later same-day window, the wrap is still next
+  ok   days that differ (weekdays-only) are partial: the next window is capped, the rest dropped
+  ok   configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced
+  ok   configured_quiet_windows marks a two-window GCHV spec not-enforced for the rest
+  ok   the GCHV named slots already include the compressor-frequency sensor and not a fabricated power entity
+  ok   a GCHV silent window writes start and end hour/minute for the next window, once
+  ok   the same window is not rewritten: at most two registers (four numbers) a day, only when it changes
+  ok   an Off window writes nothing to the night-mode numbers (D1: no extra writes)
+  ok   while the optimizer is off the GCHV schedule is not written (D2)
+  ok   unset silent rows write no night-mode numbers (the null control)
+  ok   outside the silent window the registers are left (start==end is not a documented disable)
+  ok   a daytime pass still holds tonight's window rather than emptying the schedule
+  ok   a differing GCHV night-mode reading inside the echo window is not rewritten yet
+  ok   past the echo grace a GCHV night-mode number the pump dropped is written back
+  ok   a missing GCHV night-mode number is observed as none
+
+-- COP learner duty floor keys on the modulation floor (live v6.7.17)
+  ok   a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner once the meter shows the draw follows the ask
+  ok   with no draw evidence a departure folds only past the nameplate third: it waits for evidence on 14 kW and folds on 4 kW, as base
+  ok   idle and standby draws under the modulation floor still teach nothing
+  ok   with no modulation floor configured the nameplate floor still applies
+  ok   the duty floor is 0.8 x the modulation floor, never below 0.2 kW
+  ok   the flow-lift fold takes the same floor: a 14 kW nameplate at 2.2 kW folds
+  ok   a refused COP interval names its guard and the floor in the diagnostics
+  ok   a folded COP interval clears the refusal
+  ok   each guard has its own code: a freeze and a missing reading
+  ok   a draw that ignores the ask (varying or flat) is refused as off-ask; a matched draw and a 0.7 shift on a draw that follows its ask still teach
+  ok   follows_ask: no evidence without the window, before MIN_SAMPLES, or on a flat ask; a proportional draw follows, a self-set one does not
+  ok   the last measured COP and its curve are restored on restart
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   an unreadable stored COP record loads as no measurement, whole
+  ok   the duty floor judges the smaller of the ask and the draw: a plan asked 2.4 kW that metered 0.3 kW is refused, and so the other way round
+  ok   the duty floor is exclusive: a draw exactly at it is running, not below it
+  ok   the tracking gate divides by the clamped walking ratio: a zero ewma is a refusal, not a crash
+  ok   the tracking gate is exclusive: a ratio exactly at it is on the walking ratio (6.5 against 5.0 is 0.3 of it)
+  ok   without draw evidence the nameplate bar is on both the ask and the drawn figure: a 5.0 kW ask metering 4.0 kW waits for evidence, one metering 4.5 kW folds (0.3 x 14 is 4.2 exactly)
+  ok   the store's 0.1 bar is exclusive and a non-finite tank temperature drops the record whole: 0.1 reads back, a nan temperature does not
+  ok   follows_ask gives evidence at 48 running samples and none at 47, and it answers a bool, never None, once it has them
+  ok   asks spanning exactly 1.15 are evidence (the span bound is `<`), and an ask exactly at the configured floor counts as a running level
+  ok   a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound is `>=`, not `>`)
+  ok   a sample asked nothing is not a running level: with no configured minimum the positive-ask half of the filter still drops it
+  ok   UX-6: a receipt's total is the money the month cost, not its splits again
+  ok   UX-6 null control: a month with only billed lines totals 194.5 either way
+  ok   UX-6: ledger.freeze_month_report totals the billed lines and names them
+  ok   UX-6: a receipt frozen by the old sum is restated from its own lines on load
+  ok   UX-6: the store admits the receipt's basis and refuses a line it does not bill
+  ok   UX-6: the capacity line is the billed peak times the tariff while the month is open
+  ok   UX-6: March's receipt names the capacity charge after the tracker reset
+  ok   #2230: a spike in the month's last metering window reaches that month's capacity receipt, across a restart between rollover and settlement too
+  ok   #2230 null control: a spike one window earlier was always billed
+  ok   #2230 null control: a rollover with no open window closes the month on its recorded peaks unchanged
+  ok   UX-6 null control: without a capacity tariff no capacity line is booked
+  ok   UX-6: a NaN peak or an empty month books no capacity line
+  ok   UX-6: the grid view publishes every receipt kept, oldest first
+  ok   UX-6: the monthly-savings sensor carries the receipts and the replay, unrecorded
+  ok   UX-6: a plan solved after the midnight hour is not the day's promise
+  ok   UX-6: the promise is the first midnight plan's: 24 h of room and cumulative cost
+  ok   UX-6: a plan with an unpriced step makes no promise rather than a wrong one
+  ok   UX-6: the next day replays the promise against the 24 h it covered
+  ok   UX-6 null control: on the promise's own day there is no yesterday to replay
+  ok   UX-6: without a power meter the measured cost is absent, not zero
+  ok   UX-6: the promises are bounded, persisted beside the accuracy history and restored
+  ok   UX-6: a naive or ragged stored promise is dropped, not loaded
+  ok   UX-6: a stored promise with a non-positive step is dropped, not loaded
+  ok   UX-6: a receipt stored with the old total loads with the billed total
+  ok   plan_writes_power is exactly a frequency write (S1)
+  ok   an overstated nameplate engages, at the metered running percentiles
+  ok   the floor is the TENTH percentile: a run of samples at the pump's true minimum sets it when they are 15 % of the window, and a meter glitch of 9 % leaves it alone
+  ok   null control: a pump that draws what it is asked never engages
+  ok   null control: a correctly sized 6 kW pump part-loading at 1-2 kW, drawing what it is asked, never engages though its running max is far below 6 kW
+  ok   short of MIN_SAMPLES running samples there is no statistic and no clamp
+  ok   and at MIN_SAMPLES the same evidence engages (the boundary's other side)
+  ok   the evidence floor is a day of half-hour runs counted in the test, not read off the constant: 47 samples is not a day, 48 is and engages
+  ok   and the window is a week counted in the test: after 386 running samples only the last 336 stand, so a draw 386 runs back is not the ceiling
+  ok   the latch holds a full window after the plan stops out-asking the pump
+  ok   a changed configuration releases the latch and restarts the evidence
+  ok   and a range judged under one configuration answers for no other
+  ok   a sub-floor duty-cycle average overdrawn by the running pump is no evidence
+  ok   a level asked at EXACTLY the configured floor is a level the pump was asked to run at, so its disagreement counts
+  ok   a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees with the plan: the factor boundary is not a disagreement
+  ok   the latch engages at a quarter of the window disagreeing, not below it: 12 of 48 engages, 11 of 48 does not
+  ok   S4 on a switch-plus-setpoint install: both ends metered
+  ok   S4 where the install can duty-cycle: the min end stays configured
+  ok   S4 on a duty-cycling install that runs below its configured min: the min end is capped at the metered max, never booked above the max it may book
+  ok   S4 where the plan writes the frequency: None, the draw is its own echo
+  ok   S4 with no evidence, or a different configuration: None
+  ok   a metered top within 15 % of the configured max keeps the configured max
+  ok   and one beyond 15 % replaces it (the boundary's other side)
+  ok   a metered floor within 15 % of the configured min keeps the configured min
+  ok   and one beyond 15 % replaces it
+  ok   the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % below the configured one keeps the configured one
+  ok   and inclusive at the bottom: a metered min exactly 15 % above the configured one keeps the configured one (the tie, in floats that tie)
+  ok   S2 control: a running space interval is a running sample
+  ok   S2: the standby floor is 0.25 kW counted in the test -- 0.3 kW is the pump at its minimum modulation and a sample, 0.2 kW is circulation and not one
+  ok   S2: no meter is not a running sample
+  ok   S2: standby draw is not a running sample
+  ok   S2: space circuit off is not a running sample
+  ok   S2: hot water asked is not a running sample
+  ok   S2: learners frozen on the meter is not a running sample
+  ok   S2: immersion or capped compressor is not a running sample
+  ok   S2: defrost in the interval is not a running sample
+  ok   the per-cycle settlement folds one running sample: (drawn, space asked)
+  ok   and folds nothing under an immersion latch
+  ok   and folds nothing under an external heat freeze
+  ok   and folds nothing under a hot-water ask
+  ok   and folds nothing for an interval whose closed window saw a defrost
+  ok   the samples, the latch and its configuration persist through the accuracy store
+  ok   an install with no running sample writes no draw key: its store is unchanged
+  ok   an unreadable sample is dropped alone, beside a readable configuration
+  ok   a record whose configuration is unreadable is dropped whole: no samples, no latch
+  ok   a record whose configuration is absent is dropped whole: no samples, no latch
+  ok   a record whose configuration is non-finite is dropped whole: no samples, no latch
+  ok   a stored latch that has not reached MIN_SAMPLES answers, it does not raise: no statistic, so no clamp
+  ok   an engaged latch whose metered ends EACH stand within the tolerance returns None: the configured range stands, it is not echoed back as a clamp
+  ok   diagnostics publish the learned range and the effective clamp
+  ok   a view that raises reports unavailable; the snapshot still builds
+  ok   a step that heats at the floor writes strictly above the gate a step that does not heat writes, on every inlet 10-40 degC and every entity minimum
+  ok   an 18 degC tank writes the gate plus the lift at the floor, not the gate
+  ok   null control: a tank above the gate keeps its own lift, full power keeps the ceiling, and no inlet keeps the rated hold
+  ok   a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unchanged
+  ok   a window commanded below the ceiling never engages and learns no maximum: its idle-level readings are the idle draw, not a run
+  ok   null control: the same draws with nothing commanding them (the pump's own choice) engage at the running percentiles of every sample, as before the guard
+  ok   null control: ceiling-commanded samples drawing well under p_max engage, and their 90th percentile is the maximum
+  ok   readings at the learned idle draw are not runs: they set neither the floor nor the share that disagrees
+  ok   a record stored without commands is dropped by the first commanded sample, and kept by an uncommanded one
+  ok   the commands and the idle readings survive the store, and the store's domains accept every cell
+  ok   a gate-held interval folds one idle reading; a heating set-point, hot water asked, or no command at all folds none
+  ok   the per-cycle fold records the held flow set-point and its ceiling under Control
+  ok   null control: Observe, an indoor set-point, or a plan that writes the compressor frequency (an install that can duty-cycle, whose draw is the plan's echo) records no command
+  ok   no decimal reaches the service call on an entity that states no step; a 0.5-step entity keeps its halves; a stated 0.1 step keeps tenths
+  ok   null control: an already-whole write sends the same whole number
+  ok   a floor rounds up, a ceiling down, levels between to nearest, and the written value never falls as the level rises
+  ok   a Fahrenheit entity is quantised in Fahrenheit: 30 degC is 86 degF, whole, and a floor of 30.2 degC rounds up to 87 degF
+  ok   after rounding, a 20 degC tank's floor stays above the gate, both whole
+  ok   the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn the newest 48 (0.30), not the whole 96 (0.20); null: 20 readings learn their own value
+  ok   a set-point 0.9 K under the ceiling is not full-power evidence: ten ceiling-commanded draws learn no maximum beside ninety sub-ceiling ones; null: a set-point exactly 0.5 K under the ceiling is full
+  ok   a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full (the test is inclusive): 48 of them learn their 90th percentile as the maximum
+  ok   a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run (the test is strict): 48 of them are no evidence at all
+  ok   a stored idle reading of 0.0 is a reading: six of twelve, the median is 0.15; null: a negative, a NaN and a non-number are dropped
+  ok   a set-point exactly one millionth of a step above a multiple is not snapped to it (the snap is strict), so a floor of it rounds up: one millionth of a whole degree writes 1; null: zero snaps to the multiple
+  ok   a set-point 0.4 K above the gate is not a gate-held interval, so its draw is no idle reading; null: one exactly GATE_TOLERANCE_K above the gate is
+  ok   the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing -- no FlowCommand with a missing end -- and a readable one publishes the held command
+  ok   an install with no power, energy, frequency or flow signal is told which four classes to add
+  ok   any one of the signals silences the recommendation (null control: each alone)
+  ok   an unrelated entity does not count as feedback
+  ok   guard: with no flow key in const the table emits no flow row, and with it the row appears
+  ok   the gap advisor publishes the probe's list for the card to read
+  ok   L/min, L/s, m3/h and kg/s all convert to kg/s at 0.998 kg/L
+  ok   a planted 0.25 kg/s over a 5 K drop is 5.2325 kW
+  ok   no drop, a rise or a missing temperature is no estimate
+  ok   the estimate follows the sensor: 15 L/min over a 5 K drop
+  ok   doubling the flow doubles the estimate (null control for the follow claim)
+  ok   an unavailable or negative flow reading is absent
+  ok   a power or a frequency signal keeps the estimate off (the signal outranks the flow meter)
+  ok   null control: with the flow key unset nothing is estimated
+  ok   the thermal-output estimate is published on the recommended-power sensor, and absent stays None
+  ok   the options step asks for the flow sensor beside the compressor frequency sensor
+  ok   an unknown flow unit is absent rather than guessed
+  ok   a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)
+  ok   a zero flow reading is a measured 0 kW, not absent
+  ok   a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value
+  ok   the coordinator publishes an unreadable floor-return sensor as a problem, a live one and an unconfigured slot as none
+  ok   a configured floor-return sensor silent for the sustained period raises one repair, not before, and it clears when readings return
+  ok   the repair names the entity and the period, is a warning and is not fixable
+  ok   the finding is pure: it starts the clock, waits the period, then names the entity
+  ok   the silence period outlasts a restart's or a brief outage's gap and is shorter than three hours of unannounced open-loop slab estimate
+  ok   ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant
+  ok   a live sensor and an unconfigured slot never raise it, at any age
+  ok   another input's failure beside a live floor-return sensor never raises it
+  ok   a short gap does not accumulate: a reading in between restarts the period
+  ok   a payload that does not carry the input signal leaves the watch alone
+  ok   the entry's notifier setup raises and clears the repair on coordinator updates
+  ok   the floor-return repair is translated in strings.json
+  ok   the floor-return repair is translated in translations/en.json
+  ok   the floor-return repair is translated in translations/sv.json
+  ok   the model spends a measured heat output instead of inferring one from the draw, and None is byte-identical to omitting it
+  ok   the two-zone step spends it too, on the same rule (null control: None byte-identical to omitting it)
+  ok   a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as 5.222035 kW
+  ok   and the lower-floor replay, which is the two-zone step's own learner
+  ok   an outranked, stale, negative, unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no learner input (null controls: 20 min old, and the same interval with the hot water at zero, both reach one)
+  ok   null control: with the key unset the replay is handed no measured heat and the prediction is byte-identical to a meter that read nothing
+  ok   a replay that raises costs the sample and nothing else, through the helper both learners now share
+  ok   the two-zone house replay predicts a different upper floor on the measurement than on the commanded draw it replaces
+
+-- early cut-off — a warm room stops a space-heating pump inside the interval
+  ok   _planned_room reads the first step's end (the i == 0 bound is inclusive)
+  ok   _planned_room holds no reading past a trajectory shorter than its timestamps
+  ok   a room past target + margin on a space step switches the pump off once
+  ok   the cut-off is recorded with its reading and threshold
+  ok   a room exactly at target + 0.5 K does not cut (the margin is inclusive)
+  ok   a room 0.1 K past target + 0.5 K cuts
+  ok   the margin is 0.5 K
+  ok   null control: a room at or below target never cuts the pump
+  ok   a room under the plan's own pre-heat + margin is not cut
+  ok   past the plan's own pre-heat + margin it is cut
+  ok   a room warm at the solve is judged against the plan's predicted end, not itself
+  ok   a pump on for less than MIN_ON is not cut
+  ok   with less than MIN_OFF to the next cycle the pump is not cut
+  ok   a second warm reading in the same cycle writes nothing more
+  ok   the next cycle resumes: its arm clears the cut and a warm room may cut again
+  ok   a switch with no change stamp is an unknown run and is not cut
+  ok   a hot-water-only step is never cut, however warm the room
+  ok   a both step is never cut, however warm the room
+  ok   a idle step is never cut, however warm the room
+  ok   a tank below its minimum exempts the step
+  ok   a non-plan mode (comfort) is never cut
+  ok   a stale plan is never cut
+  ok   a step the plan has off is never cut
+  ok   a running defrost is never cut
+  ok   a defrost entity that exists but reads off does not exempt the step
+  ok   a hot-water boost is never cut
+  ok   an early refresh inside MIN_OFF of a cut keeps the pump off
+  ok   past MIN_OFF the plan's on goes through, and an off is never turned on
+  ok   a boost set by that refresh is let through at once
+  ok   null control: with no cut on record allow_on returns the plan's own value
+  ok   the cut-off routes by the target's domain through pump_arbiter.switch_supply
+  ok   the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on
+  ok   null control: the same cycle past MIN_OFF turns it on as the plan says
+  ok   after a cut the arbiter's next tick writes nothing, the switch least of all
+  ok   control: with the supply on, the same arbiter tick writes its slots
+  ok   no switch configured: no listener is registered
+  ok   the room listener is registered once on the room thermometer
+  ok   arming twice registers one unload hook, not one per cycle
+  ok   unloading the entry drops the listener
+  ok   unloading the entry frees the coordinator the cut-off record was keyed by
+  ok   control: an entry never unloaded still pins its coordinator, so the check can fail
+  ok   detach drops the room listener and clears the wiring that reaches the coordinator
+  ok   a room event after detach is a no-op through the wiring guard, not a crash
+  ok   null control: a record never detached still delivers the room event and cuts
+  ok   allow_on returns the plan's value when the record carries no wiring (unloaded)
+  ok   the cut reason outranks the unmetered tail freeze, which this install trips
+  ok   a cut interval freezes the learners under the one early_cutoff reason
+  ok   the coordinator's cycle arms the cut-off (a new cycle end is set)
+  ok   diagnostics expose the cut-off view
+  ok   release unsubscribes the room listener and is idempotent
+  ok   a disinfection hold is never cut, however warm the room
+  ok   a cut is refused when the switch already reads off
+  ok   the min_off guard is a strict < (a cycle exactly MIN_OFF away is not held)
+  ok   a cold lower floor in a two-zone house is never cut
+  ok   _second_zone_cold is False at the exact target-margin boundary (strict <)
+  ok   a room reading above the plausible range is never cut
+  ok   a room reading exactly at the plausible-range high bound is accepted and cut
+  ok   _reading accepts exactly the low plausible bound
+  ok   a reading after the entry is released writes no cut
+  ok   the min_on guard is a strict < (a switch on exactly MIN_ON is not held)
+
+-- °F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)
+  ok   every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)
+  ok   a degF climate with no target attribute is still written in degF
+  ok   the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)
+  ok   a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)
+  ok   a set-point slot with no entity id reads nothing, before any state lookup, so the consistency check still reaches the space notice
+  ok   #2229: an entry covers [start, next start); the last one its predecessor's span, a lone one the given span -- and nothing covers before the first or past the end
+  ok   #2229: a price list that stopped updating publishes no current price past its last entry's hour; a covered hour (the null control) still reads its entry
+  ok   #2229: no prices, or none started yet, is no current price -- never 0.0, the cheapest price there is, and never the head of a list that covers a later hour
+  ok   #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the sweep's two siblings); inside it they read the covering entry
+  ok   #2233/#2236: a Tibber body with no usable row is a failure reason, a row with no parseable start is dropped, and a good body (null control) keeps all 96 rows
+  ok   #2236: one start rule for both ingress paths -- the entity path drops an unparseable start too
+  ok   #2233: an HTTP 200 with empty days fails the fetch and keeps the 96 held rows; the good fetch before it (null control) succeeds
+  ok   #2233: a forecast whose rows all fail plausibility is a failed fetch: the held 48 rows stay and are marked stale; the good fetch (null control) is not stale
+  ok   #2226: a held condition warns when it starts, DEBUGs while it holds, INFOs once when it clears, and warns again on recurrence or a changed text
+  ok   #2226: four cycles of no prices, no forecast and malformed peak-tariff options log each WARNING once (it was 4, and 16 for a tariff option)
+  ok   #2226/#2351: the stale-plan hold logs its advancing age and failure count at DEBUG, so a persisting stale plan never warns every cycle
+  ok   #2351: a None owner is logged every call and never raises -- no stable key means no transition to hold, not a cycle-ending exception
+  ok   #2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on repeats, ERRORs again after the success path clears it; forget_held re-arms
+  ok   #2229: an interval no price covered books its energy, no cost and no spot sample -- not a zero-priced kWh and not a 0.0 dragging the month's mean spot
+  ok   #2229 null control: a priced interval still books its cost and spot sample
+  ok   #2229: an accuracy sample with no price records no cost comparison (None, which the tracker's pairing skips), not a 0.0 cost; a priced one (null control) does
+  ok   #2229: an unknown current price never starts a system-identification experiment
+  ok   #2229: an override with no current price is recorded at a neutral relative price
+  ok   #2229: the operation score's day book takes an unpriced interval's kWh nowhere -- counted at 0 SEK it lowered the day's mean paid price; a priced one (null control) books
+  ok   #2239: the external-heat detector's space demand is the whole-house demand the tank's drain law prices, on the learned lower-floor ratio; the single-zone and ratio-1.0 arms are the controls
+  ok   #2239 (D-2 residual): the fit's published UA is on the configured zone-total basis and reads below the model's effective UA once the learned lower-floor split leaves 1; ratio 1.0 is the null arm
+  ok   #2239 (typical_heat_loss): the forecast's solar-reduction factor prices the whole-house UA -- the learned split for two-zone, the configured coefficient for single-zone; ratio 1.0 is the split's null arm
+
+-- R10-PUMP-MODEL -- DHW lift, the duty floor channel, the step-start fold
+  ok   D2-s2-01: the space-valve flag does not price the hot-water tank -- both plants charge one lift, over the whole outdoor/tank grid
+  ok   D2-s2-01: the tank's price is _cop_law at the tank's own water temperature, humidity and all -- not a penalty of its own
+  ok   D2-s2-01: a tank below the reference flow earns no lift and a hot one pays it (the one-sided rule _batch_cop states)
+  ok   D2-s2-01: and the flag is not inert here -- it is what prices the SPACE buffer's lift, which is the fact it owns
+  ok   D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument -- a floorless reader is unaffected while step_duty runs
+  ok   D7-arch3-04: no module-state floor is left behind -- no setattr names it, and the reader carries no such attribute, so a raise between the reads has nothing to leave set
+  ok   D7-arch3-04: the reader has no channel -- a floor set on planned_draw_runs from outside pump_arbiter does not reach a floorless read
+  ok   D7-s3-8x-slotfloor: the ledger row's start is plan_step_start(now), fold and all, on every instant of the autumn-DST day in both folds -- and a 30-minute reference agrees on exactly the instants it must, so it is not vacuous
+  ok   D7-s3-8x-slotfloor: the arbiter's ledger step and the solve's anchor are one function on one width -- widened to 30 minutes, both read the 30-minute step
+  ok   D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan step) -- live a microsecond before the edge, expired at it
+  ok   R10-SAV-REASONS: a plan that commanded nothing does not name the draw it never asked for -- the metered kWh book as untagged, not as idle
+  ok   R10-SAV-REASONS: a channel the plan ran explains the draw at any meter magnitude, and an idle step books outside the plan even at a trickle
+  ok   R10-SAV-REASONS: the idle channel's share books as untagged and the reason lines still sum to the spot line
+  ok   R10-SAV-REASONS: explain_metered returns exactly the shares it names -- planned, idle, no reason, already untagged, coalesced, empty and one channel
+  ok   R10-SAV-REASONS: a boosted channel is booked under the boost, not under the plan step's idle reason the overlay overwrote
+  ok   R10-SAV-REASONS: a boost never relabels the anti-legionella cycle the observer reads this field for -- the one cause that survives the overlay
+  ok   R10-SAV-REASONS: without a live boost the plan's own reasons survive (null control for the overlay tag)
+  ok   R10-SAV-REASONS: every whole-action adoption names its cause from the shared vocabulary -- the fixed modes, the experiment and the solve
+  ok   R10-SAV-REASONS: on a flat-price profile every reason carries the one price per kWh, and no category carries a cost another would not
+  ok   D1-s1-02: a comfort, boost or off write inside the solve await is the action that runs; the AUTO plan is not adopted and files no lead prediction
+  ok   D1-s1-02 null: a solve whose mode stays AUTO adopts its plan and files its lead predictions
+  ok   a re-run requested mid-solve is dropped when a fixed mode superseded the solve, and kept across an AUTO -> COMFORT -> AUTO round trip
+  ok   ARCH2-s2 P2: a fixed mode's action reaches boost.adopt_plan already priced, so no field is written onto the plan base afterwards
+  ok   comfort's fixed action displaces 4 K, held inside a narrower configured ECL110 displace window
+  ok   ARCH2-s2 P4: an ECL110 message and a peak-guard flip publish a new state; a state held before them keeps its values
+  ok   I1/I3: an ECL110 message and a peak-guard flip landing inside _update_current_state's learner awaits survive its later publishes (the lag starts from the message's value)
+  ok   L3: an away-off, a boost cancel and a live-state replacement written inside the startup restore's load each end as the serial order does
+  ok   the restore gate settles when the restore never starts (closed, or cancelled before its first step): a user write still lands
+  ok   a manual-plan clear and an apply made during the startup load each survive it
+  ok   ARCH2-s2 P6: a cancelled tile solve skips its spec on this pass, so the next solve takes the next spec (behaviour change, stated in the PR)
+
+ALL 4382 FEATURE CHECKS PASSED
+rc=0

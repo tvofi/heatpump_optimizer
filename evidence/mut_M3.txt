@@ -1,0 +1,24 @@
+mutated custom_components/heatpump_optimizer/learner_progress.py
+ custom_components/heatpump_optimizer/learner_progress.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc=1
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+numpy.linalg.LinAlgError: Singular matrix
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+  FAIL R10-LEARNER-ETA: no settling learner carries a day count, on any weather or rate  [[(True, True, {'house': ('settling', None), 'lower': ('off', None), 'solar': ('settling', None), 'gains': ('settling', None)}), (True, False, {'house': ('settling', None), 'lower': ('off', None), 'solar': ('settling', None), 'gains': ('settling', None)}), (False, True, {'house': ('waiting', None), 'lower': ('off', None), 'solar': ('waiting', None), 'gains': ('waiting', None)}), (False, False, {'house': ('waiting', None), 'lower': ('off', None), 'solar': ('waiting', None), 'gains': ('waiting', None)})]]
+RuntimeError: no HTTP session available in the test stub
+ValueError: D1-01: malformed month wedges the freezer
+RuntimeError: tariff exploded
+RuntimeError: solver exploded
+RuntimeError: boom
+RuntimeError: boom
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
+RuntimeError: no HTTP session available in the test stub
