@@ -29,10 +29,10 @@ dispatch/fixer-r10-mutant-skip-r3
 dispatch/fixer-r10-rca-codescan-wait-r2
 dispatch/fixer-r10-fly-yield-guard-r2
 dispatch/fixer-r10-gate-defer-r2
-dispatch/fixer-triage-s6-batch15-r2
 dispatch/fixer-triage-s6-batch19-r2
 dispatch/fixer-r10-sav-comfort-r3
 dispatch/fixer-r10-config-notices-r2
 dispatch/fixer-r10-learner-eta-r4
 dispatch/fixer-r10-merge-subject-harden-r6
 dispatch/fixer-r10-demand-overbook-r5
+dispatch/fixer-triage-s6-batch15-r2
