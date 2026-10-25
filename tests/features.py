@@ -2100,9 +2100,9 @@ R.check(
     "idle_kw=%s" % _r10do_idle.idle_kw(),
 )
 
-# ``_track_dhw``, the tank block moved out of ``_update_current_state``: a tank
-# reading reaches the DHW learner and its freeze reason reaches the
-# coordinator; with no reading the learner is never called.
+# The tank block of ``_update_current_state``: a tank reading reaches the DHW
+# learner and its freeze reason the coordinator; with no reading the learner is
+# never called.
 
 
 def _r10do_dhw(tank):

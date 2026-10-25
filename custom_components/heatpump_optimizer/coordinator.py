@@ -5424,6 +5424,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if self._house_heat_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
+    async def _async_learn_interval(self, prior: ThermalState, *, slab_unsensed: bool) -> float | None:
+        """The elapsed interval's learners, in the one order that works; the slab seed.
+
+        `_async_learn_house_heat_loss` overwrites the baseline (`_last_house_sample`,
+        its time) at its top, so a reader of it runs first. ``slab_unsensed``: the
+        slab advanced from ``prior`` (`_propagated_slab`), else ``None``.
+        """
+        prior_at = self._last_house_sample_time
+        await self._async_learn_lower_floor_loss()
+        await self._async_learn_house_heat_loss()
+
+        # Observed COP (a power entity only), saved on the house learner's
+        # every-10-samples cadence: both share the thermal learning store.
+        cop_samples_before = self._cop_samples
+        self._learn_measured_cop(self._accuracy.draw)
+        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+            await self._async_save_thermal_learning()
+        return await _propagated_slab(self, prior, prior_at) if slab_unsensed else None
+
     async def _async_learn_lower_floor_loss(self) -> None:
         """Redistribute the heat loss between the two zones (item 31).
 
@@ -6280,7 +6299,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self.currency = _feed_currency(self.hass, ctx._config) or self.currency
         # Read onto a copy, published whole before the first reader below;
         # ``prior`` is the state the interval started from (the slab seed).
-        prior, prior_at = ctx._current_state, self._last_house_sample_time
+        prior = ctx._current_state
         state = replace(prior)
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
@@ -6463,28 +6482,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # after the pump signals its ``_learning_frozen`` consult reads (#1331).
         self._track_curve_comfort(dt_util.now())
 
-        if frozen := await self._track_dhw(dhw.value if dhw.ok else None, reader):
+        tank = dhw.value if dhw.ok else None
+        if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
             self._learner_freeze_reason = frozen
+        _ctx_of(self).publish(
+            self, dhw_hours_since_legionella=await self._legionella.async_observe(tank, reader)
+        )
 
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
 
-        # Refine the building fabric model from how the last interval actually
-        # went. Runs last so it sees the fully populated state.
-        # Order matters, and not obviously. `_async_learn_house_heat_loss`
-        # overwrites `_last_house_sample` with the *current* state near its top,
-        # so anything reading that baseline has to run first or it silently
-        # compares the current state against itself and learns nothing.
-        await self._async_learn_lower_floor_loss()
-        await self._async_learn_house_heat_loss()
-
-        # Observed COP, which is only possible with a measured power entity.
-        # Persisted on the same every-10-samples cadence as the house learner;
-        # both share the thermal learning store.
-        cop_samples_before = self._cop_samples
-        self._learn_measured_cop(self._accuracy.draw)
-        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
-            await self._async_save_thermal_learning()
+        # The fabric model refined by how the interval went: last, on the full state.
+        seed = await self._async_learn_interval(prior, slab_unsensed=not floor_return.ok)
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
@@ -6500,7 +6509,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # path as an absent one. The room+1 K seed runs only until the slab
         # can be advanced (``_propagated_slab``); it used to freeze forever.
         if not floor_return.ok:
-            if (seed := await _propagated_slab(self, prior, prior_at)) is not None:
+            if seed is not None:
                 state.slab_temperature = seed
                 self._slab_temp_initialized = True
             elif not hasattr(self, "_slab_temp_initialized"):
@@ -7651,22 +7660,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "two_zone_enabled": ctx._thermal_params.two_zone_enabled,
             **_plan_settings_view(ctx._opt_config),
         }
-    async def _track_dhw(self, tank: float | None, reader: Any) -> str | None:
-        """Feed the tank reading to the DHW learner and the legionella guard; the learner's freeze reason."""
-        frozen = None
-        if tank is not None:
-            frozen = await self._dhw_learner.async_learn_dynamics(tank)
-            await self._legionella.async_track(tank)
-        self._legionella.disinfect.observe(reader)
-        # NOT gated on a tank reading: the observer above is the only reset
-        # path, and the countdown advances on the clock regardless -- that
-        # asymmetry was the latch. It follows the commanded boost, so a cycle
-        # completes with no probe or a pump short of the disinfection temperature.
-        await self._legionella.async_track_cycle(tank)
-        self._legionella.check_ceiling()
-        _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
-        return frozen
-
     def _dhw_view(self) -> DhwView:
         """Hot water configuration and current demand state."""
         ctx = _ctx_of(self)
