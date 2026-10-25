@@ -1,0 +1,71 @@
+tools/audit/seat/body_patch.sh:8:# update_pr.sh merges main on every run; app_push.sh mints, pushes, then
+tools/audit/seat/bus.sh:46:# `update_pr.sh`) or `review` (a pull request that diverged from the ref, a
+tools/audit/seat/bus.sh:569:    # `update_pr.sh`; a head neither containing nor contained needs a human.
+tools/audit/seat/bus.sh:1071:  # The row dispatch requires is the row open_pr.sh and update_pr.sh write:
+tools/audit/seat/cloud_relay.sh:89:#     update_pr.sh <branch> <code-sha> <body> <issues> (issues = the body's
+tools/audit/seat/cloud_relay.sh:147:# update_pr.sh, approve_held_runs.sh and bus.sh dispatch: the self-test's stubs.
+tools/audit/seat/cloud_relay.sh:432:    # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+tools/audit/seat/cloud_relay.sh:434:    urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
+tools/audit/seat/cloud_relay.sh:437:    # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
+tools/audit/seat/cloud_relay.sh:843:  # a BUSY update (75: another update_pr.sh holds the branch's worktree) is no failure: not recorded, retried next pass
+tools/audit/seat/cloud_relay.sh:946:  # ... and the update stops first, as the reap's lead: its child G stands for update_pr.sh's
+tools/audit/seat/cloud_relay.sh:955:  # an update_pr.sh that is the lead stub, so the relay's own `bash "$HERE/update_pr.sh"` runs it.
+tools/audit/seat/cloud_relay.sh:956:  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
+tools/audit/seat/cloud_relay.sh:958:  chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
+tools/audit/seat/delivery_row.sh:5:#   . tools/audit/seat/delivery_row.sh     (open_pr.sh, update_pr.sh, bus.sh)
+tools/audit/seat/delivery_row.sh:17:# update_pr.sh, which never wrote one, left it so -- every later dispatch was
+tools/audit/seat/delivery_row.sh:18:# refused. update_pr.sh now calls ensure_row, which adds the row when the head
+tools/audit/seat/handoff_push.sh:6:# Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
+tools/audit/seat/handoff_push.sh:14:# writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
+tools/audit/seat/open_pr.sh:8:# function update_pr.sh's ensure_row also calls (its header says why).
+tools/audit/seat/open_pr.sh:32:# The branch's lock, update_pr.sh's own, held to the end: cloud_relay's update_pr.sh detached this worktree
+tools/audit/seat/pr_args.sh:3:# open_pr.sh and update_pr.sh share, so neither can stop without saying why,
+tools/audit/seat/pr_args.sh:6:#   . tools/audit/seat/pr_args.sh       (open_pr.sh, update_pr.sh; PR_NAME first)
+tools/audit/seat/pr_args.sh:63:  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+tools/audit/seat/pr_args.sh:67:  # One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch the other
+tools/audit/seat/pr_args.sh:68:  # is pushing (R10-OPENPR-ROW-PUSH). $WT and $WT.log of update_pr.sh are fixed per branch, and the
+tools/audit/seat/pr_args.sh:127:# stops its own tree in its own order -- update_pr.sh frees its branch lock only
+tools/audit/seat/pr_args.sh:190:tools/audit/seat/update_pr.sh runner
+tools/audit/seat/pr_args.sh:248:# update_pr.sh resolve (`PRT`) before their first check: without it every run
+tools/audit/seat/pr_args.sh:309:    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py; do
+tools/audit/seat/pr_args.sh:515:  # The lead (train.sh's merge_train.py, cloud_relay.sh's update_pr.sh) stops its own tree
+tools/audit/seat/pr_args.sh:516:  # first. The lead's child G stands for update_pr.sh's lock holder: G marks a TERM it gets;
+tools/audit/seat/pr_args.sh:583:    "update_pr: REFUSE: 2 argument(s), at least 3 needed" update_pr.sh fix/x "$code"
+tools/audit/seat/pr_args.sh:585:    "update_pr: REFUSE: code sha '${code:0:12}' is not 40" update_pr.sh fix/x "${code:0:12}" "$t/body.md"
+tools/audit/seat/pr_args.sh:587:    "that is the BODY sha; pass the CODE sha" update_pr.sh fix/x "$body" "$t/body.md"
+tools/audit/seat/pr_args.sh:590:    update_pr.sh fix/x "$side" "$t/body.md"
+tools/audit/seat/pr_args.sh:592:    "update_pr: REFUSE: origin has no handoff/q" update_pr.sh fix/q "$code" "$t/body.md"
+tools/audit/seat/pr_args.sh:595:    update_pr.sh fix/x-pr "$side" "$t/body.md"
+tools/audit/seat/pr_args.sh:597:    "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+tools/audit/seat/pr_args.sh:606:  # One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch
+tools/audit/seat/pr_args.sh:609:  # behind a dead pid in -- the branch's lock, and runs update_pr.sh on the branch.
+tools/audit/seat/pr_args.sh:619:    cp "$t/body.md" "$t/b.md"; run "$1" update_pr.sh fix/x - "$t/b.md"
+tools/audit/seat/pr_args.sh:625:  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another open_pr.sh or update_pr.sh run" "$t/out" \
+tools/audit/seat/pr_args.sh:644:    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
+tools/audit/seat/pr_args.sh:647:    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
+tools/audit/seat/pr_args.sh:671:  updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
+tools/audit/seat/pr_args.sh:677:    cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
+tools/audit/seat/pr_args.sh:680:      bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+tools/audit/seat/pr_args.sh:719:    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+tools/audit/seat/pr_args.sh:751:    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b.md" > "$t/out" 2>&1
+tools/audit/seat/pr_args.sh:763:  # it second; update_pr.sh (cloud_relay's arm, minutes later) detached any clean worktree holding
+tools/audit/seat/pr_args.sh:768:  # update_pr.sh starts on the same branch. Expected: update_pr.sh is BUSY, the row reaches origin.
+tools/audit/seat/pr_args.sh:794:    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+tools/audit/seat/pr_args.sh:801:    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+tools/audit/seat/pr_args.sh:809:  ck "open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin" $?
+tools/audit/seat/pr_args.sh:811:  ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
+tools/audit/seat/pr_args.sh:819:    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+tools/audit/seat/pr_args.sh:826:    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+tools/audit/seat/pr_args.sh:839:  # The row-only arm (R10-ROW-ONLY-UPDATE): with code sha `-` update_pr.sh asks app_push.sh for
+tools/audit/seat/pr_args.sh:847:  rowrun() { # <mutant> <code-sha|->: update_pr.sh on fix/w; the stub's arguments in $t/argv
+tools/audit/seat/pr_args.sh:848:    rm -f "$t/argv"; cp "$t/body.md" "$t/b.md"; HANDOFF_TOPIC=x run "$1" update_pr.sh fix/w "$2" "$t/b.md"; }
+tools/audit/seat/pr_args.sh:856:    cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
+tools/audit/seat/tick_loop.sh:12:#      left running, never killed (its update_pr.sh may be mid-push), and reported
+tools/audit/seat/tick_loop.sh:14:#      ran 27+ min (update_pr.sh's prepr, #2525) left the board 66+ min stale while
+tools/audit/seat/tick_loop.sh:118:  # A relay slower than the interval (update_pr.sh's prepr, #2525) must not hold the board.
+tools/audit/seat/update_pr.sh:25:pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
+tools/pr/app_push.sh:107:# --row-only is update_pr.sh's push of a pull request's own delivery row onto
+tools/pr/app_push.sh:1017:# --row-only (R10-ROW-ONLY-UPDATE): update_pr.sh's push of the pull request's
+tools/pr/app_push.sh:1095:# a fix branch (the live head) and the row commit update_pr.sh's ensure_row
+tools/pr/app_push.sh:1143:{ printf 'Round 2: update_pr.sh takes its output to word the `## Head` note.\n\n'; cat "$W/body.md"; } > "$W/quoted.md"
+tools/pr/app_push.sh:1156:st "$(head -1 "$W/dq2/c/live-body")" 'Round 2: update_pr.sh takes its output to word the `## Head` note.' "and the prose above the heading is untouched"

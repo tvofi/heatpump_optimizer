@@ -1,0 +1,4 @@
+R1-unread-not-held SURVIVED cloud_relay self-test: 268 checks, 0 failed []
+R2-no-level_set-held KILLED cloud_relay self-test: 268 checks, 2 failed []
+R3-no-worktree-read KILLED cloud_relay self-test: 268 checks, 2 failed []
+R4-vrefs-listing-fail-ignored KILLED cloud_relay self-test: 268 checks, 8 failed []

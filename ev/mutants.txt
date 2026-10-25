@@ -1,0 +1,8 @@
+== cloud_relay-22 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 13 failed
+== cloud_relay-23 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 8 failed
+== cloud_relay-24 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 1 failed
+== cloud_relay-25 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 1 failed
+== cloud_relay-26 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 1 failed
+== cloud_relay-27 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 1 failed
+== cloud_relay-28 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 268 checks, 2 failed
+RESULT survivors=0
