@@ -1,0 +1,4 @@
+MUTANT M1_retry: features: 3 of 4404 FEATURE CHECKS FAILED | guard_pins: ALL 50 GUARD PIN CHECKS PASSED
+  FAIL a tank that never gets hot is retried a day later, neither latching overdue nor waiting out the interval  [7005 h before, 4.972222222222222e-08 h after, due in 168.0 h]
+  FAIL …and the timer moves anyway, instead of latching at 192 h  [7005 h before, 4.166666666666666e-08 h after]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

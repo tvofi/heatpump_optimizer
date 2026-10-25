@@ -1,0 +1,3 @@
+MUTANT M5_overdue_track: features: 2 of 4404 FEATURE CHECKS FAILED | guard_pins: ALL 50 GUARD PIN CHECKS PASSED
+  FAIL a cycle that reaches temperature clears the notices and the attempt, and restarts the countdown  [issues ['dhw_legionella_above_setpoint', 'dhw_legionella_overdue']]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

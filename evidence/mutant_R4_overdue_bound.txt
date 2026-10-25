@@ -1,0 +1,2 @@
+MUTANT R4_overdue_bound: features: 1 of 4404 FEATURE CHECKS FAILED | guard_pins: ALL 50 GUARD PIN CHECKS PASSED
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

@@ -1,0 +1,4 @@
+  class_excess_loc = 18096 (every class's span past 300, summed; the coordinator's 432 helper lines count in its span)
+RESULT class_excess_loc=18096 count
+  ok   class_excess_loc 18096 <= 18096
+STRUCTURE RATCHET PASSED
