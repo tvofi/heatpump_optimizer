@@ -1,0 +1,180 @@
+f57b6d52e roster_edit append-carry R10-MERGE-SUBJECT-CASEARM (tools/audit/seat/roster_edit.py)
+e78d7dedd roster_edit append-carry R10-ORCH-BEATD (tools/audit/seat/roster_edit.py)
+c6097875c roster_edit append-carry R10-FLOW-ROSTER-FREEZE (tools/audit/seat/roster_edit.py)
+461550d9a roster_edit set-after R10-FLOW-ROSTER-FREEZE (tools/audit/seat/roster_edit.py)
+4a18b96b1 Merge origin/main into handoff/audit-r10-roster (roster file kept at the branch tip; main's copy equals c57fa3768, an ancestor)
+ab3aade49 Merge pull request #2790 from tvofi/triage/s6-batch21
+7138516b4 Merge pull request #2789 from tvofi/record/autofix
+dc9ddefad record: the delivery row for #2790
+0c348be57 Merge remote-tracking branch 'origin/main' into triage/s6-batch21
+1aa765fdd Merge pull request #2787 from tvofi/fix/audit-r10-roster-pr9
+c4b83673c ci: record delivery rows
+a9da4b4f9 ci: record delivery rows
+566d5cda6 triage: s6 batch 21, P100 (S6-V34 accepted narrowed)
+973618e6f Merge pull request #2788 from tvofi/record/autofix
+8a11b8bdd Merge pull request #2765 from tvofi/fix/r10-fly-yield-guard
+54f6f50e6 record: the delivery row for #2787
+9da3cb7f8 ci: record delivery rows
+a8fecddb7 ci: record delivery rows
+81dbf78c7 roster: round-10 batch 9 (roster ops on handoff/audit-r10-roster through c57fa3768: GATE-DEFER, TRAIN-UPGRADE, RATIO-ANCHOR and RCA-CODESCAN-WAIT set-stages; ORCH-BEATD carries P94 and P95)
+1afbbceae Merge pull request #2786 from tvofi/record/autofix
+c01d54b98 Merge pull request #2779 from tvofi/fix/r10-roster-freeze-b-r2
+cc9d584ac Merge pull request #2782 from tvofi/triage/s6-batch20
+6939389f8 Merge pull request #2756 from tvofi/fix/r10-rca-codescan-wait
+9082f2642 Merge pull request #2758 from tvofi/triage/s6-batch15
+de39ac00c triage: s6 batch 21, P99 (S6-V33 deferred)
+5943ad8b4 Merge remote-tracking branch 'origin/main' into fix/r10-roster-freeze-b-r2
+dc4f26432 ci: record delivery rows
+afcb85f28 ci: record delivery rows
+ab00437c9 Merge pull request #2781 from tvofi/record/autofix
+2f88db054 Merge pull request #2698 from tvofi/fix/r10-ratio-anchor
+ac0a616a2 Merge pull request #2772 from tvofi/fix/r10-train-upgrade
+7c8154bd8 Merge pull request #2770 from tvofi/fix/r10-gate-defer
+12b222007 Merge pull request #2767 from tvofi/triage/s6-batch19
+5a529f151 Merge remote-tracking branch 'origin/main' into triage/s6-batch15
+e8f7a76c4 Merge remote-tracking branch 'origin/main' into fix/r10-ratio-anchor
+cf8b121e4 Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+d33d1e38d Merge remote-tracking branch 'origin/main' into fix/r10-gate-defer
+ed5720cae Merge remote-tracking branch 'origin/main' into fix/r10-roster-freeze-b-r2
+4944b20d5 Merge pull request #2766 from tvofi/fix/r10-mutation-anchor
+bed70a722 Merge pull request #2692 from tvofi/fix/r10-replay-scoped
+8e7dc7ad1 Merge pull request #2706 from tvofi/fix/r10-rca-gate-lease-flake
+0fa2b4ebe Merge pull request #2763 from tvofi/triage/s6-batch18
+26449b5df Merge pull request #2761 from tvofi/triage/s6-batch17
+d7b0bf923 triage: P98 routes to R10-FLOW-ROSTER-FREEZE arm (b2), after #2779
+eea25ba82 triage: s6 batch 21, P98 (carry_audit reads origin/main when the tree lacks it)
+9292cdd99 Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+46bf82435 Merge remote-tracking branch 'origin/main' into fix/r10-fly-yield-guard
+ffbcb3cb5 Merge remote-tracking branch 'origin/main' into fix/r10-rca-codescan-wait
+e7b774926 Merge commit '9dead62bcb5039f862026587e7c0f8125e65566c' into fix/r10-rca-codescan-wait
+8a29702db Merge remote-tracking branch 'origin/main' into fix/r10-gate-defer
+7483bdb86 Merge commit 'b2ff00056ad3cee05279d1a6c72f12f47079c650' into fix/r10-gate-defer
+662a3809c Merge pull request #2704 from tvofi/fix/r10-policy-fixer-md
+b6a56ad7d triage: s6 batch 21, P97 (stop the predecessor before a standing-seat restart; pulse DUPLICATE carry)
+b20633346 Merge remote-tracking branch 'origin/main' into triage/s6-batch19
+62cb224ab Merge commit '3eb3223977b257f3c0dcf2940299c28eff967102' into triage/s6-batch19
+3783fe271 record: the delivery row for #2782
+c3bc47e86 Merge remote-tracking branch 'origin/main' into fix/r10-fly-yield-guard
+60584cc67 Merge remote-tracking branch 'origin/main' into triage/s6-batch20
+28b40e82c Merge commit 'b66cbf0bec9734d3c5db66b79d625d3d07fca025' into fix/r10-fly-yield-guard
+fff81a147 triage: s6 batch 20, P96 (carried single merges via the train; merge_pr.sh names the route)
+9dead62bc rca(r10-rca-codescan-wait): section 5 re-taken: M2 and M3 on main, M1 at R10-GATE-DEFER, the precondition carried there
+b2ff00056 R10-GATE-DEFER: the race harness counts RESIDUAL-RED only on a head with no real red
+1c2cf65e1 ci: record delivery rows
+b6c28ed05 ci: record delivery rows
+b66cbf0be R10-FLY-YIELD-GUARD: carry the guardrail's trip and its unclassified words to carry-201.json
+3eb322397 triage: s6 batch 19, P88 re-counted from first-parent git (19 record merges on 2026-10-24, not 37) and the carry states how it combines with the group's pitch
+85b72e824 R10-GATE-DEFER: the sweep re-judges a red gate at the head whatever its run's id
+5a33c766e Merge remote-tracking branch 'origin/main' into fix/r10-gate-defer
+dd3d338cc ci: merge main
+0a6438e60 triage: P95 re-rules P94 at the third hand-written blank-read instance
+274e6975c Merge commit 'dab507328b11188b002d4b8183911ed9425c0a6e' into fix/r10-ratio-anchor
+94da32128 Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+abee3d190 Merge commit '4a1e41af579c5b13ca00e0216265e6e091fb4ac5' into fix/r10-train-upgrade
+187d540a3 triage: s6 batch 20, P94 (pin git/gh reads: sweep template carry, seat script fix)
+3bfba9990 ci: merge main
+4a1e41af5 Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+72ee6a18a record: the delivery row for #2779
+72f8154ec R10-TRAIN-UPGRADE: the mutant harness finds its root with the canonical repo_root walk
+8f1f808fb Merge remote-tracking branch 'origin/main' into fix/r10-roster-freeze-b-r2
+1fc29bcce Merge remote-tracking branch 'origin/main' into fix/r10-mutation-anchor
+ec85ae1a3 Merge remote-tracking branch 'origin/main' into fix/r10-replay-scoped
+7f6e4296f Merge remote-tracking branch 'origin/main' into fix/r10-rca-gate-lease-flake
+c8219f601 record: the delivery row for #2772
+3d526a7f3 Merge remote-tracking branch 'origin/main' into work/rfb
+f8ba958d9 carry_audit: build the self-test's scratch clone with throwaway_git_init
+b4a6f4449 Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+ce6f6511e record: the delivery row for #2770
+0d43a34f6 Merge remote-tracking branch 'origin/main' into fix/r10-gate-defer
+dab507328 mutation ledger: drop the three bot pins the repair's own rewrite made stale
+85d75b436 Merge remote-tracking branch 'origin/main' into work/ratio-anchor-r2
+24b4399cf carry_audit: accept a group open on the round's roster branch
+a1056fba8 triage: s6 batch 20, P93 (pulse seat-queue: deferred to R10-ORCH-BEATD's alive arm)
+b28cb6ac5 record: the delivery row for #2767
+fe4af2898 Merge the ci pin bot's bc73e53b into handoff/r10-ratio-anchor, keeping the fixer's re-pin
+a5146153e record: the delivery row for #2766
+6d87a0633 triage: s6 batch 19, P89-P92 (roster-ref carries, review-owed classes, check-run reads, set-stage group)
+b1cba1aca Merge remote-tracking branch 'origin/main' into fix/r10-train-upgrade
+a0d5f6ab2 Merge remote-tracking branch 'origin/main' into fix/r10-mutation-anchor
+66d0fb9e2 merge_train: approve once per head, at admission, and wait the review run out (triage P86)
+4df5a42f1 record: the delivery row for #2765
+b4a6bfbaa Merge remote-tracking branch 'origin/main' into fix/r10-fly-yield-guard
+b2de1d2fd record: the delivery row for #2763
+71dac86f2 record: the delivery row for #2761
+ed11cfab4 Merge remote-tracking branch 'origin/main' into triage/s6-batch17
+3b82c204e triage: s6 batch 19, P88 records the orchestrator's two decisions (no policy change; queued after the drain)
+ad8d97855 triage: s6 batch 19, P88 (record PRs batch 4 rows on push; dispatch and schedule flush)
+69efb1cbb triage: s6 batch 18, P87 (rows go through update_pr.sh so the Head note moves with them)
+1c49d77eb triage: s6 batch 17, P86 (approve ahead of the merge; the review-event CI run blocks it)
+436a2b3ce train upgrade: mutant harness, closure classification, instrument lines
+7c17a482c merge_train: self-tests for add's admission, idempotence, start and race
+fe1eb48c8 merge_train: self-tests for several batches and the live queue
+24f9c765d train.sh add: load a pull request into the live train, or start one
+f0864f026 merge_train: several batches on one train, and a live queue drained between batches
+7f91e6842 record: the delivery row for #2758
+699e404ce Merge remote-tracking branch 'origin/main' into fix/r10-rca-gate-lease-flake
+4feee0de7 Merge commit 'ee341cb0750ddf1d515bc1d473bc1557af103bac' into fix/r10-rca-gate-lease-flake
+7d5816a93 merge_train: batch arms for the policy post
+3c1894810 merge_train: post the policy approval step 5 requires, under a mandate in force
+feb44bd88 triage: s6 batch 15, P84 re-scoped into the owner-ordered R10-TRAIN-UPGRADE
+cf58e6a84 triage: s6 batch 15, P84 (the train posts the mandate approval its policy step requires)
+879dd65be Merge remote-tracking branch 'origin/main' into fix/r10-policy-fixer-md
+ea1bc9347 Merge commit 'e1af669109c862b1f7dbc7a8112b8c167123c973' into fix/r10-policy-fixer-md
+a569538ef ci: merge main
+5150d1723 R10-GATE-DEFER: gate.py's docstring names where judging now lives
+718fcadb2 record: the delivery row for #2756
+ee341cb07 Merge remote-tracking branch 'origin/main' into HEAD
+0567c2dcf gate_lock: write the unleased marker whole; pin no staging file left in the pool
+a62e76407 mutation ledger: pin the boundary sites, triage the one equivalent
+e1af66910 policy(R10-POLICY-FIXER-MD): land roster carries 10, 11 and 12
+ad7bc3198 R10-GATE-DEFER: keep r10_ci_gate_core.py's mutants arm drivable after the move
+eedc34465 R10-GATE-DEFER: name the unbounded-wait and finished-not-judging mutants in the self-tests
+fb98e610a Merge remote-tracking branch 'origin/main' into fix/r10-rca-codescan-wait
+409bbe929 R10-GATE-DEFER: a deferring gate waits, bounded, instead of publishing red
+31785a5d4 reanchor_heat_loss: pin each bound's inclusiveness, drop a dead guard
+60aa238ea mutation ledger: pin the 23 killed sites this diff adds
+cb5955df3 Merge remote-tracking branch 'origin/main' into fix/r10-mutation-anchor
+bc73e53b0 ci: pin killed mutants
+9a8183f4d closures: classify the r10_codescan_wait_race harness as an inert read of harness_headers.py
+ff68454da rca(r10-rca-codescan-wait): an edit run below its code run's id reads an unfinished codeql unit
+3cb658e35 structure: re-record class_excess_loc and max_class_loc
+1f6f69244 reanchor_heat_loss: a scale clamp-reset solves the ratio again at zero scale confidence
+b7c450091 Merge remote-tracking branch 'origin/main' into work/r10-ratio-anchor
+a78d45897 R10-FLY-YIELD-GUARD: pin the arms' sizes, first-verdict order and the guardrail's printed close
+ea459c0b5 record: the delivery row for #2706
+859b74ba8 record: the delivery row for #2704
+a55a0f47e Merge remote-tracking branch 'origin/main' into fix/r10-mutation-anchor
+02edc2f74 Merge remote-tracking branch 'origin/main' into fix/r10-rca-gate-lease-flake
+04860ee0a Merge remote-tracking branch 'origin/main' into fix/r10-policy-fixer-md
+3383fb2ac Merge remote-tracking branch 'origin/main' into fix/r10-ratio-anchor
+3deb7cb89 Merge remote-tracking branch 'origin/main' into fix/r10-mutation-anchor
+1bf9fdae4 mutation_table: a pin's reason names no base ref (P-L)
+ab2d15ef2 test: two pins of one mutant are byte-identical whatever base measured them (P-L)
+382ddf506 ledger: strike the 30 vacuous killed_by tests/entities.py pins to gap triages
+f4458d216 record: the delivery row for #2692
+642538f46 Merge remote-tracking branch 'origin/main' into fix/r10-replay-scoped
+8486800c8 R10-FLY-YIELD-GUARD: the review-strength guardrail, report-only
+0b0bb6644 record: the delivery row for #2698
+fab4a07c1 fix(gate_lock): create and renew an owner file whole, so a waiter never reads a torn slot as free
+8af7b6f50 Merge remote-tracking branch 'origin/main' into fix/r10-ratio-anchor
+933027b07 harness: r10_anchor_vacuous --strike turns a vacuous pin into a gap triage
+0be5e2de5 harness: r10_anchor_vacuous names a red baseline's failing checks
+1c918ad52 harness: r10_anchor_vacuous names the BASH_ENV recipe its baseline needs
+799830bb5 Keep tests/README.md as it was: its replay line still holds
+c1fbc5d3e entities: the --anchor self-test stubs the one row it re-drives, not the live ledger
+926e0a8c3 closures: record harness_headers.py's inert read of r10_anchor_vacuous.py
+1398ee7bc harness: r10_anchor_vacuous finds its root by the canonical repo_root walk
+dc079302a docs(tests/README): name the replay lane's pull-request arm inside the files_tokens cap
+f9878c8d9 mutation_table: hide the ledger rows a mutant invalidates from its tree
+20106bbc4 test: a re-driven pin must not reproduce on its own stale ledger row
+d6459b640 ci: run the timed replay on a pull request only when its diff reaches it
+97ce097ab structure: re-record at the merge base 50af6174f
+b49602160 fix(r10-ratio-anchor): solve the scale again when the ratio resets
+2788ce349 policy(R10-POLICY-FIXER-MD): dispose #2378's recurring fixer.md friction
+41664bddf Merge remote-tracking branch 'origin/handoff/r10-ratio-anchor' into fix/r10-ratio-anchor
+db35c6c43 test(r10-ratio-anchor): pin the anchor pair's refusal of a non-positive total
+f69a58984 harness(r10-ratio-anchor): take the canonical repo_root walk
+73c5c28a8 closures: classify the r10_ratio_anchor harness as an inert read of harness_headers.py
+78c10050c fix(r10-ratio-anchor): fold the re-anchor guard into the anchor pair; land the harness
+649597b2c fix(r10-ratio-anchor): re-anchor the ratio only when the nameplate split moves
+d64484492 fix(r10-ratio-anchor): re-anchor the lower-floor ratio with the scale, and void evidence on a meter add
