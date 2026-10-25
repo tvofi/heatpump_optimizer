@@ -1,34 +1,48 @@
-Fix review: merge 541be6106c06457cfc4df04d1f65f26898af7208
+Fix review: merge ddb4398a15abe3d445a959d922c1dc9b7f685831
 
-bus-nonce: f2140a873ea6f68e0fb87ae7f2088351
+bus-nonce: cb63cf3951d36d160fa79909cf56ef59
 
 ## Summary
 
-Round 1 review of PR #2833 (R10-PLAN-ISSUES-CHART). Measured at head `541be6106c06457cfc4df04d1f65f26898af7208`, merge base `c9cbe6b458a7053f914649eb02d5296d6cd8c0f4`, from detached worktrees at both. Role files: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current. The roster's group entry (handoff/audit-r10-roster `2b7fe35c67ca`) has `carry: []` and `architect_note: null`. Every control its brief names has a mutant that kills it.
+Round 2: a delta review of PR #2833 (R10-PLAN-ISSUES-CHART). I measured head `ddb4398a15abe3d445a959d922c1dc9b7f685831` from a detached worktree at that SHA. The round-1 head was `541be6106c06457cfc4df04d1f65f26898af7208`. The scope was the two items in the brief (the harness depth seam and the pr-contract Red-checks omission) plus the PR's own code change since round 1. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract I followed is current. Both items are settled at this head.
 
 ## Findings
 
-- The chart's note says the open set is "as GitHub had them at the plan's start". `issues_section` actually reads the set from the snapshot taken at render time (a `gh` fetch in `main`, or `--github-snapshot`), not from the plan's `generated.start`. In the documented use, a render right after a replan, the two moments are minutes apart; a later re-render of an old plan would show the wrong timestamp. Wording only: the data and projection are correct. Carry: dismissed: wording in a low-severity instrument note, and the documented workflow (render after a replan) makes the two moments coincide
-- `tests/entities.py` (venv-ci, `PYTHONPATH=tests/hastub`) fails 2 of 2445 checks, and the set is identical at the merge base and at the head. The two checks are `gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, ...(U0c)` and `graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE`. Neither file is reached by this diff. Carry: dismissed: pre-existing at merge base c9cbe6b45, not caused by this PR (coordinator's extra point; see Evidence)
-- `tools/plan/replan.py` at this tree (file untouched by the diff) raises `KeyError: 'XS'` on the current handoff/audit-r10-roster roster, because `sizes_hours` has no XS. I built the null-control plan from a copy of the roster with XS rewritten to S. Carry: dismissed: outside this PR's seam (replan.py is not in the diff); reported to the orchestrator in this verdict only
+- The body's `## Red checks` line for `governance / delivery-status` says "this diff touches nothing that check reads". That is not literally true: the three-dot diff adds `dev/programme/delivery/2833.md`, which is a row the check reads. The red is still not this PR's. On both the round-1 head and this head the job lists only other PRs' rows as overdue (#2712, #2749, #2762, #2775, #2780, #2795, #2797, #2798, #2799, #2804, #2807, #2812, #2813). The job prints that it is not a required context, and adding the #2833 row cannot make another row overdue. Severity: low, wording only. Carry: dismissed: wording in a body answer, and the conclusion it supports (the red is not this PR's) holds under `ev/delivery_status_head.txt`
 
 ## Evidence
 
-- Mutation proof (`ev/issues_chart_mutants.txt`), driver run by me at the head. RESULT mutant=M0 rc=0 fails=0 verdict=null. All 8 mutants were killed with FAIL lines: earlier-finish, closed-counted, unplanned-dropped, unplanned-also-closes, other-uncounted, offline-not-omitted, gh-missing-crashes, not-first. RESULT survived=0. These cover the brief's required controls: two-group later finish (earlier-finish), closed not counted (closed-counted), no-finish flat (unplanned-dropped).
-- The existing plan-page mutant driver gives survived=0 with M0 null at both the merge base and the head (`ev/plan_page_mutants_base.txt`, `ev/plan_page_mutants_head.txt`). Moving `fail_name` changed no output.
-- Unmutated self-test at the head: `plan_page self-test: 49 checks, 0 failed`. The body names no number, so there is nothing to re-derive.
-- Null controls, my own probe (`ev/null_control_probe.py`, `ev/null_controls.txt`), on the real r10 roster (72 issues on open groups) and a replan of it. These are my instrument, not the finder's. No finder harness exists for an owner-requested instrument; the brief's controls are the design trace and all are tested.
-  - Empty issue set and all-closed issue set: a polyline is drawn with 1 distinct y (flat at 0), no error.
-  - Every carrier unplanned (`finish: None`): flat, 1 distinct y.
-  - All open: 73 distinct y levels; project_issues gives close_at=72, unplanned=0, other=[201].
-  - Offline snapshot: no polyline, "Omitted" note.
-- Data source: `open_now` is taken from `snap["issues"]` with state OPEN, and `snap` comes from `--github-snapshot` or `_fetch_or_offline(fetch_github)`, as the body says. Projection: max of the planned finishes of open carrying groups, and any unplanned carrier makes the issue flat. This matches the body, including the divergence it states (one planned and one unplanned carrier gives flat).
-- Coordinator extra point, tests/entities.py comparison by check NAME. Top-level failing set at the merge base = {gate-sweep.yml ...(U0c), graders-head-copy's delivery_status step ...}; at the head it is the same set (`ev/entities_*_toplevel_fails.txt`). Both runs print `2 of 2445 ENTITY CHECKS FAILED`. The other `FAIL a*:`/`hb:` lines are deliberate negative-control sub-results, preceded by their `ok ... passes/fails when` lines. Two of those differ textually between runs only in set-ordering and timing (a8:register_once extra list order, hb:positive_control measured ms). The fixer reported 4. I could not see their 4 names, and this environment shows 2, so I compared my two runs' sets rather than the fixer's count. No check fails only at the head: the extra point is satisfied.
-- The new file `dev/audit/harnesses/r10_plan_issues_chart_mutants.py` is classified in `tests/closures.json`. entities.py's force-FULL classification check does not fail at the head.
-- `python3 tests/structure.py` at the head: STRUCTURE RATCHET PASSED. The diff moves no budget.
-- VERSION, the manifest, RELEASE_NOTES.md and tests/golden/: untouched three-dot (`ev/version_untouched.txt`). The diff touches no claim file and no fixture, so env_drift has nothing to compare.
-- Merge: `git merge-tree --write-tree origin/main 541be6106` exits 0 against origin/main `f3ffb1c635327365841ad430ce8fad7488a02d61` (`ev/merge_tree.txt`).
-- Head: the body names 541be6106 (plus authored code head 18cd6fdc2 and merge 4a2d5c985). `git ls-remote` at verdict time shows refs/pull/2833/head = 541be6106c06457cfc4df04d1f65f26898af7208, so the head did not move (`ev/head_recheck.txt`).
-- CI on this head (`ev/ci_checkruns.txt`, check-runs API, 26 runs): no run has concluded failure. prelude, refresh and cancel-superseded succeeded; record, delivery-status-publish, kernel-points and arm were skipped. The gate lanes (mutation, closure-scope, briefs, instrument-self-tests, codeql, hassfest, arch-score, budget-raise-gate) were still queued or in progress at review time, so the body's "Red checks: none" holds for what has concluded. Rule 11 has no red check to answer. This verdict reads CI as it stood at review time.
-- Class: the group's issue list is empty and the brief states one seam (the section and its data function), so no enumeration rule applies. The body keeps to that seam, adding only the `gh`-missing fallback and the `open_iss` "—" when offline that the brief's offline requirement needs.
-- Architecture: one renderer reads the roster through `roster_lib`, with no second script and no import of the out-of-tree reference. The CSS classes are the section's own, which the body explains avoids blinding `stamp-on-axis`.
+- Item 1, the depth seam, is settled.
+  - The PR's own delta since round 1 is one hunk in `dev/audit/harnesses/r10_plan_issues_chart_mutants.py`: `ROOT = Path(__file__).resolve().parents[3]` became `ROOT = repo_root(__file__)`, and `repo_root` is imported beside `fail_name` from `r10_plan_page_mutants.py`. `tools/audit/seat/plan_page.py` is byte-identical to the round-1 head. Every other path in the 541be6106..head range came in from origin/main.
+  - `repo_root` walks up to the directory holding `custom_components/heatpump_optimizer/manifest.json`. From the harness's real location it resolves to the worktree root (`ev/root_resolve.txt`).
+  - Driver end to end at the head (`ev/issues_chart_mutants_head.txt`): RESULT mutant=M0 rc=0 fails=0 verdict=null. All 8 mutants were killed with FAIL lines: earlier-finish (fails=1), closed-counted (2), unplanned-dropped (3), unplanned-also-closes (2), other-uncounted (2), offline-not-omitted (2), gh-missing-crashes (1), not-first (2). RESULT survived=0. This matches the body's list.
+  - Root-resolution mutants, each run with M0, show the driver fails loudly rather than passing silently:
+    - `parents[2]`: rc=1, FileNotFoundError on `dev/tools/audit/seat/plan_page.py` (`ev/rootmut_parents2.txt`).
+    - `parents[4]`: rc=2, refused, because git runs outside the repository (`ev/rootmut_parents4.txt`).
+    - `repo_root` returning `here.parent` with no walk: rc=1, FileNotFoundError (`ev/rootmut_helper.diff`, `ev/rootmut_helper.txt`).
+    - The marker changed to a path that does not exist: rc=1, `RuntimeError: no repository root above ...` (`ev/rootmut_marker.txt`).
+    - Each mutant was restored, and the worktree is clean afterwards.
+  - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` at the head prints ALL 112 HARNESS HEADER CHECKS PASSED (`ev/harness_headers_head.txt`). Putting the inline `parents[3]` walk back gives 1 of 112 HARNESS HEADER CHECKS FAILED with `FAIL depth seams: dev/audit/harnesses/r10_plan_issues_chart_mutants.py:26: ROOT = Path(__file__).resolve().parents[3]` (`ev/harness_headers_inline_walk.txt`). This is the body's figure and its red arm, re-derived.
+  - Plan-page driver at the head: RESULT mutant=M0 rc=0 fails=0, RESULT survived=0 (`ev/plan_page_mutants_head.txt`).
+  - Self-test: `plan_page self-test: 49 checks, 0 failed`, rc=0 (`ev/selftest_head.txt`).
+- Item 2, the Red-checks omission, is settled.
+  - On the round-1 head 541be6106 the check-runs API shows these failures: `tests / fast (3.14)`, `governance / delivery-status`, `pr-contract / pr-contract` x2 and `gate` x2 (`ev/ci_reds_round1_head.txt`).
+  - pr-contract's own derivation excludes `pr-contract` and `gate` and required `governance / delivery-status,tests / fast (3.14)`. It refused because `tests / fast (3.14)` was not named (`ev/prcontract_541be_refusal.txt`). `gate` failed only because it relays those two runs (`ev/gate_541be.txt`).
+  - The current body's `## Red checks` names both checks, and each line gives a detector and cost or a finding that none exists.
+  - I ran `node tools/policy/policy_lint.mjs` from the head tree with the current body, with `--red` set to both names, the head and the merge base. The result was `PR-BODY: 0 error(s)`, rc=0, with `record red-history` naming the same two checks across 10 commits (`ev/policy_lint_head.txt`).
+  - Null control: the same body with the `tests / fast (3.14)` line removed fails with the original ERROR, rc=1 (`ev/policy_lint_ctrl.txt`). The section's form is what checkPrBody requires.
+- Null controls, my own probe (`ev/null_control_probe.py`, `ev/null_controls.txt`). This is my instrument, not the finder's, and it calls `issues_section` and `project_issues` directly.
+  - Empty issue set: flat, 1 distinct y.
+  - All issues closed: flat, 1 distinct y.
+  - Every carrier unplanned: flat, 1 distinct y.
+  - Offline snapshot: no polyline, with the "Omitted" note.
+  - Positive arm: all open and planned gives 4 levels. The issue carried by two groups closes at the later finish, and #201 is counted in `other`.
+- The delivery row `dev/programme/delivery/2833.md` is in the three-dot diff (`git diff $(git merge-base origin/main HEAD)...HEAD`).
+- VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched three-dot.
+- Merge: `git merge-tree --write-tree origin/main ddb4398a` exits 0 against origin/main `c78df2b86b5ec51d631eb0ed18bbac8feecd166a`, so there is no conflict (`ev/merge_tree.txt`).
+- Head: `refs/pull/2833/head` is `ddb4398a15abe3d445a959d922c1dc9b7f685831` at verdict time, the head I measured and the one the body names (`ev/head_recheck.txt`, `ev/HEAD.txt`).
+- CI on this head from the check-runs API (`ev/ci_checkruns_head.txt`, 37 runs) had not concluded at review time.
+  - The only failure is `governance / delivery-status`, which the body answers and which is not a required check and does not block.
+  - `tests / fast (3.14)`, typing, coverage, closures, browser, arch-instrument and codeql (python) were still queued, and instrument-self-tests and prelude were in progress. No pr-contract run on this head appears yet.
+  - I cite CI as it stood and re-ran no heavy lane. The local `harness_headers.py` pass above is the cheap check behind the lane that was red in round 1.
+- Discrepancy in the brief: it says the round-1 verdict was blocked on two items. The only round-1 verdict on the PR is `Fix review: merge 541be6106...`. The two items correspond to the `tests / fast (3.14)` and `pr-contract` reds that concluded on 541be6106 after that verdict. I reviewed them as the brief defines them.

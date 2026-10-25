@@ -1,0 +1,10 @@
+DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 8 overdue (overdue at 12 commits)
+  overdue  #2798 c29f308 12 commit(s) since — R10-RCA-MERGE-SUBJECT-CLASS-OPEN: root cause of eight bl
+  overdue  #2799 022d4aa 13 commit(s) since — roster: round-10 batch 12 (roster ops through 54d78f9bb)
+  overdue  #2780 0825aee 14 commit(s) since — R10-FLOW-AUTOTRAIN
+  overdue  #2749 6b5d2a8 15 commit(s) since — R10-MUTANT-SKIP: mutation skip handling
+  overdue  #2775 60cd447 16 commit(s) since — R10-LEARNER-ETA: learner progress payload instead of day
+  overdue  #2797 b89fea1 17 commit(s) since — roster: round-10 batch 11 (roster ops on handoff/audit-r
+  overdue  #2762 de794b5 18 commit(s) since — R10-CONFIG-NOTICES: one owner for the four standing conf
+  overdue  #2795 102f749 19 commit(s) since — record: delivery rows for #2792, #2793, #2794 (autofix)
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has

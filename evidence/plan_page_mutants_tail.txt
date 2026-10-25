@@ -1,3 +1,0 @@
-    FAIL --check --roster-ref passes the plan at the ref it names: rc=1
-    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
-RESULT survived=0
