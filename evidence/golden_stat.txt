@@ -1,3 +1,0 @@
- tests/golden/claimed_drift.txt |  1 +
- tests/golden/config_flow.json  | 17 +++++++++++++++++
- 2 files changed, 18 insertions(+)

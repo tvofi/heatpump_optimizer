@@ -1,4 +1,4 @@
-applied M1_heat_branch_off
+applied M1
 diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
 index 14fc3e5c7..4d7d5e869 100644
 --- a/custom_components/heatpump_optimizer/flow_meter.py
@@ -12,9 +12,7 @@ index 14fc3e5c7..4d7d5e869 100644
          heat = reader.read_power_kw(const.CONF_THERMAL_POWER_ENTITY)
          kw = heat.value if heat.ok else None
          return kw if kw is not None and kw >= 0.0 else None
-rc=1
 ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  ok   a pump command that FAILED is not remembered as done
   FAIL a configured heat meter answers in kW, and outranks the flow meter's estimate (null control: the same flow states without it read the flow)  [heat meter 5.222035 / 5.222035, flow alone 5.222035]
   FAIL a power and a frequency signal do not switch the heat meter off, as they do the flow meter  [None]
   FAIL an unusable heat reading is absent, and the flow meter is not consulted in its place (null control: 20 min old is read)  [{'unavailable': 5.222035, 'negative': 5.222035, 'stale': 5.222035, 'unknown unit': 5.222035} fresh 5.222035]
@@ -23,3 +21,4 @@ ALL 134 DST / QUARTER-GRID CHECKS PASSED
   FAIL where the learner already runs it replays the measured heat, and a stale heat reading freezes it rather than falling back to the commanded draw  [None stale None]
   FAIL a configured heat meter with a stale reading freezes the COP fold rather than falling back to the commanded inference (null control: a fresh one folds)  [stale None fresh None]
 7 of 4374 FEATURE CHECKS FAILED
+rc=1

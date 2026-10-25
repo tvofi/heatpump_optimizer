@@ -1,4 +1,4 @@
-applied M9_stale_age_dropped
+applied M9
 diff --git a/custom_components/heatpump_optimizer/const.py b/custom_components/heatpump_optimizer/const.py
 index fd53df4c9..b496ce990 100644
 --- a/custom_components/heatpump_optimizer/const.py
@@ -11,11 +11,10 @@ index fd53df4c9..b496ce990 100644
  
  # Humidity drives the mold floor: a frozen sensor would hold a raised floor
  # forever, so it gets the reader's indoor-scale limit.
-rc=1
   FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason  [undeclared [], equal unnamed [], named not equal []]
 ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  ok   a pump command that FAILED is not remembered as done
   FAIL an unusable heat reading is absent, and the flow meter is not consulted in its place (null control: 20 min old is read)  [{'unavailable': None, 'negative': None, 'stale': 4.2, 'unknown unit': None} fresh 4.2]
   FAIL where the learner already runs it replays the measured heat, and a stale heat reading freezes it rather than falling back to the commanded draw  [4.2 stale None]
   FAIL a configured heat meter with a stale reading freezes the COP fold rather than falling back to the commanded inference (null control: a fresh one folds)  [stale None fresh None]
 4 of 4374 FEATURE CHECKS FAILED
+rc=1

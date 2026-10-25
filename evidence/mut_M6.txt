@@ -1,4 +1,4 @@
-applied M6_replay_lift_without_reading
+applied M6
 diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
 index 14fc3e5c7..1ffefb646 100644
 --- a/custom_components/heatpump_optimizer/flow_meter.py
@@ -11,8 +11,7 @@ index 14fc3e5c7..1ffefb646 100644
          and probe_install(config).measured_heat
      )
      return None if lifted else frozen
-rc=1
 ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  ok   a pump command that FAILED is not remembered as done
   FAIL the unmetered freeze lifts only for a heat-metered interval with a reading
 1 of 4374 FEATURE CHECKS FAILED
+rc=1
