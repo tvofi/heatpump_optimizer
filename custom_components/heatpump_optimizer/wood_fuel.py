@@ -28,7 +28,6 @@ WOOD_KWH_M3 = {
     "pine": {"packed": 1500.0, "loose": 900.0},
     "mixed": {"packed": 1700.0, "loose": 1020.0},
 }
-PUMP_HOUR_KW = 0.05
 
 
 def wood_tank_soc_from_probes(
@@ -120,13 +119,16 @@ def cheaper_hour_count(
     wood_sek: float,
     prices: Sequence[object],
     cops: Sequence[object],
-    space_kw: Sequence[object],
-    dhw_kw: Sequence[object],
-    threshold: float = PUMP_HOUR_KW,
+    runs: Sequence[bool],
 ) -> int:
+    """Steps the plan runs the pump at whose heat costs more than wood's.
+
+    ``runs`` is the plan's own on schedule (``heat_pump_on_schedule``): a
+    step it calls off buys no pump heat for wood to undercut (D8-s1-01).
+    """
     n = 0
-    for price, cop, space, dhw in zip(prices, cops, space_kw, dhw_kw, strict=False):
-        if max(finite_float(space, 0.0), finite_float(dhw, 0.0)) <= threshold:
+    for price, cop, on in zip(prices, cops, runs, strict=False):
+        if not on:
             continue
         cop_f = finite_float(cop, 0.0)
         if cop_f <= 0.0:
@@ -208,13 +210,9 @@ def wood_cheaper(
     wood_sek: float,
     prices: Sequence[object],
     cops: Sequence[object],
-    space_kw: Sequence[object],
-    dhw_kw: Sequence[object],
-    threshold: float = PUMP_HOUR_KW,
+    runs: Sequence[bool],
 ) -> bool:
-    return cheaper_hour_count(
-        wood_sek, prices, cops, space_kw, dhw_kw, threshold
-    ) > 0
+    return cheaper_hour_count(wood_sek, prices, cops, runs) > 0
 
 
 def _iso(ts: object) -> str:
@@ -407,8 +405,7 @@ def build_wood_fuel_view(
     *,
     prices: list[float],
     outdoor: list[float],
-    space_kw: list[float],
-    dhw_kw: list[float],
+    runs: list[bool],
     cop_at: Callable[[float], object],
     timestamps: Sequence[datetime],
     forecast_kw: list[float],
@@ -439,8 +436,8 @@ def build_wood_fuel_view(
     cheaper = False
     if ready and sek is not None:
         cops = _cops(outdoor, cop_at)
-        count = cheaper_hour_count(sek, prices, cops, space_kw, dhw_kw)
-        cheaper = wood_cheaper(sek, prices, cops, space_kw, dhw_kw)
+        count = cheaper_hour_count(sek, prices, cops, runs)
+        cheaper = wood_cheaper(sek, prices, cops, runs)
     slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
     view: WoodFuel = {
         "ready": ready,
@@ -529,9 +526,8 @@ def wood_fuel_from_parts(
         config,
         prices=list(result.prices) if result is not None else [],
         outdoor=list(result.outdoor_temps) if result is not None else [],
-        space_kw=list(result.power_schedule) if result is not None else [],
-        dhw_kw=(
-            list(result.dhw_power_schedule or []) if result is not None else []
+        runs=(
+            list(result.heat_pump_on_schedule or []) if result is not None else []
         ),
         cop_at=thermal_model.compute_cop,
         timestamps=list(result.timestamps) if result is not None else [],

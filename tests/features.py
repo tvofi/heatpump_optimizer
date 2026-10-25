@@ -16894,8 +16894,8 @@ R.check(
 )
 R.check(
     "the plan lookup reads this step and the next",
-    _ps.plan_commands_heat([0.0, 2.0, 0.0], 0) == (False, True)
-    and _ps.plan_commands_heat([0.0, 2.0, 0.0], 2) == (False, False),
+    _ps.plan_commands_heat([False, True, False], 0) == (False, True)
+    and _ps.plan_commands_heat([False, True, False], 2) == (False, False),
 )
 
 # The coordinator glue: transitions only, and only configured entities.
@@ -33990,15 +33990,56 @@ R.check(
 from heatpump_optimizer import optimizer as _ah_opt  # noqa: E402
 from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
 import inspect as _ah_inspect  # noqa: E402
+# The slot merge, the reason classifiers and the DHW schedule sensor read the
+# same running rule (D8-s1-01's secondary arm): each step of ``_ah_steps`` the
+# plan calls off must sit in no slot and carry an idle reason, and the
+# schedule sensor counts no period from a raw draw. Null control: the steps
+# the plan runs keep their slot and their reason.
+_ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
+_ah_sp = [s for s, _ in _ah_steps]
+_ah_dw = [d for _, d in _ah_steps]
+_ah_ts = [_DB_T0 + timedelta(minutes=15 * i) for i in range(len(_ah_steps))]
+_ah_in_slot = [
+    [any(sl["start"] <= t.isoformat() < sl["end"] for sl in slots) for t in _ah_ts]
+    for slots in (
+        Coord._plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
+        Coord._plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
+    )
+]
 R.check(
-    "the plan view's slot merge and the DHW schedule sensor's fallback read the "
-    "channel line from its owner, optimizer.CHANNEL_ACTIVE_KW (D8-s1-01)",
-    _ah_inspect.signature(Coord._plan_slots).parameters["threshold"].default
-    is _ah_opt.CHANNEL_ACTIVE_KW
-    and _ah_sensor.CHANNEL_ACTIVE_KW is _ah_opt.CHANNEL_ACTIVE_KW
-    and _ah_inspect.signature(_ah_opt.classify_space_steps).parameters["threshold"].default
-    is _ah_opt.CHANNEL_ACTIVE_KW,
-    "a literal re-spelled at one reader is the drift D8-s1-02 named",
+    "a plan slot holds only steps the plan runs, each channel on its own share "
+    "(D8-s1-01)",
+    _ah_in_slot == [
+        [True, False, False, True, False, False],
+        [False, False, False, True, True, False],
+    ],
+    f"got {_ah_in_slot}",
+)
+_ah_space_why = _ah_opt.classify_space_steps(
+    np.array(_ah_sp), np.array([1.0] * 6), np.full(7, 21.0), np.full(6, 19.0),
+    np.ones(6), None, 6, other=np.array(_ah_dw),
+)
+_ah_dhw_why = _ah_opt.classify_dhw_steps(
+    np.array(_ah_dw), np.zeros(6, dtype=bool), np.zeros(6), None, 6,
+    idle=_ah_opt.IdleContext(other=np.array(_ah_sp)),
+)
+_ah_idle = {_ah_opt.REASON_IDLE, _ah_opt.REASON_IDLE_COASTING, _ah_opt.REASON_IDLE_DEARER,
+            _ah_opt.REASON_IDLE_SOLAR, _ah_opt.REASON_IDLE_FUSE, _ah_opt.REASON_IDLE_OTHER}
+R.check(
+    "a step the plan runs no pump at is idle to the reason classifiers (D8-s1-01)",
+    [c not in _ah_idle for c in _ah_space_why] == [True, False, False, True, False, False]
+    and [c not in _ah_idle for c in _ah_dhw_why] == [False, False, False, True, True, False],
+    f"space {_ah_space_why} dhw {_ah_dhw_why}",
+)
+_ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
+_ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()
+R.check(
+    "the DHW schedule sensor counts periods only from the plan's own slots "
+    "(D8-s1-01): a raw draw of 0.07 kW does not say whether the pump runs",
+    _ah_sched.native_value is None
+    and not hasattr(_ah_sensor, "CHANNEL_ACTIVE_KW")
+    and "threshold" not in _ah_inspect.signature(Coord._plan_slots).parameters,
+    f"state {_ah_sched.native_value!r}",
 )
 
 
@@ -40235,15 +40276,15 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [0.0], [0.0]),
+    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
 )
 R.check(
-    "one pump hour above 0.05 kW cheaper is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [0.2], [0.0]),
+    "one hour the plan runs the pump, and wood is cheaper, is on",
+    _wf_cheaper(1.0, [4.0], [2.0], [True]),
 )
 R.check(
     "that hour counts",
-    _wf_count(1.0, [4.0], [2.0], [0.2], [0.0]) == 1,
+    _wf_count(1.0, [4.0], [2.0], [True]) == 1,
 )
 
 from heatpump_optimizer.wood_fuel import night_advice as _wf_night
@@ -40340,8 +40381,7 @@ _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
     outdoor=[-5.0],
-    space_kw=[0.2],
-    dhw_kw=[0.0],
+    runs=[True],
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
@@ -40428,8 +40468,7 @@ R.check(
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
@@ -40481,8 +40520,7 @@ _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],

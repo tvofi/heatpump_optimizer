@@ -3678,6 +3678,27 @@ def _p2_match_node(types, pattern, pre):
     return m
 
 
+def _p2_match_channel_line(n, parents):
+    """The channel line, 0.05 kW, however it is spelt (D8-s1-01): a power
+    comparison against the literal, any read of ``CHANNEL_ACTIVE_KW`` by name
+    (a reader that renamed the literal is still a reader), or a new
+    module-level kW constant bound to 0.05 (a second owner)."""
+    if isinstance(n, ast.Compare):
+        return (len(n.ops) == 1
+                and 0.05 in (getattr(n.left, "value", None),
+                             getattr(n.comparators[0], "value", None))
+                and bool(re.search(r"power|_kw\b|\bkw\b|dhw", ast.unparse(n))))
+    if isinstance(n, (ast.Name, ast.Attribute)):
+        return (getattr(n, "id", getattr(n, "attr", None)) == "CHANNEL_ACTIVE_KW"
+                and isinstance(n.ctx, ast.Load))
+    if isinstance(n, (ast.Assign, ast.AnnAssign)) and isinstance(parents.get(n), ast.Module):
+        targets = n.targets if isinstance(n, ast.Assign) else [n.target]
+        return (getattr(n.value, "value", None) == 0.05
+                and any(re.search(r"_KW$|POWER", getattr(t, "id", "")) for t in targets)
+                and not any(getattr(t, "id", "") == "CHANNEL_ACTIVE_KW" for t in targets))
+    return False
+
+
 def _p2_match_literal_domain(domains):
     """``*.async_call("<domain>", ...)``: an entity write naming its domain
     as a literal rather than taking it from the entity."""
@@ -4030,16 +4051,23 @@ def _p2_registry(sources):
         # heating is optimizer.CHANNEL_ACTIVE_KW, and whether a channel heats
         # at a step is channel_heating_steps (its own draw above the line, on
         # a step planned_draws_run runs). The plan view's active_now, its slot
-        # merge and the DHW schedule sensor's fallback each spelled 0.05. Every
-        # other literal 0.05 power comparison is a hit, dispositioned below.
+        # merge, the DHW schedule sensor's fallback, the space pump's plan
+        # lookup and the wood advisor's pump hours each compared a raw draw
+        # with 0.05. The rule follows the constant by name too, so renaming
+        # a literal to CHANNEL_ACTIVE_KW is still a hit; every other site is
+        # dispositioned below.
         dict(fact="channel_active_kw", finding="D8-s1-01",
-             match=_p2_match_node(
-                 (ast.Compare,), r"power|_kw\b|\bkw\b|dhw",
-                 lambda n: len(n.ops) == 1 and 0.05 in (
-                     getattr(n.left, "value", None),
-                     getattr(n.comparators[0], "value", None))),
+             match=_p2_match_channel_line,
              owners=["optimizer.py::channel_heating_steps"],
              dispositions={
+                 "optimizer.py::classify_space_steps":
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
+                 "optimizer.py::classify_dhw_steps":
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "accuracy.py::delivered_ratio":
                      "a ratio's denominator floor on a sample's predicted and "
                      "measured power: below it the ratio is noise, whatever the plan says",
@@ -4251,13 +4279,32 @@ _P2_PLANTS["power_state_kw"] = (
     "\n\ndef _p2_plant(state):\n    return normalize_power_kw(float(state.state), 'kW')\n"
 )
 _P2_PLANTS["channel_active_kw"] = (
-    "\n\ndef _p2_plant(space_power):\n    return space_power[0] > 0.05\n"
+    "\n\ndef _p2_plant(dhw_power):\n    return dhw_power > CHANNEL_ACTIVE_KW\n"
 )
 _P2_PLANTS["defrost_standoff"] = (
     "\n\ndef _p2_plant(signals):\n"
     "    if signals.defrosting:\n"
     "        return 1\n"
     "    return 0\n"
+)
+# D8-s1-01's rule reads three spellings of the channel line; the plant above
+# is the renamed one. The literal and a second module-level constant are each
+# their own plant, and each must fail alone.
+_P2_CHANNEL_SPELLINGS = {
+    "literal": "\n\ndef _p2_plant(space_power):\n    return space_power[0] > 0.05\n",
+    "alias": "\n\n_PLAN_ACTIVE_KW = 0.05\n",
+    "default": "\n\ndef _p2_plant(p, threshold=CHANNEL_ACTIVE_KW):\n    return p > threshold\n",
+}
+_p2_channel_planted = {
+    k: "channel_active_kw" in _p2_fails(_p2_scan(
+        {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
+    for k, plant in _P2_CHANNEL_SPELLINGS.items()
+}
+R.check(
+    "and D8-s1-01's rule fails on each spelling of the channel line: the "
+    "literal, a second module constant and a default naming CHANNEL_ACTIVE_KW",
+    all(_p2_channel_planted.values()),
+    f"{_p2_channel_planted}",
 )
 _p2_planted = {
     fact: _p2_fails(_p2_scan(
@@ -24679,7 +24726,8 @@ _dhw_one = sensor.DHWScheduleSensor(
             "dhw_schedule": [
                 {"dhw_power": 1.0},
                 {"dhw_power": 0.0},
-            ]
+            ],
+            "dhw_plan": {"slots": [{"start": "t0"}]},
         }
     ),
     ENTRY,
@@ -24696,7 +24744,8 @@ _dhw_two = sensor.DHWScheduleSensor(
                 {"dhw_power": 1.0},
                 {"dhw_power": 0.0},
                 {"dhw_power": 1.0},
-            ]
+            ],
+            "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t2"}]},
         }
     ),
     ENTRY,
@@ -24757,7 +24806,7 @@ _multi_run_payload = {
     ],
     # What the coordinator itself builds for this schedule: a three-step
     # run collapses to one slot, the trailing step is a second (coordinator
-    # _plan_slots, threshold 0.05).
+    # _plan_slots, merged on optimizer.channel_heating_steps).
     "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
 }
 _dhw_sched_vs_plan = sensor.DHWScheduleSensor(
@@ -24774,13 +24823,14 @@ R.check(
     f"slot_count={_dhw_plan_count.extra_state_attributes['slot_count']!r}",
 )
 R.check(
-    "and the schedule sensor still answers for a schedule with no plan dict (#1644)",
+    "and a schedule with no plan dict has no period count: unknown, not a "
+    "count from raw draws (#1644, D8-s1-01)",
     sensor.DHWScheduleSensor(
         FakeCoordinator({"dhw_schedule": [{"dhw_power": 2.0}, {"dhw_power": 1.5}]}),
         ENTRY,
     ).native_value
-    == "1 heating period",
-    "the fallback counts the same contiguous runs the plan builder merges",
+    is None,
+    "a raw dhw_power step does not say whether the plan runs the pump",
 )
 
 R.section("#558 D3 enumerated sensor states")

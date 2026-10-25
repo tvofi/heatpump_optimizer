@@ -1344,12 +1344,38 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
 
     Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
     pump at all (``planned_draws_run`` over both channels): a channel is never
-    "heating now" on a step the plan's on schedule calls off.
+    "heating now" on a step the plan's on schedule calls off. The plan views'
+    ``active_now`` and slot merge and the reason classifiers all read this,
+    so none of them can count a step the on schedule calls off. An ``other``
+    series shorter than ``channel`` draws nothing past its end.
     """
     channel = np.asarray(channel_kw, dtype=float)
-    other = np.zeros_like(channel) if other_kw is None else np.asarray(other_kw, dtype=float)
+    other = np.zeros_like(channel)
+    if other_kw is not None:
+        given = np.asarray(other_kw, dtype=float)[: len(channel)]
+        other[: len(given)] = given
     runs = planned_draws_run(channel, other)
     return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
+
+def channel_heating_draw(channel_kw: Any, other_kw: Any = None) -> np.ndarray:
+    """A channel's draw on the steps it heats (``channel_heating_steps``), 0 elsewhere.
+
+    What the reason classifiers read in place of the raw draw, so a step whose
+    share sits over :data:`CHANNEL_ACTIVE_KW` while the plan runs no pump at
+    all is idle to them, as it is to the switch schedule.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    return np.where(channel_heating_steps(channel, other_kw), channel, 0.0)
+
+
+def _heating_draws(
+    power: np.ndarray, other: np.ndarray | None
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Both channels' draws as the classifiers read them: each on its own heating steps."""
+    if other is None:
+        return channel_heating_draw(power), None
+    return channel_heating_draw(power, other), channel_heating_draw(other, power)
 
 
 def classify_space_steps(
@@ -1383,6 +1409,7 @@ def classify_space_steps(
     reasons: list[str] = []
     if n_steps == 0:
         return reasons
+    power, other = _heating_draws(power, other)
     cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
     idle = idle_codes(
         n_steps, power, prices, room_temps, temp_min_bounds, surplus, other, caps, threshold,
@@ -1445,9 +1472,10 @@ def classify_dhw_steps(
     """
     ctx = idle or IdleContext()
     reasons: list[str] = []
+    power, other = _heating_draws(power, ctx.other)
     codes = idle_codes(
         n_steps, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
-        ctx.other, ctx.caps, threshold,
+        other, ctx.caps, threshold,
     )
     for i in range(n_steps):
         if power[i] <= threshold:
