@@ -1,0 +1,4 @@
+RESULT rule_matches[s.get("dhw_power", 0) > 0.05]=1
+RESULT rule_matches[s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW]=0
+RESULT rule_matches[power_kw > CHANNEL_ACTIVE_KW]=0
+RESULT plan_slots_default_param_is_compare=0 (a keyword default `threshold: float = CHANNEL_ACTIVE_KW` holds no ast.Compare)
