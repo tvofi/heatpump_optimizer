@@ -1,0 +1,4 @@
+DELIVERY STATUS OK — 139 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #2787 1aa765f 0 commit(s) since — roster: round-10 batch 9 (roster ops on handoff/audit-r1
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
