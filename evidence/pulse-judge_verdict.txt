@@ -1,0 +1,32 @@
+def judge_verdict(snap: dict, now: float, bound: float) -> tuple[str, str]:
+    vs, heads = snap.get("verdicts"), snap.get("open_heads")
+    if not isinstance(vs, list) or not isinstance(heads, dict):
+        return "UNREADABLE", "the review refs or the open pull requests could not be read"
+    owed, skew = [], 0
+    for v in vs:
+        head = heads.get(str(v["pr"]))
+        if not head or not (head.startswith(v["sha"]) or v["sha"].startswith(head)):
+            continue  # merged, closed, or its head moved: the verdict was consumed
+        age = _age(now, v["t"])
+        if age is None:
+            skew += 1
+        elif age > bound:
+            owed.append((age, v))
+    extra = f"; {skew} skew" if skew else ""
+    if owed:
+        owed.sort(key=lambda x: -x[0])
+        age, v = owed[0]
+        return "STOPPED", (f"{len(owed)} verdict(s) unconsumed at their head for > {bound / 3600:g} h, "
+                           f"oldest #{v['pr']} {v['kind']} {v['sha'][:8]} {age / 3600:.1f} h{extra}")
+    return "ok", f"every verdict at an open head is under {bound / 3600:g} h{extra}"
+def seat_of(arm: str, snap: dict, now: float, bound: float) -> str:
+    """The standing seat an origin arm's owed input waits on. The verdict arm's
+    is the merge seat when its oldest owed verdict is a merge, else dispatch."""
+    if arm != "verdict":
+        return ARM_SEAT[arm]
+    heads = snap.get("open_heads") or {}
+    owed = [v for v in snap.get("verdicts") or []
+            if (h := heads.get(str(v["pr"]))) and (h.startswith(v["sha"]) or v["sha"].startswith(h))
+            and (a := _age(now, v["t"])) is not None and a > bound]
+    oldest = min(owed, key=lambda v: v["t"], default=None)
+    return "merge" if oldest and oldest["kind"] == "merge" else "dispatch"

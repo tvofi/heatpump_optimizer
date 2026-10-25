@@ -1,0 +1,3 @@
+     5 / 5     .claude/rules/gate-scoping.md   <- at or over threshold
+CENSUS	friction rule id	5	5	.claude/rules/gate-scoping.md
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/gate-scoping.md" -- friction rule id at 5 in this window, threshold 3. Counted as DISTINCT pull requests (5 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
