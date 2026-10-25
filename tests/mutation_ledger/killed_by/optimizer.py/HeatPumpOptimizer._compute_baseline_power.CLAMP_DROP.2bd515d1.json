@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power CLAMP_DROP 2bd515d1",
+  "killed_by": "tests/features.py",
+  "old": "            power = min(required_thermal / cop, p.max_electrical_power)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: CLAMP_DROP (`power = (required_thermal / cop)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
