@@ -26409,6 +26409,28 @@ R.check(
     "is legitimately empty, and reporting OK there is the vacuous green this "
     "repository refuses",
 )
+# A RECORD-CLASS MERGE DISPOSES ITSELF (R10-FLOW-RECORD-PITCH). Its own row is
+# the record beat's `**open**` self-row, written before the merge sha existed;
+# read as a stale open row it owed the next record pull request a row, whose
+# merge owed the next -- every round-10 record merge rowed the previous one.
+# The flag is `collect`'s, set by `gather` from the stamp's own predicate
+# (`self_disposing`, called, not copied); the null control is the same open
+# row on a merge that is not record-class, which stays pending.
+_DS_SELF = [f"- [#{_n}](https://github.com/o/r/pull/{_n}) — **open**, record: "
+            "delivery rows (autofix)" for _n in (110, 111)]
+_ds_self = _ds.classify([{**_ds_merges((110, 3))[0], "record_class": True},
+                         {**_ds_merges((111, 3))[0], "record_class": False}], _DS_SELF)
+_DS_GATHER = _ds.gather.__code__.co_names
+R.check(
+    "a record-class merge's open self-row rows it; an ordinary merge's open row "
+    "does not (null control)",
+    [r["state"] for r in _ds_self["merges"]] == ["rowed", "pending"]
+    and "self_disposing" in _DS_GATHER
+    and _ds.self_disposing("0" * 40) is False,
+    f"states={[r['state'] for r in _ds_self['merges']]}, gather calls "
+    f"self_disposing={'self_disposing' in _DS_GATHER}; a sha git cannot "
+    "resolve is not record-class and keeps owing its row (fail-closed)",
+)
 # One file per pull request: `docs/delivery/<N>.md` rows <N> through a line
 # anchoring <N> itself, and nothing else -- a misnamed file, or another number in
 # its prose, rows nobody. The same predicate `policy_lint.mjs --record` pins.
@@ -27705,6 +27727,22 @@ def _raf_merge_pinned(job: str) -> bool:
             and "AutoMerge" not in job)
 
 
+# THE BATCH (tvofi, 2026-10-24/25): the gate sits between the plan and the
+# apply, reads the workflow's own event (a push batches; the nightly and a
+# dispatch flush), its wait is the green `batching` status, and nothing but its
+# two exits decides. record_row.py's `batch_due` is driven both ways by its
+# --self-test; this pins that the job asks it, with the event.
+_RAF_BATCH = '--batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT"'
+
+
+def _raf_batch_gated(job: str) -> bool:
+    gate, apply_ = job.find(_RAF_BATCH), job.find("--apply --plan-file")
+    return (0 < job.find("--plan --merges-file") < gate < apply_
+            and job.count("EVENT: ${{ github.event_name }}") == 2
+            and 'if [ "$batch" = 4 ]; then status="batching"; break; fi' in job
+            and "pushed|nothing-owed|held|batching) exit 0 ;;" in job)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -27725,6 +27763,7 @@ def _raf_job_ok(job: str) -> bool:
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
         and "--automerge-check --hold" in job
+        and _raf_batch_gated(job)
         and _raf_review_gated(job)
         and _raf_merge_pinned(job))
 
@@ -27761,14 +27800,17 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
         "if guard --require-green", "guard --require-green", 1))
-    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
+    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1))
+    and not _raf_job_ok(_RAF_JOB.replace(' --event "$EVENT"', '', 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_BATCH, "--row-numbers", 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
     "that runs only after NUM is known, or dropping the automerge guard "
     "ahead of the review, or posting it with the author's token, or the "
     "merge's green gate or its sha pin, or unwrapping the `--require-green` "
-    "call so `bash -e` aborts the step before its `case` -- must "
+    "call so `bash -e` aborts the step before its `case`, or dropping the "
+    "batch gate or the event it reads -- must "
     "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
@@ -27825,7 +27867,7 @@ _MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
                          Path("tools/audit/seat/merge_train.py").read_text())
 
 
-def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
+def _train_hold_status(code: int, body: str, pitch_rc: int = 0) -> "tuple[str, bool]":
     """The automerge step's `status=` and whether it warned "unreadable" over a
     stubbed API whose train-hold read answers (code, body); every other read is
     the minimum the step needs.
@@ -27835,12 +27877,15 @@ def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
     in the status, not inferred from an absence. `GET /commits/<ref>` answers
     **422** `No commit found for SHA: <ref>` when the ref is absent (measured
     live 2026-10-20), never 404 -- an absent hold must be silent, or every
-    beat with no train running logs a warning."""
+    beat with no train running logs a warning.
+
+    `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
+    default, so the hold's own arms read as before), 4 the pitch's wait."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         (t / "tools" / "audit" / "seat").mkdir(parents=True)
         (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
-            "import sys\nsys.exit(1)\n")
+            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else 1)\n")
         answers = t / "answers.json"
         answers.write_text(json.dumps({
             "hold": {"code": code, "body": body},
@@ -27873,7 +27918,8 @@ def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
         p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
                            env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
                                 "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42",
+                                "EVENT": "push"})
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
         warned = "unreadable" in (p.stdout + p.stderr)
         return (found[-1] if found else ""), warned
@@ -27910,6 +27956,27 @@ R.check(
     "commits endpoint answers 422 for an absent ref, so that arm must be "
     "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
     "behaviour, which is the safe failure",
+)
+# THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
+# stub: record_row.py's `--pitch-check` answering 4 skips the merge with
+# status skip-pitch before the guard; 0 proceeds to it; a crashed check is no
+# pitch. A live train answers first, so the hold arm is unchanged by it. The
+# decision itself (a young record merge waits, a stale backlog proceeds) is
+# record_row.py's `pitch_wait`, driven both ways by its --self-test.
+R.check(
+    "nightly.yml's automerge waits the pitch when record_row.py says so, after "
+    "the train hold and before the guard (executed)",
+    _train_hold_status(422, "{}", pitch_rc=4) == ("skip-pitch", False)
+    and _train_hold_status(200, _hold_when(-60), pitch_rc=4) == ("skip-train-hold", False),
+    f"pitch 4 -> {_train_hold_status(422, '{}', pitch_rc=4)!r}; a live hold "
+    f"with pitch 4 -> {_train_hold_status(200, _hold_when(-60), pitch_rc=4)!r}",
+)
+R.check(
+    "and no pitch, or a pitch check that crashed, reaches the guard (null controls)",
+    _train_hold_status(422, "{}", pitch_rc=0) == ("refused", False)
+    and _train_hold_status(422, "{}", pitch_rc=1) == ("refused", False),
+    "a pitch that never says wait must leave the pre-fix path: the guard runs "
+    "and, stubbed to refuse, reports `refused`",
 )
 R.check(
     "the beat's hold ref and the train's hold ref name the same branch",

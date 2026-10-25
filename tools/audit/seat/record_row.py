@@ -6,6 +6,8 @@
         [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH]
     python3 tools/audit/seat/record_row.py --apply --plan-file F [--root DIR]
     python3 tools/audit/seat/record_row.py --row-numbers --plan-file F
+    python3 tools/audit/seat/record_row.py --batch-due --plan-file F --event E
+    python3 tools/audit/seat/record_row.py --pitch-check --merges-file F --event E
     python3 tools/audit/seat/record_row.py --write-self-row --pr N [--root DIR]
     python3 tools/audit/seat/record_row.py --self-test
 
@@ -252,7 +254,8 @@ def row_matches_merge(number: int, merge_sha: str, root: Path) -> bool:
 
 
 def plan_merges(merges: list[dict], root: Path,
-                roster: dict | None = None) -> list[dict]:
+                roster: dict | None = None,
+                self_disposing=None) -> list[dict]:
     """The rows `merges` still owe in `root`, oldest number first.
 
     Each merge carries the API facts `--enumerate` printed: `number`, `title`,
@@ -266,11 +269,20 @@ def plan_merges(merges: list[dict], root: Path,
     request, and `has_row` alone cannot see the difference (R9-ROW-STALE). A
     branch no roster group claims rows in the neutral phrasing (no group
     suffix); a seat edits it at approval.
+
+    A merge `self_disposing(merge_sha)` answers true for is record-class and
+    owes no row (`delivery_status.self_disposing`): without it every record
+    merge planned the rewrite of its own `**open**` self-row, so each record
+    pull request's merge owed the next one -- measured, every record merge
+    on main from round 10 rowed the previous record merge (R10-FLOW-RECORD-
+    PITCH). The CLI passes it; the default plans as before.
     """
     rows = []
     for m in sorted(merges, key=lambda x: int(x["number"])):
         n = int(m["number"])
         merge_sha = m.get("merge_sha") or ""
+        if self_disposing and merge_sha and self_disposing(merge_sha):
+            continue
         # A pull request the API still reports OPEN attests no merge, whatever
         # sha its entry carries: `merge_commit_sha` is filled for an open
         # request too, as the test-merge commit. That is the difference between
@@ -289,6 +301,102 @@ def plan_merges(merges: list[dict], root: Path,
             "group": group,
         })
     return rows
+
+
+# --------------------------------------------------- the batch and the pitch
+# THE BATCH (tvofi, 2026-10-24 and 2026-10-25): a push to main opens or
+# updates the record pull request only for a batch, because each record
+# merge is a push to main that moves every open head and can force a train
+# re-prove. The floor is bounded by `delivery_status.STALE_AFTER_COMMITS`,
+# not chosen: at a floor of F rowless merges the oldest has F - 1 commits
+# after it when the pull request opens, and it waits a further few for its
+# checks and its merge (dev/audit/harnesses/record_batch_measure.py: commits
+# landed on main between a record head's base and its merge, p90 3 over
+# round 10). BATCH_MARGIN_COMMITS covers that wait, so the oldest row lands
+# before the ledger reads it OVERDUE; a floor above BATCH_AGE_COMMITS would
+# spend the margin. The age arm opens a short batch whose oldest merge has
+# reached the same bound (direct pushes and record merges age a row without
+# adding one). `schedule` and `workflow_dispatch` flush at any count, so the
+# nightly drains every window and a dispatch drains one on demand (a stamp's:
+# `stamp.py` rule 5 refuses a rowless merge).
+BATCH_MARGIN_COMMITS = 4
+BATCH_AGE_COMMITS = delivery_status.STALE_AFTER_COMMITS - BATCH_MARGIN_COMMITS
+BATCH_FLOOR_ROWS = BATCH_AGE_COMMITS
+#: GitHub refuses a pull-request title longer than this; `pr_title` names
+#: every row, so the ceiling is the most rows a five-digit-numbered title
+#: carries (34 + 8 * rows characters). Rows past it wait for the next batch.
+PR_TITLE_MAX = 256
+BATCH_CEILING_ROWS = 27
+#: THE PITCH (Lean study K6): a record pull request does not merge from a
+#: push beat while the last record merge on main is younger than one pitch,
+#: unless its oldest owed merge is two pitches old or BATCH_AGE_COMMITS
+#: commits old -- bounded staleness, so one row per merge stays the truth
+#: condition (HANDOVER trap 15) while the train's `--bot-prs` sweep lands it
+#: inside the pitch.
+PITCH_S = 3600
+#: `--batch-due` and `--pitch-check` exit with this to say "wait"; 3 is the
+#: guard's pending.
+WAIT_RC = 4
+
+
+def batch_due(rows: int, oldest_after: int | None, event: str) -> str | None:
+    """Why a beat with `rows` owed opens or updates the record pull request
+    now, or None while the batch waits. `oldest_after` is the first-parent
+    commits on main after the oldest owed merge; unreadable (None) proceeds,
+    the pre-batch behaviour, so a gate that cannot look never strands a row."""
+    if rows <= 0:
+        return None
+    if event != "push":
+        return f"{event} flushes at any count ({rows} row(s))"
+    if rows >= BATCH_FLOOR_ROWS:
+        return f"{rows} row(s), at or above the floor of {BATCH_FLOOR_ROWS}"
+    if oldest_after is None:
+        return "the oldest owed merge's age is unreadable; proceeding"
+    if oldest_after >= BATCH_AGE_COMMITS:
+        return (f"the oldest owed merge is {oldest_after} commit(s) old, at or "
+                f"past {BATCH_AGE_COMMITS}")
+    return None
+
+
+def pitch_wait(last_record_age_s: int | None, oldest_age_s: int | None,
+               oldest_after: int | None, event: str) -> str | None:
+    """Why a beat's automerge waits a pitch, or None to proceed. Only a push
+    beat pitches. An age ahead of the clock is unknowable, never young (#775),
+    and an unreadable age is no pitch: the bound decides only what it can
+    read, and the train hold beside it still keeps a live train clear."""
+    if event != "push" or last_record_age_s is None:
+        return None
+    if not 0 <= last_record_age_s < PITCH_S:
+        return None
+    if oldest_age_s is None or not 0 <= oldest_age_s < 2 * PITCH_S:
+        return None
+    if oldest_after is None or oldest_after >= BATCH_AGE_COMMITS:
+        return None
+    return (f"the last record merge is {last_record_age_s}s old (pitch "
+            f"{PITCH_S}s) and the oldest owed merge {oldest_age_s}s and "
+            f"{oldest_after} commit(s) old")
+
+
+def _git_out(root: Path, *args: str) -> str | None:
+    p = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def merge_age(root: Path, sha: str, now: float) -> tuple[int | None, int | None]:
+    """(seconds since `sha` was committed, first-parent commits after it on
+    HEAD); each None where git cannot answer."""
+    ct = _git_out(root, "show", "-s", "--format=%ct", sha)
+    after = _git_out(root, "rev-list", "--first-parent", "--count", f"{sha}..HEAD")
+    return (int(now) - int(ct) if ct and ct.isdigit() else None,
+            int(after) if after and after.isdigit() else None)
+
+
+def oldest_owed(root: Path, plan: list[dict], now: float) -> tuple[int | None, int | None]:
+    """`merge_age` of the plan's oldest merge -- the most commits after it --
+    or (None, None) for an empty plan or one git cannot age."""
+    ages = [merge_age(root, str(r.get("merge_sha") or ""), now) for r in plan]
+    ages = [a for a in ages if a[1] is not None]
+    return max(ages, key=lambda a: a[1]) if ages else (None, None)
 
 
 # ---------------------------------------------------------------- write side
@@ -1576,6 +1684,62 @@ def self_test() -> int:
     ok("gh_read's own self-test passes (the rule record_row reads under)",
        globals().get("gh_read") is not None and gh_read.self_test() == 0)
 
+    # ------------------------------------- R10-FLOW-RECORD-PITCH ----------
+    # The record chain: a record-class merge owes no row, so the plan right
+    # after a record-only merge is empty; the null control is the same merge
+    # planned when nothing calls it self-disposing.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "dev/programme/delivery").mkdir(parents=True)
+        (root / row_path(2795)).write_text(open_row_line(2795, OPEN_ROW_TITLE) + "\n")
+        rec = [{"number": 2795, "title": OPEN_ROW_TITLE, "state": "closed",
+                "head_ref": RECORD_BRANCH, "merge_sha": "e" * 40},
+               {"number": 2796, "title": "fix: x", "state": "closed",
+                "head_ref": "fix/x", "merge_sha": "d" * 40}]
+        _rc = (lambda sha: sha == "e" * 40)
+        ok("chain: a record-class merge's own open row owes nothing",
+           [r["number"] for r in plan_merges(rec, root, self_disposing=_rc)] == [2796])
+        ok("chain: and without the predicate it is planned (null control)",
+           [r["number"] for r in plan_merges(rec, root)] == [2795, 2796])
+    # The batch: below the floor a push waits, at it a push opens; any
+    # other event flushes; an old oldest merge opens a short batch.
+    ok("batch: 3 rows on a push wait", batch_due(3, 2, "push") is None)
+    ok("batch: one under the floor on a push waits",
+       batch_due(BATCH_FLOOR_ROWS - 1, BATCH_AGE_COMMITS - 1, "push") is None)
+    ok("batch: a full batch on a push opens (null control)",
+       batch_due(BATCH_FLOOR_ROWS, 0, "push") is not None)
+    ok("batch: a dispatch with 1 row flushes",
+       batch_due(1, 0, "workflow_dispatch") is not None
+       and batch_due(1, 0, "schedule") is not None)
+    ok("batch: 2 rows whose oldest is BATCH_AGE_COMMITS old open",
+       batch_due(2, BATCH_AGE_COMMITS, "push") is not None)
+    ok("batch: nothing owed never opens", batch_due(0, 99, "schedule") is None)
+    ok("batch: the age arm keeps the margin under the ledger's OVERDUE",
+       BATCH_AGE_COMMITS + BATCH_MARGIN_COMMITS == delivery_status.STALE_AFTER_COMMITS
+       and BATCH_FLOOR_ROWS <= BATCH_AGE_COMMITS <= BATCH_CEILING_ROWS)
+    _wide = [{"number": 10000 + i} for i in range(BATCH_CEILING_ROWS)]
+    ok("ceiling: a full batch of five-digit numbers titles within GitHub's limit, "
+       "one more does not",
+       len(pr_title(_wide)) <= PR_TITLE_MAX
+       < len(pr_title(_wide + [{"number": 99999}])))
+    # The pitch: a young record merge waits; a stale backlog, an old
+    # record merge, a non-push event and an age ahead of the clock proceed.
+    _young, _fresh = PITCH_S // 2, PITCH_S // 2
+    ok("pitch: a young record merge with a fresh backlog waits",
+       pitch_wait(_young, _fresh, 2, "push") is not None)
+    ok("pitch: a backlog two pitches old proceeds",
+       pitch_wait(_young, 2 * PITCH_S, 2, "push") is None)
+    ok("pitch: an oldest merge BATCH_AGE_COMMITS old proceeds whatever the pitch",
+       pitch_wait(_young, _fresh, BATCH_AGE_COMMITS, "push") is None)
+    ok("pitch: a record merge one pitch old proceeds",
+       pitch_wait(PITCH_S, _fresh, 2, "push") is None)
+    ok("pitch: no record merge in the window, or one dated ahead of the clock, proceeds",
+       pitch_wait(None, _fresh, 2, "push") is None
+       and pitch_wait(-60, _fresh, 2, "push") is None)
+    ok("pitch: the nightly and a dispatch never pitch",
+       pitch_wait(_young, _fresh, 2, "schedule") is None
+       and pitch_wait(_young, _fresh, 2, "workflow_dispatch") is None)
+
     if fails:
         print(f"{len(fails)} self-test check(s) failed: "
               + ", ".join(fails))
@@ -1614,6 +1778,14 @@ def main() -> int:
                          "through tests/layout.json (replay of old PRs)")
     ap.add_argument("--find-open", action="store_true",
                     help="print the open record pull request's number, or 0")
+    ap.add_argument("--batch-due", action="store_true",
+                    help=f"exit 0 when --plan-file is a batch for --event, "
+                         f"{WAIT_RC} while it waits")
+    ap.add_argument("--pitch-check", action="store_true",
+                    help=f"exit {WAIT_RC} while a push beat's automerge waits "
+                         "the pitch, over --merges-file at --root")
+    ap.add_argument("--event", default="push",
+                    help="the workflow event, for --batch-due and --pitch-check")
     ap.add_argument("--owner", default="tvofi")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--repo", default=DEFAULT_REPO)
@@ -1673,9 +1845,31 @@ def main() -> int:
     if args.plan:
         merges = json.loads(Path(args.merges_file).read_text())
         roster = _load_roster(args)
-        plan = plan_merges(merges, Path(args.root), roster=roster)
-        print(json.dumps(plan, indent=2))
+        plan = plan_merges(merges, Path(args.root), roster=roster,
+                           self_disposing=delivery_status.self_disposing)
+        print(json.dumps(plan[:BATCH_CEILING_ROWS], indent=2))
         return 0
+    if args.batch_due:
+        plan = json.loads(Path(args.plan_file).read_text())
+        _, after = oldest_owed(Path(args.root), plan, time.time())
+        why = batch_due(len(plan), after, args.event)
+        print(f"BATCH {'DUE' if why else 'WAIT'}: "
+              + (why or f"{len(plan)} row(s) below the floor of "
+                 f"{BATCH_FLOOR_ROWS}, the oldest {after} commit(s) old "
+                 f"(opens at {BATCH_AGE_COMMITS})"))
+        return 0 if why else WAIT_RC
+    if args.pitch_check:
+        root, now = Path(args.root), time.time()
+        merges = json.loads(Path(args.merges_file).read_text())
+        records = [merge_age(root, str(m["merge_sha"]), now)[0] for m in merges
+                   if m.get("head_ref") == RECORD_BRANCH and m.get("merge_sha")
+                   and m.get("state") != "open"]
+        records = [a for a in records if a is not None]
+        plan = plan_merges(merges, root, self_disposing=delivery_status.self_disposing)
+        age_s, after = oldest_owed(root, plan, now)
+        why = pitch_wait(min(records) if records else None, age_s, after, args.event)
+        print(f"PITCH {'WAIT: ' + why if why else 'CLEAR'}")
+        return WAIT_RC if why else 0
     if args.apply:
         plan = json.loads(Path(args.plan_file).read_text())
         written = write_rows(plan, Path(args.root))

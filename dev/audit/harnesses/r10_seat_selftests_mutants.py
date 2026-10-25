@@ -92,6 +92,13 @@ MUTANTS = [
     ("S18", "queue_pre_flight.py", "if not mt.is_sha(v):", "if mt.is_sha(v):"),
     ("S19", "record_row.py", 'if n in required and r.get("conclusion") in bad)',
      'if n in required and r.get("conclusion") not in bad)'),
+    # R10-FLOW-RECORD-PITCH: the record chain's skip, the batch's event check, the pitch's age arm.
+    ("record_row-1", "record_row.py", "if self_disposing and merge_sha and self_disposing(merge_sha):",
+     "if False:"),
+    ("record_row-2", "record_row.py", 'if event != "push":\n        return f"{event} flushes',
+     'if False:\n        return f"{event} flushes'),
+    ("record_row-3", "record_row.py", "if not 0 <= last_record_age_s < PITCH_S:",
+     "if not 0 <= last_record_age_s:"),
     ("S20", "resume_doc.py", "done = {k for k in G if k not in open_}",
      "done = {k for k in G if k in open_}"),
     ("S21", "roster_edit.py", "    if r.returncode != 0:\n        raise Refuse(",
