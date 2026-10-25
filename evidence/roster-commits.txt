@@ -1,17 +1,40 @@
-roster commits, origin/main..09ed5f73f99a2b9048c18ac7bfb9b7832f3fce02:
+## git log --no-merges --reverse origin/main..20e9f0219 -- dev/programme/rosters/
 dbd592fe4 roster_edit append-carry R10-MERGE-SUBJECT-CASEARM (tools/audit/seat/roster_edit.py)
 e96f70d34 roster: re-pin R10-LEARNER-DEFAULT and R10-IMMERSION-LATCH coordinator.py ranges to origin/main 60cd447a0; set-stage R10-LEARNER-ETA done
 027c38705 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
 eaf10309d roster: set-stage R10-MUTANT-SKIP and R10-FLOW-AUTOTRAIN done
 e64be204d roster_edit append-carry R10-FLY-LEDGER-SAMPLE (tools/audit/seat/roster_edit.py)
-
-origin/main..origin/handoff/audit-r10-roster (6852f10b99eb736b1a3e1911a94c1b702b8cc85c):
-6852f10b9 roster_edit append-carry R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
-ceceee42f roster_edit wire-issue R10-CEILING-PROBE (tools/audit/seat/roster_edit.py)
-8eb7b1c1a roster_edit append-carry R10-CEILING-PROBE (tools/audit/seat/roster_edit.py)
 5986d2266 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
-e64be204d roster_edit append-carry R10-FLY-LEDGER-SAMPLE (tools/audit/seat/roster_edit.py)
-eaf10309d roster: set-stage R10-MUTANT-SKIP and R10-FLOW-AUTOTRAIN done
-027c38705 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
-e96f70d34 roster: re-pin R10-LEARNER-DEFAULT and R10-IMMERSION-LATCH coordinator.py ranges to origin/main 60cd447a0; set-stage R10-LEARNER-ETA done
-dbd592fe4 roster_edit append-carry R10-MERGE-SUBJECT-CASEARM (tools/audit/seat/roster_edit.py)
+8eb7b1c1a roster_edit append-carry R10-CEILING-PROBE (tools/audit/seat/roster_edit.py)
+ceceee42f roster_edit wire-issue R10-CEILING-PROBE (tools/audit/seat/roster_edit.py)
+6852f10b9 roster_edit append-carry R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+2c1cd8301 roster_edit wire-issue R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+cfb7a113b roster_edit append-carry R10-REPLAY-REAL-DAY (tools/audit/seat/roster_edit.py)
+f4c78b83a roster_edit wire-issue R10-REPLAY-REAL-DAY (tools/audit/seat/roster_edit.py)
+87510f50f roster_edit append-carry R10-DIAG-REDACT (tools/audit/seat/roster_edit.py)
+3be17a418 roster_edit wire-issue R10-DIAG-REDACT (tools/audit/seat/roster_edit.py)
+9d0fb960b roster_edit append-carry R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+a7f6b3820 roster_edit wire-issue R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+db84c8176 roster_edit append-carry R10-COP-GATE (tools/audit/seat/roster_edit.py)
+9d984a63b roster_edit append-group R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+940f5e431 roster_edit drop-carry R10-COP-GATE (tools/audit/seat/roster_edit.py)
+09662b3f1 roster_edit append-carry R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+40db13c41 roster_edit append-carry R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+2ba712430 roster_edit append-carry R10-COP-GATE (tools/audit/seat/roster_edit.py)
+d8ffe481d roster_edit edit-brief R10-LEARNER-DEFAULT (tools/audit/seat/roster_edit.py)
+edc7da2ff roster_edit edit-brief R10-IMMERSION-LATCH (tools/audit/seat/roster_edit.py)
+724563332 roster_edit append-carry R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+23215cf57 roster_edit append-carry R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+159d163e5 roster_edit append-carry R10-COP-GATE (tools/audit/seat/roster_edit.py)
+
+count:
+27
+## with merges, origin/main..9442cb4ea930560bb6442d8f9f07ef80e1e7c4e8 -- roster json
+28
+## merges in range
+9442cb4ea 09ed5f73f99a2b9048c18ac7bfb9b7832f3fce02 20e9f0219119c89a9840fd6b337387adec3a8ecf Merge commit '20e9f0219119c89a9840fd6b337387adec3a8ecf' into fix/audit-r10-roster-pr10
+20e9f0219 159d163e5f84c29c796cf64e19aa6cc85739088d bc52ad2af1d0cfe95896119b649fa56e14c74b5b Merge origin/main into the roster branch (main's R10-LEARNER-ETA carry on R10-UX-HEALTH kept ahead of the new carries)
+17c548a6b e64be204d8ba3255eb20d6f4df130cba364be0f4 bc52ad2af1d0cfe95896119b649fa56e14c74b5b Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster-pr10
+## all commits on PR
+31
+body list == log list (27, same order)
