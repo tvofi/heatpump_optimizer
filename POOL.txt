@@ -32,3 +32,4 @@ dispatch/fixer-r10-gate-defer-r2
 dispatch/fixer-triage-s6-batch19-r2
 dispatch/fixer-r10-merge-subject-harden-r6
 dispatch/fixer-r10-demand-overbook-r5
+dispatch/fixer-r10-thermal-power-option-r3
