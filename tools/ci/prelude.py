@@ -23,10 +23,17 @@ WORKSET is the units a kind's run owns; a code run on a PR carrying the
 
 A dispatch naming `pr` is VERIFIED against the live PR (open, from this
 repository, headed by this SHA, based on `base`) or the prelude fails, and the
-gate, which re-verifies, fails with it. A non-code run waits until every
-EARLIER ci.yml run at its head has finished (a held run aside), polling at
-POLL_S (tvofi's 60 s floor, 2026-10-19), one runs listing per poll. A rate
-limit prints `RATE-LIMITED` and fails closed (A1 item 4).
+gate, which re-verifies, fails with it. A non-code run waits (`wait_sources`)
+until no run at its head that it orders after can still add a source: every
+EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
+does not number a same-second push and body edit in event order
+(R10-RCA-CODESCAN-WAIT: the edit run got the lower id in 27 of 94 pairs), so
+an id alone orders nothing; a code run never waits, so no cycle forms. A run
+can add no source once it is `judging` -- every unit ended and its gate
+listed -- not only once it has finished, because that gate may itself be
+waiting on this run (gate.py's bounded wait). Polls at POLL_S (tvofi's 60 s
+floor, 2026-10-19): one runs listing, and a jobs listing per unfinished
+run waited on. A rate limit prints `RATE-LIMITED` and fails closed (A1 item 4).
 """
 from __future__ import annotations
 
@@ -46,6 +53,17 @@ BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
 KP = "kernel-points"
+UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
+    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+              "closure-scope"),
+    "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
+    "governance": ("policy-docs", "wave-script", "env-matrix"),
+    "hassfest": ("hassfest",),
+    "validate": ("validate-hacs",),
+    "arch-score": ("arch-score",),                 # owner ruling D-2
+    "budget-raise-gate": ("budget-raise-gate",),
+    "pr-contract": ("pr-contract",),
+}
 UNFINISHED = ("queued", "pending", "waiting", "requested", "in_progress")
 POLL_S = 60
 WAIT_MAX_S = 8700       # inside the job's 150-minute timeout: the wait fails before the runner kills it
@@ -141,20 +159,62 @@ def verify_dispatch(ctx: dict, get) -> str:
     return ""
 
 
-def wait_earlier(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
-    """'' once every earlier ci.yml run at this head is finished; else why it stopped."""
+def run_jobs(get, repo: str, run_id) -> dict:
+    """A run's latest jobs, name -> (status, conclusion)."""
+    return {j["name"]: (j["status"], j["conclusion"]) for j in
+            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
+
+
+def judging(run: dict) -> bool:
+    """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
+    `gate` is listed, no listed prelude or unit job is unfinished, and every name
+    its own title's workset owes is listed and completed (`tests /
+    closure-scope` aside when it names no PR)."""
+    jobs = run.get("jobs") or {}
+    if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
+                                     if k == "prelude" or k.split(" / ")[0] in UNITS):
+        return False
+    t = parse_title(run.get("title") or "")
+    if t is None:
+        return False                        # unreadable: never treated as finished (gate() also refuses it)
+    for u in workset(t[0], t[1]) & set(UNITS):
+        for n in UNITS[u]:
+            if u == "tests" and n == "closure-scope" and not t[1]:
+                continue
+            st = jobs.get(f"{u} / {n}")
+            if st is None or st[0] != "completed":
+                return False
+    return True
+
+
+def waits_on(run_id: int, run: dict) -> bool:
+    """Whether a non-code run waits on `run` at its head: an earlier run, or a code run of any id."""
+    t = parse_title(run.get("title") or "")
+    return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
+
+
+def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
+    """'' once no run this one waits on can still add a source; else why it stopped."""
     t0 = now()
     while True:
         st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
                          {"head_sha": ctx["head"], "per_page": 100})
         if st != 200 or not isinstance(doc, dict):
             return f"runs at {ctx['head'][:12]}: HTTP {st}"
-        busy = sorted(r["id"] for r in doc.get("workflow_runs", [])
-                      if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)
+        busy = []
+        for r in doc.get("workflow_runs", []):
+            run = {"id": r["id"], "title": r.get("display_title") or ""}
+            if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
+                try:
+                    run["jobs"] = run_jobs(get, ctx["repo"], r["id"])
+                except ghapi.ApiError as e:
+                    return str(e)
+                if not judging(run):
+                    busy.append(r["id"])
         if not busy:
             return ""
         if now() - t0 + POLL_S > WAIT_MAX_S:
-            return f"earlier run(s) {busy} still unfinished after {WAIT_MAX_S} s"
+            return f"run(s) {sorted(busy)} still adding sources after {WAIT_MAX_S} s"
         sleep(POLL_S)
 
 
@@ -171,7 +231,7 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep) -> tupl
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
     if not why and kind != "code":
-        why = wait_earlier(ctx, get, sleep)
+        why = wait_sources(ctx, get, sleep)
     return out, why
 
 
@@ -241,19 +301,45 @@ def self_test() -> int:
     check("dispatch naming the wrong base refused", bool(verify_dispatch(dctx, g({**live, "base": {"ref": "rel"}}))), True)
     check("dispatch of a fork PR refused", bool(verify_dispatch(dctx, g({**live, "head": {"sha": "H", "repo": {"full_name": "f/r"}}}))), True)
     check("dispatch pr without base refused", bool(verify_dispatch(ctx("workflow_dispatch", inputs={"pr": "7"}), g(live))), True)
-    listings = [[{"id": 40, "status": "in_progress"}, {"id": 60, "status": "queued"}],
-                [{"id": 40, "status": "completed"}, {"id": 45, "status": "action_required"}, {"id": 60, "status": "queued"}]]
-    naps, tick = [], iter(range(0, 10 ** 6, 3000))
-    w = wait_earlier(ctx("pull_request_review", pull_request=pr),
-                     lambda p, q=None: (200, {}, {"workflow_runs": listings[min(len(naps), 1)]}), naps.append,
-                     lambda: next(tick))
-    check("waits for an earlier run, not a later or held one", (w, naps), ("", [POLL_S]))
+    rctx = ctx("pull_request_review", pull_request=pr)          # run 50, a verdict run
+
+    def run(i, kind, status, jobs=None):
+        return {"id": i, "display_title": title(kind, "7", "main", "M"), "status": status, "jobs": jobs or []}
+
+    def done(kind, gate=True):
+        names = [f"{u} / {n}" for u in sorted(workset(kind, "7") & set(UNITS)) for n in UNITS[u]]
+        return [{"name": x, "status": "completed", "conclusion": "success"} for x in ["prelude"] + names
+                + (["gate"] if gate else [])]
+
+    def timeline(*frames):
+        """A get over a sequence of listings, one frame per poll (the count of naps so far)."""
+        naps = []
+
+        def get(path, params=None):
+            frame = frames[min(len(naps), len(frames) - 1)]
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{k: v for k, v in r.items() if k != "jobs"} for r in frame]}
+            rid = int(path.split("/runs/")[1].split("/")[0])
+            return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
+        return get, naps
+    tick = iter(range(0, 10 ** 6, 3000))
+    get, naps = timeline([run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued")],
+                         [run(40, "code", "completed"), run(45, "code", "action_required"),
+                          run(60, "edit", "queued")])
+    check("waits for an earlier run, not a later non-code or held one",
+          (wait_sources(rctx, get, naps.append, lambda: next(tick)), naps), ("", [POLL_S]))
+    get, naps = timeline([run(60, "code", "in_progress", done("code", gate=False))],
+                         [run(60, "code", "in_progress", done("code"))])
+    check("M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging",
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", [POLL_S]))
+    get, naps = timeline([run(40, "edit", "in_progress", done("edit"))])
+    check("a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us)",
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", []))
     check("poll floor is 60 s", POLL_S >= 60, True)
     clock = iter(range(0, 10 ** 6, 3000))
-    w = wait_earlier(ctx("pull_request_review", pull_request=pr),
-                     lambda p, q=None: (200, {}, {"workflow_runs": [{"id": 1, "status": "queued"}]}),
-                     lambda s: None, lambda: next(clock))
-    check("the wait is bounded", w.startswith("earlier run(s) [1]"), True)
+    get, _ = timeline([run(1, "code", "queued")])
+    w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
+    check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))

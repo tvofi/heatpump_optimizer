@@ -333,6 +333,16 @@ sweep's standing-seat liveness step keep them alive.
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
+  updated either, so roster edits accumulate on the handoff ref and land between
+  reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
+  (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
+  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
+  detached worktree at it). A blocked verdict, or one at an older head, freezes
+  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
+  `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
+  freeze, never from the hold, for new work that voids a merge verdict.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
   `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
@@ -457,6 +467,15 @@ sweep's standing-seat liveness step keep them alive.
   not wait on main's CI (log-only) and re-carries every serial entry up front
   so their pull_request runs fire together; each lands in queue order when
   its own required contexts conclude — the ruleset still gates every head.
+  `batch` also takes several batches in one queue (a list of lists), run in
+  order on one train, each with its own admission, proof and merges; between
+  two it drains what `train.sh add` spooled into one more batch, never into a
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines). A
+  policy head batches like any other: under a `--mandate` naming the mandate's
+  comment id, in force for policy merging, the train posts the citing approval
+  step 5 requires (`policy_approve`); a budget raise still goes serial.
+  `dev/audit/harnesses/r10_train_upgrade_mutants.py` holds one mutant per arm
+  of these three.
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
@@ -752,7 +771,10 @@ sweep's standing-seat liveness step keep them alive.
   vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
-  verdicts, `--tree` and the roster ref cut there). When: a flow guardrail
+  verdicts, `--tree` and the roster ref cut there). `--guardrail` prints the
+  review-strength guardrail's arms, report-only: incidence of the last 30
+  PRs and of each seat family's last 20 against P0 = 0.28 with REAL widened
+  by REAL_EXTRA, and the blocked words neither real nor taught. When: a flow guardrail
   or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
   is its first use. Refusal: an out-of-grammar subject is its own row,
   never a verdict.
@@ -888,6 +910,14 @@ sweep's standing-seat liveness step keep them alive.
   shape offline (missing required arg, live pidfile, unknown argument, the
   `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
   launch without `--checkout`, and a bare launch's argv carrying no flag.
+  `train.sh add <pr> <verdict> --repo R --state-dir D [--verdict-comment ID]
+  [flags]` loads one pull request into that state dir's live train (its next
+  batch) or, with none live, starts one with those flags. When: whenever a
+  merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
+  `Train.admit_add` (shape, open, base, carry, row, budget-raise, policy),
+  and `one-train` beside a train.sh still closing; a pull request already
+  queued is `ALREADY`, rc 0. One fcntl lock (`queue.lock`) orders every add
+  against the train's drains and its close; never a second train.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at

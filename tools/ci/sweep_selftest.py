@@ -78,6 +78,13 @@ def run_checks():
     rc, out = w.sweep()
     ok("a red older gate is re-run (the null for the plants below)", rc == 0 and w.posts == ["repos/o/r/actions/jobs/10/rerun"])
     ok("a green run and the triggering run are never re-run", all("/20/" not in p and "/90/" not in p for p in w.posts))
+    w = World([v_run(rid=1, created="1"), run(2, "1")], 1)     # an edit run numbered below its code run
+    rc, out = w.sweep()
+    ok("a red gate on a HIGHER-id run is re-run (an id orders nothing)", rc == 0 and w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+    w = World([v_run(rid=1, created="1"), run(2, "1", status="in_progress", gstatus="in_progress")], 1,
+              {2: finish(2, "failure")})
+    w.sweep()
+    ok("a HIGHER-id gate still waiting is polled, and re-run once it expires red", w.posts == ["repos/o/r/actions/jobs/20/rerun"])
     w = World([run(1, "1"), run(9, "3", g="failure", started="4")], 9)
     rc, out = w.sweep()
     ok("a triggering run whose gate is red re-runs nothing", w.posts == [] and out.startswith("SKIP"))

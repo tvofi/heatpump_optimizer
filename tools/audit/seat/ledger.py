@@ -89,7 +89,8 @@ from merge_train import is_sha  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
-    "handoff-hold-malformed": "derived", "design-build": "derived", "review-owed": "derived",
+    "handoff-hold-malformed": "derived", "handoff-held": "derived",
+    "design-build": "derived", "review-owed": "derived",
     "probe-refused": "derived", "confirm-owed": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
