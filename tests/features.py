@@ -411,6 +411,30 @@ R.check(
 )
 R.check("a missing unit is refused", normalize_power_kw(3000.0, None) is None)
 
+# D7-s2-61: the one live-state power parse and its three sign policies. Each
+# row is a policy's own answer; the non-finite, word and unit rows are every
+# policy's "no reading".
+from heatpump_optimizer.inputs import state_power_kw as _spk  # noqa: E402
+_spk_rows = {
+    ("-400", "W"): (-0.4, 0.0, None),
+    ("0", "kW"): (0.0, 0.0, None),
+    ("2500", "W"): (2.5, 2.5, 2.5),
+    ("inf", "kW"): (None, None, None),
+    ("1e400", "kW"): (None, None, None),
+    ("1e306", "MW"): (None, None, None),  # finite in, overflows on conversion
+    ("unknown", "kW"): (None, None, None),
+    ("3", "furlong"): (None, None, None),
+}
+_spk_got = {
+    k: tuple(_spk(FakeState(k[0], unit=k[1]), sign=p) for p in ("signed", "clamp", "positive"))
+    for k in _spk_rows
+}
+R.check(
+    "a power state parses to finite kW under the caller's sign policy, or to no reading",
+    _spk_got == _spk_rows and _spk(None) is None,
+    f"got {_spk_got}",
+)
+
 power_reader = reader(
     {"sensor.pump_power": FakeState("2400", unit="W", last_updated=NOW)}
 )
