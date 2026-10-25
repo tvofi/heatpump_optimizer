@@ -6,7 +6,7 @@ UNCOVERED .claude/workflows/web-fix-wave.js:354: - resume.stage is 'merge' but t
 UNCOVERED .claude/workflows/web-fix-wave.js:398: const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
 UNCOVERED .claude/workflows/web-fix-wave.js:404: return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
 UNCOVERED .claude/workflows/web-fix-wave.js:457: log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
-UNCOVERED tools/audit/seat/INSTRUMENTS.md:448: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:454: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
 UNCOVERED tools/audit/seat/bus.sh:773: echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts 
 UNCOVERED tools/audit/seat/ci_probe.py:14: sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
 UNCOVERED tools/audit/seat/ci_probe.py:273: {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
@@ -16,7 +16,6 @@ UNCOVERED tools/audit/seat/flow_metrics.py:136: judged=len(judged), first_pass=s
 UNCOVERED tools/audit/seat/merge_pr.sh:152: # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
 UNCOVERED tools/audit/seat/merge_pr.sh:186: "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
 UNCOVERED tools/audit/seat/merge_pr.sh:200: && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
-DIFF tools/audit/seat/merge_train.py:2874 old=0 new=1 | MOVED = (1, "GraphQL: Base branch was modified. Review and try the merge again. (mergePullRequest)")
 UNCOVERED tools/audit/seat/merge_train.py:14: [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
 UNCOVERED tools/audit/seat/merge_train.py:1463: """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
 UNCOVERED tools/audit/seat/merge_train.py:1468: under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
@@ -51,13 +50,13 @@ UNCOVERED tools/policy/check-wave-script.mjs:101: groups: [G('A', { stage: 'merg
 UNCOVERED tools/policy/check-wave-script.mjs:171: agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 1, head_sha: 'h' } : o.label.startsWith('review') ? { verdict: 'merge', comment: 'Fix rev
 UNCOVERED tools/policy/check-wave-script.mjs:235: merge: [['pr'], ['head_sha']],
 UNCOVERED tools/policy/check-wave-script.mjs:250: // `merge: [['pr'], ['head_sha', 'merge_sha']]` was accepted because the done
-UNCOVERED tools/policy/policy_lint.mjs:2469: message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). Write its row as ${ROW
-UNCOVERED tools/policy/policy_lint.mjs:4881: if (!gapCustom || gapCustom.pr !== '2379' || gapCustom.source !== 'subject-gap') gapFail.push('an empty API answer on a merge subject with a custom ta
+UNCOVERED tools/policy/policy_lint.mjs:2470: message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). Write its row as ${ROW
+UNCOVERED tools/policy/policy_lint.mjs:4920: if (!gapCustom || gapCustom.pr !== '2379' || gapCustom.source !== 'subject-gap') gapFail.push('an empty API answer on a merge subject with a custom ta
 UNCOVERED tools/pr/app_approve.sh:367: || die "no 'Fix review:' verdict on #$pr from the approver App ($VERDICT_AUTHORS, id $VERDICT_AUTHOR_ID); an approval needs 'Fix review: merge $sha'"
 UNCOVERED tools/pr/app_approve.sh:375: why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
 UNCOVERED tools/pr/app_approve.sh:551: "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == s
 UNCOVERED tools/pr/local_alerts.py:56: ok, got = alert_list.reds(get, f"refs/pull/{pr['number']}/merge",
 UNCOVERED tools/release/stamp.py:1919: """(pr, sha) per merge the instrument lists without a row, or a refusal.
 UNCOVERED tools/release/stamp.py:2133: raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
-TOTAL old=55 new=56 over 287 file(s)
-UNCOVERED 60 of 95 line(s) holding both words, over 287 file(s)
+TOTAL old=56 new=56 over 290 file(s)
+UNCOVERED 60 of 95 line(s) holding both words, over 290 file(s)
