@@ -1,5 +1,5 @@
 #!/bin/bash
-# tick_loop.sh [--once] [--interval SECONDS] [--out FILE] [--pitch] [-- <orchestrator_tick.py args>]
+# tick_loop.sh [--once] [--interval SECONDS] [--out FILE] [--sweep] [-- <orchestrator_tick.py args>]
 # tick_loop.sh --self-test
 #
 # The tick's driver loop (the round-10 orchestrator, tvofi approved,
@@ -23,17 +23,18 @@
 #   TICK-RELAY <utc> relay=<ok|rc=N> started=<utc>
 # A failing relay pass is reported and the tick still runs; a failing tick is
 # reported and the loop goes on. The loop drives; the tick itself stays read-only.
-#   3. --pitch only (R10-FLOW-AUTOTRAIN; off by default, and the first live pitch runs
-#      with the orchestrator watching), on the hourly pitch: the first pass, then the
-#      first pass HPO_TICK_PITCH_EVERY seconds (default 3600) after the last pitch,
-#      stamped in <out>.pitch.at. `merge_train.py pitch --once` holds while a train's
-#      pidfile is live or the ledger holds an open train-stop, else writes the queue
-#      from the verdict bus, runs
-#      queue_pre_flight.py on it and starts one detached train.sh --bot-prs
-#      --approval-carry --pre-flight (merge_train.py's PITCH block says why each). Its
-#      output goes to <out>.pitch.log and one line follows the banner:
-#        TICK-PITCH <utc> rc=<rc> <the pitch's last line: PITCH HELD|EMPTY|STARTED|REFUSED ...>
-#      HPO_PITCH_MANDATE, when set, is passed as the train's --mandate; HPO_TICK_PITCH_CMD
+#   3. --sweep only (R10-FLOW-AUTOTRAIN; off by default, and the first live sweep
+#      runs with the orchestrator watching), the merge train's slow backstop: the
+#      first pass, then the first pass HPO_TICK_SWEEP_EVERY seconds (default 1800)
+#      after the last sweep, stamped in <out>.sweep.at. `merge_train.py sweep`
+#      holds while the ledger holds an open train-stop, else `add`s every head the
+#      queue builder admits that no sweep added at that head -- into the live
+#      train's next batch, or a train.sh --bot-prs --approval-carry --pre-flight
+#      it starts when none is live, never a second (merge_train.py's SWEEP block).
+#      Loading is bus.sh's post's job, at each merge verdict; this catches a head
+#      that missed it. Its output goes to <out>.sweep.log and one line follows the banner:
+#        TICK-SWEEP <utc> rc=<rc> <the sweep's last line: SWEEP HELD|REFUSED|DONE ...>
+#      HPO_SWEEP_MANDATE, when set, is passed as the train's --mandate; HPO_TICK_SWEEP_CMD
 #      replaces the command (the self-test's stub).
 # Then one `heartbeat.sh --once` pushes heartbeat/orchestrator with the pass line
 # (no --out path), so a stop is visible off the host; a failed push prints
@@ -83,15 +84,15 @@ relay_start() { # <r> <relay>: start the relay detached, wait for it at most the
   esac
 }
 
-pitch_pass() { # <out>: one merge pitch when one is due; prints its TICK-PITCH line
-  local log=$1.pitch.log at=$1.pitch.at prc last every=${HPO_TICK_PITCH_EVERY:-3600}
-  case $every in ''|*[!0-9]*) every=3600 ;; esac
+sweep_pass() { # <out>: one merge-train sweep when one is due; prints its TICK-SWEEP line
+  local log=$1.sweep.log at=$1.sweep.at src last every=${HPO_TICK_SWEEP_EVERY:-1800}
+  case $every in ''|*[!0-9]*) every=1800 ;; esac
   last=$(cat "$at" 2>/dev/null); case $last in ''|*[!0-9]*) last=0 ;; esac
   [ $(( $(date +%s) - last )) -ge "$every" ] || return 0  # mut:due
   date +%s > "$at"
-  if [ -n "${HPO_TICK_PITCH_CMD:-}" ]; then $HPO_TICK_PITCH_CMD > "$log" 2>&1; prc=$?
-  else python3 "$HERE/merge_train.py" pitch --once ${HPO_PITCH_MANDATE:+--mandate "$HPO_PITCH_MANDATE"} > "$log" 2>&1; prc=$?; fi
-  printf 'TICK-PITCH %s rc=%s %s\n' "$(date -u +%FT%TZ)" "$prc" "$(tail -n 1 "$log")"
+  if [ -n "${HPO_TICK_SWEEP_CMD:-}" ]; then $HPO_TICK_SWEEP_CMD > "$log" 2>&1; src=$?
+  else python3 "$HERE/merge_train.py" sweep ${HPO_SWEEP_MANDATE:+--mandate "$HPO_SWEEP_MANDATE"} > "$log" 2>&1; src=$?; fi
+  printf 'TICK-SWEEP %s rc=%s %s\n' "$(date -u +%FT%TZ)" "$src" "$(tail -n 1 "$log")"
 }
 
 tick_pass() { # <out> [tick args...]: one pass; prints the banner
@@ -111,7 +112,7 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   mv -f "$tmp" "$out"
   now=$(date -u +%FT%TZ)
   printf 'TICK-PASS %s relay=%s tick=%s out=%s\n' "$now" "$rrc" "$trc" "$out"
-  [ -z "$pitch" ] || pitch_pass "$out"  # mut:pitch
+  [ -z "$sweep" ] || sweep_pass "$out"  # mut:sweep
   # The andon: one heartbeat push per pass, bounded, its failure printed and never fatal.
   timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat
   [ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"
@@ -170,30 +171,30 @@ done" ]
   out=$(HB_RC=1 HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt"); rc=$?
   [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED' && printf '%s\n' "$out" | grep -q 'tick=0'
   ck "a failing heartbeat is printed, never silent, and the loop still exits cleanly" $?
-  # --pitch (R10-FLOW-AUTOTRAIN): one pitch per pass, after the banner; never without the flag.
-  printf '#!/bin/bash\necho pitch >> "%s/order"; echo "  #7 PASS"; echo "PITCH ${PITCH_WORD:-STARTED}: x"; exit "${PITCH_RC:-0}"\n' "$t" > "$t/pitch.sh"
+  # --sweep (R10-FLOW-AUTOTRAIN): one sweep per due pass, after the banner; never without the flag.
+  printf '#!/bin/bash\necho sweep >> "%s/order"; echo "  ADDED #7"; echo "SWEEP ${SWEEP_WORD:-DONE}: x"; exit "${SWEEP_RC:-0}"\n' "$t" > "$t/sweep.sh"
   rm -f "$t/order"
-  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
+  out=$(HPO_TICK_SWEEP_CMD="bash $t/sweep.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --sweep --out "$t/b.txt")
   [ "$(cat "$t/order")" = "tick 
-pitch" ] && printf '%s\n' "$out" | sed -n 2p | grep -Eq '^TICK-PITCH [0-9T:-]+Z rc=0 PITCH STARTED: x$' \
-    && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 2 ] && grep -q '#7 PASS' "$t/b.txt.pitch.log"
-  ck "--pitch: one pitch after the tick, its last line after the banner, its whole output in <out>.pitch.log" $?
+sweep" ] && printf '%s\n' "$out" | sed -n 2p | grep -Eq '^TICK-SWEEP [0-9T:-]+Z rc=0 SWEEP DONE: x$' \
+    && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 2 ] && grep -q 'ADDED #7' "$t/b.txt.sweep.log"
+  ck "--sweep: one sweep after the tick, its last line after the banner, its whole output in <out>.sweep.log" $?
   rm -f "$t/order"
-  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
-  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-PITCH
-  ck "--pitch: the next pass inside the hour pitches nothing (the hourly pitch)" $?
+  out=$(HPO_TICK_SWEEP_CMD="bash $t/sweep.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --sweep --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-SWEEP
+  ck "--sweep: the next pass inside the interval sweeps nothing (the slow backstop)" $?
   rm -f "$t/order"
-  out=$(HPO_TICK_PITCH_EVERY=0 HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
+  out=$(HPO_TICK_SWEEP_EVERY=0 HPO_TICK_SWEEP_CMD="bash $t/sweep.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --sweep --out "$t/b.txt")
   [ "$(cat "$t/order")" = "tick 
-pitch" ] && printf '%s\n' "$out" | grep -q '^TICK-PITCH '
-  ck "null control: a pass once the interval has passed pitches again" $?
+sweep" ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP '
+  ck "null control: a pass once the interval has passed sweeps again" $?
   rm -f "$t/order"
-  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
-  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-PITCH
-  ck "null control: without --pitch no pitch runs (the default loop starts no train)" $?
-  out=$(HPO_TICK_PITCH_EVERY=0 PITCH_WORD="REFUSED queue" PITCH_RC=2 HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt"); rc=$?
-  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^TICK-PITCH .* rc=2 PITCH REFUSED queue: x$' && printf '%s\n' "$out" | grep -q 'tick=0'
-  ck "a refused pitch is reported with its rc and the pass still completes" $?
+  out=$(HPO_TICK_SWEEP_CMD="bash $t/sweep.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-SWEEP
+  ck "null control: without --sweep no sweep runs (the default loop adds nothing and starts no train)" $?
+  out=$(HPO_TICK_SWEEP_EVERY=0 SWEEP_WORD="REFUSED queue" SWEEP_RC=2 HPO_TICK_SWEEP_CMD="bash $t/sweep.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --sweep --out "$t/b.txt"); rc=$?
+  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP .* rc=2 SWEEP REFUSED queue: x$' && printf '%s\n' "$out" | grep -q 'tick=0'
+  ck "a refused sweep is reported with its rc and the pass still completes" $?
   # The real script against a bare remote: a pass moves the ref.
   . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || return 1
   throwaway_git_init "$t/remote.git" -q --bare && throwaway_git_init "$t/w" -q -b main
@@ -212,12 +213,12 @@ pitch" ] && printf '%s\n' "$out" | grep -q '^TICK-PITCH '
   [ "$f" = 0 ]
 )
 
-once=; pitch=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
+once=; sweep=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
     --self-test) tick_loop_self_test; exit ;;
     --once) once=1; shift ;;
-    --pitch) pitch=1; shift ;;
+    --sweep) sweep=1; shift ;;
     --interval) every=${2:-}; shift 2 || shift ;;
     --out) out=${2:-}; shift 2 || shift ;;
     --) shift; break ;;

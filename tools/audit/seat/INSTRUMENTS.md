@@ -155,6 +155,9 @@ sweep's standing-seat liveness step keep them alive.
   `orphans` discharges a handoff by name only when that `fix/<t>` or
   `fix/<t>-pr` head carries the tip; a named head behind it is
   `repair=update`.
+  With `HPO_BUS_TRAIN_STATE` set, each merge verdict it posts is added to
+  the merge train there (`merge_train.py add --auto`, one `BUS train-add`
+  line; the output in `train-add.log`); a refused add never fails the post.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
@@ -449,10 +452,15 @@ sweep's standing-seat liveness step keep them alive.
   `verdict/<pr>`'s posted tip and is `merge` at its head or carries to it
   (`app_approve.sh --carry`), oldest first, one `QUEUE`/`LEFT` line each;
   budget and policy heads are queued for the batch's own serial route.
-  `pitch` holds while `train.pid` is live (and on a queue at heads that
-  already had its train), else builds that queue, runs `queue_pre_flight.py`
-  and starts one detached `train.sh --bot-prs --approval-carry --pre-flight`;
-  `tick_loop.sh --pitch` runs one per pass.
+  `add`'s admission (`Train.admit_add`) reads the same posted verdict
+  first, as its `verdict` rule, and fills an absent comment id from it.
+  bus.sh's post loads the train the moment it posts a merge verdict
+  (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
+  `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
+  default): unless the ledger holds an open train-stop, it `add`s each head
+  `queue` admits that no sweep added at that head, into the live train's
+  next batch or a `train.sh --bot-prs --approval-carry --pre-flight` it
+  starts when none is live, never a second.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -466,6 +474,15 @@ sweep's standing-seat liveness step keep them alive.
   not wait on main's CI (log-only) and re-carries every serial entry up front
   so their pull_request runs fire together; each lands in queue order when
   its own required contexts conclude — the ruleset still gates every head.
+  `batch` also takes several batches in one queue (a list of lists), run in
+  order on one train, each with its own admission, proof and merges; between
+  two it drains what `train.sh add` spooled into one more batch, never into a
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines). A
+  policy head batches like any other: under a `--mandate` naming the mandate's
+  comment id, in force for policy merging, the train posts the citing approval
+  step 5 requires (`policy_approve`); a budget raise still goes serial.
+  `dev/audit/harnesses/r10_train_upgrade_mutants.py` holds one mutant per arm
+  of these three.
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
@@ -761,7 +778,10 @@ sweep's standing-seat liveness step keep them alive.
   vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
-  verdicts, `--tree` and the roster ref cut there). When: a flow guardrail
+  verdicts, `--tree` and the roster ref cut there). `--guardrail` prints the
+  review-strength guardrail's arms, report-only: incidence of the last 30
+  PRs and of each seat family's last 20 against P0 = 0.28 with REAL widened
+  by REAL_EXTRA, and the blocked words neither real nor taught. When: a flow guardrail
   or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
   is its first use. Refusal: an out-of-grammar subject is its own row,
   never a verdict.
@@ -897,6 +917,14 @@ sweep's standing-seat liveness step keep them alive.
   shape offline (missing required arg, live pidfile, unknown argument, the
   `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
   launch without `--checkout`, and a bare launch's argv carrying no flag.
+  `train.sh add <pr> <verdict> --repo R --state-dir D [--verdict-comment ID]
+  [flags]` loads one pull request into that state dir's live train (its next
+  batch) or, with none live, starts one with those flags. When: whenever a
+  merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
+  `Train.admit_add` (shape, open, base, carry, row, budget-raise, policy),
+  and `one-train` beside a train.sh still closing; a pull request already
+  queued is `ALREADY`, rc 0. One fcntl lock (`queue.lock`) orders every add
+  against the train's drains and its close; never a second train.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
