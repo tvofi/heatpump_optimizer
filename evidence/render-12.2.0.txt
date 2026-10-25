@@ -1,0 +1,11 @@
+RESULT: PASS readme.html light blocks=3 rendered=3 errorDiagrams=0 pageErrors=0 
+RESULT: PASS readme.html dark blocks=3 rendered=3 errorDiagrams=0 pageErrors=0 
+RESULT: PASS how-it-works.html light blocks=2 rendered=2 errorDiagrams=0 pageErrors=0 
+RESULT: PASS how-it-works.html dark blocks=2 rendered=2 errorDiagrams=0 pageErrors=0 
+RESULT: PASS configuration.html light blocks=2 rendered=2 errorDiagrams=0 pageErrors=0 
+RESULT: PASS configuration.html dark blocks=2 rendered=2 errorDiagrams=0 pageErrors=0 
+RESULT: PASS setup.html light blocks=1 rendered=1 errorDiagrams=0 pageErrors=0 
+RESULT: PASS setup.html dark blocks=1 rendered=1 errorDiagrams=0 pageErrors=0 
+RESULT: PASS architecture.html light blocks=1 rendered=1 errorDiagrams=0 pageErrors=0 
+RESULT: PASS architecture.html dark blocks=1 rendered=1 errorDiagrams=0 pageErrors=0 
+RESULT: PASS mermaid render, failures=0

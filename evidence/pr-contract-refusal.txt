@@ -1,0 +1,10 @@
+pr-contract / pr-contract, job 121088724610 (run 40165394320), head 558fcd6aea84bc99894fbb713c7846481ef53345:
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: none
+DEPENDABOT: judged on the dependency-bump contract (tools/policy/dependabot_contract.mjs)
+  ERROR   [pr-body] <pr-body>: commit(s) 78672bb, 558fcd6 on this Dependabot branch are not Dependabot's own (author dependabot[bot], committer web-flow, verified signature); a seat taking the PR over re-opens it as the hpo-author App
+  ERROR   [pr-body] <pr-body>: this Dependabot pull request changes 1 path(s) no .github/dependabot.yml entry configures, including `docs/delivery/2773.md`; the dependency-bump contract covers configured manifests only
+PR-BODY: 2 error(s) in <pr-body>
+##[error]Process completed with exit code 1.
+
+gate, job 121088804802:
+FAIL pr-contract / pr-contract: failure (run 40165394320)
