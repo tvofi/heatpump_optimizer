@@ -1,0 +1,94 @@
+M0 unmutated: rc=0 failing=0
+M1 space path keeps the unmatched reference: rc=1 failing=6
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [2.058651874604855, 2.058651874604855, 
+    FAIL the booked thermostat step is the steady holding power at the matched target  [2.058651874604855 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 
+    FAIL the start settlement holds the house at the schedule the published reference ran  [1 reference runs, 1 start settlements]
+    FAIL that plan's published reference buys less than a thermostat at the schedule itself  [published 298.74 kW-steps vs at schedule 298.74]
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.623362
+M2 hot-water path reference at the schedule: rc=1 failing=2
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [3.084395747614535, 3.084395747614535
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.623362
+M3 shortfall never applied: rc=1 failing=8
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [2.058651874604855, 2.058651874604855, 
+    FAIL the booked thermostat step is the steady holding power at the matched target  [2.058651874604855 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [3.084395747614535, 3.084395747614535
+    FAIL a plan below the schedule on average moves the reference down by its mean shortfall, uniformly  [array([20., 21., 21., 20.])]
+    FAIL the start settlement holds the house at the schedule the published reference ran  [1 reference runs, 1 start settlements]
+    FAIL that plan's published reference buys less than a thermostat at the schedule itself  [published 298.74 kW-steps vs at schedule 298.74]
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.623362
+M4 per-step min instead of the mean shift: rc=1 failing=5
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [2.058651874604855, 2.058651874604855, 
+    FAIL the booked thermostat step is the steady holding power at the matched target  [2.058651874604855 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [3.084395747614535, 3.084395747614535
+    FAIL a plan below the schedule on average moves the reference down by its mean shortfall, uniformly  [array([19. , 20.5, 21. , 19. ])]
+M5 two-zone reference reads the floor the slab feeds (hot-water path): rc=1 failing=1
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [2.9769308889320802, 2.97881566084011
+M6 start debit unbounded: rc=1 failing=4
+    FAIL with a thermostat that buys nothing and no end credit, the warm start is debited nothing  [-13.638623351665435 (capped 1.1777031789468102)]
+    FAIL between the two, the whole debit stops at the thermostat's cost  [-13.638623351665435 vs -1.0]
+    FAIL heat carried to the end and credited there is debited at the start too  [-13.638623351665435 -13.638623351665435]
+    FAIL an end charge or a negative thermostat cost (negative prices) never widens the bound  [-13.638623351665435 -13.638623351665435 -13.63862335166543
+M7 the #2411 rule: only the debit past the caps bounded: rc=1 failing=4
+    FAIL with a thermostat that buys nothing and no end credit, the warm start is debited nothing  [1.1777031789468102 (capped 1.1777031789468102)]
+    FAIL between the two, the whole debit stops at the thermostat's cost  [0.1777031789468102 vs -1.0]
+    FAIL heat carried to the end and credited there is debited at the start too  [1.1777031789468102 0.1777031789468102]
+    FAIL an end charge or a negative thermostat cost (negative prices) never widens the bound  [1.1777031789468102 1.1777031789468102 0.1777031789468102]
+M8 bound without the end credit: rc=1 failing=1
+    FAIL heat carried to the end and credited there is debited at the start too  [-0.0 -1.0]
+M9 an end charge widens the bound: rc=1 failing=1
+    FAIL an end charge or a negative thermostat cost (negative prices) never widens the bound  [-0.0 3.0 2.0]
+M10 negative thermostat cost unclamped: rc=1 failing=1
+    FAIL an end charge or a negative thermostat cost (negative prices) never widens the bound  [5.0 -0.0 -1.0]
+M11 the start is handed the tank-inclusive end: rc=1 failing=1
+    FAIL the hot-water path hands the start the house's end settlement, not the tank-inclusive one  [end handed 21.839569952632125, settled before it [(Fa
+M12 space-path settlement held at the unmatched schedule: rc=1 failing=1
+    FAIL the start settlement holds the house at the schedule the published reference ran  [2 reference runs, 1 start settlements]
+M13 a cold start credited uncapped: rc=1 failing=1
+    FAIL a start colder than the held house is settled at the caps, with no surplus to debit  [held slab 26.476921122052836 capped 13.581632653061225]
+M14 space-path held_cost read after the matching: rc=1 failing=1
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 86.34350956537233 vs off 89.623362
+M15 hot-water held_cost is the matched baseline_cost: rc=1 failing=1
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.623362
+M16 the advisor's degree reads baseline_cost again (whole features.py): rc=1 failing=2
+    FAIL #2257: the held figure prices a degree from a steady start: a coasted and a pre-heated house read it alike, while the plan's single-solve spend t
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+M17 the thermostat is never calibrated: rc=1 failing=3
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 16.0, 'actual_sek': 12.0, 's
+M18 the plan line is never booked: rc=1 failing=6
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 16.0, 'actual_sek': 12.0, 's
+    FAIL #2492: an install whose meter reads its model keeps the modelled figures byte-identical  [{'month': '2026-01', 'baseline_sek': 9.6, 'actual_sek':
+    FAIL #2492: a month begun without the plan line stays modelled; the next one calibrates  [{'2026-01': dict_keys(['savings_baseline', 'savings_actual']
+    FAIL #2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)  [{'2026-01': {'lines': {'savings_baseline': {'
+M19 a month begun without the plan line gains one: rc=1 failing=1
+    FAIL #2492: a month begun without the plan line stays modelled; the next one calibrates  [{'2026-01': dict_keys(['savings_baseline', 'savings_actual',
+M20 no calibration floor: rc=1 failing=1
+    FAIL #2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)  [{'2026-01': {'lines': {'savings_baseline': {'
+M21 the row's actual is the bill again: rc=1 failing=9
+    FAIL open month scales the baseline, the actual and the saving by one factor  [{'month': '2026-02', 'baseline_sek': 5.6, 'actual_sek': 5.6, 'savings_s
+    FAIL a closed month is unscaled; nothing saved reads baseline == actual on the energy basis  [{'month': '2026-01', 'baseline_sek': 1.0, 'actual_sek': 
+    FAIL the closed month's actual is the covered metered energy at spot plus fee, not the bill  [row {'month': '2026-09', 'baseline_sek': 5.6, 'actual_se
+    FAIL the saving prices both sides at spot plus the grid fee, covered intervals only  [{'month': '2026-09', 'baseline_sek': 5.6, 'actual_sek': 15.0, 's
+    FAIL the open month scales by the month's hours over the hours it settled  [{'month': '2026-02', 'baseline_sek': 1344.0, 'actual_sek': 952.0, 'savings
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2
+    FAIL #2492: and the modelled basis (no plan line) books the model's gap as a loss (the control: the calibration is what moved it)  [{'month': '2026-01
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 12.0, 'actual_se
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 24.0, 'actual_sek': 0, 'savi
+M22 the settlement hands the ledger no plan draw: rc=1 failing=4
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 16.0, 'actual_sek': 12.0, 's
+    FAIL #2492: an install whose meter reads its model keeps the modelled figures byte-identical  [{'month': '2026-01', 'baseline_sek': 9.6, 'actual_sek':
+M23 the duty ledger keeps the first tick's plan (whole features.py): rc=1 failing=2
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    FAIL #2492: a plan adopted mid-step re-freezes the step's planned duty; the same plan's later duty does not  [re-solved {'start': '2026-01-15T13:00:00
+M24 the tab's Baseline column reads the actual (tests/card.mjs): rc=250 failing=2
+    FAIL  savings tab draws the estimated current-month row
+    FAIL  #2492: the Savings tab's every cell is ledger.savings_months's, from the sensor's payload
+rc=0
