@@ -1,4 +1,3 @@
-# base_entities at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
   FAIL gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, its outcome read from the output's word (SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), never from the exit code (U0c)  [defects=["program (['SWEEP-DONE run=2 reruns=1'], rc 0) -> step rc 1, want success", "program (['SKIP run 2: its gate is not green and newest-covering'], rc 0) -> step rc 1, want success", "program (['SWEEP-DONE run=2 reruns=0'], rc 1) -> step rc 1, want success", "program (['RATE-LIMITED reset_epoch=99; no further re-runs before it'], rc 1) -> step 
   FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE  [cases={'shared-1': 0, 'head-only': 0, 'base-only': 0, 'shared-0': 0, 'head-crash': 0, 'head-overdue': 0, 'shared-overdue': 0}; dropping the exit comparison makes a shared 1 red (1), exiting 0 always makes a head-only 1 green (0), and dropping the OVERDUE line makes a head-only OVERDUE green (0)]
-2 of 2425 ENTITY CHECKS FAILED
+2 of 2429 ENTITY CHECKS FAILED
