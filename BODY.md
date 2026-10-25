@@ -4,7 +4,7 @@ Alternative rejected: a separate script patching plan.html (the reference) is a 
 
 ## Head
 
-18cd6fdc2980a69de94ad9e26756900d2457dbdf
+The authored code head is `e0d052785ae0691439c4ba7c42790902b52f73ff`. It adds one commit to `18cd6fdc2980a69de94ad9e26756900d2457dbdf` after a merge of origin/main (`d4c726f9d`, no conflicts): `r10_plan_issues_chart_mutants.py` now takes its root from `repo_root` in `r10_plan_page_mutants.py`, which it already imported `fail_name` from, instead of the inlined `parents[3]` walk that `tests/harness_headers.py` refused on `tests / fast (3.14)`.
 
 ## Mutation proof
 
@@ -16,12 +16,15 @@ Unmutated self-test: `python3 -I tools/audit/seat/plan_page.py --self-test` repo
 
 ## Figures
 
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` prints ALL 112 HARNESS HEADER CHECKS PASSED (rc=0); before the fix it printed 1 of 112 FAILED with `FAIL depth seams: dev/audit/harnesses/r10_plan_issues_chart_mutants.py:26: ROOT = Path(__file__).resolve().parents[3]`.
+- `python3 dev/audit/harnesses/r10_plan_issues_chart_mutants.py` prints `RESULT survived=0`, every mutant killed, M0 rc=0 fails=0.
 - `python3 -I tools/audit/seat/plan_page.py --self-test` prints the check count and 0 failed.
 - `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED.
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: the inlined `parents[3]` depth walk in the new driver. The cheaper detector is the depth-seam check of `tests/harness_headers.py`, which prepr runs locally; its standing cost is not measured. Answered: the walk is replaced by the shared `repo_root`, and the check is green at the head above (the pre-fix run was the red arm: restoring the inline walk makes it fail again).
+- `governance / delivery-status`: main's backlog of overdue delivery rows; this diff touches nothing that check reads, so no detector in this PR could have predicted it.
 
 ## Forward-carry
 
@@ -30,3 +33,4 @@ none
 ## Friction
 
 none
+
