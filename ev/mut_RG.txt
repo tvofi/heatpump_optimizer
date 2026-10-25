@@ -1,0 +1,9 @@
+mutant RG at af3b69b4de43393384436303298c5ac71718400d: custom_components/heatpump_optimizer/coordinator.py
+old: internal_gains_gate_open, None, house_wait, rates["house"],
+new: internal_gains_gate_open, None, house_cold, rates["house"],
+applied
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+exit 1
+  FAIL R10-LEARNER-ETA: in the sun the dark-gated learners wait for dark, and the aperture counts  [sun {'house': {'phase': 'waiting', 'progress': 0.6, 'waiting_for': 'darker', 'eta_days': None, 'samples': 30, 'samples_needed': 50}, 'lower': {'phase': 'waiting', 'progress': 0.332, 'waiting_for': 'da
+1 of 4384 FEATURE CHECKS FAILED

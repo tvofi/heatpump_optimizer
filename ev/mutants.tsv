@@ -1,0 +1,9 @@
+MS	custom_components/heatpump_optimizer/sensor.py	            "learner_progress": data.get("learner_progress"),\n	
+MU	custom_components/heatpump_optimizer/sensor.py	"system_identification", "learner_progress"}	"system_identification"}
+MD	custom_components/heatpump_optimizer/coordinator.py	darker = "darker" if is_sunlit_interval(state.solar_radiation) else None	darker = None
+MH	custom_components/heatpump_optimizer/coordinator.py	house_wait = house_cold or darker	house_wait = house_cold
+ML	custom_components/heatpump_optimizer/coordinator.py	colder(state.lower_floor_temperature) or darker, rates["lower"],	colder(state.lower_floor_temperature), rates["lower"],
+MA	custom_components/heatpump_optimizer/coordinator.py	SOLAR_APERTURE_MIN_IRRADIANCE else house_cold	SOLAR_APERTURE_MIN_IRRADIANCE else house_wait
+RG	custom_components/heatpump_optimizer/coordinator.py	internal_gains_gate_open, None, house_wait, rates["house"],	internal_gains_gate_open, None, house_cold, rates["house"],
+RC	custom_components/heatpump_optimizer/coordinator.py	solar_wait = "sunnier" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE	solar_wait = "sunnier" if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE
+NULL	custom_components/heatpump_optimizer/coordinator.py	    house_wait = house_cold or darker	    house_wait = house_cold or darker  # null

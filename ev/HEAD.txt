@@ -1,0 +1,5 @@
+reviewed head: af3b69b4de43393384436303298c5ac71718400d
+code head inside it: 0c4dff1770e941dd0c9a033dc6b5c2c283d823e6
+merge base / origin/main at review start: f40142d66c9cc8e2f144a815990fc1fe1d99d9a8
+PR head at verdict time: 41f882a9a095bf53307172c92d25cddba59f03b8 (github-actions[bot] 'ci: pin killed mutants' on top of the reviewed head)
+origin/main at verdict time: 880b667aaa22e25cb0c16712374a7f29ac39b2d3
