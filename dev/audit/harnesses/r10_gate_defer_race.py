@@ -39,8 +39,9 @@ Per scenario it prints every published `gate` verdict with its simulated time,
 then: UNDECIDED-RED (a FAIL whose reason is the deferral), MASKED (a PASS
 published while a real red source exists), DEADLOCK (no gate PASS and no real
 red: nothing at the head ever decides green), and the gates' total wait, all
-over the gates the scenario runs; then RESIDUAL-RED, the runs whose latest
-gate, after every sweep has converged, is still the deferral's red.
+over the gates the scenario runs; then RESIDUAL-RED, on a head with no real
+red, the runs whose latest gate, after every sweep has converged, is still the
+deferral's red.
 """
 from __future__ import annotations
 
@@ -266,7 +267,7 @@ def scenario(ci: Path, name: str, edit_s: int):
     deadlock = not real_red and not any(o == "PASS" for _, _, o, _, _ in h.verdicts)
     latest = {rid: r["seeded"] for rid, r in h.runs.items() if "seeded" in r}
     latest.update((rid, o) for _, rid, o, _, _ in h.verdicts)
-    residual = sum(1 for o in latest.values() if o.startswith("FAIL") and defer in o)
+    residual = 0 if real_red else sum(1 for o in latest.values() if o.startswith("FAIL") and defer in o)
     for t, rid, o, w, by in h.verdicts:
         print(f"  t={t:>5}s run {rid}{' sweep' if by else ''} (waited {w} s): {o}")
     print(f"{name}: verdicts {len(own)} UNDECIDED-RED {undecided} MASKED {masked} "
