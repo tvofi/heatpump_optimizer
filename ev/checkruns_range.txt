@@ -1,0 +1,22 @@
+== 3581be11be2b89478d7044c9a6a3d5bba0923e71 total=16
+arch-score / arch-score	queued	null	121058237834	null
+budget-raise-gate / budget-raise-gate	queued	null	121058237821	null
+prelude	queued	null	121057380077	null
+cancel-superseded	queued	null	121057380064	null
+refresh	queued	null	121057379918	null
+cancel-superseded	queued	null	121057376598	null
+== d3524d062cbde725bd83c7f5bc4e756fa4a8009c total=1
+== b1f77ff7db58406741b048337d47dc811a0787e5 total=79
+gate	completed	failure	120947303409	2026-10-24T18:10:30Z
+pr-contract / pr-contract	completed	failure	120946888094	2026-10-24T18:08:48Z
+gate	completed	failure	120945299973	2026-10-24T18:00:38Z
+pr-contract / pr-contract	completed	failure	120945092322	2026-10-24T18:00:13Z
+tests / fast (3.14)	completed	failure	120937928647	2026-10-24T17:43:16Z
+tests / fast (3.14)	completed	failure	120936594902	2026-10-24T17:32:36Z
+== a82287a5f4ff4b8595a46e89cac80448817acf7f total=53
+gate	completed	failure	120941298759	2026-10-24T17:43:38Z
+pr-contract / pr-contract	completed	failure	120940949769	2026-10-24T17:42:48Z
+gate	completed	failure	120939255415	2026-10-24T17:38:19Z
+pr-contract / pr-contract	completed	failure	120937519137	2026-10-24T17:33:32Z
+tests / closures	completed	failure	120931076859	2026-10-24T17:14:48Z
+tests / fast (3.14)	completed	failure	120931076805	2026-10-24T17:05:10Z

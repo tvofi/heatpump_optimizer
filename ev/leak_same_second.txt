@@ -1,0 +1,7 @@
+pre  unmutated tests/boost_drift_replay.py 0 0
+mutant block_duty 1 4 0.7s
+same second: True
+restored; source mtime_ns 1792901758730760066 size 25921
+pyc [('boost.cpython-314.pyc', 1792901758157889279)]
+pyc header flags/mtime/size (0, 1792901758, 25921)
+post unmutated boost_drift_replay 1 1 ['FAIL an overlay beginning exactly now governs only the NEXT interval (no tag on the closing one)']

@@ -1,0 +1,30 @@
+== baseline end: tests/mutation_table.py from b1f77ff7db58 (pre-fix), checks from head
+-- Python 3.14.7 CLOSEFROM=False
+ok   the reach tracer reads a clean run's row: an executed line is reached, one no process exec
+ok   and every way the row can be blind refuses the skip: a source read, a non-Python child (th
+FAIL and a Popen child started through os.posix_spawn reads the same clean row  :: rc=0 problems=['starts a non-Python process: os.posix_spawn <venv>/bin/python3'] processes={'started': 2, 'recorded': 2}
+ok   and a forked child's executed line counts, the row still clean
+ok   and no row, a red run's row or an instruction-less line drives the pair
+FAILS 1
+-- Python 3.13.17 CLOSEFROM=True
+FAIL the reach tracer reads a clean run's row: an executed line is reached, one no process exec  :: rc=0 never={2: False, 6: False, 10: False} processes={'started': 2, 'recorded': 2} problems=['starts a non-Python process: os.posix_spawn /usr/bin/python3.13']
+ok   and every way the row can be blind refuses the skip: a source read, a non-Python child (th
+FAIL and a Popen child started through os.posix_spawn reads the same clean row  :: rc=0 problems=['starts a non-Python process: os.posix_spawn /usr/bin/python3.13'] processes={'started': 2, 'recorded': 2}
+FAIL and a forked child's executed line counts, the row still clean  :: rc=0 problems=['starts a non-Python process: os.posix_spawn /usr/bin/python3.13'] processes={'started': 3, 'recorded': 3}
+ok   and no row, a red run's row or an instruction-less line drives the pair
+FAILS 3
+== head end: 3581be11be2b89478d7044c9a6a3d5bba0923e71
+-- Python 3.14.7
+ok   the reach tracer reads a clean run's row: an executed line is reached, one no process exec
+ok   and every way the row can be blind refuses the skip: a source read, a non-Python child (th
+ok   and a Popen child started through os.posix_spawn reads the same clean row
+ok   and a forked child's executed line counts, the row still clean
+ok   and no row, a red run's row or an instruction-less line drives the pair
+FAILS 0
+-- Python 3.13.17
+ok   the reach tracer reads a clean run's row: an executed line is reached, one no process exec
+ok   and every way the row can be blind refuses the skip: a source read, a non-Python child (th
+ok   and a Popen child started through os.posix_spawn reads the same clean row
+ok   and a forked child's executed line counts, the row still clean
+ok   and no row, a red run's row or an instruction-less line drives the pair
+FAILS 0

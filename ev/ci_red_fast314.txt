@@ -1,0 +1,8 @@
+== 120937928647
+2026-10-24T17:43:13.3499120Z   FAIL the reach tracer reads a clean run's row: an executed line is reached, one no process executed is never, and a SIGKILLed child's line counts  [rc=0 never={2: False, 6: False, 10: False} processes={'started': 2, 'recorded': 2} problems=['starts a non-Python process: os.posix_spawn /opt/hostedtoolcache/Python/3.14.8/x64/bin/python3']]
+2026-10-24T17:43:13.3499991Z   FAIL and a forked child's executed line counts, the row still clean  [rc=0 problems=['starts a non-Python process: os.posix_spawn /opt/hostedtoolcache/Python/3.14.8/x64/bin/python3'] processes={'started': 3, 'recorded': 3}]
+2026-10-24T17:43:13.3562407Z 2 of 2429 ENTITY CHECKS FAILED
+== 120931076805
+2026-10-24T17:05:07.1179333Z   FAIL the reach tracer reads a clean run's row: an executed line is reached, one no process executed is never, and a SIGKILLed child's line counts  [rc=0 never={2: False, 6: False, 10: False} processes={'started': 2, 'recorded': 2} problems=['starts a non-Python process: os.posix_spawn /opt/hostedtoolcache/Python/3.14.8/x64/bin/python3']]
+2026-10-24T17:05:07.1180143Z   FAIL and a forked child's executed line counts, the row still clean  [rc=0 problems=['starts a non-Python process: os.posix_spawn /opt/hostedtoolcache/Python/3.14.8/x64/bin/python3'] processes={'started': 3, 'recorded': 3}]
+2026-10-24T17:05:07.1233635Z 2 of 2429 ENTITY CHECKS FAILED

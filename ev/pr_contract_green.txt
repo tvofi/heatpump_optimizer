@@ -1,0 +1,10 @@
+2026-10-25T04:14:05.4257523Z   clean: true
+2026-10-25T04:14:27.3391332Z red checks the body must answer: 
+2026-10-25T04:14:33.4645994Z   record   red-history           13 commit(s) between origin/main and this head, every failure conclusion across them: tests / closures, tests / fast (3.14)
+2026-10-25T04:14:33.5369650Z              `git ls-tree` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+2026-10-25T04:14:33.5382907Z FIGURES: 6 resolved, 1 not verified, 0 refused
+2026-10-25T04:14:33.5947450Z   check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+2026-10-25T04:14:33.7672641Z   clean    no refusal (the 'check' lines above are yours to answer)
+2026-10-25T04:14:34.1872664Z Post job cleanup.
+2026-10-25T04:14:34.3002424Z Post job cleanup.
+2026-10-25T04:14:34.4644349Z Cleaning up orphan processes
