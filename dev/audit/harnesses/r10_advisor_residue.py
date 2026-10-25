@@ -27,15 +27,18 @@ Arms (each prints RESULT lines, then the arm's VERDICT):
   inbox   (b) Perturbation: the instant the row is read, every hour of the
           suite's seven price days (``r10_advisor_degree.PRICE_DAYS``). The
           sensor-gap row is ``topology.rank_sensor_gaps`` fed by the sensor's
-          own ``_gap_probe_terms`` at ``_gap_energy_rate``'s rate (the spot
-          price now) for an install with no outdoor and no tank sensor, the
-          pump series held fixed. The hot-water row is the card's
+          own ``_gap_probe_terms`` at ``_gap_energy_rate``'s rate for an
+          install with no outdoor and no tank sensor, the pump series held
+          fixed. The hot-water row is the card's
           (cost_per_day(from) - cost_per_day(to)) x 30 on the coordinator's
           own ``_dhw_setpoint_sweep``, run on that day's price window and the
           hour's outdoor temperature, from 60 degC (a swept candidate, so the
           card's interpolation is the identity), for a household drawing 80 L a
-          day (so the sweep recommends below 60). Null control: the flat price
-          and a constant outdoor temperature.
+          day (so the sweep recommends below 60). Both are handed what
+          production hands them: a ``MonthlyLedger`` settling every interval
+          (seeded with the month before) and its ``recent_kwh_price``, which a
+          tree without it (the merge base) neither publishes nor reads. Null
+          control: the flat price and a constant outdoor temperature.
   asym    (c) Perturbation: the solve's start hour, every two hours of a day,
           on the null series and on the varying one. The held pair's gap
           (warmer + cooler) against its mean magnitude. Whether anything
@@ -54,7 +57,7 @@ about 90, 72 and 90 solves.
 """
 from __future__ import annotations
 
-import contextlib
+import inspect
 import sys
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -64,7 +67,7 @@ import numpy as np
 sys.path.insert(0, "dev/audit/harnesses")
 import r10_advisor_degree as deg  # noqa: E402
 from profiles import DT, prices, solve_inputs, weather  # noqa: E402
-from heatpump_optimizer import coordinator as coordinator_mod, price_tiles, sensor, topology  # noqa: E402
+from heatpump_optimizer import price_tiles, sensor, topology  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.ledger import SPOT_PRICE_META, MonthlyLedger  # noqa: E402
 
@@ -142,18 +145,21 @@ class _Draws:
         return None
 
 
-def _dhw_row(price_window: np.ndarray, outdoor: float, ledger: MonthlyLedger, now: datetime) -> float:
-    """The card's hot-water row on the coordinator's own sweep, from 60 degC."""
+def _dhw_row(price_window: np.ndarray, outdoor: float, recent: float | None) -> float:
+    """The card's hot-water row on the coordinator's own sweep, from 60 degC,
+    handed the published recent kWh price as ``_build_data_dict`` hands it
+    (a tree before that route, the merge base, prices at the feed's window)."""
     cfg = deg.house(two_zone=False, dhw=True, dhw_daily_consumption=80.0)
     params = deg.ThermalParameters.from_config(cfg)
     params.dhw_enabled = True
     params.dhw_setpoint = 60.0
     stub = SimpleNamespace(
         _thermal_params=params, _prices=[{"total": float(p)} for p in price_window],
-        _current_state=SimpleNamespace(outdoor_temperature=outdoor), _ledger=ledger,
+        _current_state=SimpleNamespace(outdoor_temperature=outdoor),
         _dhw_learner=SimpleNamespace(draw_stats=_Draws()), _thermal_model=deg.ThermalModel(params))
-    with _frozen(now):
-        sweep = HeatPumpOptimizerCoordinator._dhw_setpoint_sweep(stub)
+    sweep_fn = HeatPumpOptimizerCoordinator._dhw_setpoint_sweep
+    routed = "kwh_price" in inspect.signature(sweep_fn).parameters
+    sweep = sweep_fn(stub, recent) if routed else sweep_fn(stub)
     cost = {c["setpoint"]: c["cost_per_day"] for c in sweep["candidates"]}
     return (cost[60] - cost[sweep["recommended_setpoint"]]) * 30.0
 
@@ -165,17 +171,6 @@ def _gap_row(data: dict, hp: list[float]) -> float:
                                      peak_count=3, **sensor._gap_probe_terms({}, hp, [], rate))
     top = [g for g in gaps if g.get("empty") and g.get("sek_per_month")]
     return float(top[0]["sek_per_month"]) if top else 0.0
-
-
-@contextlib.contextmanager
-def _frozen(now: datetime):
-    """``dt_util.now`` at ``now``, which the sweep reads the ledger with."""
-    saved = coordinator_mod.dt_util.now
-    coordinator_mod.dt_util.now = lambda *_a, **_k: now
-    try:
-        yield
-    finally:
-        coordinator_mod.dt_util.now = saved
 
 
 def arm_inbox() -> bool:
@@ -204,7 +199,7 @@ def arm_inbox() -> bool:
                 recent = getattr(ledger, "recent_kwh_price", lambda _now: None)(now)
                 data = {"current_price": float(pr[h * 4]), "recent_kwh_price": recent}
                 g.append(_gap_row(data, hp))
-                d.append(_dhw_row(pr, float(out[h * 4]), ledger, now))
+                d.append(_dhw_row(pr, float(out[h * 4]), recent))
             gap_all += g
             dhw_all += d
             gap_day.append(float(np.mean(g)))
