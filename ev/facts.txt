@@ -1,0 +1,72 @@
+== merge_train.py
+`--approval-carry` (run and batch) answers a cost measured three times on
+2026-10-12: a recarry moves a head from h0 to h, the owner's APPROVED review no
+            return f"the newest posted verdict (comment {v.get('id')}) is not verdict/{n}'s tip {tip}"
+== app_push.sh row_only_verdict
+# The --row-only verdict: (a), (b), (c) and (d) of the header, in that order,
+# the first failure named; recarry_verdict's shape. It reads HEAD ONCE and
+# judges that sha, leaves RV_HEAD, RV_TITLE (the live title, the one
+# pr-contract reads) and RV_WHY set, and prints RV_WHY.
+row_only_verdict() { # worktree listing body -> RV_*; rc 0 = the row-only checks replace prepr
+    || { _rv_no "the diff against the live head could not be read"; return 1; }
+  [ "$d" = "$(printf 'A\t%s' "$row")" ] \
+    || { _rv_no "the head adds or changes more than this pull request's own row $row (git diff --name-status: $(printf '%s' "$d" | tr '\t' ' ' | paste -sd';' - | sed 's/;/; /g'))"; return 1; }
+== roster_edit.py op_append_carry / _need
+def op_append_carry(roster, group, text):
+    g = _need(roster, group)
+    entry = _text(text)
+    carry = g.setdefault("carry", [])
+    if entry in carry:
+        raise Refuse(f"{group} already carries that entry")
+    carry.append(entry)
+def _need(roster, group):
+    for g in roster.get("groups", []):
+        if g.get("group") == group:
+            return g
+    raise Refuse(f"no roster group {group!r} "
+                 f"(known: {len(roster.get('groups', []))} groups)")
+== roster_lib
+DONE_STAGES = ("done", "rca-done")
+def is_open(group: dict) -> bool:
+    return (group.get("resume") or {}).get("stage") not in DONE_STAGES
+== carry_audit
+        if g is not None and roster_lib.is_open(g):
+            return True, ""
+        if r is not None and roster_lib.is_open(r):
+            return True, f"{tok} resolved on {self.round_ref}"
+        return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
+== open_pr.sh
+git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+== prepr.sh 7d
+# Step 7d's whole body: every unpinned site step 6d listed has a line under
+# `## Unpinned sites` naming it by its `file:line KIND` key (`*N` when one line
+# holds N mutants of the operator), with its disposition (pinned by
+unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
+    echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
+== bus.sh confirm/append_commit/post_verdict
+  git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
+  sig=$(git rev-parse "$c^{tree}")
+  if grep -qxF -- "$pr $sig" "$S/posted-signed" 2>/dev/null; then
+    printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
+  tree=$(git rev-parse "$c^{tree}")
+  sig=$(printf 'hpo-bus verdict %s %s\n' "$pr" "$tree" | openssl dgst -sha256 -sign "$key" | openssl base64 -A) \
+    && [ -n "$sig" ] || die "confirm: signing with $key failed"
+  msg=$(printf 'verdict: #%s %s\n\nbus-confirmed: %s (review/%s at %s)\nbus-signature: %s' "$pr" "$first" "$thread" "$pr" "$c" "$sig")
+  line=$(append_commit verdict "$pr" "$tree" "$msg") || return 1
+  v=${line#* }
+  post_verdict "$pr" "$v"
+}
+
+  # The replay the round-2 review drove: round 1's signed merge re-committed
+  # by a keyless seat after round 2's block, to supersede it.
+  t=$(git -C "$W/seat" log -1 --format=%B "$v1" | git -C "$W/seat" commit-tree "$(tip "$v1^{tree}")" -p "$v2")
+  git -C "$W/seat" fetch -q origin verdict/7
+  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 7 $t: this signed verdict was already posted on #7 (a replay)" && [ "$(calls)" = 2 ]
+  expect "a confirmed verdict replayed after a later round does not post again" $?
+== verdict refs
+831c50605 verdict: #2807 Fix review: merge 7d83298850c5364e961a2e63cfdfeeb517b255a3
+502e83317 verdict: #2807 Fix review: blocked 1a7225e826d44b009a37905e19512ab0eafb1035 carry-dest-done: P110 defers to R10-FLOW-AUTOTRAIN, which the roster set done at eaf10309d after #2780 merged
+567d0bdb5 verdict: #2753 Fix review: merge 45d083123c6f45482dae00bbef4b82bf6e50bc04
+2974f78b6: fatal: Not a valid object name 2974f78b6
