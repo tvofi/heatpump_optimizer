@@ -369,6 +369,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -462,6 +463,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/process_worker.py",
@@ -555,6 +557,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -659,6 +662,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -893,6 +897,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -3035,6 +3040,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -3129,6 +3135,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -3471,6 +3478,7 @@
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/plan_step.py",
    "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
@@ -3587,6 +3595,7 @@
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
+   "dev/audit/harnesses/merge_subject_guard_block.mjs",
    "dev/audit/harnesses/pulse_replay.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_advisor_degree.py",
@@ -3647,6 +3656,11 @@
    "dev/audit/harnesses/r10_livestate_manual_plan_load.py",
    "dev/audit/harnesses/r10_livestate_restore_race.py",
    "dev/audit/harnesses/r10_main_gate_replay.py",
+   "dev/audit/harnesses/r10_merge_subject_argv_seam.mjs",
+   "dev/audit/harnesses/r10_merge_subject_census.mjs",
+   "dev/audit/harnesses/r10_merge_subject_differential.mjs",
+   "dev/audit/harnesses/r10_merge_subject_mutants.py",
+   "dev/audit/harnesses/r10_merge_subject_plants.sh",
    "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
    "dev/audit/harnesses/r10_mermaid_parse.mjs",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
@@ -3685,6 +3699,7 @@
    "dev/audit/harnesses/r10_solver_seed_or_stop.py",
    "dev/audit/harnesses/r10_solver_winner_polish.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
+   "dev/audit/harnesses/r10_store_load_leads.py",
    "dev/audit/harnesses/r10_structure_alias.py",
    "dev/audit/harnesses/r10_structure_blind.py",
    "dev/audit/harnesses/r10_sweep_driver_arm.py",
@@ -4455,7 +4470,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 1.2
+   "seconds": 4.3
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
@@ -4467,7 +4482,7 @@
   },
   "tests/card_drift.mjs": {
    "rc": 0,
-   "seconds": 5.3
+   "seconds": 29.5
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
@@ -4475,7 +4490,7 @@
   },
   "tests/debug_collect.py": {
    "rc": 0,
-   "seconds": 1.4
+   "seconds": 6.8
   },
   "tests/deployment_shape.py": {
    "rc": 0,
@@ -4551,11 +4566,11 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.5
+   "seconds": 4.3
   },
   "tests/solar_alignment.py": {
    "rc": 0,
-   "seconds": 1.3
+   "seconds": 4.3
   },
   "tests/stress.py": {
    "rc": 0,

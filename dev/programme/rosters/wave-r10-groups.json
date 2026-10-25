@@ -1635,12 +1635,13 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; after you: R10-HEAT-METER). Owning seam in this group: `_thermal_params` and the coordinator context. Shape: one owner, copy-on-write, published whole. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-params-owner",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2817
    },
    "brief": "ARCH2-s1: a single owner of the thermal parameters with copy-on-write (`dev/audit/rounds/round10/D7/arch2-s1/P1_thermal_params_single_owner.patch` at 2c30ada11). It fixes D7-s1-82: the set_thermal_parameters service exposes a torn, unclamped parameter set across its await (the catch-up judge rated it LOW: the solve copy is never torn). ARCH2-s4 P3 (one fabric interval, at b202335e2) removes the fabric learners' order coupling, new class N-order-coupling (the 0-sample state is not reached in production; the value is removing the coupling). Hygiene from refuted L4: the coordinator context is documented write-once but replaced in `async_update_thermal_params`; make it write-once.\n\nForward-carried (finding-propagation.md): (1) Re-measure D7-s1-82's delta_S AFTER R10-ARCHSCORE-COVERAGE extends the census (D7-s1-83: 3 of 5 spellings the patch uses are invisible to it); do not credit the pre-extension figure. (2) Leads, not owed: two owners of the ECL110 displace limits; a runtime seal on published snapshots (P1b) is a follow-up. (3) Mutation-ledger re-key and a quiet-window stress re-take are owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; after you: R10-HEAT-METER). Owning seam in this group: `_thermal_params` and the coordinator context. Shape: one owner, copy-on-write, published whole. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nFolded from the retired carry for #2232 (round-10 catch-up record):\n- Do not take D7-s1-82's P1 architecture-score gain as measured: part of it is the D7-s1-83 census blind spot (#2235). Re-derive the score credit after the census is extended; the defect counts (torn, holder_mutated, unclamped) stand. Harness: dev/audit/rounds/round10/catchup/arch-a/v2_params_interleave.py. Control: Catch-up judge on origin/main d749c986d: the P1 tree moves torn 6 -> 0, holder_mutated 1 -> 0, unclamped 1 -> 0; null control 0/0 on main and P1. Its architecture-score credit is partly the D7-s1-83 census blind spot: three of the five spellings the P1 tree uses are invisible to the census. Re-measure: Extend the census for D7-s1-83 first (#2235), then re-run dev/audit/rounds/round10/catchup/arch-a/v2_params_interleave.py and the architecture score on P1.\n- ARCH2-s2-P6 as prototyped (P6_price_tile_rotation_owned.patch on handoff/audit-r10-arch2-s2 at fabaf4664) advances its new PriceTileRotation cursor before the await, so a CancelledError during the fetch skips a spec. Advance the cursor only after the await succeeds. Harness: dev/audit/rounds/round10/catchup/arch-a/v2_s2_sites.py. Control: Catch-up judge on origin/main d749c986d: P6 removes two shared sites; --revert gives delta_S 0.0000, and the rename-only null control matches the union exactly (shared_diff 0). Re-measure: If your fix keeps a rotation cursor, cancel the task during the awaited fetch and check that the next call returns the spec that was skipped.\n\nForward-carried precondition (finding-propagation.md): From R10-SERVICES-GUARD (handoff/r10-services-guard at 2e7840f75): its copy-on-write handle_set_thermal_params must still resolve _loaded_coordinators(hass) before any return. The D10-s1-51 census in tests/features.py (service_entries_resolved_first, registered in tests/entities.py _P2_CENSUSES) drives it with none loaded and fails on a silent return. Control: the census FAILs with apply_schedule's base ordering restored. Re-measure at your merge base."
   },
@@ -1772,12 +1773,13 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS; after you: R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-arch-shapes",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2819
    },
    "brief": "Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. ARCH2-s3 patch 03 (a state power-kW reader in custom_components/heatpump_optimizer/inputs.py) at 1d1974df4 is its fix prototype. Then the duplicated-shape owners from ARCH-s2 at 01d9d0be2: patch 05, the hour-clock owners 5 to 2 (D7-s2-57); patch 06, the finite-float owner 9 to 4 (D7-s2-58, #2239).\n\nForward-carried (finding-propagation.md): (1) A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm. (2) Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number. (3) Mutation-ledger re-key and a quiet-window stress re-take are owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS; after you: R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nFolded from the retired carry for #2236 (round-10 catch-up record):\n- A finiteness check alone does not close D7-s2-61: after the verifier's patch 03 a finite absurd power reading still reaches the cap as p_max. The fix needs a range bound on the power parser, not only a non-finite refusal. Harness: dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py. Control: Catch-up judge on origin/main d749c986d: four power-state-to-kW parsers, three disagreeing states; inf and 1e400 give the silent 6.0 kW cap (p_max), the same as a finite 100 kW. The verifier's patch 03 reconciles 1e400 (3 -> 2 disagreeing states) and the in-memory non-finite refusal moves 1e400 to the 'unknown' fraction cap (4.2); null control 'unknown' -> 4.2. After patch 03 a finite absurd reading (100 kW) still gives 6.0. Re-measure: At your merge base run dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py, then feed a finite out-of-range power reading through your fix: the cap must not equal p_max for it.\n\nFrom R10-TARIFF (handoff/r10-tariff at 793116abd): dhw_schedule._parse_day_selector and _format_day_selector re-spell the weekday cyclic-range wrap beside grid_fee._parse_cyclic_range (P2 twin, #2238 comment). Use dev/audit/harnesses/r10_weekday_range_twins.py (pairs=49, null 0, perturb 49), and remove the two cyclic_range_wrap dispositions in tests/entities.py.\n\nForward-carried precondition (finding-propagation.md): From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base."
   },
@@ -1823,9 +1825,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-learner-eta",
-    "commit": null,
+    "commit": "60cd447a021558df4a1c5e8e71ed5c24b199d01e",
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_01HtYTAbefmKwnintURpriMz); return handoff-body/r10-learner-eta",
     "note": null,
@@ -1893,7 +1895,11 @@
     "After R10-LIVESTATE, FlowBias sets its heat output through observe_temps' keyword argument, so observe_water writes no field and read_heat_output_kw's caller changes. Re-read flow_meter.py and flow_lift.py at your merge base before citing that call site. Source: design/r10-livestate note, item ls-03 (design review design-verdict/r10-livestate 5af5526b5 confirmed it needed).",
     "From R10-INPUT-STALENESS (#2683, head 07b83e9b2, Closes #2234; finding-propagation.md), superseding this group's older carry \"Add the new key's max age through R10-INPUT-STALENESS's freshness rule\". Constraint: a new key added to INPUT_MAX_AGE_MINUTES in custom_components/heatpump_optimizer/const.py needs its on-change decision in the same pull request. At 07b83e9b2 the module holds a second table, INPUT_ON_CHANGE_MAX_AGE_MINUTES, which is the limit for a source never seen re-reporting an unchanged value. The new delivered-heat key either overrides it there or is named, with its reason, in the equal-keys declaration in tests/features.py (_r10st_same). A total_increasing counter holds its value while the pump idles, so it overrides with math.inf, as CONF_ENERGY_ENTITY does. The declaration check refuses anything else. Control (#2683 r1 review, review/2683 486e987d5): at 07b83e9b2 the check passes, ALL 4345 FEATURE CHECKS PASSED. With a key planted in INPUT_MAX_AGE_MINUTES and no on-change decision, it fails 1 check, the declaration (\"undeclared\"). With CONF_POWER_ENTITY's on-change limit set back to 30.0, it fails 3. Precondition for a dead-meter test: an aged on-change stamp now reads as a quiet value, not a dead sensor. A test modelling a dead meter must therefore re-report the unchanged value (last_reported past last_updated, which inputs.source_polls reads at 07b83e9b2) before it falls silent. On an unbounded key, a FakeState with only an old last_updated now reads fresh. Re-measure at your merge base: run tests/features.py with a planted undeclared key, and confirm the declaration check fails before it passes on your new key.",
     "From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md), superseding this brief's opening premise. After #2753 main HAS a delivered-heat input: `CONF_THERMAL_POWER_ENTITY` (`heat_pump_thermal_power_entity`, kW), probed as `thermal_model.probe_install(...).measured_heat`. `flow_meter.read_heat_output_kw` answers it first, whatever else the install has, and then consults no flow meter at all, even in a cycle the heat reading is unusable (that cycle carries no measured heat; the learners freeze). Your energy meter is a second heat source beside this one: state which of the two wins when both are configured, keep that no-fallback rule (a configured source whose reading is unusable never falls back to another), and route your reading through `read_heat_output_kw` rather than a parallel path. The COP sample site you are told to replace is already replaced: `_fold_measured_cop` takes heat over electricity through `flow_meter.cop_evidence` and skips `MeasuredCop.judge_ratio` whenever a heat reading exists, judged against `flow_meter.space_reference_cop`; your exact-fold and null tests go through `cop_evidence`. The house learner already replays measured heat (`_interval_measured_heat_kw`, `_replay_interval`), and `flow_meter.replay_freeze` lifts the (c) unmetered-power freeze for a heat-metered interval on switch-plus-setpoint installs. That lift decides space against hot water only from the commanded split (`_commanded_split`), never from an observed pump mode, so a meter that also counts the pump's self-initiated hot-water charges is replayed as space heat on exactly the installs the freeze protected (a judgement on the code, not measured on a plant). Your mode split ('split delivered heat ... by the heat-pump mode entity') must therefore apply to the thermal power entity's reading and to this replay as well as to your energy meter's. Control: #2753's check 'a configured heat meter answers in kW, and outranks the flow meter's estimate' fails when `read_heat_output_kw`'s `if cap.measured_heat:` is mutated to `if False:` (review 2753 mutant M1); keep it passing, and add the same check for your source's precedence.",
-    "From #2698 (R10-RATIO-ANCHOR body, For the orchestrator and the fix reviewer): a clamp-reset regression against main on the upper zone. In the fix reviewer's two scale rows, the joint solve puts the scale at 0.280 and 0.279, below the 0.3 floor; main's law, on the total alone, puts it at 0.3076 and 0.3037, just inside the floor, so main never resets there. Measured with zones_probe, the upper zone against the measured 50.0 and 40.0 W/K reads 55.4 and 45.6 W/K at main, and 180.0 and 150.0 W/K at pre-repair and at the head: the new nameplates, 'clamp means reset' doing what it says. Whether a joint solve that leaves the scale's bounds should reset to the configuration (the recorded decision) or fall back to main's total-only law is a design call for the owner of the #86 decisions, not a repair. Decide it with R10-HEAT-METER's re-anchoring of the same mechanism (HEAT_LOSS_BASES, heat_loss_basis_voids, reanchor_heat_loss), and re-measure at this group's merge base. (moved from R10-RATIO-ANCHOR, done, appended after done; the BAD-DEST item 3eb7dbfa in #2698's body)"
+    "From #2698 (R10-RATIO-ANCHOR body, For the orchestrator and the fix reviewer): a clamp-reset regression against main on the upper zone. In the fix reviewer's two scale rows, the joint solve puts the scale at 0.280 and 0.279, below the 0.3 floor; main's law, on the total alone, puts it at 0.3076 and 0.3037, just inside the floor, so main never resets there. Measured with zones_probe, the upper zone against the measured 50.0 and 40.0 W/K reads 55.4 and 45.6 W/K at main, and 180.0 and 150.0 W/K at pre-repair and at the head: the new nameplates, 'clamp means reset' doing what it says. Whether a joint solve that leaves the scale's bounds should reset to the configuration (the recorded decision) or fall back to main's total-only law is a design call for the owner of the #86 decisions, not a repair. Decide it with R10-HEAT-METER's re-anchoring of the same mechanism (HEAT_LOSS_BASES, heat_loss_basis_voids, reanchor_heat_loss), and re-measure at this group's merge base. (moved from R10-RATIO-ANCHOR, done, appended after done; the BAD-DEST item 3eb7dbfa in #2698's body)",
+    "Approved design (design-review.md): design/R10-HEAT-METER 21f4fbfe972378044e366d62c13559ec491d08db, verdict design-verdict/R10-HEAT-METER ad376684f (\"Design review: approve 21f4fbfe9\"). The note dev/programme/designs/R10-HEAT-METER.md at that SHA is this group's architect note and binds the fixer (fixer.md step 17). Size L, conditional on #2753 (R10-THERMAL-POWER-OPTION) merging with the names the note marks \"(#2753)\"; the fixer dispatches only after #2753 merges, and the designer's 1 h revalidation re-checks those names at its merge SHA. Files grow by custom_components/heatpump_optimizer/heat_energy.py (new, classify its closure), pump_signals.py, thermal_model.py, accuracy.py, store.py (house_heat_loss_basis unread string only, no version bump, no migration) and translations/sv.json. Review carries dr3-earned-in-memory (_heat_loss_anchors reads the in-memory earned basis, or a save writes metered over measured_heat) and dr3-eps-at-span (re-measure the EPS resolution bound at the real ~1.0 h span; EPS 0.5 refuses an integer counter at 1.5 kW) plus the four dr1 carries are in the note's Notes for the fixer.",
+    "D15 live-bundle lead L6 (owner install; unverified): at finalisation the sensors self-test flagged the house-power meter as a problem input, 238 min old, while the current `data.inputs` reports health `ok`; historical only. VERIFY with the input-freshness work of this group: read the sensors self-test's age rule for a power entity and decide whether a change-reporting meter on a quiet circuit can age past it without an outage. If it can, key the age on the entity's last report time and the integration's own sample, not on the last change. Controls: a power entity that reports a constant value for 4 h is not flagged when its last_updated advances (null: a real silence over the threshold is flagged); one mutant that reads last_changed. (triage: dev/programme/triage/s6-batch24.md#P118)",
+    "D15 live-bundle lead L9 (owner install; unverified): 5 of the 8 weekly learner snapshots (9 September to 7 October) are marked unhealthy, meaning inputs were unhealthy on those days. VERIFY together with the L6 carry (the house-power meter age rule): find the rule that marks a snapshot unhealthy, list per snapshot which input made it so, and say whether the input was genuinely silent or the rule flagged a quiet, change-reporting entity. Fix the rule only if it flags a healthy input. Controls: a synthetic week with every input reporting marks the snapshot healthy (null); a week with one input silent for the whole day marks it unhealthy and names that input; one mutant that ignores the named input. (triage: dev/programme/triage/s6-batch24.md#P121)",
+    "Rerouted from R10-RATIO-ANCHOR (done; #2823 review 6400897868). From R10-HEAT-METER's design (orchestrator ruling under mandate 6329234399, 2026-10-25, design-verdict ad376684f): on the #2698 clamp-reset carry, keep \"clamp means reset\". The heat-meter void path enters reanchor_heat_loss at confidence 0, where the clamp check cannot fire, so the question is this group's, not HEAT-METER's. Re-measure the clamp behaviour at your merge base before relying on it."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (seam-ordered; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION; after you: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1950,7 +1956,12 @@
     "R10-UX-HEALTH renders the state; the score dash rule is R10-SCORES'.",
     "From the D15 production triage of the owner's 7.0.4 diagnostics bundle (2026-10-24; derived ratios only): \"Learning: observed COP\" pinned for 31 h on one folded interval whose draw was 2.30x its ask (implied COP 0.43x the space curve, against about 1.1x on the previous fold), outdoor steady within 7-11 degC and no input stale. Three seams. (1) `_cop_reference_curve`/`_commanded_split` (custom_components/heatpump_optimizer/coordinator.py:4482-4852) pick the curve from the plan's split as the mode can serve it, not from the duty the pump actually ran; the pump-duty ledger records it ran hot water the plan did not command (11 `dhw-instead` steps in the published day), so a pump-initiated hot-water run folds against the space curve and the space ask. Refuse a fold whose observed duty differs from the planned duty. (2) `MeasuredCop.record` (accuracy.py:873) latches one interval and `ObservedCOPSensor` (sensor.py:1670) publishes it with no age while every later interval is refused (`last_refusal` `duty_floor`); show the sample's time or the honest not-measurable state this group adds. (3) The accuracy residual (coordinator.py:9901-9924) re-subtracts the latched COP on every sample, so 89 consecutive samples carry a residual that is a pure function of outdoor temperature. Controls: a synthetic install whose pump runs unplanned hot water folds nothing for those intervals; a draw-follows-plan install still folds (your existing null); one mutant per seam.",
     "Correction to the D15 triage carry on the observed-COP latch (2026-10-24; derived ratios only). Seam (1) of the earlier carry, a hot-water run folded against the space curve, is withdrawn. The bundle has no mode history for the interval (the pump-duty ledger is not persisted and starts 17 h later), but the code rules DHW-only out. The stored record says `curve_dhw` False, and a commanded ask of 1.26 kW folded. Under an observed DHW-only mode, `_commanded_split` (coordinator.py:4482-4511) zeroes space, so a space-curve fold with that ask is impossible: the interval ran in a space-capable mode. Real cause: the arbiter commanded a 44-46 degC flow set-point, and the pump drew 2.30x the plan's kW to meet it. The fold reads ask over draw as efficiency (COP-GATE's premise). The ask was under the nameplate third (1.26 against 1.33 kW), so `judge_ratio` (accuracy.py:844-871) could only fold through `follows_ask` returning True. That evidence window is misaligned. `draw_range.fold` runs in `_record_accuracy` (coordinator.py:9838), called at :5670 after `async_run_optimization` (:5634) has adopted the next action, so it pairs the closed interval's meter with the next step's ask. Of the 32 stored draw samples, 14 match the next accuracy row's ask, 0 match the same row's, and 15 are ambiguous (a constant ask). The COP fold itself (:6494, before the solve) and the accuracy pairing are aligned. Fix the pairing, then re-judge `follows_ask`. Seams (2), the latch with no age, and (3), the residual reusing the latch, stand. Controls: a synthetic install whose draw follows a flow set-point and not the kW ask folds nothing; the draw window pairs each meter reading with its own step's ask (mutation: swap to the next step); your existing draw-follows-plan null still folds.",
-    "From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md). 'A heat meter' in this brief includes the thermal power entity `CONF_THERMAL_POWER_ENTITY`, probed as `thermal_model.probe_install(...).measured_heat`, as well as R10-HEAT-METER's energy key. With it and an electrical meter, COP is observable: `_fold_measured_cop` folds heat over electricity (`flow_meter.cop_evidence`) and skips the commanded-ratio gates, and harness `dev/audit/harnesses/r10_thermal_power_option.py`'s `metered` arm holds `cop_scale` at the plant's own 0.9 at every outdoor point (spread 0.0000 at #2753's head). A gate keyed on HEAT-METER's key alone would mark a thermal-power install 'not measurable' while its fold learns. Control: a thermal-power-metered install is never given the not-measurable state, and its fold still moves `cop_scale`."
+    "From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md). 'A heat meter' in this brief includes the thermal power entity `CONF_THERMAL_POWER_ENTITY`, probed as `thermal_model.probe_install(...).measured_heat`, as well as R10-HEAT-METER's energy key. With it and an electrical meter, COP is observable: `_fold_measured_cop` folds heat over electricity (`flow_meter.cop_evidence`) and skips the commanded-ratio gates, and harness `dev/audit/harnesses/r10_thermal_power_option.py`'s `metered` arm holds `cop_scale` at the plant's own 0.9 at every outdoor point (spread 0.0000 at #2753's head). A gate keyed on HEAT-METER's key alone would mark a thermal-power install 'not measurable' while its fold learns. Control: a thermal-power-metered install is never given the not-measurable state, and its fold still moves `cop_scale`.",
+    "Owner's spec (tvofi, 2026-10-25): the heat-pump grade gets the same hover reason codes as the house grade, covering what raises or lowers it. While it has no grade yet, the codes say why: samples per outdoor band against the requirement, and samples refused by freezes.",
+    "The hover also explains the metric in plain words: seasonal COP by outdoor band, the samples required, and what 'no grade yet' means (owner, 2026-10-25).",
+    "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): \"has a heat meter\" becomes probe_install(...).measured_heat, covering both heat keys (heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity). COP-GATE renders the new refusal codes (unaligned_meters and the counter refusals) and never overrides them. Control: a counter install with no electric counter shows unaligned_meters, not a COP gate pass.",
+    "D15 live-bundle lead L1 (owner install, 2026-10-25; unverified, from REPORT.md): the vent detector still trips after #2391, 3 trips in about 30 h on 24-25 October (2 at night) and 4 of 7 daily snapshots 9-12 October frozen on `ventilation`, and `_learning_frozen` (`coordinator.py:6610-6690`) returns `ventilation` for every caller's keys, so the COP (`:4937`), DHW (`:9992`), buffer (`:5249`) and sysid (`:10930`) learners freeze with the house heat-loss learner the detector was built for (#26). VERIFY FIRST, at main: (1) replay the detector's CUSUM over a synthetic residual series with and without an open window and report the trip rate on each (the owner's residual series is not in the bundle; a fresh debug collection via `debug_collect start` would capture it, ask the owner for it only if the synthetic arms cannot separate window from bias). (2) Per learner, call `_learning_frozen` with the vent latch set and report which of the four stops learning and what each loses. (3) Test the model-bias reading: the learned heat-loss scale was 2.09, and a detector that trips on bias, not on windows, is the shape #2241 described. THEN a design note (designer.md; whether COP, DHW, buffer and sysid should freeze on a suspected open window is a design call, not a fix), reviewed before any code. Controls: a series with a real window trips and freezes only the house learner; a flat-price, no-window series trips nothing (null); one mutant per learner gate. The owner install also shows the COP side: REPORT.md Follow-up C counts 15 accepted COP folds in its lifetime across 6 buckets, the largest holding 5, against `COP_BASELINE_MIN_SAMPLES` of 20, and says a freeze, the vent latch included, refuses a fold; that is #2262 / this group. Coordinate with R10-CEILING-PROBE, whose F1 (#2808) is the sysid freeze-aborts-the-experiment half of the same latch. (triage: dev/programme/triage/s6-batch24.md#P113)",
+    "D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the snapshot shows `learner_freeze_reason: ventilation` while `ventilation_active: false`, so the freeze reason may be sticky. Writers per the report: `coordinator.py:5251,5368,5430,5521,6509,6526`. VERIFY beside the L1 carry: drive the latch on then off and read the reason at each learner's next tick. Fix only if a reason outlives its cause. Controls: latch on then off clears the reason by the next tick (the expected arm); a reason set by a different cause survives the vent latch clearing (null); one mutant that stops clearing. (triage: dev/programme/triage/s6-batch24.md#P114)"
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1969,7 +1980,9 @@
    "kind": "owner",
    "issues": [
     2253,
-    2263
+    2263,
+    2809,
+    2815
    ],
    "fixes": [],
    "findings": [
@@ -2016,7 +2029,11 @@
     "From R10-SCORES (handoff-body/r10-scores at 8f564875), Forward-carry: **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix.",
     "(from R10-SCORES #2647, Forward-carry) **R10-UX-HEALTH**: the score sensor is `unknown` (available) while it waits, with `waiting_for` and `reasons`; `healthWaiting` lists it. The card ships `score.reason_*` strings (en, sv) for every code; UX-HEALTH renders `reasons` on the Health `score` row and owns its copy. The Health tab's heat-loss \"learned\" now means converged (50 samples), not one sample.",
     "From R10-LEARNER-ETA (#2260, handoff/r10-learner-eta), finding-propagation.md: item 5 renders `learner_progress` (per learner: house, lower, solar, gains), and only it, for a learner's state. The card reads it as the `learner_progress` attribute of the model status sensor, the entity HEALTH_MODEL_SUFFIX (`_learning_model_status`) names, the Health tab's one source (`ModelStatusSensor` in sensor.py, unrecorded like `system_identification`); it is the learning view's `learner_progress` unchanged, and None when the view has none. `phase` is off, waiting, counting or settling; `waiting_for` (colder, darker, sunnier) is set only while waiting; `eta_days` is set only while counting and is the time until that learner's gate opens (for the house, the \"learned\" label), never until the value converges; `progress` is samples over `samples_needed` while counting and the fraction of the EWMA walk traversed while settling (None for gains). Precondition: a day figure is rendered from `eta_days` alone and labelled as the gate, and a settling learner shows progress and no day figure. Control: on the R10-IDENT plants dev/audit/harnesses/r10_learner_eta.py prints `gate_err` near zero and `settle_err` weeks negative for the same ETAs, so reading the figure as convergence is the study's defect again; re-measure at your merge base (eta_on_settling must read 0), and add a card fixture with phase settling and a non-null eta_days field that must render no day figure.",
-    "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobservable, not as a trusted learned scale. Harness dev/audit/harnesses/r10_demand_overbook.py."
+    "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobservable, not as a trusted learned scale. Harness dev/audit/harnesses/r10_demand_overbook.py.",
+    "#2809 [D15]: Finalize Debug Collection publishes the wrong unavailable reason, and HA hides it while greyed out; surface the right state.",
+    "#2815 [D15]: no UI control starts a new debug collection; only the debug_collect action with start does, and toggling the option off deletes the collection.",
+    "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building.",
+    "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): two new input rows, heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity, labelled from strings.json's entities_metering section, and a Health string for the refusal code unaligned_meters. Control: the Health panel on an install with the code renders the string, never the raw code."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -3448,7 +3465,9 @@
     "R10-RCA-CODESCAN-WAIT",
     "R10-GATE-DEFER",
     "R10-TRAIN-UPGRADE",
-    "R10-FLY-LEDGER-SAMPLE"
+    "R10-FLY-LEDGER-SAMPLE",
+    "R10-LEGIONELLA-COMPLETION",
+    "R10-PLAN-ISSUES-CHART"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
@@ -4769,7 +4788,8 @@
    "lane": "IN",
    "kind": "production",
    "issues": [
-    2498
+    2498,
+    2808
    ],
    "fixes": [],
    "class": "production",
@@ -4798,7 +4818,8 @@
     "R10-NIGHT-FOLDS"
    ],
    "carry": [
-    "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle."
+    "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle.",
+    "#2808 [D15]: Run System Identification arms an experiment that can never run (the house learner is past its sample limit), aborts on any learning freeze, and records no visible outcome. Settle the gate and the user-visible outcome here."
    ],
    "architect_note": null,
    "group": "R10-CEILING-PROBE",
@@ -4889,9 +4910,9 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "da12aa37dee15b9e9567bd6c848493436f2592dd",
     "last_step": null,
     "next_step": "rca",
     "note": null,
@@ -4934,7 +4955,9 @@
    "rca": [],
    "carry": [
     "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harness dev/audit/harnesses/r10_demand_overbook.py.",
-    "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
+    "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first.",
+    "D15 live-bundle lead L3 (owner install; unverified): `accuracy.power_ratio` is about 1.31 and `cost_error_percent` about -29 % over 210 samples (realised above predicted), the opposite direction to the planner over-booking that R10-DEMAND-OVERBOOK measured (the first carry here: the plan books about 38-40% more kWh than the relaxed DP optimum). VERIFY alongside that carry: state the definition and sign of `power_ratio` and `cost_error_percent` (which is numerator, which is predicted), then reconcile with the over-booking figure on the same model: either a sign or unit slip (fix and pin it) or two separate biases (name both with their sizes). Controls: a synthetic install where the plan over-books by a known 40 % reads the over-booking direction in both fields (null: a perfectly calibrated model reads 1.0 and 0 %); one mutant that flips the sign. (triage: dev/programme/triage/s6-batch24.md#P115)",
+    "D15 live-bundle lead L4 (owner install; unverified, provisional timings from the owner's box): solve wall time had a median of 12.4 s and a maximum of 272 s over a week (`self_tests.solver.week_solve_ms`) and the self-test re-solve took 8.0 s. VERIFY with this group's change: benchmark `optimizer.solve` on a synthetic install with the owner's shape (a 750 L buffer, a slab, hourly prices over the planning horizon) before and after the buffer credit, and report the median and the worst of N solves in wall time and peak memory. If the worst case is not bounded, find the input shape that produces it (the 272 s outlier) and cap or warm-start it. Controls: the benchmark on a flat-price install with no buffer is the null; a mutant that doubles the buffer state resolution must move the time; do not read the owner's timings as a fixture. (triage: dev/programme/triage/s6-batch24.md#P116)"
    ],
    "architect_note": null,
    "findings": [],
@@ -5091,7 +5114,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "commit": null,
+    "commit": "fd9914851",
     "last_step": null,
     "next_step": "fix",
     "note": "In progress 2026-10-20 with an added deliverable: a stopped pusher leaves its whole descendant tree running. Six survivors measured on this box, 26 to 62 minutes old, every one needing a kill two levels down (closure.py record under a stopped prepr; app_push under a killed update_pr and open_pr). The shared seam is pr_args.sh pr_trap, which already installs the ERR stop report for open_pr.sh and update_pr.sh. Requirements: terminate the whole tree on TERM/INT, never a pattern kill, do not reap on a clean exit mid-work, and the null control must prove an unrelated sleeper survives. Fixer on handoff/r10-pusher-reap."
@@ -5302,7 +5325,7 @@
     2508
    ],
    "fixes": [],
-   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6552-6559). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
+   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6664-6673). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
    "resume": {
     "stage": "not-started",
     "branch": null
@@ -5331,10 +5354,11 @@
    "fixes": [],
    "brief": "Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothing in round 10 names it (found by the 2026-10-20 slip screen). The option, verbatim: skipping a driver on a mutant line it never executes. In practice the mutation lane runs every driver against every mutant, and a driver whose tests never reach the mutated line cannot kill it, so those runs are pure cost; skipping them saves CI time with the same killing power. The risk is asymmetric: one wrong skip loses a real killer, the mutant survives, and the lane either reports a false survivor or hides a genuine test gap -- which is why the deferral demanded a 595-row replay. Build it measure-first, in this order, and do not reorder: (1) build the 595-row replay -- for every mutant/driver pair, record from a real run whether that driver executes the mutated line, and land the matrix as a checked-in artifact with its command; (2) enable a skip only where a matrix row says the driver never reaches the line -- no skip may be enabled without its row, and a pair with no row must run; (3) prove with a null control that the kill set under skipping is identical to the kill set without it on the whole matrix, and that the survivor set is unchanged. If the matrix shows no pair is skippable, record that measurement and stop: the answer is then a recorded refusal, not a feature. The 595 figure is the row count from #1930's harness at that head -- re-derive it, do not carry it.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
-    "pr": 2749
+    "pr": 2749,
+    "commit": "6b5d2a8169d64ab9ec276cfa2670ae32b2e2053b"
    }
   },
   {
@@ -6039,7 +6063,8 @@
     "tvofi 2026-10-24 card 9 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): cloud_dispatch.py and the Agent dispatch take the model from a roster-plus-role table and refuse a mismatch with a one-line reason (the pool routine ran opus where sonnet was rendered). Table: haiku for ferry and repair steps; sonnet for S and XS instrument fixes and their reviews; opus for core-model and learner fixes and for L and XL adversarial review. Enforce the table; leave its values at the current route-by-judgement ruling. Controls: a dispatch whose model differs from the table is refused; a matching one passes; each has a mutant.",
     "tvofi 2026-10-24 card 1 recommendation (c) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): build the cloud-payload stub first, ahead of the design-stage steps. The stub work is the narrowed accepted triage entries already carried in this group (the render-a-stub-that-pins-the-pushed-commit entries); land it as the first commit or as its own sub-pull-request so a payload that shrinks the dispatch tokens is not held behind the design-stage machinery.",
     "From #2709 (r10-fly-cloud-setup-toolchain), Forward-carry: cloud_dispatch.py's rendered setup line runs `bash tools/audit/seat/cloud-setup.sh --check` and stops the seat on REFUSE, so a cloud seat never starts on a toolchain the setup check refuses. The verdict at 5e4fbb0d3 found the carry routed to R10-ORCH-MACHINERY, which is absorbed; R10-FLOW-DESIGN-STAGES is the live group whose files include tools/audit/seat/cloud_dispatch.py.",
-    "GROUP R10-FLY-POOL-INSTRUMENT (new, size S, triage: dev/programme/triage/s6-batch4.md#P55 and #P60). Owns the cloud seat pool as tracked code. New tools/audit/seat/pool.py (+ a self-test, an INSTRUMENTS.md entry; cloud_dispatch.py gains only a call into it): `append` writes a POOL line on dispatch/pool-<session> and READS THE REF BACK, refusing on mismatch and surfacing git's stderr (V2: the push error was discarded, 2 lost runs); `append` first deletes any claim/<session>/<topic> whose handoff ref has not moved since the claim (V1: stale claim -> POOL EMPTY, 3 runs); `fire` refuses when the topic's pool line is absent at the ref and otherwise prints \"pool read back OK\" (V7: a critical-path fixer was about to fire with no line). The routine prompt is unchanged. Controls: stale claim cleared (null: a claim whose handoff moved after it stays); forced push failure exits nonzero with the git error; fire with the line absent fires nothing (null: present fires once); one mutant per arm. Out of scope: prune_refs rule for claim/* (R10-FLY-PRUNE-REFS). Files: tools/audit/seat/pool.py, tools/audit/seat/cloud_dispatch.py, tools/audit/seat/INSTRUMENTS.md. Measure first: cloud_dispatch's current pool-line handling at main, if any. (folded from R10-FLY-POOL-INSTRUMENT, tvofi 2026-10-25 existing-groups-first)"
+    "GROUP R10-FLY-POOL-INSTRUMENT (new, size S, triage: dev/programme/triage/s6-batch4.md#P55 and #P60). Owns the cloud seat pool as tracked code. New tools/audit/seat/pool.py (+ a self-test, an INSTRUMENTS.md entry; cloud_dispatch.py gains only a call into it): `append` writes a POOL line on dispatch/pool-<session> and READS THE REF BACK, refusing on mismatch and surfacing git's stderr (V2: the push error was discarded, 2 lost runs); `append` first deletes any claim/<session>/<topic> whose handoff ref has not moved since the claim (V1: stale claim -> POOL EMPTY, 3 runs); `fire` refuses when the topic's pool line is absent at the ref and otherwise prints \"pool read back OK\" (V7: a critical-path fixer was about to fire with no line). The routine prompt is unchanged. Controls: stale claim cleared (null: a claim whose handoff moved after it stays); forced push failure exits nonzero with the git error; fire with the line absent fires nothing (null: present fires once); one mutant per arm. Out of scope: prune_refs rule for claim/* (R10-FLY-PRUNE-REFS). Files: tools/audit/seat/pool.py, tools/audit/seat/cloud_dispatch.py, tools/audit/seat/INSTRUMENTS.md. Measure first: cloud_dispatch's current pool-line handling at main, if any. (folded from R10-FLY-POOL-INSTRUMENT, tvofi 2026-10-25 existing-groups-first)",
+    "Reviewer pool arm: `cloud_dispatch.py --role reviewer --head SHA --pr N --nonce X --model M` publishes `dispatch/reviewer-<pr>-<sha8>` and today nothing appends its line to `POOL.txt` on `dispatch/rpool-<session>` (2026-10-25 #2807: POOL EMPTY, one fire and about 15 min lost; two prep seats then published from out-of-tree scripts). In the pool.py arm already carried here, make the reviewer path publish the ref, call `pool.py append` for the rpool, read the ref back by ls-remote, and print 'pool read back OK' only when the new id is in POOL.txt at the remote; a publish whose line is absent exits nonzero. Controls: publish with the append forced to fail exits nonzero and names git's stderr (null: normal publish prints the read-back line); a second publish of the same ref adds no duplicate line (null: a new sha adds one); one mutant that deletes the append. (triage: dev/programme/triage/s6-batch24.md#P111)"
    ],
    "architect_note": "",
    "brief": "Mechanise the two design steps (owner ruling, 2026-10-21). (1) Roster stages design and design-review, accepted by roster_edit.py set-stage and shown by the tick board. (2) Bus refs design/<group-topic> for the design note and design-verdict/<group-topic> for the reviewer's verdict, written through bus.sh like review/<N> and verdict/<N>. (3) Dispatch templates for the designer and the design reviewer that name the contract and pin the base SHA, and refuse a fixer dispatch for an eligible group with no approved design verdict. (4) A tick line listing designs owed: an eligible group whose last predecessor has dispatched and that has no design ref. (5) Two cloud roles in cloud_dispatch.py beside reviewer, fixer and probe: designer, which may push only to design/<group-topic> and opens no pull request, and design-reviewer, which may push only to design-verdict/<group-topic>; each role's text says so itself, so no brief has to override the probe role's 'send no code to any ref' (revision 14, observed on the R10-SCORES designer). Until this lands, the orchestrator runs the steps by hand on the same ref names, dispatching the probe role with that override.",
@@ -6807,9 +6832,9 @@
    "architect_note": "",
    "brief": "The merge pitch as a mechanism, not an agent's turn (Lean flow study, mechanisation). Today the orchestrator builds every train queue by hand: merge_train.py documents the queue schema in its docstring and nothing writes one, so a pitch happens only when an agent's turn assembles pull request numbers, verdict heads and comment ids. Every input is already machine-readable: the confirmed verdict on the verdict bus ref, the pull request's head, and tools/pr/app_approve.sh --carry, which decides whether a merge verdict on one head carries to another (only main merges whose tree equals merge-tree's result, or driver-file bot commits, and an identical branch diff). Add a queue builder to merge_train.py that writes the queue from the open non-record pull requests whose newest verdict is merge at the head or carries to it, oldest first, and leaves budget and policy paths to the serial route the batch admit already applies. Then run tools/audit/seat/queue_pre_flight.py, then train.sh with --bot-prs --approval-carry --pre-flight, once per pitch, from the tick loop, and never while a train's pidfile is live. Every merge goes through merge_pr.sh or the train, which approve (app_approve.sh, or tvofi's review under the mandate on a code-owned path) before merging; a posted merge verdict is not a GitHub approval. Controls: a fixture with one verdicted head, one carried head, one head the carry refuses, one blocked verdict and one budget file builds exactly the expected queue; an empty queue starts no train; a live pidfile starts none; mutants of each admission rule fail named arms. The first live pitch runs with the orchestrator watching.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-flow-autotrain",
-    "commit": null,
+    "commit": "0825aee641c8afb1e67be2a6af9d07e9c9dec9fa",
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)",
@@ -7406,7 +7431,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
+    "pr": 2811
    }
   },
   {
@@ -7574,8 +7600,7 @@
     "R10-CI-LAYOUT-P2",
     "R10-FLY-RELAY-REVIEW-FF",
     "R10-FLOW-ROSTER-FREEZE",
-    "R10-FLOW-BODY-ONLY",
-    "R10-ARCH-DOCS"
+    "R10-FLOW-BODY-ONLY"
    ],
    "carry": [
     "tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing set after the retirements is the triage seat plus the beat jobs; name each retired seat's job and its digest file. (2) Context rotation (card 2, amended twice by tvofi 2026-10-24): caps by role, about 150 k tokens for mechanical, standing and relay seats, reviewers, and S and M fixers; about 300 k for L and XL fixers, designers, pre-studies, root-cause and plan seats; about 500 k for the orchestrator, which rotates through the handover document (state_docs.py plus the resume). Rotation is a fresh context between stages (rca, fix, handoff), never a mid-task cut. (3) Blocked verdicts by class (card 6): mechanical classes (carry-*, body or figure staleness, red-check answer, row-format, head-moved, conflict) go to a script where one exists, else to a fresh sonnet or haiku seat on a short brief; judgement classes (harness, mutation-*, class-open, defect, claim-refuted) still resume the fixer. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
@@ -7863,7 +7888,8 @@
     "Triage P34 (s5, defect route; triage: dev/programme/triage/s5-batch2.md#P34): the train's head wait never judges the pull-request-only required contexts. tools/audit/seat/merge_train.py: Train.one and Train.batch call self.required() with its default pr_head=False, which drops PR_ONLY (closure-scope, pr-contract, budget-raise-gate), so at_head's wait_ci logs `ci red=[]` at a head where pr-contract is red. Instance: run3 at #2665 head b859929d logged `ci red=[]`, then merge attempts 1/8 to 8/8 refused \"the base branch policy prohibits the merge\" while pr-contract was red there (job 120583698954). Fix: the head waits read the required set with pr_head=True. Failing test first: a fixture car whose pr-contract is red at the head stops at `ci` naming pr-contract and makes no merge attempt; null control: the same car with pr-contract green merges. One mutant (pr_head reverted to the default) reddens that row. Carries 1 and 2 (park with the reason read from statusCheckRollup instead of 8 retries) are the same seam; one fixer takes all three.",
     "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, a queue commit is tested at its merged result and the overlap grade is moot, so close this group as not needed. If the owner declines the queue, this group is released at once: it is the barrier for a recurring red main and must not wait past the decision.",
     "Orchestrator ruling 2026-10-24 under mandate 6329234399: this is the barrier for a recurring red main, so it is not held behind R10-FLOW-MQ-PROBE. Its after-edge is restored to none. If the merge queue is adopted later, retire the barrier then.",
-    "From #2595 (body, item 6fb50ac5), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done and did not implement it (its brief names merge 6077bf70e, this red, as instance 1 of the barrier it owes; no headroom band or overlap grade on main). Root cause owed for this red on main: a semantic merge of two edits to a capped policy file, each green alone (#2561 took `orchestrator.md` to 4506 tokens, #2586's branch to 4511, merge 6077bf70e summed them to 4515 against a 4513 cap with no headroom band). The countermeasure belongs with the policy_lint budget family, not with `ci-ratchet` timing (`R10-CI-RATCHET-RED`); a root-cause seat is running beside this fix.\nFrom #2595 (review 6332581437, item 98904e32), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done and did not implement it (restates 6fb50ac5). \"## Head\" still carries a superseded paragraph for d0f9c95b8 (a replaced row commit, not an ancestor of the head) beside the correct a95b50b17 one."
+    "From #2595 (body, item 6fb50ac5), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done and did not implement it (its brief names merge 6077bf70e, this red, as instance 1 of the barrier it owes; no headroom band or overlap grade on main). Root cause owed for this red on main: a semantic merge of two edits to a capped policy file, each green alone (#2561 took `orchestrator.md` to 4506 tokens, #2586's branch to 4511, merge 6077bf70e summed them to 4515 against a 4513 cap with no headroom band). The countermeasure belongs with the policy_lint budget family, not with `ci-ratchet` timing (`R10-CI-RATCHET-RED`); a root-cause seat is running beside this fix.\nFrom #2595 (review 6332581437, item 98904e32), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done and did not implement it (restates 6fb50ac5). \"## Head\" still carries a superseded paragraph for d0f9c95b8 (a replaced row commit, not an ancestor of the head) beside the correct a95b50b17 one.",
+    "Spool edits through the instrument: `merge_train.py add --front <pr>` places the PR first in the next batch and `merge_train.py add --remove <pr>` drops it from the spool, both under `QUEUE_LOCK` via `spool_read`/`spool_append`'s own path, each printing the spool order read back. Evidence: #2753 reordered by an unlocked hand edit of `queue-add.jsonl`, and #2804 removed by a hand-rolled removal on 2026-10-25. Controls: `--front` on a spool of three puts the named PR first and leaves the others in order (null: plain `add` appends last); `--remove` of a present PR deletes only that line (null: removing an absent PR exits nonzero and leaves the spool byte-identical); a concurrent `add` during either holds the lock (null: without the lock the mutant loses a line); one mutant per flag. Do not add a priority drain. (triage: dev/programme/triage/s6-batch24.md#P112)"
    ],
    "architect_note": "",
    "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
@@ -8274,9 +8300,7 @@
     2505
    ],
    "fixes": [],
-   "after": [
-    "R10-ORCH-LEDGER"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/bus.sh"
    ],
@@ -8400,7 +8424,8 @@
     "From #2558 (R10-PLAN-ARTIFACT; verdict at origin/probe/rev-2558-e98d4b97): item (3)'s premise changed. The plan page (tools/audit/seat/plan_page.py) cannot share one model builder with plan_table.py, because the page draws plan.json from tools/plan/replan.py and plan_table draws the roster alone. Also retire the out-of-tree gen.py/tpl.html. Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition.",
     "R10-ORCH-MACHINERY's item (3), \"the plan page as a tree instrument sharing one model builder with `plan_table.py`, driven by `state_docs.py` ... failing to an explicit UNAVAILABLE page\", is partly landed here, and its premise changed: - The page exists as `tools/audit/seat/plan_page.py`. - Its model is the schedule `replan.py` writes, not `plan_table.py`'s dependency-depth waves. The page cannot share one model builder with `plan_table.py` without one of them computing a schedule the other does not hold. - It refuses a stale, violating or model-less plan with exit 1 and writes nothing, rather than writing a page of zeros. Each refusal is pinned (see `## Mutation proof`). - What remains for that stage: driving it from `state_docs.py`; an UNAVAILABLE page in place of no page, if the design still wants one; and the five generator-defect fixtures. - Precondition (the control): before building on this, that stage re-measures `python3 -I tools/audit/seat/plan_page.py --self-test` at its own merge base and expects 0 failed. - Roster: the orchestrator landed this carry, and this seat did not edit the roster. It is on `origin/handoff/audit-r10-roster` at `7213e761ea5a47f6aa9bace1b03620e650b1cd3c` (`roster_edit append-carry R10-ORCH-MACHINERY`, 2026-10-21T21:35:40Z). It is still present at the tip I re-fetched in round 3, `d3f27e05db3410fe38e10afea47866b82645e4fa` (`git grep -c 'From #2558'` on `dev/programme/rosters/wave-r10-groups.json`: 1). The carry entry reads \"From #2558 (R10-PLAN-ARTIFACT; verdict at origin/probe/rev-2558-e98d4b97): item (3)'s premise changed. ... Also retire the out-of-tree gen.py/tpl.html. Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition.\" The group's `brief` text for (3) is unchanged, so the carry is what records the change. - The STUDY K17 carry at `8162c672d99d15d7cb5e11e8a6d2ba51ddc30138` agrees with it. Its item (6) reads \"if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page\". Carry: R10-ORCH-MACHINERY (item 3)",
     "The orchestrator's out-of-tree `gen.py` / `tpl.html` are retired once this merges, since the page they drew is now this instrument's output. Same precondition: `plan_page.py --self-test` re-measured at that stage's merge base. Carry: R10-ORCH-MACHINERY (item 3)",
-    "tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): R10-ORCH-BEATD folds into orchestrator.md that the orchestrator reads only the ledger and the plan page. When this group lands, make that sentence true of the plan page (the page is the single state view) and edit the one line in orchestrator.md that names the ledger digest alone. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified."
+    "tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): R10-ORCH-BEATD folds into orchestrator.md that the orchestrator reads only the ledger and the plan page. When this group lands, make that sentence true of the plan page (the page is the single state view) and edit the one line in orchestrator.md that names the ledger digest alone. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified.",
+    "Seam note (orchestrator, owner request 2026-10-25): R10-PLAN-ISSUES-CHART adds the \"Projected open issues\" section and its data function to tools/audit/seat/plan_page.py and lands first. R10-ORCH-PLANPAGE keeps every other part of plan_page.py and must preserve that section and its self-test when it restructures the page."
    ],
    "model": {
     "fixer": "opus",
@@ -8461,7 +8486,8 @@
     "From routing audit 1 (2026-10-24, the orchestrator scratch files routing-audit-1.md and routing-decisions-1.md): on origin/handoff/audit-r10-roster d3c2a27c7, `carry_audit.py sweep --last 150` read 423 finding items, 70 bad destinations and 25 unrouted; decided by hand, 24 of the 70 were implemented, 7 owed nothing and 39 were stranded in done groups. The null control of this group is that table: after the migration, every row it marks IMPLEMENTED or NO-OBLIGATION reads clean and every NOT IMPLEMENTED row reads routed to the live group it names. (folded from R10-ROUTING-INVARIANTS, tvofi 2026-10-25 existing-groups-first)",
     "Measured instances for this group's three invariants (orchestrator, 2026-10-25 ~10:00Z, on tvofi's request).\n(1) Carries on done groups. A walk of all 1115 roster commits found 17 carries appended after their group reached done, on 8 groups (FAHRENHEIT, REGISTRY-LEAK, TICK-ORCH, CI-LAYOUT, STAMP, PREPR-UNPINNED-RED, CI-LAYOUT-P2 with 9, FLY-NO-FOOTERS-EMITTERS). carry_audit sweep --last 20 --issues also found 8 BAD-DEST to done groups. roster_edit append-carry accepts a done destination; roster_sync refuses one.\n(2) Live groups with no issue: FLY-POOL-INSTRUMENT, FLY-RECORD-BEAT, FLY-LEDGER-SAMPLE and MERGE-SUBJECT-CASEARM. Issues #2800 to #2803 were minted by hand.\n(3) Open issues with every listing group done: #2235, #2265, #2273, #2410, #2493 and #2660. Three were closed after verification. The merges had not closed them because each named the issue in prose or a code span, or listed it under `issues` rather than `fixes`.\nThe CARRY sweep runs today only as orchestrator_tick --only CARRY, opt-in weekly and at closure. Run it in the default pass, or the invariants hold only at closure. (folded from R10-ROUTING-INVARIANTS, tvofi 2026-10-25 existing-groups-first)",
     "From the round-10 orchestrator (consolidation folds, 2026-10-25). Measured at roster 4281370cc909: `replan.py` still schedules R10-ROUTING-INVARIANTS, R10-FLY-POOL-INSTRUMENT and R10-FLY-RECORD-BEAT, about 1 h each of phantom work, because `absorbed` is a free resume.stage that `roster_lib.DONE_STAGES` does not contain. After-edges on an absorbed group therefore never clear, and the plan and closure ETA count work that now lives in its fold destination. Control: `git grep -n absorbed tools/plan/replan.py tools/audit/seat/roster_lib.py` prints nothing at that roster. Fix: treat `absorbed` as terminal in DONE_STAGES, keeping roster_sync PROTECTED (never rewritten), and refuse a Carry: to an absorbed group as it refuses one to a done group. Re-measure the null control at your merge base: replan over the same roster must drop exactly those three groups from the schedule.",
-    "From the standing roster seat (2026-10-25, queue lines 262-277). `tools/audit/seat/roster_queue.py run` passed a trailing `# comment` on a queue line to `roster_edit.py` as arguments, so 16 drop-carry ops were refused on the first pass and re-run by hand with the comments stripped. Fix: the line grammar strips an unquoted trailing `#` comment before splitting, and the self-test adds a commented line beside its uncommented null control. The control: the same queue range replayed must apply with comments present."
+    "From the standing roster seat (2026-10-25, queue lines 262-277). `tools/audit/seat/roster_queue.py run` passed a trailing `# comment` on a queue line to `roster_edit.py` as arguments, so 16 drop-carry ops were refused on the first pass and re-run by hand with the comments stripped. Fix: the line grammar strips an unquoted trailing `#` comment before splitting, and the self-test adds a commented line beside its uncommented null control. The control: the same queue range replayed must apply with comments present.",
+    "From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.py:205-206`) tests only `DONE_STAGES` (`(\"done\", \"rca-done\")`, line 33), so `carry_audit.py`'s destination check (lines 330-334) passes a group whose `resume.stage` is `absorbed`. P124's write-time arm refuses `absorbed` in `roster_edit.py`, but a carry written before that lands, or by hand, still passes review. Make the review-time check refuse `absorbed` as well, naming `absorbed_into` where the group has one, with the same stage set the write-time arm uses (one definition, not two). Controls: carry_audit on a carry to an absorbed group reports it (null: an open group passes); one mutant that drops `absorbed` from the set."
    ],
    "model": {
     "fixer": "opus",
@@ -9123,9 +9149,7 @@
    "group": "R10-CLOSEOUT-CLEANUP",
    "after": [
     "R10-FLY-PRUNE-REFS",
-    "R10-FLY-WORKTREE-GC",
-    "R10-ARCH-DOCS",
-    "R10-ROUND-PLAYBOOK"
+    "R10-FLY-WORKTREE-GC"
    ],
    "files": [
     "tools/audit/seat/prune_refs.py",
@@ -9179,7 +9203,7 @@
     "Re-homed from R10-FAHRENHEIT (done; the carry was appended after it was done, from #2465 fix review 6291407983); issue #2805. A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low, and custom_components/heatpump_optimizer/setpoint_check.py re-raises the issue. Round the written floor UP to the entity's step, so it is never below the requested value. Failing test first across \u00b0C and \u00b0F steps, a mutation proof, and a null control: an on-step floor writes unchanged. This adds setpoint_check.py to this group's files; the seam is the disinfection-floor write path only."
    ],
    "architect_note": null,
-   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8761-8820) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1144) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10122-10136) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
+   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8838-8895) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1144) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10201-10214) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
    "resume": {
     "stage": "queued",
     "branch": null,
@@ -9196,7 +9220,8 @@
    "severity": "medium",
    "size": "S",
    "issues": [
-    2271
+    2271,
+    2814
    ],
    "fixes": [],
    "findings": [],
@@ -9222,7 +9247,9 @@
     "custom_components/heatpump_optimizer/diagnostics.py"
    ],
    "carry": [
-    "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes."
+    "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes.",
+    "#2814 [D15]: the export does not label the frozen 7-day debug collection (no end time or age; days is a constant 7). The plan's stated age is wrong (0.8 min vs 14.1 min actual), and the download has no export time.",
+    "D15 live-bundle lead L7 (owner install; unverified): `data.plan.plan_age_minutes` reads 0.8 while `debug.manifest.generated_at` is about 14 min after `last_optimization`, so the age may be the payload's age at publish, not at download. VERIFY: find where `plan_age_minutes` is computed and whether `diagnostics.py` recomputes it against the download time; if the value is the publish-time age, recompute it in the diagnostics export from `last_optimization` and the export clock. Controls: with a fixed clock 14 min after `last_optimization` the export reads 14 (null: a plan published a minute ago reads 1); one mutant that keeps the published value. (triage: dev/programme/triage/s6-batch24.md#P119)"
    ],
    "resume": {
     "stage": "not-started",
@@ -9334,7 +9361,8 @@
    "severity": "medium",
    "size": "M",
    "issues": [
-    2272
+    2272,
+    2810
    ],
    "fixes": [
     2272
@@ -9368,7 +9396,8 @@
    ],
    "carry": [
     "From #2514 (R10-REPLAY-LANE, merged 0280e6e), body: the group's headline item, a real recorded day, is not in the tree; tests/replay/ holds only synthetic-dhw-only.json (git ls-tree origin/main tests/replay/). It must be produced on the owner's Home Assistant box with `python3 tools/replay/export.py --config-dir /config --days 1 --out /config/hpo-replay-<day>.json`, checked with `export.py --check`, then committed as tests/replay/<day>.json.",
-    "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it."
+    "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it.",
+    "#2810 [D15]: a non-credential string collision refuses the whole replay half, and the refusal names nothing."
    ],
    "resume": {
     "stage": "not-started",
@@ -9509,7 +9538,8 @@
     "custom_components/heatpump_optimizer/pump_arbiter.py"
    ],
    "carry": [
-    "From #2745 (R10-SAV-COMFORT, #2492), carry 5 seam 2 controls, preconditions for this group's failing test: (a) a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts; (b) one mutant per seam (each seam's mutant must turn (a) red). Source: R10-SAV-COMFORT's carry 5 and #2745's Forward-carry; the #2745 review at c70c3e46 blocked because this group's brief named the work but not its controls."
+    "From #2745 (R10-SAV-COMFORT, #2492), carry 5 seam 2 controls, preconditions for this group's failing test: (a) a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts; (b) one mutant per seam (each seam's mutant must turn (a) red). Source: R10-SAV-COMFORT's carry 5 and #2745's Forward-carry; the #2745 review at c70c3e46 blocked because this group's brief named the work but not its controls.",
+    "D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verifier row s1-05 of dev/audit/rounds/round10/D15/verify.md): the stores self-test reports 3 off-domain leaves under `pump_duty` (`written/silent/*`). The silent slot is written by the current writer (`pump_arbiter.py` `_SLOTS`, lines 71-75), and `store.py` `DOMAINS` does not declare it. Declare `written/silent` in the `pump_duty` domain with this group's change to `pump_arbiter.py`. Do not touch the 15 `snapshots` `learners/peak_tracker/*` leaves: they are legacy snapshots and `coordinator.py` omits `peak_tracker` from the payload on purpose. Controls: on a fixture install with a silent row configured the stores self-test reports 0 off-domain leaves for `pump_duty` after the change (null: before the change it reports 3); an install with no silent row writes no `silent` leaf and reports 0 either way; one mutant that removes the declaration. (triage: dev/programme/triage/s6-batch24.md#P117)"
    ],
    "resume": {
     "stage": "not-started",
@@ -9739,7 +9769,9 @@
    "files": [
     "tests/mutation_table.py"
    ],
-   "carry": [],
+   "carry": [
+    "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA"
+   ],
    "model": {
     "fixer": "sonnet",
     "reviewer": "opus",
@@ -9797,7 +9829,8 @@
    ],
    "carry": [
     "From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagation.md). The brief for R10-MERGE-SUBJECT-CASEARM must record two things. First, a regression-against-main control: over the finder's harness corpus plus the reviewer's unmatched-closer line (\"down) with gh pr merge 9 --subject x\"), every line refused at origin/main must still be refused at the head. Second, the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms.",
-    "From R10-RCA-MERGE-SUBJECT-CLASS-OPEN (#2798, dev/audit/rca/R10-RCA-MERGE-SUBJECT-CLASS-OPEN.md). Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it."
+    "From R10-RCA-MERGE-SUBJECT-CLASS-OPEN (#2798, dev/audit/rca/R10-RCA-MERGE-SUBJECT-CLASS-OPEN.md). Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it.",
+    "From R10-MERGE-SUBJECT-HARDEN #2697 r9 (verdict/2697 abeeccc7: blocked carry-missing only; the code passes, and the planted differential shows main_not_head=0). The brief's \"close the case-arm class\" is already done by r9 itself, so this group's remaining scope is the three subject spellings #2697's body routes here as open: (1) a blank line inside a Python argv, (2) a blank line inside a JS argv, and (3) a `)` inside a JS block comment. Each is a merge-subject guard input that the case-arm fix does not reach. Control: plant each spelling in a merge subject at main and at the head. The guard must refuse it at this group's head and must have accepted it at #2697's merged head. Re-measure at your merge base."
    ],
    "architect_note": null,
    "resume": {
@@ -9809,6 +9842,142 @@
     "note": "split from #2697 (three-round rule)"
    },
    "brief": "Split from #2697 under the three-round rule (orchestrator ruling 2026-10-25, mandate 6329234399). The merge-subject guard counts a shell case-arm writer spelled without the opening parenthesis (`  never) gh pr merge \"$n\" --squash --subject \"...\" ;;`) as a merge call but never reads its subject (refused=0 at e73424f2, 683dd52c, d0d35231), while the `(never)` spelling is refused=1. Close the class by a rule that enumerates every case-arm spelling (with and without the leading paren, any indentation, multi-pattern arms a|b)), not by adding one more spelling. Failing test first: the r8 handoff of #2697 adds the failing test for this spelling marked for this group. The #2697 round-6 regression probe runs at both ends."
+  },
+  {
+   "group": "R10-HOUSE-GRADE",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [
+    2816
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "wave": 2,
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-PARAMS-OWNER"
+   ],
+   "carry": [
+    "Owner's spec (tvofi, 2026-10-25, #2816): the house grade is normalized by building TYPE and ERA (configured), as measured envelope loss (W/K, thermal-mass corrected) relative to typical for that type and era. A house losing more than typical for its type and era scores below typical, but never 0: 0 is reserved for no data. Typical for its type and era scores mid-scale, and better than typical scores above. The owner's case (about 100 years old, new windows and added insulation in the last 20 years), with learned loss about 1.5x typical pre-1960, must land low but clearly nonzero. Acceptance: a monotone, continuous map from loss ratio to grade, with a null control at loss ratio 1.0 giving mid-scale for each era.",
+    "Owner's spec (tvofi, 2026-10-25, #2816): the grade carries reason codes, shown on hover in the card, that explain what drives it up or down. For example: loss vs typical for type and era, thermal-mass correction, learned vs configured heat loss, data age or confidence, freezes such as the vent latch. Each code names its direction and its rough contribution. Acceptance: every grade the card shows has at least one reason code, and the codes' contributions account for the distance from mid-scale.",
+    "The hover also explains the metric in plain words: envelope loss in W/K, thermal-mass correction, normalization by type and era, and what mid-scale means (owner, 2026-10-25)."
+   ],
+   "architect_note": "",
+   "brief": "From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). The house grade should measure envelope loss in W/K, corrected for thermal mass, and normalized by the configured house type and/or building period. At main, and in R10-PARAMS-OWNER, `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py` grades a time constant against one all-era band, and the configured era, structure and area never enter it. The owner's specification: a 100-year-old house with new windows and added insulation should score at least 30-40. Seams: `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py`, the era and structure presets in `custom_components/heatpump_optimizer/presets.py`, and the score strings in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`. Build it measure-first: derive the loss in W/K from the learned parameters, show on a null control that two houses of equal envelope but different era score the same after normalization and that the old-house example above reaches the stated floor, then change the grade. Edge: after R10-PARAMS-OWNER, which reshapes the same function.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": null,
+    "note": null
+   }
+  },
+  {
+   "group": "R10-LEGIONELLA-COMPLETION",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "high",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/disinfection.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "GROUP R10-LEGIONELLA-COMPLETION (new, size S, triage: dev/programme/triage/s6-batch24.md#P120). D15 live-bundle lead L8, owner install, 2026-10-25, unverified: the last completed anti-legionella cycle was about 66 days before the diagnostics export, against a 7-day interval, and the last attempt, 4 days before the export, peaked below the configured legionella temperature. MEASURE FIRST, at main, before any fix: (1) drive `legionella.py` through a synthetic install whose last completion is 66 days old with a 7-day interval, a pump whose reachable DHW ceiling is below the configured legionella temperature, and the same install with a reachable target; report for each whether the plan commands the cycle, which of the guard's outcomes fire (`raise_unreachable_issue`, `check_ceiling`, `raise_unverified_issue`, `check_mode_block`, the boost cap `DHW_LEGIONELLA_BOOST_MAX_HOURS` and the hold `DHW_LEGIONELLA_HOLD_MINUTES`) and what the person is told. (2) State what a cycle that peaks below target does to `hours_since` and the due time: the next attempt must come sooner than the interval, not later. (3) Establish whether the person sees a repair notice for an overdue cycle (the safety question: an overdue cycle must be loud). Fix what the measurement shows. Controls: the reachable-target install completes a cycle and resets `hours_since` (null); an unreachable target never marks a cycle complete and raises a notice within the interval; an attempt that peaks below target leaves the cycle due; one mutant per arm. Do not weaken the completion test to make the cycle pass; do not change the configured temperature.",
+   "resume": {
+    "stage": "queued",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-PLAN-ISSUES-CHART",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/plan_page.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "GROUP R10-PLAN-ISSUES-CHART (new, size S, owner request tvofi 2026-10-25 in the orchestrator session: 'fold the issues chart into tools/audit/seat/plan_page.py via a small instrument PR'). Add a 'Projected open issues' section to plan_page.py, first section of the page: open GitHub issues carried by not-done roster groups, each projected to close at the planned finish of the last group carrying it; issues closed on GitHub dropped; issues on groups with no planned finish stay flat; other open issues excluded and counted in a note; closure line from plan summary. A reference implementation exists outside the tree; the fixer's brief carries it, and nothing in the tree may import it. The open-issue set must be injectable (a --issues-json fixture or equivalent) so the self-test needs no network; plan_page keeps working offline (no gh = chart omitted with a note, never a crash). Controls: a fixture where one issue sits on two groups closes at the later finish (mutant: earlier finish must fail); a closed-on-GitHub issue is not counted (mutant: count it must fail); a no-finish group stays flat. Seam: R10-ORCH-PLANPAGE owns everything else in plan_page.py; this group owns only the issues-chart section and its data function.",
+   "resume": {
+    "stage": "queued",
+    "branch": null
+   }
   }
  ]
 }
