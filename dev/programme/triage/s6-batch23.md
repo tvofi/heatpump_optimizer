@@ -58,13 +58,13 @@ Binding: one instance, and the instrument it points at does not cover the use. A
 What would change the answer: a second scratch copy of an out-of-tree dispatch instrument (cite the file), which re-opens a flag-path `--publish` as a ruling to a new group, since R10-FLOW-DISPATCH is done.
 
 ## P110: merge_train add --front, or drain the spool by critical-path priority (S6-V42)
-Verdict: DEFER -> R10-FLOW-AUTOTRAIN (the open train-automation group; R10-TRAIN-UPGRADE is done, per the roster branch's HANDOVER, so cannot take a carry). One instance.
+Verdict: DEFER -> R10-TRAIN-OVERLAP-GRADE (queued, not done; owns `merge_train.py` and the batch drain order; R10-TRAIN-UPGRADE and R10-FLOW-AUTOTRAIN are done, so neither takes a carry). One instance.
 Source: s6 `proposals.md` `## V42` (slip 2026-10-25, #2753 appended behind #2799/#2798; coordinator asked to route to R10-TRAIN-UPGRADE first).
 Instances: 1, #2753 as V42 records it; I did not re-run it. Read: `git show origin/main:tools/audit/seat/merge_train.py` has no `--front` (`grep -n -i front` hits only the `--overlap` up-front recarry); `train_add` appends under `QUEUE_LOCK` and the train drains the whole spool as the next batch, after the batches still pending (`spool_append`, the drain at the "Between batches" docstring).
 Considered:
 - R10-TRAIN-UPGRADE: done; it built the spool and `add`, so it is the right seam, but a done group takes no carry.
-- R10-FLOW-AUTOTRAIN (12 references on the roster branch): train automation, the nearest live seam; the owner of any change to what the train drains first.
+- R10-FLOW-AUTOTRAIN: done (eaf10309, after #2780), so it takes no carry. R10-TRAIN-OVERLAP-GRADE: queued on the roster branch, files `merge_train.py` and `INSTRUMENTS.md`, the nearest live seam and the owner of any change to what the train drains first.
 - Drain by critical-path priority instead of a flag: `gate_lease` derives priority already, but a priority drain changes ordering for every add, a policy-visible behaviour change in a 2000-line hot file, for one instance.
 Cost: `--front` is one flag plus one self-test arm in `merge_train.py`; the drain-by-priority form is larger. The hand edit of `queue-add.jsonl` it replaces is unlocked, a real hazard, but occurred once.
 Binding: the benefit is unmeasured (one slip, no count of how often a critical-path PR arrives behind others); an unmeasured benefit is DEFER, never ACCEPT.
-What would change the answer: a second critical-path PR queued behind non-critical ones (cite the spool order and the `add` log lines), or a second unlocked hand edit of the spool; either re-opens `--front` as an ACCEPT narrowed to the flag, carried to R10-FLOW-AUTOTRAIN.
+What would change the answer: a second critical-path PR queued behind non-critical ones (cite the spool order and the `add` log lines), or a second unlocked hand edit of the spool; either re-opens `--front` as an ACCEPT narrowed to the flag, carried to R10-TRAIN-OVERLAP-GRADE.
