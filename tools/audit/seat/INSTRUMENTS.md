@@ -155,6 +155,9 @@ sweep's standing-seat liveness step keep them alive.
   `orphans` discharges a handoff by name only when that `fix/<t>` or
   `fix/<t>-pr` head carries the tip; a named head behind it is
   `repair=update`.
+  With `HPO_BUS_TRAIN_STATE` set, each merge verdict it posts is added to
+  the merge train there (`merge_train.py add --auto`, one `BUS train-add`
+  line; the output in `train-add.log`); a refused add never fails the post.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
@@ -333,6 +336,16 @@ sweep's standing-seat liveness step keep them alive.
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
+  updated either, so roster edits accumulate on the handoff ref and land between
+  reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
+  (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
+  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
+  detached worktree at it). A blocked verdict, or one at an older head, freezes
+  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
+  `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
+  freeze, never from the hold, for new work that voids a merge verdict.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
   `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
@@ -444,6 +457,20 @@ sweep's standing-seat liveness step keep them alive.
   are removed before its closing line. Every `gh api` GET and `gh pr view`
   it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
   settle logged.
+  `queue <file>` writes the queue nobody had to assemble: every open
+  pull request but the record one whose approver-App verdict is newest, is
+  `verdict/<pr>`'s posted tip and is `merge` at its head or carries to it
+  (`app_approve.sh --carry`), oldest first, one `QUEUE`/`LEFT` line each;
+  budget and policy heads are queued for the batch's own serial route.
+  `add`'s admission (`Train.admit_add`) reads the same posted verdict
+  first, as its `verdict` rule, and fills an absent comment id from it.
+  bus.sh's post loads the train the moment it posts a merge verdict
+  (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
+  `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
+  default): unless the ledger holds an open train-stop, it `add`s each head
+  `queue` admits that no sweep added at that head, into the live train's
+  next batch or a `train.sh --bot-prs --approval-carry --pre-flight` it
+  starts when none is live, never a second.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
