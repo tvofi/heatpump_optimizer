@@ -4432,7 +4432,7 @@ if _EntryConfig is not None:
         c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
                                        lower_floor_temperature=19.9)
         c._current_action = {"power": 2.0}
-        asyncio.run(c._async_learn_lower_floor_loss())
+        asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
         return c._lower_floor_loss_samples
 
     def _ec_widening(tripped):

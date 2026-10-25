@@ -88,6 +88,19 @@ from heatpump_optimizer.thermal_model import (
 from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext
 from heatpump_optimizer.optimizer import _Horizon
 
+
+def _owned_params(params):
+    """A test owner of ``params``, as the coordinator's ``_publish_params`` owns
+    its own: the learner reads through ``params`` and publishes a new snapshot."""
+    from dataclasses import replace as _replace
+    box = [params]
+
+    def publish(**fields):
+        box[0] = _replace(box[0], **fields)
+
+    return {"params": lambda: box[0], "publish": publish}
+
+
 R = Results("Feature modules")
 
 
@@ -921,7 +934,7 @@ R.check(
 # does not become the next interval's baseline. The in-window sample beside
 # it is the null control: learning proceeds exactly as before.
 _np_dhw = DhwProfileLearner(
-    FakeHass(), "np", ThermalParameters(),
+    FakeHass(), "np", **_owned_params(ThermalParameters()),
     frozen=lambda *a: None, heating_active=lambda: False,
     external_heat_active=lambda: False,
 )
@@ -7887,7 +7900,7 @@ class _DhwUsage(DhwProfileLearner):
         super().__init__(
             FakeHass(),
             "dhw-usage",
-            ThermalParameters(),
+            **_owned_params(ThermalParameters()),
             frozen=lambda *_: None,
             heating_active=lambda: False,
             external_heat_active=lambda: False,
@@ -8525,7 +8538,7 @@ _nf_learner = _DhwUsage()
 # A real learner's fresh seed: the shipped pattern through its projection
 # (_DhwUsage overwrites its own seed with a flat profile).
 _nf_default = DhwProfileLearner(
-    FakeHass(), "nf", ThermalParameters(),
+    FakeHass(), "nf", **_owned_params(ThermalParameters()),
     frozen=lambda *a: None, heating_active=lambda: False,
     external_heat_active=lambda: False,
 ).hourly_profile
@@ -11973,7 +11986,7 @@ def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0, sun=0.0):
     coord._last_house_sample_time = now - _timedelta(hours=hours)
     coord._current_state = replace(base, lower_floor_temperature=observed_lower)
     coord._current_action = {"power": power}
-    _asyncio.run(coord._async_learn_lower_floor_loss())
+    _asyncio.run(coord._async_learn_lower_floor_loss(coord._close_fabric_interval()))
     return coord._lower_floor_loss_ratio, coord._lower_floor_loss_samples
 
 
@@ -12097,15 +12110,35 @@ R.check(
     "save path must serialise through it, not through a second dict",
 )
 
-# The two learners share one baseline snapshot, and the house one overwrites it
-# near its top. If the order were reversed the split learner would compare the
-# current state against itself and silently never learn.
-_src = inspect.getsource(_Coord)
+# D7-s4-8x-fabric (#2249): the two fabric learners replay one interval, closed
+# once by `_close_fabric_interval`, the one place the baseline advances. The
+# house learner run FIRST is the order that used to silence the split learner
+# (it compared the current state against itself); the split learner run alone
+# is the null control, learning one sample either way.
+def _fabric_lower_samples(observed_lower, *, house_first):
+    coord = _two_zone_learner(lower_entity="sensor.lower")
+    base = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.0, slab_temperature=27.0,
+        outdoor_temperature=-5.0,
+    )
+    coord._last_house_sample = base
+    coord._last_house_sample_time = _lz_dt.now() - _timedelta(hours=0.5)
+    coord._current_state = replace(base, lower_floor_temperature=observed_lower)
+    coord._current_action = {"power": 2.0}
+    interval = coord._close_fabric_interval()
+    if house_first:
+        _asyncio.run(coord._async_learn_house_heat_loss(interval))
+    _asyncio.run(coord._async_learn_lower_floor_loss(interval))
+    return coord._lower_floor_loss_samples
+
+
 R.check(
-    "the split learner runs before the one that consumes the baseline",
-    _src.index("await self._async_learn_lower_floor_loss()")
-    < _src.index("await self._async_learn_house_heat_loss()"),
-    "reversing these makes the split learner a no-op",
+    "the fabric interval is closed once, so the house learner run first does "
+    "not silence the split learner",
+    _fabric_lower_samples(19.9, house_first=True)
+    == _fabric_lower_samples(19.9, house_first=False) == 1,
+    "the split learner compared the current state against itself",
 )
 
 
@@ -12198,11 +12231,181 @@ R.check("a renamed parameter is applied", params.dhw_min_temp == 48.0)
 R.check("COP nominal is applied", params.cop_nominal == 4.2)
 R.check("a two-zone parameter is applied", params.radiator_power_fraction == 0.55)
 R.check(
-    "the model is rebuilt against the new parameters",
-    param_coord._thermal_model.params is params
-    and param_coord._optimizer.model is param_coord._thermal_model,
-    "the model holds the parameters by reference at construction",
+    "the live model reads the snapshot the call published",
+    param_coord._thermal_model.params is params,
+    "the owner re-points its one subscriber at every publication",
 )
+
+
+# D7-s1-82 (#2232): a parameter call publishes one clamped snapshot, whole,
+# before its first await, and never edits the one it replaces. A reader task
+# samples the hub and the live model on every loop turn while the call is
+# suspended in its (yielding) saves; the pre-call snapshot is the one a solve
+# record or a learner mid-await would hold. Null control: a call requesting
+# fields at their current values (one save still yields) moves nothing, so
+# nothing can tear.
+def _params_interleave(null=False):
+    coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "dhw_tank_volume": 200.0}))
+    coord._apply_house_heat_loss_scale(1.8)
+    for store in (coord._thermal_learning_store, coord._dhw_learner.profile_store):
+        def _yielding(data, _save=store.async_save):
+            async def run():
+                for _ in range(3):
+                    await asyncio.sleep(0)
+                await _save(data)
+            return run()
+        store.async_save = _yielding
+    held = coord._thermal_params
+    fields = ("heat_loss_coefficient", "house_heat_loss_scale", "room_thermal_mass",
+              "dhw_legionella_temp", "dhw_idle_min_temp", "ecl110_displace_min",
+              "dhw_cooling_rate")
+    pre = {f: getattr(held, f) for f in fields}
+    req = ({"house_thermal_mass": held.room_thermal_mass,
+            "dhw_cooling_rate": held.dhw_cooling_rate}
+           if null else
+           {"house_heat_loss_coefficient": 0.31, "house_thermal_mass": 1e-6,
+            "dhw_legionella_temperature": 63.5, "dhw_idle_min_temperature": 41.5,
+            "ecl110_displace_min": -4.25, "dhw_cooling_rate": 2.5})
+    seen = []
+
+    async def go():
+        call = asyncio.ensure_future(coord.async_update_thermal_params(req))
+        while not call.done():
+            for view in (coord._thermal_params, coord._thermal_model.params):
+                seen.append({f: getattr(view, f) for f in fields})
+            await asyncio.sleep(0)
+        await call
+
+    asyncio.run(go())
+    post = {f: getattr(coord._thermal_params, f) for f in fields}
+    moved = [f for f in fields if pre[f] != post[f]]
+    torn = sum(any(s[f] != pre[f] for f in moved) and any(s[f] != post[f] for f in moved)
+               for s in seen)
+    unclamped = sum(s["room_thermal_mass"] < THERMAL_MASS_FLOOR for s in seen)
+    edited = sum(getattr(held, f) != pre[f] for f in fields)
+    return len(seen), len(moved), torn, unclamped, edited
+
+
+from heatpump_optimizer.thermal_model import THERMAL_MASS_FLOOR  # noqa: E402
+
+_pi_live, _pi_null = _params_interleave(), _params_interleave(null=True)
+R.check(
+    "a parameter call publishes one clamped snapshot before any await and "
+    "leaves the snapshot it replaced whole (D7-s1-82)",
+    _pi_live[0] > 2 and _pi_live[1] == 7 and _pi_live[2:] == (0, 0, 0)
+    and _pi_null[1:] == (0, 0, 0, 0),
+    f"(samples, fields moved, torn, unclamped, edited in place): call {_pi_live}, "
+    f"null {_pi_null}",
+)
+
+
+# ls-r1 and #2674: a user-command or per-cycle writer that runs while its
+# store's startup read is in flight waits for the read, or the read lands on
+# top of the write and the command is silently lost. The read is held on an
+# Event inside the production QuarantiningStore.async_load (the stub Store
+# beneath it is what waits), so the read tracking the writer must wait on is
+# the production one. Each race reads the commanded value after both finish;
+# its null control runs the writer after the read landed.
+from homeassistant.helpers.storage import Store as _StubStore  # noqa: E402
+
+
+class _HeldRead(_StubStore):
+    async def async_load(self):
+        await self.held.wait()
+        return self.held_payload
+
+
+def _hold_read(store, payload):
+    store.__class__ = type("Held" + type(store).__name__, (type(store), _HeldRead), {})
+    store.held = asyncio.Event()
+    store.held_payload = payload
+    return store.held
+
+
+def _store_race(build, load, command, read, *, after=False):
+    """``read(coord)`` once ``command`` raced (or, ``after``, followed) ``load``."""
+    coord = build()
+    store, payload, loader = load(coord)
+    held = _hold_read(store, payload)
+
+    async def go():
+        loading = asyncio.ensure_future(loader())
+        await asyncio.sleep(0)
+        if after:
+            held.set()
+            await loading
+        commanding = asyncio.ensure_future(command(coord))
+        await asyncio.sleep(0)
+        held.set()
+        await asyncio.gather(loading, commanding)
+
+    asyncio.run(go())
+    return read(coord)
+
+
+def _race_coord():
+    return HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "dhw_tank_volume": 200.0}))
+
+
+_thermal_load = lambda c: (c._thermal_learning_store, {  # noqa: E731
+    "house_heat_loss_scale": 1.7, "house_heat_loss_samples": 40,
+    "buffer_cooling_rate": 4.0, "buffer_cooling_samples": 9},
+    c._async_load_thermal_learning)
+_dhw_load = lambda c: (c._dhw_learner.profile_store, {  # noqa: E731
+    "cooling_rate": 1.1, "cooling_samples": 30}, c._dhw_learner.async_load_profile)
+_race_day = "2026-03-10"
+_price_load = lambda c: (c._price_model_store, {  # noqa: E731
+    "model": {}, "days_seen": ["2026-01-01"], "quarter_days_seen": []},
+    c._async_load_price_model)
+_old_cycle = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+_legionella_load = lambda c: (c._legionella.store, {  # noqa: E731
+    "last_cycle": _old_cycle.isoformat()}, c._legionella.async_load)
+
+
+async def _price_fold(c):
+    c._prices = [{"starts_at": f"{_race_day}T{h:02d}:00:00+00:00", "total": 0.5 + 0.1 * (h % 7)}
+                 for h in range(24)]
+    await c._async_learn_price_shape()
+
+
+async def _restore(c):
+    c._snapshot_ring.best_restore = lambda: {"learners": {"dhw_profile": {"cooling_rate": 2.5}}}
+    await c.async_restore_learned_snapshot()
+
+
+_RACES = {
+    "set_thermal_parameters resets the learned heat loss": (
+        _thermal_load,
+        lambda c: c.async_update_thermal_params({"house_heat_loss_coefficient": 0.3}),
+        lambda c: (c._house_heat_loss_scale, c._house_heat_loss_samples), (1.0, 0)),
+    "set_thermal_parameters resets the buffer cooling rate": (
+        _thermal_load,
+        lambda c: c.async_update_thermal_params({"buffer_cooling_rate": 2.0}),
+        lambda c: (c._buffer_cooling_rate, c._buffer_cooling_samples), (2.0, 0)),
+    "an explicit DHW cooling rate": (
+        _dhw_load, lambda c: c._dhw_learner.async_set_cooling_rate(2.5),
+        lambda c: (c._dhw_learner.cooling_rate, c._dhw_learner.cooling_samples), (2.5, 0)),
+    "restore_snapshot's restored DHW profile": (
+        _dhw_load, _restore,
+        lambda c: c._dhw_learner.cooling_rate, 2.5),
+    "the price shape's folded day (#2674 lead 4)": (
+        _price_load, _price_fold,
+        lambda c: _race_day in c._price_learner.days_seen, True),
+    "an observed disinfection cycle (#2674's legionella observer)": (
+        _legionella_load,
+        lambda c: c._legionella.async_track(float(c._thermal_params.dhw_legionella_temp)),
+        lambda c: c._legionella.last_cycle != _old_cycle, True),
+}
+for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items():
+    _raced = _store_race(_race_coord, _race_load, _race_cmd, _race_read)
+    _null = _store_race(_race_coord, _race_load, _race_cmd, _race_read, after=True)
+    R.check(
+        f"{_race_name} survives the store read in flight at startup",
+        _raced == _null == _race_want,
+        f"raced {_raced!r}, after the read {_null!r}, want {_race_want!r}",
+    )
 
 # The special cases exist because each has a consequence beyond itself.
 param_coord._house_heat_loss_samples = 50
@@ -17159,7 +17362,7 @@ def _feed_residual(c, residual, n, start, sun=None):
             if sun is not None:
                 c._current_state.solar_radiation = sun[min(i, n - 1)]
             _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
-            _asyncio.run(c._async_learn_house_heat_loss())
+            _asyncio.run(c._async_learn_house_heat_loss(c._close_fabric_interval()))
     finally:
         _dt_mod.now = real_now
 
@@ -19333,7 +19536,7 @@ def _nf_samples_after(dt_s):
     try:
         for t in (_T4, _T4 + timedelta(seconds=dt_s)):
             _dt_mod.now = lambda t=t: t
-            _asyncio.run(c._async_learn_house_heat_loss())
+            _asyncio.run(c._async_learn_house_heat_loss(c._close_fabric_interval()))
     finally:
         _dt_mod.now = real_now
     return c._house_heat_loss_samples
@@ -19741,14 +19944,21 @@ R.check(
     and "_replay_interval(" in _lf_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
 )
-_run_src2 = inspect.getsource(_Coord._refresh_model_corrections)
+# Behavioural: the corrections the refresh computes are the ones the live
+# parameters carry afterwards (both learned scales planted off their defaults).
+_rm_coord = _t2_coord()
+_rm_fresh = dict(_rm_coord._model_corrections(dt_util.now()),
+                 solar_aperture_scale=1.37, internal_gains_profile=[0.41] * 24)
+_rm_coord._model_corrections = lambda _now: dict(_rm_fresh)
+_rm_coord._refresh_model_corrections()
+_rm_published = all(getattr(_rm_coord._thermal_params, k) == v for k, v in _rm_fresh.items()) \
+    and _rm_coord._thermal_model.params is _rm_coord._thermal_params
 _upd_src2 = inspect.getsource(_Coord._update_current_state)
 R.check(
     "the apply path writes both learned scales onto the shared params, after "
     "the learners that replay with them",
-    "params.solar_aperture_scale =" in _run_src2
-    and "params.internal_gains_profile =" in _run_src2
-    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
+    _rm_published
+    and 0 < _upd_src2.find("_async_learn_house_heat_loss(")
     < _upd_src2.find("self._refresh_model_corrections()"),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",
@@ -42677,7 +42887,7 @@ def _t2_drive(coord, method):
     """Run one learner and capture anything that escapes it."""
     coord._t2_escaped = None
     try:
-        _asyncio.run(getattr(coord, method)())
+        _asyncio.run(getattr(coord, method)(coord._close_fabric_interval()))
     except Exception as err:  # noqa: BLE001
         coord._t2_escaped = err
     return coord
@@ -42955,7 +43165,7 @@ _t2_lf_ten = _t2_house(two_zone=True, lower=19.9)
 for _t2_lf_i in range(10):
     _t2_lf_ten._last_house_sample = replace(_T2_HOUSE_STATE)
     _t2_lf_ten._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
-    _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss())
+    _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss(_t2_lf_ten._close_fabric_interval()))
 R.check(
     "ten accepted lower floor samples reach the store exactly once",
     _t2_lf_ten._lower_floor_loss_samples == 10
@@ -49206,7 +49416,7 @@ class _G8TwoStore:
 
 def _g8_learner(**kw):
     return _G8Learner2(
-        FakeHass({}), "g8", _G8Params(),
+        FakeHass({}), "g8", **_owned_params(_G8Params()),
         frozen=kw.get("frozen", lambda _name: None),
         heating_active=kw.get("heating_active", lambda: False),
         external_heat_active=kw.get("external_heat_active", lambda: False),
@@ -49415,7 +49625,7 @@ def _g8_guard(config=None, **params_kw):
     for k, v in params_kw.items():
         setattr(params, k, v)
     hass, config = FakeHass({}), dict(config or {})
-    return _G8Guard(hass, "g8", params, config, action=lambda: {},
+    return _G8Guard(hass, "g8", lambda: params, config, action=lambda: {},
                     disinfect=_G8Switch(config, hass.services.async_call,
                                         lambda e: getattr(hass.states.get(e), "state", None)),
                     dhw_blocked=lambda: False)
