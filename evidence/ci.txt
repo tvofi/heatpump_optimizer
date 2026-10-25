@@ -1,6 +1,7 @@
-check-runs on 9f76c09780ae7f88ef9c13ad7f6d1b15c590bc68 (pull_request_read get_check_runs, 37 runs, read 2026-10-25 ~19:45Z)
-completed success: CodeQL, codeql x3, tests/closure-scope, tests/mutation, tests/briefs, tests/nightly-status, governance/policy-docs, governance/env-matrix, arch-score, validate-hacs, hassfest, prelude, refresh, cancel-superseded
-completed failure: governance / delivery-status (grades main; the diff adds only its own row dev/programme/delivery/2828.md)
-skipped: mutation-autofix, mutation-pins, replay, nightly-ha, delivery-status-publish, governance/record, kernel-points, arm
-queued/in_progress: tests/closures, typing, arch-instrument, browser, fast (3.14), coverage, governance/wave-script, budget-raise-gate, instrument-self-tests, a second prelude/refresh/cancel-superseded
-pr-contract: no run on this head at read time
+Check runs on head 5d093b09f4a1043f11f3d23123040481fa11fbfb (PR #2828 get_check_runs, 40 runs, read 2026-10-25 ~20:20Z):
+failure: governance / delivery-status (job 121276783645)
+in_progress: governance / instrument-self-tests
+queued: tests / lane-proofs
+success: fast (3.14), typing, coverage, coverage-ratchet, browser, closures, closure-scope, arch-instrument, mutation, nightly-status, briefs, graders-head-copy, policy-docs, wave-script, env-matrix, hassfest, validate-hacs, arch-score, budget-raise-gate, codeql x3, CodeQL, prelude, refresh, cancel-superseded
+skipped: closures-autofix, ci-ratchet, claims-autofix, mutation-autofix, mutation-pins, nightly-ha, replay, delivery-status-publish, record, kernel-points, arm
+no pr-contract run present at read time.
