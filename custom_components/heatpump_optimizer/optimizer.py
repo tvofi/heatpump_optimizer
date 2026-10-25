@@ -97,6 +97,7 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    channel_heating_draw,
     channel_heating_steps,
     levels_clamped,
     plan_step_runs,
@@ -1394,6 +1395,15 @@ def idle_codes(
     return list(codes.tolist())
 
 
+def _heating_draws(
+    power: np.ndarray, other: np.ndarray | None
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Both channels' draws as the classifiers read them: each on its own heating steps."""
+    if other is None:
+        return channel_heating_draw(power), None
+    return channel_heating_draw(power, other), channel_heating_draw(other, power)
+
+
 def classify_space_steps(
     power: np.ndarray,
     prices: np.ndarray,
@@ -1425,6 +1435,7 @@ def classify_space_steps(
     reasons: list[str] = []
     if n_steps == 0:
         return reasons
+    power, other = _heating_draws(power, other)
     cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
     idle = idle_codes(
         n_steps, power, prices, room_temps, temp_min_bounds, surplus, other, caps, threshold,
@@ -1487,9 +1498,10 @@ def classify_dhw_steps(
     """
     ctx = idle or IdleContext()
     reasons: list[str] = []
+    power, other = _heating_draws(power, ctx.other)
     codes = idle_codes(
         n_steps, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
-        ctx.other, ctx.caps, threshold,
+        other, ctx.caps, threshold,
     )
     for i in range(n_steps):
         if power[i] <= threshold:
