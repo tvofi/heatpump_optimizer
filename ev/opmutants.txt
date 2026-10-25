@@ -1,0 +1,29 @@
+6 mutants for 6 keys
+NULL:0 NULL new=None: rc=1 failing=1
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+custom_components/heatpump_optimizer/optimizer.py:324 RETURN_DEL new='    pass': rc=1 failing=3
+    FAIL D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched  [reason='so
+    FAIL D1-s4-02 (control): the inline transport solves and publishes  [reason='solve_failed' result=None]
+    FAIL D1-s2-04: every cycle-path fence surfaces its persistent failure at WARNING exactly once, repeats at DEBUG, and the cycle survives  [[(
+custom_components/heatpump_optimizer/optimizer.py:333 GUARD_OFF new='    if False:': rc=1 failing=7
+    FAIL a night setback lowers the reference, not the reported savings  [setback half 11.76 kW-steps vs flat 11.76]
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    FAIL the booked thermostat step is the steady holding power at the matched target  [2.177161191375041 vs 1.9215524231093766]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 17.764700338775786 -> 17.764700338775786, slab 22.598605
+    FAIL past the comfort schedule's end the thermostat holds the default setpoint; with no weather the held state is the measured one
+    FAIL that plan's published reference buys less than a thermostat at the schedule itself  [published 260.76 kW-steps vs at schedule 260.76]
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 78.22832448252034 vs off
+custom_components/heatpump_optimizer/optimizer.py:336 RETURN_DEL new='    pass': rc=1 failing=3
+    FAIL D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched  [reason='so
+    FAIL D1-s4-02 (control): the inline transport solves and publishes  [reason='solve_failed' result=None]
+    FAIL D1-s2-04: every cycle-path fence surfaces its persistent failure at WARNING exactly once, repeats at DEBUG, and the cycle survives  [[(
+custom_components/heatpump_optimizer/optimizer.py:5294 BOOLOP new='            if two_tank or state.wood_tank_temperature is not None:': rc=1 failing=2
+    FAIL the savings reference backs off by the wood share on the two-tank layout, and a wood reading on any other layout moves it not at all  [
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+custom_components/heatpump_optimizer/optimizer.py:5294 GUARD_OFF new='            if False:': rc=1 failing=2
+    FAIL the savings reference backs off by the wood share on the two-tank layout, and a wood reading on any other layout moves it not at all  [
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+custom_components/heatpump_optimizer/optimizer.py:5335 CLAMP_DROP new='            power = (required_thermal / cop)': rc=1 failing=2
+    FAIL a demand past the pump's nameplate holds the reference at max_electrical_power  [reference 1.469..1.469 kW against a 1.0 kW pump]
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+rc=0
