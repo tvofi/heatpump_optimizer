@@ -1430,4 +1430,147 @@ R.check(
 
 dt_util.freeze(None)
 debugger._COLLECTORS.clear()
+# -- R10-DIAG-REDACT: a redacted value is redacted wherever else it reaches ---
+# The download's redaction is keyed: ``tibber_token`` and ``name`` are blanked
+# and ``latitude``/``longitude`` coarsened. D15's production triage found
+# dropped credential values surviving elsewhere in the same payload, so each
+# value the keyed passes remove is planted below in every section of the
+# download -- under an unredacted key, inside a message, as a key, and as a
+# number under a key the coarsening does not name -- and none may come back.
+NAME = "Villa Solbacken"
+EXACT = ("59.334591", "18.06324")  # the install's solar_location, as text
+OPTIONS_TOKEN = "tibber-options-fedcba9876543210"  # a token reauth saved in options
+PRIVATE = (TOKEN, OPTIONS_TOKEN, NAME, *EXACT)
+
+
+def _leak_text(tag):
+    return f"{tag}: {TOKEN} {OPTIONS_TOKEN} for {NAME} at {EXACT[0]},{EXACT[1]}"
+
+
+def _value_pass(on):
+    """``diagnostics._without_values`` as it is, or switched off (the control)."""
+    saved = diagnostics_mod.__dict__.get("_without_values")
+    if not on and saved is not None:
+        diagnostics_mod._without_values = lambda value, private: value
+    return saved
+
+
+def _value_pass_restore(saved):
+    if saved is not None:
+        diagnostics_mod._without_values = saved
+
+
+async def _planted_download(value_pass=True):
+    """The replay install with every private value planted in every section."""
+    hass, entry, coord, collector = _replay_install(plant_entry={
+        "name": NAME, "ecl110_state_topic": f"ecl/{TOKEN}/state"})
+    entry.options = {**entry.options, "tibber_token": OPTIONS_TOKEN}
+    folder = tempfile.mkdtemp()
+    (Path(folder) / ".storage").mkdir()
+    hass.config.path = lambda *parts: str(Path(folder, *parts))
+    (Path(folder) / ".storage" / debugger.store_keys("rp")["accuracy"]).write_text(
+        json.dumps({"version": 1, "data": {"note": _leak_text("store"),
+                                           "lat": float(EXACT[0])}}))
+    coord.mode = _leak_text("mode")
+    coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
+                  "problem_messages": [_leak_text("input")],
+                  "current_action": _leak_text("plan")}
+    collector.rows = [_row(note=_leak_text("row"), lon=float(EXACT[1]), **{TOKEN: 1})]
+    collector.snapshots = [{"t": T0.isoformat(), "cycle": 1,
+                            "data": json.dumps({"msg": _leak_text("snapshot")})}]
+    collector.self_tests = {"feeds": {"error": _leak_text("self-test")}}
+    dt_util.freeze(T0 + timedelta(days=1))
+    saved = _value_pass(value_pass)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        _value_pass_restore(saved)
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+async def _clean_download(value_pass):
+    saved = _value_pass(value_pass)
+    try:
+        return await _replay_download()
+    finally:
+        _value_pass_restore(saved)
+
+
+def _leaves(node, path=""):
+    """``(path, key or value)`` for every key and every leaf of ``node``."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield f"{path}.{key}", key
+            yield from _leaves(value, f"{path}.{key}")
+    elif isinstance(node, (list, tuple)):
+        for i, value in enumerate(node):
+            yield from _leaves(value, f"{path}[{i}]")
+    else:
+        yield path, node
+
+
+def _private(text):
+    return any(value in str(text) for value in PRIVATE)
+
+
+def _carrying(download):
+    """Every path of ``download`` whose key or value still holds a private value."""
+    return sorted({path for path, leaf in _leaves(download) if _private(leaf)})
+
+
+planted_dl = asyncio.run(_planted_download())
+planted_open = asyncio.run(_planted_download(value_pass=False))
+planted_paths = _carrying(planted_open)
+SECTIONS = (".config.", ".config_setup.", ".coordinator.", ".last_diagnosis", ".inputs.",
+            ".plan.", ".debug.manifest.self_tests", ".debug.cycle_rows",
+            ".debug.payload_snapshots", ".debug.stores", ".debug.diagnostics.")
+R.check(
+    "the fixture plants a private value in every section of the download: the live and "
+    "setup config, the coordinator snapshot, the last diagnosis, the inputs, the plan, "
+    "and the bundle's self-tests, cycle rows, payload snapshots and store documents",
+    all(any(path.startswith(section) for path in planted_paths) for section in SECTIONS),
+    "; ".join(planted_paths),
+)
+R.check(
+    "Download diagnostics carries none of the values its redaction removes -- the "
+    "token, the entry name, the exact coordinate -- in any section, under any key",
+    _carrying(planted_dl) == [],
+    "; ".join(_carrying(planted_dl)),
+)
+_kept = {(path, repr(leaf)) for path, leaf in _leaves(planted_dl)}
+_moved = [path for path, leaf in _leaves(planted_open)
+          if not _private(path) and not _private(leaf) and (path, repr(leaf)) not in _kept]
+R.check(
+    "the null control: every field of the planted download that holds no private value "
+    "comes out as it would without the value pass",
+    _moved == [],
+    "; ".join(_moved[:5]),
+)
+R.check(
+    "the null control: with nothing private planted elsewhere, the value pass leaves the "
+    "download byte-identical",
+    json.dumps(asyncio.run(_clean_download(True)), sort_keys=True)
+    == json.dumps(asyncio.run(_clean_download(False)), sort_keys=True),
+)
+
+_six = "x" * replay_doc.LEAK_MIN_CHARS
+R.check(
+    "the value pass searches for a removed value at the leak check's shortest length and "
+    "not one character under it, for a coordinate only when the coarsening cut it, and "
+    "never for a flag",
+    diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}],
+                                      "tibber_token": True,
+                                      "solar_location": {"latitude": -123.4,
+                                                         "longitude": float(EXACT[1])}}])
+    == {_six, EXACT[1]},
+    str(diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}]}])),
+)
+R.check(
+    "the value pass redacts a private value inside text, as a key, and as a number, in a "
+    "tuple too, and leaves a flag and any other number alone",
+    diagnostics_mod._without_values(
+        {"a": ("x abcdef y", 18.06324, True, 7), "abcdef": 1}, frozenset({"abcdef", "18.06324"}))
+    == {"a": ["x **REDACTED** y", "**REDACTED**", True, 7], "**REDACTED**": 1},
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

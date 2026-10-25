@@ -34,6 +34,15 @@ exception to "ids are kept": a ``person.*`` id names a member of the
 household and a ``calendar.*`` id a family calendar, and the away and
 holiday options hold them. They are redacted wherever they appear, inside a
 message string too, because an input problem echoes the id it is about.
+
+R10-DIAG-REDACT: a keyed pass removes a value only under its key, and D15's
+production triage found redacted credential values elsewhere in the same
+payload. So each value the entry's keyed passes remove -- the token, the entry
+name, each coordinate at full precision -- is searched for in the whole
+payload afterwards and redacted wherever it is: inside a message, as a key,
+or as the number under a key the coarsening does not name. A value shorter
+than ``replay_doc.LEAK_MIN_CHARS`` is not searched for, as the replay's own
+leak check does not, so a two-letter name cannot blank every word holding it.
 """
 from __future__ import annotations
 
@@ -44,7 +53,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter
+from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .thermal_model import probe_install
 from .coordinator import (
@@ -96,6 +105,37 @@ def _without_private_ids(value: Any) -> Any:
     if isinstance(value, list):
         return [_without_private_ids(item) for item in value]
     return value
+
+
+def _private_values(node: Any, under: str | None = None) -> set[str]:
+    """The text of every value the keyed passes remove from ``node``: each one
+    under a ``TO_REDACT`` key, and each coordinate the coarsening cuts."""
+    if isinstance(node, Mapping):
+        return set().union(*(_private_values(item, key) for key, item in node.items()))
+    if isinstance(node, list):
+        return set().union(*(_private_values(item, under) for item in node))
+    if not isinstance(node, (str, int, float)):
+        return set()
+    removed = under in TO_REDACT or (under in COORDINATE_KEYS and _coordinate(node) != node)
+    text = str(node)
+    return {text} if removed and len(text) >= replay_doc.LEAK_MIN_CHARS else set()
+
+
+def _without_values(value: Any, private: frozenset[str]) -> Any:
+    """``value`` with each of ``private`` redacted wherever it appears, at any depth."""
+    if isinstance(value, str):
+        for text in private:
+            value = value.replace(text, REDACTED)
+        return value
+    if isinstance(value, Mapping):
+        return {_without_values(key, private): _without_values(item, private)
+                for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_without_values(item, private) for item in value]
+    if not isinstance(value, (int, float)):
+        return value
+    # A flag's text, "True", is shorter than any value searched for.
+    return REDACTED if str(value) in private else value
 
 
 def _plan_summary(data: Mapping[str, Any]) -> dict[str, Any]:
@@ -251,8 +291,10 @@ async def async_get_config_entry_diagnostics(
     # Both passes run over the whole payload rather than over ``entry.data``
     # alone, so a coordinate or a credential that a future coordinator
     # summary starts carrying is covered without a second decision here --
-    # the debug bundle's payload snapshots and store documents included.
-    return async_redact_data(
+    # the debug bundle's payload snapshots and store documents included. The
+    # value pass then finds what they removed under any other key.
+    private = frozenset(_private_values([dict(entry.data), dict(entry.options)]))
+    return _without_values(async_redact_data(
         _without_private_ids(
             _coarsen(
                 {
@@ -273,4 +315,4 @@ async def async_get_config_entry_diagnostics(
             )
         ),
         TO_REDACT,
-    )
+    ), private)
