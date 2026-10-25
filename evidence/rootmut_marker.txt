@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "<scratch>/wt2/dev/audit/harnesses/r10_plan_issues_chart_mutants.py", line 24, in <module>
+    from r10_plan_page_mutants import fail_name, repo_root  # noqa: E402 -- the FAIL-line grammar and root walk
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<scratch>/wt2/dev/audit/harnesses/r10_plan_page_mutants.py", line 40, in <module>
+    ROOT = repo_root(__file__)
+  File "<scratch>/wt2/dev/audit/harnesses/r10_plan_page_mutants.py", line 37, in repo_root
+    raise RuntimeError(f"no repository root above {start}")
+RuntimeError: no repository root above <scratch>/wt2/dev/audit/harnesses/r10_plan_page_mutants.py
