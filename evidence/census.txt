@@ -7,26 +7,34 @@ UNCOVERED .claude/workflows/web-fix-wave.js:398: const m = await agent(mergeProm
 UNCOVERED .claude/workflows/web-fix-wave.js:404: return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
 UNCOVERED .claude/workflows/web-fix-wave.js:457: log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
 UNCOVERED tools/audit/seat/INSTRUMENTS.md:454: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:903: merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
 UNCOVERED tools/audit/seat/bus.sh:773: echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts 
 UNCOVERED tools/audit/seat/ci_probe.py:14: sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
 UNCOVERED tools/audit/seat/ci_probe.py:273: {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
 UNCOVERED tools/audit/seat/cloud_relay.sh:454: printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
 UNCOVERED tools/audit/seat/cloud_relay.sh:658: git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fi
 UNCOVERED tools/audit/seat/flow_metrics.py:136: judged=len(judged), first_pass=sum(first[m["pr"]]["kind"] == "merge" for m in judged),
-DIFF tools/audit/seat/merge_pr.sh:152 old=0 new=1 | # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
-DIFF tools/audit/seat/merge_pr.sh:186 old=0 new=1 | "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
-DIFF tools/audit/seat/merge_pr.sh:200 old=0 new=1 | && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
-DIFF tools/audit/seat/merge_train.py:3119 old=0 new=1 | t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
-DIFF tools/audit/seat/merge_train.py:3121 old=0 new=1 | check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
-UNCOVERED tools/audit/seat/merge_train.py:14: [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
-UNCOVERED tools/audit/seat/merge_train.py:1463: """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
-UNCOVERED tools/audit/seat/merge_train.py:1468: under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
-UNCOVERED tools/audit/seat/merge_train.py:1493: self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
-UNCOVERED tools/audit/seat/merge_train.py:1698: under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
-UNCOVERED tools/audit/seat/merge_train.py:1964: lone = kept[0]["pr"] if len(kept) == 1 else None  # the unproved merge, by number
-UNCOVERED tools/audit/seat/merge_train.py:1977: raise MainMoved("merge", f"{self.base} moved: its tree is not the one #{pr}'s proof was built on; run the batch again")
-UNCOVERED tools/audit/seat/merge_train.py:1980: self.main_green(now, req, f"right before #{pr}'s merge")
-UNCOVERED tools/audit/seat/merge_train.py:2008: self.log(f"[MAIN-MOVED] before #{a['pr']}'s merge: re-proving "
+EXTENT tools/audit/seat/gh_read.py:446: flag "\"-F" in "([\"gh\", \"api\", \"repos/o/r/x\", \"-F\"], False),"
+EXTENT tools/audit/seat/merge_pr.sh:152: flag "-b" in "throwaway_git_init \"$mo\" -q -b main && printf 'a\\n' > \"$mo/a\" \\"
+EXTENT tools/audit/seat/merge_train.py:2556: flag "\"--body-file" in "\"body\": Path(argv[argv.index(\"--body-file\") + 1]).read_text(), \"id\": 987654321})"
+EXTENT tools/audit/seat/merge_train.py:2561: flag "\"--body-file" in "\"body\": Path(argv[argv.index(\"--body-file\") + 1]).read_text(), \"id\": 987654321})"
+EXTENT tools/audit/seat/merge_train.py:3127: flag "\"-b" in "throwaway_git_init(g, \"-q\", \"-b\", \"main\")"
+EXTENT tools/audit/seat/merge_train.py:3138: flag "\"-b" in "throwaway_git_init(g, \"-q\", \"-b\", \"main\")"
+EXTENT tools/audit/seat/merge_train.py:3252: flag "\"-b" in "throwaway_git_init(g, \"-q\", \"-b\", \"main\")"
+EXTENT tools/audit/seat/merge_train.py:3256: flag "\"-b" in "throwaway_git_init(g, \"-q\", \"-b\", \"main\")"
+EXTENT tools/audit/seat/merge_train.py:3287: flag "\"-b" in "throwaway_git_init(g, \"-q\", \"-b\", \"main\")"
+EXTENT tools/audit/seat/merge_train.py:4023: flag "\"--body-file" in "\"body\": Path(argv[argv.index(\"--body-file\") + 1]).read_text()})"
+EXTENT tools/audit/seat/merge_train.py:4053: flag "\"--body-file" in "\"body\": Path(argv[argv.index(\"--body-file\") + 1]).read_text()})"
+UNCOVERED tools/audit/seat/merge_train.py:18: [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
+UNCOVERED tools/audit/seat/merge_train.py:1732: """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
+UNCOVERED tools/audit/seat/merge_train.py:1738: under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
+UNCOVERED tools/audit/seat/merge_train.py:1766: self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
+UNCOVERED tools/audit/seat/merge_train.py:1794: self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits ({n + 1}/{self.polls})")
+UNCOVERED tools/audit/seat/merge_train.py:1989: under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
+UNCOVERED tools/audit/seat/merge_train.py:2409: lone = kept[0]["pr"] if len(kept) == 1 else None  # the unproved merge, by number
+UNCOVERED tools/audit/seat/merge_train.py:2422: raise MainMoved("merge", f"{self.base} moved: its tree is not the one #{pr}'s proof was built on; run the batch again")
+UNCOVERED tools/audit/seat/merge_train.py:2425: self.main_green(now, req, f"right before #{pr}'s merge")
+UNCOVERED tools/audit/seat/merge_train.py:2453: self.log(f"[MAIN-MOVED] before #{a['pr']}'s merge: re-proving "
 UNCOVERED tools/audit/seat/plan_page.py:202: label, pr = "folded into another group (no merge of its own)", "merged"
 UNCOVERED tools/audit/seat/proof_watch.py:517: "(a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode")
 UNCOVERED tools/audit/seat/proof_watch.py:535: "(a2) the merge line names pr, head, check, verdict comment id, evidence and merge sha")
@@ -46,6 +54,7 @@ UNCOVERED tools/audit/seat/sweep_template.md:63: (4) After each merge (`dev/gove
 UNCOVERED tools/ci/codescan_wait.py:121: ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
 UNCOVERED tools/ci/ruleset_cutover.py:97: then open and merge the revert of PR {pr}. The other way round deadlocks: the
 UNCOVERED tools/ci/ruleset_cutover.py:437: print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
+SPLIT tools/policy/check-wave-script.mjs:234: "pr', 'open_pr'], ['head_sha']],\n  merge"
 UNCOVERED tools/policy/check-wave-script.mjs:101: groups: [G('A', { stage: 'merge', pr: 385, head_sha: 'bf9bda6' })], groupsFile: 'r.json', reconResult: OK,
 UNCOVERED tools/policy/check-wave-script.mjs:171: agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 1, head_sha: 'h' } : o.label.startsWith('review') ? { verdict: 'merge', comment: 'Fix rev
 UNCOVERED tools/policy/check-wave-script.mjs:235: merge: [['pr'], ['head_sha']],
@@ -58,5 +67,8 @@ UNCOVERED tools/pr/app_approve.sh:551: "body": "Approved by `hpo-approver` at `%
 UNCOVERED tools/pr/local_alerts.py:56: ok, got = alert_list.reds(get, f"refs/pull/{pr['number']}/merge",
 UNCOVERED tools/release/stamp.py:1919: """(pr, sha) per merge the instrument lists without a row, or a refusal.
 UNCOVERED tools/release/stamp.py:2133: raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
-TOTAL old=56 new=61 over 290 file(s)
-UNCOVERED 55 of 95 line(s) holding both words, over 290 file(s)
+TOTAL old=63 new=63 over 290 file(s)
+UNCOVERED 57 of 98 line(s) holding both words, over 290 file(s)
+EXTENT 11 of 63 merge call(s) with a subject flag in the statement outside the extent, over 290 file(s)
+SPLIT 1 of 1 pr word(s) with merge on a later line of the statement uncovered, over 290 file(s)
+exit=0

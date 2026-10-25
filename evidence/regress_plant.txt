@@ -1,4 +1,0 @@
-683dd52cbb938ad00b38857117710791f5581f4b wrapped argv plant: 62 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
-d0d35231c633ca447acf04770f9034281417b72d wrapped argv plant: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:4176: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
-683dd52cbb938ad00b38857117710791f5581f4b unperturbed: 61 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
-d0d35231c633ca447acf04770f9034281417b72d unperturbed: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 

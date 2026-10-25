@@ -1,0 +1,18 @@
+== e73424f247781b8d5e55abe52f54d7005cb51f39
+[] "run([\"gh\", \"pr\", \"merge\", n] + [\"--subject\", s])"
+[] "args = [\"gh\", \"pr\", \"merge\", n]\nargs += [\"--subject\", s]\nrun(args)"
+["f:1"] "run([\"gh\", \"pr\", \"merge\", n, \"--subject\", s])"
+PROGRAM-CLASS merge refused=144 of 144; view refused=0 of 144
+WRAPPED merge refused=12 of 12; null refused=0 of 12
+== 683dd52cbb938ad00b38857117710791f5581f4b
+[] "run([\"gh\", \"pr\", \"merge\", n] + [\"--subject\", s])"
+[] "args = [\"gh\", \"pr\", \"merge\", n]\nargs += [\"--subject\", s]\nrun(args)"
+["f:1"] "run([\"gh\", \"pr\", \"merge\", n, \"--subject\", s])"
+PROGRAM-CLASS merge refused=144 of 144; view refused=0 of 144
+WRAPPED merge refused=0 of 12; null refused=0 of 12
+== d0d35231c633ca447acf04770f9034281417b72d
+[] "run([\"gh\", \"pr\", \"merge\", n] + [\"--subject\", s])"
+[] "args = [\"gh\", \"pr\", \"merge\", n]\nargs += [\"--subject\", s]\nrun(args)"
+["f:1"] "run([\"gh\", \"pr\", \"merge\", n, \"--subject\", s])"
+PROGRAM-CLASS merge refused=44 of 144; view refused=0 of 144
+WRAPPED merge refused=3 of 12; null refused=0 of 12
