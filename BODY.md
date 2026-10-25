@@ -85,31 +85,55 @@ The `--allow-regression` reason names the four cuts and is in the commit message
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/coordinator.py:2171 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:2729 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:2781 CMP_BOUND*2: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:2781 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:2789 CLAMP_DROP: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:2789 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:3136 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:5369 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:5372 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:5374 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:5416 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:5553 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6196 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6204 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6206 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6218 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6230 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6232 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
-- custom_components/heatpump_optimizer/coordinator.py:6405 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+Keyed at the PR head as `open_pr.sh` built it: the code head merged with origin/main 0825aee64 (d86bcb455). Main's merge shifts `coordinator.py`'s lines by +74 from the code head's own numbering.
+
+- custom_components/heatpump_optimizer/coordinator.py:2245 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:2803 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:2855 CMP_BOUND*2: pinned by mutation-autofix (a custom_components/ site); the fix's line is also killed by the proof's `no_mass_guard` mutant
+- custom_components/heatpump_optimizer/coordinator.py:2855 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site); the fix's line is also killed by the proof's `no_mass_guard` mutant
+- custom_components/heatpump_optimizer/coordinator.py:2863 CLAMP_DROP: pinned by mutation-autofix (a custom_components/ site); the fix's line is also killed by the proof's `grade_linear_band` mutant
+- custom_components/heatpump_optimizer/coordinator.py:2863 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:3210 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:5443 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:5446 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:5448 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:5490 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:5627 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6270 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6278 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6280 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6292 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6304 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6306 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
+- custom_components/heatpump_optimizer/coordinator.py:6479 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/dhw_learning.py:158 CLAMP_DROP: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/presets.py:301 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/thermal_model.py:565 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/thermal_model.py:567 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/thermal_model.py:579 GUARD_OFF: pinned by mutation-autofix (a custom_components/ site)
 - custom_components/heatpump_optimizer/thermal_model.py:583 RETURN_DEL: pinned by mutation-autofix (a custom_components/ site)
+
+The same 25 sites, keyed at the code head 052e5c5d2 before main's merge (only `coordinator.py` differs, by -74 lines). The disposition is the same for each:
+
+- custom_components/heatpump_optimizer/coordinator.py:2171 RETURN_DEL: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:2729 RETURN_DEL: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:2781 CMP_BOUND*2: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:2781 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:2789 CLAMP_DROP: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:2789 RETURN_DEL: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:3136 RETURN_DEL: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:5369 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:5372 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:5374 RETURN_DEL: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:5416 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:5553 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6196 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6204 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6206 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6218 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6230 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6232 GUARD_OFF: pinned by mutation-autofix (same site as above)
+- custom_components/heatpump_optimizer/coordinator.py:6405 GUARD_OFF: pinned by mutation-autofix (same site as above)
 
 ## Red checks
 
