@@ -1,53 +1,44 @@
-Fix review: blocked 4df5a42f137bbc9392bb41e79f0d9d08ae956a5b carry-missing: not carried to R10-ORCH-LEDGER or R10-ORCH-DISPATCH-REG; the three forward-carries name R10-ORCH-MACHINERY, which is absorbed, and none is in the roster at main or at handoff/audit-r10-roster 1558cf55f
+Fix review: blocked c3bc47e86272bc57df9aa387892b7f5dac6f9cbf carry-missing: not carried to R10-ORCH-DISPATCH-REG; both roster append-carry ops are unpushed, absent from handoff/audit-r10-roster 2381e1121 and main 9d0ddf8af, and the body names no roster SHA
 
-bus-nonce: 9669ebea5a4ff23f24908b07c7625f2f
+bus-nonce: 7b49cb673b455c418b4be91970678345
 
-Round: first review of #2765 (no earlier verdict on the bus for this PR).
+Round: second review of #2765. The first was review/2765, `blocked 4df5a42f1 carry-missing`.
 
 ## Block
 
-fix-review.md step 10 and finding-propagation.md's Enforcement section say the producing PR does not merge until the carry is in the tree. For a roster carry, the body names the roster branch SHA. The body's `## Forward-carry` routes three items to `dev/programme/rosters/wave-r10-groups.json` with `Carry: R10-ORCH-MACHINERY`. I checked them as follows:
+The round-1 block asked for each carry to be written into the live group's roster carry on `handoff/audit-r10-roster`, with that SHA named in the body. Round 2 paid it only in part:
 
-- At origin/main `0810d5b8f`, R10-ORCH-MACHINERY has `resume.stage: absorbed`. Its note reads "Closed, superseded by the re-cut ... the concerns now sit in R10-ORCH-LEDGER, R10-ORCH-DISPATCH-REG, R10-ORCH-BEATD, R10-ORCH-PLANPAGE and R10-ORCH-ROSTER-SCHEMA ... This group keeps only the no-build records and residuals as carries." Nothing dispatches an absorbed group, so a carry addressed there reaches no seat.
-- No R10-ORCH-* group's carries or brief mention the guardrail, the planted-defect audit or the reviewer's model. I checked this at origin/main and at `handoff/audit-r10-roster` `1558cf55fb9073f3d3dbe72c536a186906657775`, and also at `handoff/r10-roster-runq` and `handoff/r10-roster-sync-carries-open` (ev/roster_search.txt).
-- The body names no roster branch SHA. The PR has no comments.
+- **Paid.** The owner's-call carry and round-1 finding 2 are now in this PR's tree, as two new entries of `dev/programme/carries/carry-201.json` (ev/round2_diff.txt). Each has `from`, `effect`, `control`, `remeasure` and `brief`. The `stage` field now names the owner's decision. `brief_lint.mjs` prints `TOTAL: 0 error(s) across 48 file(s)`.
+- **Not paid.** The two carries that change what dispatch must do are the model arm and the planted-defect audit dispatch. Their destination is R10-ORCH-DISPATCH-REG, which is live (`resume.stage: not-started`). Neither carry is in any tree. I read R10-ORCH-DISPATCH-REG's group at origin/main `9d0ddf8af`, at `handoff/audit-r10-roster` `2381e112129c3b02ddaca687874cddcd10d9d979`, and at `handoff/r10-roster-freeze-b`, `-freeze-b-r2`, `-runq` and `-sync-carries-open`. None of them mentions `2765` or `review_strength` (ev/roster_search.txt). The body says this itself: "Not yet in the tree: the roster seat must land them, and the roster branch SHA is owed to this body before merge."
 
-Two of the carries change what a later stage must do:
+finding-propagation.md and fix-review.md step 10 require the carry to be in the tree before the producing PR merges. A lint-clean local commit on a fixer's machine is not in the tree. The second carry's precondition also points at the carry-201 entry, which lands with this PR. The roster half is still missing, so a DISPATCH-REG seat that starts today would never read either constraint.
 
-- A model arm needs the ledger or dispatch to write the reviewer's model onto the bus. That is R10-ORCH-LEDGER's or R10-ORCH-DISPATCH-REG's work.
-- A trip names a planted-defect audit that nothing dispatches. That is R10-ORCH-DISPATCH-REG's work.
-
-The third, "the guardrail would trip on today's bus", is the owner's call under R13. It belongs on #201, or in a carry file, as the owner's decision. To clear the block, write each carry into the live group's roster carry, with its control as a precondition, on `handoff/audit-r10-roster`, and name that SHA in the body.
-
-`carry_audit.py check` passes this body (`4 routed, 0 bad destination(s)`) because `roster_lib.DONE_STAGES` is `("done", "rca-done")` and leaves out `absorbed`. That instrument gap is carried below.
+To clear the block: get the roster seat to land both `append-carry R10-ORCH-DISPATCH-REG` ops on `handoff/audit-r10-roster`, then name that SHA in the body's `## Forward-carry`. Nothing else in the PR needs to change. The production code and the harness are byte-identical to the round-1 head, whose mutation proof and sweep round 1 verified.
 
 ## Findings
 
-- `tools/audit/carry_audit.py` treats an `absorbed` group as a live destination. `roster_lib.DONE_STAGES = ("done", "rca-done")`, so a carry to a group closed by a re-cut passes `pr-contract` and the train's pre-flight while it reaches no seat. This PR's three carries are the instance. Perturbation: `stage: done` on R10-ORCH-MACHINERY makes the same body a bad destination. Carry: R10-ORCH-ROSTER-SCHEMA
-- The `unclassified` line at 10-24T10:00Z lists 41 words. Several of them read as engineering catches: `mutant-survived`, `unpinned-site`, `mutation-unpinned`, `null-control-unpinned`, `figure-wrong`, `body-false`, `spec-unmet`, `closures-under-approximated`, `docs-code-mismatch`. The guardrail is right to route them for classifying rather than count them. Until someone classifies them, k is a lower bound. Sensitivity: widening REAL by those nine leaves every arm's line at 10-24T10:00Z unchanged (all 3/30, cloud 3/20, local 0/20; ev/sensitivity_unclassified.txt), so today's trip does not rest on them. Classifying them belongs to whoever owns REAL's list. Carry: R10-FLY-YIELD-GUARD
+- The friction item routes `Carry: R10-FLY-YIELD-GUARD`. The body's own Round 2 section says that group "ends at this merge, so the review's `Carry: R10-FLY-YIELD-GUARD` would reach no seat after it", and moves finding 2 off it for that reason. The friction item, which says carry (2) reads "first-pass merges" where the statistic is incidence, is still addressed to the ending group. `carry_audit.py` accepts it because the group is `in-progress` today. Route it to whoever owns the yield-probe record's carry text, or close it as recorded friction. Carry: R10-FLY-YIELD-GUARD
+- The round-1 instrument gap is still open: `carry_audit.py` reads an `absorbed` group as a live destination. This PR does not settle it, and the body correctly leaves it to round 1's routing. In the same way, `carry_audit.py` cannot see whether a roster carry's text is actually in the destination group. This round's body passes `5 routed, 0 bad destination(s)` while two of its carries are absent from the roster (ev/carry_audit.txt). Carry: R10-ORCH-ROSTER-SCHEMA
 
 ## Evidence
 
-- Head: PR #2765's head is `4df5a42f137bbc9392bb41e79f0d9d08ae956a5b`, matching the body's `## Head` and my measurements (ev/HEAD.txt). Merge base with origin/main is `0810d5b8f`. `git merge-tree --write-tree origin/main HEAD` exits 0, tree `88fa271e3`. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so this contract is current.
-- VERSION, the manifest version, RELEASE_NOTES.md and the golden and claim files are untouched by the three-dot diff. `tests/structure.py`: STRUCTURE RATCHET PASSED. `tests/closure.py select`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
-- M0: `review_strength self-test: 114 checks, 0 failed` (Python 3.14.7).
-- Binomial figures, re-derived independently in float and in exact `Fraction(28,100)` (ev/binom.txt). n=30: k=3 0.0166, k=4 0.0495, k=5 0.1161. n=20: k=1 0.0123, k=2 0.0526, k=3 0.1466. All match the body and the docstring. Null control: at p = 24/85 exactly, n=20 k=2 reads 0.0503, still above ALPHA, and n=30 k=4 reads 0.0468, still below it. The arms' lines therefore do not depend on rounding 24/85 to 0.28. `(1-0.28)^20 = 0.0014` matches.
-- Back-test: all nine `all`-arm points reproduce (13, 19, 9, 8, 5, 5, 7, 8 and 3 of 30, with `would-trip` only at 10-24T10:00Z, P = 0.0166). The local arm reads 10, 15, 15, 8, then 0/20 from 10-21T06:00Z. The cloud arm is insufficient before 10-19, with lowest 3/20 (P = 0.1466). Bus fetched 2026-10-24 ~21:15Z (ev/guard_1024T1000.txt, ev/backtest.txt).
-- My own hand mutants on the new code, each restored and confirmed with `cmp` (ev/hand_mutants.txt). Every one is killed:
-  - family filter dropped: 2 failed
-  - `[-n:]` changed to `[:n]`: 4 failed
-  - insufficient `<` changed to `<=`: 8 failed
-  - first-verdict `min` changed to `max`: 2 failed
-  - until cut dropped: 2 failed
-  - trip inverted: 7 failed
-  - unclassified keeping real words: 3 failed
-  - tie-break dropped: 1 failed
-  - real counted only on merge: 2 failed
-  - local N set to 21: 1 failed
-  - ALPHA set to 0.053: 1 failed
-  - until taken as the min of the windows: 1 failed
-- Finder's harness at the head (`dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4`): `--list` prints `RESULT mutants=3090`, matching the body. The full run at the head prints `RESULT mutants=3090 killed=3036 survived=54 disposed=54 undisposed=0 stale=0`, rc=0, 21:15Z to 22:15Z, with M0 at `114 checks, 0 failed` (ev/sweep_head.txt), matching the body's head figure. I did not re-run the base sweep (`mutants=2612 ... undisposed=0`), so that figure is the body's, not re-derived. The four new DISPOSED entries were read and their reasons hold: no CDF at N in {20, 30} and P0 = 0.28 equals 0.05 (ev/binom.txt), argparse order affects only `--help`, and `until` is a pure read of `wins`.
-- REAL_EXTRA equals the record's nine words (yield-probe.md, "Nine block words outside it"). The self-test pins this word for word.
-- The friction item (carry (2) says "first-pass merges" where the statistic is incidence) is correct. yield-probe.md's threshold and back-test read incidence.
-- CI on the head, read from the check-runs API: arch-score, prelude and refresh succeeded. governance, tests, codeql, validate, kernel-points and hassfest were skipped, because the PR is a draft. budget-raise-gate, cancel-superseded and a second prelude/refresh were queued. No check was red, so step 11 is not engaged. No `mutation` or `pr-contract` run exists on this head to cite.
-- I built no instrument for this review. The sensitivity run and the binomial check are command lines, in ev/.
+- Head: PR #2765's head is `c3bc47e86272bc57df9aa387892b7f5dac6f9cbf` (REST pulls API at review time), matching the body's `## Head` (ev/HEAD.txt). Merge base with origin/main is `9d0ddf8af`. `git merge-tree --write-tree origin/main c3bc47e86` exits 0, tree `ecda1cf58`. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- No production line moved since round 1. `git diff 4df5a42f1 c3bc47e86 -- tools/audit/seat/review_strength.py dev/audit/harnesses/r10_review_strength_mutants.py` is empty (ev/prod_unchanged_since_r1.txt). The authored round-2 commit `b66cbf0be` touches only `dev/programme/carries/carry-201.json`. Round 1's finder's-harness sweep at the code head (`RESULT mutants=3090 killed=3036 survived=54 disposed=54 undisposed=0 stale=0`) therefore still describes this head. I did not re-run it.
+- M0 at the head: `review_strength self-test: 114 checks, 0 failed` (ev/selftest_head.txt).
+- I re-ran the body's mutants at the head, each restored and checked with `cmp` (ev/hand_mutants_r2.txt):
+  - M1, trip forced to False: 5 failed.
+  - M7, P0 changed to 0.24: 4 failed.
+  - M8, local arm dropped: 1 failed.
+  - My own: local N set to 19, 1 failed; cloud N set to 21, 1 failed.
+  - All match the body or are killed.
+- Round-2 figures re-derived on the bus, fetched at the time in ev/bus_fetch_time.txt (813 verdicts, 0 outside the grammar; the body's fetch had 812). Files: ev/guard_1024T1000.txt and ev/round2_figures.txt.
+  - At 10-24T10:00Z: all 3/30, P = 0.0166, would-trip; cloud 3/20, P = 0.1466; local 0/20, P = 0.0014, would-trip.
+  - At 10-25T06:00Z: all 2/30, P = 0.0041; cloud 2/20, P = 0.0526, ok; local 0/20.
+  - Null cut at 10-20T12:00Z: all 8/30, P = 0.5282; cloud 7/20; local 8/20; every arm ok.
+  - The unclassified line has 41 words at 10-24T10:00Z and 51 at 10-25T06:00Z.
+  - Widening REAL by the nine words leaves the lines unchanged. Widening by all 41 gives all 6/30, P = 0.2238, ok; cloud 6/20; local 0/20, would-trip.
+  - Every figure matches the body and the carry-201 entries.
+- carry_audit.py at the head, with the body fetched from the REST API: `CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)`, with the roster ref set to origin/main and to `handoff/audit-r10-roster` (ev/carry_audit.txt). So the carry text resolves and R10-ORCH-DISPATCH-REG is an open destination. The block above concerns the content not being in the roster, which this tool does not read.
+- VERSION, the manifest version, RELEASE_NOTES.md and the golden and claim files are untouched by the three-dot diff. `tests/structure.py`: STRUCTURE RATCHET PASSED.
+- CI on the head, from the check-runs API: 8 runs. `.github/dependabot.yml` succeeded, `arm` was skipped, and prelude, refresh and cancel-superseded (two each) are queued (ev/checks_head.txt). No check is red, so step 11 is not engaged. The head's workflows have not concluded, and there is no mutation or pr-contract run to cite.
+- I built no instrument for this review. Every command is in ev/.
