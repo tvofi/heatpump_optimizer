@@ -1640,22 +1640,22 @@ R.check(
     == aged["debug"]["manifest"]["generated_at"],
     f'{aged.get("exported_at")} / {aged["debug"]["manifest"]["generated_at"]}',
 )
-_window = {key: aged["debug"]["manifest"].get(key)
+_manifest_window = {key: aged["debug"]["manifest"].get(key)
            for key in ("first_row_at", "last_row_at", "span_hours", "age_hours")}
 R.check(
     "the manifest labels the finished collection: its first and last row, the 3 h the "
     "rows span, and the last row's age at the export, not the configured 7 days",
-    _window == {"first_row_at": T0.isoformat(),
+    _manifest_window == {"first_row_at": T0.isoformat(),
                 "last_row_at": (T0 + timedelta(hours=3)).isoformat(),
                 "span_hours": 3.0,
                 "age_hours": round((timedelta(days=10, minutes=14)
                                     - timedelta(hours=3)).total_seconds() / 3600.0, 1)},
-    str(_window),
+    str(_manifest_window),
 )
 R.check(
     "a collection with no row has no window, and a row stamped ahead of the export "
     "clock has an unknowable age, never 0",
-    set(fresh["debug"]["manifest"][key] for key in _window) == {None}
+    set(fresh["debug"]["manifest"][key] for key in _manifest_window) == {None}
     and debugger.collection_window(_rows, T0)["age_hours"] is None,
     str(debugger.collection_window(_rows, T0)),
 )
