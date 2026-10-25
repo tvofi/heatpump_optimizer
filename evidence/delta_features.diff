@@ -1,0 +1,53 @@
+diff --git a/tests/features.py b/tests/features.py
+index 873eeeabf..1a02c0c8c 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -12627,6 +12627,15 @@ R.check(
+     and param_coord._house_heat_loss_samples == 0,
+ )
+ 
++asyncio.run(
++    param_coord.async_update_thermal_params({"ecl110_displace_min": -7.5})
++)
++R.check(
++    "the lower displace limit is mirrored where the publisher clamps against it",
++    param_coord._ecl110_displace_min == -7.5
++    and param_coord._thermal_params.ecl110_displace_min == -7.5,
++    f"mirror {param_coord._ecl110_displace_min}, params {param_coord._thermal_params.ecl110_displace_min}",
++)
+ asyncio.run(
+     param_coord.async_update_thermal_params({"ecl110_displace_max": 14.0})
+ )
+@@ -12689,12 +12698,32 @@ asyncio.run(
+ )
+ 
+ param_coord._dhw_learner.cooling_samples = 30
++# What the DHW profile store is handed: the call saves the explicit rate, so a
++# restart keeps it (the save moved from the learner's setter to the caller).
++_dhw_saved = []
++_dhw_store = param_coord._dhw_learner.profile_store
++_dhw_store_save = _dhw_store.async_save
++
++
++async def _dhw_capture_save(data, _save=_dhw_store_save):
++    _dhw_saved.append(dict(data))
++    return await _save(data)
++
++
++_dhw_store.async_save = _dhw_capture_save
+ asyncio.run(param_coord.async_update_thermal_params({"dhw_cooling_rate": 0.5}))
++_dhw_store.async_save = _dhw_store_save
+ R.check(
+     "an explicit cooling rate restarts the learner from it",
+     abs(param_coord._dhw_learner.cooling_rate - 0.5) < 1e-9
+     and param_coord._dhw_learner.cooling_samples == 0,
+ )
++R.check(
++    "an explicit cooling rate is saved with its reset count, so a restart keeps it",
++    any(abs(d.get("cooling_rate", -1.0) - 0.5) < 1e-9 and d.get("cooling_samples") == 0
++        for d in _dhw_saved),
++    f"profile saves {[(d.get('cooling_rate'), d.get('cooling_samples')) for d in _dhw_saved]}",
++)
+ 
+ R.check(
+     "an unknown parameter is ignored, not fatal",

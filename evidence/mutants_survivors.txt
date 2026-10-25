@@ -1,5 +1,0 @@
-RESULT mutant=guard_off_displace_min rc=1 fails=1
-      FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-RESULT mutant=guard_off_dhw_save rc=1 fails=1
-      FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-done
