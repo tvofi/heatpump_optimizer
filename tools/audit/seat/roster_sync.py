@@ -24,7 +24,7 @@ stale stages. This step is that comparison, run every pass by
 
 It never overwrites a human disposition. Only a stage in DERIVABLE_STAGES is
 rewritten; every other stage -- `deferred`, `refused`, `refuted`, `absorbed`,
-`rca-done`, and any wording a later roster introduces -- is left alone and
+`carries-open`, `rca-done`, and any wording a later roster introduces -- is left alone and
 printed as skipped. The self-test refuses a stage the tree's rosters carry
 that neither tuple classifies, so a new wording is classified deliberately.
 
@@ -92,7 +92,11 @@ DERIVABLE_STAGES = ("not-started", "planned", "queued", "in-progress",
 #: self-test refuses a roster stage this tuple and DERIVABLE_STAGES together
 #: do not cover. `deferred` and `refuted` are the tree's own rosters' words;
 #: `refused`, `absorbed` and `rca-done` are the orchestrator's and design 6.4's.
-PROTECTED_STAGES = ("deferred", "refused", "refuted", "absorbed", "rca-done")
+#: `carries-open`: the group's code is done but it still owns open carries; a
+#: human disposition, so a merged PR must not turn it into `done`. It is not
+#: `in-progress`, so `pr_cap.py` (WIP_STAGE equality) does not count it.
+PROTECTED_STAGES = ("deferred", "refused", "refuted", "absorbed", "rca-done",
+                    "carries-open")
 #: The branch prefixes a topic is read past (design 6.4's B13 rule).
 PREFIXES = ("handoff-body/", "handoff/", "fix/")
 OPEN, MERGED, CLOSED = "OPEN", "MERGED", "CLOSED"
@@ -648,6 +652,9 @@ def self_test() -> int:
         {"group": "R9-DEFER", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "deferred",
          "resume": {"stage": "deferred", "branch": "handoff/r9-defer"}},
+        {"group": "R9-CO", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "carries open",
+         "resume": {"stage": "carries-open", "branch": "handoff/r9-co"}},
         {"group": "R9-DONE", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "done",
          "resume": {"stage": "done", "branch": "handoff/r9-done",
@@ -704,6 +711,8 @@ def self_test() -> int:
         {"number": 12, "state": "OPEN", "headRefName": "handoff/r9-open"},
         {"number": 13, "state": "MERGED", "headRefName": "handoff/r9-defer",
          "mergeCommit": {"oid": "c" * 40}, "body": "## Friction\n\n- none\n"},
+        {"number": 21, "state": "MERGED", "headRefName": "handoff/r9-co",
+         "mergeCommit": {"oid": "3" * 40}, "body": "## Friction\n\n- none\n"},
         {"number": 14, "state": "MERGED", "headRefName": "handoff/r9-done",
          "mergeCommit": {"oid": "d" * 40}},
         {"number": 15, "state": "MERGED", "headRefName": "handoff/r9-carry",
@@ -766,6 +775,10 @@ def self_test() -> int:
         check("a deferred stage is never overwritten",
               by["R9-DEFER"]["resume"]["stage"] == "deferred",
               by["R9-DEFER"]["resume"])
+        check("a carries-open group with a merged PR is never overwritten",
+              by["R9-CO"]["resume"] == {"stage": "carries-open",
+                                        "branch": "handoff/r9-co"},
+              by["R9-CO"]["resume"])
         check("an already-done stage is left alone (its commit is not rewritten)",
               by["R9-DONE"]["resume"]["stage"] == "done"
               and by["R9-DONE"]["resume"]["commit"] == "b" * 40,
@@ -943,6 +956,10 @@ def self_test() -> int:
                if s not in DERIVABLE_STAGES and s not in PROTECTED_STAGES}
     check("every stage the tree's rosters carry is classified (derivable or "
           "protected)", not unknown, unknown)
+    check("carries-open is classified protected and not derivable (a roster "
+          "may carry it before the tree's does)",
+          "carries-open" in PROTECTED_STAGES
+          and "carries-open" not in DERIVABLE_STAGES)
     check("the classification covers the tree's rosters at all",
           bool(seen), sorted(seen))
 
