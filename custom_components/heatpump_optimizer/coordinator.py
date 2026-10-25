@@ -3859,6 +3859,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         priced at the learned COP for that tank temperature and the recent
         mean price. The recommendation is the cheapest candidate that
         still covers the heaviest learned window demand.
+
+        The price is the ledger's recent kWh price (this month's and last
+        month's settled intervals): the card scales a day of this sweep to a month,
+        so the price feed's own window made the row swing with each day's
+        price level (#2257 item 6). That window prices a fresh install.
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
@@ -3866,7 +3871,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return {}
         c_dhw = params.dhw_tank_thermal_mass
         outdoor = float(ctx._current_state.outdoor_temperature)
-        mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
+        mean_price = self._ledger.recent_kwh_price(dt_util.now())
+        if mean_price is None:
+            mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
         # The sweep ranks candidates by cost, and ranking needs a positive
         # price level: a negative mean flips every ``cost_day`` negative and
         # min-cost then crowns the candidate using the MOST energy. The
@@ -7797,6 +7804,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         forecast = self._weather_forecast
         return {
             "current_price": self._get_current_price(),
+            # The price level the advisors' monthly figures are read at.
+            "recent_kwh_price": self._ledger.recent_kwh_price(dt_util.now()),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(forecast),
             # The outdoor temperature the horizon starts on, beside the
@@ -8776,7 +8785,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "feasible": breach <= 0.05,
             "comfort_shortfall_c": round(breach, 2),
             "worst_margin_kw": round(candidate_kw - peak, 2),
-            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
         }
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
@@ -11210,6 +11219,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # degree, price_tiles.py): no one-off coast or heat-up in it.
             "monthly_held_cost_delta": round(price_tiles.per_month(
                 simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
+            # Each plan's spend with the heat it left unstored bought back:
+            # what a choice that keeps the comfort schedule (a cap) costs,
+            # without the one-off its horizon ends on (price_tiles.py).
+            "monthly_settled_cost_delta": round(price_tiles.per_month(
+                delta + simulated.deferred_energy_cost - result.deferred_energy_cost,
+                horizon_hours), 2),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(

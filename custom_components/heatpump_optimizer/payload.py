@@ -811,6 +811,7 @@ class MeasurementView(TypedDict, total=False):
 
 class GridView(TypedDict, total=False):
     current_price: float | None
+    recent_kwh_price: float | None
     prices_available: int
     weather_forecast_available: int
     outdoor_forecast_temperature: float | None
