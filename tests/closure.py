@@ -709,6 +709,12 @@ INERT_EXCEPT = (
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/tmp_paths.py",
+    # R10-FLOW-AUTOTRAIN: merge_train.py imports these two when tests/entities.py
+    # loads it (proof_watch for the verdict grammar, ledger for the sweep's
+    # train-stop hold). CI's recording at f3bd78c35 (closures job 121037861937)
+    # said UNDER-SCOPED, and closures-autofix refused the merge as INERT and read.
+    "tools/audit/seat/ledger.py",
+    "tools/audit/seat/proof_watch.py",
     "dev/audit/rounds/round4/D6/claims.json",
     "dev/audit/rounds/round4/D6/claims.md",
     "tools/policy/policy_lint.mjs",
