@@ -1972,6 +1972,212 @@ R.check(
     "the 55 degC default must not be replaced by a plan that has not started",
 )
 
+# --- R10-DEMAND-OVERBOOK (#2499): the slab advances by the heat delivered ----
+R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#2499)")
+
+# The plan's trajectory advances the slab by the heat COMMANDED. A pump
+# drawing less leaves the difference in the slab estimate, the house learner
+# replays the next interval from it, finds the room colder than predicted and
+# books the gap as fabric loss: the learned scale climbs, and the plan books
+# more heat each day. With a power meter the slab advances by the metered
+# draw instead. The previous plan says 25 degC after 30 min of 4 kW; the
+# prior slab is 23 degC.
+from heatpump_optimizer import draw_range as _r10do_draw  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noqa: E402
+
+_r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
+
+
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 30.0,
+    }
+    if meter:
+        cfg["heat_pump_power_entity"] = "sensor.hp_power"
+    if mode is not None:
+        cfg["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(FakeHass(), _r9f12_entry(data=cfg))
+    coord._snapshots_loaded = True
+    ctx = getattr(coord, "_ctx", coord)
+    ctx._thermal_params.dhw_enabled = False
+    ctx.publish(coord, _r10do_state(
+        room_temperature=21.0, outdoor_temperature=5.0, slab_temperature=23.0))
+    now = _r10do_t0 + timedelta(minutes=30)
+    coord._last_house_sample_time = now - timedelta(hours=gap_h) if sampled else None
+    # The immersion latch, held from earlier cycles: one clear sample keeps it.
+    coord._immersion_active = immersion
+    coord._optimization_result = _r9f12_ns(
+        slab_temp_trajectory=[25.0, 25.5, 26.0],
+        timestamps=[now + timedelta(minutes=30 * i) for i in range(3)],
+    )
+    coord._current_action = {"power": 4.0, "mode": "auto", "heat_pump_on": True}
+    _r9f12_dt.freeze(now)
+    try:
+        for entity, value in (
+            ("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0"),
+            ("sensor.hp_power", f"{drawn_kw}"),
+        ):
+            unit = "kW" if entity == "sensor.hp_power" else "°C"
+            coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
+        if mode is not None:
+            coord.hass.states.set("select.pump_mode", FakeState(
+                mode, last_updated=now, attributes={"options": [mode]}))
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return getattr(coord, "_ctx", coord)._current_state.slab_temperature
+
+
+_r10do_off, _r10do_standby = _r10do_slab(True, 0.0), _r10do_slab(True, 0.2)
+_r10do_low, _r10do_full = _r10do_slab(True, 1.0), _r10do_slab(True, 4.0)
+R.check(
+    "#2499: a metered pump that drew nothing leaves the slab cooling, not at "
+    "the plan's commanded 25 degC",
+    _r10do_off < 23.0,
+    "slab=%.3f" % _r10do_off,
+)
+R.check(
+    "#2499: the slab rises with the metered draw, below the commanded "
+    "trajectory while the pump draws less than 4 kW",
+    _r10do_off < _r10do_low < _r10do_full < 25.0,
+    "slab off/1kW/4kW=%.3f/%.3f/%.3f" % (_r10do_off, _r10do_low, _r10do_full),
+)
+R.check(
+    "#2499: a standby draw under the running floor heats nothing",
+    _r10do_standby == _r10do_off,
+    "slab standby=%.3f off=%.3f" % (_r10do_standby, _r10do_off),
+)
+R.check(
+    "#2499: without a power meter the slab follows the plan (null control)",
+    _r10do_slab(False, 0.0) == 25.0,
+)
+R.check(
+    "#2499: with no previous sample time the slab follows the plan",
+    _r10do_slab(True, 0.0, sampled=False) == 25.0,
+)
+# Through the coordinator's own wiring, not ``space_draw_kw`` alone: the
+# immersion latch and the observed mode are what set ``shared`` and
+# ``space_served``. A resistive kW booked as space heat is this finding's bias.
+_r10do_immersion = _r10do_slab(True, 4.0, immersion=True)
+R.check(
+    "#2499: an immersion element latched on the pump's meter leaves the slab "
+    "on the plan's trajectory, not advanced by its resistive kW as space heat",
+    _r10do_immersion == 25.0,
+    "slab=%.3f" % _r10do_immersion,
+)
+_r10do_dhw_only = _r10do_slab(True, 4.0, mode="DHW (Hot Water)")
+_r10do_heating = _r10do_slab(True, 4.0, mode="Heating")
+R.check(
+    "#2499: a pump observed in a hot-water-only mode books 0 kW of space heat "
+    "(the slab cools as with the pump off); observed heating rooms, its draw",
+    _r10do_dhw_only == _r10do_off and _r10do_heating == _r10do_full,
+    "slab dhw-only/off=%.3f/%.3f heating/full=%.3f/%.3f"
+    % (_r10do_dhw_only, _r10do_off, _r10do_heating, _r10do_full),
+)
+R.check(
+    "#2499: a resistive element sharing the meter gives no space draw; a pump "
+    "not serving rooms gives 0 kW",
+    _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=True, space_served=True) is None
+    and _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=False, space_served=False) == 0.0
+    and _r10do_draw.space_draw_kw(None, 3.0, (2.0, 1.0), shared=False, space_served=True) == 2.0,
+)
+
+# The replay window's two bounds. A gap of exactly the learners' sample window
+# is still replayed and a minute past it is not; a zero or negative gap (the
+# same instant, or a clock stepped back) measured no interval, so the plan's
+# prediction stands, as for every other unusable interval. That last one is a
+# design choice: a zero-length replay would return the prior slab instead.
+from heatpump_optimizer.coordinator import HOUSE_LOSS_MAX_SAMPLE_HOURS as _r10do_max_h  # noqa: E402
+
+_r10do_edge = _r10do_slab(True, 0.0, gap_h=_r10do_max_h)
+_r10do_past = _r10do_slab(True, 0.0, gap_h=_r10do_max_h + 1 / 60)
+R.check(
+    "#2499: a gap of exactly the sample window still advances the slab by the "
+    "meter; a minute past it follows the plan",
+    _r10do_edge < 23.0 and _r10do_past == 25.0,
+    "slab edge/past=%.3f/%.3f" % (_r10do_edge, _r10do_past),
+)
+_r10do_zero = _r10do_slab(True, 0.0, gap_h=0.0)
+_r10do_back = _r10do_slab(True, 0.0, gap_h=-0.5)
+R.check(
+    "#2499: a zero or negative gap replays nothing; the slab follows the plan",
+    _r10do_zero == 25.0 and _r10do_back == 25.0,
+    "slab zero/back=%.3f/%.3f" % (_r10do_zero, _r10do_back),
+)
+
+# The running floor ``space_draw_kw`` reads through: a reading AT the floor is
+# standby, and a learned idle draw above the fixed floor raises it.
+_r10do_idle = _r10do_draw.DrawRange()
+_r10do_idle.idle.extend([0.4] * _r10do_draw.MIN_IDLE)
+R.check(
+    "#2499: a draw at the running floor is standby, not heat",
+    _r10do_draw.running_kw(None, _r10do_draw.RUNNING_FLOOR_KW) == 0.0
+    and _r10do_draw.running_kw(None, 0.3) == 0.3,
+)
+R.check(
+    "#2499: a learned idle draw above the fixed floor raises it to "
+    "IDLE_MARGIN times the idle draw",
+    _r10do_draw.running_kw(_r10do_idle, 0.4) == 0.0
+    and _r10do_draw.running_kw(_r10do_idle, 0.6) == 0.6,
+    "idle_kw=%s" % _r10do_idle.idle_kw(),
+)
+
+# The tank block of ``_update_current_state``: a tank reading reaches the DHW
+# learner and its freeze reason the coordinator; with no reading the learner is
+# never called.
+
+
+def _r10do_dhw(tank):
+    coord = Coord(FakeHass(), _r9f12_entry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 30.0,
+        "dhw_temp_entity": "sensor.tank",
+    }))
+    coord._snapshots_loaded = True
+    seen = []
+
+    async def _learn(temp):
+        seen.append(temp)
+        return "tank_probe"
+
+    coord._dhw_learner.async_learn_dynamics = _learn
+    _r9f12_dt.freeze(_r10do_t0)
+    try:
+        readings = [("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0")]
+        if tank is not None:
+            readings.append(("sensor.tank", tank))
+        for entity, value in readings:
+            coord.hass.states.set(entity, FakeState(value, last_updated=_r10do_t0, unit="°C"))
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return seen, coord._learner_freeze_reason, coord._legionella.last_cycle
+
+
+_r10do_tank, _r10do_notank = _r10do_dhw("48.0"), _r10do_dhw(None)
+R.check(
+    "#2499: a tank reading reaches the DHW learner, and its freeze reason the "
+    "coordinator; no reading reaches neither",
+    _r10do_tank[:2] == ([48.0], "tank_probe") and _r10do_notank[:2] == ([], None),
+    "tank=%s notank=%s" % (_r10do_tank, _r10do_notank),
+)
+# The same cycle hands the reading to ``LegionellaGuard.async_observe``: a tank
+# at the disinfection temperature resets the timer; a cooler one, or none, not.
+_r10do_hot = _r10do_dhw("65.0")
+R.check(
+    "#2499: a tank at the disinfection temperature resets the legionella timer "
+    "through the coordinator's cycle; a cooler reading or none leaves it unset",
+    _r10do_hot[2] == _r10do_t0 and _r10do_tank[2] is None and _r10do_notank[2] is None,
+    "hot=%s cool=%s none=%s" % (_r10do_hot[2], _r10do_tank[2], _r10do_notank[2]),
+)
+
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
 R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
 
@@ -19782,8 +19988,9 @@ R.check(
     "the learners that replay with them",
     "params.solar_aperture_scale =" in _run_src2
     and "params.internal_gains_profile =" in _run_src2
-    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
-    < _upd_src2.find("self._refresh_model_corrections()"),
+    and 0 < _upd_src2.find("self._async_learn_interval(")
+    < _upd_src2.find("self._refresh_model_corrections()")
+    and "self._async_learn_house_heat_loss()" in inspect.getsource(_Coord._async_learn_interval),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",
 )
