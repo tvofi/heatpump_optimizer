@@ -24,7 +24,60 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-score_open  # R10-SCORES (#2258): a sub-score with no grade renders as a dash and its reason
+setup_single_buffer  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+setup_two_tank  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+setup_coil  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+layout_editing_dragged  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+layout_editing_tidy  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+picker_open_filtered  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons
+no_plan  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+no_plan_expanded  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+plan_inline  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+plan_inline_sv  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+plan_short_window  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+custom_title_currency  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+hidden_series  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+score_open  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+expanded_plan  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+what_if_off  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+expanded_zoomed  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+draft_dirty_menu_open  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+draft_mid_drag  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+whatif_edited  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+whatif_weekly  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+override_active  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+shared_steps  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+shared_steps_hover  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+tooltip_hover  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+coarse_pointer  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+reduced_motion  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+advisor_page  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+wood_alert  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+wood_lane  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+wood_whatif  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+away_toggle  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+away_return  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+away_status  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+history_panned  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+history_deep_panned  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+history_no_power  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+history_unavailable  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+history_pending  # R10-CARD-VOICE: stylesheet text only (the setup page's new rules)
+# R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design): the
+# setup page gains a type disc on each card's outer corner (the wood tank's a
+# spring while a hot-water coil is configured), the coil's pipe becomes the
+# one accent pipe (dashed, with no data-edge, while configured but not
+# modelled), the hot water box states the coil's state in two lead lines,
+# every card ends in a two-line Configure button naming its options page
+# (cards 15 to 32 units taller), and one line above the drawing says where
+# that page is. 39 of the 40 states move. Measured by stripping the one
+# stylesheet node from both sides of card_drift's diff: exactly the six
+# states that render the setup page move in markup (setup_single_buffer,
+# setup_two_tank, setup_coil, layout_editing_dragged, layout_editing_tidy,
+# picker_open_filtered); the other 33 move in stylesheet text only, because
+# the card injects ONE <style> block and card_drift captures the whole shadow
+# root. editor_schema renders no card stylesheet and does not move.
+
 # R10-SCORES (#2258): a sub-score published as null renders as "—" and the
 # reason the coordinator names in `reasons` (here none is published, so the
 # fallback "No evidence yet"), in both the hover and the breakdown panel. Only

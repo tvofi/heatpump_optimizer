@@ -2864,8 +2864,12 @@ check("the hand-scheduled reason has a label",
     check("an unset input folds into its box's one muted line, not a row",
       !/setup-slot empty/.test(setupPage) &&
       (setupPage.match(/setup-slot folded/g) || []).length === 3 &&
-      (setupPage.match(/class="setup-chip"/g) || []).length === 3 &&
-      (setupPage.match(/class="setup-chip-hit"/g) || []).length === 3,
+      // R10-CARD-VOICE: the Configure button is every card's, not the
+      // folded block's, so there is one per box.
+      (setupPage.match(/class="setup-chip"/g) || []).length ===
+        (su.layoutEditor.boxes || []).length &&
+      (setupPage.match(/class="setup-chip-hit"/g) || []).length ===
+        (su.layoutEditor.boxes || []).length,
       `${(setupPage.match(/setup-slot folded/g) || []).length} folded blocks `
       + `and ${(setupPage.match(/class="setup-chip"/g) || []).length} Configure chips`);
   }
@@ -2962,16 +2966,17 @@ check("the hand-scheduled reason has a label",
       (svgOnly.match(/class="setup-flow"/g) || []).length === topo.edges.length,
       `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
       + `${topo.edges.length} edges`);
-    // A row-less box (h = 32) draws no header divider -- it would separate
-    // the title from nothing -- while a box with rows keeps it.
-    const valveBoxG = svgOnly.split("<g>")
-      .find((g) => g.includes("Mixing valve")) || "";
-    const bufBoxG = svgOnly.split("<g>")
-      .find((g) => g.includes("Buffer tank (750 L)")) || "";
-    check("a row-less box draws no header divider",
-      valveBoxG !== "" && !/setup-accent divider/.test(valveBoxG) &&
-      /setup-accent divider/.test(bufBoxG),
-      "a divider over an empty band underlines nothing");
+    // Every card has something under its title -- at the least its
+    // Configure button (R10-CARD-VOICE) -- so every card draws the rule that
+    // divides the two. The row-less 32-unit card that once drew none no
+    // longer exists; the valve here has no live reading at all.
+    const cardGs = svgOnly.split("<g>").filter((g) => /class="setup-box"/.test(g));
+    const valveBoxG = cardGs.find((g) => g.includes("Mixing valve")) || "";
+    check("every card divides its title from what is under it",
+      valveBoxG !== "" && cardGs.length > 0 &&
+      cardGs.every((g) => /setup-accent divider/.test(g)),
+      `${cardGs.filter((g) => /setup-accent divider/.test(g)).length} of `
+      + `${cardGs.length} cards draw the rule`);
   }
   {
     // A coordinator from before v4.0.0 still publishes the wood-valve hop
@@ -3148,6 +3153,109 @@ check("the hand-scheduled reason has a label",
         coilPipe.test(coPage) && !coilPipe.test(ttPage),
         "a coil drawn on a layout the model does not run is the failure this "
         + "whole diagram exists to prevent");
+    }
+    // R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design):
+    // a type disc on each card's outer corner, the wood tank's a spring
+    // while a coil is configured, and the coil's pipe the one accent pipe.
+    // The title used to be the only thing that told a tank from a valve.
+    const groupsOf = (page) => page.split("<g>").slice(1)
+      .filter((g) => /class="setup-box"/.test(g));
+    const titleOf = (g) => (/<text class="setup-title"[^>]*>([^<]*)</.exec(g) || [])[1];
+    const badgeOf = (g) => {
+      const m = /<g class="type-badge( off)?" data-type="([a-z_]+)" aria-hidden="true"><circle class="badge-disc" cx="([\d.]+)" cy="([\d.]+)"/.exec(g);
+      const box = /<rect class="setup-box"[^>]* x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"/.exec(g);
+      return m && box ? {
+        off: !!m[1], type: m[2], cx: Number(m[3]), cy: Number(m[4]),
+        x: Number(box[1]), y: Number(box[2]), w: Number(box[3]),
+      } : null;
+    };
+    const voicePage = (state) => {
+      const t = JSON.parse(JSON.stringify(state === "active" ? coil : twoTank));
+      if (state !== "none") t.dhw_wood_coil_configured = true;
+      const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+      s[DEFAULT_SPACE].attributes.setup_topology = t;
+      const c = build(s);
+      c._onCardClick({});
+      c.dialog.page = "setup";
+      c._render();
+      return collect(c.shadowRoot).join("\n");
+    };
+    const voice = { active: voicePage("active"), off: voicePage("off"),
+      none: voicePage("none") };
+    {
+      const groups = groupsOf(voice.active);
+      const types = new Map(groups.map((g) => [titleOf(g), (badgeOf(g) || {}).type]));
+      const typeList = [...types].map(([t, k]) => `${t}=${k}`).join(", ");
+      check("every card wears one type disc on its outer top corner",
+        groups.length === 8 && groups.every((g) => {
+          const b = badgeOf(g);
+          return b && b.cx === b.x + b.w - 2 && b.cy === b.y + 2 &&
+            (g.match(/class="type-badge/g) || []).length === 1;
+        }),
+        typeList);
+      check("the disc tells a store from a valve from an emitter",
+        types.get("Outside") === "outside" &&
+        types.get("Heat pump") === "heat_source" &&
+        types.get("4-way mixing valve (manual)") === "valve" &&
+        types.get("Heat pump tank (750 L)") === "store" &&
+        types.get("Hot water tank") === "hot_water" &&
+        types.get("Upper floor") === "radiator" &&
+        types.get("Lower floor (slab)") === "slab",
+        typeList);
+      const wood = (page) => badgeOf(groupsOf(page)
+        .find((g) => /Wood furnace tank/.test(titleOf(g) || "")) || "") || {};
+      const woodList = ["active", "off", "none"].map((k) =>
+        `${k}: ${wood(voice[k]).type}${wood(voice[k]).off ? " (off)" : ""}`).join("; ");
+      check("the wood tank's disc is a spring while a coil is configured",
+        wood(voice.active).type === "coil" && !wood(voice.active).off &&
+        wood(voice.off).type === "coil" && wood(voice.off).off &&
+        wood(voice.none).type === "store" && !wood(voice.none).off,
+        woodList);
+      const accents = (page) => [...page.matchAll(
+        /<path class="setup-pipe coil-pipe( off)?"( data-edge="([^"]+)")?/g)]
+        .map((m) => `${m[3] || "-"}${m[1] ? " off" : ""}`);
+      check("the coil's pipe is the one accent pipe, dashed when not modelled",
+        accents(voice.active).join() === "wood_tank>dhw_tank" &&
+        accents(voice.off).join() === "- off" &&
+        accents(voice.none).length === 0 &&
+        !edges(voice.off).includes("wood_tank>dhw_tank") &&
+        /\.setup-pipe\.coil-pipe \{[^}]*stroke: var\(--hpo-accent/.test(cardSrc),
+        ["active", "off", "none"].map((k) =>
+          `${k}: [${accents(voice[k]).join(", ")}]`).join("; "));
+      const coilWords = (page) => {
+        const g = groupsOf(page).find((x) => titleOf(x) === "Hot water tank") || "";
+        return [...g.matchAll(/<text class="setup-slot extra lead"[^>]*>([^<]*)</g)]
+          .map((m) => m[1]);
+      };
+      check("the hot water box states the coil in words, one state at a time",
+        coilWords(voice.active).join(" / ") ===
+          "refilled through a wood tank coil / preheats the mains water" &&
+        coilWords(voice.off).join(" / ") ===
+          "coil configured, not modelled / needs the two-tank layout" &&
+        coilWords(voice.none).join(" / ") ===
+          "no hot-water coil / wood heat only",
+        ["active", "off", "none"].map((k) =>
+          `${k}: ${JSON.stringify(coilWords(voice[k]))}`).join("; "));
+      // The Configure control names the page it means in its own ink, on
+      // every card, fully configured or not: Home Assistant has no route into
+      // an options step, so the name IS the destination the card can give.
+      const cfg = groups.map((g) => ({
+        title: titleOf(g),
+        hits: (g.match(/class="setup-chip-hit"/g) || []).length,
+        page: (/<text class="setup-chip-page"[^>]*>([^<]*)</.exec(g) || [])[1],
+      }));
+      check("every card carries a Configure button that names its page",
+        cfg.length === 8 && cfg.every((c) => c.hits === 1 && c.page) &&
+        (cfg.find((c) => c.title === "Upper floor") || {}).page ===
+          "Sensors and entities" &&
+        (cfg.find((c) => c.title === "Heat pump tank (750 L)") || {}).page ===
+          "Heating system and heat storage",
+        cfg.map((c) => `${c.title}: ${c.hits}x ${JSON.stringify(c.page)}`).join("; "));
+      const dest = (/<p class="setup-dest">([\s\S]*?)<\/p>/.exec(voice.active) || [])[1] || "";
+      check("and the page states once where that page is",
+        (voice.active.match(/class="setup-dest"/g) || []).length === 1 &&
+        /Advanced settings/.test(dest),
+        dest || "(no caption)");
     }
   }
   {
@@ -5881,11 +5989,16 @@ const slotHit = (card, key) => {
   const stray = [];
   for (const g of page.split("<g>").slice(1)) {
     if (!/class="setup-box"/.test(g)) continue;
-    const paths = [...g.matchAll(/<path class="([^"]*)"/g)]
-      .map((m) => m[1]).filter((c) => c !== "setup-accent divider");
+    // The type disc (R10-CARD-VOICE) is the one other ink a card wears, and
+    // only inside its own group on the corner: cut it out, then any path
+    // left -- classed or not -- is a stroke on the card itself.
+    const body = g.replace(/<g class="type-badge[^"]*"[^>]*>[\s\S]*?<\/g><\/g>/, "");
+    const paths = [...body.matchAll(/<path(?: class="([^"]*)")?/g)]
+      .map((m) => m[1] || "(unclassed)")
+      .filter((c) => c !== "setup-accent divider");
     if (paths.length) stray.push(paths.join(","));
   }
-  check("a card carries its outline and its header rule, and no other ink",
+  check("a card carries its outline, its header rule and its corner disc, and no other ink",
     stray.length === 0, stray.join("; "));
   const cardR = vm.runInContext("SETUP_CARD_R", ctx);
   check("and its outline is one rounded card, at the product's radius",
@@ -5956,9 +6069,13 @@ const slotHit = (card, key) => {
     }
     return out;
   };
-  // The drawn path at t (t running along the PATH), and its tangent there by
-  // central difference -- the curve's real direction, not a restatement of
-  // the card's algebra.
+  // The drawn path at t (t running along the PATH), and its tangent there
+  // from the drawn control points -- the curve's real direction, not a
+  // restatement of the card's algebra. Differentiated exactly: a central
+  // difference at h = 1e-6 carries ~eps*|y|/h = 3e-8 of rounding on a level
+  // pipe at y = 140, which is past the 1e-9 the level case is held to and
+  // cancelled only at the coordinates the old fixtures happened to have
+  // (found by R10-CARD-VOICE, whose taller cards moved them).
   const at = (p, t) => {
     if (!p.cubic) {
       return [p.p0[0] + (p.p3[0] - p.p0[0]) * t,
@@ -5971,11 +6088,12 @@ const slotHit = (card, key) => {
   };
   // The direction the WATER moves at the pipe's midpoint.
   const flowAtMid = (p) => {
-    const h = 1e-6;
-    const a = at(p, 0.5 - h);
-    const b = at(p, 0.5 + h);
     const sign = p.flipped ? -1 : 1;
-    return [sign * (b[0] - a[0]) / (2 * h), sign * (b[1] - a[1]) / (2 * h)];
+    // B'(1/2) = 3/4 (P1 - P0) + 3/2 (P2 - P1) + 3/4 (P3 - P2); a line's is P3 - P0.
+    return [0, 1].map((i) => sign * (p.cubic
+      ? 0.75 * (p.p1[i] - p.p0[i]) + 1.5 * (p.p2[i] - p.p1[i]) +
+        0.75 * (p.p3[i] - p.p2[i])
+      : p.p3[i] - p.p0[i]));
   };
   // How well the chevron's axis agrees with the flow there: +1 is "points
   // exactly down the pipe", 0 "crosses it at a right angle", -1 "points
@@ -5999,7 +6117,7 @@ const slotHit = (card, key) => {
   const byEdge = (list, e) => list.find((p) => p.edge === e);
 
   // The five orientations, each on a real pipe of a real drawing. Downhill
-  // and uphill come from the default rig; the flat, near-horizontal and
+  // comes from the default rig; the uphill, flat, near-horizontal and
   // vertical cases are built, not found. The flat case has to be built
   // (R10-UX-SETUP): a cross-column pipe is level only when its two boxes have
   // equal heights AND equal tops, and one box's height now depends on how
@@ -6012,9 +6130,17 @@ const slotHit = (card, key) => {
     edges: [["wood_tank", "heat_pump"], ["heat_pump", "buffer_tank"]] });
   const downCard = mkSetup({
     edges: [["heat_pump", "wood_tank"], ["heat_pump", "buffer_tank"]] });
-  const tiltCard = mkSetup({
-    edges: [["heat_pump", "buffer_tank"]],
-    positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+  // Solved from the measured heights like the flat case below: hand-picked
+  // positions went steep the day the cards grew their Configure buttons
+  // (R10-CARD-VOICE). The far end sits 1 unit below the near one.
+  const tiltCard = (() => {
+    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
+    const a = setupBox(probe, "heat_pump");
+    const b = setupBox(probe, "buffer_tank");
+    const yB = 120 + a.h / 2 - b.h / 2 + 1;
+    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
+      positions: { heat_pump: [16, 120], buffer_tank: [260, yB] } });
+  })();
   const flatCard = (() => {
     const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
     const a = setupBox(probe, "heat_pump");
@@ -6023,10 +6149,22 @@ const slotHit = (card, key) => {
     return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
       positions: { heat_pump: [16, 100], buffer_tank: [260, yB] } });
   })();
+  // Uphill is built the same way (R10-CARD-VOICE): with every card ending in
+  // its Configure button the default rig's uphill pipe lands 40+ units
+  // steeper than its handles, past the band below. Solved so the far end
+  // sits 40 units above the near one.
+  const upCross = (() => {
+    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
+    const a = setupBox(probe, "heat_pump");
+    const b = setupBox(probe, "buffer_tank");
+    const yB = 200 + a.h / 2 - b.h / 2 - 40;
+    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
+      positions: { heat_pump: [16, 200], buffer_tank: [260, yB] } });
+  })();
 
   const cases = [
-    ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
-    ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+    ["downhill cross-column", byEdge(cross, "heat_pump>buffer_tank")],
+    ["uphill cross-column", byEdge(pipesOf(upCross), "heat_pump>buffer_tank")],
     ["flat cross-column", byEdge(pipesOf(flatCard), "heat_pump>buffer_tank")],
     ["near-horizontal cross-column",
       byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
@@ -6196,11 +6334,15 @@ const slotHit = (card, key) => {
       x: m && Number(m[1]), y: m && Number(m[2]),
       w: m && Number(m[3]), h: m && Number(m[4]),
       rows: (g.match(/<tspan(?! class="setup-value")/g) || []).length +
-        (g.match(/<text class="setup-slot extra"/g) || []).length +
-        (g.match(/class="setup-chip-hit"/g) || []).length,
+        (g.match(/<text class="setup-slot extra[" ]/g) || []).length,
+      buttons: (g.match(/class="setup-chip-hit"/g) || []).length,
     };
   });
-  const heightWrong = perBox.filter((b) => b.h !== 24 + b.rows * 17 + 8);
+  // Plus the Configure button every card ends with (R10-CARD-VOICE): its
+  // own height and two units below the last row's band.
+  const chipH = vm.runInContext("SETUP_CHIP_H", ctx);
+  const heightWrong = perBox.filter((b) =>
+    b.buttons !== 1 || b.h !== 24 + b.rows * 17 + 8 + chipH + 2);
   check("the row arithmetic that sets each box height is unchanged",
     perBox.length === boxes.length && heightWrong.length === 0,
     `${perBox.length} boxes; ` + perBox.map((b) =>
