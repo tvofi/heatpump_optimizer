@@ -28,9 +28,10 @@ Arms (each prints RESULT lines):
          (``HOUSE_HEAT_LOSS_SCALE_MIN``/``_MAX``). Prints the envelope and,
          where the head publishes one, its reason.
   band   The tree's own presets, single-zone and two-zone, each era and
-         structure at 140 m2: the time constant and the grade the 20-100 h
-         band gives. Reported, not acted on: a band change is a behaviour no
-         finding names yet (the design note's rule).
+         structure at 140 m2: the room-mass time constant, the grade the
+         20-100 h band gives it, and the tree's own grade (``tree_grade``:
+         R10-PARAMS-OWNER's envelope mass and preset band where the tree has
+         them).
   bundle (optional, ``--bundle PATH``) The owner's diagnostics bundle: the
          stored scale, split and sample count, and the grade on both bases.
          Never commit a bundle: it is a user's private data.
@@ -61,6 +62,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
 import argparse  # noqa: E402
 import inspect  # noqa: E402
 import json  # noqa: E402
+import math  # noqa: E402
 import sys  # noqa: E402
 
 sys.path.insert(0, "tests")
@@ -84,6 +86,18 @@ def grade(tau_h):
     return round(max(0.0, min(1.0, (tau_h - 20.0) / 80.0)) * 100.0, 1)
 
 
+def tree_grade(params, loss_kw_per_k):
+    """The tree's own rule on the Health tab's loss: R10-PARAMS-OWNER's mass
+    basis and preset band where the tree has them, else the 20-100 h band on
+    the room mass (the merge base's rule), so the split arm reads either end."""
+    band = getattr(presets, "envelope_band_hours", None)
+    if band is None:
+        return grade(params.room_thermal_mass / loss_kw_per_k)
+    low, high = band()
+    tau = params.envelope_thermal_mass / loss_kw_per_k
+    return round(max(0.0, min(1.0, math.log(tau / low) / math.log(high / low))) * 100.0, 1)
+
+
 def params_from(derived, two_zone):
     p = ThermalParameters()
     p.room_thermal_mass = derived["house_thermal_mass"]
@@ -103,8 +117,9 @@ def publish(coord, params, scale, ratio, samples):
     """The envelope the tree publishes and the Health tab's heat loss, kW/K."""
     coord._thermal_params = params
     coord._apply_house_heat_loss_scale(scale)
-    coord._lower_floor_loss_ratio = ratio
-    params.lower_floor_loss_ratio = ratio
+    # Through the learner's own adoption: a copy-on-write head publishes a new
+    # snapshot there, so an edit of ``params`` would reach no reader.
+    coord._apply_lower_floor_loss_ratio(ratio)
     coord._house_heat_loss_samples = samples
     view = coord._scores_view
     if "advice" in inspect.signature(view).parameters:
@@ -124,7 +139,7 @@ def arm_split(ratio_override):
             r = ratio if ratio_override is None else ratio_override
             params = params_from(derived, True)
             scores, eff = publish(coord, params, scale, r, CONVERGED_SAMPLES)
-            want = grade(params.room_thermal_mass / eff)
+            want = tree_grade(coord._thermal_params, eff)
             got = scores["envelope"]
             gap = None if got is None else round(abs(got - want), 1)
             print(f"split scale={scale} ratio={r}: envelope={got} health_grade={want} "
@@ -152,8 +167,10 @@ def arm_band():
                 d = presets.derive(presets.BuildingPreset(
                     structure=structure, era=era, two_zone=two_zone))
                 tau = d["house_thermal_mass"] / d["house_heat_loss_coefficient"]
+                p = ThermalParameters.from_config(d)
                 print(f"RESULT band two_zone={int(two_zone)} {structure} {era}: "
-                      f"tau_h={tau:.1f} grade={grade(tau)}")
+                      f"tau_h={tau:.1f} grade={grade(tau)} "
+                      f"tree_grade={tree_grade(p, p.heat_loss_coefficient if not p.two_zone_enabled else p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned)}")
 
 
 def arm_bundle(path):
@@ -171,7 +188,8 @@ def arm_bundle(path):
     print(f"RESULT bundle tau_configured_h={params.room_thermal_mass / configured:.1f} "
           f"grade={grade(params.room_thermal_mass / configured)}")
     print(f"RESULT bundle tau_effective_h={params.room_thermal_mass / effective:.1f} "
-          f"grade={grade(params.room_thermal_mass / effective)}")
+          f"grade={grade(params.room_thermal_mass / effective)} "
+          f"tree_grade={tree_grade(params, effective)}")
 
 
 def main():
