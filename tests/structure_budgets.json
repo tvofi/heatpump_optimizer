@@ -1,5 +1,5 @@
 {
- "class_excess_loc": 18103,
+ "class_excess_loc": 18097,
  "const_modules_over_50": 3,
  "coordinator_attrs": 143,
  "coordinator_multiassigned_attrs": 110,
@@ -7,15 +7,15 @@
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
  "duplication_copies": 17,
- "functions_cc_over_15": 30,
+ "functions_cc_over_15": 29,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 44,
- "max_class_loc": 8343,
+ "max_class_loc": 8283,
  "max_method_loc": 373,
- "methods_over_150": 17,
+ "methods_over_150": 16,
  "methods_over_200": 9,
  "name_kept_members": 38,
- "recorded_at": "662a3809ced43b41dba2166f04277f2d3c95e991",
- "seam_cut_total": 420
+ "recorded_at": "de794b53765388da42b2b5f22da455ccfe3fe912",
+ "seam_cut_total": 424
 }
