@@ -1,0 +1,39 @@
+### python3 tools/audit/seat/merge_train.py --self-test
+  ok   sweep's CLI: one sweep under the mandate, its started train train.sh --bot-prs --approval-carry --pre-flight --mandate
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 318 checks, 0 failed
+rc=0
+### bash tools/audit/seat/bus.sh --self-test
+  ok   push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)
+  ok   and proposes the same verdict with a clean first line (the null control)
+bus self-test: 74 checks, 0 failed
+rc=0
+### bash tools/audit/seat/tick_loop.sh --self-test
+  ok   a real pass moves heartbeat/orchestrator on the remote
+  ok   null control: a refused push is printed with its reason and the pass still completes
+tick_loop self-test: 17 checks, 0 failed
+rc=0
+### bash tools/audit/seat/train.sh --self-test
+train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)
+rc=0
+### python3 tools/audit/seat/orchestrator_tick.py --self-test
+orchestrator_tick self-test: 214 checks, 0 failed
+rc=0
+### python3 tools/audit/seat/proof_watch.py --self-test
+ok   (l) a pending required context waits a poll, then merges when it lands
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 40 checks, 0 failed
+rc=0
+### python3 tests/structure.py
+  ok   seam_cut_total 420 <= 420
+
+STRUCTURE RATCHET PASSED
+rc=0
+### python3 -I tools/policy/agreement_py.py --run
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.8
+AGREEMENT ok
+agreement_py restore: 18 closure file(s), 18 covered by the wave-script restore list, 0 missing
+rc=0
+### python3 -I tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 96 self-testing, 96 wired, 0 unwired
+rc=0
