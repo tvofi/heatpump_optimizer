@@ -1,0 +1,17 @@
+== null: append one line
+dev/governance/roles/proposal-triage.md
+  ERROR   [budgets] dev/governance/roles/proposal-triage.md: 37 lines exceeds its cap of 36. Cut, or state the case for a higher cap in the pull request body.
+  ERROR   [budgets] dev/governance/roles/proposal-triage.md: about 493 tokens across its lines exceeds its cap of 489 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 2 error(s) across 50 policy file(s)
+exit=1
+== ruled wording
+finding's fix) is not a proposal and keeps its route. One opus seat at
+medium effort: a ruling's claims are checked against the code.
+dev/governance/roles/proposal-triage.md
+  ERROR   [budgets] dev/governance/roles/proposal-triage.md: about 493 tokens across its lines exceeds its cap of 489 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 50 policy file(s)
+dev/governance/roles/proposal-triage.md           36   36      493   489 
+== revert mutant
+lint=0
+sync=0
+dev/governance/roles/proposal-triage.md           36   36      494   489 

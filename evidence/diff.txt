@@ -1,0 +1,22 @@
+diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
+index b42de75b7..abb19b7af 100644
+--- a/dev/governance/roles/proposal-triage.md
++++ b/dev/governance/roles/proposal-triage.md
+@@ -5,8 +5,8 @@ before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
+ Proposals come from the orchestrator's sweep, its Proposals line, a seat's
+ result and a verdict's optimisation note. A defect countermeasure policy
+ already requires (a root-cause countermeasure, a carry for a red check, a
+-finding's fix) is not a proposal and keeps its own route. One sonnet seat at
+-medium effort: judgement with an oracle.
++finding's fix) is not a proposal and keeps its route. One opus seat at
++medium effort: rulings are checked against code.
+ 
+ **The bar is "clearly".** A proposal is wired in only when its measured
+ benefit clearly outweighs everything it adds: wall-clock or seat time on the
+diff --git a/dev/programme/delivery/2821.md b/dev/programme/delivery/2821.md
+new file mode 100644
+index 000000000..c9d5a288b
+--- /dev/null
++++ b/dev/programme/delivery/2821.md
+@@ -0,0 +1 @@
++- [#2821](https://github.com/tvofi/heatpump_optimizer/pull/2821) — **open**, Policy: the proposal-triage seat runs on opus (P127) (triage-p127)

@@ -1,0 +1,26 @@
+== h
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+exit=0
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+36 dev/governance/roles/proposal-triage.md
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+sync=0
+== b
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+exit=0
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+36 dev/governance/roles/proposal-triage.md
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+sync=0
