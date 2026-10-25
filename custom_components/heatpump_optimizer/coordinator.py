@@ -5126,7 +5126,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # which the caller adopts on its next save.
             return False
         if void:
-            self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
+            pass
         phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
         new_scale, new_ratio, ratio_reset = reanchor_heat_loss(
             *pair, self._house_heat_loss_scale, ratio, phi,
