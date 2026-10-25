@@ -1,0 +1,40 @@
+##[endgroup]
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             1:every
+             1:every
+             1:every
+             3:every
+             3:every
+             3:every
+             3:every
+             12:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             25 s
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+env:
+  PR_HEAD: bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d
+##[endgroup]
+no version edit: origin/main...bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d moves none of VERSION, the manifest version or a notes heading
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+NOTE body item 031903e4: dismissed:the container's BASH_ENV is environment configuration outside the tree, reported in the handoff result
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.55.0
+Temporarily overriding HOME='/home/runner/work/_temp/f7a2fad1-1e9f-4a26-bdc0-e05e6af02c42' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+[command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Cleaning up orphan processes
