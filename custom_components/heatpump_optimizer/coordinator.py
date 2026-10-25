@@ -986,6 +986,31 @@ async def _replay_interval(
         return None
 
 
+async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) -> float | None:
+    """The unsensed slab, advanced from ``prior`` by the heat the meter says was delivered.
+
+    The plan's trajectory advances it by the heat COMMANDED; a pump drawing
+    less left the difference in the slab, for the house learner to book as
+    loss (#2499). No usable reading, or past the learners' sample window:
+    the plan's prediction.
+    """
+    now = dt_util.now()
+    dt_h = 0.0 if prior_at is None else utc_elapsed_seconds(now, prior_at) / 3600.0
+    signals = coord._pump_signals
+    kw = draw_range.space_draw_kw(
+        coord._accuracy.draw,
+        coord._measured_power,
+        coord._commanded_split(),
+        shared=coord._immersion_active or signals.electric_heat.resistive_heat,
+        space_served=signals.space_heat or not signals.mode_observed,
+    )
+    if kw is not None and prior_at is not None and 0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and (state := await _replay_interval(
+        coord, prior, kw, prior.outdoor_temperature, prior_at, dt_h, "Slab estimate",
+    )) is not None:
+        return float(state.slab_temperature)
+    return _open_loop_plan_value(coord._optimization_result, "slab_temp_trajectory", now)
+
+
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
     """#1067: ``(divisor, baseline curve key)`` for a health sample, or ``None``.
 
@@ -1066,10 +1091,9 @@ def _settle_interval_diag(
     if diag is None or sample.actual_temp is None:
         return
     ctx = getattr(coord, "_ctx", coord)
-    planned_space = float(pending.get("space_power") or 0.0)
-    planned_dhw = float(pending.get("dhw_power") or 0.0)
-    planned_total = planned_space + planned_dhw
-    share = planned_space / planned_total if planned_total > 1e-6 else 1.0
+    share = draw_range.space_share(
+        float(pending.get("space_power") or 0.0), float(pending.get("dhw_power") or 0.0)
+    )
     coord._last_interval_record = {
         "when": now.isoformat(timespec="seconds"),
         "state": diag["state"],
@@ -4545,20 +4569,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``None`` means "skip this sample": the entity is configured but stale
         (`read_power_kw`'s ok=False contract) or contaminated. Without any
         power entity the commanded draw is the only electrical estimate; a
-        flow meter measures the interval's heat instead (#2016).
-
-        v5.3.0 fixes a silent under-report here. The subtraction removes *the
-        plan's* hot-water allocation from the measured total, on the premise
-        that the plan describes what the pump is doing. When the pump is
-        actually in ``heat`` that premise is false: no hot water was made, the
-        meter reading is all space heating, and subtracting a phantom DHW
-        share hands the house heat-loss learner a space figure that is too low
-        by exactly the allocation — every interval, in the same direction, for
-        as long as the mismatch lasts. A biased-low input to a learner that
-        persists what it concludes is the failure class this whole guard
-        exists for. ``_commanded_split`` now zeroes the channel the observed
-        mode cannot serve, so the subtraction removes only hot water that
-        could actually have been made.
+        flow meter measures the interval's heat instead (#2016). The hot
+        water subtracted is ``_commanded_split``'s, which zeroes a channel the
+        observed mode cannot serve: a phantom allocation would bias every
+        sample low, in one direction (v5.3.0).
         """
         commanded_space, dhw_share = self._commanded_split()
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
@@ -6266,8 +6280,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             scale=ctx._config.staleness_max_age_scale,
         )
         self.currency = _feed_currency(self.hass, ctx._config) or self.currency
-        # Read onto a copy, published whole before the first reader below.
-        state = replace(ctx._current_state)
+        # Read onto a copy, published whole before the first reader below;
+        # ``prior`` is the state the interval started from (the slab seed).
+        prior, prior_at = ctx._current_state, self._last_house_sample_time
+        state = replace(prior)
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
@@ -6294,20 +6310,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The slab estimate advances from the reading and records it.
             self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
 
-        # The lower zone's room temperature, best source first. A real
-        # thermometer is the only source that carries information about the
-        # lower zone at all. There used to be a second-best branch here, the
-        # floor-return reading plus 0.5 K: a *water* temperature standing in
-        # for an air temperature (typically 3-9 K too warm) whose slab-to-room
-        # difference was pinned at a constant 0.5 K — a wrong, unresponsive
-        # main heat path judged against the upper floor's comfort bounds and
-        # published as a house temperature (a 27.5 C return drew a "house"
-        # trace at 28.0 C beside a 22.1 C upper zone: the optimizer cooking
-        # the house to a temperature nothing planned). The floor return keeps
-        # the job it is a genuine proxy for, driving the slab estimate above;
-        # with no lower-floor thermometer the honest stand-in is the room
-        # temperature, the last-resort seed further down, and a repair issue
-        # says so rather than letting a wrong number pass for a measurement.
+        # The lower zone's room temperature: only a real thermometer carries
+        # information about it. The floor return is a WATER temperature,
+        # typically 3-9 K above the air, so it drives the slab estimate above
+        # and never stands in here; without a lower-floor thermometer the room
+        # temperature does (the last-resort seed below), and a repair issue
+        # says so.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             state.lower_floor_temperature = lower_floor.value
@@ -6457,25 +6465,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # after the pump signals its ``_learning_frozen`` consult reads (#1331).
         self._track_curve_comfort(dt_util.now())
 
-        if dhw.ok and (dhw_value := dhw.value) is not None:
-            frozen = await self._dhw_learner.async_learn_dynamics(dhw_value)
-            if frozen:
-                self._learner_freeze_reason = frozen
-            await self._legionella.async_track(dhw_value)
-
-        self._legionella.disinfect.observe(reader)
-        # Deliberately NOT gated on `dhw.ok`: the observer above is the only
-        # reset path there was, and it cannot run without a tank reading —
-        # while the countdown below advances on the clock regardless. That
-        # asymmetry is the latch. This follows the boost the plan actually
-        # commanded, so a cycle can complete even when the probe is absent
-        # or the pump cannot reach the disinfection temperature.
-        await self._legionella.async_track_cycle(
-            dhw.value if dhw.ok else None
-        )
-        self._legionella.check_ceiling()
-
-        _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
+        if frozen := await self._track_dhw(dhw.value if dhw.ok else None, reader):
+            self._learner_freeze_reason = frozen
 
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
@@ -6508,17 +6499,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Last resort: seed the slab, and the lower zone if nothing better
         # has been read, from the room temperature. Both guards are on the
         # READING, not the entity being set: a stale sensor takes the same
-        # path as an absent one. The slab seed runs only until a first plan
-        # exists — its trajectory then advances the slab (open-loop
-        # propagation, R9 D12-s1-01); the room+1 K seed used to freeze forever.
+        # path as an absent one. The room+1 K seed runs only until the slab
+        # can be advanced (``_propagated_slab``); it used to freeze forever.
         if not floor_return.ok:
-            if (
-                seed := _open_loop_plan_value(
-                    self._optimization_result,
-                    "slab_temp_trajectory",
-                    dt_util.now(),
-                )
-            ) is not None:
+            if (seed := await _propagated_slab(self, prior, prior_at)) is not None:
                 state.slab_temperature = seed
                 self._slab_temp_initialized = True
             elif not hasattr(self, "_slab_temp_initialized"):
@@ -7669,6 +7653,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "two_zone_enabled": ctx._thermal_params.two_zone_enabled,
             **_plan_settings_view(ctx._opt_config),
         }
+    async def _track_dhw(self, tank: float | None, reader: Any) -> str | None:
+        """Feed the tank reading to the DHW learner and the legionella guard; the learner's freeze reason."""
+        frozen = None
+        if tank is not None:
+            frozen = await self._dhw_learner.async_learn_dynamics(tank)
+            await self._legionella.async_track(tank)
+        self._legionella.disinfect.observe(reader)
+        # NOT gated on a tank reading: the observer above is the only reset
+        # path, and the countdown advances on the clock regardless -- that
+        # asymmetry was the latch. It follows the commanded boost, so a cycle
+        # completes with no probe or a pump short of the disinfection temperature.
+        await self._legionella.async_track_cycle(tank)
+        self._legionella.check_ceiling()
+        _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
+        return frozen
+
     def _dhw_view(self) -> DhwView:
         """Hot water configuration and current demand state."""
         ctx = _ctx_of(self)
