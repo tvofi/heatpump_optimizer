@@ -28,7 +28,7 @@
 // it: `OPEN <group> <spelling>: XFAIL` while the guard does not read its
 // subject, `held` once it does, and `OPEN <group> expected-fail: held=<k> of
 // <n>`. R10-MERGE-SUBJECT-CASEARM is a strict expected-fail: it closes only at
-// held=n of n; its routed list is #2697's two spellings outside that class.
+// held=n of n; its routed list is #2697's three spellings outside that class.
 import fs from 'node:fs'
 const src = fs.readFileSync(process.argv[2] || 'tools/policy/agreement.mjs', 'utf8')
 // The guard block; a guard from before the extent reader (the merge base's) opens
@@ -129,19 +129,19 @@ for (const [name, f, t] of rows) {
   cm += m; cn += z
 }
 console.log(`CLASS merge refused=${cm} of ${rows.length}; null refused=${cn} of ${rows.length}`)
-// R10-MERGE-SUBJECT-CASEARM owns every shell case-arm spelling of a merge
-// writer: with and without the leading paren, at any indentation, and
-// multi-pattern arms. #2697's extent starts the forward read at the line's
-// start, so an unmatched `)` there ends the call before `pr`.
+// R10-MERGE-SUBJECT-CASEARM's case-arm spellings of a merge writer: with and
+// without the leading paren, at any indentation, multi-pattern, default and glob
+// arms. The forward read skips a closer before `pr` that matches nothing on the
+// line, so each holds at #2697's head, as at main; the enumeration stays to pin it.
 const open = {
   'R10-MERGE-SUBJECT-CASEARM': [
-    ...['', '  ', '        ', '\t'].flatMap((ind) => ['never)', '(never)', 'a|b)', '(a|b)'].flatMap((pat) => ['f.sh', 'f.md'].map((f) =>
+    ...['', '  ', '        ', '\t'].flatMap((ind) => ['never)', '(never)', 'a|b)', '(a|b)', '*)', '[0-9]*)'].flatMap((pat) => ['f.sh', 'f.md'].map((f) =>
       [`${JSON.stringify(ind + pat)} ${f}`, f, (v) => `case "$m" in\n${ind}${pat} gh pr ${v} "$n" --squash --subject "x" ;;\nesac`]))),
     ['one-line x) gh pr merge 9 -t s f.sh', 'f.sh', (v) => `x) gh pr ${v} 9 -t s`],
   ],
-  // Two spellings outside that class text, routed to the same group by #2697's
-  // body (the guard's next owner): a blank line between the argv's bracket and
-  // `pr` in a Python or JS file, and a closer in a JS block comment after merge.
+  // Three spellings outside that class text, routed to the same group by #2697's
+  // body (the guard's next owner), each one main's line guard passes too: a blank
+  // line in a Python or JS argv, and a closer in a JS block comment after merge.
   'R10-MERGE-SUBJECT-CASEARM routed': [
     ['a blank line in a Python argv f.py', 'f.py', (v) => `run([
     "gh",

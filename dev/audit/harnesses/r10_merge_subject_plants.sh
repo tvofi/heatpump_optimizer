@@ -13,7 +13,7 @@ REF=${1:-}
 PY=${PYTHON:-python3}
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
-AG=tools/policy/agreement.mjs; MP=tools/audit/seat/merge_pr.sh; MT=tools/audit/seat/merge_train.py
+AG=tools/policy/agreement.mjs; MP=tools/audit/seat/merge_pr.sh; MT=tools/audit/seat/merge_train.py; WF=.claude/workflows/web-fragments.md
 cp "$AG" "$T/agreement.mjs"
 [ -n "$REF" ] && git show "$REF:$AG" > "$AG"
 run() { "$PY" -I tools/policy/agreement_py.py --run 2>&1 | grep -E 'merge call|REFUSED +merge-subject|RESULT' | sed -e 's/^ *//' -e 's/ seconds=[0-9.]*//' | tr '\n' ' '; echo; }
@@ -59,14 +59,20 @@ plant 'an exploded argv' "$MT" add "if False:  # agreement_py imports this modul
     ])" "$MT"
 plant 'a subscript value between pr and merge' "$MT" add "if False:  # agreement_py imports this module
     "'run(["gh", "pr", "-R", cfg["repo"], "merge", n, "--subject", s])' "$MT"
-# OPEN, owned by R10-MERGE-SUBJECT-CASEARM: refused=0 at #2697's head while it
-# is open, refused=1 at the merge base; its control is the paren spelling.
-plant 'OPEN R10-MERGE-SUBJECT-CASEARM: a case arm without its paren' "$MP" add "case \"\$m\" in
+# A closer in the lead that no opener on the line matches: refused=1 at the
+# merge base (main's line guard) and at #2697's head, refused=0 at 4aad9c11.
+# The case arm's control is the paren spelling; the wrapped parenthetical's is
+# the same prose with no parenthesis.
+plant 'a closer in the lead: a case arm without its paren' "$MP" add "case \"\$m\" in
   never) gh pr merge \"\$n\" --squash --subject $S ;;
 esac" "$MP"
 plant 'control: the same case arm with its paren' "$MP" add "case \"\$m\" in
   (never) gh pr merge \"\$n\" --squash --subject $S ;;
 esac" "$MP"
+plant 'a closer in the lead: a Markdown parenthetical wrapped onto the merge line' "$WF" add "Merge it by hand (the train is
+down) with \`gh pr merge 9 --subject x\`." "$WF"
+plant 'control: the same prose with no parenthesis' "$WF" add "Merge it by hand, the train is
+down, with \`gh pr merge 9 --subject x\`." "$WF"
 plant 'null: an argv wrapped after its program, no subject' "$MT" add "if False:  # agreement_py imports this module
     subprocess.run([\"gh\",
                     \"pr\", \"merge\", str(n), \"--squash\"],
