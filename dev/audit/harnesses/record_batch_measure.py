@@ -19,6 +19,8 @@ subject is `Merge pull request #N from <owner>/record/autofix` (the git rule
                  under STALE_AFTER_COMMITS must cover;
       wait_s  -- seconds from the record head's commit to its merge;
       age     -- first-parent commits between its oldest rowed merge and it;
+  * tail -- record merges whose wait_c reached BATCH_MARGIN_COMMITS, the
+    share of the wait the batch margin does not cover;
   * chain -- record merges that rowed the previous record merge (the record
     chain: each record merge owing the next a row);
   * conflicts -- record merges with a row file main also changed while open;
@@ -54,7 +56,7 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tools/audit/seat")]
 from delivery_status import subject_number  # noqa: E402  the merge-subject reader
-from record_row import RECORD_BRANCH, ROW_PATH  # noqa: E402  the record branch and row path
+from record_row import BATCH_MARGIN_COMMITS, RECORD_BRANCH, ROW_PATH  # noqa: E402  the batch margin, record branch and row path
 
 
 def record_merge(subject: str) -> bool:
@@ -128,6 +130,9 @@ def main(argv: list[str]) -> int:
     print(f"\nrecord merges: {len(rec)}")
     for key in ("rows", "wait_c", "wait_s", "age"):
         print(summary(key, [r[key] for r in rec if r[key] is not None]))
+    tail = [r for r in rec if r["wait_c"] >= BATCH_MARGIN_COMMITS]
+    print(f"tail: {len(tail)}/{len(rec)} record merges waited {BATCH_MARGIN_COMMITS} or more "
+          "commits (BATCH_MARGIN_COMMITS): an age-arm batch that waits as long reads OVERDUE")
     chained = [r for r in rec[1:]]
     print(f"chain: {sum(r['chain'] for r in chained)}/{len(chained)} record merges "
           "rowed the previous record merge")
