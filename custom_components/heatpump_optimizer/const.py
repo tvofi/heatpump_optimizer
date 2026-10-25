@@ -1362,6 +1362,11 @@ HOUSE_HEAT_LOSS_SCALE_MAX: Final = 3.0
 DEFAULT_LOWER_FLOOR_LOSS_RATIO: Final = 1.0
 LOWER_FLOOR_LOSS_RATIO_MIN: Final = 0.3
 LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
+# What the heat-loss learners replay as the interval's heat input, worst
+# first: the commanded draw carries every delivery shortfall into the fit, a
+# metered draw does not. Evidence on an earlier basis than the one now
+# configured is void against it (G-ID-3); a later one is kept.
+HEAT_LOSS_BASES: Final = ("commanded", "metered")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
