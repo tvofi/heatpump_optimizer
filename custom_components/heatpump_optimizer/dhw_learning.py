@@ -227,7 +227,8 @@ class DhwProfileLearner:
     def set_cooling_rate(self, rate: float) -> None:
         """An explicit value replaces the learned one and resets the sample
         count, so the learner treats it as the new starting point. A caller
-        that can run before the startup read lands waits for it first."""
+        that can run before the startup read lands awaits
+        ``async_wait_for_read`` first (ls-r1)."""
         self.apply_cooling_rate(rate)
         self.cooling_samples = 0
 
@@ -237,12 +238,6 @@ class DhwProfileLearner:
         ls-r1: a command written before that read lands is overwritten by it.
         """
         await self.profile_store.async_wait_for_read()
-
-    async def async_set_cooling_rate(self, rate: float) -> None:
-        """``set_cooling_rate`` after the startup read, persisted."""
-        await self.async_wait_for_read()
-        self.set_cooling_rate(rate)
-        await self.async_save_profile()
 
     def payload(self) -> dict[str, Any]:
         """The DHW profile store's exact save shape.

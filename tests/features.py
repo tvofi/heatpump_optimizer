@@ -12384,8 +12384,8 @@ _RACES = {
         _thermal_load,
         lambda c: c.async_update_thermal_params({"buffer_cooling_rate": 2.0}),
         lambda c: (c._buffer_cooling_rate, c._buffer_cooling_samples), (2.0, 0)),
-    "an explicit DHW cooling rate": (
-        _dhw_load, lambda c: c._dhw_learner.async_set_cooling_rate(2.5),
+    "set_thermal_parameters' explicit DHW cooling rate": (
+        _dhw_load, lambda c: c.async_update_thermal_params({"dhw_cooling_rate": 2.5}),
         lambda c: (c._dhw_learner.cooling_rate, c._dhw_learner.cooling_samples), (2.5, 0)),
     "restore_snapshot's restored DHW profile": (
         _dhw_load, _restore,
@@ -19958,7 +19958,7 @@ R.check(
     "the apply path writes both learned scales onto the shared params, after "
     "the learners that replay with them",
     _rm_published
-    and 0 < _upd_src2.find("_async_learn_house_heat_loss(")
+    and 0 < _upd_src2.find("self._async_learn_fabric()")
     < _upd_src2.find("self._refresh_model_corrections()"),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",

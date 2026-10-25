@@ -2174,14 +2174,14 @@ def _publish_params(coord: Any, /, **fields: Any) -> None:
     """The one writer of ``coord``'s thermal parameters: a new snapshot, never an edit.
 
     D7-s1-82: a solve's record or a learner mid-await keeps the snapshot it
-    read, and ``replace`` re-runs the divisor floor. The snapshot is read
-    here, never from a context bound before an await, which would publish
-    that context's stale hubs with it; the ``_hub`` facade then rebinds the
-    context. The live model is the snapshot's one subscriber; every other
-    reader reads the context.
+    read, and ``replace`` re-runs the divisor floor. The context is read
+    here, never one bound before an await, which would republish that
+    context's stale hubs with it. The live model is the snapshot's one
+    subscriber; every other reader reads the context.
     """
-    params = replace(coord._thermal_params, **fields)
-    coord._thermal_params = params
+    ctx = _ctx_of(coord)
+    params = replace(ctx._thermal_params, **fields)
+    coord._ctx = replace(ctx, _thermal_params=params)
     coord._thermal_model.params = params
 
 
@@ -5329,6 +5329,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         await self._async_save_thermal_learning()
 
+    async def _async_learn_fabric(self) -> None:
+        """Both fabric learners over the interval that just elapsed (#2249).
+
+        The interval is closed once, before either learner: both replay the
+        same window, so their order decides only which fit sees the other's
+        update first.
+        """
+        interval = self._close_fabric_interval()
+        await self._async_learn_lower_floor_loss(interval)
+        await self._async_learn_house_heat_loss(interval)
+
     def _close_fabric_interval(self) -> FabricInterval | None:
         """Close the elapsed interval for both fabric learners; advance the baseline.
 
@@ -6192,9 +6203,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         _publish_params(self, **_thermal_param_changes(params))
         # The displace limits are mirrored for the MQTT publisher, which
         # clamps against them without going through the model.
-        for name in ("ecl110_displace_min", "ecl110_displace_max"):
-            if name in params:
-                setattr(self, f"_{name}", params[name])
+        if "ecl110_displace_min" in params:
+            self._ecl110_displace_min = params["ecl110_displace_min"]
+        if "ecl110_displace_max" in params:
+            self._ecl110_displace_max = params["ecl110_displace_max"]
         if "house_heat_loss_coefficient" in params:
             # A new nameplate invalidates the learned correction: start
             # over from "trust the configuration". The save below records
@@ -6209,7 +6221,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # An explicit value replaces the learned one and resets its
             # sample count, so the learner starts from it again.
             self._dhw_learner.set_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
-        self._config = _with_quiet_keys(_ctx_of(self)._config, params)  # #1910
+        ctx = _ctx_of(self)
+        self._ctx = replace(ctx, _config=_with_quiet_keys(ctx._config, params))  # #1910
 
         # D1-s2-53: entry options persist the call; the write reloads the entry.
         self.hass.config_entries.async_update_entry(
@@ -6496,12 +6509,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             await self._async_learn_buffer_cooling(buffer_value)
 
         # Refine the building fabric model from how the last interval actually
-        # went. Runs last so it sees the fully populated state. The interval is
-        # closed once, before either learner: both replay the same window, so
-        # their order decides only which fit sees the other's update first.
-        interval = self._close_fabric_interval()
-        await self._async_learn_lower_floor_loss(interval)
-        await self._async_learn_house_heat_loss(interval)
+        # went. Runs last so it sees the fully populated state.
+        await self._async_learn_fabric()
 
         # Observed COP, which is only possible with a measured power entity.
         # Persisted on the same every-10-samples cadence as the house learner;
