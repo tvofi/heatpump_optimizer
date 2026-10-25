@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.from_config GUARD_OFF 63e65231",
+  "killed_by": "tests/features.py",
+  "old": "            if not np.isfinite(fixed):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
