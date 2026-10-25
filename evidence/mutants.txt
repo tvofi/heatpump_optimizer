@@ -66,4 +66,7 @@ M27 KILLED: the first attempt waits the review run out
     FAIL PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
     FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
 MUTANTS: 28 run, 0 not as required
-rc=0
+
+real	5m28.388s
+user	7m22.178s
+sys	6m59.007s
