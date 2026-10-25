@@ -17035,6 +17035,34 @@ R.check(
     f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
 )
 
+# D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
+# steps (optimizer.channel_heating_steps over both channels), not the space
+# draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
+# commands nothing. Null control: the 0.07 kW share on a step the hot-water
+# share makes run, and the 3 kW steps, still command heat.
+_ps_seen: list = []
+_ps_real = _ps.plan_commands_heat
+
+
+def _ps_spy(space_heating, step_index):
+    _ps_seen.append(list(space_heating or []))
+    return _ps_real(space_heating, step_index)
+
+
+_fresh_pumps._optimization_result.power_schedule[:3] = [0.07, 0.07, 3.0]
+_fresh_pumps._optimization_result.dhw_power_schedule = [0.0, 0.07] + [0.0] * 46
+_ps.plan_commands_heat = _ps_spy
+try:
+    _asyncio.run(_fresh_pumps._async_drive_pumps())
+finally:
+    _ps.plan_commands_heat = _ps_real
+R.check(
+    "the space pump reads the plan's space-heating steps, not its raw draw "
+    "(D8-s1-01)",
+    bool(_ps_seen) and _ps_seen[0][:3] == [False, True, True],
+    f"saw {_ps_seen[:1]}",
+)
+
 # The class D1-02 states, as a rule rather than an instance: every actuation
 # seam the cycle reaches (a `hass.services.async_call` whose service verb
 # writes, `async_publish_current_action`, or `_async_set_pump`) is either
@@ -40397,6 +40425,7 @@ from heatpump_optimizer.optimizer import OptimizationResult as _WfOR
 
 _wf_ts = datetime(2026, 1, 1, tzinfo=_tz_wf.utc)
 _wf_result = _WfOR(
+    heat_pump_on_schedule=[True],
     power_schedule=[0.2],
     room_temp_trajectory=[21.0, 21.0],
     slab_temp_trajectory=[21.0, 21.0],
@@ -40431,6 +40460,24 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper") is True
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
+)
+# D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
+# share the plan calls off buys no pump heat for wood to undercut. Null
+# control: the same plan with the step running counts it (the check above).
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
+try:
+    _dt_wf.now = lambda: NOW
+    _wf_off_pub = _wf_ready_coord._build_data_dict()
+finally:
+    _dt_wf.now = _real_now_wf
+R.check(
+    "a step the plan calls off is no pump hour for the wood advisor (D8-s1-01)",
+    _wf_off_pub["wood_fuel"].get("cheaper_hour_count") == 0
+    and _wf_off_pub["wood_fuel"].get("cheaper") is False,
+    repr(_wf_off_pub.get("wood_fuel")),
 )
 _wf_idle = _WfOR(
     power_schedule=[0.0],
@@ -40550,6 +40597,7 @@ _wf_probe_result = _WfNS(
     outdoor_temps=[0.0] * 48,
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
+    heat_pump_on_schedule=[False] * 48,
 )
 _wf_from_probes = _wf_from_coord(
     _wf_probe_coord._config,
