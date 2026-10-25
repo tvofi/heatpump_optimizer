@@ -37411,7 +37411,7 @@ def _p8_float_sites(trees):
                 if (
                     isinstance(n, ast.Call)
                     and isinstance(n.func, ast.Name)
-                    and n.func.id in ("float", "_as_float")
+                    and n.func.id in ("float", "_as_float", "finite_float")
                     and n.args
                     and any(_p8_source(s, objs, vals) for s in ast.walk(n.args[0]))
                 ):
@@ -37435,11 +37435,6 @@ def _p8_refusals(sites):
 _p8_sites = _p8_float_sites(_PKG_TREES)
 for _p8_key, _ in _p8_sites:
     print(f"  .. P8 site {_p8_key}: {_P8_ALLOWED.get(_p8_key, ('UNDISPOSITIONED',))[0]}")
-R.check(
-    "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
-    _p8_sites and _p8_refusals(_p8_sites) == [],
-    f"{len(_p8_sites)} site(s); " + "; ".join(_p8_refusals(_p8_sites)),
-)
 _p8_probe = ast.parse(
     "def _export(self):\n"
     "    state = self.hass.states.get('sensor.x')\n"
@@ -37447,10 +37442,21 @@ _p8_probe = ast.parse(
     "    return float(raw)\n"
     "def _humid(hass):\n"
     "    return float(hass.states.get('sensor.h').state)\n"
+    "def _owner(hass):\n"
+    "    return finite_float(hass.states.get('sensor.p').state)\n"
+)
+# The precondition is the rule's reach, not a production site: D7-s2-61 left
+# none, so "the census found one" would refuse the closed tree. The planted
+# probe's three reads -- a local, a direct read, and the finite-float owner
+# called on a state outside inputs.py -- must each be returned.
+R.check(
+    "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
+    _p8_refusals(_p8_sites) == [] and len(_p8_float_sites({"probe.py": _p8_probe})) == 3,
+    f"{len(_p8_sites)} site(s); " + "; ".join(_p8_refusals(_p8_sites)),
 )
 R.check(
     "null control: a bare read, direct or through a local, is refused",
-    len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 2,
+    len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 3,
     f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
 )
 
