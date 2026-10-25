@@ -1,0 +1,6 @@
+== S19 record_row.py: KILLED rc=1 | 5 self-test check(s) failed: failed_required reads a re-run over the red it supersedes, automerge_check lists no pending context beside a refusal, and lists the contexts not yet passed once nothing refused, none when all passed (null control), failed_required ignores a red that is not required, failed_required names a red that is required
+== record_row-1 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: chain: a record-class merge's own open row owes nothing
+== record_row-2 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: batch: a dispatch with 1 row flushes
+== record_row-3 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: pitch: a record merge one pitch old proceeds
+RESULT survivors=0
+rc=0
