@@ -5,6 +5,6 @@ Output: push the code to refs/heads/handoff/triage-s6-batch15-r2, then write the
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-This is a REPAIR of open pull request #2758 (triage/s6-batch15), round 2 of review, which blocked at head 7f91e684293abb4ba0276d8b16eb7010448d9fff. Fetch origin triage/s6-batch15, cut your worktree from that head, and read the blocked verdict: git fetch origin refs/heads/review/2758 and git show FETCH_HEAD:VERDICT.md (verdict line: Fix review: blocked 7f91e684293abb4ba0276d8b16eb7010448d9fff body-head-stale: the body's Head names feb44bd88, the head is 7f91e684 (the record row commit), which does not carry, and policy_lint --pr-). Follow the fixer contract (dev/governance/roles/fixer.md) from step 2 on. Settle every blocking item in the verdict by code, a roster carry, or a re-taken body as the verdict names it, with a null control for every quantified claim. Push refs only: handoff/triage-s6-batch15 plus handoff-body/triage-s6-batch15 (the topic is triage-s6-batch15 even though this dispatch ref carries a -r2 suffix). Answer `## Red checks` for every red check, with BASH_ENV unset for prepr.
 
-No host or home paths in anything you push (cite repo-relative paths only). Do not end the turn while a background job runs.
+Push your return refs (code first, then the handoff-body push as the return signal) as soon as prepr passes; a result left only in your session is lost work. Handoff topic and branch names exactly as stated in this brief and in Output above (if they differ for -r2, push BOTH names).
+no host or home paths in anything you push
