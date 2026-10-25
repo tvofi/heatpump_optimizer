@@ -206,6 +206,13 @@ jobs:
           # The title too: a queue entry's payload does not carry it, and a
           # dispatch's has no pull request. Read like the body, never the payload.
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
+          # Every commit's identity, for the Dependabot arm alone
+          # (tools/policy/dependabot_contract.mjs): a human commit pushed onto a
+          # Dependabot branch keeps the bot as the PR's author, so the author
+          # cannot be the whole key. Fail-closed like the body read.
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits" \
+            --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified | tostring)] | @tsv' \
+            > /tmp/pr-commits.tsv
 
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
@@ -339,13 +346,13 @@ jobs:
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
-              --author "$(cat /tmp/pr-author.txt)" \
+              --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
               "${RED_ARGS[@]}"
           else
             node tools/policy/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
-              --author "$(cat /tmp/pr-author.txt)" \
+              --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
               "${RED_ARGS[@]}"
           fi
