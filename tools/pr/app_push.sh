@@ -237,7 +237,8 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
 # What --row-only runs in prepr's place: two of the body checks pr-contract runs,
 # at the head the verdict judged and with the live title -- step 7's body
 # contract (`policy_lint.mjs --pr-body`) and the carry check
-# (`carry_audit.py check`, which prepr does not run). The contract is fed the
+# (`carry_audit.py check`, pr-contract's reading: the tree's roster and the
+# round branch's; prepr's step 7e reads the round branch alone). The contract is fed the
 # credential prepr's step 7c reads (`gh_credential`: GITHUB_TOKEN, GH_TOKEN,
 # else `gh auth token`), so its red-history walk -- the ancestry reds 7c
 # answers, read from the same check runs -- reads them rather than printing

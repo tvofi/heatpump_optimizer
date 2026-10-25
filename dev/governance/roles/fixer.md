@@ -69,8 +69,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
    (`ci-autofix.md`'s wait starts at the PR), and the body passes
-   `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`), and
-   `tools/audit/carry_audit.py check --body`, which prepr omits; the orchestrator opens
+   `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`), whose
+   step 7e runs `tools/audit/carry_audit.py check --body` at the round's roster
+   branch, fetched, where review reads it; the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
