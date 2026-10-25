@@ -1,0 +1,31 @@
+== diff origin/main..71d2bb6c roster, R10 groups touched:
+diff --git a/dev/programme/rosters/wave-r10-groups.json b/dev/programme/rosters/wave-r10-groups.json
+index 2db98555b..adae06451 100644
+--- a/dev/programme/rosters/wave-r10-groups.json
++++ b/dev/programme/rosters/wave-r10-groups.json
+@@ -9589,9 +9589,7 @@
+    "files": [
+     "dev/audit/rca/R10-RCA-CODESCAN-WAIT.md"
+    ],
+-   "carry": [
+-    "From R10-GATE-DEFER (handoff/r10-gate-defer 5150d172): of R10-RCA-CODESCAN-WAIT's countermeasures, M1 (non-code prelude waits for every code run at the head) and M4's prelude self-test case land in R10-GATE-DEFER. 
+-   ],
++   "carry": [],
+    "resume": {
+     "stage": "not-started",
+     "branch": "handoff/r10-rca-codescan-wait"
+@@ -9628,7 +9626,9 @@
+    "files": [
+     "tools/ci/gate.py"
+    ],
+-   "carry": [],
++   "carry": [
++    "From R10-RCA-CODESCAN-WAIT (#2756, `dev/audit/rca/R10-RCA-CODESCAN-WAIT.md` section 5).\nPrecondition: `codescan_wait.py`'s step-1 poll (M2, on main since `00a9ab4f2`) is legitimate\nonly beside M1 (`prelude.waits_
++   ],
+    "resume": {
+     "stage": "in-progress",
+     "branch": "handoff/r10-gate-defer",
+== ancestry
+2124781cf ancestor of 71d2bb6c (predecessor-read tip)
+71d2bb6c2a9fb06773aaec823e1087e84722ffe3 roster_edit drop-carry R10-RCA-CODESCAN-WAIT (tools/audit/seat/roster_edit.py)
+dropped carry[0] (at 2124781cf): From R10-GATE-DEFER (handoff/r10-gate-defer 5150d172): of R10-RCA-CODESCAN-WAIT's countermeasures, M1 (non-code prelude waits for every code run at the head) and M4's prelude self-test case land in R10-GATE-DEFER. M3 (echo tools/ci/codescan_wait.py's FAIL line to the job log) does not and stays owed here; R10-CI-LAYOUT-P2, its former destination, is done.

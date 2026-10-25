@@ -1,13 +1,75 @@
-== 9dead62bcb5039f862026587e7c0f8125e65566c
-121036638862 .github/dependabot.yml completed success
-== e7b774926
-== ffbcb3cb5626e19fae8802dc1b6e66e3cc1e7a1e
-121038553344 .github/dependabot.yml completed success
-121038558464 arm completed skipped
-121038560478 cancel-superseded queued null
-121038563839 cancel-superseded queued null
-121038560489 prelude queued null
-121038563667 prelude queued null
-121038560365 refresh queued null
-121038563803 refresh queued null
-2026-10-25T01:23:08Z
+read 2026-10-25T03:03:57Z head ffbcb3cb5626e19fae8802dc1b6e66e3cc1e7a1e
+68
+121059505660	gate	completed	success	2026-10-25T03:02:44Z	2026-10-25T03:03:05Z
+121058662931	pr-contract / pr-contract	completed	success	2026-10-25T03:01:31Z	2026-10-25T03:02:05Z
+121058204646	hassfest	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058204419	tests	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058204283	kernel-points	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058204259	governance	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058204207	validate	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058204130	codeql	completed	skipped	2026-10-25T02:55:03Z	2026-10-25T02:55:02Z
+121058203572	budget-raise-gate / budget-raise-gate	completed	success	2026-10-25T02:55:19Z	2026-10-25T02:55:35Z
+121058203431	arch-score / arch-score	completed	success	2026-10-25T02:56:31Z	2026-10-25T02:57:34Z
+121057053858	gate	completed	failure	2026-10-25T02:54:27Z	2026-10-25T02:54:50Z
+121056144203	pr-contract / pr-contract	completed	success	2026-10-25T02:48:21Z	2026-10-25T02:48:51Z
+121052603503	kernel-points	completed	skipped	2026-10-25T02:25:59Z	2026-10-25T02:25:58Z
+121052603471	validate	completed	skipped	2026-10-25T02:25:59Z	2026-10-25T02:25:58Z
+121052603456	hassfest	completed	skipped	2026-10-25T02:25:59Z	2026-10-25T02:25:58Z
+121052603376	codeql	completed	skipped	2026-10-25T02:25:59Z	2026-10-25T02:25:58Z
+121052603349	tests	completed	skipped	2026-10-25T02:25:59Z	2026-10-25T02:25:58Z
+121052603033	governance	completed	skipped	2026-10-25T02:25:58Z	2026-10-25T02:25:58Z
+121052602541	budget-raise-gate / budget-raise-gate	completed	success	2026-10-25T02:43:41Z	2026-10-25T02:44:00Z
+121052602326	arch-score / arch-score	completed	success	2026-10-25T02:39:22Z	2026-10-25T02:40:27Z
+121051702423	gate	completed	failure	2026-10-25T02:25:15Z	2026-10-25T02:25:31Z
+121050884545	pr-contract / pr-contract	completed	success	2026-10-25T02:20:45Z	2026-10-25T02:21:19Z
+121050715950	tests / ci-ratchet	completed	skipped	2026-10-25T02:16:08Z	2026-10-25T02:16:08Z
+121050715435	tests / closures-autofix	completed	skipped	2026-10-25T02:16:08Z	2026-10-25T02:16:08Z
+121050392603	tests / coverage-ratchet	completed	success	2026-10-25T02:16:53Z	2026-10-25T02:17:01Z
+121050392602	tests / lane-proofs	completed	success	2026-10-25T02:16:20Z	2026-10-25T02:16:27Z
+121050392598	tests / graders-head-copy	completed	success	2026-10-25T02:16:28Z	2026-10-25T02:16:50Z
+121048534518	tests / claims-autofix	completed	skipped	2026-10-25T02:04:57Z	2026-10-25T02:04:56Z
+121046147433	refresh	completed	success	2026-10-25T01:56:23Z	2026-10-25T01:56:46Z
+121046147430	prelude	completed	success	2026-10-25T01:56:25Z	2026-10-25T02:55:02Z
+121046147293	cancel-superseded	completed	success	2026-10-25T01:56:23Z	2026-10-25T01:56:34Z
+121044724771	CodeQL	completed	success	2026-10-25T01:44:30Z	2026-10-25T01:44:34Z
+121044428728	tests / mutation-pins	completed	skipped	2026-10-25T01:42:53Z	2026-10-25T01:42:52Z
+121044428588	tests / mutation-autofix	completed	skipped	2026-10-25T01:42:53Z	2026-10-25T01:42:52Z
+121044351763	tests / nightly-ha	completed	skipped	2026-10-25T01:42:28Z	2026-10-25T01:42:28Z
+121044351075	tests / closures	completed	success	2026-10-25T01:59:48Z	2026-10-25T02:16:08Z
+121044351059	tests / browser	completed	success	2026-10-25T01:59:14Z	2026-10-25T02:03:23Z
+121044351046	tests / arch-instrument	completed	success	2026-10-25T01:57:50Z	2026-10-25T01:58:32Z
+121044351036	tests / coverage	completed	success	2026-10-25T01:57:11Z	2026-10-25T02:14:31Z
+121044351034	tests / typing	completed	success	2026-10-25T01:50:56Z	2026-10-25T01:52:38Z
+121044351027	tests / fast (3.14)	completed	success	2026-10-25T01:53:07Z	2026-10-25T02:04:56Z
+121043456161	kernel-points	completed	skipped	2026-10-25T01:37:44Z	2026-10-25T01:37:44Z
+121043456080	governance / delivery-status-publish	completed	skipped	2026-10-25T01:37:44Z	2026-10-25T01:37:44Z
+121043455514	governance / record	completed	skipped	2026-10-25T01:37:44Z	2026-10-25T01:37:44Z
+121043454765	tests / briefs	completed	success	2026-10-25T01:52:01Z	2026-10-25T01:52:29Z
+121043454763	validate / validate-hacs	completed	success	2026-10-25T01:42:31Z	2026-10-25T01:43:15Z
+121043454714	tests / mutation	completed	success	2026-10-25T01:42:10Z	2026-10-25T01:42:52Z
+121043454702	governance / instrument-self-tests	completed	success	2026-10-25T01:49:41Z	2026-10-25T02:02:34Z
+121043454694	budget-raise-gate / budget-raise-gate	completed	success	2026-10-25T01:43:33Z	2026-10-25T01:43:48Z
+121043454682	tests / nightly-status	completed	success	2026-10-25T01:47:13Z	2026-10-25T01:47:23Z
+121043454668	governance / policy-docs	completed	success	2026-10-25T01:45:24Z	2026-10-25T01:46:17Z
+121043454665	governance / delivery-status	completed	success	2026-10-25T01:43:18Z	2026-10-25T01:43:41Z
+121043454657	codeql / Analyze (actions)	completed	success	2026-10-25T01:51:58Z	2026-10-25T01:52:47Z
+121043454655	governance / env-matrix	completed	success	2026-10-25T01:44:55Z	2026-10-25T01:49:32Z
+121043454639	governance / wave-script	completed	success	2026-10-25T01:45:44Z	2026-10-25T01:46:25Z
+121043454636	tests / closure-scope	completed	success	2026-10-25T01:42:10Z	2026-10-25T01:42:27Z
+121043454628	codeql / Analyze (python)	completed	success	2026-10-25T01:45:54Z	2026-10-25T02:15:59Z
+121043454626	codeql / Analyze (javascript-typescript)	completed	success	2026-10-25T01:43:19Z	2026-10-25T01:44:40Z
+121043454608	hassfest / hassfest	completed	success	2026-10-25T01:40:32Z	2026-10-25T01:40:54Z
+121043454598	arch-score / arch-score	completed	success	2026-10-25T01:43:50Z	2026-10-25T01:44:57Z
+121038563839	cancel-superseded	completed	success	2026-10-25T01:38:56Z	2026-10-25T01:39:03Z
+121038563803	refresh	completed	success	2026-10-25T01:38:17Z	2026-10-25T01:38:40Z
+121038563667	prelude	completed	success	2026-10-25T01:37:24Z	2026-10-25T02:25:58Z
+121038560489	prelude	completed	success	2026-10-25T01:37:24Z	2026-10-25T01:37:43Z
+121038560478	cancel-superseded	completed	success	2026-10-25T01:35:53Z	2026-10-25T01:36:05Z
+121038560365	refresh	completed	success	2026-10-25T01:36:08Z	2026-10-25T01:36:34Z
+121038558464	arm	completed	skipped	2026-10-25T01:12:47Z	2026-10-25T01:12:46Z
+121038553344	.github/dependabot.yml	completed	success	2026-10-25T01:12:45Z	2026-10-25T01:12:46Z
+40152292145	CI edit pr=2756 base=main sha=a883ecf380537622ffdd25ad9779e0b57c648fa9	pull_request	completed	success	2026-10-25T01:52:17Z	2026-10-25T03:03:06Z
+40149739945	CI edit pr=2756 base=main sha=a883ecf380537622ffdd25ad9779e0b57c648fa9	pull_request	completed	failure	2026-10-25T01:12:47Z	2026-10-25T02:54:50Z
+40149738738	CI code pr=2756 base=main sha=a883ecf380537622ffdd25ad9779e0b57c648fa9	pull_request	completed	failure	2026-10-25T01:12:46Z	2026-10-25T02:25:32Z
+40149737558	Dependabot auto-merge	pull_request_target	completed	skipped	2026-10-25T01:12:45Z	2026-10-25T01:12:47Z
+PR head now: ffbcb3cb5626e19fae8802dc1b6e66e3cc1e7a1e
