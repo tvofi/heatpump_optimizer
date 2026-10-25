@@ -10914,7 +10914,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "power_normalized": float(
                 override / max(ctx._thermal_params.max_electrical_power, 0.1)
             ),
-            "heat_pump_on": override > 0.05,
+            "heat_pump_on": planned_draw_runs(float(override)),
             "mode": "system_identification",
             # T6: the experiment's draw is not the plan's -- booking it under
             # the overridden plan's reason would say "cheapest hours" or

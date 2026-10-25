@@ -3679,29 +3679,27 @@ def _p2_match_node(types, pattern, pre):
 
 
 def _p2_match_channel_line(n, parents):
-    """The channel line, 0.05 kW, however it is spelt (D8-s1-01): a power
-    comparison against the literal, a threshold or kW parameter defaulting to
-    it, any read of ``CHANNEL_ACTIVE_KW`` by name (a reader that renamed the
-    literal is still a reader), or a new module-level kW constant bound to
-    0.05 (a second owner)."""
+    """The channel line, 0.05 kW, however it is spelt (D8-s1-01): EVERY
+    comparison against the literal 0.05, chained or not and whatever its
+    operands are named (the operand's name is no evidence of its unit, so the
+    rule does not read it: a non-power site is a disposition, never a miss),
+    every parameter defaulting to the literal, any read of
+    ``CHANNEL_ACTIVE_KW`` by name (a reader that renamed the literal is still
+    a reader), and a new module-level line constant bound to 0.05 (a second
+    owner)."""
     if isinstance(n, ast.Compare):
-        return (len(n.ops) == 1
-                and 0.05 in (getattr(n.left, "value", None),
-                             getattr(n.comparators[0], "value", None))
-                and bool(re.search(r"power|space|_kw\b|\bkw\b|dhw", ast.unparse(n))))
+        return any(getattr(x, "value", None) == 0.05 for x in (n.left, *n.comparators))
     sig = parents.get(n)
     if isinstance(n, ast.Constant) and n.value == 0.05 and isinstance(sig, ast.arguments):
-        pos = sig.posonlyargs + sig.args
-        pairs = list(zip(pos[len(pos) - len(sig.defaults):], sig.defaults))
-        pairs += list(zip(sig.kwonlyargs, sig.kw_defaults))
-        return any(d is n and re.search(r"threshold|_kw$", a.arg) for a, d in pairs)
+        return any(d is n for d in (*sig.defaults, *sig.kw_defaults))
     if isinstance(n, (ast.Name, ast.Attribute)):
         return (getattr(n, "id", getattr(n, "attr", None)) == "CHANNEL_ACTIVE_KW"
                 and isinstance(n.ctx, ast.Load))
     if isinstance(n, (ast.Assign, ast.AnnAssign)) and isinstance(parents.get(n), ast.Module):
         targets = n.targets if isinstance(n, ast.Assign) else [n.target]
         return (getattr(n.value, "value", None) == 0.05
-                and any(re.search(r"_KW$|POWER", getattr(t, "id", "")) for t in targets)
+                and any(re.search(r"KW|POWER|LINE|THRESH|ACTIVE", getattr(t, "id", ""))
+                        for t in targets)
                 and not any(getattr(t, "id", "") == "CHANNEL_ACTIVE_KW" for t in targets))
     return False
 
@@ -4067,6 +4065,23 @@ def _p2_registry(sources):
              match=_p2_match_channel_line,
              owners=["optimizer.py::channel_heating_steps"],
              dispositions={
+                 "accuracy.py::AccuracyTracker.power_ratio":
+                     "the same ratio-denominator floor as delivered_ratio, on "
+                     "the paired samples' predicted power: below it the ratio is noise",
+                 "away.py::estimate_recovery_hours":
+                     "a temperature gap in K (target minus room), not a power",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
+                     "a comfort shortfall in K (the fuse advisor's breach), not a power",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._record_accuracy":
+                     "an elapsed time in hours (the pairing window's lower edge), not a power",
+                 "dhw_learning.py::DhwProfileLearner.async_learn_usage":
+                     "a tank draw intensity in K/h, not a power",
+                 "dhw_planner.py::DhwPlanner._dhw_shortfall":
+                     "a tank temperature gap in K, not a power",
+                 "ledger.py::freeze_month_report":
+                     "a month-report reconciliation tolerance in kWh and SEK, not a power",
+                 "narrative.py::build":
+                     "an energy display floor in kWh per narrative line, not a power",
                  "optimizer.py::classify_space_steps":
                      "the owner module's idle line, compared against "
                      "channel_heating_draw (zero on every step the plan does "
@@ -4302,6 +4317,9 @@ _P2_CHANNEL_SPELLINGS = {
     "alias": "\n\n_PLAN_ACTIVE_KW = 0.05\n",
     "default": "\n\ndef _p2_plant(p, threshold=CHANNEL_ACTIVE_KW):\n    return p > threshold\n",
     "literal default": "\n\ndef _p2_plant(p, threshold=0.05):\n    return p > threshold\n",
+    "chained": "\n\ndef _p2_plant(dhw_kw):\n    return 0.0 < dhw_kw <= 0.05\n",
+    "unnamed default": "\n\ndef _p2_plant(p, line=0.05):\n    return p > line\n",
+    "any operand": "\n\ndef _p2_plant(override):\n    return override > 0.05\n",
 }
 _p2_channel_planted = {
     k: "channel_active_kw" in _p2_fails(_p2_scan(
@@ -4310,7 +4328,8 @@ _p2_channel_planted = {
 }
 R.check(
     "and D8-s1-01's rule fails on each spelling of the channel line: the "
-    "literal, a second module constant, and a default naming either",
+    "literal (chained or not, any operand), a second module constant, and a "
+    "default naming either",
     all(_p2_channel_planted.values()),
     f"{_p2_channel_planted}",
 )
