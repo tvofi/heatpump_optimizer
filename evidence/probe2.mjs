@@ -1,18 +1,20 @@
-// reviewer's follow-up probes on the four head misses: node probe2.mjs <agreement.mjs>
+// Reviewer's own generator, part 2: an unmatched closer before the program in
+// non-case-arm contexts (Markdown numbered lists, JS/Python statement tails).
 import fs from 'node:fs'
-const src = fs.readFileSync(process.argv[2], 'utf8')
-const block = src.slice(src.indexOf('// WHAT A MERGE CALL IS'), src.indexOf("// WHICH LINE IS MAIN'S")).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
-const sw = new Function(block + '\nreturn subjectWriters')()
-const P = [
-  ['sh case arm, one line', 'sh', 'case $x in\n  a) gh pr merge "$n" --subject "$s" ;;\nesac'],
-  ['sh case arm, one line, .md', 'md', 'case $x in\n  a) gh pr merge "$n" --subject "$s" ;;\nesac'],
-  ['sh case arm, (a) form control', 'sh', 'case $x in\n  (a) gh pr merge "$n" --subject "$s" ;;\nesac'],
-  ['sh stray closer then call', 'sh', 'x) gh pr merge 9 -t s'],
-  ['py blank line inside argv before pr', 'py', 'run([\n    "gh",\n\n    "pr", "merge", n,\n    "--subject", s])'],
-  ['js blank line inside argv before pr', 'mjs', "execFileSync('gh', [\n\n  'pr', 'merge', n,\n  '--subject', s])"],
-  ['py blank line, control: flag in sibling', 'py', 'run([\n    "gh",\n\n    "pr", "merge", n])\nx = ["--subject", s]'],
-  ['js block comment with closer after merge', 'mjs', "execFileSync('gh', ['pr', 'merge', n, /* ) */ '--subject', s])"],
-  ['js block comment no closer after merge (control)', 'mjs', "execFileSync('gh', ['pr', 'merge', n, /* x */ '--subject', s])"],
-  ['js regex closer', 'mjs', "execFileSync('gh', ['pr', 'merge', String(n).replace(/\\)/g, ''), '--subject', s])"],
+const load = p => { const src = fs.readFileSync(p, 'utf8')
+  const h = src.indexOf('// WHAT A MERGE CALL IS'); const from = h < 0 ? src.indexOf('// What a merge call may not carry') : h
+  const to = src.indexOf("// WHICH LINE IS MAIN'S")
+  const block = src.slice(from, to).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
+  return new Function(block + '\nreturn subjectWriters')() }
+const cases = [
+  ['f.md', '1) gh pr merge 9 --subject x'], ['f.md', 'a) run `gh pr merge 9 --subject x`'], ['f.md', '- step 2) `gh pr merge 9 -t x`'],
+  ['f.md', ':) gh pr merge 9 --subject x'], ['f.md', '(see above) gh pr merge 9 --subject x'],
+  ['f.mjs', 'foo(() => {\n  a()\n}); execSync("gh pr merge 9 --subject x")'], ['f.mjs', '}) ; execSync("gh pr merge 9 --subject x")'],
+  ['f.py', 'x = [\n 1,\n]; os.system("gh pr merge 9 --subject x")'], ['f.py', 'x = (1\n); os.system("gh pr merge 9 -t x")'],
+  ['f.sh', 'x=(\n a\n); gh pr merge 9 --subject x'], ['f.sh', 'echo "a)" ; gh pr merge 9 --subject x'], ['f.sh', "echo 'b)' ; gh pr merge 9 -t x"],
+  ['f.sh', '# step 1) then\ngh pr merge 9 --subject x'],
 ]
-for (const [n, x, t] of P) console.log(`${sw(['f.' + x], () => t).bad.length ? 'refused' : 'PASSES '} ${x} ${n}`)
+for (const p of process.argv.slice(2)) { const sw = load(p); let k = 0
+  console.log('== guard', p.split('/').pop())
+  for (const [f, t] of cases) { const bad = sw([f], () => t).bad; if (bad.length) k++; console.log(bad.length ? 'refused' : 'MISS   ', f, JSON.stringify(t)) }
+  console.log(`PROBE2 refused=${k} of ${cases.length}`) }

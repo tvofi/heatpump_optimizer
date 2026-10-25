@@ -1,58 +1,30 @@
-// reviewer's own extent-class generator: node probe.mjs <agreement.mjs> ; prints refused(1)/not(0) per probe
+// Reviewer's own generator (not the finder's, not the fixer's): one-line and
+// near-one-line merge writers whose lead (text before the program) holds a
+// shell or language closer, plus over-fire nulls. Usage: node probe.mjs <agreement.mjs>...
 import fs from 'node:fs'
-const src = fs.readFileSync(process.argv[2], 'utf8')
-const block = src.slice(src.indexOf('// WHAT A MERGE CALL IS'), src.indexOf("// WHICH LINE IS MAIN'S")).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
-const sw = new Function(block + '\nreturn subjectWriters')()
-const B = '`'
-// [name, expect(1 refuse / 0 null), ext, text]
-const P = []
-const add = (n, e, x, t) => P.push([n, e, x, t])
-// wrap after program/pr/merge, py & js & sh
-for (const x of ['py', 'mjs']) {
-  const q = x === 'py' ? '"' : "'"
-  const run = x === 'py' ? 'subprocess.run(' : "execFileSync("
-  add('wrap-after-gh', 1, x, `${run}[${q}gh${q},\n    ${q}pr${q}, ${q}merge${q}, n,\n    ${q}--subject${q}, s])`)
-  add('wrap-after-pr', 1, x, `${run}[${q}gh${q}, ${q}pr${q},\n    ${q}merge${q}, n,\n    ${q}--subject${q}, s])`)
-  add('wrap-after-merge', 1, x, `${run}[${q}gh${q}, ${q}pr${q}, ${q}merge${q},\n    n,\n    ${q}--subject${q}, s])`)
-  add('nested-outer-call', 1, x, `check(${run}\n    [${q}gh${q},\n     ${q}pr${q}, ${q}merge${q}, n,\n     ${q}-t${q}, s]))`)
-  add('nested-dict-args', 1, x, `${run}{${q}args${q}: [\n  ${q}gh${q},\n  ${q}pr${q}, ${q}merge${q},\n  ${q}--body${q}, b]})`)
-  add('prior-closed-group', 1, x, `x = f(a,\n  b)\n${run}[${q}gh${q},\n  ${q}pr${q}, ${q}merge${q}, n,\n  ${q}--subject${q}, s])`)
-  add('prior-unclosed-sibling-null', 0, x, `T = [\n  [${q}gh${q},\n   ${q}pr${q}, ${q}merge${q}, n],\n  [${q}x${q}, ${q}--subject${q}, s],\n]`)
-  add('later-stmt-flag-null', 0, x, `${run}[${q}gh${q},\n    ${q}pr${q}, ${q}merge${q}, n])\nother(${q}--subject${q}, s)`)
-  add('quote-across-line', 1, x, `${run}[${q}gh${q}, ${q}a(b${q},\n    ${q}pr${q}, ${q}merge${q}, n,\n    ${q}--subject${q}, s])`)
-  add('closer-in-string-before-pr', 1, x, `${run}[${q}gh${q}, ${q})${q},\n    ${q}pr${q}, ${q}merge${q}, n,\n    ${q}--subject${q}, s])`)
+const load = p => { const src = fs.readFileSync(p, 'utf8')
+  const h = src.indexOf('// WHAT A MERGE CALL IS'); const from = h < 0 ? src.indexOf('// What a merge call may not carry') : h
+  const to = src.indexOf("// WHICH LINE IS MAIN'S")
+  const block = src.slice(from, to).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
+  return new Function(block + '\nreturn subjectWriters')() }
+const sub = ['gh pr merge "$n" --squash --subject "x"', 'gh pr merge 9 -t s', 'gh pr merge 9 --body b']
+const leads = {
+  'case arm': 'never) ', 'arm (a)': '(never) ', 'arm a|b': 'a|b) ', 'arm *': '*) ', 'arm glob [0-9]*': '[0-9]*) ',
+  'subshell close then &&': '( cd x ) && ', '$(...) assign then &&': 'r=$(cat f) && ', 'test ]] &&': '[[ -n "$x" ]] && ',
+  'brace group close': '{ true; } && ', 'array close ;': 'a=(1 2); ', 'done close': 'done; ', 'if (( ))': 'if (( n > 0 )); then ',
+  'echo ")" ;': 'echo ")"; ', 'arith $(( ))': 'i=$((i+1)); ', 'esac ;': 'esac; ', 'fn() {': 'm() { ', 'fn() { one-liner close': 'f() { :; }; ',
+  'none': '', 'indent': '    ',
 }
-// python comments
-add('py-comment-paren-before-pr', 1, 'py', 'subprocess.run(["gh",  # see (x\n    "pr", "merge", n,\n    "--subject", s])')
-add('py-comment-closer-before-pr', 1, 'py', 'subprocess.run(["gh",  # :)\n    "pr", "merge", n,\n    "--subject", s])')
-add('py-comment-closer-after-merge', 1, 'py', 'subprocess.run(["gh", "pr", "merge", n,  # :)\n    "--subject", s])')
-add('py-triple-before', 1, 'py', 'doc = """a (\nb"""\nsubprocess.run(["gh",\n    "pr", "merge", n,\n    "--subject", s])')
-add('py-exploded-trailing-comma', 1, 'py', 'run(\n    [\n        "gh",\n        "pr",\n        "merge",\n        str(n),\n        "--subject",\n        s,\n    ],\n    check=True,\n)')
-add('py-blank-in-bracket', 1, 'py', 'run([\n    "gh",\n\n    "pr", "merge", n,\n    "--subject", s])')
-add('py-blank-after-pr', 1, 'py', 'run(["gh", "pr", "merge", n,\n\n    "--subject", s])')
-// js comments
-add('js-line-comment-closer', 1, 'mjs', "execFileSync('gh', [ // :)\n  'pr', 'merge', n,\n  '--subject', s])")
-add('js-block-comment-closer-before', 1, 'mjs', "execFileSync('gh', [ /* :) */\n  'pr', 'merge', n,\n  '--subject', s])")
-add('js-block-comment-closer-after', 1, 'mjs', "execFileSync('gh', ['pr', 'merge', n, /* :) */ '--subject', s])")
-add('js-backtick-closer-after', 1, 'mjs', "execFileSync('gh', ['pr', 'merge', n, '--body', `ok :)`, '--subject', s])")
-add('js-backtick-closer-before', 1, 'mjs', "execFileSync('gh', [`:)`,\n  'pr', 'merge', n,\n  '--subject', s])")
-add('js-backtick-multiline-before', 1, 'mjs', "const m = `a\n(b`\nexecFileSync('gh', [\n  'pr', 'merge', n,\n  '--subject', s])")
-add('js-template-program', 1, 'mjs', "execSync(`gh pr merge ${n}\n  --subject ${s}`)")
-add('js-regex-closer', 1, 'mjs', "execFileSync('gh', ['pr', 'merge', String(n).replace(/\\)/g, ''), '--subject', s])")
-// shell
-add('sh-continuation', 1, 'sh', 'gh pr merge "$n" \\\n  --squash \\\n  --subject "$s"')
-add('sh-array', 1, 'sh', 'args=(\n  pr merge "$n"\n  --subject "$s"\n)\ngh "${args[@]}"')
-add('sh-comment-paren', 1, 'sh', '# (note\ngh pr merge "$n" --subject "$s"')
-add('sh-case-paren', 1, 'sh', 'case $x in\n  a) gh pr merge "$n" \\\n     --subject "$s" ;;\nesac')
-add('sh-closer-in-dq-after', 1, 'sh', 'gh pr merge "$n" --body ":)" --subject "$s"')
-// over-fire nulls
-add('null-view-wrapped', 0, 'py', 'subprocess.run(["gh",\n    "pr", "view", n,\n    "--json", "title"])\n')
-add('null-sibling-table-later', 0, 'py', 'CMDS = {\n  "m": ["gh",\n        "pr", "merge", n],\n  "e": ["gh", "pr", "edit", n, "--title", t],\n}')
-add('null-prose-md', 0, 'md', 'We run `gh pr merge` with no flags.\n\nUse --subject only for edits.')
-add('null-earlier-stmt-flag', 0, 'py', 'other("--subject", s)\nsubprocess.run(["gh",\n    "pr", "merge", n])')
-add('null-earlier-open-bracket-flag', 0, 'py', 'opts = ["--subject", s,\n  "x"]\nsubprocess.run(["gh",\n    "pr", "merge", n])')
-add('null-enclosing-call-earlier-flag', 0, 'py', 'wrap("--subject", s,\n  subprocess.run(["gh",\n    "pr", "merge", n]))')
-for (const [n, e, x, t] of P) {
-  const r = sw(['f.' + x], () => t).bad.length ? 1 : 0
-  console.log(`${r === e ? 'ok  ' : 'MISS'} got=${r} want=${e} ${x} ${n}`)
+const files = ['f.sh', 'f.md']
+const nulls = { 'pr view after case arm': 'never) gh pr view 9 --json title ;;', 'merge no subject in arm': 'never) gh pr merge 9 --squash ;;',
+  'later sibling flag': 'x) gh pr merge 9 --squash ;;\ny) gh pr edit 9 --title t ;;', 'prose': 'Run `gh pr merge` and never pass a subject.' }
+for (const p of process.argv.slice(2)) {
+  const sw = load(p); let miss = 0, n = 0, over = 0
+  console.log('== guard', p.split('/').pop())
+  for (const [ln, l] of Object.entries(leads)) for (const s of sub) for (const f of files) {
+    for (const tail of [' ;;', '']) { n++
+      const t = 'case $m in\n' + l + s + tail + '\nesac'
+      const bad = sw([f], () => t).bad; if (!bad.length) { miss++; console.log('MISS', JSON.stringify(ln), f, JSON.stringify(s + tail)) } } }
+  for (const [ln, t] of Object.entries(nulls)) for (const f of files) { const bad = sw([f], () => t).bad; if (bad.length) { over++; console.log('OVERFIRE', ln, f, JSON.stringify(bad)) } }
+  console.log(`PROBE refused=${n - miss} of ${n}; null refused=${over} of ${Object.keys(nulls).length * files.length}`)
 }
