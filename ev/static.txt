@@ -1,0 +1,2 @@
+diff-exit=0
+vs-fixer-base quiet exit=0

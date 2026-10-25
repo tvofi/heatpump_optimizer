@@ -1,0 +1,37 @@
+### M7-sweep-lower-only: tools/ci/sweep.py: 'runs if r["id"] != v["id"]' -> 'runs if r["id"] < v["id"]'
+  sweep self-test rc=1: sweep self-test: 23 checks, 2 failed
+    FAIL a red gate on a HIGHER-id run is re-run (an id orders nothing)
+    FAIL a HIGHER-id gate still waiting is polled, and re-run once it expires red
+  harness: editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 720 s (judge takes a clock: True) | editcode: sweep present re-runs 0 RESIDUAL-RED 1
+### M7b-sweep-higher-only: tools/ci/sweep.py: 'runs if r["id"] != v["id"]' -> 'runs if r["id"] > v["id"]'
+  sweep self-test rc=1: sweep self-test: 23 checks, 2 failed
+    FAIL a red gate on a HIGHER-id run is re-run (an id orders nothing)
+    FAIL a HIGHER-id gate still waiting is polled, and re-run once it expires red
+  harness: cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True) | cascade: sweep present re-runs 2 RESIDUAL-RED 0
+### M5-prelude-id-order: tools/ci/prelude.py: '(run["id"] < run_id or t is None or t[0] == "code")' -> '(run["id"] < run_id)'
+  prelude self-test rc=1: prelude self-test: 29 checks, 1 failed
+    FAIL M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging: got ('', []), want ('', [60])
+  harness: 2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 780 s (judge takes a clock: True) | 2754: sweep present re-runs 0 RESIDUAL-RED 0
+### M5b-prelude-code-always-waits: tools/ci/prelude.py: 'or t is None or t[0] == "code")' -> 'or True)'
+  prelude self-test rc=1: prelude self-test: 29 checks, 1 failed
+    FAIL waits for an earlier run, not a later non-code or held one: got ('run(s) [60] still adding sources after 8700 s', [60, 60]), want ('', [60])
+  harness: pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True) | pair: sweep present re-runs 0 RESIDUAL-RED 0
+### M6-prelude-until-finished: tools/ci/prelude.py: 'if not judging(run):' -> 'if True:'
+  prelude self-test rc=1: prelude self-test: 29 checks, 2 failed
+    FAIL M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging: got ('run(s) [60] still adding sources after 8700 s', [60, 60]), want ('', [60])
+    FAIL a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us): got ('run(s) [40] still adding sources after 8700 s', [60, 60]), want ('', [])
+  harness: 2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 1440 s (judge takes a clock: True) | 2754: sweep present re-runs 2 RESIDUAL-RED 0
+### M1-judge-never-waits: tools/ci/gate.py: 'if ok or why != [deferral(waiting)] or now() - t0 + POLL_S > GATE_WAIT_MAX_S:' -> 'if True:'
+  gate self-test rc=1: gate self-test: 37 checks, 6 failed
+    FAIL #2754 shape: a gate beside a busy edit run and a queued review run waits, then judges once, no red: got ('FAIL run(s) [101, 102] at this head are still being judged; their gate decides', []), want ('PASS', [60])
+    FAIL simultaneous completion, side A: the other's gate not yet listed -> wait, then a decider: got 'FAIL run(s) [101] at this head are still being judged; their gate decides', want 'PASS'
+    FAIL simultaneous completion, side B: the same, so the pair never deadlocks red-red: got 'FAIL run(s) [100] at this head are still being judged; their gate decides', want 'PASS'
+    FAIL a deferring gate published after the decider's red is that red, never a PASS: got 'FAIL run(s) [101] at this head are still being judged; their gate decides', want 'FAIL pr-contract / pr-contract: failure (run 101)'
+    FAIL past the bound, the deferral FAILs (for gate-sweep.yml), and the wait stays inside the bound: got (True, False, True), want (True, True, True)
+    FAIL rerun cascade: three completed red deferring gates, a queued decider, and a re-run of an older gate: it waits for the decider, never re-defers red: got ('FAIL run(s) [99] at this head are still being judged; their gate decides', []), want ('PASS', [60])
+  harness: pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: True) | pair: sweep present re-runs 0 RESIDUAL-RED 2
+### M4-defer-as-pass: tools/ci/gate.py: '"PASS" if ok' -> '"PASS" if ok or why == [deferral(waiting)]'
+  gate self-test rc=1: gate self-test: 37 checks, 1 failed
+    FAIL past the bound, the deferral FAILs (for gate-sweep.yml), and the wait stays inside the bound: got (False, True, True), want (True, True, True)
+  harness: 2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True) | 2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+git status: clean
