@@ -1,0 +1,12 @@
+cycling_cost.json: 1
+fuse_guard.json: 1
+shoulder_two_zone.json: 4
+tariff_plus_two_zone.json: 1
+RESULT golden_steps_channel_heating_but_duty_unserved=7 files=40 steps=3864
+cycling_cost 60 0.0551 0.6 on True cheap_price dhw_preheat
+fuse_guard 62 0.0818 2.8047 on True cheap_price dhw_preheat
+shoulder_two_zone 84 0.0661 0.6 on True preheat_weather dhw_window
+shoulder_two_zone 85 0.0811 0.6 on True preheat_weather dhw_window
+shoulder_two_zone 86 0.0814 0.6 on True preheat_weather dhw_window
+shoulder_two_zone 87 0.0671 0.6 on True preheat_weather dhw_window
+tariff_plus_two_zone 68 0.0985 0.6 on True scheduled dhw_window

@@ -1,5 +1,0 @@
-MUTANT s_wood (wood_fuel.py: if wood_sek < finite_float(price, 0.0) / cop_f: -> if wood_sek <= finite_float(price, 0.0) / cop_f:) tests/wood_advisor.py rc=0
-ALL 7 wood-advisor checks PASSED
-MUTANT s_wood (wood_fuel.py: if wood_sek < finite_float(price, 0.0) / cop_f: -> if wood_sek <= finite_float(price, 0.0) / cop_f:) tests/features.py rc=1
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-1 of 4391 FEATURE CHECKS FAILED

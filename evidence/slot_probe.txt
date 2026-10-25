@@ -1,7 +1,0 @@
-== base
-  File "slot_probe.py", line 4, in <module>
-    from heatpump_optimizer.optimizer import channel_heating_steps
-ImportError: cannot import name 'channel_heating_steps' from 'heatpump_optimizer.optimizer' (base/custom_components/heatpump_optimizer/optimizer.py)
-== head
-RESULT slots_for_0.07kW_steps=1
-RESULT channel_heating_steps=[False, False, False, False]
