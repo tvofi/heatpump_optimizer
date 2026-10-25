@@ -1,0 +1,6 @@
+Architecture score: dS +0.0611 IMPROVES
+  coord_footprint 2463 -> 2446  +0.0100
+  coordinator_multiassigned_attrs 114 -> 110  +0.0511
+rc=0
+Architecture score: dS +0.0000 NULL
+rc=0
