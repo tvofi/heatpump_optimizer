@@ -340,12 +340,12 @@ class LegionellaGuard:
         )
         if credited:
             return
-        if self._pending_attempt() is not None and (
-            utc_elapsed_seconds(now, self.attempt) < self._retry_hours() * 3600.0
+        pending = self._pending_attempt()
+        if pending is not None and (
+            utc_elapsed_seconds(now, pending) < self._retry_hours() * 3600.0
         ):
-            # Reopened inside the retry it already serves (the plan's cycle
-            # step flaps between step 0 and 1): the same attempt, whose clock
-            # a re-stamp per solve would never let run out.
+            # Reopened inside its retry (the cycle step flaps between steps 0
+            # and 1): the same attempt, or a re-stamp per solve never expires.
             if peak is not None:
                 self.attempt_peak = max(peak, self.attempt_peak or peak)
             return
