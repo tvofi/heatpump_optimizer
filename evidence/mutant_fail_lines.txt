@@ -1,7 +1,0 @@
--- if (census.size !== declared) {
-  FAIL a key shared by two kinds is two census rows, which the summary counts: the census is whole, not partial (got false, wanted true)
-  FAIL and the shared key keeps the larger PR count, never the smaller (got undefined, wanted 2)
--- | cell.prs > prior.prs) census.set|census.set
--- censusRows += 0
-  FAIL a completed histogram with one would-open line parses (got false, wanted true)
-  FAIL and yields exactly one entry (got 0, wanted 1)
