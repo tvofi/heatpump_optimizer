@@ -100,6 +100,11 @@ winter_two_zone_no_dhw  # R10-SAV-COMFORT: the savings reference holds the comfo
 wood_coil  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 150.751 -> 119.828, savings % 55.54 -> 47.24; no plan key moves
 wood_two_tank  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 109.200, savings % 58.56 -> 51.08; no plan key moves
 wood_two_tank_smart_write  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 115.172, savings % 59.45 -> 53.60; no plan key moves
+coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
 # R10-SCORES (#2258): every coord fixture runs with zero heat-loss samples, so
 # the house grade is dashed (`heat_loss_learning`) instead of graded off the
 # configured prior: insight.scores.envelope and the score sensor's envelope
