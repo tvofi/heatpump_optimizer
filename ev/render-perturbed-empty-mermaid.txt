@@ -1,0 +1,11 @@
+RESULT: FAIL readme.html light blocks=3 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL readme.html dark blocks=3 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL how-it-works.html light blocks=2 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL how-it-works.html dark blocks=2 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL configuration.html light blocks=2 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL configuration.html dark blocks=2 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL setup.html light blocks=1 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL setup.html dark blocks=1 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL architecture.html light blocks=1 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL architecture.html dark blocks=1 rendered=0 errorDiagrams=0 pageErrors=1 ReferenceError: mermaid is not defined
+RESULT: FAIL mermaid render, failures=10
