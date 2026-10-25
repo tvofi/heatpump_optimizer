@@ -16815,11 +16815,12 @@ R.check(
     "+1.0/kWh on the same 1500 L tank",
 )
 
-# #2257 item 6: the card scales a day of this sweep to a month, so it is
-# priced at the ledger's recent kWh price, not the price feed's window. Two
-# days whose windows price 0.5 and 2.0 publish one cost once the ledger has
-# settled a level (1.0, the +1.0 day above's); an empty ledger, a fresh
-# install, prices at the window (the control).
+# #2257 item 6: the card scales a day of this sweep to a month, so the
+# published sweep is priced at the grid view's recent kWh price (the
+# ledger's), not the price feed's window. Two days whose windows price 0.5
+# and 2.0 publish one cost once the ledger has settled a level (1.0, the
+# +1.0 day above's); an empty ledger, a fresh install, prices at the window
+# (the control).
 import heatpump_optimizer.coordinator as _r6_cm  # noqa: E402
 from heatpump_optimizer.ledger import SPOT_PRICE_META as _r6_spot  # noqa: E402
 
@@ -16830,19 +16831,22 @@ def _r6_costs(window, level=None):
     coord._prices = [{"total": window}] * 24
     if level is not None:
         coord._ledger.observe_meta_mean(_r6_cm.dt_util.now(), _r6_spot, level)
-    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+    data = coord._build_data_dict()
+    return data.get("recent_kwh_price"), [c["cost_per_day"] for c in data["dhw_advisor"]["candidates"]]
 
 
 _r6_base = [c["cost_per_day"] for c in _sweep["candidates"]]
+_r6_low, _r6_high, _r6_fresh = _r6_costs(0.5, level=1.0), _r6_costs(2.0, level=1.0), _r6_costs(2.0)
 R.check(
-    "#2257: the setpoint sweep prices at the ledger's recent kWh price, whatever the day's window",
-    _r6_costs(0.5, level=1.0) == _r6_costs(2.0, level=1.0) == _r6_base,
-    f"window 0.5 {_r6_costs(0.5, level=1.0)} window 2.0 {_r6_costs(2.0, level=1.0)} level 1.0 {_r6_base}",
+    "#2257: the published setpoint sweep prices at the recent kWh price, whatever the day's window",
+    _r6_low == _r6_high == (1.0, _r6_base),
+    f"window 0.5 {_r6_low} window 2.0 {_r6_high} level 1.0 {_r6_base}",
 )
 R.check(
     "#2257: with no settled interval the sweep prices at the feed's window (control)",
-    all(abs(x - 2.0 * y) <= 0.011 for x, y in zip(_r6_costs(2.0), _r6_base)) and _r6_costs(2.0) != _r6_base,
-    f"{_r6_costs(2.0)} vs {_r6_base}",
+    _r6_fresh[0] is None and _r6_fresh[1] != _r6_base
+    and all(abs(x - 2.0 * y) <= 0.011 for x, y in zip(_r6_fresh[1], _r6_base)),
+    f"{_r6_fresh} vs {_r6_base}",
 )
 R.check(
     "#2257: the sensor-gap row prices at the recent kWh price, the price now only without one",

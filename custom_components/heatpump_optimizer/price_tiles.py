@@ -90,6 +90,24 @@ def per_month(delta: float, horizon_hours: float) -> float:
     return delta * MONTH_HOURS / horizon_hours
 
 
+def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> dict[str, float]:
+    """A what-if's three monthly figures against the plan it shadows.
+
+    ``live`` and ``sim`` are the two solves' results, ``extra`` the what-if's
+    spend outside its solve (wood). The plan's spend; the same choice held from
+    a steady start, the thermostats' (the degree tiles'); and the plan's spend
+    with the heat each plan left unstored bought back (the cap tile's and the
+    fuse advisor's). Only the first carries the one-off coast or heat-up.
+    """
+    spend = sim.predicted_cost + extra - live.predicted_cost
+    return {
+        "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
+        "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
+        "monthly_settled_cost_delta": round(per_month(
+            spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
+    }
+
+
 def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
     """#39's fixed perturbation set, from the configuration ONE solve planned with.
 
