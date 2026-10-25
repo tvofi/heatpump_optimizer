@@ -1,0 +1,8 @@
+P88 RESULT ['TOTAL: 0 error(s) across 1 file(s)']
+P89 RESULT ['TOTAL: 0 error(s) across 1 file(s)']
+P90 RESULT ['TOTAL: 0 error(s) across 1 file(s)']
+P92 RESULT ['TOTAL: 0 error(s) across 1 file(s)']
+P88 mutant ['ERROR   [R10-FLOW-RECORD-PITCH] path: tests/delivery_statusX.py: not in the tree, and not present at its cited tag ref(s) [0810d5b8f]', 'TOTAL: 1 error(s) across 1 file(s)']
+P89 mutant ['ERROR   [R10-FLOW-ROSTER-FREEZE] path: tools/audit/carry_auditX.py: not in the tree, and no tag SHA is cited alongside it', 'TOTAL: 1 error(s) across 1 file(s)']
+P90 mutant ['ERROR   [R10-ORCH-LEDGER] path: tools/audit/seat/ledgerX.py: not in the tree, and no tag SHA is cited alongside it', 'TOTAL: 1 error(s) across 1 file(s)']
+P92 mutant ['TOTAL: 0 error(s) across 1 file(s)']

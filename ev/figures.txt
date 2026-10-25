@@ -1,0 +1,12 @@
+head b2063334661ed3ad066dce505be39a07f9f0386d
+merge-base(origin/main,head) 9d0ddf8afcb82848303c60181b736c9fb7c94581
+origin/main 9d0ddf8afcb82848303c60181b736c9fb7c94581
+record merges day: 19
+first-parent merges day: 46
+null grep ZZ: 0
+record merges 12Z+: 9
+rows per record merge: 2 2 2 2 2 2 2 3 3 3 3 3 3 3 4 4 4 5 10 
+chain: back1 19 of 19, back4 0 of 19 (own script over the same rule)
+b20f7bc243a36cef5b79262c3f53204266f55671
+merge-tree exit 0
+VERSION/notes/manifest diff vs main: 0 lines
