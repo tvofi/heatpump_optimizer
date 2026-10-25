@@ -1,0 +1,3 @@
+1424:    darker = "darker" if is_sunlit_interval(state.solar_radiation) else None
+1431:    house_wait = house_cold or darker
+1444:            colder(state.lower_floor_temperature) or darker, rates["lower"],
