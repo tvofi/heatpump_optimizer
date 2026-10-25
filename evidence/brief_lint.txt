@@ -1,2 +1,2 @@
-node tools/policy/brief_lint.mjs at worktree detached on a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf:
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
 TOTAL: 0 error(s) across 48 file(s)
