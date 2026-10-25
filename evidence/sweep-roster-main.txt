@@ -1,0 +1,8 @@
+UNROUTED #2756 review 6391983598 item 49d6e599 (## Evidence) [evidence]: '- M1 at R10-GATE-DEFER (`ev/m1_gate_defer.txt`): the branch has moved to `b2ff00056`, and `5150d1723` is its a'
+UNROUTED #2697 review 6388535912 item 44acb938 (## Block) [non-blocking]: '2. **Program spellings outside `PROGRAM` (class-open).** Planted in `merge_pr.sh`, `${GH:-gh} pr merge 1 --mer'
+UNROUTED #2745 review 6387209379 item e4b56a35 (## Evidence) [evidence]: "- Seam census: the body's grep returns coordinator, sensor, notifier, payload and card. The census is in ev/se"
+BAD-DEST #2704 body item b8c722ed: R10-FLY-CLOUD-SETUP-TOOLCHAIN: R10-FLY-CLOUD-SETUP-TOOLCHAIN is done (resume.stage done)
+BAD-DEST #2704 body item 24b14401: R10-FLY-CLOUD-SETUP-TOOLCHAIN: R10-FLY-CLOUD-SETUP-TOOLCHAIN is done (resume.stage done)
+BAD-DEST #2707 body item ea130701: R10-POLICY-GATE-SCOPING: R10-POLICY-GATE-SCOPING is done (resume.stage done)
+CARRY-AUDIT: 67 finding item(s): 61 routed, 3 unrouted, 3 bad destination(s)
+CARRY-SWEEP: 40 pull request(s), 0 other unowned finding(s)
