@@ -95,6 +95,7 @@
 # The workflow files that hold the jobs whose status contexts the ruleset
 # requires. The whole directory: every file here is a workflow on `main`.
 /.github/workflows/                       @tvofi
+/.github/dependabot.yml                   @tvofi
 # The umbrella's engine (R10-CI-LAYOUT P2b): ci.yml runs tools/ci/gate.py and
 # prelude.py, and gate-sweep.yml runs gate.py --sweep (sweep.py, ghapi.py), the
 # programs that decide the one required check `gate`. Inert until P2b gave
