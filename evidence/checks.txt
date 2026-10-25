@@ -1,0 +1,5 @@
+check-runs for a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf, read via the pull_request_read get_check_runs API at about 12:55Z on 2026-10-25: 42 runs, none failed.
+in progress or queued: tests/fast (3.14), tests/closures, tests/browser, tests/arch-instrument, tests/graders-head-copy, governance/instrument-self-tests, governance/env-matrix, prelude (x2 runs).
+success: typing, CodeQL, policy-docs, arch-score, codeql js/actions/python, briefs, delivery-status, closure-scope, budget-raise-gate, wave-script, hassfest, validate-hacs, mutation, nightly-status, refresh, cancel-superseded, prelude (run 40194789059).
+skipped: mutation-autofix, mutation-pins, coverage, coverage-ratchet, nightly-ha, replay, governance/record, delivery-status-publish, kernel-points, arm.
+No pr-contract run was listed at read time.
