@@ -1,0 +1,106 @@
+CLOUD REVIEWER seat for PR #2825 of tvofi/heatpump_optimizer, at head e414c7eab5da7a478ee96627656ab490ad9f7554. Bus nonce: 0caa7251ee0c171e6143d2d6b1410280. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them exactly. Fetch the PR head with `git fetch origin e414c7eab5da7a478ee96627656ab490ad9f7554`; the PR body is in the PR. Verify each claim adversarially: mutate the fix and check the tests fail, and check every figure in the body at this head. Check that it merges with origin/main (`git merge-tree --write-tree`) and read CI on this head from the check-runs API.
+Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is exactly `Fix review: merge e414c7eab5da7a478ee96627656ab490ad9f7554` or `Fix review: blocked e414c7eab5da7a478ee96627656ab490ad9f7554 <class>: <reason>` (no brackets; the class is lower-case letters and dashes), in the format the role file gives, then a blank line, then `bus-nonce: 0caa7251ee0c171e6143d2d6b1410280`, then the body in sections. A blocked verdict's block goes under `## Block`. Each finding this PR does not settle (a defect, a surviving mutant, a deferral, a follow-up, a task owed after the merge) is its own bullet under `## Findings` ending in its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>` (finding-propagation.md). Everything else (RESULT lines, re-runs, CI state, figures you could not re-derive) goes under `## Evidence`: tools/audit/carry_audit.py reads no item there as a finding unless it hands something on (deferred, for a later, follow-up, minor, advisory, residual, still has to, not blocking ...; a check that does not block is evidence only in the clause saying it is not a required check and does not block, never in the rest of its sentence: a nit or defect beside it is a finding), and the merge train parks a verdict holding a finding with no `Carry:`. Put the evidence files in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head `e414c7eab5da7a478ee96627656ab490ad9f7554` (e.g. `ev/HEAD.txt` holding the head you reviewed, beside your command output): bus.sh refuses a verdict whose `ev/` names no head. Do NOT run bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else; this builds one parentless commit with a private index and touches no branch of your checkout: `R=$(git rev-parse --show-toplevel); G=$(git rev-parse --absolute-git-dir); mkdir -p $W/pr && cp -r $W/verdict.md $W/ev $W/pr/ && cd $W/pr && T=$(GIT_DIR=$G GIT_INDEX_FILE=$W/idx GIT_WORK_TREE=$W/pr sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name=seat -c user.email=seat@users.noreply.github.com commit-tree $T -m "verdict 2825 e414c7eab5da7a478ee96627656ab490ad9f7554") && git -C $R push -q origin $C:refs/heads/probe/rev-2825-0caa7251`. That ref is the return signal. Do not post comments, approve or merge.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+DELTA REVIEW, round 3 of #2825 (R10-UPDATE-PR-SIGNALS). Head under review: e414c7eab5da7a478ee96627656ab490ad9f7554 (the round-3 fixer's commit cfc707961 plus main merges). Round 2 (head ab80907a, comment 6402890433) was BLOCKED with the verdict below. The delta is ab80907a..e414c7ea. Verify that the round-2 regression is closed at the head by measurement with the FINDER's harness (ev/grpkill.sh from round 2), that the round-1 blocks stay closed, that every carry in the base list below is satisfied or deferred with a Carry: marker to a still-open different group, and that the delta introduced nothing new. Review adversarially from a detached worktree at the head SHA. Report merge or blocked.
+
+=== ROUND-2 BLOCKED VERDICT ===
+Fix review: blocked ab80907a81e63997094f60c2adf62f059c2c9938 regression: pr_bounded's watchdog stays in its caller's process group, so a SIGKILL to that group kills supervisor and watchdog together and the setsid'd self-test runs on with no bound, where round 1's head left 0 survivors
+
+bus-nonce: 4ba59ff1585941cec07048c50cfc1c5c
+
+Round 2 (delta review of ecf96c46..ab80907a81e63997094f60c2adf62f059c2c9938; the fixer's code is 0ca3e5b71, the rest are main merges). I measured head `ab80907a81e63997094f60c2adf62f059c2c9938` from a detached worktree, and `refs/pull/2825/head` still names it. The roles diff against origin/main is empty, so the contract is current. Both round-1 blocks are closed at this head. One new defect from the delta blocks the merge.
+
+## Block
+
+1. **regression, measured: a group SIGKILL escapes the self-test bound.**
+   - How `pr_bounded` works (`tools/audit/seat/pr_args.sh`, `PR_BOUND_PY`). It forks the self-test into a new session (`os.setsid()`). It also forks a watchdog. The watchdog runs no `setsid` or `setpgid`, so it stays in the supervisor's process group, which is the caller's group.
+   - Where that breaks. Send `kill -KILL -- -<pgid>` to the caller's group: a stopped loop, a daemonizer, or a reap by group. Supervisor and watchdog die together, and the pipe EOF has no reader. The self-test's session is out of reach of the group signal. It keeps running with no deadline and no reap on exit.
+   - What I measured, with my own instrument `ev/grpkill.sh` (not the finder's):
+     - At this head (`ev/grpkill-head.txt`): `pr_args.sh --self-test` was group-KILLed 15 s in. 3 s later, session 3832 still had 11 live processes, among them `pr_args.sh --self-test`, `unrelated-sleep 1200`, an `open_pr.sh` run and a branch-lock holder. 52 s later the self-test was still running fixtures with no supervisor.
+     - At round 1's head `ecf96c46d` (`ev/grpkill-base-ecf96c46.txt`, `ev/grpkill-base.sh`): the same probe left 0 survivors.
+   - So for this signal the delta turns a clean kill into exactly the Revision-12 failure: an unsupervised self-test that nothing bounds. The body's claim "when the supervisor is gone, a SIGKILLed one included" holds only for a KILL to the supervisor's pid alone, which is what the arm `a SIGKILLed supervisor's self-test is ended all the same` tests.
+   - A fix in scope. One call, `os.setsid()` (or `os.setpgid(0, 0)`) in the watchdog's fork branch, takes it out of the caller's group. I made that one-line edit on a scratch copy (`ev/grpkill-dog-setsid-probe.txt`) and the same group KILL left 0 live processes in either session.
+   - Add an arm that group-KILLs the supervisor's caller, with a mutant on that line.
+
+## Findings
+
+- pr_bounded's watchdog shares the caller's process group, so a SIGKILL to that group ends the supervisor and the watchdog together. The self-test's own session then runs unbounded and unreaped (measured 11 survivors at this head against 0 at ecf96c46d). There is no arm for a group KILL. Carry: R10-UPDATE-PR-SIGNALS
+- The 12 seat self-tests outside this group's files that do not enter through `pr_bounded` (body_patch, bus, ci-watch, cloud-setup, delivery_row, failure_logs, handoff_push, heartbeat, merge_pr, seat_venv, tick_loop, train) are routed by the body to an open group. Whatever fix lands for the item above should go into that carry's statement of the bound, so the 12 adopt a bound that survives a group KILL. Carry: R10-FLOW-JIDOKA
+- Carry [3] (quiet output) is deferred with `Carry: R10-FLOW-JIDOKA`, a different group that is still open and owns `prepr.sh`'s convention (`git log origin/main -- tools/pr/prepr.sh` shows no quiet flag). The deferral is sound; I did not open the roster to confirm the carry landed there. Carry: R10-FLOW-JIDOKA
+
+## Evidence
+
+Carry check, item by item:
+- [0a] SIGKILL frees the lock early: satisfied, unchanged from round 1. The arms `update_pr: a SIGKILLed run ... drain` and `mut:drain` both pass in the head run, 121/0 (`ev/selftest-pr_args-head.txt`).
+- [0b] A group signal reaches the holder: satisfied. The holder ignores TERM, INT and HUP; the `mut:holdsig` arm passes.
+- [0c] 75 under `set -e`: satisfied. The `mut:busy75` arm passes.
+- [1] Lock half: shown not to apply. A flock cannot outlive its holder, as accepted in round 1.
+- [1] Self-test half: met for a TERM, INT or HUP to the supervisor, for a SIGKILL to its pid alone, at the deadline, and on exit. I deleted each mutant from the real file and ran the whole self-test:
+  - `mut:dogend`: 121 checks, 2 failed (bound and SIGKILLed-supervisor arms), `ev/mutant-dogend-real-file.txt`.
+  - `mut:boundreap`: 121 checks, 1 failed (the exit-reap arm), `ev/mutant-boundreap-real-file.txt`.
+  - Not met for a SIGKILL to the caller's group: see Block 1.
+  - The sleeper now lives `${PR_SELFTEST_SECONDS:-1200}` s instead of 3600 s.
+- [2] Detach: satisfied for every stop, SIGKILL included, since the holder detaches after the push lock drains. Real-file `mut:detach`: 121 checks, 2 failed (the SIGKILL-worktree and clean-run worktree arms), `ev/mutant-detach-real-file.txt`.
+- [3] Quiet output: deferred to R10-FLOW-JIDOKA (see Findings).
+- [4] Relay half: satisfied. `cloud_relay.sh:438` launches the update through `pr_own_group`.
+  - `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py cloud_relay-29` gives `KILLED rc=1 | cloud_relay self-test: 270 checks, 2 failed`, `RESULT survivors=0` (`ev/mutant-cloud_relay-29.txt`).
+  - The reap still finds the update by parent pid (`pr_descendants`), so the separate pgid hides nothing from `pr_reap`.
+
+Round-1 block 2 (detached gc holding the push lock), re-run through the real `git fetch` path with auto-maintenance on. The instrument is my own, `ev/fetchgc2.sh`; the round-1 instrument was not available here. Results in `ev/fetchgc2-head.txt`:
+- With `PR_FG_GC=1` preset, so the export is skipped (the mutant behaviour, file unedited), `git fetch` printed "Auto packing the repository in background", gave `HELD after the push exited`, and showed holder `git gc --auto --no-quiet`.
+- With head `pr_push_hold`, `git fetch` printed "Auto packing the repository for optimum performance" and gave `FREE after the push exited`.
+- Real-file `mut:fggc` gives 121 checks, 1 failed (the gc arm), `ev/mutant-fggc-real-file.txt`. Closed.
+
+Re-runs at this head:
+- `pr_args.sh --self-test`: `pr_args self-test: 121 checks, 0 failed`, real 2m26s. This matches the body's 121.
+- `update_pr.sh --self-test`: `delivery_row self-test: 6 checks, 0 failed` and `pr_args self-test: 121 checks, 0 failed`, rc 0.
+- `cloud_relay.sh --self-test`: `cloud_relay self-test: 270 checks, 0 failed`, rc 0.
+- All three match the body.
+
+Merge and CI:
+- `git merge-tree --write-tree origin/main ab80907a81e63997094f60c2adf62f059c2c9938` (origin/main `8aee66b77`) gives tree `5d7d8ec0d`, exit 0, no conflict.
+- CI on this head (`ev/ci-ab80907a81e63997094f60c2adf62f059c2c9938.txt`): every completed gate check is green.
+- `governance / delivery-status` is red on main's own overdue rows (#2780, #2749, #2775, #2797, #2762, #2795). The diff adds only `dev/programme/delivery/2825.md`, so the red is not this PR's. It is not a required check and does not block; its log says so.
+- `codeql / Analyze (python)` and one `prelude` were still in progress when I read the checks.
+- The body's head `ab80907a81e63997094f60c2adf62f059c2c9938` and code head `0ca3e5b71` match the branch.
+
+Figures I did not re-derive:
+- the body's failing-test-first run (`121 checks, 8 failed` against ecf96c46d's production code);
+- the timing figures;
+- the class greps (16 `--self-test` files, the setsid/daemonize sites);
+- structure, archscore and closure figures (CI's own runs are green).
+
+bus: verdict/2825 at 7e9f6a950869a659d8fb177301744b6e99cf3e56, confirmed from pool (review/2825 at ed21236914910b57382df8e195b536b83db0922e); evidence: ~/.zcode/bus/verdicts/2825/7e9f6a950869a659d8fb177301744b6e99cf3e56/evidence
+
+
+
+=== BASE REVIEW BRIEF (carry list) ===
+Review of R10-UPDATE-PR-SIGNALS (first review of the fixer's handoff). The fixer's prompt was rendered WITHOUT this group's roster carries (cloud_dispatch --group omitted them; proposal V61), so the dominant risk is a carry the fixer never saw.
+
+CARRY CHECK, item by item (mandatory): for EVERY numbered carry in the list below, state in your verdict evidence whether the diff and PR body satisfy it, with the file/line or the reason it does not apply. A carry that is neither satisfied nor shown not to apply is a BLOCKED verdict (class carry-missing), naming the carry index.
+
+Review adversarially per dev/governance/roles/fix-review.md from a detached worktree at the head SHA, with the finder harness, never the fixer's. Say merge or blocked in fix-review.md grammar. No host or home paths in anything you push; cite repo-relative paths only.
+
+=== CARRY LIST (roster 23b0a4cb) ===
+Signal-safe update_pr.sh: a TERM, INT, HUP or SIGKILL of a running update must not free the branch lock while its push still runs. Split from #2469 round 4, whose SIGKILL arm failed 7/7 in the cloud container because PID 1 reaps orphans late and the holder counted the zombie. Every arm must be deterministic across containers: wait on a condition, never a fixed window. Also covers the ps dependency of the leader check and the holder (carry on R10-ROSTER-OPS).
+
+After: 
+
+Carries (from the roster at 23b0a4cb; every one binds you):
+
+[0] Carried from #2469 (R10-UPDATE-PR-LOCK) at 931e9a0f, round-4 split under the three-round rule:
+- A SIGKILLed run's holder frees the lock within 2 s while the push that run started may still be running in the worktree. Holding it until that push ends needs a drain of the run's process group, and in a container whose PID 1 reaps orphans late that drain's arm failed 7 of 7 runs (#2469 round 4).
+- A signal to the run's whole process group, such as `kill -TERM -- -<pgid>` or SIGHUP when its terminal closes, also reaches the holder. The holder has no handler, so it exits before the push it covers. This is reasoned from the code, not measured here. (SIGINT does not reach it: bash starts the holder in the background, with SIGINT ignored.)
+- Under `set -e`, any command inside `update_pr.sh` that exits 75 reads to the relay as BUSY and is retried rather than recorded. Today only the lock path exits 75.
+
+[1] Revision 12 (orchestrator, 2026-10-21): a stale upd-fix-r10-ci-layout-g.lock held dead pids and stalled the relay's handoff arm on PR G for over 30 minutes, and an orphaned update_pr.sh self-test spun 8.6 h at about 67% CPU. This group owns prevention: a lock records its owner's pid and start time and is broken, with a logged line, when that pid is dead or was reused; every self-test runs under a timeout in its own process group, reaped on exit. R10-FLOW-ANDON owns detection.
+
+[2] update_pr.sh leaves its upd-fix-<branch> worktree checked out on the branch after it exits; the merge train's recarry then parks the PR (3 instances: #2513, #2544, #2547). train --free-holders now cures clean holders; the source fix is that update_pr.sh detaches or removes its own worktree on exit.
+
+[3] tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant.
+
+[4] From #2549 (review 6319952656, item 01ce8b81), routed by routing audit 1 (2026-10-24): it carried no Carry: marker and is not implemented (real residual; `git grep -iE 'setsid|pgid|process group' origin/main -- tools/audit/seat/cloud_relay.sh tools/audit/seat/update_pr.sh` is empty). Residual, not blocking: the detached holder is a child of the loop's process group, so a group-wide signal to a stopped loop (e.g. `timeout`, or a daemonizer killing the pgid) still takes an in-flight relay with it. That is the same exposure the serial base had, not a regression.
