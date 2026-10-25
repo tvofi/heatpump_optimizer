@@ -2158,15 +2158,24 @@ def _r10do_dhw(tank):
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
-    return seen, coord._learner_freeze_reason
+    return seen, coord._learner_freeze_reason, coord._legionella.last_cycle
 
 
 _r10do_tank, _r10do_notank = _r10do_dhw("48.0"), _r10do_dhw(None)
 R.check(
     "#2499: a tank reading reaches the DHW learner, and its freeze reason the "
     "coordinator; no reading reaches neither",
-    _r10do_tank == ([48.0], "tank_probe") and _r10do_notank == ([], None),
+    _r10do_tank[:2] == ([48.0], "tank_probe") and _r10do_notank[:2] == ([], None),
     "tank=%s notank=%s" % (_r10do_tank, _r10do_notank),
+)
+# The same cycle hands the reading to ``LegionellaGuard.async_observe``: a tank
+# at the disinfection temperature resets the timer; a cooler one, or none, not.
+_r10do_hot = _r10do_dhw("65.0")
+R.check(
+    "#2499: a tank at the disinfection temperature resets the legionella timer "
+    "through the coordinator's cycle; a cooler reading or none leaves it unset",
+    _r10do_hot[2] == _r10do_t0 and _r10do_tank[2] is None and _r10do_notank[2] is None,
+    "hot=%s cool=%s none=%s" % (_r10do_hot[2], _r10do_tank[2], _r10do_notank[2]),
 )
 
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
