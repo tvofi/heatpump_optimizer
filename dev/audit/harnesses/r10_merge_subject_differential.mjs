@@ -97,4 +97,4 @@ for (const [part, p] of Object.entries(parts)) {
 }
 console.log(`null lines=${nul.n} refused_main=${nul.main} refused_head=${nul.head}`)
 console.log(`TOTAL lines=${tot.lines} refused_main=${tot.main} refused_head=${tot.head} main_not_head=${tot.miss}`)
-process.exit(tot.miss ? 1 : 0)
+process.exitCode = tot.miss ? 1 : 0
