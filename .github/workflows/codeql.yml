@@ -125,7 +125,7 @@ jobs:
         run: |
           echo "codeql scope for ${{ matrix.language }}: ${WORD:-analyze (no decision)}"
       - name: Checkout repository
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # This job holds `security-events: write`; nothing it runs needs git
         # credentials, so none is left on disk (D11-s1-03's pin).
         with:
@@ -169,7 +169,7 @@ jobs:
 
       - name: Upload the stand-in under this leg's category
         if: steps.standin.outputs.ok == 'true'
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           sarif_file: ${{ runner.temp }}/stand-in.sarif
           category: "/language:${{ matrix.language }}"
@@ -178,7 +178,7 @@ jobs:
       # is compiled, so no build step runs between init and analyze.
       - name: Initialize CodeQL
         if: steps.standin.outputs.ok != 'true'
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
@@ -189,7 +189,7 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: steps.standin.outputs.ok != 'true'
-        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           category: "/language:${{ matrix.language }}"
 
