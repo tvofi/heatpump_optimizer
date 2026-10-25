@@ -5104,7 +5104,7 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": null,
     "commit": "fd9914851",
     "last_step": null,
