@@ -78,6 +78,17 @@ never listed here.
   never reports blocks every merge, a matrix change is a required-set change,
   `skipped` and `neutral` satisfy the rule (measured both arms), and a scheduled
   context made required blocks the merge that would repair it.
+- **CI is one umbrella with one required check** (R10-CI-LAYOUT P2b; design
+  `archive/probe/design-ci-rev4`, review `archive/probe/design-ci-review5`).
+  `.github/workflows/ci.yml` calls one file per unit, each check reading
+  `<stem> / <job>`; `gate` is the only required context
+  (`tools/policy/fixtures/required-contexts.json`, `gate_required` lists the
+  units it stands for), moved by `tools/ci/ruleset_cutover.py` at the merge.
+  Autofix jobs dispatch `ci.yml -f pr -f base` once; the stamp precondition is
+  the latest `ci.yml` push run's `gate` on `origin/main`. `RUN_PART=fast|arch`
+  splits `run.sh` between `tests / fast` and `tests / arch-instrument`. The
+  approve steps and `approve_held_runs.sh` stay until M-3 decides. Policy text
+  moved with it (`ci-autofix.md`, `orchestrator.md` section 11, `nudge.md`).
 - **A stamp pushes over the deploy key only**: `tools/release/stamp.py --push
   --push-key <key> --known-hosts <file>`. The old admin token returns 401.
   A stamp over a red `main` takes `--allow-red` with the cause recorded in the
@@ -463,7 +474,7 @@ in its own pull request.
 
 43. **A daemonized instrument with a silent log is not a dead instrument.** The wrapper's `dup2` makes stdout a file, Python block-buffers a file, and every heartbeat sat in the 8 KB buffer a SIGKILL dropped — an 8-minute healthy train (a FULL run in progress at main's tip) was read as dead and killed. #2180 (`d9e54b642`) kills the class with three one-liners: the entry reconfigures stdout line-buffered itself, batch and train announce tag/pid/base/queue as the log's first line before any blocking call, and the poll sleeps to the next beat (`HEARTBEAT_SECONDS`, not `POLL_SECONDS`) — before that, even unbuffered, the first beat was 305 s. Rehearse under the incident's exact wrapper shape before believing any launch fix.
 
-44. **App-quota 403s arrive disguised as red lanes and as missing runs.** At saturation the shared App quota turns into arch-score/env-matrix/validate-hacs reds that are rate limits, not verdicts (#2168's body names its arch-score red as this class), and dropped workflow events leave required contexts with no run at the head. The fix is a **recarry** — a new merge commit at the live head re-fires the events, the verdict carrying via #2162's `--approval-carry` — not a rerun of the failed lane. The automated recovery is session-only and does not fire while turns are active; a manual recarry is the recovery.
+44. **Rate-limit 403s arrive disguised as red lanes and as missing runs.** At saturation the repository's `GITHUB_TOKEN` bucket — every workflow job's own token, not an App's (`dev/audit/rca/install-ratelimit.md`); Governance's `record` log prints its size and remainder on every push to main as `RATE_LIMIT before:`/`after:` — turns into arch-score/env-matrix/validate-hacs reds that are rate limits, not verdicts (#2168's body names its arch-score red as this class), and dropped workflow events leave required contexts with no run at the head. The fix is a **recarry** — a new merge commit at the live head re-fires the events, the verdict carrying via #2162's `--approval-carry` — not a rerun of the failed lane. The automated recovery is session-only and does not fire while turns are active; a manual recarry is the recovery.
 
 45. **A sibling merge silently reverts its sibling.** #2120's branch was cut before #2119 merged; on fold, main's side of a shared region carried the sibling's newer fix and the branch's side was empty — resolving to the branch would have reverted #2119 with no conflict and no red check — and the branch's structure-budget payment had lost its hunk to the sibling's newer comment on the same spot, so the honest re-record restores main's own value rather than raising anything. The countermeasure, executed at every fold that day (#2120 at `ab2307794`, #2066 at `2f3934468`): a silent-revert sweep over every shared file (0 of main's lines lost, named budget cells excepted) and a union-with-name-set proof for add/add conflicts in `tests/features.py` (0 of main's `R.check` names lost).
 

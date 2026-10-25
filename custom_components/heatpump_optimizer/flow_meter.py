@@ -67,5 +67,6 @@ def read_heat_output_kw(
 def observe_water(bias: Any, reader: Any, config: Any) -> None:
     """Fold this cycle's supply, return and flow into the flow-bias holder."""
     temps = read_water_temps(reader)
-    bias.observe_temps(*temps)
-    bias.heat_output_kw = read_heat_output_kw(reader, config, temps)
+    bias.observe_temps(
+        *temps, heat_output_kw=read_heat_output_kw(reader, config, temps)
+    )

@@ -67,7 +67,7 @@
   },
   {
    "name": "dev/programme",
-   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register",
+   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
    "globs": [
     "dev/programme/HANDOVER.md",
     "dev/programme/plan-*.md",
@@ -76,7 +76,8 @@
     "dev/programme/rosters/*.json",
     "dev/programme/round9/**",
     "dev/programme/round10/**",
-    "dev/programme/register/*.md"
+    "dev/programme/register/*.md",
+    "dev/programme/triage/*.md"
    ]
   },
   {
@@ -104,6 +105,7 @@
    "globs": [
     "tools/policy/**",
     "tools/pr/**",
+    "tools/ci/**",
     "tools/audit/{judge_batch.py,check_scopes.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh,prose_counts_census.py}",
     "tools/audit/seat/**",
     "tools/audit/archscore/**",
@@ -383,11 +385,6 @@
   {
    "old": ".claude/workflows/check-wave-script.mjs",
    "new": "tools/policy/check-wave-script.mjs",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/contract_rerun.py",
-   "new": "tools/pr/contract_rerun.py",
    "since": null
   },
   {

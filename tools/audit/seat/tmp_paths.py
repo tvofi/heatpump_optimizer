@@ -113,6 +113,7 @@ ALLOW = (
     ("tools/audit/worktree_gc.sh", "/tmp/hpo-orch", "the seats' scratch root: worktrees that are meant to die, which this tool collects"),
     ("tests/card.mjs", "/tmp/plandata.json", "the legacy payload path the card accepts only as a loud last resort"),
     ("tests/entities.py", "> /tmp/pr-reds.txt", "pins pr-contract.yml's runner-side derivation by its text"),
+    ("tests/entities.py", '"> /tmp/pr-alerts.txt" in _PC_WAIT', "pins pr-contract.yml's runner-side code-scanning wait output by its text (R10-CI-LAYOUT P2b, U6)"),
     ("tests/entities.py", "/tmp/pr-reds.txt` fail-closed", "the docstring of that pin"),
     ("tests/entities.py", "`gh api ... | jq ... > /tmp/pr-reds.txt`", "the comment over that pin"),
     ("tests/entities.py", '"HPO_PLANDATA": "/tmp/plandata"', "a fixture environment for the plan-data path check"),
@@ -125,6 +126,8 @@ ALLOW = (
      "a workflow program: RUNNER_TEMP is set on the runner; /tmp is a one-shot body's local fallback"),
     ("tests/plan_view.py", '"/tmp", "plandata-%s.json" % hashlib.sha256',
      "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (dev/audit/README.md)"),
+    ("tools/audit/seat/ci_probe.py", '"see /tmp/" + "claude-1000/x"',
+     "a self-test fixture: the dismissal message whose session scratch path ci_probe must refuse"),
     (SELF, "", "this file names every class in its own patterns, docstring and fixtures"),
 )
 

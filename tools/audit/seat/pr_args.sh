@@ -200,6 +200,7 @@ tools/pr/approve_held_runs.sh mention: comments
 tools/pr/head_note.py mention: its docstring
 tools/policy/check-wave-script.mjs mention: a test title
 tools/policy/friction_issues.mjs mention: comments
+tools/audit/seat/gh_read.py mention: its docstring cites the read-back rule of app_push.sh; it runs no subprocess
 tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_mint.sh and runs no push
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
 tools/policy/policy_lint.mjs mention: a refusal message'
@@ -246,6 +247,8 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
 # The clone also carries tools/pr/head_note.py, which open_pr.sh and
 # update_pr.sh resolve (`PRT`) before their first check: without it every run
 # stopped in the ERR trap there, and 25 arms failed (#2444's CI, after #2442).
+# copyin carries ref_privacy.py for the same reason: handoff_push.sh's guard
+# fails closed without it, so its reap arms never reached a push (#2668's CI).
 pr_args_self_test() (
   local src t f=0 n=0 o m base code side body i reapsha UNREL
   src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -303,7 +306,7 @@ STUB
   # line), a fresh state root, the output in $t/out and the status in $t/rc.
   copyin() { # <mutant|->: copies of the scripts, less the named mutant's line
     local g
-    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py; do
+    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done

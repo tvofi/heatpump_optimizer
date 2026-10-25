@@ -52,12 +52,18 @@ enforcement surface's concern (`codeowners_gap.py`), not this check's.
 
 HOW IT IS RUN. `.github/workflows/budget-raise-gate.yml` restores this file
 from the base commit before running it under `python3 -I`, so a pull request
-cannot edit the gate that grades it; the workflow re-runs it on
-`pull_request_review`, so an approval turns it green without a push.
+cannot edit the gate that grades it; `ci.yml` calls it on
+`pull_request_review`, and `gate.py --sweep` re-judges a stale red after an approval
+(`rerun-stale` retired with `budget-raise-gate-rerun.yml`).
+`--check-body` runs justification() on a body file and exits 0 or 1; given
+`--base` and `--head` it reads the diff too, and refuses a raise whose body has
+no section (check_body). policy_lint.mjs --pr-body calls it, so pr-contract,
+body_patch.sh and prepr.sh (body_push.sh's --body-check) refuse before this
+gate does.
 
+    python3 -I tools/policy/budget_raise_gate.py --check-body FILE [--base SHA --head SHA]
     python3 -I tools/policy/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
     python3 tools/policy/budget_raise_gate.py --self-test
-    python3 -I tools/policy/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
 """
 from __future__ import annotations
 
@@ -407,11 +413,15 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
                          str(review.get("submitted_at")))
 
 
+def _heading_at(lines: list[str]) -> list[int]:
+    return [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
+
+
 def justification(body) -> tuple[bool, str]:
     """(present, why): the body's JUSTIFICATION_HEADING section, up to the next
     heading of level one or two, holds both a payment line and a score line."""
     lines = str(body or "").splitlines()
-    starts = [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
+    starts = _heading_at(lines)
     if not starts:
         return False, f"the body has no `{JUSTIFICATION_HEADING}` section, which a mandated raise owes"
     section = []
@@ -426,6 +436,20 @@ def justification(body) -> tuple[bool, str]:
     if missing:
         return False, f"`{JUSTIFICATION_HEADING}` lacks {' and '.join(missing)}"
     return True, f"the body's `{JUSTIFICATION_HEADING}` names the payments tried and the arch_score figures"
+
+
+def check_body(body, raises: list[str] | None = None) -> tuple[bool, str]:
+    """(ok, why) for `--check-body`: what a mandated approval of this body
+    would meet at merge. `raises` is raises_between's reading of the diff, or
+    None when no diff was named. A section present is judged by justification()
+    whatever the diff; with none, a diff that raises a cap is refused (the
+    train refuses it identically) and one that raises nothing owes nothing."""
+    if raises is None or _heading_at(str(body or "").splitlines()):
+        return justification(body)
+    if raises:
+        return False, (f"the diff raises {len(raises)} cap(s) ({'; '.join(raises)}) and the body has no "
+                       f"`{JUSTIFICATION_HEADING}` section, which a mandated raise owes")
+    return True, "the diff raises no cap, and the body has no raise section to judge"
 
 
 def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None,
@@ -593,97 +617,6 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
                        lambda: _body(repo, pr))
     print("\n".join(lines))
     return rc
-
-
-# --- the stale verdict's re-run ----------------------------------------------
-#
-# Both events write a `budget-raise-gate` check run at the head. When the owner
-# approves a raise, the `pull_request_review` run passes, but the
-# `pull_request` runs that refused before the approval keep their red on the
-# pull request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
-# runs `--rerun-stale` on `workflow_run`, from main's copy of this file, and
-# asks GitHub to re-run each of those red runs. A re-run re-grades from nothing -- the
-# program restored from the base, the reviews read live -- so this writes no
-# verdict: a real red re-runs red, and only a head the owner approved turns.
-
-GATE_WORKFLOW = ".github/workflows/budget-raise-gate.yml"
-RERUN_CONCLUSIONS = ("failure", "timed_out")
-
-
-def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, list[int], str]:
-    """(action, run ids, why): "rerun", "wait" or "none" for one completed run.
-
-    `trigger` is the completed run `workflow_run` names; `runs` the gate's
-    `pull_request` runs at its head. EVERY red one of those is re-run, not
-    only the newest: GitHub's ruleset refuses a merge while any suite at the
-    head carries a non-success run (#2009), and an author push that re-bodies
-    the pull request starts two `pull_request` runs at one head, which both
-    refuse a raise (R9-CI-2a). Nothing is re-run while one is still going.
-    Only a passing review run of this very workflow triggers it; a trigger
-    that is itself a `pull_request` run is refused, which is also what stops
-    a re-run's own completion from starting another.
-    """
-    head = str(trigger.get("head_sha") or "")
-    if trigger.get("path") != GATE_WORKFLOW:
-        return "none", [], f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
-    if trigger.get("event") != "pull_request_review":
-        return "none", [], f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
-    if trigger.get("conclusion") != "success":
-        return "none", [], f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
-    same = sorted((r for r in runs
-                   if r.get("workflow_id") == trigger.get("workflow_id")
-                   and r.get("event") == "pull_request" and r.get("head_sha") == head
-                   and r.get("id") != trigger.get("id")),
-                  key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
-    if not same:
-        return "none", [], f"no pull_request run of the gate at {head[:12]}"
-    going = [r.get("id") for r in same if r.get("status") != "completed"]
-    if going:
-        return "wait", going, f"run(s) {going} at {head[:12]} still going"
-    red = [r.get("id") for r in same if r.get("conclusion") in RERUN_CONCLUSIONS]
-    if red:
-        return "rerun", red, f"run(s) {red} at {head[:12]} concluded red"
-    return "none", [], f"{len(same)} pull_request run(s) at {head[:12]}, none red; nothing is stale"
-
-
-def _gh_json(*args: str):
-    out = subprocess.run(["gh", "api", *args], capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(f"gh api {args[-1]} exited {out.returncode}: {out.stderr.strip()[:200]}")
-    return json.loads(out.stdout) if out.stdout.strip() else {}
-
-
-def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 30) -> int:
-    """Re-run every stale red `pull_request` run of the gate after a passing review run.
-
-    Exit 0 when a re-run was requested or nothing is stale; 1 when the API
-    could not be read or refused, so the job is red and the stale verdict is
-    named rather than silently left. It is never a required context.
-    """
-    import time
-    sleep = sleep or time.sleep
-    try:
-        trigger = api(f"repos/{repo}/actions/runs/{int(run_id)}")
-        for _ in range(polls):
-            runs = api(f"repos/{repo}/actions/workflows/{int(trigger.get('workflow_id') or 0)}/runs"
-                       f"?event=pull_request&head_sha={trigger.get('head_sha')}&per_page=100")
-            action, rids, why = stale_run(trigger, runs.get("workflow_runs", []))
-            if action != "wait":
-                break
-            print(f"WAIT: {why}")
-            sleep(20)
-        print(f"{action.upper()}: {why}")
-        if action == "rerun":
-            for rid in rids:
-                api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
-                print(f"RESULT rerun_requested={rid}")
-        elif action == "wait":
-            print("REFUSED: the pull_request run did not finish in time; re-run it by hand")
-            return 1
-        return 0
-    except (RuntimeError, ValueError, TypeError) as e:
-        print(f"REFUSED: {str(e).splitlines()[0][:200] if str(e) else type(e).__name__}")
-        return 1
 
 
 # --- the self-test ----------------------------------------------------------
@@ -1114,6 +1047,40 @@ def self_test() -> int:
           rcm([agent()], body=JUST.replace("## Raise justification", "See ## Raise justification"))[0], 1)
     check("justification: an empty body is refused", rcm([agent()], body=None)[0], 1)
     check("justification: a body read that fails, fails closed", rcm([agent()], body=RuntimeError("HTTP 502"))[0], 1)
+    check("justification: a score line with no verdict word is refused",
+          justification(JUST.replace(" WORSENS\n", "\n"))[0], False)
+
+    # --check-body (Triage P-F): the same justification(), on a body file, as
+    # the process policy_lint.mjs --pr-body runs. The three shapes the gate
+    # refused after pr-contract passed them (#2633; #2647, twice) exit 1 with
+    # the clause named; the accepted shape exits 0.
+    with tempfile.TemporaryDirectory() as tmp:
+        def cli(*argv: str, body: str | None = None) -> tuple[int, str]:
+            path = os.path.join(tmp, "body.md")
+            if body is not None:
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(body)
+            r = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), *argv],
+                               capture_output=True, text=True)
+            return r.returncode, r.stdout + r.stderr
+        sec = "## Summary\n\nRaise.\n\n## Raise justification\n\n"
+        good = sec + "Payments tried: x\nArchitecture score: dS +0.1000 IMPROVES\n\n## Tests\n\nx\n"
+        body_path = os.path.join(tmp, "body.md")
+        rc_, said = cli("--check-body", body_path, body=good)
+        check("--check-body: payments and a verdict-bearing score in the section exit 0 (null control)",
+              (rc_, "names the payments tried" in said), (0, True))
+        for label, bad, clause in (
+                ("a bare `Payments tried:` heading over a list",
+                 sec + "- Payments tried:\n  - x\n- Architecture score: dS +0.1000 IMPROVES\n", "Payments tried"),
+                ("a score line with no verdict word",
+                 sec + "Payments tried: x\nArchitecture score: dS +0.1000\n", "Architecture score"),
+                ("a verdict-bearing score line outside the section",
+                 sec + "Payments tried: x\n\n## Figures\n\nArchitecture score: dS +0.1000 IMPROVES\n", "Architecture score")):
+            rc_, said = cli("--check-body", body_path, body=bad)
+            check(f"--check-body: {label} exits 1 and names the clause", (rc_, clause in said), (1, True))
+        rc_, said = cli("--check-body", os.path.join(tmp, "absent.md"))
+        check("--check-body: an unreadable body exits 1", (rc_, "unreadable" in said), (1, True))
+        check("--check-body: no path exits 2", cli("--check-body")[0], 2)
 
     # Every tracked budget file, as it stands: the schema must know it, a copy
     # must not raise against itself, every cap moved the strict way must be
@@ -1159,77 +1126,6 @@ def self_test() -> int:
 
     for name, got, want in _end_to_end():
         check(name, got, want)
-
-    # The stale verdict's re-run: every arm but the first leaves the red alone.
-    T0 = {"id": 9, "path": GATE_WORKFLOW, "event": "pull_request_review", "conclusion": "success",
-          "head_sha": H, "workflow_id": 5}
-
-    def pr_run(i, conclusion="failure", status="completed", sha=H, wf=5, event="pull_request", at="2026-09-25T0"):
-        return {"id": i, "event": event, "status": status, "conclusion": conclusion, "head_sha": sha,
-                "workflow_id": wf, "created_at": f"{at}{i}"}
-
-    check("rerun: a passing review run re-runs the red pull_request run at its head",
-          stale_run(T0, [pr_run(3)])[:2], ("rerun", [3]))
-    # R9-CI-2a: an author push that re-bodies the pull request starts two
-    # `pull_request` runs at one head, and both refuse a raise. The ruleset
-    # blocks on a red run in any suite at the head, not the newest alone
-    # (#2009), so every red one is re-run, never only the newest.
-    check("rerun: two red twins at one head, both re-run",
-          stale_run(T0, [pr_run(3), pr_run(4)])[:2], ("rerun", [3, 4]))
-    check("rerun: an older red run beside a newer green one is still re-run",
-          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("rerun", [3]))
-    check("rerun: ... and a newer red one beside an older green one",
-          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", [4]))
-    check("rerun: twins both green re-run nothing (null control)",
-          stale_run(T0, [pr_run(3, "success"), pr_run(4, "success")])[:2], ("none", []))
-    check("rerun: a twin still going is waited for before either is re-run",
-          stale_run(T0, [pr_run(3), pr_run(4, None, "in_progress")])[:2], ("wait", [4]))
-    check("rerun: a failing review run re-runs nothing (the red stands)",
-          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", []))
-    check("rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)",
-          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", []))
-    check("rerun: another workflow's run is not the gate",
-          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", []))
-    check("rerun: a red run at another head is left alone",
-          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", []))
-    check("rerun: a red run of another workflow is left alone",
-          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", []))
-    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", []))
-    check("rerun: a run still going is waited for",
-          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", [3]))
-
-    def fake(pages, fail_post=False):
-        calls = []
-
-        def api(*a):
-            calls.append(a)
-            if a[0] == "-X":
-                if fail_post:
-                    raise RuntimeError("HTTP 403")
-                return {}
-            if "/workflows/" in a[-1]:
-                return {"workflow_runs": pages.pop(0) if len(pages) > 1 else pages[0]}
-            return T0
-        return api, calls
-
-    api, calls = fake([[pr_run(3, None, "in_progress")], [pr_run(3)]])
-    check("rerun: end to end, waits for the run and then re-runs it",
-          (rerun_stale("9", "o/r", api, sleep=lambda s: None),
-           [c for c in calls if c[0] == "-X"]), (0, [("-X", "POST", "repos/o/r/actions/runs/3/rerun")]))
-    api, calls = fake([[pr_run(3, None, "in_progress")]])
-    check("rerun: a run that never finishes is a red job, not a silent pass",
-          rerun_stale("9", "o/r", api, sleep=lambda s: None, polls=3), 1)
-    api, calls = fake([[pr_run(3), pr_run(4)]])
-    check("rerun: end to end, two red twins post two re-runs",
-          (rerun_stale("9", "o/r", api, sleep=lambda s: None),
-           [c for c in calls if c[0] == "-X"]),
-          (0, [("-X", "POST", "repos/o/r/actions/runs/3/rerun"),
-               ("-X", "POST", "repos/o/r/actions/runs/4/rerun")]))
-    api, calls = fake([[pr_run(3)]], fail_post=True)
-    check("rerun: a refused re-run request is a red job", rerun_stale("9", "o/r", api), 1)
-    api, calls = fake([[pr_run(3, "success")]])
-    check("rerun: nothing stale posts nothing (null control)",
-          (rerun_stale("9", "o/r", api), [c for c in calls if c[0] == "-X"]), (0, []))
 
     print(f"budget_raise_gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
@@ -1438,6 +1334,29 @@ def _end_to_end() -> list[tuple[str, object, object]]:
             out.append((f"e2e: {label} exits 2 and asks nothing", (rc_, calls), (2, [])))
         rc_, _, _ = run(raise_, argv=["--base", "no-such-ref", "--head", raise_, "--pr", "7"])
         out.append(("e2e: an unresolvable base fails closed", rc_ != 0, True))
+        # --check-body with the diff named (C2): the raise is read by
+        # raises_between, as the gate and the train read it, and no review is asked.
+        bodyf = os.path.join(root, "body.md")
+
+        def check_body_run(head: str, text: str, base_: str = base):
+            with open(bodyf, "w") as f:
+                f.write(text)
+            return run(head, argv=["--check-body", bodyf, "--base", base_, "--head", head])
+        bare = "## Summary\n\nx\n"
+        rc_, text, calls = check_body_run(raise_, bare)
+        out.append(("e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing",
+                    (rc_, "cut_views: 110 -> 111" in text, JUSTIFICATION_HEADING in text, calls), (1, True, True, [])))
+        rc_, text, _ = check_body_run(routine, bare)
+        out.append(("e2e: --check-body: ... a routine edit with no section exits 0 (null control)", rc_, 0))
+        rc_, _, _ = check_body_run(raise_, just["body"])
+        out.append(("e2e: --check-body: ... a raise with a well-formed section exits 0", rc_, 0))
+        rc_, text, _ = check_body_run(routine, just["body"].replace(" NULL", ""))
+        out.append(("e2e: --check-body: a malformed section is refused on a diff that raises nothing",
+                    (rc_, "Architecture score" in text), (1, True)))
+        rc_, text, _ = check_body_run(raise_, bare, base_="no-such-ref")
+        out.append(("e2e: --check-body: a diff that cannot be read exits 2", (rc_, "could not be read" in text), (2, True)))
+        rc_, _, _ = run(raise_, argv=["--check-body", bodyf, "--base", base])
+        out.append(("e2e: --check-body: --base without --head exits 2", rc_, 2))
     except (OSError, subprocess.CalledProcessError) as e:
         out.append((f"e2e: the throwaway repository could be built ({e})", False, True))
     finally:
@@ -1448,12 +1367,34 @@ def _end_to_end() -> list[tuple[str, object, object]]:
 def main(argv: list[str]) -> int:
     if argv == ["--self-test"]:
         return self_test()
-    if argv[:1] == ["--rerun-stale"]:
+    if argv[:1] == ["--check-body"]:
+        # justification() on a body file, for policy_lint.mjs --pr-body: the
+        # lint asks this function rather than mirroring its regexes.
+        # With --base and --head the diff is read too, so a raise whose body
+        # has no section is refused here and not first at the train (C2).
         rest = dict(zip(argv[2::2], argv[3::2]))
-        if len(argv) < 2 or len(argv) % 2 or set(rest) - {"--repo"}:
-            print("usage: budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]", file=sys.stderr)
+        if len(argv) < 2 or len(argv) % 2 or set(rest) - {"--base", "--head"} or len(rest) == 1:
+            print("usage: budget_raise_gate.py --check-body FILE [--base SHA --head SHA]", file=sys.stderr)
             return 2
-        return rerun_stale(argv[1], rest.get("--repo") or os.environ.get("GITHUB_REPOSITORY") or DEFAULT_REPO)
+        try:
+            with open(argv[1], encoding="utf-8") as fh:
+                body = fh.read()
+        except OSError as e:
+            print(f"{argv[1]}: unreadable ({e.strerror})")
+            return 1
+        raises = None
+        if rest:
+            try:
+                mb = _git("merge-base", rest["--base"], rest["--head"]).strip()
+                raises = raises_between(mb, rest["--head"], lambda sha: _git("ls-tree", "-r", "--name-only", sha).splitlines(),
+                                        _show)[1]
+            except subprocess.CalledProcessError as e:
+                print(f"the diff {rest['--base'][:12]}...{rest['--head'][:12]} could not be read "
+                      f"({(e.stderr or '').strip()[:120] or f'git exited {e.returncode}'})")
+                return 2
+        ok, why = check_body(body, raises)
+        print(why)
+        return 0 if ok else 1
     args = dict(zip(argv[::2], argv[1::2]))
     if len(argv) % 2 or not {"--base", "--head", "--pr"} <= set(args) or set(args) - {"--base", "--head", "--pr", "--repo"}:
         print(__doc__.strip().splitlines()[-2].strip(), file=sys.stderr)

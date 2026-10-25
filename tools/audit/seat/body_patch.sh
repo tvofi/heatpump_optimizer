@@ -89,9 +89,10 @@ contract() { # pr-json base head body -> rc
   # refusal (an empty list read from a failed fetch is "no reds").
   gh api --paginate "repos/$REPO/commits/$head/check-runs" --jq '.check_runs[]
       | select(.status == "completed" and .conclusion == "failure")
-      | select(.name != "pr-contract") | .name' 2>/dev/null | sort -u > "$d/reds" \
+      | select(.name != "pr-contract / pr-contract" and .name != "gate") # mut:redfilter
+      | .name' 2>/dev/null | sort -u > "$d/reds" \
     || { echo "body_patch: the check runs at $head could not be listed" >&2; rm -rf "$d"; return 1; }
-  local args=(--pr-body "$body" --head "$head" --title "$title" --author "$author"
+  local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
   node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
@@ -230,7 +231,12 @@ cat > "$W/bin/gh" <<'STUB'
 printf 'gh %s\n' "$*" >> "$STUB/log"
 case "$*" in
   "api repos/o/r/pulls/7") [ -f "$STUB/gh-fails" ] && exit 1; python3 "$STUB/../prjson.py" get "$STUB/live.json" ;;
-  "api --paginate repos/o/r/commits/"*"/check-runs "*) [ -f "$STUB/checks-fail" ] && exit 1; cat "$STUB/reds" 2>/dev/null; true ;;
+  "api --paginate repos/o/r/commits/"*"/check-runs "*)
+    [ -f "$STUB/checks-fail" ] && exit 1
+    # the real listing: every name in `reds` is a completed failure, and the --jq program runs over it
+    prog=""; prev=""; for a in "$@"; do [ "$prev" = "--jq" ] && prog="$a"; prev="$a"; done
+    jq -n --rawfile n "$STUB/reds" '{check_runs: ($n | split("\n") | map(select(. != "")) | map({name: ., status: "completed", conclusion: "failure"}))}' 2>/dev/null \
+      | jq -r "$prog" ;;
   *) exit 9 ;;
 esac
 STUB
@@ -319,7 +325,7 @@ l1=$(grep -n '^gh api repos/o/r/pulls/7$' "$W/ok/log" | head -1 | cut -d: -f1); 
 l3=$(grep -n '^curl GET repos/o/r/installation$' "$W/ok/log" | head -1 | cut -d: -f1); l4=$(grep -n '^curl PATCH ' "$W/ok/log" | head -1 | cut -d: -f1)
 if [ "$l1" -lt "$l2" ] && [ "$l2" -lt "$l3" ] && [ "$l3" -lt "$l4" ]; then ORD=ordered; else ORD="head=$l1 lint=$l2 mint=$l3 patch=$l4"; fi
 st "$ORD" ordered "live head read, then the contract, then the mint, then the PATCH (#678's ordering)"
-st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check"
+st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --base $BASE --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check"
 st "$(cat "$W/ok/paths")" "$(printf 'a.txt\nb.txt')" "its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt"
 st "$(cat "$W/ok/existing")" "a.txt" "its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt"
 st "$(grep -c "^carry_audit check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body"
@@ -382,6 +388,10 @@ run refuse "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: GitHub refu
 st "$(calls refuse 'curl DELETE installation/token')" 1 "(the token is revoked on a refusal too)"
 
 # Argument and identity refusals, nothing called.
+# Its own two names are not reds to answer (N4): the contract's job, and `gate`, red whenever anything required is.
+mkcase own; printf 'gate\npr-contract / pr-contract\nlint\n' > "$W/own/reds"
+run own "$BP" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(grep -c -- "--red lint$" "$W/own/log")$(grep -c -e "--red gate" -e "--red pr-contract" "$W/own/log")" 10 "only the real red is passed: neither gate nor pr-contract / pr-contract is asked of the body"
 mkcase args
 run args "$BP" --repo o/r 7 abc "$W/body.md"; st $? 1 "REFUSE: a short sha"
 run args "$BP" --repo o/r x "$HEAD" "$W/body.md"; st $? 1 "REFUSE: a non-numeric pull request"
@@ -407,6 +417,7 @@ mutant rbhead '/# mut:rbhead$/s/.*/        stale\\ *) rbok=1; break ;;/'
 mutant rbx    '/# mut:rbexhaust$/s/.*/:/'
 mutant eq1    '/# mut:eq1$/s/.*/    return a.strip() == b.strip()/'
 mutant exist  '/# mut:existing$/s/--diff-filter=a //'
+mutant redf   '/# mut:redfilter$/s/select(.*)/select(true)/'
 mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }
 mkcase m1 "$MOVED"; run m1 "$(MBP head)" --repo o/r 7 "$HEAD" "$W/body.md"
@@ -430,6 +441,8 @@ mkcase m9; run m9 "$(MBP exist)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(cat "$W/m9/existing")" "$(printf 'a.txt\nb.txt')" "MUTANT --diff-filter=a dropped: the existing list now holds the added file (the ok-run assertion catches it)"
 mkcase m10; run m10 "$(MBP dot2)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(cat "$W/m10/paths")" "$(printf 'a.txt\nb.txt\nd.txt')" "MUTANT two-dot diff: the paths now hold the base's own d.txt (the ok-run assertion catches it)"
+mkcase m11; printf 'gate\npr-contract / pr-contract\nlint\n' > "$W/m11/reds"; run m11 "$(MBP redf)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(grep -c -e "--red gate" "$W/m11/log")" 1 "MUTANT red filter deleted: the body is now asked to answer gate and its own contract (the own-names control catches it)"
 
 echo "body_patch self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]

@@ -59,6 +59,21 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+# R10-SCORES (#2258): every coord fixture runs with zero heat-loss samples, so
+# the house grade is dashed (`heat_loss_learning`) instead of graded off the
+# configured prior: insight.scores.envelope and the score sensor's envelope
+# attribute move 58.3 -> null, and both gain `reasons`; insight gains
+# `model_restart` (no alarm: refit and restore null, current_scale 1.0).
+# Measured with env_drift --all against origin/main 86425b9ad in one
+# environment: exactly these five move, 5 leaves each; the other scenarios are
+# byte-identical or may-drift fixtures that did not move. The committed files
+# were patched in exactly those 17 structural paths from a head recording; no
+# other leaf was re-recorded.
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the

@@ -1,0 +1,53 @@
+# The gate sweep (R10-CI-LAYOUT P2b, unit U0c; DESIGN-P2 2.1, 4.3 items 1
+# and 4; decision M-2: ship it). When a CI run completes, `gate.py --sweep`
+# re-runs the `gate` of every OLDER run at that PR head whose gate is red, and
+# polls the ones still running, once the completed run's own gate is green at
+# the live head (tools/ci/sweep.py). It replaces budget-raise-gate-rerun.yml.
+#
+# `workflow_run` runs only the default branch's copy of this file, at the
+# default branch's commit, so the program is main's and no pull-request string
+# reaches the job: the run id alone is handed on. No `concurrency:` (R4-4): a
+# sweep polls for up to 600 s and sweeps of one head overlap, so a shared group
+# would replace a pending sweep or cancel a polling one.
+
+name: Gate sweep
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      # `gate.py --sweep` exits 1 on a rate limit and on a crash alike (its rc
+      # is sweep.main's), so the outcome is the last output line's first word,
+      # never the exit code: SWEEP-DONE, SKIP and SWEEP (a stop) are done;
+      # RATE-LIMITED re-ran nothing further and says so; anything else failed.
+      - name: Re-judge the older gates at this head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -uo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error title=sweep refused::run id malformed"; exit 1; }
+          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1)
+          printf '%s\n' "$out"
+          last=$(printf '%s\n' "$out" | tail -n 1)
+          case "${last%% *}" in
+            SWEEP-DONE|SKIP|SWEEP) ;;
+            RATE-LIMITED) echo "::error title=RATE-LIMITED::$last"; exit 1 ;;
+            *) echo "::error title=sweep failed::${last:-no output}"; exit 1 ;;
+          esac

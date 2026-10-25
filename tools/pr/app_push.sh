@@ -363,6 +363,19 @@ confirm_readback() { # url num head body
   die "the pull request did not read back at $head and the read was refused ($detail) -- re-read #$num by hand before touching anything"
 }
 
+# The branch name and every commit the pull request adds over main: one naming
+# this host, or carrying a tool's attribution (a session link or trailer, the
+# generated-by footer), is refused before anything is minted (#2310,
+# R10-FLY-NO-FOOTERS). Over main, not only what this push publishes first: a
+# commit first published on a ci-probe/* or handoff/* ref is the PR's too
+# (R10-FLY-NO-FOOTERS-PUSH-PATHS). Main is fetched first, since a stale
+# origin/main would charge the PR with main's own history; a failed fetch refuses.
+judge_commits() { # worktree branch head -> rc 0 when ref_privacy's guard passes
+  git -C "$1" fetch -q origin main 2>/dev/null || { echo "app_push: origin/main could not be fetched" >&2; return 1; }
+  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$2" --commits "$3" \
+    --over refs/remotes/origin/main -C "$1"
+}
+
 push_and_open() {
   local dry=0 bonly=0 recarry=0 rowonly=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
@@ -474,10 +487,8 @@ push_and_open() {
   [ "$recarry$rowonly" = 00 ] || [ "$head" = "$RV_HEAD" ] \
     || die "--$flag: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
   local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
-  # The branch name and every commit message the push publishes for the first
-  # time: one naming this host is refused before anything is minted (#2310).
-  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$br" --commits "$head" -C "$wt" \
-    || die "the branch or a commit it publishes would publish this host (#2310); NOTHING was minted or pushed"
+  judge_commits "$wt" "$br" "$head" \
+    || die "the branch or a commit the pull request adds would publish this host (#2310) or a tool's attribution; NOTHING was minted or pushed"
 
   if [ "$dry" = 1 ]; then
     if [ "$prnum" = "none" ]; then
@@ -634,7 +645,7 @@ case "$*" in
     if [ -f "$STUB/tip-moved" ]; then printf '%s\n' "$OTHER_SHA_STUB"; else cat "$STUB/../head.sha"; fi ;;
   *"status --porcelain") [ -f "$STUB/dirty" ] && printf ' M tools/audit/x.sh'; true ;;
   *"log -1 --format=%s") printf 'fix: the stub subject' ;;
-  *"--not --remotes")  # ref_privacy.py's read of the commits the push publishes: sha, emails, message
+  *"--not refs/remotes/origin/main")  # ref_privacy.py's read of the commits the PR adds: sha, emails, message
     if [ -f "$STUB/leaky-log" ]; then printf 'a\037t@t\037t@t\037fix: notes in /%s/exampleuser/x\036' Users
     else printf 'a\037t@t\037t@t\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
@@ -981,6 +992,20 @@ st "$(rv fix >/dev/null; echo $?)" 0 "real git: the honest merge of origin/main 
 st "$(rv fix)" "HEAD's tree is not the clean merge of its parents: it carries more than the merge" "real git: the same merge amended with one more file refuses (b)"
 (cd "$R/wt" && rgit checkout -q conf && rgit merge -q --no-edit origin/main; printf 'resolved\n' > o && rgit add o && rgit commit -qm resolved)
 st "$(rv conf)" "parent 1 and parent 2 do not merge cleanly; a resolution goes through prepr" "real git: a conflicted merge resolved by hand refuses (b)"
+# R10-FLY-NO-FOOTERS-PUSH-PATHS, real git: the production judge_commits over a
+# commit first published on ci-probe/*, so no first-publish scope would see it.
+# The trailer is built, so this file states none of its own.
+eval "$(sed -n '/^judge_commits() {/,/^}/p' "$SELF")"
+J="$W/jc"; TR=$(printf 'fix: x\n\nCo-Authored-%s: Claude <noreply@example.test>' By)
+jc() { judge_commits "$J/wt" fix/jc HEAD 2>&1 >/dev/null | grep -c 'co-author-trailer in the message of'; }
+jrc() { judge_commits "$J/wt" fix/jc HEAD >/dev/null 2>&1; echo $?; }
+throwaway_git_init "$J/origin.git" -q --bare -b main && throwaway_git_clone -q "$J/origin.git" "$J/wt" >/dev/null 2>&1 \
+  && (cd "$J/wt" && rgit commit -q --allow-empty -m "$TR" && rgit push -q origin HEAD:main \
+      && rgit checkout -q -b jc && rgit commit -q --allow-empty -m "clean: on main" \
+      && rgit push -q origin HEAD:refs/heads/ci-probe/jc-clean)
+st "$(jc)$(jrc)" 00 "real git: a clean commit first published on ci-probe/*, over a trailer main holds, passes (null control: main is not charged)"
+(cd "$J/wt" && rgit commit -q --allow-empty -m "$TR" && rgit push -q origin HEAD:refs/heads/ci-probe/jc && rgit fetch -q origin)
+st "$(jc)$(jrc)" 13 "real git: a trailer commit first published on ci-probe/* is refused when the PR carries it"
 
 recase rmoved; : > "$W/rmoved/head-moves"; : > "$W/rmoved/tip-moved"; : > "$W/rmoved/prepr-fails"
 run rmoved --recarry o/r "$W/tool-wt" "$BR" "$W/rmoved/body.md"; st $? 1 "REFUSE: HEAD moved after the --recarry verdict judged it (the tip check agrees with the moved HEAD)"

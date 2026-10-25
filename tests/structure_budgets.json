@@ -1,8 +1,8 @@
 {
- "class_excess_loc": 18268,
+ "class_excess_loc": 18209,
  "const_modules_over_50": 3,
- "coordinator_attrs": 147,
- "coordinator_multiassigned_attrs": 115,
+ "coordinator_attrs": 146,
+ "coordinator_multiassigned_attrs": 114,
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
@@ -10,12 +10,12 @@
  "functions_cc_over_15": 30,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
- "max_cc": 45,
- "max_class_loc": 8514,
+ "max_cc": 44,
+ "max_class_loc": 8449,
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
  "name_kept_members": 38,
- "recorded_at": "58730d09f61f3c26c86dad79387b0c2ffa739d66",
- "seam_cut_total": 708
+ "recorded_at": "e463e95e255dac31ed229e520e197b5710a07d94",
+ "seam_cut_total": 420
 }

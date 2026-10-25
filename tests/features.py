@@ -91,6 +91,41 @@ from heatpump_optimizer.optimizer import _Horizon
 R = Results("Feature modules")
 
 
+def _keystone_expire_away():
+    """`_expire_away_override`'s (active, return-time) pair, which
+    `_resolve_away` unpacks, on a bare coordinator: one live override and one
+    lapsed. Its own returns, not the pair as an end-to-end cycle sees it."""
+    coord = object.__new__(Coord)
+    coord._away_state = away_mode.AwayState(override_active=True)
+    saved = []
+
+    def spawn(coro):
+        saved.append(coro.__qualname__)
+        coro.close()
+
+    coord._spawn = spawn
+    now = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
+    ret = now + timedelta(hours=6)
+    coord._away_state.override_return_iso = ret.isoformat()
+    live = coord._expire_away_override(now)
+    lapsed = coord._expire_away_override(now + timedelta(hours=7))
+    return live, lapsed, ret, saved
+
+
+# A keystone: a broken return here makes every later away cycle raise inside
+# `_resolve_away`, and the whole script outruns the mutation pin run's budget
+# (PR #2632's two timed-out pin runs). Failing, it ends the run at once.
+_ks_live, _ks_lapsed, _ks_ret, _ks_saved = _keystone_expire_away()
+if not R.check(
+    "keystone: _expire_away_override returns the live override's (True, "
+    "return time) and a lapsed one's (False, None), saving only the lapse",
+    _ks_live == (True, _ks_ret) and _ks_lapsed == (False, None)
+    and _ks_saved == ["persist_override"],
+    str((_ks_live, _ks_lapsed, _ks_saved)),
+):
+    sys.exit(R.close("FEATURE CHECKS"))
+
+
 def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
     """The physics module's weather record from this file's fixture arrays
     (#1776): the series the trajectory entry points now take as one frozen
@@ -1996,9 +2031,12 @@ _r9f41_stamp_sites = sorted(
         )
     }
 )
+# source_polls reads the re-report FACT (last_reported past last_updated),
+# not a freshness stamp, so it is the one other reader (R10 N-staleness).
 R.check(
-    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp",
-    _r9f41_stamp_sites == ["state_stamp"],
+    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp, "
+    "beside source_polls' re-report test",
+    _r9f41_stamp_sites == ["source_polls", "state_stamp"],
     f"functions reading a stamp: {_r9f41_stamp_sites}",
 )
 
@@ -2515,9 +2553,16 @@ for _bad in ("unavailable", "unknown"):
 
 # -- stale ------------------------------------------------------------------
 # The whole reason this method exists rather than a bespoke hand-read: a mode
-# nobody has reported for ninety minutes is not evidence about the pump now.
+# a polling source has not re-reported for ninety minutes is not evidence
+# about the pump now (a source seen only on change is #2234's case).
 _old_mode = signals(
-    {"select.pump_mode": FakeState("cool", last_updated=minutes_ago(90, NOW))}
+    {
+        "select.pump_mode": FakeState(
+            "cool",
+            last_updated=minutes_ago(120, NOW),
+            last_reported=minutes_ago(90, NOW),
+        )
+    }
 ).read_state("heat_pump_mode_entity")
 R.check(
     "an over-age string is rejected exactly like an over-age number",
@@ -2566,7 +2611,13 @@ R.check(
     .ok,
 )
 _stale_odd = signals(
-    {"select.pump_mode": FakeState("turbo", last_updated=minutes_ago(90, NOW))}
+    {
+        "select.pump_mode": FakeState(
+            "turbo",
+            last_updated=minutes_ago(120, NOW),
+            last_reported=minutes_ago(90, NOW),
+        )
+    }
 ).read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
 R.check(
     "staleness outranks an unrecognised value",
@@ -4065,17 +4116,27 @@ def _away_house(current=16.0):
     return ThermalState(room_temperature=current, slab_temperature=current + 1.0)
 
 
+def _away_estimate(house, model=_away_model, outdoor=0.0):
+    """The coordinator's off-loop estimate, run inline: the job is the same."""
+    async def estimate(target_temp):
+        return away_mode.estimate_recovery_hours(model, house, target_temp, outdoor)
+    return estimate
+
+
+def _away_resolve(config, **kw):
+    import asyncio as _away_aio
+    return _away_aio.run(away_mode.resolve(config, **kw))
+
+
 def resolve_away(now, return_at, current=16.0):
-    return away_mode.resolve(
+    return _away_resolve(
         AWAY_CFG,
         now=now,
         presence_raw="on",
         presence_attributes=None,
         return_raw=return_at,
         comfort_temp=21.0,
-        model=_away_model,
-        thermal_state=_away_house(current),
-        outdoor_temp=0.0,
+        estimate_recovery=_away_estimate(_away_house(current)),
     )
 
 
@@ -4099,16 +4160,14 @@ R.check(
     "without a return time the setback still applies",
     no_return.active and not no_return.recovery_active,
 )
-home = away_mode.resolve(
+home = _away_resolve(
     AWAY_CFG,
     now=now,
     presence_raw="off",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(21.0),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house(21.0)),
 )
 R.check("an occupied house is never set back", not home.active)
 
@@ -4129,32 +4188,28 @@ R.check(
     away_mode.expire_override(True, None, _now) == (True, None),
 )
 
-_person_home = away_mode.resolve(
+_person_home = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=True,
     override_return_time=_future,
 )
 R.check("the service override wins over a person at home", _person_home.active)
 R.check("override source is service", _person_home.source == "service")
 
-_person_only = away_mode.resolve(
+_person_only = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="not_home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=False,
     override_return_time=None,
 )
@@ -4202,16 +4257,14 @@ R.check(
     "and left the house ~3 °C cold at the stated return",
 )
 
-cal = away_mode.resolve(
+cal = _away_resolve(
     away_mode.AwayConfig(presence_entity="calendar.holidays"),
     now=now,
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
 )
 R.check(
     "a calendar event supplies its own return time",
@@ -17484,8 +17537,9 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-# D4-04 (#168): the notice prices the shortfall in the instance's currency,
-# not in the SEK the placeholder used to be named after.
+# D4-04 (#168): the notice prices the shortfall in the coordinator's currency
+# (here, with no feed, the instance's), not in the SEK the placeholder used to
+# be named after.
 _eur_hass = _FakeHass(dict(_METER))
 _eur_hass.config.currency = "EUR"
 _eur_cop = _Coord(
@@ -18361,6 +18415,8 @@ R.check(
     _rs_ca2["refit"]["scale"] == _rs_want2 and _rs_want2 != _rs_want,
     f"refit={_rs_ca2['refit']} want={_rs_want2}",
 )
+# The sensor republishes the cycle's advice (#2258): built as the cycle does.
+_rs_c.data = {"insight": _rs_c._insight_view()}
 _rs_sensor_entity = _rs_sensor.ModelRestartAdvisorSensor(_rs_c, _FakeEntry(data={}))
 R.check(
     "#1936: the advisor sensor reads the recommended scale and both options",
@@ -18370,10 +18426,20 @@ R.check(
     and _rs_sensor_entity.entity_category == _rs_sensor.EntityCategory.DIAGNOSTIC,
     f"{_rs_sensor_entity.native_value} {_rs_sensor_entity.extra_state_attributes}",
 )
+_rs_quiet.data = {"insight": _rs_quiet._insight_view()}
 R.check(
     "#1936: with no alarm the sensor reads the scale in use (nothing to change)",
     _rs_sensor.ModelRestartAdvisorSensor(_rs_quiet, _FakeEntry(data={}))
     .native_value == round(_rs_quiet._house_heat_loss_scale, 3),
+)
+_rs_unbuilt = _t2_coord()
+_rs_unbuilt.data = {"house_heat_loss_scale": 1.2345}
+_rs_unbuilt_sensor = _rs_sensor.ModelRestartAdvisorSensor(_rs_unbuilt, _FakeEntry(data={}))
+R.check(
+    "#2258: before a cycle publishes the advice the sensor reads the scale in use, no refit",
+    _rs_unbuilt_sensor.native_value == 1.234
+    and _rs_unbuilt_sensor.extra_state_attributes["refit"] is None,
+    f"{_rs_unbuilt_sensor.native_value} {_rs_unbuilt_sensor.extra_state_attributes}",
 )
 _rs_before = _rs_c._house_heat_loss_scale
 _real_now_rs = _dt_mod_t4b.now
@@ -18390,6 +18456,7 @@ R.check(
 )
 _rs_payload_before = _rs_c._thermal_learning_payload()
 _rs_accept_at = _rs_rolled_at + timedelta(days=3, hours=14)
+_rs_refreshes = getattr(_rs_c, "refresh_requests", 0)
 try:
     _dt_mod_t4b.now = lambda: _rs_accept_at
     _rs_ok = _asyncio.run(_rs_adopt(_rs_c))
@@ -18400,6 +18467,17 @@ R.check(
     "#1936: accepting applies the refit through the restore path",
     _rs_ok is True and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
     f"ok={_rs_ok} scale={_rs_c._house_heat_loss_scale}",
+)
+_rs_next_cycle = _rs_c._insight_view()
+R.check(
+    "#2258: an adopt asks for a cycle, and that cycle's advice offers no refit "
+    "and grades the house on the adopted scale",
+    getattr(_rs_c, "refresh_requests", 0) == _rs_refreshes + 1
+    and _rs_next_cycle["model_restart"]["refit"]["scale"] is None
+    and _rs_next_cycle["model_restart"]["current_scale"]
+    == round(_rs_c._house_heat_loss_scale, 3),
+    f"refreshes {getattr(_rs_c, 'refresh_requests', 0) - _rs_refreshes} "
+    f"{_rs_next_cycle['model_restart']}",
 )
 # ``updated_at`` is the payload's own write stamp, not learned state.
 _rs_moved = sorted(
@@ -18429,6 +18507,53 @@ R.check(
     "#1936: and with no alarm there is nothing to accept",
     _asyncio.run(_rs_adopt(_rs_quiet)) is False
     and _rs_quiet._house_heat_loss_scale == _rs_quiet_scale,
+)
+
+# The restore service re-plans as adopt does (#2258): it asks for a cycle, and
+# that cycle's advice offers no refit for the restored scale and grades the
+# house on it. A features check, not a ledger row: an awaited expression
+# statement draws no generated mutation site.
+_rs_r = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_r._accuracy.record(_rs_row)
+_rs_r._apply_house_heat_loss_scale(1.4)
+_rs_r_before = _rs_advice(_rs_r)
+_rs_r_refreshes = getattr(_rs_r, "refresh_requests", 0)
+try:
+    _dt_mod_t4b.now = lambda: _rs_accept_at
+    _rs_r_ok = _asyncio.run(_rs_r.async_restore_learned_snapshot())
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+_rs_r_view = _rs_r._insight_view()
+R.check(
+    "#2258: a restore asks for a cycle, and that cycle's advice offers no refit "
+    "and grades the house on the restored scale",
+    _rs_r_before["refit"] is not None
+    and _rs_r_ok is True
+    and getattr(_rs_r, "refresh_requests", 0) == _rs_r_refreshes + 1
+    and _rs_r_view["model_restart"]["refit"]["scale"] is None
+    and _rs_r_view["model_restart"]["current_scale"]
+    == round(_rs_r._house_heat_loss_scale, 3) == 1.0,
+    f"before={_rs_r_before} view={_rs_r_view['model_restart']} "
+    f"refreshes {getattr(_rs_r, 'refresh_requests', 0) - _rs_r_refreshes}",
+)
+
+# The cycle path itself: ONE ``_insight_view()`` on a coordinator whose refit
+# sits outside its band offers the refit to the advisor and dashes the grade
+# with the matching reason, both read from that one view.
+_rs_d = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_d._accuracy.record(_rs_row)
+_rs_d._house_heat_loss_samples = 5000  # converged: only the refit can dash
+_rs_d_view = _rs_d._insight_view()
+_rs_d_refit = _rs_d_view["model_restart"]["refit"]
+R.check(
+    "#2258: one cycle view offers the refit and grades the house against it",
+    _rs_d_refit is not None
+    and _rs_d_refit["scale"] is not None
+    and _rs_d_view["scores"]["reasons"].get("envelope") == "heat_loss_refit_disagrees"
+    and _rs_d_view["scores"]["envelope"] is None,
+    f"{_rs_d_view['model_restart']} {_rs_d_view['scores']}",
 )
 
 # --- persistence: the detectors' memory rides the thermal store ----------------------
@@ -19337,9 +19462,13 @@ _lf_src = inspect.getsource(_Coord._async_learn_lower_floor_loss)
 # learners to calling it, or a re-inlined replay would drop the profile with
 # nothing left to notice.
 _replay_src = inspect.getsource(inspect.getmodule(_Coord)._replay_interval)
+# R10-LOOP-CPU: the step itself is the worker's job, handed the interval's hour.
+_replay_step_src = inspect.getsource(inspect.getmodule(_Coord)._replay_step)
 R.check(
     "the heat-loss replay predicts with the per-hour profile",
-    "hour_of_day=previous_time.hour" in _replay_src
+    "previous_time.hour + previous_time.minute / 60.0" in _replay_src
+    and "_replay_step," in _replay_src
+    and "hour_of_day=hour_of_day" in _replay_step_src
     and "_replay_interval(" in _hl_src
     and "_replay_interval(" in _lf_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
@@ -19730,6 +19859,162 @@ R.check(
         "0", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
     )._mold_floor_series(_out5)
     is None,
+)
+
+# --- R10 N-staleness (#2234): a quiet on-change source is not a dead one ------
+R.section("R10 N-staleness: the age limit keyed on how a source reports (D14-s3-02)")
+
+# Every key whose on-change limit is its polling limit, and why. A key the
+# const table adds without a decision fails the first check below, and an
+# entry here that names no such key fails it too.
+_r10st_same = {
+    # The R9 quiet-store bound (D1-s5-51): a dead room probe stops in 6 h.
+    "indoor_temp_entity": "quiet store",
+    "dhw_temp_entity": "quiet store",
+    "floor_return_temp_entity": "quiet store",
+    "lower_floor_temp_entity": "quiet store",
+    "buffer_tank_temp_entity": "quiet store",
+    # Outdoor air moves within its 3 h bound.
+    "outdoor_temp_entity": "moves within the bound",
+    "house_power_entity": "moves within the bound",
+    # Stale is the safe direction: a pump signal demotes to silence, a wood-side
+    # probe or flue reads as no free heat, solar falls back to Open-Meteo.
+    "heat_pump_fault_entity": "fails safe",
+    "heat_pump_defrost_entity": "fails safe",
+    "heat_pump_online_entity": "fails safe",
+    "heat_pump_backup_heater_entity": "fails safe",
+    "heat_pump_dhw_booster_entity": "fails safe",
+    "heat_pump_capacity_limited_entity": "fails safe",
+    "valve_outlet_temp_entity": "fails safe",
+    "wood_tank_top_entity": "fails safe",
+    "wood_tank_bottom_entity": "fails safe",
+    "external_heat_entity": "fails safe",
+    "solar_radiation_entity": "fails safe",
+    # No read applies its limit (class P6, not this one).
+    "pv_production_entity": "no reader",
+}
+_r10st_poll = _r9f41_const.INPUT_MAX_AGE_MINUTES
+_r10st_change = getattr(_r9f41_const, "INPUT_ON_CHANGE_MAX_AGE_MINUTES", {})
+_r10st_equal = {k for k in _r10st_poll if _r10st_change.get(k) == _r10st_poll[k]}
+R.check(
+    "every age-limited key declares its on-change limit, no lower than its "
+    "polling one, and each kept equal is named with its reason",
+    set(_r10st_change) == set(_r10st_poll)
+    and all(_r10st_change[k] >= _r10st_poll[k] for k in _r10st_poll)
+    and _r10st_equal == set(_r10st_same),
+    f"undeclared {sorted(set(_r10st_poll) - set(_r10st_change))}, "
+    f"equal unnamed {sorted(_r10st_equal - set(_r10st_same))}, "
+    f"named not equal {sorted(set(_r10st_same) - _r10st_equal)}",
+)
+
+
+def _r10st_read(key, held_min, reported_min=None, hass=None):
+    """``key`` read with its last change ``held_min`` ago and, for a polling
+    source, its last unchanged re-report ``reported_min`` ago."""
+    state = FakeState(
+        "1.0",
+        last_updated=minutes_ago(held_min, NOW),
+        last_reported=(
+            None if reported_min is None else minutes_ago(reported_min, NOW)
+        ),
+    )
+    hass = hass or FakeHass()
+    hass.states.set("sensor.x", state)
+    return InputReader(hass, {key: "sensor.x"}, now=lambda: NOW).read_state(key)
+
+
+# The census: every key, driven alike. An on-change source held one minute
+# past its polling limit is stale only where the on-change limit is that same
+# limit; a polling source silent as long is stale on every key (the null
+# control: the bound polling sources have today); and the polling evidence is
+# remembered, so a source whose last write was a change keeps that bound.
+_r10st_wrong = []
+for _r10st_key, _r10st_limit in sorted(_r10st_poll.items()):
+    _r10st_quiet = _r10st_read(_r10st_key, _r10st_limit + 1)
+    _r10st_polled = _r10st_read(
+        _r10st_key, _r10st_limit + 60, reported_min=_r10st_limit + 1
+    )
+    _r10st_hass = FakeHass()
+    _r10st_read(_r10st_key, 10, reported_min=5, hass=_r10st_hass)
+    _r10st_changed = _r10st_read(_r10st_key, _r10st_limit + 1, hass=_r10st_hass)
+    if (
+        _r10st_quiet.stale != (_r10st_key in _r10st_same)
+        or not _r10st_polled.stale
+        or not _r10st_changed.stale
+    ):
+        _r10st_wrong.append(
+            (_r10st_key, _r10st_quiet.problem, _r10st_polled.problem,
+             _r10st_changed.problem)
+        )
+R.check(
+    f"all {len(_r10st_poll)} age-limited keys: a quiet on-change source is "
+    "stale only on a key named equal; a silent polling source is stale on "
+    "every key, remembered past a changing write (D14-s3-02)",
+    not _r10st_wrong and len(_r10st_poll) >= 25,
+    f"wrong (key, quiet, polled, changed): {_r10st_wrong}",
+)
+_r10st_gone = InputReader(
+    FakeHass({"sensor.x": FakeState("unavailable", last_updated=NOW)}),
+    {"heat_pump_power_entity": "sensor.x"},
+    now=lambda: NOW,
+).read_power_kw("heat_pump_power_entity")
+_r10st_idle = InputReader(
+    FakeHass({"sensor.x": FakeState("0", unit="W", last_updated=minutes_ago(600, NOW))}),
+    {"heat_pump_power_entity": "sensor.x"},
+    now=lambda: NOW,
+).read_power_kw("heat_pump_power_entity")
+R.check(
+    "an on-change power meter idle at 0 W for 10 h reads 0 kW with no limit, "
+    "and an unavailable one is still refused",
+    _r10st_idle.ok and _r10st_idle.value == 0.0
+    and _r10st_idle.max_age_minutes is None
+    and _r10st_gone.problem == "unavailable",
+    f"idle {_r10st_idle.problem} {_r10st_idle.value} "
+    f"limit {_r10st_idle.max_age_minutes}, gone {_r10st_gone.problem}",
+)
+
+# With no owner the state alone decides, remembering nothing.
+_r10st_polled_state = FakeState(
+    "1", last_updated=minutes_ago(10, NOW), last_reported=minutes_ago(5, NOW)
+)
+_r10st_changed_state = FakeState("1", last_updated=minutes_ago(10, NOW))
+R.check(
+    "source_polls with no owner judges the state alone: a re-report polls, "
+    "a change does not",
+    inputs_mod.source_polls(None, "sensor.x", _r10st_polled_state) is True
+    and inputs_mod.source_polls(None, "sensor.x", _r10st_changed_state) is False,
+)
+
+
+def _r10st_floor(held_min, reported_min=None):
+    c = _mold_coord("60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh")
+    c.hass.states.set(
+        "sensor.rh",
+        FakeState(
+            "60", unit="%", last_updated=minutes_ago(held_min),
+            last_reported=None if reported_min is None else minutes_ago(reported_min),
+        ),
+    )
+    return c._mold_floor_series(_out5)
+
+
+# The coordinator's humidity read takes the same rule: an on-change probe
+# quiet past the 120 min polling limit keeps the mold floor, a polling one
+# silent as long drops it, and past the room's quiet-store bound both do.
+R.check(
+    "humidity: an on-change probe quiet 121 min keeps the mold floor; a "
+    "polling one silent 121 min, or an on-change one past 360 min, drops it",
+    _r10st_floor(121) is not None
+    and _r10st_floor(300, reported_min=121) is None
+    and _r10st_floor(361) is None,
+    f"quiet {_r10st_floor(121)}, polled {_r10st_floor(300, reported_min=121)}, "
+    f"past {_r10st_floor(361)}",
+)
+_r10st_rh = _mold_coord("100", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh")
+R.check(
+    "humidity read through InputReader keeps its window: 100 % is a reading",
+    _r10st_rh._indoor_humidity_value() == 100.0,
+    f"got {_r10st_rh._indoor_humidity_value()}",
 )
 
 # --- the T5 review round's regressions ------------------------------------------------
@@ -20183,23 +20468,45 @@ R.check(
 
 # --- #65 the scores --------------------------------------------------------------
 _ce = _t2_coord()
+# A converged heat-loss learner: the grade is the house as measured (#2258).
+_ce._house_heat_loss_samples = 1000
 _ce._thermal_params.room_thermal_mass = 10.0
 _ce._thermal_params.heat_loss_coefficient = 0.1
 _ce._thermal_params.house_heat_loss_scale = 1.0
 R.check(
     "a 100-hour house grades 100 on the envelope",
-    _ce._scores_view()["envelope"] == 100.0,
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
 )
 _ce._thermal_params.heat_loss_coefficient = 0.5
 R.check(
     "a 20-hour house grades 0 — the learned loss scale keeps it honest",
-    _ce._scores_view()["envelope"] == 0.0,
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+)
+_ce._thermal_params.heat_loss_coefficient = 0.05
+R.check(
+    "#2258: a house past 100 hours grades 100, not more",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "tau = 10 / 0.05 = 200 h, clipped to the top of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 1.0
+R.check(
+    "#2258: a house under 20 hours grades 0, not less",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+    "tau = 10 / 1.0 = 10 h, clipped to the bottom of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 0.5
+_ce._thermal_params.house_heat_loss_scale = 0.0
+R.check(
+    "#2258: a configured scale under the learner's clamp is floored at 0.1, "
+    "not read as a house with no loss",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "loss = 0.5 x 0.1 = 0.05 kW/K -> tau 200 h; with no floor the loss is 0",
 )
 _ce._thermal_params.heat_loss_coefficient = 0.25
 _ce._thermal_params.house_heat_loss_scale = 0.5
 R.check(
     "the envelope grade follows the house as measured, not as configured",
-    abs(_ce._scores_view()["envelope"] - 75.0) < 0.1,
+    abs(_ce._scores_view(_rs_advice(_ce))["envelope"] - 75.0) < 0.1,
     "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
 )
 # The time constant needs both halves: a house with no thermal mass, or one
@@ -20208,32 +20515,90 @@ R.check(
 _ce0 = _t2_coord()
 _ce0._thermal_params.heat_loss_coefficient = 0.25
 _ce0._thermal_params.room_thermal_mass = 0.0
-_ce0_env = _ce0._scores_view()["envelope"]
+_ce0_env = _ce0._scores_view(_rs_advice(_ce0))["envelope"]
 _ce0._thermal_params.room_thermal_mass = 10.0
 _ce0._thermal_params.heat_loss_coefficient = 0.0
 try:
-    _ce0_env_loss = _ce0._scores_view()["envelope"]
+    _ce0_env_loss = _ce0._scores_view(_rs_advice(_ce0))["envelope"]
 except ZeroDivisionError as _ce0_err:
     _ce0_env_loss = repr(_ce0_err)
 R.check(
     "no thermal mass, or no loss, is no envelope evidence (None), not a grade",
-    _ce0_env is None and _ce0_env_loss is None,
+    _ce0_env is None and _ce0_env_loss is None
+    and _ce0._scores_view(_rs_advice(_ce0))["reasons"]["envelope"] == "no_house_model",
     f"massless {_ce0_env!r}, lossless {_ce0_env_loss!r}",
+)
+_ce1 = _t2_coord()
+_ce1._house_heat_loss_samples = 1000
+_ce1._thermal_params.heat_loss_coefficient = 0.25
+_ce1._thermal_params.room_thermal_mass = 0.0
+_ce1_massless = _ce1._scores_view(_rs_advice(_ce1))
+_ce1._thermal_params.room_thermal_mass = 10.0
+_ce1._thermal_params.heat_loss_coefficient = 1e-6
+_ce1_lossless = _ce1._scores_view(_rs_advice(_ce1))
+R.check(
+    "#2258: a converged learner on a massless house, or one at the loss floor, "
+    "has no house model -- not a grade of 0",
+    _ce1_massless["envelope"] is None
+    and _ce1_massless["reasons"]["envelope"] == "no_house_model"
+    and _ce1_lossless["envelope"] is None
+    and _ce1_lossless["reasons"]["envelope"] == "no_house_model",
+    f"massless {_ce1_massless} lossless {_ce1_lossless}",
 )
 _cmach = _t2_coord()
 R.check(
     "no COP evidence means no machine grade, not a failing one",
-    _cmach._scores_view()["machine"] is None,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
+)
+# The watch judges a bucket from its COP_BASELINE_MIN_SAMPLES-th sample on,
+# so a bucket at exactly that count is watched; one short of it is not.
+_cmach_edge = {}
+for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
+    _cmach_c = _t2_coord()
+    _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
+    _cmach_edge[_cmach_n] = _cmach_c._scores_view(_rs_advice(_cmach_c))["machine"]
+R.check(
+    "the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples",
+    _cmach_edge == {COP_BASELINE_MIN_SAMPLES - 1: None, COP_BASELINE_MIN_SAMPLES: 100.0},
+    str(_cmach_edge),
 )
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
-    _cmach._scores_view()["machine"] == 100.0,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 100.0,
 )
 _cmach._cop_health_cusum.stat = COP_HEALTH_THRESHOLD
 R.check(
     "a machine at the alarm threshold grades 0",
-    _cmach._scores_view()["machine"] == 0.0,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+)
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, never below (#2258)",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+)
+_cedge = _t2_coord()
+_cedge._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES]
+_cedge_view = _cedge._scores_view(_rs_advice(_cedge))
+R.check(
+    "a COP bucket at exactly the minimum sample count is watched, and the "
+    "machine is graded (#12, #2258)",
+    _cedge_view["machine"] == 100.0 and "machine" not in _cedge_view["reasons"],
+    f"{_cedge_view}",
+)
+R.check(
+    "a refit exactly on its own band edge agrees with the scale; only one "
+    "past it disagrees (#2258)",
+    not _r9p8_coord._refit_disagrees({"refit": {"scale": 2.5, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 2.51, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 1.49, "band_percent": 25.0}}, 2.0),
+)
+# Past the alarm the Cusum keeps climbing; the grade stays at 0, never below.
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, not below",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+    str(_cmach._scores_view(_rs_advice(_cmach))["machine"]),
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
@@ -20383,25 +20748,232 @@ R.check(
     "a restart mid-summer must not re-present the stale value for another "
     "memory horizon: this restored streak is one free close from the reset",
 )
-_fresh6 = _t2_coord()._scores_view()
+_fresh6_c = _t2_coord()
+_fresh6 = _fresh6_c._scores_view(_rs_advice(_fresh6_c))
 R.check(
-    "a fresh install does not publish the house grade as overall",
+    "a fresh install grades nothing, and says why for each part (#2258)",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
     and _fresh6["overall"] is None
-    and _fresh6["envelope"] is not None,
-    "envelope stays in the breakdown; overall needs driving evidence",
+    and _fresh6["envelope"] is None
+    and _fresh6["reasons"] == {
+        "envelope": "heat_loss_learning", "machine": "cop_watch_learning",
+        "operation": "no_scored_day", "overall": "first_scored_day",
+    },
+    f"{_fresh6}",
 )
 _ce._operation_score = None
 _ce._cop_baseline.clear()
 _ce._thermal_params.heat_loss_coefficient = 0.417
 _ce._thermal_params.house_heat_loss_scale = 1.0
-_leaky = _ce._scores_view()
+_leaky = _ce._scores_view(_rs_advice(_ce))
 R.check(
     "a ~24 h house is not 5/100 overall while nothing has been driven",
     _leaky["overall"] is None
     and _leaky["envelope"] is not None
     and _leaky["envelope"] < 10.0,
+)
+
+# --- #2258 one rule for every score: None is no evidence, with its reason --------
+from heatpump_optimizer import coordinator as _sc_mod  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HOUSE_LOSS_ALPHA as _SC_ALPHA,
+    _effective_house_heat_loss as _sc_effective,
+    house_loss_converged as _sc_converged,
+)
+
+
+def _sc_view(coord, advice=None):
+    return coord._scores_view(_rs_advice(coord) if advice is None else advice)
+
+
+def _sc_invariant(view):
+    """None if and only if a reason, one code per None."""
+    nones = {k for k in ("envelope", "machine", "operation", "overall") if view[k] is None}
+    return nones == set(view["reasons"]) and all(
+        isinstance(code, str) and code for code in view["reasons"].values()
+    )
+
+
+# The UA basis: the model's own whole-house loss, both zones with the learned
+# split, which is the figure the Health tab publishes. A single-zone house
+# whose coefficient IS that figure must grade the same.
+_sc_two = _t2_coord()
+_sc_two._house_heat_loss_samples = 1000
+_sc_tp = _sc_two._thermal_params
+_sc_tp.two_zone_enabled = True
+_sc_tp.room_thermal_mass = 8.0
+_sc_tp.heat_loss_coefficient = 0.14
+_sc_tp.upper_floor_heat_loss = 0.07
+_sc_tp.lower_floor_heat_loss = 0.07
+_sc_tp.lower_floor_loss_ratio = 0.5
+_sc_tp.house_heat_loss_scale = 1.0
+_sc_health = _sc_two._learning_view()["house_heat_loss_effective"]
+_sc_one = _t2_coord()
+_sc_one._house_heat_loss_samples = 1000
+_sc_one._thermal_params.room_thermal_mass = 8.0
+_sc_one._thermal_params.heat_loss_coefficient = _sc_health
+_sc_one._thermal_params.house_heat_loss_scale = 1.0
+R.check(
+    "#2258: a two-zone house is graded on the Health tab's heat loss, learned split included",
+    _sc_health == _sc_effective(_sc_tp, 1.0) and _sc_health < 0.14
+    and _sc_view(_sc_two)["envelope"] == _sc_view(_sc_one)["envelope"]
+    and _sc_view(_sc_two)["envelope"] is not None,
+    f"health {_sc_health} two-zone {_sc_view(_sc_two)} single {_sc_view(_sc_one)}",
+)
+_sc_tp.lower_floor_loss_ratio = 1.0
+_sc_one._thermal_params.heat_loss_coefficient = 0.14
+R.check(
+    "#2258: at split 1.0 the configured total and the model's figure agree (null arm)",
+    _sc_view(_sc_two)["envelope"] == _sc_view(_sc_one)["envelope"],
+)
+
+# Convergence: one predicate for the Health tab's "learned" and the grade.
+_sc_n = round(1.0 / _SC_ALPHA)
+_sc_sweep = []
+for _sc_samples in (0, 1, _sc_n - 1, _sc_n, _sc_n + 1, 5 * _sc_n):
+    _sc_c = _t2_coord()
+    _sc_c._house_heat_loss_samples = _sc_samples
+    _sc_v = _sc_view(_sc_c)
+    _sc_learned = _sc_c._learning_view()["house_heat_loss_learned"]
+    _sc_sweep.append((
+        _sc_samples, _sc_learned, _sc_v["reasons"].get("envelope"),
+        _sc_learned == _sc_converged(_sc_samples)
+        and (_sc_v["envelope"] is None) == (not _sc_learned)
+        and (_sc_v["reasons"].get("envelope") == "heat_loss_learning") == (not _sc_learned)
+        and _sc_invariant(_sc_v),
+    ))
+R.check(
+    "#2258: the grade dashes exactly while the Health tab reads the learner as learning",
+    all(row[-1] for row in _sc_sweep)
+    and [row[1] for row in _sc_sweep] == [False, False, False, True, True, True],
+    f"{_sc_sweep}",
+)
+# The same sweep through the published sensors, on the payload as the cycle
+# lays it out (the learning view at the top level, insight beside it): the
+# Health tab's model state and the score's reason never disagree, and the
+# score stays available, naming the coordinator's overall code.
+_sc_pub = []
+for _sc_samples in (0, _sc_n - 1, _sc_n, 5 * _sc_n):
+    _sc_c = _t2_coord()
+    _sc_c._house_heat_loss_samples = _sc_samples
+    _sc_c.data = {**_sc_c._learning_view(), "insight": _sc_c._insight_view()}
+    _sc_status = _rs_sensor.ModelStatusSensor(_sc_c, _FakeEntry(data={}))
+    _sc_score = _rs_sensor.OptimizationScoreSensor(_sc_c, _FakeEntry(data={}))
+    _sc_reasons = _sc_c.data["insight"]["scores"]["reasons"]
+    _sc_pub.append((
+        _sc_samples, _sc_status.native_value, _sc_reasons.get("envelope"),
+        (_sc_status.native_value == "learned") == _sc_converged(_sc_samples)
+        and (_sc_status.native_value == "learned")
+        == ("heat_loss_learning" not in _sc_reasons.values())
+        and _sc_score.available and _sc_score.native_value is None
+        and _sc_score.extra_state_attributes["waiting_for"] == _sc_reasons["overall"],
+    ))
+R.check(
+    "#2258: Health's learned and the score's heat_loss_learning are one predicate, "
+    "and the unscored sensor stays available with the coordinator's code",
+    all(row[-1] for row in _sc_pub),
+    f"{_sc_pub}",
+)
+R.check(
+    "#2258: converged is one EWMA time constant, 1/alpha samples, from the prior",
+    not _sc_converged(_sc_n - 1) and _sc_converged(_sc_n) and not _sc_converged(-5),
+    f"n={_sc_n}",
+)
+
+# Precedence: one code per None, no_house_model > heat_loss_learning >
+# heat_loss_refit_disagrees.
+_sc_far = {"drift_alarm": True, "current_scale": 1.0, "restore": None,
+           "refit": {"scale": 1.5, "band_percent": 10}}
+_sc_near = {**_sc_far, "refit": {"scale": 1.05, "band_percent": 10}}
+_sc_p = _t2_coord()
+_sc_p._house_heat_loss_samples = 0  # the restore paths zero the samples
+_sc_arm1 = _sc_view(_sc_p, _sc_far)
+_sc_p._thermal_params.heat_loss_coefficient = 0.0
+_sc_arm2 = _sc_view(_sc_p, _sc_far)
+_sc_p._thermal_params.heat_loss_coefficient = 0.2
+_sc_p._house_heat_loss_samples = 1000
+_sc_arm3 = _sc_view(_sc_p, _sc_far)
+_sc_arm4 = _sc_view(_sc_p, _sc_near)
+R.check(
+    "#2258: an unconverged learner with a refit outside the band reads learning alone",
+    _sc_arm1["reasons"]["envelope"] == "heat_loss_learning" and _sc_invariant(_sc_arm1),
+    f"{_sc_arm1}",
+)
+R.check(
+    "#2258: no house loss reads no_house_model alone, learner state aside",
+    _sc_arm2["reasons"]["envelope"] == "no_house_model" and _sc_invariant(_sc_arm2),
+    f"{_sc_arm2}",
+)
+R.check(
+    "#2258: a converged learner the refit disagrees with is dashed, not graded",
+    _sc_arm3["envelope"] is None
+    and _sc_arm3["reasons"]["envelope"] == "heat_loss_refit_disagrees"
+    and _sc_invariant(_sc_arm3),
+    f"{_sc_arm3}",
+)
+R.check(
+    "#2258: a refit inside its own band does not dash the grade",
+    _sc_arm4["envelope"] is not None and "envelope" not in _sc_arm4["reasons"],
+    f"{_sc_arm4}",
+)
+
+# The machine counts the buckets the Health tab counts: a non-finite sample
+# count is no evidence, never a raise and never a watched bucket.
+_sc_m = _t2_coord()
+_sc_m._cop_baseline[(3, False)] = [3.0, float("nan")]
+_sc_mv = _sc_view(_sc_m)
+R.check(
+    "#2258: a bucket with a non-finite count is not watched, here or on Health",
+    _sc_mv["machine"] is None
+    and _sc_mv["reasons"]["machine"] == "cop_watch_learning"
+    and _sc_m._learning_view()["cop_health"]["watched_buckets"] == 0,
+    f"{_sc_mv}",
+)
+R.check(
+    "#2258: after a free-price reset the operation part says so",
+    _sc_view(_q908)["operation"] is None
+    and _sc_view(_q908)["reasons"]["operation"] == "free_price_reset"
+    and _sc_invariant(_sc_view(_q908)),
+    f"{_sc_view(_q908)}",
+)
+_sc_all = [_fresh6, _leaky, _sc_view(_ce), _sc_view(_cmach), _sc_view(_cop6),
+           _sc_arm1, _sc_arm2, _sc_arm3, _sc_arm4, _sc_mv]
+R.check(
+    "#2258: across every view built here, a None carries a reason and a value none",
+    all(_sc_invariant(v) for v in _sc_all),
+    f"{[v for v in _sc_all if not _sc_invariant(v)]}",
+)
+
+# The advice holder: the cycle takes model_restart_advice once, and the
+# advisor sensor and the envelope grade read that one take.
+_sc_calls = []
+_sc_real_advice = _sc_mod.model_restart_advice
+
+
+def _sc_counting(coord):
+    _sc_calls.append(coord)
+    return _sc_real_advice(coord)
+
+
+_sc_h = _t2_coord()
+_sc_mod.model_restart_advice = _sc_counting
+try:
+    _sc_insight = _sc_h._insight_view()
+    _sc_per_cycle = len(_sc_calls)
+    _sc_h.data = {"insight": _sc_insight, "house_heat_loss_scale": 1.0}
+    _sc_adv_sensor = _rs_sensor.ModelRestartAdvisorSensor(_sc_h, _FakeEntry(data={}))
+    for _ in range(3):
+        _sc_adv_sensor.native_value
+        _sc_adv_sensor.extra_state_attributes
+    _sc_per_write = len(_sc_calls) - _sc_per_cycle
+finally:
+    _sc_mod.model_restart_advice = _sc_real_advice
+R.check(
+    "#2258: one advice per cycle, none per advisor-sensor write",
+    _sc_per_cycle == 1 and _sc_per_write == 0
+    and _sc_adv_sensor.extra_state_attributes == _sc_insight["model_restart"],
+    f"cycle {_sc_per_cycle} writes {_sc_per_write}",
 )
 
 # --- #29 the narrative -----------------------------------------------------------
@@ -20537,6 +21109,45 @@ R.check(
     "and an unconfigured instance still prices the plan in SEK",
     any("SEK" in _l for _l in _n_view["lines"]),
     str(_n_view["lines"][:2]),
+)
+# D14-s3-01: the feed denominates the plan's money (#1657), so the narrative
+# names the code every other money surface publishes -- not the instance's
+# label. A SEK feed on the same SEK instance is the null control.
+_d14s3_codes = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass("SEK", _d14s3_unit), _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._optimization_result = _r6
+    _d14s3_codes[_d14s3_unit] = sorted(
+        {_c for _l in _d14s3_c._narrative_view()["lines"]
+         for _c in _re6.findall(r"\b(EUR|SEK)\b", _l)}
+    )
+R.check(
+    "D14-s3-01: the narrative prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_codes == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_codes),
+)
+# R10-CURRENCY: the COP notice prices its shortfall from the same feed, so
+# it carries the feed's code too; the SEK feed is again the null control.
+_d14s3_cop = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_h = _r9p8_hass("SEK", _d14s3_unit)
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _d14s3_h, _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._measured_cop.cop = 2.4
+    _d14s3_c._raise_cop_issue(3.0)
+    _d14s3_cop[_d14s3_unit] = [
+        _i[2]["translation_placeholders"]["currency"]
+        for _i in getattr(_d14s3_h, "issues", []) if _i[1] == "cop_degradation"
+    ]
+R.check(
+    "R10-CURRENCY: the COP notice prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_cop == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_cop),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
@@ -20749,7 +21360,7 @@ R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(price_tiles.book(_ctile2)) == ["target_minus_1"]
     and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
-    and _ctile2._price_tile_cursor == 1,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 1,
 )
 
 
@@ -20772,7 +21383,7 @@ R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
     _ctile2_limited_seen.get("limited") is False
-    and _ctile2._price_tile_cursor == 2,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 2,
     str(_ctile2_limited_seen),
 )
 R.check(
@@ -20794,9 +21405,11 @@ R.check(
         "monthly_report",
         "price_tiles",
         "last_diagnosis",
+        "model_restart",
     }
     and _iview["monthly_report"] is None
-    and _iview["compressor_starts"]["lifetime"] == 0,
+    and _iview["compressor_starts"]["lifetime"] == 0
+    and _iview["model_restart"]["refit"] is None,
 )
 
 _cp6 = _t2_coord()
@@ -20997,7 +21610,7 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    _ctile4._price_tile_cursor == 1 and not price_tiles.book(_ctile4),
+    price_tiles._CURSORS.get(_ctile4, 0) == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
@@ -22857,7 +23470,15 @@ R.check(
     and _g_hfresh._mold_floor_series(np.array([-5.0, -10.0])) is not None,
 )
 _g_hstale = HeatPumpOptimizerCoordinator(
-    FakeHass({"sensor.rh": FakeState("70", last_updated=minutes_ago(300))}),
+    FakeHass(
+        {
+            "sensor.rh": FakeState(
+                "70",
+                last_updated=minutes_ago(400),
+                last_reported=minutes_ago(300),
+            )
+        }
+    ),
     FakeEntry(data=_g_hum_cfg),
 )
 R.check(
@@ -26623,14 +27244,22 @@ _PS_SELECT_OPTIONS = [
 
 
 def _ps_state(entity: str, state, age: float):
-    """A FakeState shaped like the entity it stands for."""
+    """A FakeState shaped like the entity it stands for.
+
+    Polled, as the reference integration polls the Tuya cloud every 3 min:
+    its last write ``age`` minutes ago re-reported an unchanged value, so its
+    silence since is evidence (a source seen only on change is #2234's).
+    """
     attributes = (
         {"options": list(_PS_SELECT_OPTIONS)}
         if entity.split(".")[0] in ("select", "input_select")
         else None
     )
     return FakeState(
-        state, last_updated=minutes_ago(age, _PS_NOW), attributes=attributes
+        state,
+        last_updated=minutes_ago(age + 3, _PS_NOW),
+        last_reported=minutes_ago(age, _PS_NOW),
+        attributes=attributes,
     )
 
 
@@ -27589,17 +28218,21 @@ R.check(
     "a slot nobody can read must be reportable; it just must not act",
 )
 _FL_HORIZON = INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]
+# Polled probes (re-reported, then silent): an on-change probe holding its
+# value is current at any age (#2234).
 (_fl_stale_s, _fl_stale_r), _fl_stale_reader = _fl_read(
     {
         "sensor.hp_supply": FakeState(
             "48.5",
             unit="°C",
-            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+            last_updated=minutes_ago(_FL_HORIZON * 3.0, _PS_NOW),
+            last_reported=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
         ),
         "sensor.hp_return": FakeState(
             "41.0",
             unit="°C",
-            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+            last_updated=minutes_ago(_FL_HORIZON * 3.0, _PS_NOW),
+            last_reported=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
         ),
     }
 )
@@ -30172,8 +30805,10 @@ def _um_read(
     if options is None and entity.split(".")[0] in ("select", "input_select"):
         options = _UM_OPTIONS
     attrs = {"options": list(options)} if options else None
+    # Polled: the last write re-reported an unchanged value (#2234).
     hass = FakeHass(
-        {entity: FakeState(state, last_updated=minutes_ago(age, _um_now),
+        {entity: FakeState(state, last_updated=minutes_ago(age + 3, _um_now),
+                           last_reported=minutes_ago(age, _um_now),
                            attributes=attrs)}
     )
     return pump_signals.read(
@@ -37640,6 +38275,63 @@ R.check(
 )
 
 
+# R10-LOOP-CPU: `_run_in_process` pickled the job straight into the worker's
+# stdin, and a transport fault dropped the handle without reaping the child.
+# A job that will not pickle -- a model carrying a closure, as the learner
+# tests stub in -- so left one live, unheld child per call: 740 of them alive
+# at tests/features.py's exit, whose coverage writes raced the coverage lane
+# and cost it the script's data (run 39874068348). The job is now serialised
+# whole before the pipe is touched, and a stream that faults is reaped.
+def _f15_worker_faults():
+    """A job that will not pickle, then a reply stream the job corrupts."""
+    _f15_cmod._shutdown_process_pool()
+    try:
+        first = _f15_cmod._run_in_process(_os.getpid, ())
+        held = _f15_cmod._PROCESS_WORKER
+        try:
+            _f15_cmod._run_in_process(_os.getpid, (lambda: None,))
+            unpicklable = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            unpicklable = "translated"
+        again = _f15_cmod._run_in_process(_os.getpid, ())
+        kept = _f15_cmod._PROCESS_WORKER is held
+        held = _f15_cmod._PROCESS_WORKER
+        # print writes to the worker's stdout ahead of its reply frame
+        try:
+            _f15_cmod._run_in_process(print, ("not a pickle",))
+            corrupt = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            corrupt = "translated"
+        try:
+            held.wait(timeout=5)
+        except _f15_cmod.subprocess.TimeoutExpired:
+            pass
+        return unpicklable, first, again, kept, corrupt, held.poll()
+    finally:
+        _f15_cmod._shutdown_process_pool()
+
+
+(_f15_up_out, _f15_up_first, _f15_up_again, _f15_up_kept,
+ _f15_corrupt_out, _f15_corrupt_rc) = _f15_worker_faults()
+R.check(
+    "R10-LOOP-CPU: a job that will not pickle degrades without touching the "
+    "worker, which serves the next job as the same process",
+    _f15_up_out == "translated"
+    and _f15_up_first == _f15_up_again
+    and _f15_up_kept,
+    f"outcome={_f15_up_out!r} pid before={_f15_up_first} after="
+    f"{_f15_up_again} handle kept={_f15_up_kept} -- at the merge base the "
+    "handle was dropped and the next job respawned, the old child left alive",
+)
+R.check(
+    "R10-LOOP-CPU: a reply stream that faults reaps the child it came from, "
+    "never leaves it running unheld",
+    _f15_corrupt_out == "translated" and _f15_corrupt_rc is not None,
+    f"outcome={_f15_corrupt_out!r} child returncode={_f15_corrupt_rc!r} "
+    "(None: still running, with no handle left to reap it)",
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
@@ -40276,7 +40968,7 @@ async def _rc2_boot(entry):
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
     await boost_mod.restore_session(
-        coord, coord._away_state, coord._config, coord._entity_state
+        coord, coord._adopt_away_override, coord._config, coord._entity_state
     )
     await coord._async_load_manual_plan()
     return coord
@@ -43043,10 +43735,10 @@ def _t3_tile(answer, **config):
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
-    _t3_tile_boom._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_boom, 0) == 1
     and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
-    f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
+    f"cursor {price_tiles._CURSORS.get(_t3_tile_boom, 0)} tiles "
     f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
@@ -43060,13 +43752,13 @@ _t3_tile_good = _t3_tile(
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
-    _t3_tile_error._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_error, 0) == 1
     and dict(price_tiles.book(_t3_tile_error)) == {}
-    and _t3_tile_good._price_tile_cursor == 1
+    and price_tiles._CURSORS.get(_t3_tile_good, 0) == 1
     and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
-    f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
+    f"errored -> cursor {price_tiles._CURSORS.get(_t3_tile_error, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
-    f"{_t3_tile_good._price_tile_cursor}, tiles "
+    f"{price_tiles._CURSORS.get(_t3_tile_good, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
@@ -47332,6 +48024,8 @@ class _G8AwayCoord:
     def _entity_state(self, entity_id):
         return self._entity_states.get(entity_id, (None, {}))
 
+    _adopt_away_override = Coord._adopt_away_override
+
 
 _g8_away_real_store = _g8_away.QuarantiningStore
 try:
@@ -47356,7 +48050,7 @@ try:
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
     _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord, _g8_load_coord._adopt_away_override, _g8_load_coord._config,
         _g8_load_coord._entity_state,
     ))
     _g8_load_saved = list(_G8AwayStore.saved)
@@ -47370,7 +48064,7 @@ try:
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
     _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord, _g8_done_coord._adopt_away_override, _g8_done_coord._config,
         _g8_done_coord._entity_state,
     ))
     _g8_done_saved = list(_G8AwayStore.saved)
@@ -56926,8 +57620,8 @@ _P3_ALLOWED = {
      "state.outdoor_temperature"): "the experiment step running now",
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
-    ("coordinator.py", "_replay_interval", "simulate_step",
-     "previous_state"): "the one replay both interval learners share (R9-UX-10): "
+    ("coordinator.py", "_replay_step", "simulate_step",
+     "state"): "the one replay both interval learners share (R9-UX-10): "
     "the interval that just ended, in today's weather",
 }
 
@@ -61845,8 +62539,8 @@ _ux5_home_cfg = _ux5_home._solve_hubs(
 _ux5_away = _r9egb1_coord(away=True)
 # The update resolves away before it publishes; a payload read before that
 # still shows the configured floor, which is the defect's own shape.
-_ux5_away._resolve_away()
-_ux5_home._resolve_away()
+asyncio.run(_ux5_away._resolve_away())
+asyncio.run(_ux5_home._resolve_away())
 _ux5_away_view = _ux5_away._build_data_dict()
 _ux5_home_view = _ux5_home._build_data_dict()
 R.check(
@@ -61867,6 +62561,62 @@ R.check(
     and _ux5_away_view["configured_min_temperature"] == _ux5_away._opt_config.min_temp
     and _ux5_away_view["min_temperature"] != _ux5_away_view["configured_min_temperature"],
     str({k: _ux5_away_view.get(k) for k in ("min_temperature", "configured_min_temperature")}),
+)
+# D14-s1-01: the recovery estimate is awaited off the loop, so the Plan-page
+# switch can land inside the resolve. Its write must survive the publish.
+_lc_away = _r9egb1_coord(away=True)
+_lc_away._away_state.override_return_iso = (
+    _r9egb1_cmod.dt_util.now() + timedelta(hours=6)).isoformat()
+_lc_real_off_loop = _r9egb1_cmod._await_off_loop
+_lc_jobs = []
+
+
+async def _lc_switch_mid_estimate(hass, fn, *args):
+    _lc_jobs.append(fn.__name__)
+    await _lc_away.async_set_away(active=False, refresh=False)
+    return fn(*args)
+
+
+_r9egb1_cmod._await_off_loop = _lc_switch_mid_estimate
+try:
+    asyncio.run(_lc_away._resolve_away())
+finally:
+    _r9egb1_cmod._await_off_loop = _lc_real_off_loop
+R.check(
+    "D14-s1-01 the away recovery estimate is handed off the loop, and a switch "
+    "written during its await is not reverted by the resolve's publish",
+    _lc_jobs == ["estimate_recovery_hours"]
+    and _lc_away._away_state.override_active is False
+    and _lc_away._away_state.override_return_iso is None,
+    str((_lc_jobs, _lc_away._away_state)),
+)
+# The override expiry writes back, and persists, only an override that lapsed:
+# an unexpired one is read each cycle, never re-written and re-saved.
+_lc_exp = _r9egb1_coord(away=True)
+_lc_exp_now = _r9egb1_cmod.dt_util.now()
+_lc_exp._away_state.override_return_iso = (
+    _lc_exp_now + timedelta(hours=6)).isoformat()
+_lc_exp_saved = []
+
+
+def _lc_exp_spawn(coro):
+    _lc_exp_saved.append(coro.__qualname__)
+    coro.close()
+
+
+_lc_exp._spawn = _lc_exp_spawn
+_lc_exp_live = _lc_exp._expire_away_override(_lc_exp_now)
+_lc_exp_live_saved = list(_lc_exp_saved)
+_lc_exp_lapsed = _lc_exp._expire_away_override(_lc_exp_now + timedelta(hours=7))
+R.check(
+    "an unexpired away override is not re-persisted each cycle; a lapsed one "
+    "is cleared and saved once",
+    _lc_exp_live[0] is True
+    and _lc_exp_live_saved == []
+    and _lc_exp_lapsed == (False, None)
+    and _lc_exp_saved == ["persist_override"]
+    and _lc_exp._away_state.override_return_iso is None,
+    str((_lc_exp_live, _lc_exp_live_saved, _lc_exp_lapsed, _lc_exp_saved)),
 )
 # idle_reason is the production function the two classifiers call; a direct
 # call with nothing to go on is the null for a step the sub-codes cannot see.
@@ -62612,9 +63362,12 @@ def _sp_write(kw, slots, stale=()):
     states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
     for key in slots:
         config[key] = f"sensor.sp_{key}"
+        # A stale rung is a polled probe silent a day (#2234: one seen only
+        # on change holds its value at any age).
         states[config[key]] = FakeState(
             str(_SP_READ[key]), unit="°C",
-            last_updated=minutes_ago(24 * 60) if key in stale else None,
+            last_updated=minutes_ago(25 * 60) if key in stale else None,
+            last_reported=minutes_ago(24 * 60) if key in stale else None,
         )
     return _pa._flow_target(
         _PaNS(
@@ -64657,8 +65410,11 @@ R.check(
 
 def _fm_reader(cfg, flow_state, unit="L/min", flow_age_min=1):
     states = {
+        # Polled: re-reported ``flow_age_min`` ago (#2234's on-change flow
+        # holding 0 is current at any age).
         "sensor.flow": FakeState(
-            flow_state, last_updated=minutes_ago(flow_age_min, NOW), unit=unit
+            flow_state, last_updated=minutes_ago(flow_age_min + 3, NOW),
+            last_reported=minutes_ago(flow_age_min, NOW), unit=unit
         ),
         "sensor.sup": FakeState("45.0", last_updated=minutes_ago(1, NOW), unit="°C"),
         "sensor.ret": FakeState("40.0", last_updated=minutes_ago(1, NOW), unit="°C"),
@@ -65091,7 +65847,9 @@ def _fm_plant(coord, flow="15.0", unit="L/min", age_min=1):
     """Plant this cycle's three water states and run the production fold."""
     coord.hass.states.set(
         "sensor.flow",
-        FakeState(flow, last_updated=minutes_ago(age_min, NOW), unit=unit),
+        # Polled: re-reported ``age_min`` ago (#2234).
+        FakeState(flow, last_updated=minutes_ago(age_min + 3, NOW),
+                  last_reported=minutes_ago(age_min, NOW), unit=unit),
     )
     coord.hass.states.set(
         "sensor.sup",
@@ -67319,34 +68077,49 @@ for _sr_name in ("coordinator.py", "boost.py"):
                 getattr(_sr_arg.func, "attr", None) == "get_current_action":
             _sr_adopt_sites.append((_sr_name, _sr_node.lineno, "plan"))
             continue
-        _sr_keys = {
-            _k.value: _v for _k, _v in zip(
-                (_sr_arg.keys if isinstance(_sr_arg, _sr_ast.Dict) else []),
-                (_sr_arg.values if isinstance(_sr_arg, _sr_ast.Dict) else []),
-            ) if isinstance(_k, _sr_ast.Constant)
-        }
-        _sr_mode = (
-            _sr_keys["mode"].value
-            if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
-            else None
-        )
-        _sr_adopt_sites.append(
-            (_sr_name, _sr_node.lineno, _sr_mode,
-             all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
-        )
-        for _sr_key in ("space_reason", "dhw_reason"):
-            _sr_value = _sr_keys.get(_sr_key)
-            _sr_code = (
-                getattr(_sr_mod, _sr_value.id, None)
-                if isinstance(_sr_value, _sr_ast.Name)
-                else _sr_value.value
-                if isinstance(_sr_value, _sr_ast.Constant)
+        # A builder method (``_fixed_mode_action``) hands over one of its own
+        # mode-keyed dict literals, so each of those is a site.
+        _sr_dicts = [_sr_arg]
+        if isinstance(_sr_arg, _sr_ast.Call):
+            _sr_dicts = [
+                _d for _f in _sr_ast.walk(_sr_tree)
+                if isinstance(_f, _sr_ast.FunctionDef)
+                and _f.name == getattr(_sr_arg.func, "attr", None)
+                for _d in _sr_ast.walk(_f)
+                if isinstance(_d, _sr_ast.Dict) and any(
+                    isinstance(_k, _sr_ast.Constant) and _k.value == "mode"
+                    for _k in _d.keys
+                )
+            ] or [_sr_arg]
+        for _sr_dict in _sr_dicts:
+            _sr_keys = {
+                _k.value: _v for _k, _v in zip(
+                    (_sr_dict.keys if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                    (_sr_dict.values if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                ) if isinstance(_k, _sr_ast.Constant)
+            }
+            _sr_mode = (
+                _sr_keys["mode"].value
+                if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
                 else None
             )
-            if _sr_code not in _sr_vocab:
-                _sr_unvocab.append((_sr_name, _sr_node.lineno, _sr_key, _sr_code))
-            elif _sr_key == "space_reason":
-                _sr_causes.add(_sr_code)
+            _sr_adopt_sites.append(
+                (_sr_name, _sr_dict.lineno, _sr_mode,
+                 all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
+            )
+            for _sr_key in ("space_reason", "dhw_reason"):
+                _sr_value = _sr_keys.get(_sr_key)
+                _sr_code = (
+                    getattr(_sr_mod, _sr_value.id, None)
+                    if isinstance(_sr_value, _sr_ast.Name)
+                    else _sr_value.value
+                    if isinstance(_sr_value, _sr_ast.Constant)
+                    else None
+                )
+                if _sr_code not in _sr_vocab:
+                    _sr_unvocab.append((_sr_name, _sr_dict.lineno, _sr_key, _sr_code))
+                elif _sr_key == "space_reason":
+                    _sr_causes.add(_sr_code)
 _sr_fixed = {s[2] for s in _sr_adopt_sites if isinstance(s[2], str)}
 _sr_dict_sites = [
     s for s in _sr_adopt_sites if isinstance(s[2], str) and s[2] != "plan"
@@ -67414,6 +68187,414 @@ R.check(
     and abs(sum(e["kwh"] for e in _sr_lines.values()) - _sr_flat_spot["kwh"]) < 1e-9
     and abs(sum(e["sek"] for e in _sr_lines.values()) - _sr_flat_spot["sek"]) < 1e-9,
     f"unit costs={_sr_units} price={_sr_flat_price} lines={_sr_lines}",
+)
+
+
+# --- R10-LIVESTATE: live state copied, then published whole (#2232, #2248) ---
+# D1-s1-02 is a mode written while the solve thread runs: the in-flight AUTO
+# plan used to be adopted over it. L3 is the startup restore racing a user
+# write across its store-load await. The rest pin the publish shape: a reader
+# holding the state keeps its snapshot, and a write landing inside an await
+# is never reverted by the awaiting publisher.
+import asyncio as _ls_aio  # noqa: E402
+
+from heatpump_optimizer import coordinator as _ls_cmod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_AUTO as _LS_AUTO,
+    MODE_BOOST as _LS_BOOST,
+    MODE_COMFORT as _LS_COMFORT,
+    MODE_OFF as _LS_OFF,
+)
+from heatpump_optimizer.manual_plan import ManualOverride as _LsOverride  # noqa: E402
+from harness import FakeEntry as _LsEntry, FakeHass as _LsHass  # noqa: E402
+
+
+async def _ls_mode_midsolve(target, *, rerun=False, back_to=None):
+    """One AUTO solve with ``target`` written inside its executor await;
+    ``rerun`` records a mid-solve input change first, ``back_to`` returns the
+    mode before the solve lands. Returns (coord, solves started)."""
+    coord = _solve_coord()
+    coord._mode = _LS_AUTO
+    real = _ls_cmod._await_optimize
+    solves = []
+
+    async def _mid(*args, **kwargs):
+        solves.append(1)
+        result = await real(*args, **kwargs)
+        if len(solves) == 1:
+            if rerun:
+                await coord.async_run_optimization()
+            await coord.async_set_mode(target, refresh=False)
+            if back_to is not None:
+                await coord.async_set_mode(back_to, refresh=False)
+        return result
+
+    _ls_cmod._await_optimize = _mid
+    try:
+        await coord.async_run_optimization()
+    finally:
+        _ls_cmod._await_optimize = real
+    return coord, len(solves)
+
+
+_ls_mid = {t: _ls_aio.run(_ls_mode_midsolve(t)) for t in (_LS_COMFORT, _LS_BOOST, _LS_OFF)}
+R.check(
+    "D1-s1-02: a comfort, boost or off write inside the solve await is the "
+    "action that runs; the AUTO plan is not adopted and files no lead prediction",
+    all(
+        c._current_action.get("mode") == t
+        and c._optimization_result is None
+        and not c._accuracy.lead_pending
+        and not c._dhw_accuracy.lead_pending
+        for t, (c, _n) in _ls_mid.items()
+    ),
+    str({t: (c._current_action.get("mode"), c._optimization_result is None,
+             len(c._accuracy.lead_pending)) for t, (c, _n) in _ls_mid.items()}),
+)
+_ls_auto, _ls_auto_n = _ls_aio.run(_ls_mode_midsolve(_LS_AUTO))
+R.check(
+    "D1-s1-02 null: a solve whose mode stays AUTO adopts its plan and files "
+    "its lead predictions",
+    _ls_auto._optimization_result is not None and bool(_ls_auto._accuracy.lead_pending),
+    f"result={_ls_auto._optimization_result is not None} "
+    f"pending={len(_ls_auto._accuracy.lead_pending)}",
+)
+_ls_drop, _ls_drop_n = _ls_aio.run(_ls_mode_midsolve(_LS_COMFORT, rerun=True))
+_ls_trip, _ls_trip_n = _ls_aio.run(
+    _ls_mode_midsolve(_LS_COMFORT, rerun=True, back_to=_LS_AUTO))
+R.check(
+    "a re-run requested mid-solve is dropped when a fixed mode superseded the "
+    "solve, and kept across an AUTO -> COMFORT -> AUTO round trip",
+    _ls_drop_n == 1 and _ls_drop._current_action.get("mode") == _LS_COMFORT
+    and _ls_trip_n == 2 and _ls_trip._optimization_result is not None,
+    f"superseded solves={_ls_drop_n} mode={_ls_drop._current_action.get('mode')}; "
+    f"round trip solves={_ls_trip_n}",
+)
+
+
+async def _ls_fixed_cycle(mode):
+    coord = _solve_coord()
+    coord._mode = mode
+    seen = []
+    real = boost_mod.adopt_plan
+
+    def _spy(c, action):
+        seen.append("price" in action)
+        real(c, action)
+
+    boost_mod.adopt_plan = _spy
+    try:
+        await coord._async_update_data()
+    finally:
+        boost_mod.adopt_plan = real
+    return seen
+
+
+_ls_priced = {m: _ls_aio.run(_ls_fixed_cycle(m)) for m in (_LS_COMFORT, _LS_BOOST, _LS_OFF)}
+R.check(
+    "ARCH2-s2 P2: a fixed mode's action reaches boost.adopt_plan already "
+    "priced, so no field is written onto the plan base afterwards",
+    all(seen == [True] for seen in _ls_priced.values()),
+    str(_ls_priced),
+)
+
+
+def _ls_comfort_displace(displace_max):
+    coord = _solve_coord()
+    coord._mode = _LS_COMFORT
+    coord._ecl110_displace_max = displace_max
+    return coord._fixed_mode_action()["displace_value"]
+
+
+_ls_comfort_wide = _ls_comfort_displace(8.0)
+_ls_comfort_narrow = _ls_comfort_displace(2.5)
+R.check(
+    "comfort's fixed action displaces 4 K, held inside a narrower configured "
+    "ECL110 displace window",
+    _ls_comfort_wide == 4.0 and _ls_comfort_narrow == 2.5,
+    f"max 8.0 -> {_ls_comfort_wide}; max 2.5 -> {_ls_comfort_narrow}",
+)
+
+
+class _LsMsg:
+    def __init__(self, payload):
+        self.payload = payload
+
+
+def _ls_guard_coord():
+    return Coord(_LsHass({
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }), _LsEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "peak_guard_enabled": True, "house_power_entity": "sensor.house_power",
+        "main_fuse_amperes": 16.0, "main_fuse_phases": 1,
+    }))
+
+
+def _ls_engage_guard(coord):
+    from heatpump_optimizer.power_guard import MIN_EVENT_SPACING_S as _spacing
+
+    event = _NS(data={"new_state": FakeState("6500", unit="W")})
+    coord._on_power_event(event)
+    coord._peak_guard._last_event -= timedelta(seconds=_spacing + 1)
+    coord._guard_last_fold -= timedelta(seconds=_spacing + 1)
+    coord._on_power_event(event)
+
+
+_ls_held_c = _ls_guard_coord()
+_ls_held = _ls_held_c._current_state
+_ls_held_before = (_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace,
+                   _ls_held.peak_guard_active)
+_ls_held_c._async_handle_ecl110_state_message(
+    _LsMsg('{"displace": -2.5, "effective_displace": -1.5}'))
+_ls_engage_guard(_ls_held_c)
+_ls_live = _ls_held_c._current_state
+R.check(
+    "ARCH2-s2 P4: an ECL110 message and a peak-guard flip publish a new state; "
+    "a state held before them keeps its values",
+    (_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace,
+     _ls_held.peak_guard_active) == _ls_held_before
+    and _ls_live is not _ls_held
+    and (_ls_live.ecl110_displace_command, _ls_live.ecl110_effective_displace,
+         _ls_live.peak_guard_active) == (-2.5, -1.5, True),
+    f"held={(_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace, _ls_held.peak_guard_active)} "
+    f"before={_ls_held_before} live={(_ls_live.ecl110_displace_command, _ls_live.ecl110_effective_displace, _ls_live.peak_guard_active)}",
+)
+
+
+async def _ls_events_inside_learners():
+    """An ECL110 message inside the legionella await and a guard flip inside
+    the house-loss await of one ``_update_current_state``."""
+    coord = _ls_guard_coord()
+    coord._current_action["displace_value"] = 2.0
+    track, learn = coord._legionella.async_track_cycle, coord._async_learn_house_heat_loss
+
+    async def _track(*args, **kwargs):
+        coord._async_handle_ecl110_state_message(
+            _LsMsg('{"displace": -2.5, "effective_displace": -1.5}'))
+        return await track(*args, **kwargs)
+
+    async def _learn(*args, **kwargs):
+        _ls_engage_guard(coord)
+        return await learn(*args, **kwargs)
+
+    coord._legionella.async_track_cycle = _track
+    coord._async_learn_house_heat_loss = _learn
+    await coord._update_current_state()
+    expect = coord._thermal_model.update_ecl110_displace_state(
+        ThermalState(ecl110_effective_displace=-1.5), 2.0,
+        coord._opt_config.dt_hours).ecl110_effective_displace
+    return coord._current_state, expect
+
+
+_ls_ev_state, _ls_ev_expect = _ls_aio.run(_ls_events_inside_learners())
+R.check(
+    "I1/I3: an ECL110 message and a peak-guard flip landing inside "
+    "_update_current_state's learner awaits survive its later publishes "
+    "(the lag starts from the message's value)",
+    _ls_ev_state.peak_guard_active is True
+    and abs(_ls_ev_state.ecl110_effective_displace - _ls_ev_expect) < 1e-12
+    and _ls_ev_expect != -1.5,
+    f"guard={_ls_ev_state.peak_guard_active} effective="
+    f"{_ls_ev_state.ecl110_effective_displace} expected lag from -1.5={_ls_ev_expect}",
+)
+
+
+class _LsRestoreHass(_LsHass):
+    """Runs the session restore the constructor spawns as a real task and
+    closes every other spawn, so the store loads the checks gate are the
+    restore's own."""
+
+    def __init__(self):
+        super().__init__()
+        self.restores = []
+
+    def async_create_task(self, coro, name=None, eager_start=None):
+        if getattr(coro, "__name__", "") != "restore_session":
+            coro.close()
+            return None
+        task = _ls_aio.get_running_loop().create_task(coro)
+        self.restores.append(task)
+        return task
+
+
+_LS_STORED_AWAY = {"active": True, "return_time": None, "migrated_helpers": True}
+
+
+async def _ls_restore_race(scenario, interleaved):
+    """L3: the restore's two store loads are held on an event; the writer runs
+    inside them (``interleaved``) or after the restore (the serial order)."""
+    gate = _ls_aio.Event()
+    now = dt_util.now()
+    stored = {"away": dict(_LS_STORED_AWAY),
+              "boost": {"space": {"until": (now + timedelta(hours=1)).isoformat()}}}
+
+    async def _load(store, what):
+        await gate.wait()
+        return dict(stored["away" if "away" in what else "boost"])
+
+    async def _nop(*args, **kwargs):
+        return None
+
+    saved = (away_mode.load_mapping, boost_mod.load_mapping,
+             away_mode.persist_override, boost_mod.persist)
+    away_mode.load_mapping = boost_mod.load_mapping = _load
+    away_mode.persist_override = boost_mod.persist = _nop
+    try:
+        hass = _LsRestoreHass()
+        coord = Coord(hass, _LsEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+        async def _writer():
+            if scenario == "away_off":
+                await coord.async_set_away(active=False, refresh=False)
+            elif scenario == "boost_cancel":
+                await boost_mod.set_channel(coord, boost_mod.CHANNEL_SPACE, False, refresh=False)
+            else:
+                old = coord._away_state
+                coord._away_state = away_mode.AwayState(
+                    override_active=old.override_active,
+                    override_return_iso=old.override_return_iso)
+
+        if interleaved:
+            writer = _ls_aio.ensure_future(_writer())
+            for _ in range(3):
+                await _ls_aio.sleep(0)
+            gate.set()
+            await hass.restores[0]
+            await _ls_aio.wait_for(writer, 1.0)
+        else:
+            gate.set()
+            await hass.restores[0]
+            await _writer()
+        if scenario == "boost_cancel":
+            return boost_mod.held_for(coord).active(boost_mod.CHANNEL_SPACE, dt_util.now())
+        return coord._away_state.override_active
+    finally:
+        (away_mode.load_mapping, boost_mod.load_mapping,
+         away_mode.persist_override, boost_mod.persist) = saved
+
+
+_ls_race = {
+    s: (_ls_aio.run(_ls_restore_race(s, False)), _ls_aio.run(_ls_restore_race(s, True)))
+    for s in ("away_off", "boost_cancel", "replace")
+}
+R.check(
+    "L3: an away-off, a boost cancel and a live-state replacement written "
+    "inside the startup restore's load each end as the serial order does",
+    all(serial == inter for serial, inter in _ls_race.values())
+    and _ls_race["away_off"][0] is False and _ls_race["boost_cancel"][0] is False
+    and _ls_race["replace"][0] is True,
+    str(_ls_race),
+)
+
+
+async def _ls_unstarted_restore(cancel):
+    """The restore never runs a step: closed by the stub spawn, or its task
+    cancelled before its first step. A user writer must not wait forever."""
+    if cancel:
+        hass = _LsRestoreHass()
+        coord = Coord(hass, _LsEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+        hass.restores[0].cancel()
+    else:
+        coord = _t1_coord()
+    try:
+        await _ls_aio.wait_for(coord.async_set_away(active=True, refresh=False), 1.0)
+        await _ls_aio.wait_for(boost_mod.set_channel(
+            coord, boost_mod.CHANNEL_SPACE, True, refresh=False), 1.0)
+    except TimeoutError:
+        return False
+    return coord._away_state.override_active is True
+
+
+R.check(
+    "the restore gate settles when the restore never starts (closed, or "
+    "cancelled before its first step): a user write still lands",
+    _ls_aio.run(_ls_unstarted_restore(False)) and _ls_aio.run(_ls_unstarted_restore(True)),
+)
+
+
+class _LsPlanStore:
+    """A manual-plan store whose load is held on an event; its read future
+    is registered on the load's first step, as ``QuarantiningStore`` does."""
+
+    def __init__(self, gate, data):
+        self.gate, self.data, self.reading = gate, data, None
+
+    async def async_load(self):
+        self.reading = _ls_aio.get_running_loop().create_future()
+        await self.gate.wait()
+        self.reading.set_result(None)
+        return dict(self.data)
+
+    async def async_wait_for_read(self):
+        if self.reading is not None:
+            await _ls_aio.shield(self.reading)
+
+    async def async_save(self, data):
+        return None
+
+
+async def _ls_manual_race(action):
+    gate = _ls_aio.Event()
+    now = dt_util.now()
+    coord = _t1_coord()
+    coord._manual_plan_store = _LsPlanStore(gate, {
+        "active": True, "expires_at": (now + timedelta(hours=6)).isoformat(),
+        "space_slots": [], "dhw_slots": [], "released_space": [], "released_dhw": []})
+
+    async def _no_refresh():
+        return None
+
+    coord.async_request_refresh = _no_refresh
+    mine = _LsOverride(space_slots=None, dhw_slots=None, expires_at=now + timedelta(hours=2))
+    load = _ls_aio.ensure_future(coord._async_load_manual_plan())
+    await _ls_aio.sleep(0)
+    write = _ls_aio.ensure_future(
+        coord.async_clear_manual_plan() if action == "clear"
+        else coord.async_apply_manual_plan(mine))
+    await _ls_aio.sleep(0)
+    gate.set()
+    await load
+    await write
+    return coord._manual_override is (None if action == "clear" else mine)
+
+
+R.check(
+    "a manual-plan clear and an apply made during the startup load each "
+    "survive it",
+    _ls_aio.run(_ls_manual_race("clear")) and _ls_aio.run(_ls_manual_race("apply")),
+)
+
+
+async def _ls_tile_cancel():
+    coord = _t2_coord(price_tiles_enabled=True)
+    record = _solve_record_now(coord)
+    specs = price_tiles.specs(record.config, record.params.max_electrical_power)
+    seen = []
+
+    async def _sim(overrides, limited=True, base=None):
+        seen.append(overrides)
+        if len(seen) == 1:
+            raise _ls_aio.CancelledError
+        return {"monthly_held_cost_delta": -1.0, "min_room_temperature": 20.0}
+
+    coord.async_simulate = _sim
+    try:
+        await coord._maybe_refresh_price_tile(record)
+    except _ls_aio.CancelledError:
+        pass
+    await coord._maybe_refresh_price_tile(record)
+    return [dict(o) for o in seen], [dict(o) for _n, o in specs]
+
+
+_ls_tiles_seen, _ls_tiles_specs = _ls_aio.run(_ls_tile_cancel())
+R.check(
+    "ARCH2-s2 P6: a cancelled tile solve skips its spec on this pass, so the "
+    "next solve takes the next spec (behaviour change, stated in the PR)",
+    _ls_tiles_seen == _ls_tiles_specs[:2],
+    f"seen={_ls_tiles_seen} specs={_ls_tiles_specs[:2]}",
 )
 
 

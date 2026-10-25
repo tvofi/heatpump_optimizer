@@ -30,6 +30,7 @@
 // exit 0: no disagreement, no unregistered or dead grammar, no refusal.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -330,6 +331,38 @@ const PAIRS = [
       return { 'strings.json entity section': (k) => a[k] ?? null, 'translations/en.json entity section': (k) => b[k] ?? null }
     },
   },
+  {
+    concept: 'attribution',
+    what: "the tool attribution a text carries (R10-FLY-NO-FOOTERS): ref_privacy.py ATTRIBUTION (the push guard, on commit messages and comment bodies) against policy_lint.mjs attributionClasses (the body contract, kept there because pr-contract runs only the base's programs)",
+    async corpus() {
+      return Object.keys(py('attribution')).map((t) => [t, t])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('attribution')
+      return { 'ref_privacy.py attribution': (t) => rows[t], 'policy_lint.mjs attributionClasses': (t) => pl.attributionClasses(t) }
+    },
+  },
+  {
+    concept: 'raise-justification',
+    what: "whether a pull-request body is refused on its `## Raise justification` (Triage P-F): budget_raise_gate.py justification (the budget-raise-gate check, at merge) against policy_lint.mjs raiseJustification (the body contract), which runs the gate's own --check-body but finds the heading itself, so the heading test is the one part that can drift",
+    async corpus() {
+      return Object.keys(py('raise_justification')).map((b, i) => [`body ${i} ${JSON.stringify(b.slice(0, 30))}`, b])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('raise_justification')
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agreement-raise-'))
+      let n = 0
+      const lint = (b) => {
+        const f = path.join(dir, `body-${n++}.md`)
+        fs.writeFileSync(f, b)
+        return pl.raiseJustification(f, b) !== null
+      }
+      return { 'budget_raise_gate.py justification': (b) => rows[b], 'policy_lint.mjs raiseJustification': lint,
+        cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+    },
+  },
 ]
 
 // ---- discovery ---------------------------------------------------------------
@@ -367,6 +400,10 @@ const SHARED_GRAMMARS = {
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
+  // R10-CI-LAYOUT P2b (integration): three grammars the layout units shared.
+  "[0-9a-f]{40}": "not-a-concept:the full commit-SHA shape, policy_lint.mjs's head check and ci_probe.py's probe-push guard",
+  "DERIVED=\\$\\(.*?\\)": "identical:coverage_tree.sh's DERIVED line extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
+  "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
 }
 
 function governanceCode() {

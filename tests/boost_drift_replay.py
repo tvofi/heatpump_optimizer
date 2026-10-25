@@ -203,7 +203,7 @@ def start_state(two_zone: bool = False) -> dict:
         target_temp=21.0, min_temp=20.0, max_temp=23.0,
     )
     return {
-        "coord": coord, "ctx": ctx, "house": house, "two_zone": two_zone,
+        "coord": coord, "house": house, "two_zone": two_zone,
         "optimizer": HeatPumpOptimizer(coord._thermal_model, opt_cfg),
         "house_state": ThermalState(
             room_temperature=20.5, outdoor_temperature=-6.0,
@@ -221,7 +221,7 @@ def cycle(st: dict, i: int, surface: str) -> None:
     """One 30-minute cycle of the replay, in production order."""
     import asyncio
 
-    coord, ctx, house = st["coord"], st["ctx"], st["house"]
+    coord, house = st["coord"], st["house"]
     two_zone = st["two_zone"]
     house_state = st["house_state"]
     t = START + timedelta(minutes=i * DT_MIN)
@@ -254,6 +254,8 @@ def cycle(st: dict, i: int, surface: str) -> None:
     # -- learners replay the elapsed interval ------------------------------
     n0 = coord._house_heat_loss_samples
     asyncio.run(coord._update_current_state())
+    # Read after the cycle: the live state is published whole, not mutated.
+    ctx = getattr(coord, "_ctx", coord)
     if coord._house_heat_loss_samples > n0:
         if window_frozen(day_index, h_now):
             st["folds_frozen"] += 1

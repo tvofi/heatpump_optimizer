@@ -271,7 +271,7 @@ set_pr_body() { # pr number, body file -> 0 set and read back, 1 write failed, 2
 RP_GUARD="$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py"
 push_branch() {
   python3 -I "$RP_GUARD" guard --ref "$BR" --commits HEAD \
-    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }
+    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310) or a tool's attribution"; exit 5; }
   git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
   say ok "push" "origin/$BR at $(git rev-parse --short HEAD)"
 }

@@ -4,7 +4,7 @@
     python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
     python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
-                                                     [--commits <rev> [-C <dir>]]
+                                                     [--commits <rev> [--over <base>] [-C <dir>]]
     python3 -I tools/audit/seat/ref_privacy.py scrub [--write] <file>...  (this host's spans, in place)
     python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
     python3 -I tools/audit/seat/ref_privacy.py --self-test
@@ -32,7 +32,10 @@ None. Every instrument that composes a ref name or a commit message from a value
 it does not fix itself calls it before `git push`; the `guard` subcommand is the
 shell callers' form, and `--commits <rev>` adds the message, and the author
 and committer email, of every commit under <rev> that no remote-tracking ref
-already holds -- the ones the push publishes for the first time. A refusal
+already holds -- the ones the push publishes for the first time; `--over
+<base>` widens that to every commit under <rev> that <base> does not hold, so a
+commit first published on another ref (a ci-probe/* or handoff/* push) is
+judged when a pull request carries it (R10-FLY-NO-FOOTERS-PUSH-PATHS). A refusal
 names its class and where, never the matched text. Text is judged as written
 and URL-decoded once (`%2FUsers%2F<name>`). The classes, judged against the
 host's own identity (`Identity.of_host`: $HOME, its resolved path, the passwd
@@ -52,6 +55,11 @@ hostname):
                   (`.local`, `.lan`, `.internal`, ...) or this host's own
                   name -- git's default identity is <user>@<hostname>. A
                   public domain passes, so a noreply address does.
+Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
+(a session link, a session or co-author trailer, the generated-by footer): no
+host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
+guard judges only what the push publishes first, or what a pull request adds
+over `--over`, so main's history is never charged.
 The accounts `root`, `runner` and `user`, and names under three characters, are
 not judged: the first three are the fixed accounts of a container, the CI
 runner and the cloud seat image, public by construction, and a shorter name
@@ -201,6 +209,33 @@ def leaks(text: str, ident: Identity) -> list[str]:
 
 CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "host-path")
 
+#: TOOL ATTRIBUTION (R10-FLY-NO-FOOTERS). The owner's ruling (tvofi,
+#: 2026-10-22): "please have your seats not post claude code footers,
+#: especially not with direct links to sessions", then "make this ban
+#: persistent". .claude/settings.json's `attribution` turns the harness's own
+#: lines off; these are the refusal for a seat that writes them anyway. Judged
+#: on what a push or a post publishes -- a commit message, a comment body --
+#: never on tracked content, since the tree names these lines to forbid them.
+#: A trailer is a trailer only at the start of a line, as git reads one, so
+#: prose quoting one mid-line passes. policy_lint.mjs's body contract keeps the
+#: second reader (pr-contract runs only the base's programs, and this file is
+#: not one); agreement.mjs's `attribution` pair holds the two to one answer, so
+#: both read on the same terms: ASCII case folding, explicit word edges, and
+#: \r, \r\n, U+2028 and U+2029 read as \n, where JavaScript's `^` opens a line.
+ATTRIBUTION = (
+    ("session-link", r"claude\.ai/code/session_"),
+    ("session-trailer", r"^[ \t]*Claude-Session[ \t]*:"),
+    ("co-author-trailer", r"^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])"),
+    ("generated-footer", r"^[^A-Za-z0-9\n]*Generated (?:with|by) \[?Claude Code(?![A-Za-z0-9_])"),
+)
+_ATTRIBUTION = tuple((c, re.compile(p, re.I | re.M | re.A)) for c, p in ATTRIBUTION)
+
+
+def attribution(text: str) -> list[str]:
+    """The attribution classes `text` carries, in a fixed order."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\u2028", "\n").replace("\u2029", "\n")
+    return [c for c, r in _ATTRIBUTION if r.search(text)]
+
 
 def email_leaks(email: str, ident: Identity) -> list[str]:
     """`host-email` when a git identity's domain names a machine: a private-use
@@ -228,7 +263,8 @@ def _leaks(text: str, ident: Identity) -> list[str]:
 
 
 def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> str | None:
-    """Why pushing `ref` with these commit messages and identities would publish the host, or None."""
+    """Why pushing `ref` with these commit messages and identities would publish the host,
+    or a message carries a tool's attribution, or None."""
     ident = ident or Identity.of_host()
     why = leaks(ref, ident)
     if not _REF_CHARS.match(ref):
@@ -236,7 +272,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
     if why:
         return f"{', '.join(why)} in the ref name"
     for where, msg in messages:
-        why = leaks(msg, ident)
+        why = leaks(msg, ident) + attribution(msg)
         if why:
             return f"{', '.join(why)} in {where}"
     for where, email in emails:
@@ -253,8 +289,9 @@ BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
 
 
 def body_refusal(text: str, ident: Identity | None = None) -> str | None:
-    """Why posting this comment or review body would publish this host, or None."""
-    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES]
+    """Why posting this comment or review body would publish this host, or carries a
+    tool's attribution, or None."""
+    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES] + attribution(text)
     return f"{', '.join(why)} in the body" if why else None
 
 
@@ -291,13 +328,16 @@ def slug(path: str, roots=(), ident: Identity | None = None) -> str:
     return cand
 
 
-def published(rev: str, cwd: str | None = None) -> tuple[list, list]:
+def published(rev: str, cwd: str | None = None, over: str | None = None) -> tuple[list, list]:
     """(messages, emails), each a list of (where, text), for every commit under
-    `rev` that no remote-tracking ref holds: what the push publishes first."""
-    out = subprocess.run(["git", "log", "--format=%H%x1f%ae%x1f%ce%x1f%B%x1e", rev, "--not", "--remotes"],
+    `rev` that no remote-tracking ref holds: what the push publishes first. With
+    `over`, every commit under `rev` that `over` does not hold instead: what a
+    pull request adds over its base, wherever each commit was first published."""
+    fence = ["--remotes"] if over is None else [over]
+    out = subprocess.run(["git", "log", "--format=%H%x1f%ae%x1f%ce%x1f%B%x1e", rev, "--not", *fence],
                          cwd=cwd, capture_output=True, text=True)
     if out.returncode != 0:
-        raise RuntimeError(f"git log {rev} --not --remotes exited {out.returncode}")
+        raise RuntimeError(f"git log {rev} --not {fence[0]} exited {out.returncode}")
     messages, emails = [], []
     for rec in out.stdout.split("\x1e"):
         rec = rec.strip("\n")
@@ -314,7 +354,7 @@ def published(rev: str, cwd: str | None = None) -> tuple[list, list]:
 GUARDED = "guarded"
 PUSHERS = {
     "tools/audit/seat/wt_sync.sh": (GUARDED, "the #2310 instrument: a slug from slug(), both pushes guarded"),
-    "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument, message composed from it"),
+    "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument; the commit it publishes, read back"),
     "tools/audit/seat/heartbeat.sh": (GUARDED, "the constant ref heartbeat/orchestrator, message from --message; "
                                       "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/bus.sh": (GUARDED, "_post's ref from family and number, message from the caller; "
@@ -329,6 +369,8 @@ PUSHERS = {
     "tools/release/stamp.py": (GUARDED, "the stamp commit's message carries the --title argument"),
     "tools/audit/seat/prune_refs.py": (GUARDED, "writes archive/<branch> tags through gh api git/refs: "
                                        "a permanent name from a branch it does not fix (round 2)"),
+    "tools/audit/seat/ci_probe.py": (GUARDED, "pushes only ci-probe/<name> refs, the name and the log line through "
+                                     "ref_privacy.refusal; its self-test pushes go to a temp bare repository"),
     "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
                                    "a name the remote already holds, under the constant SUBJECT"),
     "tools/audit/seat/merge_train.py": ("republishes", "deletes merged branches the remote already "
@@ -338,16 +380,22 @@ PUSHERS = {
     ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
                                       "record/autofix or main (nightly kills), moved out of tests.yml"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
+    "tools/audit/seat/ledger.py": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
+                                   "the ledger itself only reads refs (ls-remote, fetch)"),
     "tools/audit/seat/review_strength.py": ("fixture", "its one push is the --fetch self-test's, into a temp "
                                             "bare repository; the tool itself only fetches"),
     "tools/audit/seat/pr_args.sh": ("fixture", "its self-test's stub app_push.sh pushes the branch it is given "
                                     "into a scratch origin repository; the file pushes nothing else"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
                                                 "temp bare repository"),
+    "tools/pr/prepr.sh": ("fixture", "its pushes are the --self-test's handoff/zz-lint probe heads, into "
+                          "the temp bare repository its origin is pointed at; prepr itself only reads"),
     ".github/workflows/release.yml": ("shape-checked", "`gh release create` makes the tag on origin, and the "
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    "tools/audit/seat/gh_read.py": ("fixture", "its self-test's `gh api` ref-write argvs are strings fed to "
+                                    "is_read, which must refuse them; the module runs no subprocess"),
     "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
                                            "(a roster branch tail), ref_privacy.refusal on the ref and message; "
                                            "its reviewer prompt names probe/rev-<pr>-<nonce8> from a PR number "
@@ -407,10 +455,17 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
     return out
 
 
-def grep(ref: str) -> list[tuple[str, int, str]]:
-    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b|git/(refs|tags)|createRef|updateRef|release +create|/releases", ref, "--",
+# The prefilter is strict POSIX ERE, no backslash escape at all: `git grep -E`
+# hands it to the platform's regcomp, and BSD's (macOS) has no `\b`, so a
+# `\bpush\b` there matched nothing a GNU seat's matched (#2554). The word
+# boundaries are `_SITE`'s, in Python's re on every platform; this only narrows.
+_GREP_PATTERN = "push|git/(refs|tags)|createRef|updateRef|release +create|/releases"
+
+
+def grep(ref: str, root: Path = ROOT) -> list[tuple[str, int, str]]:
+    out = subprocess.run(["git", "grep", "-n", "-I", "-E", _GREP_PATTERN, ref, "--",
                           "tools", ".claude/workflows", ".github/workflows"],
-                         cwd=ROOT, capture_output=True, text=True)
+                         cwd=root, capture_output=True, text=True)
     if out.returncode not in (0, 1):
         raise RuntimeError(f"git grep exited {out.returncode}: {out.stderr.strip()}")
     lines = []
@@ -652,6 +707,31 @@ def self_test() -> int:
     ok("home_relative: under the home is ~/<rest>; outside it, or a sibling sharing its prefix, unchanged",
        home_relative(fake_home + "/.zcode/bus/x", fake_home) == "~/.zcode/bus/x"
        and home_relative("/srv/x", fake_home) == "/srv/x" and home_relative(fake_home + "s/x", fake_home) == fake_home + "s/x")
+    # R10-FLY-NO-FOOTERS: a tool's attribution in a message or a body. The
+    # planted lines are built, so this file states no footer of its own.
+    sess = "https://claude.ai/code/" + "session_011AbC"
+    footer = {"session-link": "fix: x\n\nsee " + sess + "\n",
+              "session-trailer": "fix: x\n\n" + "Claude-" + "Session: " + sess + "\n",
+              "co-author-trailer": "fix: x\n\n" + "Co-Authored-" + "By: Claude Opus 5.5 <noreply@anthropic.com>\n",
+              "generated-footer": "body\n\n\U0001f916 " + "Generated with [Claude Code](https://claude.com/claude-code)\n"}
+    for cls, msg in footer.items():
+        ok(f"a planted {cls} is its class", cls in attribution(msg), str(attribution(msg)))
+        ok(f"and the guard refuses a message carrying it, naming the message ({cls})",
+           (refusal("fix/x", (("the message", msg),), fid) or "").endswith("in the message"),
+           str(refusal("fix/x", (("the message", msg),), fid)))
+        ok(f"and a comment body carrying it ({cls})", cls in (body_refusal(msg, fid) or ""))
+    ok("the comment footer, italic and linked, is the generated-footer class",
+       attribution("LGTM\n\n---\n_" + "Generated by [Claude Code](https://claude.ai/code)_\n") == ["generated-footer"])
+    ok("a trailer after a bare carriage return is still at a line's start",
+       attribution("fix: x\r" + "Claude-" + "Session: y") == ["session-trailer"])
+    plain = ("fix: an ordinary commit\n\nCloud docs: https://claude.ai/code and claude.ai/code/artifact/x; "
+             "the ban names the `Claude-" + "Session:` trailer and the `Generated with Claude Code` line mid-line.\n\n"
+             "Co-Authored-" + "By: Someone Else <s@example.com>\n")
+    ok("an ordinary commit naming claude.ai in another sense, and quoting the trailers mid-line, passes "
+       "(the null control)", attribution(plain) == [] and refusal("fix/x", (("the message", plain),), fid) is None
+       and body_refusal(plain, fid) is None, str(attribution(plain)))
+    ok("a ref name is not judged for attribution (the classes are a message's)",
+       "session" not in (refusal("fix/claude-session-trailer", (), fid) or ""))
     host = Identity.of_host()
     ok("the host identity reads a home and a hostname, and judges no public account",
        bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
@@ -697,6 +777,42 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
         ok("and passes it re-authored to the fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
+        # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
+        # trailer is refused, and the same trailer on a commit origin already
+        # holds is history, never charged.
+        g("commit", "-q", "--allow-empty", "-m", footer["session-trailer"])
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("the guard CLI refuses an unpushed commit carrying a session trailer, exit 3, never echoing the link",
+           r.returncode == 3 and "session-link, session-trailer in the message of" in r.stderr
+           and sess not in r.stderr, r.stderr.strip())
+        g("push", "-q", "origin", "HEAD:main")
+        g("fetch", "-q", "origin")
+        g("commit", "-q", "--allow-empty", "-m", "clean commit on top")
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes once that commit is history origin holds (the null control: main is not charged)",
+           r.returncode == 0, r.stderr.strip())
+        # R10-FLY-NO-FOOTERS-PUSH-PATHS: a trailer commit first published on a
+        # ci-probe/* ref is not first-published by the pull request's push, so
+        # only --over <base> judges it; main's own trailer above stays uncharged.
+        def guard(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                   *a, "-C", seat], env=env, capture_output=True, text=True)
+        g("commit", "-q", "--allow-empty", "-m", footer["co-author-trailer"])
+        g("push", "-q", "origin", "HEAD:refs/heads/ci-probe/x")
+        g("fetch", "-q", "origin")
+        r = guard("--commits", "HEAD")
+        ok("a trailer commit origin holds on ci-probe/x passes the first-publish scope (the hole)",
+           r.returncode == 0, r.stderr.strip())
+        r = guard("--commits", "HEAD", "--over", "origin/main")
+        ok("--over origin/main refuses it, exit 3", r.returncode == 3
+           and "co-author-trailer in the message of" in r.stderr, r.stderr.strip())
+        r = guard("--commits", "HEAD~1", "--over", "origin/main")
+        ok("and passes the clean commit below it, over main's own trailer (the null control)",
+           r.returncode == 0, r.stderr.strip())
+        r = guard("--over", "origin/main")
+        ok("--over without --commits is a usage error, exit 2", r.returncode == 2, r.stderr.strip())
 
     # wt_sync.sh end to end: a worktree under a planted scratch path, pushed to
     # a temp bare origin under a planted HOME and USER.
@@ -753,14 +869,29 @@ def self_test() -> int:
         Path(main, "tools/pr").mkdir(parents=True)
         Path(main, "tools/pr/ci_predict.py").write_text("print('CI PREDICT: planted stub')\n")
         Path(td, "BODY.md").write_text("b\n")
+        body_err = ""
 
         def body(topic: str) -> tuple[int, str]:
+            nonlocal body_err
             r = subprocess.run(["bash", str(ROOT / "tools/audit/seat/body_push.sh"), topic,
                                 os.path.join(td, "BODY.md")], cwd=main, env=env, capture_output=True, text=True)
+            body_err = r.stderr
             return r.returncode, subprocess.run(["git", "--git-dir", bare, "for-each-ref", "refs/heads/handoff-body"],
                                                 env=env, capture_output=True, text=True).stdout
         rc, heads = body("Users-" + fake_name + "-notes")
         ok("body_push refuses a topic naming a host path, and pushes nothing", rc != 0 and heads == "", f"rc={rc} {heads}")
+        # R10-FLY-NO-FOOTERS-PUSH-PATHS: the commit is read back, so a session link
+        # the topic carries into the message, and a machine in the identity
+        # the commit was written under, refuse too (the link is built).
+        rc, heads = body("claude.ai/code/" + "session_x")
+        ok("body_push refuses a topic that puts a session link in the message, and pushes nothing",
+           rc != 0 and heads == "" and "session-link in the message of" in body_err, f"rc={rc} {heads}")
+        env_mail = env
+        env = {**env, "GIT_AUTHOR_EMAIL": "t@" + fake_name + "s-mbp.local"}
+        rc, heads = body("r10-mail")
+        env = env_mail
+        ok("body_push refuses a body commit whose author email names a machine, and pushes nothing",
+           rc != 0 and heads == "" and "host-email in the author email of" in body_err, f"rc={rc} {heads}")
         rc, heads = body("r10-clean")
         ok("and pushes a clean topic (the null control)", rc == 0 and "handoff-body/r10-clean" in heads, f"rc={rc}")
 
@@ -820,6 +951,22 @@ def self_test() -> int:
     texts["tools/x/guarded.sh"] = "# ref_privacy.py is named in a comment only\ngit push"
     ok("a guarded entry that calls no guard is refused",
        any("guarded.sh: registered guarded" in b for b in registry_refusals(found, texts.__getitem__, reg)))
+
+    # The prefilter is portable (#2554): the regcomp `git grep -E` uses is the
+    # platform's, so a GNU-only escape gives a macOS seat another verdict.
+    ok("the git grep prefilter carries no backslash escape, so BSD and GNU regcomp read it alike (#2554)",
+       "\\" not in _GREP_PATTERN, _GREP_PATTERN)
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q", "-b", "main")
+        os.makedirs(Path(td, "tools"))
+        Path(td, "tools", "p.sh").write_text('git push -q origin "$ref"\n')
+        Path(td, "tools", "q.sh").write_text("git pushd-like word, not a site\nout.push(git)\n")
+        for a in (("add", "-A"), ("commit", "-q", "-m", "plant")):
+            subprocess.run(["git", *a], cwd=td, env=env, check=True, capture_output=True)
+        got = grep("HEAD", Path(td))
+        ok("and it hands every line naming push to the site rule, which alone judges the word (#2554)",
+           {(p, n) for p, n, _ in got} == {("tools/p.sh", 1), ("tools/q.sh", 1), ("tools/q.sh", 2)}
+           and set(sites(got)) == {"tools/p.sh"}, str(got))
 
     # Tracked content (round 4): a diff adding a line that names a host is
     # refused, by where and class; the planted text is built, never spelled.
@@ -927,10 +1074,10 @@ def main(argv: list[str]) -> int:
         print(slug(argv[1], roots))
         return 0
     if argv[:1] == ["guard"]:
-        ref, messages, emails, rev, cwd, rest = None, [], [], None, None, argv[1:]
+        ref, messages, emails, rev, over, cwd, rest = None, [], [], None, None, None, argv[1:]
         while rest:
             flag = rest[0]
-            if flag not in ("--ref", "--message", "--commits", "-C") or len(rest) < 2:
+            if flag not in ("--ref", "--message", "--commits", "--over", "-C") or len(rest) < 2:
                 print(f"ref_privacy: unknown or incomplete argument {flag!r}", file=sys.stderr)
                 return 2
             if flag == "--ref":
@@ -939,15 +1086,17 @@ def main(argv: list[str]) -> int:
                 messages.append(("the message", rest[1]))
             elif flag == "--commits":
                 rev = rest[1]
+            elif flag == "--over":
+                over = rest[1]
             else:
                 cwd = rest[1]
             rest = rest[2:]
-        if ref is None:
-            print("ref_privacy: guard needs --ref", file=sys.stderr)
+        if ref is None or (over is not None and rev is None):
+            print("ref_privacy: guard needs --ref, and --over needs --commits", file=sys.stderr)
             return 2
         try:
             if rev is not None:
-                ms, emails = published(rev, cwd)
+                ms, emails = published(rev, cwd, over)
                 messages += ms
         except RuntimeError as e:
             print(f"ref_privacy: REFUSE: could not read the commits the push publishes ({e}); nothing pushed",
@@ -955,7 +1104,8 @@ def main(argv: list[str]) -> int:
             return 2
         why = refusal(ref, messages, None, emails)
         if why:
-            print(f"ref_privacy: REFUSE: {why} would publish this host; nothing pushed", file=sys.stderr)
+            print(f"ref_privacy: REFUSE: {why} would publish this host or a tool's attribution; nothing pushed",
+                  file=sys.stderr)
             return 3
         return 0
     print(__doc__.split("\n\n")[1], file=sys.stderr)

@@ -94,6 +94,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     PRICE_SOURCE_ENTITY,
+    CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
@@ -232,7 +233,6 @@ from .accuracy import (
     REFIT_SETTLED_DAYS,
     heat_loss_refit,
     utc_elapsed_seconds,
-    utc_shift,
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
@@ -273,6 +273,7 @@ from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import declared_currency, resolve_currency
+from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
     MonthlyLedger,
@@ -924,7 +925,37 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     return heat_kw
 
 
-def _replay_interval(
+def _replay_step(
+    model: ThermalModel,
+    state: ThermalState,
+    power: float,
+    outdoor: float,
+    weather: tuple[float, float],
+    dt_h: float,
+    hour_of_day: float,
+    measured_heat_kw: float | None,
+) -> ThermalState:
+    """The interval replay's model step: the worker's job, shipped by name (P10)."""
+    wind_speed, precipitation = weather
+    return model.simulate_step(
+        state,
+        power,
+        outdoor,
+        wind_speed=wind_speed,
+        precipitation=precipitation,
+        solar_radiation=state.solar_radiation,
+        dt_hours=dt_h,
+        # #53: the replay must predict with the learned per-hour profile,
+        # or its residuals never re-centre and the gains learner becomes
+        # an open-loop integrator converging to α/ridge times the true
+        # correction. None-profile (flag off, nothing learned) makes this
+        # byte-inert.
+        hour_of_day=hour_of_day,
+        measured_heat_kw=measured_heat_kw,
+    )
+
+
+async def _replay_interval(
     coord: Any,
     previous_state: Any,
     previous_power: float,
@@ -941,25 +972,15 @@ def _replay_interval(
     what the interval delivered is answered once, by
     :func:`_interval_measured_heat_kw`, rather than twice, and ``label`` keeps
     the debug line a failed simulation leaves naming its learner -- the only
-    thing the two copies ever differed in besides a comment.
+    thing the two copies ever differed in besides a comment. The inputs are
+    read here, on the loop; :func:`_replay_step` runs in the process worker.
     """
     try:
-        wind_speed, precipitation = coord._current_weather()
-        return coord._thermal_model.simulate_step(
-            previous_state,
-            previous_power,
-            outdoor,
-            wind_speed=wind_speed,
-            precipitation=precipitation,
-            solar_radiation=previous_state.solar_radiation,
-            dt_hours=dt_h,
-            # #53: the replay must predict with the learned per-hour profile,
-            # or its residuals never re-centre and the gains learner becomes
-            # an open-loop integrator converging to α/ridge times the true
-            # correction. None-profile (flag off, nothing learned) makes this
-            # byte-inert.
-            hour_of_day=previous_time.hour + previous_time.minute / 60.0,
-            measured_heat_kw=_interval_measured_heat_kw(coord),
+        return await _await_off_loop(
+            coord.hass, _replay_step, coord._thermal_model, previous_state,
+            previous_power, outdoor, coord._current_weather(), dt_h,
+            previous_time.hour + previous_time.minute / 60.0,
+            _interval_measured_heat_kw(coord),
         )
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
@@ -1115,7 +1136,13 @@ def predicted_next_room_temp(coord: Any) -> float | None:
     return predict() if callable(predict) else None
 
 
-def model_restart_advice(coord: Any) -> dict[str, Any]:
+def restart_advice(
+    ring: SnapshotRing | None,
+    scale: float,
+    params: ThermalParameters,
+    tracker: AccuracyTracker,
+    dt_hours: float,
+) -> dict[str, Any]:
     """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
 
     Nothing until the #42 alarm is raised. Then the last known-good
@@ -1124,9 +1151,6 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
     evidence that raised the alarm. Recommend-only: nothing here applies
     anything; the restore service does, on an explicit request.
     """
-    ctx = getattr(coord, "_ctx", coord)
-    ring = getattr(coord, "_snapshot_ring", None)
-    scale = getattr(coord, "_house_heat_loss_scale", None)
     advice: dict[str, Any] = {
         "drift_alarm": bool(getattr(ring, "alarmed", False)),
         "current_scale": None if scale is None else round(float(scale), 3),
@@ -1142,19 +1166,31 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
             "taken_at": snap.get("taken_at"),
             "scale": thermal.get("house_heat_loss_scale"),
         }
-    base_u, capacity = _house_loss_terms(ctx._thermal_params)
+    base_u, capacity = _house_loss_terms(params)
     advice["refit"] = heat_loss_refit(
-        coord._accuracy.samples,
-        current_scale=float(coord._house_heat_loss_scale),
+        tracker.samples,
+        current_scale=float(scale),
         base_u=base_u,
         capacity=capacity,
-        dt_hours=ctx._config.optimization_interval / 60.0,
+        dt_hours=dt_hours,
         min_delta=HOUSE_LOSS_MIN_DELTA,
         max_residual=HOUSE_LOSS_MAX_RESIDUAL,
         settle=boost.SPACE_SETTLE_TAIL,
-        since=coord._accuracy.evidence_since,
+        since=tracker.evidence_since,
     )
     return advice
+
+
+def model_restart_advice(coord: Any) -> dict[str, Any]:
+    """``restart_advice`` read off the coordinator's own learners."""
+    ctx = getattr(coord, "_ctx", coord)
+    return restart_advice(
+        getattr(coord, "_snapshot_ring", None),
+        coord._house_heat_loss_scale,
+        ctx._thermal_params,
+        coord._accuracy,
+        ctx._config.optimization_interval / 60.0,
+    )
 
 
 async def async_adopt_heat_loss_refit(coord: Any) -> bool:
@@ -1184,7 +1220,9 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
     )
     await coord._async_save_thermal_learning()
     await coord._async_save_accuracy()
-    coord.async_update_listeners()
+    # A cycle re-plans on the adopted scale and re-takes the advice the
+    # inbox and the house grade read (``_insight_view``, once a cycle).
+    await coord.async_request_refresh()
     return True
 
 #: Which configured entity backs each published temperature -- the table
@@ -1215,12 +1253,9 @@ READING_SOURCES: dict[str, str] = {
     "outdoor_temperature": CONF_OUTDOOR_TEMP_ENTITY,
 }
 
-# Age limits for the optional sensors read outside InputReader. Humidity
-# drives the mold floor — a frozen sensor would hold a raised floor
-# forever, so it gets the reader's indoor-scale limit. The DHW inlet probe
-# is genuinely slow-moving (ground temperature), so a day; past that the
+# Age limit for the DHW inlet probe, read outside InputReader. It is
+# genuinely slow-moving (ground temperature), so a day; past that the
 # seasonal model is the honest fallback.
-HUMIDITY_MAX_AGE_MINUTES = 120.0
 DHW_INLET_MAX_AGE_MINUTES = 24.0 * 60.0
 
 
@@ -1325,6 +1360,22 @@ def house_loss_confidence(samples: int) -> float:
     level so tests import it rather than re-implement it (issue #91).
     """
     return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))
+
+
+#: The confidence one EWMA time constant (``1 / HOUSE_LOSS_ALPHA`` samples)
+#: reaches, about ``1 - 1/e``: from here on more of the scale is measurement
+#: than starting prior. Derived from the learner's constant, no tuning of its own.
+_HOUSE_LOSS_CONVERGED_CONFIDENCE = house_loss_confidence(round(1.0 / HOUSE_LOSS_ALPHA))
+
+
+def house_loss_converged(samples: int) -> bool:
+    """Whether the heat-loss scale is the house as measured (#2258).
+
+    The one predicate the learning view's ``house_heat_loss_learned`` (the
+    Health tab's "learned") and the envelope grade both read, so the two
+    cannot disagree about whether the learner has converged.
+    """
+    return house_loss_confidence(samples) >= _HOUSE_LOSS_CONVERGED_CONFIDENCE
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -1516,8 +1567,18 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     ``_await_optimize`` catches only ``ProcessWorkerUnavailable``, so an
     install that could not fork got neither the in-process fallback nor its
     repair notice: no plan at all.
+
+    The job is serialised whole before the pipe is touched, as the worker's
+    replies are (``process_worker._dump``): a job that will not pickle fails
+    here with the worker untouched, never as a dropped handle to a child
+    parked on half a frame. A fault after that leaves the stream in an
+    unknown state, so the child is reaped, never left running unheld.
     """
     global _PROCESS_WORKER
+    try:
+        job = pickle.dumps((fn, args), protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as err:  # noqa: BLE001 - the job's state, not the worker
+        raise ProcessWorkerUnavailable(f"job cannot be pickled: {err}") from err
     with _PROCESS_LOCK:
         worker: "subprocess.Popen[bytes] | None" = None
         try:
@@ -1525,7 +1586,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             stdin, stdout = worker.stdin, worker.stdout
             if stdin is None or stdout is None:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
-            pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+            stdin.write(job)
             stdin.flush()
             status, payload = pickle.load(stdout)
         except ProcessWorkerUnavailable:
@@ -1539,6 +1600,11 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                     f"process worker cannot start: {err}"
                 ) from err
             rc = worker.poll()
+            try:  # a no-op on a child poll() has already reaped
+                worker.kill()
+                worker.wait()
+            except Exception:  # noqa: BLE001 - must not mask the cause
+                pass
             raise ProcessWorkerUnavailable(
                 f"process worker exited rc={rc}: {err}"
             ) from err
@@ -1586,6 +1652,27 @@ async def _sysid_step_off_loop(
     state, override = await _await_off_loop(hass, step_detached, experiment, kwargs)
     vars(experiment).update(state)
     return None if override is None else float(override)
+
+
+def _recovery_off_loop(
+    hass: HomeAssistant, model: ThermalModel, live: ThermalState
+) -> away_mode.RecoveryEstimate:
+    """D14-s1-01: away's recovery ramp, simulated in the process worker.
+
+    A cold house steps the model up to ``away.MAX_RECOVERY_HOURS`` deep, and
+    the resolve is inline in the update cycle. The state is a snapshot taken
+    here, on the loop: the job is pickled off it while callbacks write the
+    live one.
+    """
+    house = replace(live)
+
+    async def estimate(target_temp: float) -> float:
+        return float(await _await_off_loop(
+            hass, away_mode.estimate_recovery_hours,
+            model, house, target_temp, house.outdoor_temperature,
+        ))
+
+    return estimate
 
 
 async def _with_sensor_advisor(coordinator: Any, data: Payload) -> Payload:
@@ -1927,6 +2014,11 @@ class CoordinatorContext:
     _current_state: ThermalState
     _opt_config: OptimizationConfig
 
+    def publish(self, coord: Any, state: ThermalState | None = None, /, **fields: Any) -> None:
+        """Publish ``state`` (else this live state) with ``fields`` on ``coord``, whole."""
+        new = replace(self._current_state if state is None else state, **fields)
+        coord._ctx = replace(self, _current_state=new)
+
 
 @dataclass(frozen=True)
 class CoordinatorDiagnostics:
@@ -1976,6 +2068,11 @@ class CoordinatorDiagnostics:
             house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
             learner_summaries=summaries,
         )
+
+
+def _mode_superseded(entry_mode: str, mode: str) -> bool:
+    """Whether a fixed mode replaced the optimizer mode a run started in."""
+    return entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)
 
 
 def _ctx_of(coord: Any) -> CoordinatorContext:
@@ -2075,8 +2172,9 @@ def _audit_price_units(hass: HomeAssistant, config: Mapping[str, Any]) -> None:
             translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
         )
     # #1657: the feed denominates every money figure, and the sensors say so
-    # (``money_currency``), but the money fields in the options dialog are
-    # labelled in the instance currency. Name the disagreement.
+    # (``unit_of_measurement`` and the ``currency`` attribute), but the money
+    # fields in the options dialog are labelled in the instance currency.
+    # Name the disagreement.
     declared = _feed_currency(hass, cfg)
     if declared is None or declared == resolve_currency(hass):
         ir.async_delete_issue(hass, DOMAIN, "price_currency")
@@ -2536,6 +2634,108 @@ def _effective_house_heat_loss(
     return round(base * scale, 4)
 
 
+def _watched_cop_buckets(baseline: Mapping[Any, Any]) -> int:
+    """COP baseline buckets with enough samples for the health watch (#12).
+
+    The machine grade and the learning view's ``cop_health`` count the same
+    buckets through this, so the Health tab and the score agree on whether
+    the watch has evidence.
+    """
+    return sum(
+        1
+        for entry in baseline.values()
+        if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+    )
+
+
+def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
+    """The drift advisor's heat-loss refit sits outside its own band of ``scale``.
+
+    The refit is the learner's own Newton relation pooled over settled pairs,
+    so it attributes a bias to the heat loss; a bias alarm the refit does not
+    move the scale for (solar, COP, a sensor) is no reason to doubt the grade.
+    """
+    refit = advice.get("refit") or {}
+    fitted = refit.get("scale")
+    if fitted is None:
+        return False
+    band = float(refit.get("band_percent") or 0.0) / 100.0
+    return abs(float(fitted) - scale) > band * scale
+
+
+def envelope_score(
+    params: ThermalParameters, samples: int, advice: Mapping[str, Any]
+) -> tuple[float | None, str | None]:
+    """The house grade (#65) and, when it is None, the one code saying why.
+
+    The time constant ``room_thermal_mass / loss`` in hours, mapped from
+    20 h (a leaky house) to 100 h (a well-insulated one). ``loss`` is the
+    model's own whole-house figure, both zones with the learned split --
+    the one the Health tab publishes (#2239) -- so the grade is the house
+    as measured, not as configured. The codes, in precedence (#2258):
+    nothing to grade; the learner still walking from its prior; a refit
+    of settled evidence outside its band of the learned scale.
+    """
+    # The scale's own writers clamp it; a configured or service-written
+    # value does not pass through that clamp, hence the floor.
+    scale = max(params.house_heat_loss_scale, 0.1)
+    # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
+    loss = _effective_house_heat_loss(params, scale)
+    if loss <= 0.0 or params.room_thermal_mass <= 0:
+        return None, "no_house_model"
+    if not house_loss_converged(samples):
+        return None, "heat_loss_learning"
+    if _refit_disagrees(advice, scale):
+        return None, "heat_loss_refit_disagrees"
+    tau_h = params.room_thermal_mass / loss
+    return float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0, None
+
+
+def machine_score(
+    baseline: Mapping[Any, Any], cusum_stat: float
+) -> tuple[float | None, str | None]:
+    """The heat pump grade (#65) and, when it is None, the code saying why.
+
+    100 while the COP watch (#12) accumulates no shortfall; the grade falls
+    as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    """
+    if not _watched_cop_buckets(baseline):
+        return None, "cop_watch_learning"
+    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+
+
+def operation_reason(score_day: Mapping[str, Any]) -> str:
+    """Why the operation grade is None: a free-price reset, or no day scored yet."""
+    free = _as_float(score_day.get("free_streak"), 0.0)
+    return "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
+
+
+def compose_scores(
+    envelope: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None],
+    operation: tuple[float | None, str | None],
+) -> Scores:
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+
+    Envelope is the house; it stays in the breakdown. Overall is machine and
+    operation only -- averaging the house in is how a DHW-only cheap-hour plan
+    reads as 5/100. None is no evidence and is never 0: each None carries one
+    code in ``reasons`` (#2258), and a grade carries none.
+    """
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
+    available = [g for g, _why in (machine, operation) if g is not None]
+    if not available:
+        reasons["overall"] = "first_scored_day"
+    return {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "machine": None if machine[0] is None else round(machine[0], 1),
+        "operation": None if operation[0] is None else round(operation[0], 1),
+        "overall": round(float(np.mean(available)), 1) if available else None,
+        "reasons": reasons,
+    }
+
+
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
     return EntryConfig.from_mapping(config).price_source == PRICE_SOURCE_ENTITY
 
@@ -2726,9 +2926,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(boost.restore_session(
-            self, self._away_state, config, self._entity_state
-        ))
+        boost.spawn_restore_session(
+            self, self._spawn, self._adopt_away_override, config, self._entity_state
+        )
 
     @callback
     def _release_registrations(self) -> None:
@@ -3065,7 +3265,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
         # a diagnosis is about the interval that just happened.
@@ -3243,6 +3442,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     # write now has its one owner here, and what a collaborator reads it
     # receives as an explicit input or a published view.
 
+    def _fixed_mode_action(self) -> CurrentAction:
+        """Comfort, boost or off's fixed-rule action, priced, built whole before adoption.
+
+        ``boost.adopt_plan`` keeps the dict as the overlay's plan base, so a field
+        written onto the live action afterwards landed on that base too.
+        """
+        ctx = _ctx_of(self)
+        # Literal dicts: tests/entities.py reads the action sensor's produced modes.
+        row: dict[str, Any] = {
+            MODE_COMFORT: {"mode": "comfort", "power_normalized": 0.7, "heat_pump_on": True,
+                           "setpoint": ctx._opt_config.target_temp,
+                           "displace_value": min(4.0, self._ecl110_displace_max),
+                           "space_reason": REASON_COMFORT_MODE, "dhw_reason": REASON_COMFORT_MODE},
+            MODE_BOOST: {"mode": "boost", "power_normalized": 1.0, "heat_pump_on": True,
+                         "setpoint": ctx._opt_config.max_temp, "displace_value": self._ecl110_displace_max,
+                         "space_reason": REASON_BOOST, "dhw_reason": REASON_BOOST},
+            MODE_OFF: {"mode": "off", "power_normalized": 0.0, "heat_pump_on": False,
+                       "setpoint": ctx._opt_config.min_temp, "displace_value": self._ecl110_displace_min,
+                       "space_reason": REASON_UNTAGGED, "dhw_reason": REASON_UNTAGGED},
+        }[self._mode]
+        p_max = self._thermal_model.params.max_electrical_power
+        return cast(CurrentAction, {**row, "power": p_max * row["power_normalized"],
+                                    "price": self._get_current_price()})
+
     def adopt_action(self, action: CurrentAction) -> None:
         """Take ``action`` as the running action.
 
@@ -3311,18 +3534,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     @callback
     def _async_handle_ecl110_state_message(self, msg: Any) -> None:
         """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         try:
             window = self._ecl110_displace_min, self._ecl110_displace_max
             displace, effective = _parse_ecl110_state(msg.payload, window)
         except (TypeError, ValueError, OverflowError, RecursionError) as err:
             _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
             return
-        if effective is not None:
-            ctx._current_state.ecl110_effective_displace = effective
         if displace is not None:
             self._ecl110_current_displace = displace
-            ctx._current_state.ecl110_displace_command = displace
+        ctx.publish(self, **{k: v for k, v in (
+            ("ecl110_effective_displace", effective), ("ecl110_displace_command", displace)) if v is not None})
     @property
     def device_info(self) -> DeviceInfo:
         """Device registry entry shared by every platform of this entry.
@@ -3675,7 +3897,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             curve_driven = bool(action.get("heat_pump_on")) or (
                 abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
             )
-            state = ctx._current_state
+            state = _ctx_of(self)._current_state  # after the await above
             zones = [state.room_temperature]
             if params.two_zone_enabled:
                 zones += [
@@ -5095,14 +5317,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         outdoor = previous_state.outdoor_temperature
-        # Same zone as the residual, or the Newton step is taken about a
-        # temperature difference the residual does not describe.
-        driving_temp = _learned_zone_temperature(previous_state, ctx._thermal_params)
+        # Same zone as the residual, or the Newton step is taken about a temperature
+        # difference the residual does not describe; one params read spans the await.
+        params = ctx._thermal_params
+        driving_temp = _learned_zone_temperature(previous_state, params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "House heat loss",
         )
@@ -5118,7 +5341,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # threshold. It does not average out, so it accumulated into the learned
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
-        params = ctx._thermal_params
         predicted_room = _learned_zone_temperature(predicted_state, params)
         residual = observed - predicted_room
         if not np.isfinite(residual):
@@ -5255,7 +5477,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         # Same physics as the solve when #53 is on; inert when off.
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "Lower floor loss",
         )
@@ -5411,42 +5633,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
-            # Each fixed mode names the cause its draw books under (#2256).
-            elif self._mode == MODE_COMFORT:
-                boost.adopt_plan(self, {
-                    "power": self._thermal_model.params.max_electrical_power * 0.7,
-                    "setpoint": ctx._opt_config.target_temp,
-                    "mode": "comfort",
-                    "power_normalized": 0.7,
-                    "heat_pump_on": True,
-                    "displace_value": min(4.0, self._ecl110_displace_max),
-                    "space_reason": REASON_COMFORT_MODE,
-                    "dhw_reason": REASON_COMFORT_MODE,
-                })
-            elif self._mode == MODE_BOOST:
-                boost.adopt_plan(self, {
-                    "power": self._thermal_model.params.max_electrical_power,
-                    "setpoint": ctx._opt_config.max_temp,
-                    "mode": "boost",
-                    "power_normalized": 1.0,
-                    "heat_pump_on": True,
-                    "displace_value": self._ecl110_displace_max,
-                    "space_reason": REASON_BOOST,
-                    "dhw_reason": REASON_BOOST,
-                })
-            elif self._mode == MODE_OFF:
-                boost.adopt_plan(self, {
-                    "power": 0.0,
-                    "setpoint": ctx._opt_config.min_temp,
-                    "mode": "off",
-                    "power_normalized": 0.0,
-                    "heat_pump_on": False,
-                    "displace_value": self._ecl110_displace_min,
-                    "space_reason": REASON_UNTAGGED,
-                    "dhw_reason": REASON_UNTAGGED,
-                })
-            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
-                self._current_action["price"] = self._get_current_price()
+            elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
+                boost.adopt_plan(self, self._fixed_mode_action())
 
             # #237: everything below writes to the world, and a plan cut
             # before a reload must not land on the instance that replaced us.
@@ -5730,6 +5918,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return None
 
         self._optimization_running = True
+        entry_mode = self._mode
         # Announce the flip: the Optimize Now button disables itself off this
         # flag, and without a listener update the change is invisible until
         # the next scheduled refresh — after the solve is already over.
@@ -5765,8 +5954,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 float(np.max(horizon.solar_radiation)),
             )
 
-            # Away mode resolves on the event loop before the record reads it.
-            self._resolve_away()
+            # Away mode resolves before the record reads it.
+            await self._resolve_away()
             # #1754: the override the pins come from, by identity (release write).
             pinned_override = self._manual_override
             record = self._solve_record(solve_now, horizon)
@@ -5802,6 +5991,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._entry_released:
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
+            if _mode_superseded(entry_mode, self._mode):
+                # D1-s1-02: a fixed mode set during the await outranks this plan.
+                boost.adopt_plan(self, self._fixed_mode_action())
+                return None
 
             # #1644 (D1-s4-02): the optimizer's guard returns a blown solve
             # as a plan whose status says "failed (...)"; publishing it
@@ -5878,10 +6071,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # #1754: honour a mid-solve refresh as ONE re-run, now that the flag
             # is clear so it is not guarded out. Cleared first, so this recurses
             # only if another refresh arrives during the re-run (a rate the
-            # debouncer bounds); skipped once the entry is released.
+            # debouncer bounds); skipped once the entry is released, and
+            # dropped where a fixed mode superseded the solve (D1-s1-02).
             if self._optimization_rerun_requested and not self._entry_released:
                 self._optimization_rerun_requested = False
-                await self.async_run_optimization()
+                if not _mode_superseded(entry_mode, self._mode):
+                    await self.async_run_optimization()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
@@ -5895,8 +6090,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # (T5 #16) are void: scoring them against a room now driven by
             # fixed-rule comfort/boost/off would charge the model with
             # errors it never made. The tank's promises are void likewise.
-            self._accuracy.lead_pending.clear()
-            self._dhw_accuracy.lead_pending.clear()
+            self._accuracy.void_pending()
+            self._dhw_accuracy.void_pending()
         _LOGGER.info("Operation mode set to: %s", mode)
         await self._async_save_accuracy()
         if refresh:
@@ -6069,35 +6264,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             scale=ctx._config.staleness_max_age_scale,
         )
         self.currency = _feed_currency(self.hass, ctx._config) or self.currency
+        # Read onto a copy, published whole before the first reader below.
+        state = replace(ctx._current_state)
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
-            ctx._current_state.room_temperature = indoor.value
+            state.room_temperature = indoor.value
             # For two-zone: indoor sensor is typically upper floor
-            ctx._current_state.upper_floor_temperature = indoor.value
+            state.upper_floor_temperature = indoor.value
 
         # Outdoor temperature
         outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
         if outdoor.ok:
-            ctx._current_state.outdoor_temperature = outdoor.value
+            state.outdoor_temperature = outdoor.value
         elif (forecast_outdoor := forecast_outdoor_now(
                 self._weather_forecast, dt_util.now())) is not None:
             # D2-s1-51: this write feeds every reader of the outdoor
             # state; firing only under ``if outdoor.ok`` left them all on
             # the 5.0 default beside a plan solved on the forecast (#282).
             # None (no forecast) keeps the default: the honest horizon.
-            ctx._current_state.outdoor_temperature = forecast_outdoor
+            state.outdoor_temperature = forecast_outdoor
 
         # Floor heating return temperature sensor
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
-            ctx._current_state.floor_return_temperature = self._floor_return_temp
-            # Update slab temperature estimate from return temp
-            if (floor_temp := self._floor_return_temp) is not None:
-                self._thermal_model.update_slab_from_return_temp(
-                    ctx._current_state, floor_temp
-                )
+            # The slab estimate advances from the reading and records it.
+            self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
 
         # The lower zone's room temperature, best source first. A real
         # thermometer is the only source that carries information about the
@@ -6115,11 +6308,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # says so rather than letting a wrong number pass for a measurement.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
-            ctx._current_state.lower_floor_temperature = lower_floor.value
+            state.lower_floor_temperature = lower_floor.value
         elif floor_return.ok:
-            ctx._current_state.lower_floor_temperature = (
-                ctx._current_state.room_temperature
-            )
+            state.lower_floor_temperature = state.room_temperature
         self._audit_lower_floor_sensor()
         self._audit_comfort_band()
 
@@ -6149,14 +6340,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         solar_from_sensor = False
         if solar.ok and (solar_value := solar.value) is not None:
             self._solar_radiation = solar_value
-            ctx._current_state.solar_radiation = solar_value
+            state.solar_radiation = solar_value
             solar_from_sensor = True
 
         if not solar_from_sensor and self._open_meteo is not None:
             observed = self._open_meteo.current_irradiance(dt_util.utcnow())
             if observed is not None:
                 self._solar_radiation = observed
-                ctx._current_state.solar_radiation = observed
+                state.solar_radiation = observed
 
         # DHW temperature sensor. Without an ok reading the tank is seeded
         # from the previous plan's own trajectory (open-loop propagation,
@@ -6165,18 +6356,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         if dhw.ok:
             self._dhw_temperature = dhw.value
-            ctx._current_state.dhw_temperature = self._dhw_temperature
+            state.dhw_temperature = self._dhw_temperature
         elif (
             seed := _open_loop_plan_value(
                 self._optimization_result, "dhw_temp_trajectory", dt_util.now()
             )
         ) is not None:
-            ctx._current_state.dhw_temperature = seed
+            state.dhw_temperature = seed
 
         # Buffer tank temperature sensor (optional; enables cooling learning)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         if buffer_reading.ok:
-            ctx._current_state.buffer_tank_temperature = buffer_reading.value
+            state.buffer_tank_temperature = buffer_reading.value
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never
@@ -6190,7 +6381,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 wood_top.value if wood_top.ok else None,
                 wood_bottom.value if wood_bottom.ok else None,
             )
-            had = ctx._current_state.wood_tank_temperature is not None
+            had = state.wood_tank_temperature is not None
             if wood_mean is None and had:
                 _LOGGER.warning(
                     "Wood tank probe stale or missing; falling back to the "
@@ -6200,11 +6391,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.info(
                     "Two-tank model active: wood tank at %.1f °C", wood_mean
                 )
-            ctx._current_state.wood_tank_temperature = wood_mean
-        elif ctx._current_state.wood_tank_temperature is not None:
+            state.wood_tank_temperature = wood_mean
+        elif state.wood_tank_temperature is not None:
             # Reconfigured away mid-session: drop the state so nothing
             # simulates a tank the parameters no longer model.
-            ctx._current_state.wood_tank_temperature = None
+            state.wood_tank_temperature = None
+        _ctx_of(self).publish(self, state)
 
         # The pump's own supply and return water (#1067; the reader's rules
         # are in ``flow_meter.observe_water``). Written every cycle
@@ -6281,9 +6473,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._legionella.check_ceiling()
 
-        ctx._current_state.dhw_hours_since_legionella = (
-            self._legionella.hours_since()
-        )
+        _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
 
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
@@ -6305,16 +6495,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
+        state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
             displace_cmd = float(self._current_action.get("displace_value", 0.0))
-            dt_h = ctx._opt_config.dt_hours
-            self._thermal_model.update_ecl110_displace_state(
-                ctx._current_state,
-                displace_cmd,
-                dt_h,
-            )
-            self._ecl110_current_displace = ctx._current_state.ecl110_displace_command
+            dt_h = _ctx_of(self)._opt_config.dt_hours
+            self._thermal_model.update_ecl110_displace_state(state, displace_cmd, dt_h)
+            self._ecl110_current_displace = state.ecl110_displace_command
 
         # Last resort: seed the slab, and the lower zone if nothing better
         # has been read, from the room temperature. Both guards are on the
@@ -6330,17 +6517,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     dt_util.now(),
                 )
             ) is not None:
-                ctx._current_state.slab_temperature = seed
+                state.slab_temperature = seed
                 self._slab_temp_initialized = True
             elif not hasattr(self, "_slab_temp_initialized"):
-                ctx._current_state.slab_temperature = (
-                    ctx._current_state.room_temperature + 1.0
-                )
+                state.slab_temperature = state.room_temperature + 1.0
                 self._slab_temp_initialized = True
             if not lower_floor.ok:
-                ctx._current_state.lower_floor_temperature = (
-                    ctx._current_state.room_temperature
-                )
+                state.lower_floor_temperature = state.room_temperature
+        _ctx_of(self).publish(self, state)
         self._refresh_model_corrections()
 
     def _refresh_model_corrections(self) -> None:
@@ -6568,14 +6752,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 if forecast_data:
                     self._weather_forecast = forecast_data
 
-                    # Extract solar radiation forecast if present in weather data
-                    self._solar_radiation_forecast = []
-                    for fc in self._weather_forecast:
-                        # A non-numeric irradiance is refused by _as_float, not thrown (R5-D1-07).
-                        sr = fc.get("solar_irradiance") or fc.get(
-                            "native_solar_irradiance", 0.0
-                        )
-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
+                    # The solar forecast, if present; a non-numeric irradiance is
+                    # refused by _as_float, not thrown (R5-D1-07).
+                    self._solar_radiation_forecast = [_as_float(
+                        fc.get("solar_irradiance") or fc.get("native_solar_irradiance", 0.0), 0.0
+                    ) for fc in self._weather_forecast]
 
                     self._weather_fetch_recovered()
                     _LOGGER.debug(
@@ -7552,10 +7733,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The scale is re-anchored on load when an options edit changes
             # the configured loss (#110, _reanchor_house_heat_loss_scale), so
             # the effective figure is the configured one times a scale fitted
-            # against it; "learned" counts samples, not certainty.
+            # against it; "learned" is the envelope grade's convergence rule.
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
-            "house_heat_loss_learned": self._house_heat_loss_samples > 0,
+            "house_heat_loss_learned": house_loss_converged(
+                self._house_heat_loss_samples
+            ),
             "house_heat_loss_effective": _effective_house_heat_loss(
                 ctx._thermal_params, self._house_heat_loss_scale
             ),
@@ -7595,11 +7778,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "immersion_active": self._immersion_active,
             "immersion_evidence": list(self._immersion_evidence),
             "cop_health": {
-                "watched_buckets": sum(
-                    1
-                    for entry in self._cop_baseline.values()
-                    if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-                ),
+                "watched_buckets": _watched_cop_buckets(self._cop_baseline),
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),
             },
@@ -8168,6 +8347,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         so this only has to adopt it, persist it and trigger a refresh. Returns
         the stored summary for the service response.
         """
+        await self._manual_plan_store.async_wait_for_read()
         self._manual_override = override
         await self._async_save_manual_plan()
         await self.async_request_refresh()
@@ -8193,6 +8373,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def async_clear_manual_plan(self) -> None:
         """Remove any override and re-solve so the plan reverts to automatic."""
+        await self._manual_plan_store.async_wait_for_read()
         self._manual_override = None
         await self._async_save_manual_plan()
         await self.async_request_refresh()
@@ -8350,7 +8531,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``async_create_task`` raises and the tracker accumulators race the
         update loop.
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         new_state = getattr(event, "data", {}).get("new_state")
         if new_state is None:
             return
@@ -8418,7 +8599,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             floor_hold=self._guard_floor_hold(),
         )
         if changed:
-            ctx._current_state.peak_guard_active = self._peak_guard.suppressing
+            ctx.publish(self, peak_guard_active=self._peak_guard.suppressing)
             self._spawn(self._async_peak_guard_transition())
     def _guard_floor_hold(self) -> bool:
         """Whether a hard floor outranks suppression right now.
@@ -8770,22 +8951,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = getattr(self, "_ctx", self)._config.indoor_humidity_entity
         if not entity_id:
             return None
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return None
         # A frozen sensor holds a raised mold floor forever; with no live
         # reading the floor vanishes instead — the fail-safe direction the
         # inputs module prescribes for every optional sensor.
-        age = age_of(state, dt_util.utcnow())
-        if age is None or age > timedelta(minutes=HUMIDITY_MAX_AGE_MINUTES):
-            return None
-        try:
-            value = float(state.state)
-        except (TypeError, ValueError):
-            return None
-        if not np.isfinite(value) or not 0.0 < value <= 100.0:
-            return None
-        return value
+        reading = InputReader(self.hass, {}).read(
+            CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
+        )
+        value = reading.value if reading.ok else None
+        return value if value is not None and 0.0 < value <= 100.0 else None
 
     def _mold_floor_series(
         self, outdoor: np.ndarray, target_cap: float | None = None
@@ -9145,8 +9318,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
-        # In the instance currency: the prices are, so the product is
-        # (audit D4-04, #168 -- the placeholder used to be named after SEK).
+        # The price feed's currency: its prices are (audit D4-04, #168).
         cost_month = monthly_kwh * mean_price * shortfall
         _LOGGER.warning(
             "Compressor efficiency has drifted %.0f%% below its own "
@@ -9389,7 +9561,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             snap.get("taken_at"),
         )
         await _async_save_restored(self)
-        self.async_update_listeners()
+        await self.async_request_refresh()  # re-plan and re-take the advice, as adopt does
         return True
 
     async def _async_load_snapshots(self) -> None:
@@ -9501,40 +9673,46 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             attributes = {}
         return getattr(state, "state", None), attributes
 
-    def _resolve_away(self) -> away_mode.AwayState:
+    def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
+        """The override as of ``now``, written back when it lapsed; no await splits it."""
+        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
+        if active != self._away_state.override_active or ret != parsed:
+            self._away_state = replace(self._away_state, override_active=active,
+                                       override_return_iso=ret.isoformat() if ret else None)
+            self._spawn(away_mode.persist_override(self, self._away_state))
+        return active, ret
+
+    async def _resolve_away(self) -> None:
         """Work out whether the house is empty, and when it must be warm again."""
         ctx = getattr(self, "_ctx", self)
         config = away_mode.config_from_mapping(ctx._config)
         now = dt_util.now()
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
-        active, ret = away_mode.expire_override(
-            self._away_state.override_active, parsed, now
-        )
-        migrated = self._away_state.migrated_helpers
-        if active != self._away_state.override_active or ret != parsed:
-            self._away_state.override_active = active
-            self._away_state.override_return_iso = (
-                ret.isoformat() if ret else None
-            )
-            self._spawn(away_mode.persist_override(self, self._away_state))
+        active, ret = self._expire_away_override(now)
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
-        self._away_state = away_mode.resolve(
+        written = self._away_state
+        resolved = await away_mode.resolve(
             config,
             now=now,
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
             return_raw=None,
-            comfort_temp=ctx._opt_config.get_comfort_temp(
-                now.hour + now.minute / 60.0
+            comfort_temp=ctx._opt_config.get_comfort_temp(now.hour + now.minute / 60.0),
+            estimate_recovery=_recovery_off_loop(
+                self.hass, self._thermal_model, ctx._current_state
             ),
-            model=self._thermal_model,
-            thermal_state=ctx._current_state,
-            outdoor_temp=ctx._current_state.outdoor_temperature,
             override_active=active,
             override_return_time=ret,
         )
-        self._away_state.migrated_helpers = migrated
+        # The await lets async_set_away write the live state; never revert its write.
+        if self._away_state is written:
+            self._away_state = replace(resolved, migrated_helpers=written.migrated_helpers)
+
+    def _adopt_away_override(self, payload: dict[str, Any]) -> away_mode.AwayState:
+        """Publish a restored override onto the live away state, whole."""
+        self._away_state = away_mode.apply_override_payload(self._away_state, payload)
         return self._away_state
+
     async def async_set_away(
         self,
         active: bool | None = None,
@@ -9542,23 +9720,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         *, refresh: bool = True,
     ) -> None:
         """Persist the Plan-page override. The only writer of that store."""
-        if active is False:
-            self._away_state.override_active = False
-            self._away_state.override_return_iso = None
-        else:
-            if active is True:
-                self._away_state.override_active = True
-            if return_time is not away_mode.OMIT:
-                parsed = away_mode._parse_return_time(return_time)
-                self._away_state.override_return_iso = (
-                    parsed.isoformat() if parsed else None
-                )
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
-        on, ret = away_mode.expire_override(
-            self._away_state.override_active, parsed, dt_util.now()
-        )
-        self._away_state.override_active = on
-        self._away_state.override_return_iso = ret.isoformat() if ret else None
+        await boost.session_restored(self)
+        # Resolved on locals, published whole: a spawned persist keeps its snapshot.
+        on = active if active is not None else self._away_state.override_active
+        iso = None if active is False else self._away_state.override_return_iso
+        if active is not False and return_time is not away_mode.OMIT:
+            parsed = away_mode._parse_return_time(return_time)
+            iso = parsed.isoformat() if parsed else None
+        on, ret = away_mode.expire_override(on, away_mode._parse_return_time(iso), dt_util.now())
+        self._away_state = replace(self._away_state, override_active=on,
+                                   override_return_iso=ret.isoformat() if ret else None)
         await away_mode.persist_override(self, self._away_state)
         if refresh:
             await self.async_request_refresh()
@@ -9889,8 +10060,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # duration, so the plan's promises are fiction while it runs —
             # and any already on file were made by a plan the experiment
             # is about to override.
-            self._accuracy.lead_pending.clear()
-            self._dhw_accuracy.lead_pending.clear()
+            self._accuracy.void_pending()
+            self._dhw_accuracy.void_pending()
             return
         dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0
         # Filed first, so a plan with no room trajectory to promise about
@@ -10296,57 +10467,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._operation_score = sample
         self._schedule_ledger_save()
 
-    def _scores_view(self) -> Scores:
-        """#65: envelope, machine and operation on one 0–100 scale.
+    def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
+        """#65's scores off this coordinator's learners (``compose_scores``).
 
-        Envelope is the house; it stays in the breakdown. Overall is
-        machine and operation only — averaging the house in is how a
-        DHW-only cheap-hour plan reads as 5/100. None is no evidence.
+        ``advice`` is this cycle's ``model_restart_advice``, taken once.
         """
-        ctx = getattr(self, "_ctx", self)
-        envelope = None
-        loss = (
-            ctx._thermal_params.heat_loss_coefficient
-            * max(ctx._thermal_params.house_heat_loss_scale, 0.1)
-        )
-        if loss > 1e-6 and ctx._thermal_params.room_thermal_mass > 0:
-            # The house's time constant in hours: how long the stored heat
-            # lasts against the losses. ~20 h is a leaky house, ~100 h a
-            # well-insulated one; the learned loss scale keeps the grade
-            # honest about the house as measured, not as configured.
-            tau_h = ctx._thermal_params.room_thermal_mass / loss
-            envelope = float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0
-
-        machine = None
-        watched = sum(
-            1
-            for entry in self._cop_baseline.values()
-            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-        )
-        if watched:
-            # 100 while the COP watch (#12) accumulates no shortfall; the
-            # grade falls as the Cusum climbs toward its alarm.
-            machine = (
-                1.0
-                - float(
-                    np.clip(
-                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
-                        0.0,
-                        1.0,
-                    )
-                )
-            ) * 100.0
-
         operation = self._operation_score
-        available = [s for s in (machine, operation) if s is not None]
-        return {
-            "envelope": round(envelope, 1) if envelope is not None else None,
-            "machine": round(machine, 1) if machine is not None else None,
-            "operation": round(operation, 1) if operation is not None else None,
-            "overall": (
-                round(float(np.mean(available)), 1) if available else None
+        return compose_scores(
+            envelope_score(
+                getattr(self, "_ctx", self)._thermal_params,
+                self._house_heat_loss_samples,
+                advice,
             ),
-        }
+            machine_score(self._cop_baseline, self._cop_health_cusum.stat),
+            (operation, None if operation is not None else operation_reason(self._score_day)),
+        )
+
     def _narrative_view(self) -> Narrative:
         """#29: the current plan grouped by reason, with rendered lines."""
         result = self._optimization_result
@@ -10375,8 +10511,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         chosen = short if short in narrative.TEMPLATES else "en"
         return {
             "items": items,
-            # Resolved per render; narrative.render says why not self.currency.
-            "lines": narrative.render(items, chosen, resolve_currency(hass)),
+            # The feed's code, as every other money surface (#1657).
+            "lines": narrative.render(items, chosen, self.currency),
             "language": chosen,
         }
 
@@ -10452,27 +10588,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_tiles.book(self).clear()
             return
         specs = price_tiles.specs(record.config, record.params.max_electrical_power)
-        name, overrides = specs[self._price_tile_cursor % len(specs)]
+        name, overrides = price_tiles.take(self, specs)
         try:
             answer = await self.async_simulate(
                 dict(overrides), limited=False, base=record
             )
         except Exception as err:  # noqa: BLE001 - tiles are decoration
             _LOGGER.debug("Price tile %s failed: %s", name, err)
-            # A consistently failing spec must not block the other tiles:
-            # move on and retry it on the rotation's next pass.
-            self._price_tile_cursor += 1
             return
-        self._price_tile_cursor += 1
         # An error answer carries no figure, so the tile records nothing.
         price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
 
     def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
         reports = self._month_reports
+        # Once per cycle: the advisor sensor and the envelope grade read it.
+        advice = model_restart_advice(self)
         return {
             "narrative": self._narrative_view(),
-            "scores": self._scores_view(),
+            "scores": self._scores_view(advice),
+            "model_restart": advice,
             "compressor_starts": {
                 "lifetime": self._start_counter.lifetime,
                 "month": self._start_counter.month_count(

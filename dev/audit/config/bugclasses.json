@@ -1101,7 +1101,8 @@
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
       "BULK-2-I2",
-      "R9-RCA-stress-recording"
+      "R9-RCA-stress-recording",
+      "R10-RCA-INERT-CLOSURE-RECORDING"
     ],
     "rca_planned": [],
     "trigger": {
@@ -1193,7 +1194,8 @@
       "RCA-1515",
       "RCA-1567-unpinned-installs",
       "RCA-1589-policy-docs-red",
-      "RCA-R8-I3-1516"
+      "RCA-R8-I3-1516",
+      "R10-RCA-2671-WAVE-SCRIPT"
     ],
     "rca_planned": [],
     "trigger": {
@@ -2328,6 +2330,86 @@
     },
     "total": 4,
     "max_per_round": 4
+  },
+  "N-body-lint-bounce": {
+    "kind": "instrument",
+    "mechanism": "The handoff instrument checks the code and not the body: tools/audit/seat/body_push.sh runs the static ci_predict.py (R10-HANDOFF-PREPR-BOUNCE M2) and publishes handoff-body/<topic> unlinted, so the first run of policy_lint.mjs --pr-body on a fixer's body is prepr step 7 inside the orchestrator's open_pr.sh, after the branch is frozen; a pathless Forward-carry (carry_audit.py accepts Carry: <GROUP> alone), a carry to a missing file, or an unparseable Friction line -- including the session-link line the cloud harness appends, which FRICTION_TRAILER_RE's closed list predated -- each cost an orchestrator repair round",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 body-ae1b71ed",
+      "R10 body-0854e390",
+      "R10 body-8f8ed571",
+      "R10 body-d19baa85",
+      "R10 body-bf227ff6"
+    ],
+    "detector": "node tools/policy/policy_lint.mjs --pr-body over every handoff-body/* commit (dev/audit/rca/R10-RCA-BODY-LINT.md section 1): 36 of 519 body commits over 22 topics carry a content error",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/body_push.sh runs prepr.sh --body-check (step 7's body_line, offline) for a topic whose handoff/<topic> is the checkout's HEAD and refuses the push with the lint's own ERROR lines; FRICTION_TRAILER_RE drops the cloud harness's session-link line; pinned in prepr.sh --self-test (pr-contract) and tests/entities.py",
+    "status": "barriered",
+    "nearest_existing": "N-orphaned-handoff",
+    "mechanism_difference": "N-orphaned-handoff is a handoff no PR ever carries; here the handoff reaches open_pr.sh and is refused there, on a body defect a check the seat could run in 2 s would have named at the push",
+    "aliases": [
+      "new: a fixer's PR body bounces at open_pr.sh's pr-body lint"
+    ],
+    "non_round_note": "The five round-10 instances are body pushes the orchestrator's open_pr.sh/update_pr.sh refused on 2026-10-22, named by their handoff-body commits; process incidents, not audit findings. Counted because the class is round-10 and the three-instance audit rule is what it met.",
+    "non_round_instances": [
+      "handoff-body/* 2026-10-15..10-22: 36 body commits over 22 topics fail the lint (upper bound on bounces)"
+    ],
+    "rca": [
+      "R10-RCA-BODY-LINT"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    },
+    "per_round": {
+      "R10": 5
+    },
+    "total": 5,
+    "max_per_round": 5
+  },
+  "N-train-only-predicate": {
+    "kind": "instrument",
+    "mechanism": "A predicate the merge train applies to pull-request text that no pre-train path applies: budget_raise_gate.py justification() was reached only from approval() after a mandated approval was found on the head, so the `## Raise justification` grammar was first evaluated at the train's approve step; pr-contract, body_patch.sh, prepr step 7 and body_push.sh never read it, and the CI gate's expected pre-approval red (`no decisive review by tvofi`) hid the second reason",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 #2633-c6c8fee16",
+      "R10 #2647-run40",
+      "R10 #2647-run41"
+    ],
+    "detector": "budget_raise_gate.justification() over each handoff-body version of the raise PRs (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md section 1): c6c8fee16 and 9b5742049 (#2633), 84e2aaf66 and f2b98c1df (#2647) refused; 8f564875d passes",
+    "detector_idea": null,
+    "barrier": "budget_raise_gate.py --check-body FILE [--base SHA --head SHA] (check_body: justification() on a section present, and raises_between on the diff refusing a raise with no section), called from policy_lint.mjs --pr-body raiseJustification on the heading or a *_budgets.json path; the base passed by pr-contract (every push and body edit), prepr.sh body_check (step 7 and body_push.sh's --body-check) and body_patch.sh contract; pinned in policy_lint's acceptance on the recorded sections (raise/recorded/), the gate's self-test e2e and the workflow-shape arm",
+    "status": "barriered",
+    "nearest_existing": "N-body-lint-bounce",
+    "mechanism_difference": "N-body-lint-bounce is a predicate pr-contract already applied that body_push.sh did not run before the handoff; here no pre-train path applied the predicate at all, pr-contract included, because its one reader sat behind the train's approval",
+    "aliases": [
+      "new: budget-raise-gate refuses a raise justification at the train that pr-contract passed"
+    ],
+    "non_round_note": "The three round-10 instances are budget-raise-gate refusals at the merge train's pre-flight, counted per refusal by the orchestrator's ruling under mandate 6329234399: #2633 once, #2647 twice (run40, run41); process incidents, not audit findings. The class's other member, preflight.sh on the title at merge only (merge_train.py land, merge_pr.sh), has no known instance: 0 of the merged titles v7.0.0..a6620c30 refuse (dev/audit/harnesses/r10_title_seam.sh)",
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-RAISE-GATE-GRAMMAR"
+    ],
+    "rca_planned": [],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
   },
   "_rca": {
     "RCA-546-paired-artifacts": {
@@ -4322,6 +4404,86 @@
       "doc": [
         "dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md"
       ]
+    },
+    "R10-RCA-BODY-LINT": {
+      "class": "N-body-lint-bounce",
+      "level": "class",
+      "subject": "N-body-lint-bounce class: a fixer's PR body is first linted at open_pr.sh and bounces there (5 instances on 2026-10-22, round 10)",
+      "trigger": "class (5 instances in round 10)",
+      "date": "2026-10-22",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the handoff gate (body_push.sh M2) ran and passed on every bounced push; its unit was the code, never the body; (d) for the session link, a trailer shape the cloud harness added after #1238's closed list",
+      "countermeasure": "prepr.sh --body-check from body_push.sh (1.5-2.2 s a PR-body push, at most 2.4 min/day) against at least 5 x 20 min/day of bounces; the session link added to FRICTION_TRAILER_RE",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-BODY-LINT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-BODY-LINT.md"
+      ]
+    },
+    "R10-RCA-INERT-CLOSURE-RECORDING": {
+      "class": "I2",
+      "level": "instance-or-process",
+      "subject": "probe B2 (#2662's code head): tests / closures UNDER-SCOPED on harness_headers.py's child reads of two files 9f7f443cc moved out of INERT; the table had merged a recording made before the edit, and check over it passed",
+      "trigger": "barriered class instance (I2); red closures run 32 min 06 s, closures-autofix skip-classifier-disagrees",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) merge and check were run over CI's Linux recording as ci-autofix.md routes the inert dimension, and passed: both trust the INERT split strace_files made at record time",
+      "countermeasure": "closure.py _load_recording re-reads a recording's inert_reads under the loading tree's INERT list in merge and check (7.1 ms a recording); ci_predict.py left_inert predicts the UNDER-SCOPED statically on a diff that edits closure.py (8.1 ms); against 1 escape in 28 INERT_EXCEPT edits at 32 min a red FULL run",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md"
+      ]
+    },
+    "R10-RCA-RAISE-GATE-GRAMMAR": {
+      "class": "N-train-only-predicate",
+      "level": "class",
+      "subject": "N-train-only-predicate class: budget-raise-gate refused a raise justification at the merge train that every pre-train path passed (#2633 once, #2647 twice, round 10)",
+      "trigger": "class (3 refusals in round 10, counted per refusal under mandate 6329234399)",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the CI gate carrying the grammar ran on every push and was followed; its justification arm is reachable only after the train's mandated approval, so no path evaluated it before the train",
+      "countermeasure": "M1: budget_raise_gate.py --check-body called from policy_lint.mjs --pr-body on every path that writes the text the train reads (C1-C4); about 0.06 s per raise body against 69-103 CI-minutes expected over the mandate window",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md"
+      ]
+    },
+    "R10-RCA-2671-WAVE-SCRIPT": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#2671 red trigger: wave-script graded the head with the base's agreement.mjs (UNREGISTERED=3) and instrument-self-tests refused ledger.py:726 under ref_privacy.py --check, while prepr.sh and ci_predict.py were green on the same head; a new SHARED_GRAMMARS entry has no tree the required lane passes",
+      "trigger": "2 (red check): Governance run 39996377402, wave-script and instrument-self-tests",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) x3: prepr.sh steps 3e-3g ran and passed but grade a pinned grader with the head's copy, the push-to-main direction; ref_privacy.py --check runs in CI and in no local path; base-pinning the lane, followed as designed, leaves a registration no passing tree",
+      "countermeasure": "A: base-pinned arm under CI's restore keyed on the lane's reader closure (0.85 s per PR against 4.1 s expected); B: ref_privacy.py --check in the local path (1.46 s against 2.7 s); C: an admissible route for a new shared grammar, owner decision",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md"
+      ]
+    },
+    "R10-RCA-CI-RATCHET-RUN-NAME": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tests/ci_ratchet.py keyed push runs on .name == \"CI\"; the umbrella's run-name rewrites .name, so once the newest 8 push runs were all umbrella runs (d5dc3e26a) the window held no measurable run and main went red",
+      "trigger": "assigned by the orchestrator: tests / ci-ratchet red on main from d5dc3e26a (2026-10-24)",
+      "date": "2026-10-24",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d) each unit was gated in its own tree and passed; a sibling unit's run-name changed the premise (the run's .name) after the reader was written",
+      "countermeasure": "none separate (recorded refusal): the fix keys on the run's workflow path; a job classifying its own run costs ~129 runner-s/day against a recurrence closed by the fix; barrier rejected by triage P52",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -4701,6 +4863,41 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-p2b-assembly-reader": {
+    "kind": "instrument",
+    "mechanism": "P2b assembly: a reader written and self-tested in one unit's tree meets a sibling unit's change when the units are assembled, and no gate before merge grades the combination. In the instance that shipped, ci_ratchet.py keyed push runs on .name == \"CI\" (correct in its own tree); the umbrella's run-name, from a sibling unit, rewrote .name, and the grade failed only once 8 umbrella push runs filled the window, which no PR run can show",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": null,
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a main merge into a reviewed branch reddening the head; here the units are assembled from separate trees, and 3 of the 4 incidents were caught by the assembly's own gates, the fourth only on main",
+    "aliases": [
+      "new: P2b assembly, a reader meets a sibling unit's change"
+    ],
+    "non_round_note": "Process incidents from the R10-CI-LAYOUT P2b assembly, not audit findings, not in register_rows.tsv, not counted in total. Triage P52 (2026-10-24) rejected a barrier: the 3-instance trigger has not fired for a listed-not-counted class, and neither candidate catches the instance that shipped. Reopen on a second multi-unit assembly failing the same way.",
+    "non_round_instances": [
+      "bd0d4d603 the cut-over's gate-at-head precondition read one check suite",
+      "69a26d2a2 the required-contexts record accepted one shape",
+      "168365196 two prepr refusals the Arm B probe found on the assembly",
+      "d5dc3e26a tests/ci_ratchet.py keyed push runs on .name, which the umbrella's run-name rewrites (main red from 02:36Z 2026-10-24)"
+    ],
+    "rca": [
+      "R10-RCA-CI-RATCHET-RUN-NAME"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": false,

@@ -907,9 +907,15 @@ async def _mode_source_after_outage(night):
         # "heating" alone is status-ambiguous for a plain sensor
         # (pump_mode._STATUS_AMBIGUOUS); a multi-duty spelling is accepted
         # from any domain, so this is a LIVE read.
+        # Polled: the write re-reports an unchanged mode, so the silence
+        # that follows is evidence (a source seen only on change is #2234's).
         coord.hass.states.set(
             "sensor.mode",
-            FakeState("heating + hot water", last_updated=dt_util.now()),
+            FakeState(
+                "heating + hot water",
+                last_updated=dt_util.now() - timedelta(minutes=3),
+                last_reported=dt_util.now(),
+            ),
         )
         await coord._update_current_state()
         stamped = coord._pump_mode_last_good_at
@@ -1107,7 +1113,7 @@ R.section("the UTC helpers themselves across both transitions (round-9 P7)")
 # error inside ``utc_elapsed_seconds`` or ``utc_shift`` is invisible to it
 # (fix review of #1722: ``replace(tzinfo=UTC)`` for ``astimezone(UTC)`` put
 # the P7 bug back with every check green). These pin the helpers directly.
-from heatpump_optimizer.accuracy import utc_shift  # noqa: E402
+from heatpump_optimizer.drift import utc_shift  # noqa: E402
 
 
 _aut_a = datetime(2026, 10, 25, 1, 30, tzinfo=STHLM)  # 23:30Z, CEST
@@ -2236,17 +2242,23 @@ R.check(
 
 # away: hours until a presence calendar's return, typed as local wall text across the fold
 # (00:45 CEST is 22:45Z; 03:45 CET is 02:45Z, a true four hours)
-_away_state = _away.resolve(
+async def _away_estimate(target_temp):
+    return _away.estimate_recovery_hours(
+        ThermalModel(ThermalParameters.from_config({})),
+        ThermalState(room_temperature=21.0, outdoor_temperature=0.0),
+        target_temp, 0.0,
+    )
+
+
+_away_state = asyncio.run(_away.resolve(
     _away.AwayConfig(presence_entity="calendar.holiday"),
     now=datetime(2026, 10, 25, 0, 45, tzinfo=STHLM),
     presence_raw="on",
     presence_attributes={"end_time": "2026-10-25 03:45:00"},
     return_raw=None,
     comfort_temp=21.0,
-    model=ThermalModel(ThermalParameters.from_config({})),
-    thermal_state=ThermalState(room_temperature=21.0, outdoor_temperature=0.0),
-    outdoor_temp=0.0,
-)
+    estimate_recovery=_away_estimate,
+))
 R.check(
     "away: hours until a presence end time typed across the fold are the true 4, not the wall 3",
     abs(_away_state.hours_until_return - 4.0) < 1e-9,

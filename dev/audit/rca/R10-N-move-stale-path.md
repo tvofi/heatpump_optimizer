@@ -141,6 +141,10 @@ runs".
    tvofi confirms that, the ledger's instance count for this class overstates the defect
    population about 36-fold, and the class owes the narrow barrier only. This seat changes
    no ledger instance; it records the question.
+   **Confirmed** (tvofi, 2026-10-14, #2269: "confirm the 35 evidence-only N-move-stale-path
+   seams are by-design under D2 (ledger count overstated)"): the 35 break by design under the
+   `historical` ruling `tests/layout.json` names D2 -- the layout ruling, not the D2 dimension
+   brief, which this leaves unchanged. The ledger instances stand as recorded; read them so.
 2. **Optional, policy:** a sentence in `dev/governance/rules/` saying that a standing
    instrument a brief names lives outside the `historical` prefixes. This addresses the
    precondition. It is optional because the arm in point 1 of the countermeasure enforces

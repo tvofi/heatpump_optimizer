@@ -38,7 +38,7 @@ from .const import (
 )
 from .thermal_model import is_sunlit_interval
 from .draw_range import DrawRange, follows_ask
-from .drift import stored_instant
+from .drift import stored_instant, utc_shift
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
 
@@ -142,19 +142,6 @@ class AccuracySample:
             cop_residual=num("cop_residual"),
             boost_space=bool(data.get("boost_space", False)),
         )
-
-
-def utc_shift(when: datetime, delta: timedelta) -> datetime:
-    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
-
-    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
-    lands 3 h later. Adding in UTC and converting back keeps the label a real
-    instant (the same walk ``drift.utc_step_starts`` makes); a naive stamp keeps
-    the plain addition.
-    """
-    if when.tzinfo is None:
-        return when + delta
-    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
 
 
 #: Lead-time buckets, hours (T5 #16). The margin a plan needs against its
@@ -303,6 +290,12 @@ class AccuracyTracker:
             # Matured entries never survive, scored or stale: a promise
             # that missed its measurement window is unverifiable.
         self.lead_pending = keep
+
+    def void_pending(self) -> None:
+        """Drop every unmatured prediction: the plan that made them stopped
+        being what runs, so scoring them would charge the model with errors
+        it never made."""
+        self.lead_pending.clear()
 
     def has_lead_history(self) -> bool:
         """Whether any lead bucket has actually scored a pair.

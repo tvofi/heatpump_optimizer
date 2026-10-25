@@ -4,6 +4,8 @@
     python3 -I tools/pr/codeql_scope.py changed --base BASE --head HEAD > CHANGED.txt
     python3 -I tools/pr/codeql_scope.py decide --language LEG --event EVENT \
         --files-from CHANGED.txt
+    python3 -I tools/pr/codeql_scope.py extracted --language LEG --archive SRC.ZIP
+    python3 -I tools/pr/codeql_scope.py stand-in --language LEG --base-sha SHA --out FILE
     python3 -I tools/pr/codeql_scope.py --self-test
 
 `decide` prints one word on stdout, `analyze` or `skip`, and its reason on
@@ -16,6 +18,13 @@ paid `Analyze (python)`'s 23-26 minutes, its critical path, for an analysis
 that cannot differ from main's: no file the python extractor reads changed.
 That was 76 of the 144 pull requests merged in round 10.
 
+D-5 (owner ruling, DESIGN-P2 6): INERT is an allow-list, not a measured
+closure, so `extracted` checks it against the extractor on every push run
+(which analyzes in full): the leg's extracted source archive (the database's
+`src.zip`) must hold no file whose suffix is on that leg's INERT list. A file
+the extractor read and the list calls inert is a pull request that would skip
+a leg that could have found something; the push run goes red instead.
+
 THE RULE, fail-closed in every arm:
   * only `pull_request` may skip. `push`, `schedule`, `merge_group` and
     `workflow_dispatch` always analyze, so main keeps a full analysis of
@@ -27,6 +36,17 @@ THE RULE, fail-closed in every arm:
     leg: it changes what the analysis is. This file is `.py`, on no leg's
     INERT list, so editing the decision analyzes every leg too;
   * an empty or unreadable file list analyzes;
+  * a SKIPPED leg still uploads its category (r10-codeql-dependabot): code
+    scanning compares a pull request's configurations with main's, and a
+    category main carries that the pull request lacks reads "1 configuration
+    not found" on every skipping PR. `stand-in` writes MAIN'S OWN analysis of
+    that category as the stand-in -- the one at the PR's base commit, else
+    main's newest error-free one -- and the leg uploads it under its own
+    category and analysis key. It is truthful by O17's own premise: the diff
+    is inert to that extractor, so the merge ref's alerts ARE the base's. No
+    such analysis (exit 3) and the leg analyzes instead, never uploads nothing.
+    The upload step is not "Perform CodeQL Analysis", so
+    tools/ci/codescan_wait.py never counts a stand-in as the PR's own alerts;
   * the list is `changed`'s, with rename detection OFF: porcelain `git diff`
     detects renames by default and lists only a rename's destination, so
     `lib.py` -> `lib.md` would list `lib.md` alone and the python leg would
@@ -71,6 +91,84 @@ def decide(language: str, event: str, files: list[str]) -> tuple[str, str]:
         if suffix not in INERT[language]:
             return "analyze", f"{f} ({suffix or 'no suffix'}) may be read by the {language} extractor"
     return "skip", f"all {len(files)} changed file(s) are inert to the {language} extractor"
+
+
+ANALYSIS_KEY = ".github/workflows/ci.yml:analyze"
+
+
+def pick_stand_in(analyses: list[dict], base_sha: str, language: str) -> dict | None:
+    """Main's analysis of `language` to stand in for a skipped leg: the one at
+    `base_sha`, else the newest; only the umbrella's key, never an errored one."""
+    ok = [a for a in analyses
+          if a.get("ref") == "refs/heads/main" and a.get("analysis_key") == ANALYSIS_KEY
+          and a.get("category") == f"/language:{language}" and not a.get("error")]
+    ok.sort(key=lambda a: a.get("created_at", ""), reverse=True)
+    at_base = [a for a in ok if a.get("commit_sha") == base_sha]
+    return (at_base or ok or [None])[0]
+
+
+def stand_in_sarif(doc: dict) -> dict:
+    """The downloaded SARIF made uploadable for the pull request: main's
+    provenance and category dropped (upload-sarif sets this run's)."""
+    for run in doc.get("runs") or []:
+        run.pop("versionControlProvenance", None)
+        run.pop("automationDetails", None)
+    return doc
+
+
+def write_stand_in(language: str, base_sha: str, out: str) -> int:
+    """0 with the stand-in at `out`; 3 when main has none (the leg analyzes)."""
+    import json
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+
+    def gh(*args: str) -> str:
+        return subprocess.run(["gh", "api", *args], check=True, capture_output=True, text=True).stdout
+
+    try:
+        listing = json.loads(gh(f"repos/{repo}/code-scanning/analyses?ref=refs/heads/main&per_page=100"))
+        pick = pick_stand_in(listing, base_sha, language)
+        if pick is None:
+            print(f"codeql_scope: {language}: main has no error-free {ANALYSIS_KEY} analysis to stand in", file=sys.stderr)
+            return 3
+        doc = json.loads(gh("-H", "Accept: application/sarif+json",
+                            f"repos/{repo}/code-scanning/analyses/{pick['id']}"))
+    except (subprocess.CalledProcessError, ValueError) as e:
+        print(f"codeql_scope: {language}: cannot read main's analysis: {e}", file=sys.stderr)
+        return 3
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump(stand_in_sarif(doc), fh)
+    where = "the base commit" if pick.get("commit_sha") == base_sha else f"main's newest ({pick.get('commit_sha', '')[:12]})"
+    print(f"codeql_scope: {language}: stand-in is analysis {pick['id']} at {where}", file=sys.stderr)
+    return 0
+
+
+def extracted_violations(language: str, names: list[str], inert=None) -> list[str]:
+    """The archive entries whose suffix is on the leg's INERT list (D-5). An
+    unknown leg or an empty archive is itself a violation: nothing was read,
+    so nothing was checked."""
+    inert = INERT if inert is None else inert
+    if language not in inert:
+        return [f"unknown leg {language!r}"]
+    names = [n for n in names if n and not n.endswith("/")]
+    if not names:
+        return ["the archive holds no file: nothing was checked"]
+    return [n for n in names if PurePosixPath(n).suffix.lower() in inert[language]]
+
+
+def check_extracted(language: str, archive: str) -> int:
+    """0 when the archive holds no inert file, 1 on one, 2 when unreadable."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(archive) as z:
+            names = z.namelist()
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f"codeql_scope: cannot read the extracted archive {archive}: {e}", file=sys.stderr)
+        return 2
+    bad = extracted_violations(language, names)
+    for n in bad[:20]:
+        print(f"codeql_scope: {language}: extracted but inert: {n}", file=sys.stderr)
+    print(f"codeql_scope: {language}: {len(names)} archive entries, {len(bad)} on the INERT list", file=sys.stderr)
+    return 1 if bad else 0
 
 
 def _closure():
@@ -193,6 +291,62 @@ def self_test() -> int:
     finally:
         cl.changed_between = real
 
+    # D-5: the INERT list against the extractor's own source archive.
+    import zipfile
+    arch = {"python": ["src/a.py", "src/pkg/", "src/b.py"],
+            "javascript-typescript": ["src/card.js", "src/x.json", "src/y.html"],
+            "actions": ["src/.github/workflows/ci.yml"]}
+    for leg, names in arch.items():
+        check(f"D-5: a {leg} archive of extractable files is sound (null control)",
+              extracted_violations(leg, names), [])
+    plant = {**INERT, "python": INERT["python"] | {".py"}}
+    check("D-5 plant: .py joining python's INERT list fails the check",
+          extracted_violations("python", arch["python"], plant), ["src/a.py", "src/b.py"])
+    check("D-5 plant: .json is inert to python, so a json in the archive fails",
+          extracted_violations("python", arch["python"] + ["src/c.json"]), ["src/c.json"])
+    check("D-5: an upper-case suffix is the same suffix",
+          extracted_violations("python", ["A.PY", "B.MD"]), ["B.MD"])
+    check("D-5: an empty archive is not a pass", len(extracted_violations("python", ["d/"])), 1)
+    check("D-5: an unknown leg is not a pass", len(extracted_violations("ruby", ["a.rb"])), 1)
+    with tempfile.TemporaryDirectory() as td:
+        def zipped(*names: str) -> str:
+            path = os.path.join(td, f"z{len(os.listdir(td))}.zip")
+            with zipfile.ZipFile(path, "w") as z:
+                for nm in names:
+                    z.writestr(nm, "x")
+            return path
+        check("D-5 main: a sound archive exits 0",
+              main(["extracted", "--language", "python", "--archive", zipped("a.py")]), 0)
+        check("D-5 main: an inert file in the archive exits 1",
+              main(["extracted", "--language", "python", "--archive", zipped("a.py", "n.md")]), 1)
+        check("D-5 main: a missing archive exits 2, never 0",
+              main(["extracted", "--language", "python", "--archive", os.path.join(td, "none.zip")]), 2)
+        bad = os.path.join(td, "bad.zip")
+        with open(bad, "w", encoding="utf-8") as fh:
+            fh.write("not a zip")
+        check("D-5 main: a corrupt archive exits 2", main(["extracted", "--language", "python", "--archive", bad]), 2)
+
+    # The stand-in for a skipped leg: main's analysis at the base, else main's
+    # newest; never another key, category, ref or an errored one.
+    an = lambda i, sha, at, **kw: {"id": i, "ref": "refs/heads/main", "analysis_key": ANALYSIS_KEY,  # noqa: E731
+                                   "category": "/language:python", "error": "", "commit_sha": sha,
+                                   "created_at": at, **kw}
+    pool = [an(1, "b" * 40, "2026-10-24T01:00:00Z"), an(2, "c" * 40, "2026-10-24T02:00:00Z"),
+            an(3, "b" * 40, "2026-10-24T03:00:00Z", error="unsuccessful execution"),
+            an(4, "b" * 40, "2026-10-24T04:00:00Z", analysis_key=".github/workflows/codeql.yml:analyze"),
+            an(5, "b" * 40, "2026-10-24T05:00:00Z", category="/language:actions"),
+            an(6, "b" * 40, "2026-10-24T06:00:00Z", ref="refs/pull/7/merge")]
+    pick = lambda base: (pick_stand_in(pool, base, "python") or {}).get("id")  # noqa: E731
+    check("stand-in: the base commit's own analysis wins over a newer one", pick("b" * 40), 1)
+    check("stand-in: no analysis at the base takes main's newest", pick("d" * 40), 2)
+    check("stand-in: none for a leg main never analyzed (the leg analyzes)",
+          pick_stand_in(pool, "b" * 40, "javascript-typescript"), None)
+    sarif = stand_in_sarif({"runs": [{"automationDetails": {"id": "/language:python/"},
+                                      "versionControlProvenance": [{"branch": "refs/heads/main"}],
+                                      "results": [{"ruleId": "r"}]}]})
+    check("stand-in: main's provenance and category are dropped, the results kept",
+          sarif, {"runs": [{"results": [{"ruleId": "r"}]}]})
+
     print(f"codeql_scope self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -201,6 +355,10 @@ def main(argv: list[str]) -> int:
     if argv == ["--self-test"]:
         return self_test()
     opts = dict(zip(argv[1::2], argv[2::2]))
+    if argv[:1] == ["extracted"] and len(argv) == 5 and set(opts) == {"--language", "--archive"}:
+        return check_extracted(opts["--language"], opts["--archive"])
+    if argv[:1] == ["stand-in"] and len(argv) == 7 and set(opts) == {"--language", "--base-sha", "--out"}:
+        return write_stand_in(opts["--language"], opts["--base-sha"], opts["--out"])
     if argv[:1] == ["changed"] and len(argv) == 5 and set(opts) == {"--base", "--head"}:
         try:
             files = changed_files(opts["--base"], opts["--head"])
@@ -212,7 +370,9 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] != ["decide"] or len(argv) != 7 or set(opts) != {"--language", "--event", "--files-from"}:
         print("usage: codeql_scope.py decide --language LEG --event EVENT --files-from FILE"
-              " | changed --base BASE --head HEAD | --self-test",
+              " | changed --base BASE --head HEAD | extracted --language LEG --archive SRC.ZIP"
+              " | stand-in --language LEG --base-sha SHA --out FILE"
+              " | --self-test",
               file=sys.stderr)
         return 2
     try:

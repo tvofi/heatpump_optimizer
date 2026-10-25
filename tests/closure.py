@@ -486,6 +486,13 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # Its sweep re-runs `gate` jobs, so it decides which verdict stands at a
+    # head as ci.yml does (U0c).
+    ".github/workflows/gate-sweep.yml",
+    # The umbrella's programs (R10-CI-LAYOUT P2a): the prelude decides the
+    # GATE_SCOPE every lane runs under and gate.py is the one required check,
+    # so a change here changes the gate's verdict as ci.yml does.
+    "tools/ci/",
     # The nightly lanes' workflow and nightly-ha's composite action
     # (R10-CI-LAYOUT PR 1, DESIGN-P1 2(a)): both run gate scripts --
     # tests/rolling.py under SLOW, mutation_table.py, tests/nightly_ha.py --
@@ -582,6 +589,14 @@ INERT_EXCEPT = (
     # merge: skip-merge-failed on this pair). Same route as the README above:
     # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
     "tools/pr/cancel_superseded.py",
+    # R10-CI-LAYOUT P2b: tests/entities.py imports U5's harness modules (`_u5_load`:
+    # run_part.py, unitcheck.py) and opens codeql.yml's program tools/pr/codeql_scope.py
+    # (U3's pins). CI's recording on probe #2656 (closures-autofix job 120356230438)
+    # refused the merge, skip-merge-failed on these three: INERT and read. Same route as
+    # cancel_superseded.py above: the prefixes stay INERT, the files move to the recorded closure.
+    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+    "tools/pr/codeql_scope.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -699,6 +714,9 @@ INERT_EXCEPT = (
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/render_md.mjs",
+    # r10-codeql-dependabot: policy_lint.mjs imports it and tests/entities.py
+    # imports it directly (the dependabot.yml agreement check).
+    "tools/policy/dependabot_contract.mjs",
     # tests/entities.py opens these. Left on the tools/policy/ prefix they
     # are declared unread while being read: the recording files them under
     # inert_reads and also in the closure, and merge refuses that pair.
@@ -720,6 +738,16 @@ INERT_EXCEPT = (
     # script opens is a dependency, not inert, whatever prefix it lives under.
     # An edit to the verdict grammar now selects tests/entities.py.
     ".claude/workflows/web-fix-wave.js",
+    # r10-codeql-dependabot: tests/entities.py runs `node --check` over every
+    # file codeql.yml's paths-ignore matches (the Claude Code workflow scripts)
+    # to pin that only unparseable files are ignored -- read, so not inert.
+    ".claude/workflows/audit-find.js",
+    ".claude/workflows/audit-fix.js",
+    ".claude/workflows/audit-verify.js",
+    ".claude/workflows/audit-wave.js",
+    ".claude/workflows/web-decomp-stage.js",
+    ".claude/workflows/web-stamp.js",
+    ".claude/workflows/web-triage.js",
     # Round 9's batch re-runner for the judge (PLAN R3): tests/entities.py
     # imports it and runs fixture harnesses through it, so a change to it
     # selects that script -- the web-fix-wave.js route, one line.
@@ -781,6 +809,10 @@ INERT_EXCEPT = (
     "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R10-FLY-GH-READ-RETRY: record_row.py imports gh_read.py, the read rule
+    # its `_api` reads under, and runs its self_test(), so entities.py's load
+    # of the generator reads it the same way -- the ref_privacy.py route below.
+    "tools/audit/seat/gh_read.py",
     # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
     # its self-test, and that self-test SPAWNS the three state-doc generators
     # on subprocess command lines -- a repo path on a command line is a real
@@ -1800,11 +1832,35 @@ def _fold_inert_reads(table: dict, records: dict) -> None:
             table.pop(k, None)
 
 
+def _load_recording(path: Path) -> dict:
+    """A recording, re-read under THIS tree's INERT list.
+
+    A Python child's reads reach the record only through `strace_files`,
+    which splits them by the `is_inert` of the tree that RECORDED them: an
+    INERT one goes under `inert_reads` and nowhere else. A recording kept
+    across an INERT edit -- a CI artifact merged after INERT_EXCEPT moved
+    the file out -- therefore still reads the file as unread, so `merge`
+    left it out of the closure and `check` over the same recording passed:
+    probe B2's closures job then went UNDER-SCOPED on
+    tests/harness_headers.py's reads of r10_ci_layout_u5/run_part.py and
+    unitcheck.py (job 120398407061). `_fold` filters at fold time so a rule
+    applies to records taken before it existed; this is the same rule for
+    the INERT split. Only that direction moves: an in-process INERT read is
+    already in `files`, where the #357 refusal answers it.
+    """
+    rec = json.loads(path.read_text())
+    moved = [f for f in rec.get("inert_reads", ()) if not is_inert(f)]
+    if moved:
+        rec["files"] = sorted(set(rec.get("files", ())) | set(moved))
+        rec["inert_reads"] = [f for f in rec["inert_reads"] if f not in moved]
+    return rec
+
+
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
           partial: bool = False) -> int:
     records = {}
     for f in sorted(in_dir.glob("*.json")):
-        rec = json.loads(f.read_text())
+        rec = _load_recording(f)
         name = rec["script"]
         records[name] = rec
     # DRIVEN_BY_OTHERS scripts ARE recorded (their closure folds into their
@@ -2139,7 +2195,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         return 1
     records = {}
     for f in sorted(in_dir.glob("*.json")):
-        rec = json.loads(f.read_text())
+        rec = _load_recording(f)
         records[rec["script"]] = rec
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
@@ -4218,6 +4274,9 @@ def selftest() -> int:
         pin("stress.py reads the same variable name",
             f'CLOSURE_RECORDING_ENV = "{RECORDING_ENV}"'
             in (ROOT / "tests" / "stress.py").read_text())
+        pin("harness_headers.py reads the same variable name (its CPU-headroom grade)",
+            f'RECORDING_ENV = "{RECORDING_ENV}"'
+            in (ROOT / "tests" / "harness_headers.py").read_text())
         for code in (3, 0):
             stub = td_path / f"py{code}"
             stub.write_text(f"#!/bin/sh\nexit {code}\n")
@@ -4239,6 +4298,7 @@ def selftest() -> int:
     _selftest_lane_plan(pin)
     print("\n=== the changed-file list keeps both sides of a rename (O17) ===")
     _selftest_renames(pin)
+    _selftest_inert_split(pin)
 
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
@@ -4791,6 +4851,47 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         finally:
             CLOSURES = orig
         return rc, buf.getvalue() + err.getvalue()
+
+
+def _selftest_inert_split(pin) -> None:
+    """A recording's INERT split is re-read under this tree's list (`_load_recording`).
+
+    The recording is the shape probe B2 merged: a child's read of a file
+    INERT_EXCEPT has since moved out, filed under `inert_reads` alone by the
+    classifier that recorded it. merge_train.py is excepted out of the
+    tools/audit/ prefix here; LICENSE stays INERT.
+    """
+    print("\n=== a recording's INERT split is this tree's (r10-rca-inert-closure-recording) ===")
+    caller, moved, inert = ("tests/harness_headers.py",
+                            "tools/audit/seat/merge_train.py", "LICENSE")
+    pin("the fixture's moved file is out of INERT and its kept one is INERT",
+        not is_inert(moved) and is_inert(inert))
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        fake, rec = td_path / "closures.json", td_path / "rec"
+        _selftest_write_records(rec, {caller: [caller]}, {caller: [moved, inert]})
+        crc, log = _selftest_phantom_check(
+            fake, {caller: [caller]}, rec, {caller: [moved, inert]})
+        pin("check reads a stale recording's INERT read of an excepted file as "
+            "UNDER-SCOPED",
+            crc == 1 and "UNDER-SCOPED" in log and moved in log, f"rc={crc} log={log[-300:]!r}")
+        crc2, log2 = _selftest_phantom_check(
+            fake, {caller: [caller, moved]}, rec, {caller: [inert]})
+        pin("check passes once the closure lists it and inert_reads keeps only "
+            "the INERT file (null control)",
+            crc2 == 0, f"rc={crc2} log={log2[-300:]!r}")
+        write_closures(fake, {"closures": {caller: [caller]}, "recorded": {},
+                              "inert_reads": {}})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mrc = merge(rec, fake, partial=True)
+        table = json.loads(fake.read_text())
+        pin("merge of the same recording writes the excepted file into the "
+            "closure and only the INERT one under inert_reads",
+            mrc == 0 and moved in table["closures"][caller]
+            and table["inert_reads"].get(caller) == [inert],
+            f"rc={mrc} closure={table['closures'].get(caller)!r} "
+            f"inert={table['inert_reads'].get(caller)!r}")
 
 
 def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,

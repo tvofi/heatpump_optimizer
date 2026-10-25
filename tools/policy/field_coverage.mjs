@@ -111,6 +111,15 @@ const HOOKS = {
   load: () => JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/settings.json'), 'utf8')),
   ignore: {
     'permissions': 'tool permissions are not a hook; --hooks judges hooks and nothing else reads this key',
+    'attribution': "the harness's commit and PR attribution text, not a hook (R10-FLY-NO-FOOTERS); --hooks judges hooks. What it hides is refused downstream whatever this key holds: ref_privacy.py's push guard and policy_lint.mjs's body contract",
+  },
+  // PENDING: an IGNORE for a key a later pull request adds. Unmatched it is
+  // printed, not DEAD; matched it clears the field like an IGNORE. Decision 0013's
+  // tolerant form: this lands first so the pinned grader never reads the key BLIND.
+  // The follow-up (R10-FLY-NO-FOOTERS, #2636 or a one-line change after it merges)
+  // moves the entry into `ignore`, where an absent key is DEAD again.
+  pending: {
+    'attribution': "the harness's commit and PR attribution text, not a hook (R10-FLY-NO-FOOTERS); --hooks judges hooks. What it hides is refused downstream whatever this key holds: ref_privacy.py's push guard and policy_lint.mjs's body contract",
   },
   async verdict(obj) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fc-hooks-'))
@@ -281,6 +290,9 @@ async function jsonRun(reg, report) {
   if (!ls.length) { report.refused.push(`${reg.name}: enumerated zero fields`); return }
   const globs = Object.keys(reg.ignore)
   for (const g of globs) if (!ls.some((p) => matches(g, pattern(p)))) report.dead.push(`${reg.name}: IGNORE \`${g}\` matches no field of ${reg.artifact}`)
+  const pend = Object.keys(reg.pending || {})
+  for (const g of pend) if (!ls.some((p) => matches(g, pattern(p)))) (report.pending ||= []).push(`${reg.name}: PENDING \`${g}\` awaits its field in ${reg.artifact}; strict (DEAD if absent) once the follow-up moves it to IGNORE`)
+  globs.push(...pend)
   const todo = ls.filter((p) => !globs.some((g) => matches(g, pattern(p))))
   report.ignored.push(...ls.filter((p) => globs.some((g) => matches(g, pattern(p)))).map((p) => `${reg.name} ${show(p)}`))
   // A registration may name the value that breaks a field's property where a
@@ -337,6 +349,7 @@ const DECLARED = {
   'pinned .claude/workflows/render_md.mjs': { none: PROSE },
   'pinned .claude/workflows/rules_sync.mjs': { none: 'byte-compares generated rules, no field to skip' },
   'pinned .claude/workflows/vendor/markdown-it.min.js': { none: 'a vendored parser, not a check' },
+  'pinned tools/policy/dependabot_contract.mjs': { none: 'reads a Dependabot PR\'s author, commit list and changed paths against the base\'s .github/dependabot.yml; graded by policy_lint\'s acceptance fixture (one arm, one refusing control per clause) and entities.py\'s YAML census, no arm here' },
   'pinned tests/coverage_ratchet.py': { none: 'reads the coverage budget file; residual, no arm here' },
   'pinned tests/structure.py': { none: 'the structural ratchet, graded by its own self-check; the census arm plants members in it' },
   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
@@ -559,6 +572,13 @@ async function selfTest() {
   t('an IGNORE with a reason clears it', !r.blind.length && r.ignored.length === 1)
   r = fresh(); await jsonRun(reg({ c: 'why' }), r)
   t('an IGNORE matching no field is DEAD', r.dead.length === 1)
+  const regP = (ignore, pending) => ({ ...reg(ignore), pending })
+  r = fresh(); await jsonRun(regP({}, { c: 'later' }), r)
+  t('a PENDING matching no field is printed, not DEAD, and clears nothing else', !r.dead.length && r.pending?.length === 1 && r.blind.length === 1)
+  r = fresh(); await jsonRun(regP({}, { b: 'later' }), r)
+  t('a PENDING matching a field clears it like an IGNORE', !r.dead.length && !r.blind.length && !r.pending?.length && r.ignored.length === 1)
+  r = fresh(); await jsonRun(regP({ c: 'why' }, { b: 'later' }), r)
+  t('an ordinary IGNORE beside a PENDING is still DEAD (the tolerance is not general)', r.dead.length === 1)
   r = fresh(); await jsonRun(reg({}, async () => 'red'), r)
   t('an input red before any perturbation is REFUSED', r.refused.length === 1 && !r.read.length)
   r = fresh(); await jsonRun(reg({}, async (o) => (o.a === 1 && o.b === 'x' ? 'green' : 'skip:down')), r)
@@ -653,6 +673,7 @@ async function main() {
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
   for (const x of report.none) console.log(`  none     ${x}`)
   for (const x of report.blind) console.log(`  BLIND    ${x}`)
+  for (const x of report.pending || []) console.log(`  pending  ${x}`)
   for (const x of report.dead) console.log(`  DEAD     ${x}`)
   for (const x of report.refused) console.log(`  REFUSED  ${x}`)
   const bad = report.blind.length + report.dead.length + report.refused.length

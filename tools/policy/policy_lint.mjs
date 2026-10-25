@@ -46,10 +46,11 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
+//   ... --record|--stats|--sunset --since <ref> --window-cache <file>   # one window walk shared by the three
 //
 // `--record` and `--record-known-bad` are two different things and the names sit
 // one hyphen apart: the first REFUSES a merge with no disposition, the second
@@ -57,9 +58,10 @@
 // prefix, so neither can be reached by mistyping the other.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import {
   trackedFiles,
   resolvePathToken,
@@ -79,6 +81,7 @@ import {
 } from './brief_lint.mjs'
 import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
+import { DEPENDABOT_AUTHORS, dependabotManifests, dependencyBumpProblems, parseCommits } from './dependabot_contract.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -1097,6 +1100,7 @@ function requiredContextsOverTree() {
   ]
 }
 
+
 function checkOrphanCaps(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b || !b.files) return []
@@ -2111,11 +2115,64 @@ function fetchPullsBySha(commits) {
   return { ok: true, map, gapShas }
 }
 
-function mergedPRsFromWindow(since) {
+// THE WINDOW CACHE (dev/audit/rca/install-ratelimit.md, M1). Governance's
+// `record` job runs `--record`, `--stats` and `--sunset` over one window on one
+// push, and each walked it from scratch through `ghGet`: 3W + 6P reads of the
+// repository's GITHUB_TOKEN bucket where W + 3P carry the same data. With
+// `--window-cache <file>` the first mode to read a part of the window writes it
+// and the later modes read it back, so the job's cost is one walk.
+//
+// Keyed on the two resolved SHAs, so a file left from another window or another
+// head is ignored rather than trusted. ONLY A COMPLETE READ SERVES: a failed
+// enumeration writes nothing and an aborted per-PR fetch carries an empty map,
+// so the next mode retries exactly as it did before the cache existed -- every
+// failure marker (`enumSkipLine`, the stats fetch guard, the sunset `no
+// friction data`) keeps its meaning. Without the flag nothing is read or
+// written. Each mode prints `windowCacheLine`, so the job's log says whether the
+// share happened rather than leaving it to a count of calls nobody sees.
+function windowKey(since) {
+  const rev = (r) => git(['rev-parse', '--verify', '--quiet', `${r}^{commit}`], { allowFail: true }).trim()
+  return `${rev(since)}..${rev(mainRef())}`
+}
+
+function readWindowCache(file, since) {
+  if (!file) return {}
+  let cache
+  try {
+    cache = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    return {}
+  }
+  return cache && cache.key === windowKey(since) ? cache : {}
+}
+
+function writeWindowCache(file, since, part) {
+  if (!file) return
+  fs.writeFileSync(file, JSON.stringify({ ...readWindowCache(file, since), ...part, key: windowKey(since) }))
+}
+
+// `fetchPullsBySha` through the window cache. The fetcher is a parameter so the
+// acceptance drives the cache with a counting stand-in, offline in every clone.
+function pullsByShaShared(commits, since, cacheFile, fetch = fetchPullsBySha) {
+  const cached = readWindowCache(cacheFile, since).pullsBySha
+  if (cached) return { ok: true, map: new Map(cached.map), gapShas: cached.gapShas, fromCache: true }
+  const fetched = fetch(commits)
+  if (fetched.ok) writeWindowCache(cacheFile, since, { pullsBySha: { map: [...fetched.map], gapShas: fetched.gapShas } })
+  return { ...fetched, fromCache: false }
+}
+
+function mergedPRsFromWindow(since, cacheFile = null) {
   const commits = firstParentCommits(since)
-  const fetched = fetchPullsBySha(commits)
-  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas }
-  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [] }
+  const fetched = pullsByShaShared(commits, since, cacheFile)
+  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas, fromCache: fetched.fromCache }
+  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [], fromCache: false }
+}
+
+// What a mode took from the window cache, one line per mode: `parts` is
+// [name, served-by-the-file] for each read the mode makes.
+function windowCacheLine(file, parts) {
+  if (!file) return 'WINDOW_CACHE: off -- no --window-cache, so this mode fetched the window itself'
+  return `WINDOW_CACHE: ${parts.map(([name, hit]) => `${name} ${hit ? 'served by' : 'fetched, not served by'}`).join('; ')} ${file}`
 }
 
 // THE LOUD HALF OF THE ENUMERATION GUARD (#957's dead-fetch discipline; the
@@ -2729,14 +2786,18 @@ const FRICTION_THRESHOLD = 3
 // THRESHOLD only -- exact-id rows and CENSUS lines are the raw record and stay
 // byte-shape-identical (`friction_issues.mjs` re-measures them); the family
 // rows are additive beside them, keyed `<name> (family)`.
-// Three standing rules a new entry must obey, pinned in assertAcceptance: the
+// Four standing rules a new entry must obey, pinned in assertAcceptance: the
 // members are DISTINCT-PULL-REQUEST unions, never a sum of rows (one pull
-// request blocked by two siblings is one occasion, not two); no family may
-// contain the passing verdict, or the family arm opens rework as friction; and
-// a family must be measured in a real window before it is declared -- the
-// declaration is a claim about where the friction actually split.
+// request blocked by two siblings is one occasion, not two); an occasion a
+// member's own would-open line already counts is not counted again by its
+// family (#2410); no family may contain the passing verdict, or the family arm
+// opens rework as friction; and a family must be measured in a real window
+// before it is declared -- the declaration is a claim about where the friction
+// actually split. The mutation family's last four words are #2561 section 5's
+// measured synonyms of the mutation obligation (v7.0.0..df6ca4bc: test-vacuous
+// on 2 pull requests, the other three on 1 each).
 const FRICTION_FAMILIES = [
-  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor'] },
+  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives'] },
   { name: 'environment', members: ['environment', 'seat-environment'] },
 ]
 
@@ -2746,27 +2807,35 @@ const FRICTION_FAMILIES = [
 // all, so a window with no family hits prints byte-identically to the
 // pre-fold counter -- the exact-id record is the raw record, and the fold
 // adds to it, never edits it.
+// THE FAMILY COUNTS ONLY WHAT NO MEMBER FILES (#2410). A member at or over the
+// threshold fires its own would-open line, so the family's `prs` leave out
+// every pull request such a member holds, and its `entries` are the other
+// members' entries on the pull requests left. Over v7.0.0..df6ca4bc the union
+// read 7 while mutation-vacuous filed its own line at 5 of those 7: five
+// occasions filed twice, and the 2 left were below the threshold. `filed`
+// names the members that filed, `union` is the count before they are taken
+// out, so the table can show both.
 function statsFamilies(hist) {
   const out = []
   for (const { name, members } of FRICTION_FAMILIES) {
-    let present = false
-    const cell = { entries: 0, prs: new Set() }
-    for (const m of members) {
-      const c = hist.get(m)
-      if (!c) continue
-      present = true
-      cell.entries += c.entries
-      for (const p of c.prs) cell.prs.add(p)
-    }
-    if (present) out.push({ name, entries: cell.entries, prs: cell.prs })
+    const cells = members.map((m) => hist.get(m)).filter(Boolean)
+    if (!cells.length) continue
+    const filed = members.filter((m) => (hist.get(m)?.prs.size ?? 0) >= FRICTION_THRESHOLD)
+    const taken = new Set(filed.flatMap((m) => [...hist.get(m).prs]))
+    const union = new Set(cells.flatMap((c) => [...c.prs]))
+    const prs = new Set([...union].filter((p) => !taken.has(p)))
+    let entries = 0
+    for (const c of cells) for (const p of prs) entries += c.byPr.get(p) ?? 0
+    out.push({ name, entries, prs, union: union.size, filed })
   }
   return out
 }
 const bump = (hist, key, pr) => {
-  if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set() })
+  if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set(), byPr: new Map() })
   const cell = hist.get(key)
   cell.entries += 1
   cell.prs.add(pr)
+  cell.byPr.set(pr, (cell.byPr.get(pr) ?? 0) + 1)
 }
 
 // THE SAME KEYING, ONE GRAMMAR (#1240, D13-03; #1304; #1472, D13-02). The
@@ -3080,12 +3149,13 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
   // environment siblings are friction rule ids). The exact-id arms above stay,
   // and a family whose distinct-PR union reaches the threshold fires beside
   // them, keyed `<name> (family)` with the map in the kind, so the filing
-  // lane's exact-title match never collides with an id row. One line per
-  // family per map, whatever its members do alone -- a member already over
-  // threshold fires its own id line above and the family does not double it,
-  // and the count is the union of the member pull requests, so one pull
-  // request blocked by two siblings is one occasion. The message shape is the
-  // one `friction_issues.mjs`'s WOULD_OPEN_RE parses: kind, count, threshold.
+  // lane's exact-title match never collides with an id row. At most one line
+  // per family per map, on the occasions no member's own line counts
+  // (statsFamilies): a member already over threshold fires its id line above,
+  // and the family neither doubles it nor reaches the threshold by re-counting
+  // it (#2410); one pull request blocked by two siblings is one occasion. The
+  // message shape is the one `friction_issues.mjs`'s WOULD_OPEN_RE parses:
+  // kind, count, threshold.
   for (const [kind, hist] of [['verdict family', verdicts], ['friction family', friction]]) {
     for (const fam of statsFamilies(hist)) {
       const n = fam.prs.size
@@ -3094,7 +3164,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
         severity: 'info',
         check: 'stats',
         where: '(window)',
-        message: `would open "[policy] recurring friction: ${fam.name} (family)" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (${fam.entries} entr${fam.entries === 1 ? 'y' : 'ies'} in all); it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.`,
+        message: `would open "[policy] recurring friction: ${fam.name} (family)" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (${fam.entries} entr${fam.entries === 1 ? 'y' : 'ies'} in all)${fam.filed.length ? `, less the ${fam.union - n} that ${fam.filed.join(', ')} already file${fam.filed.length === 1 ? 's' : ''} on ${fam.filed.length === 1 ? 'its' : 'their'} own line` : ''}; it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.`,
       })
     }
   }
@@ -3323,6 +3393,18 @@ export function fetchWindow(prs) {
     })
   }
   return { fetched, fetchError: null }
+}
+
+// `fetchWindow` through the window cache: a cached read serves only when it
+// holds every pull request asked for, and only a complete fetch is written.
+function fetchWindowShared(prs, since, cacheFile, fetch = fetchWindow) {
+  const cached = readWindowCache(cacheFile, since).prReads
+  if (cached && prs.every(({ pr }) => Object.hasOwn(cached, pr))) {
+    return { fetched: new Map(prs.map(({ pr }) => [pr, cached[pr]])), fetchError: null, fromCache: true }
+  }
+  const out = fetch(prs)
+  writeWindowCache(cacheFile, since, { prReads: Object.fromEntries(out.fetched) })
+  return { ...out, fromCache: false }
 }
 
 // A detector "fires" if the ledger records a defect naming it, or the window's
@@ -3668,6 +3750,7 @@ const REQUIRED_ROT = {
       'does not parse: "- a second bullet',  // a bullet after a labelled entry opens an entry; it is not folded
       'does not parse: "`budgets`: `annoying`',  // a class outside the five is refused, not read as an id
       'is red and',                      // a red check the body never names
+      "carries a tool's attribution",    // a footer or session link (R10-FLY-NO-FOOTERS)
     ],
   },
   index: {
@@ -3770,6 +3853,37 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // rot fixture is rotten, and must produce nothing.
 const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
+// Does this workflow text DEFINE the top-level job `id`? A job is defined when
+// `  <id>:` opens it under `jobs:`; it is only CALLED when its own body (the
+// lines indented under it, before the next two-space key) carries a job-level
+// `    uses:` -- a reusable-workflow call runs another file's job. A step's
+// `- uses:` sits deeper and is not a call.
+export function definesJob(text, id) {
+  const lines = String(text ?? '').split('\n')
+  const start = lines.indexOf(`  ${id}:`)
+  if (start < 0) return false
+  for (let i = start + 1; i < lines.length; i++) {
+    const l = lines[i]
+    if (l.trim() === '' || /^\s*#/.test(l)) continue
+    if (!/^   /.test(l)) break
+    if (/^    uses:\s/.test(l)) return false
+  }
+  return true
+}
+
+// The workflow files under .github/workflows that define the `pr-contract`
+// job, sorted. Exactly one is the contract's workflow (#1514).
+export function contractWorkflowFiles(root = ROOT) {
+  const dir = path.join(root, '.github', 'workflows')
+  let names = []
+  try { names = fs.readdirSync(dir).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
+  return names.filter((n) => {
+    let t = ''
+    try { t = fs.readFileSync(path.join(dir, n), 'utf8') } catch {}
+    return definesJob(t, 'pr-contract')
+  })
+}
+
 function assertAcceptance(derived) {
   const dir = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures', 'policy-rot'))
   if (!fs.existsSync(dir)) {
@@ -3807,6 +3921,7 @@ function assertAcceptance(derived) {
     const rel = path.relative(ROOT, path.join(prepr, f))
     if (f === 'needs-approval.md') continue
     const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
+    if (f === 'good-claude-ai.md') continue
     if (f === 'good.md' && errs.length) {
       console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
       return 1
@@ -3831,6 +3946,118 @@ function assertAcceptance(derived) {
     if (right.length || rightBot.length || absent.length) {
       console.log('\nFIXTURE VACUOUS: the author check fired on the App (either form) or on an absent author (the null controls)')
       return 1
+    }
+  }
+
+  // The Dependabot arm (tools/policy/dependabot_contract.mjs). The arm: a
+  // Dependabot PR changing one configured manifest, its one commit
+  // Dependabot's own, no red -- silent, with a body carrying no heading at
+  // all. The controls, each one clause broken, must each refuse: the SAME
+  // body and paths as tvofi or the hpo-author App (the full contract keeps
+  // its teeth), a path no dependabot.yml entry configures, a configured
+  // manifest's name under a directory no entry names, a non-manifest file
+  // in a configured pip and in a configured npm directory, a human commit
+  // on the branch, an unsigned one, no commit list, and a red check.
+  {
+    const rel = path.relative(ROOT, path.join(prepr, 'dependabot-body.txt'))
+    const own = [{ sha: 'a'.repeat(40), author: 'dependabot[bot]', committer: 'web-flow', verified: true }]
+    const bump = { head: ZERO, paths: ['tests/requirements-build.txt'], commits: own }
+    const arm = checkPrBody(rel, { ...bump, author: 'dependabot[bot]' })
+    const armGql = checkPrBody(rel, { ...bump, author: 'app/dependabot' })
+    if (arm.length || armGql.length) {
+      console.log(`\nFIXTURE VACUOUS: the Dependabot arm refused a clean dependency bump: ${[...arm, ...armGql].map((e) => e.message).join(' | ')}`)
+      return 1
+    }
+    const controls = {
+      'tvofi, same body': checkPrBody(rel, { ...bump, author: 'tvofi' }),
+      'the App, same body': checkPrBody(rel, { ...bump, author: 'hpo-author[bot]' }),
+      'unconfigured path': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tools/unconfigured.py'] }),
+      'manifest in an unconfigured directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tools/requirements-build.txt'] }),
+      'non-manifest in a configured pip directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tests/README.md'] }),
+      'non-manifest in a configured npm directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/pwlane/package-lock.json', 'tests/pwlane/README.md'] }),
+      'human commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [...own, { sha: 'b'.repeat(40), author: 'tvofi', committer: 'tvofi', verified: true }] }),
+      'unsigned commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [{ ...own[0], verified: false }] }),
+      'no commit list': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: null }),
+      'a red check': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', red: ['tests / fast (3.14)'] }),
+    }
+    const silent = Object.entries(controls).filter(([, f]) => !f.length).map(([k]) => k)
+    if (silent.length) {
+      console.log(`\nFIXTURE VACUOUS: the Dependabot contract's control(s) stayed silent: ${silent.join(', ')}`)
+      return 1
+    }
+  }
+
+  // The attribution arm (R10-FLY-NO-FOOTERS): attribution.md is a healthy body
+  // plus the footer and a session link, so the arm and only the arm fires on
+  // it; good-claude-ai.md names claude.ai in another sense and quotes the
+  // trailers mid-sentence, and must stay silent. One arm alone would pin a
+  // check that always fires or never does.
+  {
+    const bad = checkPrBody(path.relative(ROOT, path.join(prepr, 'attribution.md')), { head: ZERO })
+    const quiet = checkPrBody(path.relative(ROOT, path.join(prepr, 'good-claude-ai.md')), { head: ZERO })
+    if (bad.length !== 1 || !/session-link, generated-footer/.test(bad[0].message)) {
+      console.log(`\nFIXTURE VACUOUS: the attribution arm did not refuse attribution.md alone on its footer and session link (${bad.map((e) => e.message.slice(0, 60)).join(' | ')})`)
+      return 1
+    }
+    if (quiet.length) {
+      console.log(`\nFIXTURE VACUOUS: the attribution arm fired on good-claude-ai.md, which names claude.ai in another sense (${quiet.length} error(s)); it would refuse an ordinary body`)
+      return 1
+    }
+  }
+
+  // The raise-justification arm (Triage P-F): each body under prepr/raise/ is
+  // prepr/good.md plus a `## Raise justification` section. The three shapes
+  // budget_raise_gate.py refused after pr-contract had passed them (#2633, and
+  // #2647 twice) must each draw exactly that one error, and raise/good.md, the
+  // gate's accepted shape, none. prepr/good.md, with no section, is the loop
+  // above's null control: a body that owes nothing asks the gate nothing.
+  {
+    const raise = path.join(prepr, 'raise')
+    const want = { 'bare-payments.md': 'Payments tried', 'score-no-verdict.md': 'Architecture score', 'verdict-outside.md': 'Architecture score', 'good.md': null }
+    for (const [f, needle] of Object.entries(want)) {
+      const errs = checkPrBody(path.relative(ROOT, path.join(raise, f)), { head: ZERO })
+      if (needle ? errs.length !== 1 || !errs[0].message.includes('Raise justification') || !errs[0].message.includes(needle) : errs.length) {
+        console.log(`\nFIXTURE VACUOUS: the raise-justification arm on prepr/raise/${f} drew ${errs.length} error(s) (${errs.map((e) => e.message.slice(0, 80)).join(' | ')}); ${needle ? `budget_raise_gate.py refuses this body on its \`${needle}\` clause, so pr-body must refuse it alone` : 'the gate accepts this body, so pr-body must stay silent'}`)
+        return 1
+      }
+    }
+    // C1 of dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md: the RECORDED sections,
+    // verbatim under raise/recorded/ (named by their handoff-body commit), each
+    // set into raise/good.md in place of its own. The three the gate refused
+    // are refused here; the one it accepted and the RCA's two one-line repairs
+    // pass. f2b98c1df carries IMPROVES twice in the section's prose, which a
+    // "verdict word in the section" mirror passes.
+    const own = fs.readFileSync(path.join(raise, 'good.md'), 'utf8')
+    const sec = own.slice(own.indexOf('## Raise justification'), own.indexOf('## ', own.indexOf('## Raise justification') + 3))
+    const rec = (c, from = '', to = from) => fs.readFileSync(path.join(raise, 'recorded', `${c}.md`), 'utf8').replace(from, to)
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-raise-'))
+    const cases = [
+      ['c6c8fee16', rec('c6c8fee16'), 'Payments tried'], ['84e2aaf66', rec('84e2aaf66'), 'Architecture score'],
+      ['f2b98c1df', rec('f2b98c1df'), 'Architecture score'], ['8f564875d', rec('8f564875d'), null],
+      ['9b5742049 repaired', rec('9b5742049', '- Payments tried:\n', '- Payments tried: each below, as sub-bullets\n'), null],
+      ['f2b98c1df repaired', rec('f2b98c1df', 'Architecture score: dS +0.0105\n', 'Architecture score: dS +0.0105 IMPROVES\n'), null],
+    ]
+    // C2: a budget path with no section. No base read is refused, never
+    // skipped; a base and head reach the gate's own diff read (an unreadable
+    // base, so its exit 2 shows the arguments arrived without needing history).
+    const diffCases = [
+      ['a budget path, no --base', { paths: ['tests/structure_budgets.json'] }, 'was not read'],
+      ['a budget path, a base git cannot read', { paths: ['tests/structure_budgets.json'], base: 'no-such-ref', head: 'f'.repeat(40) }, 'could not be read'],
+      ['a non-budget path, no --base (null control)', { paths: ['README.md'] }, null],
+    ]
+    try {
+      for (const [label, text, needle, opts = { head: ZERO }] of [...cases.map((c) => [c[0], own.replace(sec, c[1] + '\n'), c[2]]),
+        ...diffCases.map(([label, opts, needle]) => [label, own.replace(sec, '').replace(ZERO, opts.head ?? ZERO), needle, { head: ZERO, ...opts }])]) {
+        const f = path.join(tmp, 'body.md')
+        fs.writeFileSync(f, text)
+        const errs = checkPrBody(f, opts)
+        if (needle ? errs.length !== 1 || !errs[0].message.includes('Raise justification') || !errs[0].message.includes(needle) : errs.length) {
+          console.log(`\nFIXTURE VACUOUS: the raise-justification arm on ${label} drew ${errs.length} error(s) (${errs.map((e) => e.message.slice(0, 80)).join(' | ')}); it must draw ${needle ? `exactly one, naming \`${needle}\`` : 'none'}`)
+          return 1
+        }
+      }
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
     }
   }
 
@@ -3892,10 +4119,10 @@ function assertAcceptance(derived) {
   // grades with the base's copy of this file, so a named path must be right
   // on both sides of the move at once. Exactly one file may define the job;
   // none, or two, is itself a refusal below.
+  // A reusable-workflow CALLER (`pr-contract:` whose body is `uses: <file>`)
+  // runs the definer and defines nothing, so it is not counted (definesJob).
   const WF_DIR = '.github/workflows'
-  let wfNames = []
-  try { wfNames = fs.readdirSync(path.join(ROOT, WF_DIR)).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
-  const contractFiles = wfNames.filter((n) => /\n  pr-contract:\n/.test(read(`${WF_DIR}/${n}`) ?? ''))
+  const contractFiles = contractWorkflowFiles()
   const WORKFLOW = contractFiles.length === 1 ? `${WF_DIR}/${contractFiles[0]}` : `${WF_DIR}/(${contractFiles.length} files define pr-contract)`
   const wf = contractFiles.length === 1 ? read(WORKFLOW) : null
   if (wf == null) {
@@ -3951,6 +4178,7 @@ function assertAcceptance(derived) {
   const pathsDerive = runBlocks.filter((b) => /git diff/.test(b) && /--name-only/.test(b)).join('\n')
   for (const [where, hay, flag, why] of [
     ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
+    ['the body-check invocation', bodyCheck, '--base', 'a raise whose body has no `## Raise justification` would pass here and be refused first at the train (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md, C2)'],
     ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],
   ]) {
     if (!hay.includes(flag)) {
@@ -4142,9 +4370,10 @@ function assertAcceptance(derived) {
     c1: [
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
       { name: 'typing', status: 'completed', conclusion: 'failure' },
-      { name: 'pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'gate', status: 'completed', conclusion: 'failure' },
       { name: 'mutation', status: 'completed', conclusion: 'skipped' },
-      { name: 'nightly-status', status: 'in_progress' },
+      { name: 'tests / nightly-status', status: 'in_progress' },
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
     ],
     c2: [
@@ -4163,6 +4392,31 @@ function assertAcceptance(derived) {
     console.log('\nFIXTURE VACUOUS: the red history names a check over a range that failed nothing, so the derivation is not reading the run objects it is handed')
     rc = 1
   }
+  // THE DEFER SHAPE (R10-CI-LAYOUT P2b, Arm A #2649 at dd3d6306): two runs at one
+  // head, the first `gate` red only because it deferred to the second ("still
+  // being judged; their gate decides"), the second green, every unit green. The
+  // gate is an aggregate whose unit reds carry their own names, so nothing is
+  // owed; a unit red at that head still is (the null control).
+  pins += 2
+  const DEFER = [
+    { name: 'gate', status: 'completed', conclusion: 'failure' },
+    { name: 'gate', status: 'completed', conclusion: 'success' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'success' },
+    { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'success' },
+    { name: 'prelude', status: 'completed', conclusion: 'success' },
+  ]
+  const redDefer = redsOverCommits(['d1'], () => ({ ok: true, runs: DEFER }))
+  if (!redDefer.ok || redDefer.reds.length) {
+    console.log(`\nFIXTURE VACUOUS: a gate that deferred to a second run at its head leaves ${redDefer.ok ? JSON.stringify(redDefer.reds) : `not ok (${redDefer.why})`} on the red history; the aggregate's own red is owed nothing`)
+    rc = 1
+  }
+  const redDeferUnit = redsOverCommits(['d1'], () =>
+    ({ ok: true, runs: [...DEFER, { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'failure' }] }))
+  if (!redDeferUnit.ok || redDeferUnit.reds.join(',') !== 'tests / fast (3.14)') {
+    console.log('\nFIXTURE VACUOUS: beside a deferred gate, a unit red at the same head is not on the red history, so the exclusion swallowed a name it does not own')
+    rc = 1
+  }
   // The enforcement, driven on the DERIVED names rather than on a hand-written
   // list: `unnamed-red.md`'s `## Red checks` says `none`, so the red a later
   // commit cleared has to reach the same refusal the head's own red does.
@@ -4179,18 +4433,18 @@ function assertAcceptance(derived) {
   const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
   const OWN_ROW = ['tests/x.py', 'dev/programme/delivery/9999.md']
   const REPORTER_CASES = [
-    ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
-      OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
-    ['a merged row deleted', ['delivery-status'],
-      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['delivery-status']],
-    ['a merged row deleted, old spelling', ['delivery-status'],
-      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
-    ['the moved plan edited', ['delivery-status'],
-      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['delivery-status']],
-    ["the reporter's own script", ['nightly-status'],
-      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
-    ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
-    ['no paths', ['nightly-status'], [], null, ['nightly-status']],
+    ['exempt, own row added', ['tests / nightly-status', 'governance / delivery-status', 'typing', 'governance / delivery-status-publish', 'tests / Nightly-Status'],
+      OWN_ROW, ['tests/x.py'], ['typing', 'governance / delivery-status-publish', 'tests / Nightly-Status']],
+    ['a merged row deleted', ['governance / delivery-status'],
+      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['governance / delivery-status']],
+    ['a merged row deleted, old spelling', ['governance / delivery-status'],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['governance / delivery-status']],  // layout:old=docs/delivery (the old spelling, on purpose)
+    ['the moved plan edited', ['governance / delivery-status'],
+      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['governance / delivery-status']],
+    ["the reporter's own script", ['tests / nightly-status'],
+      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['tests / nightly-status']],
+    ['no existing list', ['governance / delivery-status'], OWN_ROW, null, ['governance / delivery-status']],
+    ['no paths', ['tests / nightly-status'], [], null, ['tests / nightly-status']],
   ]
   for (const [label, redNames, paths, existing, owed] of REPORTER_CASES) {
     pins += 1
@@ -4520,6 +4774,92 @@ function assertAcceptance(derived) {
   if (withTok.code !== 0 || /needs GITHUB_TOKEN/.test(withTok.out)) regFail.push(`--record with a token set exited ${withTok.code} and must reach its verdict unchanged (null control)`)
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
+  // THE WINDOW CACHE (dev/audit/rca/install-ratelimit.md, M1). The record job's
+  // three modes share one walk of the window only while a second read is served
+  // from the file the first wrote; restore the per-mode fetch and the first two
+  // arms count the second fetch. Driven with counting stand-ins for the two
+  // fetchers, so it is offline in every clone; `mainRef()..mainRef()` keys a
+  // window that resolves in every shape. Then the WIRING, as a subprocess per
+  // mode: a seeded file for that window must reach each mode's `WINDOW_CACHE:`
+  // line as served, and without the flag the line must say `off`.
+  pins += 7
+  const wcFail = []
+  const wcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'policy-lint-window-'))
+  try {
+    const wcSince = mainRef()
+    const wcFile = path.join(wcDir, 'window.json')
+    let calls = 0
+    const okPulls = () => (calls++, { ok: true, map: new Map([['a1', '7']]), gapShas: ['a1'] })
+    const okReads = (prs) => (calls++, { fetched: new Map(prs.map(({ pr }) => [pr, { body: 'b', title: 't', comments: [], reviews: [] }])), fetchError: null })
+    const badReads = () => (calls++, { fetched: new Map(), fetchError: 'HTTP 403 from fixture' })
+    const commits = [{ sha: 'a1', subject: 'Merge pull request #7 from fixture' }]
+    pullsByShaShared(commits, wcSince, wcFile, okPulls)
+    const again = pullsByShaShared(commits, wcSince, wcFile, okPulls)
+    if (calls !== 1 || again.map.get('a1') !== '7' || again.gapShas[0] !== 'a1') wcFail.push(`the commit-to-PR map was fetched ${calls} time(s) for two reads of one window, not once`)
+    calls = 0
+    const prs = [{ pr: '7' }]
+    if (fetchWindowShared(prs, wcSince, wcFile, badReads).fetchError == null) wcFail.push('a failed per-PR fetch did not reach its caller')
+    fetchWindowShared(prs, wcSince, wcFile, okReads)
+    const reread = fetchWindowShared(prs, wcSince, wcFile, okReads)
+    if (calls !== 2 || reread.fetched.get('7')?.body !== 'b') wcFail.push(`the per-PR reads were fetched ${calls} time(s) over a failure, a fetch and a re-read, not 2: a failure served a read or the re-read fetched again`)
+    calls = 0
+    fetchWindowShared([{ pr: '7' }, { pr: '8' }], wcSince, wcFile, okReads)
+    pullsByShaShared(commits, wcSince, null, okPulls)
+    if (calls !== 2) wcFail.push('a cache missing a pull request, or no cache file at all, served a read it does not hold (null control)')
+    // A failed enumeration writes nothing: two reads over a 403 must fetch twice
+    // and the file must not exist, or the saturation case this cache exists for
+    // reaches --stats/--sunset as a measured window with no pull requests.
+    const badPulls = () => (calls++, { ok: false, why: 'HTTP 403 from fixture' })
+    const failFile = path.join(wcDir, 'failed.json')
+    calls = 0
+    const failed = pullsByShaShared(commits, wcSince, failFile, badPulls)
+    pullsByShaShared(commits, wcSince, failFile, badPulls)
+    if (calls !== 2 || failed.ok || fs.existsSync(failFile)) wcFail.push('a failed commit-to-PR enumeration was cached or served: it must fetch again and write nothing')
+    const refetched = pullsByShaShared(commits, wcSince, failFile, okPulls)
+    if (!refetched.ok || refetched.fromCache || refetched.map.get('a1') !== '7') wcFail.push('a read after a failed enumeration did not fetch for itself (null control)')
+    // A file left from another window or head is ignored, not trusted.
+    const foreignFile = path.join(wcDir, 'foreign.json')
+    const foreignSeed = JSON.stringify({ key: `${windowKey(wcSince)}-foreign`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    fs.writeFileSync(foreignFile, foreignSeed)
+    const foreignFile2 = path.join(wcDir, 'foreign2.json')
+    fs.writeFileSync(foreignFile2, foreignSeed)
+    // The same head and ANOTHER `since`: the seed above differs only in the head
+    // half of the key, so a read comparing only that half (the mutant) serves it.
+    const foreignSinceSeed = JSON.stringify({ key: `${'0'.repeat(40)}..${windowKey(wcSince).split('..')[1]}`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    const foreignFile3 = path.join(wcDir, 'foreign3.json')
+    fs.writeFileSync(foreignFile3, foreignSinceSeed)
+    const foreignFile4 = path.join(wcDir, 'foreign4.json')
+    fs.writeFileSync(foreignFile4, foreignSinceSeed)
+    calls = 0
+    const foreign = pullsByShaShared(commits, wcSince, foreignFile, okPulls)
+    const foreignReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile2, okReads)
+    if (calls !== 2 || foreign.fromCache || foreign.map.has('zz') || foreignReads.fromCache || foreignReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on another window was served instead of ignored')
+    calls = 0
+    const foreignSince = pullsByShaShared(commits, wcSince, foreignFile3, okPulls)
+    const foreignSinceReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile4, okReads)
+    if (calls !== 2 || foreignSince.fromCache || foreignSince.map.has('zz') || foreignSinceReads.fromCache || foreignSinceReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on the same head and another since was served instead of ignored')
+    const seeded = path.join(wcDir, 'seeded.json')
+    fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
+    const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }
+    for (const [mode, parts] of Object.entries(wants)) {
+      const run = (extra) => {
+        try {
+          return execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), mode, '--since', wcSince, ...extra], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, GITHUB_TOKEN: 'acceptance-fixture-not-a-credential' }, stdio: ['pipe', 'pipe', 'pipe'] })
+        } catch (e) {
+          return `${e.stdout || ''}`
+        }
+      }
+      if (run(['--window-cache', seeded]).split('\n').find((l) => l.startsWith('WINDOW_CACHE:')) !== windowCacheLine(seeded, parts.map((p) => [p, true]))) wcFail.push(`${mode} --window-cache did not take ${parts.join(' and ')} from the file`)
+      if (!run([]).split('\n').includes(windowCacheLine(null, []))) wcFail.push(`${mode} without --window-cache did not say it fetched the window itself (null control)`)
+    }
+  } finally {
+    fs.rmSync(wcDir, { recursive: true, force: true })
+  }
+  if (wcFail.length) {
+    console.log(`\nFIXTURE VACUOUS: window cache ${JSON.stringify(wcFail)}. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.`)
     return 1
   }
 
@@ -5665,10 +6005,14 @@ function assertAcceptance(derived) {
   // 4 -- the environment siblings live in the id histogram, not the verdict
   // histogram, so both arms need their own witness. Exactly one family
   // would-open line per kind must print, and no exact-id line. (2) The
-  // controls window: the shared pull request counted once (the union, 3,
-  // where a per-member fold reads 4) and exactly one family line even though
-  // two members and the exact id itself all fire; and families whose members
-  // all sit below the threshold stay silent on both kinds.
+  // controls window: mutation's own id line fires at 3 and the family fires
+  // nothing, because every occasion it holds -- 9305 included, carrying two
+  // members -- is one that line already counts (#2410); and families whose
+  // members all sit below the threshold stay silent on both kinds. (3) The
+  // double window, #2561 section 6's shape: a family that reaches the
+  // threshold only by re-counting a member's filed occasions prints no line.
+  // (4) The residual window: one family line, at the 3 occasions no member
+  // line counts, the shared pull request out and a section 5 synonym in.
   {
     const famWins = read('.claude/workflows/fixtures/policy-loop/friction-families.json')
     if (famWins == null) {
@@ -5710,12 +6054,30 @@ function assertAcceptance(derived) {
     }
     pins += 1
     if (
-      famCtl.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
-      !famCtl.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 3 in this window')) ||
-      !famCtl.some((m) => /recurring friction: mutation"/.test(m)) ||
+      famCtl.some((m) => m.includes('recurring friction: mutation (family)')) ||
+      famCtl.filter((m) => /recurring friction: mutation"/.test(m)).length !== 1 ||
       famCtl.some((m) => m.includes('recurring friction: environment (family)'))
     ) {
-      console.log('\nFIXTURE VACUOUS: with one member over threshold the family line did not fire exactly once on the union count (3, the shared pull request counted once), or a family whose members all sit below threshold (environment + seat-environment at 2, on either kind) fired anyway')
+      console.log('\nFIXTURE VACUOUS: with mutation over threshold on every occasion the family holds, the family line fired anyway -- the same three pull requests filed twice (#2410) -- or the id line did not fire exactly once, or a family whose members all sit below threshold (environment + seat-environment at 2, on either kind) fired')
+      rc = 1
+    }
+    pins += 1
+    const famDouble = famDrive('double')
+    if (
+      famDouble.some((m) => m.includes('recurring friction: mutation (family)')) ||
+      famDouble.filter((m) => /recurring friction: mutation-vacuous"/.test(m)).length !== 1
+    ) {
+      console.log("\nFIXTURE VACUOUS: the double window's family reaches 5 only by re-counting mutation-vacuous's 3 filed occasions, and it printed a family line (#2410, #2561 section 6), or the member's own line did not print exactly once")
+      rc = 1
+    }
+    pins += 1
+    const famResidual = famDrive('residual')
+    if (
+      famResidual.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
+      !famResidual.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 3 in this window')) ||
+      famResidual.filter((m) => /recurring friction: mutation-vacuous"/.test(m)).length !== 1
+    ) {
+      console.log("\nFIXTURE VACUOUS: the residual window did not print exactly one `mutation (family)` line at 3 -- the occasions no member line counts (a fold re-counting 9333 reads 4, a union 6, a member list without test-vacuous 2) -- beside exactly one mutation-vacuous line")
       rc = 1
     }
     pins += 1
@@ -5939,17 +6301,19 @@ const FRICTION_BULLET_RE = /^[-*]\s/
 // seat wrote, 11 of them the attribution alone, and that bucket was the
 // histogram's TOP ROW -- the row `friction_issues.mjs` would have filed
 // "[policy] recurring friction: (unlabelled friction bullet)" on. Dropped
-// here, like a `none` declaration, rather than refused: the seat did not
-// write the line (a tool pasted it), and refusing would charge every body a
-// repair round for a paste. The drop is keyed on the LINE'S OWN SHAPE, a
+// here, like a `none` declaration, so the histogram never counts one. The
+// attribution lines among them are refused by `checkPrBody`'s attribution arm
+// (R10-FLY-NO-FOOTERS); a `Closes #N` line is not. The drop is keyed on the LINE'S OWN SHAPE, a
 // closed list: an attribution line, the one git co-author trailer token, and
 // the closing/linking keywords GitHub itself defines, each before an issue
 // number. None of the shapes is `<rule_id>: <event>: <evidence>`, so the drop
 // cannot swallow a well-formed entry; the null control in tests/entities.py
 // drives the same words mid-evidence, where no line-anchored shape matches,
-// and the entry survives.
+// and the entry survives. The cloud harness appends one more, its session
+// link alone on a line, which opened a `https:` near-miss and refused 8 body
+// pushes over 5 topics in round 10 (dev/audit/rca/R10-RCA-BODY-LINT.md).
 const FRICTION_TRAILER_RE =
-  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b)/i
+  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b|<?https:\/\/claude\.ai\/code\/session_[A-Za-z0-9]+>?\s*$)/i
 
 function frictionEntries(text) {
   const section = String(text ?? '').trim()
@@ -6165,7 +6529,12 @@ function autofixChain(head, names) {
 //
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
-const PR_CONTRACT_CHECK = 'pr-contract'
+// A check run's name is `<caller> / <job>` under the umbrella (DESIGN-P2 2.1),
+// so the contract's own is `pr-contract / pr-contract`, and `gate` is red
+// whenever any required check is: both are excluded from the red history, or
+// the body would be asked to answer the verdict it feeds (N4). U6 forward-carry.
+const PR_CONTRACT_CHECK = 'pr-contract / pr-contract'
+const OWN_VERDICT_CHECKS = new Set([PR_CONTRACT_CHECK, 'gate'])
 // THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
 // main's last scheduled run and `delivery-status` main's rowless merges; both
 // run on every pull request so a stopped lane or batch is seen. Owing a
@@ -6184,10 +6553,10 @@ const PR_CONTRACT_CHECK = 'pr-contract'
 // is why `existing` (the paths the base already had) is separate from `paths`;
 // without it every row counts, so a caller that cannot say which rows are new
 // loses the exemption rather than gaining it. No paths at all voids it too.
-const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
+const MAIN_STATE_REPORTERS = new Set(['tests / nightly-status', 'governance / delivery-status'])
 const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
-  '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  '.github/workflows/ci.yml', '.github/workflows/tests.yml', '.github/workflows/governance.yml',
   // nightly-status reads nightly.yml's runs since R10-CI-LAYOUT PR 1.
   '.github/workflows/nightly.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
@@ -6216,7 +6585,7 @@ function failingCheckNames(runs) {
   const names = new Set()
   for (const run of Array.isArray(runs) ? runs : []) {
     if (run?.status !== 'completed' || run?.conclusion !== 'failure') continue
-    if (run?.name === PR_CONTRACT_CHECK) continue
+    if (OWN_VERDICT_CHECKS.has(run?.name)) continue
     if (typeof run?.name === 'string' && run.name.trim()) names.add(run.name)
   }
   return [...names].sort()
@@ -6314,7 +6683,76 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
+// TOOL ATTRIBUTION IS REFUSED (R10-FLY-NO-FOOTERS). The owner's ruling (tvofi,
+// 2026-10-22): "please have your seats not post claude code footers, especially
+// not with direct links to sessions", then "make this ban persistent". The
+// grammar's first reader is tools/audit/seat/ref_privacy.py's ATTRIBUTION,
+// which the push guard judges commit messages with; this one is kept here
+// because pr-contract runs only programs restored from the base, and
+// agreement.mjs's `attribution` pair holds the two to one answer. Hence the
+// same terms as there: ASCII case folding and explicit word edges. JavaScript's
+// `^` already opens a line after \r, U+2028 and U+2029; the Python reader
+// rewrites them to \n to match.
+const ATTRIBUTION = [
+  ['session-link', /claude\.ai\/code\/session_/i],
+  ['session-trailer', /^[ \t]*Claude-Session[ \t]*:/im],
+  ['co-author-trailer', /^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])/im],
+  ['generated-footer', /^[^A-Za-z0-9\n]*Generated (?:with|by) \[?Claude Code(?![A-Za-z0-9_])/im],
+]
+export function attributionClasses(text) {
+  return ATTRIBUTION.filter(([, re]) => re.test(String(text))).map(([c]) => c)
+}
+
+// THE RAISE JUSTIFICATION IS THE GATE'S OWN READ (Triage P-F;
+// dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md). A mandated raise merges only
+// when budget_raise_gate.py's justification() accepts the body's
+// `## Raise justification` section, and three bodies this check passed were
+// refused there at merge time (#2633 on the payments clause, #2647 on the score
+// clause, twice). So the body is handed to `budget_raise_gate.py --check-body`,
+// the function itself, never a copy of its regexes here: a mirror drifts, and
+// covers only the clauses someone has already been refused on. Two triggers: the
+// heading, and a diff that touches a `*_budgets.json` (C2) -- then the gate
+// reads `--base...--head` with its own raises_between and refuses a raise whose
+// body has no section. REFUSED, NOT WARNED: the train refuses that body
+// identically under any mandate, a warning under a green check is read by no
+// one (the RCA's refused M2), and the owner's own route costs one section,
+// which is the list of payments fixer.md already owes a raise. A budget path
+// with no base or head to read is refused, never skipped. The heading test is
+// the gate's own -- Python's `splitlines()` boundaries and `strip()`
+// whitespace, which JS's `split('\n')` and `trim()` are not -- and
+// agreement.mjs's raise-justification concept drives both over the cases where
+// they part. Returns the refusal, or null.
+const PY_LINE_BREAK_RE = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/
+const PY_STRIP_RE = /^[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/g
+function raiseJustification(bodyPath, body, { base = '', head = '', paths = [] } = {}) {
+  const heading = body.split(PY_LINE_BREAK_RE).some((ln) => ln.replace(PY_STRIP_RE, '') === '## Raise justification')
+  const budgets = paths.filter((f) => f.endsWith('_budgets.json'))
+  if (!heading && !budgets.length) return null
+  const diff = budgets.length && base && /^[0-9a-f]{40}$/i.test(head) && !/^0{40}$/.test(head)
+  if (budgets.length && !diff) return `the diff touches ${budgets.join(', ')}, and no \`--base\` and \`--head\` name it, so whether it raises a cap -- and owes \`## Raise justification\` -- was not read. Pass both.`
+  const r = spawnSync('python3', ['-I', path.join(HERE, 'budget_raise_gate.py'), '--check-body', bodyPath, ...(diff ? ['--base', base, '--head', head] : [])],
+    { cwd: ROOT, encoding: 'utf8' })
+  const said = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
+  if (r.status === 0) return null
+  if (r.status === 1) return `${said} -- budget_raise_gate.py refuses this body at merge time, so it is refused here: a raise's body carries \`## Raise justification\` with a \`Payments tried: <what>\` line and an \`Architecture score: dS <n> <IMPROVES|NULL|WORSENS>\` line inside it, before the next \`#\` or \`##\` heading.`
+  return `budget_raise_gate.py --check-body could not judge this body's \`## Raise justification\` or the raise it owes it for (${r.error ? r.error.message : `exit ${r.status}`}${said ? `: ${said.slice(0, 160)}` : ''}). A raise nobody checked is not one the gate will accept.`
+}
+
+// .github/dependabot.yml as the BASE has it (the pull request cannot widen what
+// it is admitted under); '' when unreadable, which configures nothing.
+function dependabotYmlAt(base) {
+  if (base) return git(['show', `${base}:.github/dependabot.yml`], { allowFail: true, quiet: true })
+  try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
+}
+
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null } = {}) {
+  // A Dependabot pull request answers the dependency-bump contract instead
+  // (tools/policy/dependabot_contract.mjs); every other author, the full one.
+  if (author != null && DEPENDABOT_AUTHORS.has(author)) {
+    notes.push('DEPENDABOT: judged on the dependency-bump contract (tools/policy/dependabot_contract.mjs)')
+    return dependencyBumpProblems({ paths, commits, red, manifests: dependabotManifests(dependabotYmlAt(base)) })
+      .map((message) => ({ severity: 'error', check: 'pr-body', where: bodyPath, message }))
+  }
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
@@ -6328,6 +6766,13 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], ex
   } catch {
     return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
   }
+  const attribution = attributionClasses(body)
+  if (attribution.length) {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `the body carries a tool's attribution (${attribution.join(', ')}). The owner bans it (2026-10-22): delete the footer, the session link and any trailer.` })
+  }
+  const raise = raiseJustification(bodyPath, body, { base, head, paths })
+  if (raise) out.push({ severity: 'error', check: 'pr-body', where: bodyPath, message: raise })
   const secs = sections(body)
   const byTitle = /^policy:/.test(title.trim())
   const policyPaths = paths.filter((f) => POLICY_GLOBS.some((re) => re.test(f)))
@@ -6502,7 +6947,19 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
+  // `pulls/{n}/commits` as `sha<TAB>author<TAB>committer<TAB>verified` lines,
+  // read only by the Dependabot arm; unreadable refuses, like --paths-file.
+  const commitsFile = val('--commits-file')
+  let commits = null
+  if (commitsFile != null) {
+    try {
+      commits = parseCommits(fs.readFileSync(commitsFile, 'utf8'))
+    } catch {
+      console.log(`  ERROR   [pr-body] --commits-file ${commitsFile}: unreadable.`)
+      return 1
+    }
+  }
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
@@ -6692,26 +7149,23 @@ function cmdHooks(settingsPath) {
   return bad.length ? 1 : 0
 }
 
-// `--since <ref>` takes a value, so its value must not fall through to the
-// positional list and be linted as a file path. Parsed explicitly rather than by
-// filtering on a leading `--`.
+// `--since <ref>` and `--window-cache <file>` take a value, so the value must
+// not fall through to the positional list and be linted as a file path. Parsed
+// explicitly rather than by filtering on a leading `--`.
 function parseArgs(argv) {
   const flags = []
   const positional = []
-  let since = null
+  const valued = { since: null, 'window-cache': null }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--since') {
-      since = argv[++i] ?? null
-      continue
-    }
-    if (a.startsWith('--since=')) {
-      since = a.slice('--since='.length)
+    const name = Object.keys(valued).find((k) => a === `--${k}` || a.startsWith(`--${k}=`))
+    if (name) {
+      valued[name] = a.includes('=') ? a.slice(a.indexOf('=') + 1) : (argv[++i] ?? null)
       continue
     }
     ;(a.startsWith('--') ? flags : positional).push(a)
   }
-  return { flags, positional, since }
+  return { flags, positional, since: valued.since, windowCache: valued['window-cache'] }
 }
 
 // ---------------------------------------------------------------------------
@@ -6824,11 +7278,12 @@ function requireToken(mode) {
   process.exit(2)
 }
 
-function cmdRecordDispositions(since) {
+function cmdRecordDispositions(since, cacheFile) {
   requireToken('--record')
-  const enumerated = mergedPRsFromWindow(since)
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache]]))
   // The enumeration guard's loud half (#957 discipline -- see enumSkipLine).
   // RECORD_ENUM alone states the MODE, not the confidence: a reader who stops
   // at `TOTAL: 0 error(s)` sees a measured window, and the fallback's zero over
@@ -6898,8 +7353,8 @@ function cmdRecordDispositions(since) {
   process.exit(errors > 0 ? 1 : 0)
 }
 
-function cmdStats(since) {
-  const enumerated = mergedPRsFromWindow(since)
+function cmdStats(since, cacheFile) {
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   const classes = verdictClasses()
   // BOTH HALVES OF THE GRAMMAR, or nothing: the words the reviewer prompt
@@ -6924,9 +7379,10 @@ function cmdStats(since) {
   // shape fetchWindow's own any-failure abort exists to prevent.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []`)
-  const { fetched, fetchError } = enumerated.why
-    ? { fetched: new Map(), fetchError: enumerated.why }
-    : fetchWindow(prs)
+  const { fetched, fetchError, fromCache } = enumerated.why
+    ? { fetched: new Map(), fetchError: enumerated.why, fromCache: false }
+    : fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction, rework, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
@@ -6962,7 +7418,7 @@ function cmdStats(since) {
       }
       for (const fam of families[label]) {
         const n = fam.prs.size
-        console.log(`  ${String(n).padStart(4)} / ${String(fam.entries).padEnd(4)}  ${fam.name} (family)${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+        console.log(`  ${String(n).padStart(4)} / ${String(fam.entries).padEnd(4)}  ${fam.name} (family)${fam.filed.length ? ` (of ${fam.union}; ${fam.filed.join(', ')} ${fam.filed.length === 1 ? 'files its' : 'file their'} own)` : ''}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
       }
       // The machine-readable census, tab-separated with the key LAST because
       // one key -- the unlabelled bucket -- carries spaces. friction_issues.mjs
@@ -6986,7 +7442,7 @@ function cmdStats(since) {
   process.exit(0)
 }
 
-function cmdSunset(since) {
+function cmdSunset(since, cacheFile) {
   // #1050's residual 1, taken here rather than left: this line dropped
   // `.why` on the floor, so `--sunset` was the one loop mode that stayed silent
   // on a dead fetch while its two siblings printed the marker. #1050 classed it
@@ -6996,11 +7452,12 @@ function cmdSunset(since) {
   // window and says nothing about an unenumerable one teaches the reader that
   // silence here means measured. The marker is `enumSkipLine` unchanged -- the
   // same words on the same lane, not a second vocabulary.
-  const enumerated = mergedPRsFromWindow(since)
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   const classes = verdictClasses()
-  const { fetched, fetchError } = fetchWindow(prs)
+  const { fetched, fetchError, fromCache } = fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
   const fires = detectorFires(friction)
   const rows = policyFiles().map((f) => ({ file: f, text: read(f) }))
@@ -7023,7 +7480,7 @@ function cmdSunset(since) {
 
 function main() {
   const argv = process.argv.slice(2)
-  const { flags, positional, since } = parseArgs(argv)
+  const { flags, positional, since, windowCache } = parseArgs(argv)
   const has = (f) => flags.includes(f)
   const derived = derivations()
 
@@ -7038,9 +7495,9 @@ function main() {
     console.log('--record and --record-known-bad are different modes: the first refuses an undispositioned merge, the second reseeds the ledger. Pass one.')
     process.exit(2)
   }
-  if (has('--record')) return cmdRecordDispositions(requireSince(since, '--record'))
-  if (has('--stats')) return cmdStats(requireSince(since, '--stats'))
-  if (has('--sunset')) return cmdSunset(requireSince(since, '--sunset'))
+  if (has('--record')) return cmdRecordDispositions(requireSince(since, '--record'), windowCache)
+  if (has('--stats')) return cmdStats(requireSince(since, '--stats'), windowCache)
+  if (has('--sunset')) return cmdSunset(requireSince(since, '--sunset'), windowCache)
 
   const all = policyFiles()
   const files = positional.length ? positional.map((a) => path.relative(ROOT, path.resolve(a))) : all
@@ -7115,6 +7572,14 @@ function main() {
 export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
 export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
+
+// For policy_lint_mutants.mjs's record-known-bad arm (#2408): the reseed's
+// writer, driven with its write captured, because the default run and its
+// acceptance never reach it.
+export { cmdRecord, KNOWN_BAD_FILE }
+
+// For agreement.mjs's raise-justification concept: the body contract's half.
+export { raiseJustification }
 
 // For field_coverage.mjs's budgets arm (class I3), which drives the real
 // per-file comparison on a perturbed file rather than a temp copy of this module.

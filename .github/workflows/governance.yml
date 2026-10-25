@@ -15,24 +15,28 @@
 
 name: Governance
 
+# This file is a callee of ci.yml (DESIGN-P2 2.1, unit U4): `workflow_call` for
+# the umbrella's `governance` job, which passes no inputs and no secrets and
+# grants `contents: read`, `pull-requests: read` and `issues: write` (the most a
+# job here may hold; the floor below and each job's own block narrow it), and
+# the weekly schedule. The push, pull_request and merge_group triggers, the
+# dispatch (a dispatch is ci.yml's) and the workflow-level `concurrency` (the
+# umbrella's run group and its `cancel-superseded` own supersession) are gone.
+# Inside a called workflow `github.event_name` and `github.event` are the
+# caller's, so every job's `if:` and every `github.event.pull_request.*`
+# expression below reads the umbrella's event unchanged; the push guards on
+# `record` and `delivery-status-publish` are the same text they were.
+#
+# The umbrella's pull_request types carry no `edited`, which the header above
+# explained for this file's own list (#1514): a body edit starts nothing here.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    # NO `edited` (#1514). A body edit changes nothing a job here reads, and an
-    # event this file lists starts a run in which every job writes a check run
-    # at the head -- skipped or not. #1484 listed `edited` and skipped the jobs
-    # with an `if:`, so each body edit re-created `policy-docs`, `env-matrix`
-    # and `wave-script` as SKIPPED at an unchanged head, over the real verdict.
-    # The contract that does read the body is `pr-contract.yml`.
-    types: [opened, synchronize, reopened]
-  # The merge queue (round-9 process review item 2): `policy-docs`,
-  # `env-matrix` and `wave-script` run on the queue's merge commit, pinned to
-  # the queue's base as a pull request's are to its own; `record` and the
-  # delivery-status pair stay off it.
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
+    inputs:
+      # A dispatch carries no base SHA: without this, a restore falls back to
+      # github.sha and the head grades itself.
+      base:
+        type: string
+        default: ""
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -41,16 +45,9 @@ on:
   # runs on every push to main and costs a runner-minute.
   schedule:
     - cron: "0 7 * * 1"
-  workflow_dispatch:
 
 permissions:
   contents: read
-
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   policy-docs:
@@ -126,7 +123,7 @@ jobs:
       # and not modules beside `policy_lint.mjs`.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -221,7 +218,7 @@ jobs:
       - name: Refuse a governance check input field no check reads
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
           SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -358,6 +355,12 @@ jobs:
       - name: Show the superseded-run canceller refusing its own fixtures
         run: python3 tools/pr/cancel_superseded.py --self-test
 
+      # The Dependabot auto-merge decision (dependabot-automerge.yml): patch and
+      # minor merge, a major is left, and a code-owned path withholds the App's
+      # approval, over fixtures and the tree's own CODEOWNERS.
+      - name: Show the Dependabot merge decision refusing its own fixtures
+        run: python3 -I tools/pr/dependabot_merge.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
@@ -380,15 +383,6 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
-
-      # The contract's re-run follower (D13-s1-03): which completed run makes
-      # the newest `pr-contract` run stale, and the wait, re-run and refusal
-      # arms over a stubbed API. The tally line must say 0 failed, as above.
-      - name: Show the contract re-run deciding its own fixtures
-        run: |
-          set -o pipefail
-          if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
-          grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
 
       # Which CodeQL legs a pull request may skip (O17): every skip arm against
       # its analyze null control, and every non-pull_request event analyzing.
@@ -487,6 +481,18 @@ jobs:
           python3 -I tools/audit/seat/review_strength.py --self-test | tee "$RUNNER_TEMP/review-strength-self-test.txt"
           grep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"
 
+      # The flow study's other two instruments (R10-FLOW-TOOLKIT-MEASURE): the
+      # critical path over its recorded runs, its API stubbed; the flow
+      # enumerators over a throwaway repository. No network.
+      - name: Show the critical-path and flow instruments deciding their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_critpath.py --self-test | tee "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          grep -Eq '^ci_critpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          python3 -I tools/audit/seat/flow_metrics.py --self-test | tee "$RUNNER_TEMP/flow-metrics-self-test.txt"
+          grep -Eq '^flow_metrics self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/flow-metrics-self-test.txt"
+
       # The body-only PATCH (R10-FLOW-BODY-PATCH): a moved head refuses before
       # any write, a body the contract refuses is never sent, --dry-run prints
       # the request, and a mutant of each of the head, contract and read-back
@@ -548,6 +554,23 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
           grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
+
+      # The obligations ledger (R10-ORCH-LEDGER) the relay and the tick write and
+      # read through: its stores, fold, level and exit codes over a throwaway
+      # origin and open_pr.sh's own attempt lines. No network.
+      - name: Show the obligations ledger refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
+          grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
+
+      - name: Show the roster queue runner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
+          grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
 
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -695,6 +718,15 @@ jobs:
           python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
           grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
 
+      # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
+      # CI pins its plants' preconditions, never the sweep itself.
+      - name: Show the ledger mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+          grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -722,6 +754,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
           grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
+
+      - name: Show the cloud setup profile refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/cloud-setup.sh --self-test | tee "$RUNNER_TEMP/cloud-setup-self-test.txt"
+          grep -Eq '^cloud_setup self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-setup-self-test.txt"
 
       - name: Show the state-doc writer refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -818,6 +857,94 @@ jobs:
         if: always()
         run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
 
+      # The umbrella engine (R10-CI-LAYOUT P2a): every tools/ci/ module and the two
+      # seat-side instruments that drive it, each over its own fixtures, offline.
+      - name: Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ghapi.py --self-test | tee "$RUNNER_TEMP/ghapi-self-test.txt"
+          grep -Eq '^ghapi self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ghapi-self-test.txt"
+
+      - name: Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/prelude.py --self-test | tee "$RUNNER_TEMP/prelude-self-test.txt"
+          grep -Eq '^prelude self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prelude-self-test.txt"
+
+      - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/gate.py --self-test | tee "$RUNNER_TEMP/gate-self-test.txt"
+          grep -Eq '^gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gate-self-test.txt"
+
+      - name: Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/sweep.py --self-test | tee "$RUNNER_TEMP/sweep-self-test.txt"
+          grep -Eq '^sweep self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-self-test.txt"
+
+      - name: Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/alert_list.py --self-test | tee "$RUNNER_TEMP/alert-list-self-test.txt"
+          grep -Eq '^alert_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/alert-list-self-test.txt"
+
+      - name: Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ruleset_cutover.py --self-test | tee "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+          grep -Eq '^ruleset_cutover self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+
+      - name: Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
+          grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
+
+      - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_probe.py --self-test | tee "$RUNNER_TEMP/ci-probe-self-test.txt"
+          grep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"
+
+      - name: Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/codescan_wait.py --self-test | tee "$RUNNER_TEMP/codescan-wait-self-test.txt"
+          grep -Eq '^codescan_wait self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/codescan-wait-self-test.txt"
+
+      - name: Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/ci_predict.py --self-test | tee "$RUNNER_TEMP/ci-predict-self-test.txt"
+          grep -Eq '^ci_predict self-test: 0 failed$' "$RUNNER_TEMP/ci-predict-self-test.txt"
+
+      - name: Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/local_alerts.py --self-test | tee "$RUNNER_TEMP/local-alerts-self-test.txt"
+          grep -Eq '^local_alerts self-test: 0 failed$' "$RUNNER_TEMP/local-alerts-self-test.txt"
+
+      # alert_list.py's rules, each deleted in turn: the self-test must refuse every
+      # mutant (the script takes no other mode; --self-test names the run).
+      - name: Show the alert lister's mutants each refused by its self-test
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          sh tools/ci/alert_list_mutants.sh --self-test | tee "$RUNNER_TEMP/alert-list-mutants.txt"
+          grep -Eq '^ALERT-LIST MUTANTS: every mutant refused$' "$RUNNER_TEMP/alert-list-mutants.txt"
+
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
   # by a fact about the clone -- shallow or not, origin/main present or not,
@@ -859,7 +986,7 @@ jobs:
       # commit is local to this runner and never pushed.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -960,7 +1087,7 @@ jobs:
       # an owner: the checker evaluates them in its own process.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -991,6 +1118,7 @@ jobs:
             'tests/throwaway_git.py' \
             'tools/audit/round4/D11/d11lib.py' \
             'tools/audit/round4/D11/governance_cost.py' \
+            'tools/audit/seat/gh_read.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/queue_pre_flight.py' \
             'tools/audit/seat/ref_privacy.py' \
@@ -1036,7 +1164,7 @@ jobs:
       # is no verdict on either (the `field coverage` step's own rule).
       - name: Refuse two readers of one concept that disagree
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
@@ -1090,10 +1218,26 @@ jobs:
   # can clear would block every unrelated merge, the `nightly-status` precedent
   # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
   # merge.
+  #
+  # `github.ref == 'refs/heads/main'` (U4 resume): called from ci.yml, a dispatch
+  # at a PR branch (autofix, merge-main) carries `governance` in its workset and
+  # would run `issues: write` over the branch's code and walk the whole window
+  # on the token bucket. Push, schedule and a dispatch at main still reach it.
   record:
-    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # ONE RECORD RUN PER BURST (dev/audit/rca/install-ratelimit.md, M2). Every
+    # run walks the whole `<last tag>..origin/main` window on the repository's
+    # GITHUB_TOKEN bucket, which the required checks of every open pull request
+    # read from too. A fixed group with `cancel-in-progress: false` keeps one run
+    # going and one pending, and a newer push replaces the pending one: the run
+    # that does start measures the newest head, whose window holds every
+    # superseded push's. Shared by the schedule and dispatch arms, which spend
+    # the same bucket. Not a required context, so nothing waits on the queue.
+    concurrency:
+      group: governance-record
+      cancel-in-progress: false
     permissions:
       contents: read
       # --stats reads pull-request bodies and review comments through the API.
@@ -1122,6 +1266,17 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22"
+
+      # THE UNIT IS CALLS, NOT RUNS (dev/audit/rca/install-ratelimit.md, M0).
+      # The bucket's size, what is left of it and its reset, before the window
+      # walk and again after it, so a diagnosis reads "N calls of L" from this
+      # log instead of counting runs. `rate_limit` is not counted against the
+      # limit. A log line, never a gate: `|| true` keeps it from reddening the job.
+      - name: GITHUB_TOKEN rate limit before the window walk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT before: \(.resources.core)"' || true
 
       - name: Choose the window
         id: window
@@ -1157,6 +1312,7 @@ jobs:
           if test -f .claude/workflows/policy_lint.mjs; then _pl=.claude/workflows/policy_lint.mjs; else _pl=tools/policy/policy_lint.mjs; fi
           node "$_pl" --record \
             --since "${{ steps.window.outputs.since }}" \
+            --window-cache "$RUNNER_TEMP/window.json" \
             2>&1 | tee "$RUNNER_TEMP/record.txt"
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
@@ -1172,7 +1328,7 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
 
       # THE LANES THAT CAN REDDEN THIS JOB (#959, D11-04). The step below is one
       # path in this job allowed to ACT, and it runs WITHOUT `|| true`: a filing
@@ -1222,7 +1378,14 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; fi|| true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
+
+      - name: GITHUB_TOKEN rate limit after the window walk
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT after: \(.resources.core)"' || true
 
       # THE REPORT, AND IT COMES LAST. It reports on the steps above it, so it
       # has to be after them -- the ordering `tests/entities.py` pins for the

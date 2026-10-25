@@ -30,7 +30,9 @@ later pull request would be graded against a `main` the refused one never joined
   2. ci       -- every check run at the head completes (all pages, at least
                  --min-runs); a latest run that is not success, skipped or
                  neutral stops it, except the `--ignore-red` names (default
-                 `nightly-status`, which grades `main`, not the head). A head
+                 `tests / nightly-status`, which grades `main`, not the head);
+                 `gate` is read per check suite, success only, and checked
+                 against GitHub's own required-check evaluation (A5). A head
                  whose TIP is a GITHUB_TOKEN push (author `github-actions[bot]`)
                  is refused before any check is read: such a push's
                  `pull_request` runs are held `action_required`, so the
@@ -233,6 +235,10 @@ import tempfile
 import time
 from pathlib import Path
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gh_read  # noqa: E402  the bounded retry of GitHub reads (R10-FLY-GH-READ-RETRY)
+
 ROOT = Path(__file__).resolve().parents[3]
 HEX = frozenset("0123456789abcdef")
 
@@ -291,19 +297,90 @@ GREEN = ("success", "skipped", "neutral")
 NOT_GATING = ("record", "record-autofix", "nightly-status", "delivery-status")
 #: A check-run's workflow run, read from its details_url (K15 (b)).
 RUN_URL = re.compile(r"/actions/runs/(\d+)(?:/|$)")
+# THE UMBRELLA'S ONE REQUIRED CHECK (R10-CI-LAYOUT P2b; DESIGN-P2 9, plan
+# addendum A5). Every `CI` run is a check suite of its own, so one head carries
+# one `gate` per run: an older red (R-9's defer red) beside a newer green.
+# GitHub's ruleset refuses a merge while ANY suite at the head carries a
+# non-success required run (#2009, budget_raise_gate.stale_run; M-2 was decided
+# on that reading, plan/ci-layout EXECUTION.md 5), so GATE is read per suite
+# and its worst suite stands for it, never the newest alone. Only `success` is
+# a green gate: a skipped or neutral one judged nothing, and RATE-LIMITED is
+# gate.py's exit 3, a failure, never a pass (A1 item 4).
+GATE = "gate"
+GATE_GREEN = ("success",)
+#: The names gate.py can owe (`gate_required`), read from the fixture, never restated.
+REQUIRED_CONTEXTS = ROOT / "tools/policy/fixtures/required-contexts.json"
 
 
 def latest_runs(runs) -> dict:
-    """The check runs keyed by name, the latest started winning."""
-    return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+    """The check runs keyed by name, the latest started winning -- except
+    GATE: the latest run of each check suite is kept and the worst stands
+    (pending before red before green), so an older suite's red is never
+    hidden behind a newer green (A5)."""
+    runs = sorted(runs, key=lambda c: c.get("started_at") or "")
+    out = {c["name"]: c for c in runs}
+    suites = {(c.get("check_suite") or {}).get("id") or ("run", c.get("id")): c
+              for c in runs if c["name"] == GATE}
+    if suites:
+        out[GATE] = min(suites.values(), key=lambda c: ("pending", "red", "green").index(run_state(c)))
+    return out
 
 
 def run_state(cr: dict) -> str:
     """'pending' while not completed (wait, never red); else 'green' for a
-    GREEN conclusion and 'red' for any other, one GitHub adds later included."""
+    GREEN conclusion (GATE_GREEN for GATE) and 'red' for any other, one
+    GitHub adds later included."""
     if cr.get("status") != "completed":
         return "pending"
-    return "green" if (cr.get("conclusion") or "") in GREEN else "red"
+    return "green" if (cr.get("conclusion") or "") in (GATE_GREEN if cr.get("name") == GATE else GREEN) else "red"
+
+
+def gating_names(required):
+    """The names whose red is a REQUIRED red: the ruleset's, plus -- once the
+    ruleset requires GATE -- every name gate.py can owe (the fixture's
+    `gate_required`), so a unit's red is never classed non-required (DESIGN-P2
+    9, item 11). It names reds; what decides a merge stays `required`."""
+    if required is None or GATE not in required:
+        return required
+    owed = json.loads(REQUIRED_CONTEXTS.read_text())["gate_required"]
+    return sorted(set(required) | set(owed))
+
+
+ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
+            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
+            "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
+            "... on StatusContext{context state isRequired(pullRequestNumber:$pr)}}}}}}}}}}")
+PLATFORM_PASS = ("SUCCESS", "NEUTRAL", "SKIPPED")
+
+
+def platform_gate(payload, head: str) -> "tuple[str, str]":
+    """GitHub's own required-check evaluation at <head> (A5 item 3), from the
+    statusCheckRollup ROLLUP_Q answers: ('green' | 'red' | 'wait' | 'unread',
+    why). Green only when the contexts GitHub marks required are GATE's
+    check runs alone, every one completed and passing by GitHub's rule."""
+    try:
+        commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+        ctx = commit["statusCheckRollup"]["contexts"]
+        nodes, more = ctx["nodes"], ctx["pageInfo"]["hasNextPage"]
+    except (KeyError, IndexError, TypeError):
+        return "unread", "the answer carries no statusCheckRollup"
+    if commit.get("oid") != head:
+        return "unread", f"the rollup is at {str(commit.get('oid'))[:8]}, not {head[:8]}"
+    if more:
+        return "unread", "more than 100 contexts: not read whole"
+    req = [n for n in nodes if n.get("isRequired")]
+    gates = [n for n in req if n.get("__typename") == "CheckRun" and n.get("name") == GATE]
+    other = sorted({n.get("name") or n.get("context") or "?" for n in req} - {GATE}
+                   | {n.get("context") for n in req if n.get("__typename") != "CheckRun"})
+    if not gates or other:
+        return "red", (f"GitHub also requires {', '.join(other)}" if other
+                       else "GitHub marks no `gate` check run required at this head")
+    if any(n.get("status") != "COMPLETED" for n in gates):
+        return "wait", f"a required gate run of {len(gates)} is not completed"
+    bad = [n.get("conclusion") for n in gates if n.get("conclusion") not in PLATFORM_PASS]
+    if bad:
+        return "red", f"{len(bad)} of {len(gates)} required gate run(s) concluded {', '.join(map(str, bad))}"
+    return "green", f"{len(gates)} required gate run(s) pass"
 
 
 def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
@@ -414,12 +491,12 @@ RECARRY_RESETTLE = 2
 # contract, a diff's closure scope, a budget raise -- so no dispatch writes
 # them; each is a required context, green at every head the batch admits.
 RULESET = "main-protect-checks"
-PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
-# Every other required context comes from one of these, each dispatchable; a
-# PR-like `fast` needs tests.yml's recheck input (GATE_SCOPE=auto against
-# main's merge base, which is the batch's whole diff).
-DISPATCH = (("tests.yml", ("-f", "recheck=true")), ("governance.yml", ()), ("codeql.yml", ()),
-            ("hassfest.yml", ()), ("validate.yml", ()))
+# Under the umbrella (R10-CI-LAYOUT P2b) the one required context is GATE, which
+# a dispatch naming no PR writes (gate.py REQUIRED["no-pr"]), so nothing is
+# PR-only, and one dispatch of ci.yml writes it; `recheck` gives the PR-like
+# `fast` (GATE_SCOPE=auto against main's merge base, the batch's whole diff).
+PR_ONLY: "tuple[str, ...]" = ()
+DISPATCH = (("ci.yml", ("-f", "recheck=true")),)
 FAILED_SCRIPT = re.compile(r">>> FAILED: .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b")
 
 
@@ -579,6 +656,7 @@ class Train:
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
+        self.run = self._reads_retried(self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -612,6 +690,25 @@ class Train:
                     p.kill()
                 raise
         return p.returncode, out + err
+
+    def _reads_retried(self, run):
+        """`run`, with every GitHub read under gh_read's rule: a `gh api` GET or
+        `gh pr view` failing in transport, 5xx, 429 or a secondary-limit 403
+        settles 5/15/45 s and reads again, and a spent budget answers its last
+        failure with the attempt count. Train 8 stopped on one unretried read
+        of a head commit. Every other call, and every write, is `run`'s alone."""
+        def retried(argv, **kw):
+            if not gh_read.is_read(argv):
+                return run(argv, **kw)
+
+            def attempt():
+                code, o = run(argv, **kw)
+                return (code, o), (o if code else None)
+            (code, o), _, _, why = gh_read.retry(
+                attempt, gh_read.gh_wait, self.sleep,
+                lambda line: self.log(f"merge_train: {' '.join(argv)[:120]}: {line}"))
+            return code, (f"{o.rstrip()} {why}" if why else o)
+        return retried
 
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
@@ -853,6 +950,22 @@ class Train:
             self.hold_refresh()
             self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
+
+    def cross_check(self, pr, h: str) -> None:
+        """A5 item 3: the train has read GATE green at <h>; GitHub's own
+        required-check evaluation must say the same, or the entry stops. A
+        rollup that cannot be read is no agreement."""
+        owner, name = self.repo.split("/")
+        code, o = self.run(["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
+                            "-f", f"o={owner}", "-f", f"n={name}"])
+        try:
+            state, why = platform_gate(json.loads(o), h) if code == 0 else ("unread", o.strip()[-160:])
+        except ValueError:
+            state, why = "unread", "the rollup answer is not JSON"
+        self.log(f"#{pr} {h[:8]} platform gate={state}: {why}")
+        if state != "green":
+            raise Stop("ci", f"the train reads gate green at {h[:8]}, GitHub's required-check evaluation "
+                       f"reads {state} ({why}): a disagreement is a refusal (A5)")
 
     def policy_paths(self, files: list[str]) -> list[str]:
         _pl = ROOT / ".claude/workflows/policy_lint.mjs"
@@ -1301,6 +1414,8 @@ class Train:
         self.log(f"#{item['pr']} {h[:8]} ci red={red}")
         if red:
             raise Stop("ci", "red at the head: " + ", ".join(red))
+        if GATE in req:
+            self.cross_check(item["pr"], h)
         self.run(["git", "fetch", "-q", "origin", h])
         o = self.run(["bash", tool("app_approve"), "--carry", item["verdict"], h])[1]
         if "CARRY: yes" not in o:
@@ -2020,6 +2135,9 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and wf:  # a workflow run's status
                 st = world.get("wf_runs", {}).get(wf.group(1))
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
+            if "statusCheckRollup" in a:  # A5's platform cross-check
+                world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                return world.get("rollup", (1, "HTTP 502"))
             if "check-runs" in a:
                 # `pending_reads`: the first N reads report in_progress, so a
                 # wait that outlives one poll can be driven without a clock.
@@ -2927,10 +3045,80 @@ def _self_test() -> int:
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
+    _read_retry_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _read_retry_self_test(check) -> None:
+    """R10-FLY-GH-READ-RETRY: the train's GitHub reads retry on gh_read's rule.
+
+    Train 8 stopped on `the head commit at <sha> could not be read: Get
+    "https://api.github.com/...": net/http...` -- one read, no retry. Every
+    `gh` call goes through `self.run`; a read failing in a way a later read can
+    ride out settles 5/15/45 s and reads again, and nothing else does."""
+    H = "a" * 40
+    T = f'Get "https://api.github.com/repos/o/r/commits/{H}": net/http: TLS handshake timeout'
+
+    def train(queue: dict):
+        calls: list[str] = []
+        sleeps: list[float] = []
+        logged: list[str] = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            for key, fails in queue.items():
+                if key in a and fails:
+                    return 1, fails.pop(0)
+            if "/commits/" in a:
+                return 0, "someone\tfix: a subject"
+            return 0, H
+        t = Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run,
+                  sleep=sleeps.append, log=logged.append, polls=1)
+        return t, calls, sleeps, logged
+
+    def stop(fn) -> str:
+        try:
+            fn()
+        except Stop as e:
+            return str(e)
+        return ""
+
+    def n(calls, key):
+        return sum(key in c for c in calls)
+    t, calls, sleeps, logged = train({"/commits/": [T]})
+    check("read retry: train 8's shape, a transport error on the head commit's read then an answer, "
+          "clears the head after exactly 2 calls, settling 5 s",
+          stop(lambda: t.bot_tip(H)) == "" and n(calls, "/commits/") == 2 and sleeps == [5])
+    check("read retry: and the settle is logged, never implied",
+          any("read 1/4" in line and "TLS handshake timeout" in line and "sleeping 5s" in line
+              for line in logged))
+    t, calls, sleeps, _ = train({"/commits/": ["gh: Not Found (HTTP 404)"]})
+    check("read retry: a 404 on that read stops the train after exactly 1 call, with no settle",
+          "could not be read: gh: Not Found (HTTP 404)" in stop(lambda: t.bot_tip(H))
+          and n(calls, "/commits/") == 1 and sleeps == [])
+    spent = ["gh: Server Error (HTTP 500)", T, "gh: HTTP 502", "gh: Service Unavailable (HTTP 503)",
+             "gh: Gateway Timeout (HTTP 504)"]
+    t, calls, sleeps, _ = train({"/commits/": list(spent)})
+    said = stop(lambda: t.bot_tip(H))
+    check("read retry: five transient failures queued, one past the budget, stop the train after "
+          "exactly 4 calls, settling 5/15/45 s",
+          n(calls, "/commits/") == 4 and sleeps == [5, 15, 45])
+    check("read retry: naming the last error and the attempt count",
+          said.endswith("gh: Service Unavailable (HTTP 503) (after 4 attempts)"))
+    t, calls, sleeps, _ = train({"headRefOid": ['Post "https://api.github.com/graphql": EOF']})
+    check("read retry: `gh pr view` is a read: a transport error on the head read, then the head",
+          t.head(7) == H and n(calls, "headRefOid") == 2 and sleeps == [5])
+    t, calls, sleeps, _ = train({"--method POST": ["gh: Bad Gateway (HTTP 502)"]})
+    code, _ = t.run(["gh", "api", "--method", "POST", "repos/o/r/git/commits", "--input", "-"])
+    check("read retry: a write is never retried: a 502 on a POST is answered after exactly 1 call",
+          code == 1 and n(calls, "--method POST") == 1 and sleeps == [])
+    t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
+    code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
+    check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
 
 
 def _stop_self_test(check) -> None:
@@ -3045,6 +3233,75 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     check("K15 (a): unreadable check runs log the --overlap gate as unreadable, never as a wait on every "
           "context (null control: the readable arms above)",
           len(lines) == 1 and "check runs unreadable" in lines[0] and "still running" not in lines[0])
+    # A5 (R10-CI-LAYOUT P2b): the umbrella's `gate`, one per CI run (check
+    # suite) at a head. Head (i): an older red beside a newer green; head (ii):
+    # an older green beside a newer red. Both RED, as GitHub's every-suite
+    # rule reads them (#2009); a re-run inside one suite is not a second suite.
+    def gt(conclusion="success", suite=1, started="1", status="completed", title=""):
+        c = cr(GATE, status, conclusion, started)
+        return dict(c, check_suite={"id": suite}, output={"title": title})
+    for what, runs in (("(i) an older red gate suite beside a newer green one",
+                        [gt("failure", 1, "1"), gt("success", 2, "2")]),
+                       ("(ii) an older green gate suite beside a newer red one",
+                        [gt("success", 1, "1"), gt("failure", 2, "2")])):
+        check(f"A5 {what} reads RED, never green (the worst suite stands)",
+              classify(latest_runs(runs), [GATE]) == ("red", [], [GATE]))
+    check("A5 null: two green gate suites read green, and a red attempt re-run green inside ONE suite is green",
+          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE])[0] == "green"
+          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE])[0] == "green")
+    check("A5: a gate suite still running beside a red one is a wait, not yet a verdict",
+          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE])[0] == "wait")
+    check("A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral "
+          "gate, which judged nothing (null: a skipped non-gate context still reads green)",
+          all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
+              for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
+          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+    names = gating_names([GATE])
+    check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
+          "(null: an old-layout ruleset passes through unchanged)",
+          GATE in names and "tests / closures" in names and "tests / ci-ratchet" in names
+          and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
+
+    H0 = "a" * 40  # go()'s head
+
+    def rollup(*gates, oid=H0, more=False, extra=()):
+        nodes = [{"__typename": "CheckRun", "name": GATE, "status": s, "conclusion": c, "isRequired": True}
+                 for s, c in gates] + list(extra)
+        return {"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
+            "oid": oid, "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": more}, "nodes": nodes}}}}]}}}}}
+    ok_g = ("COMPLETED", "SUCCESS")
+    check("A5 platform: required gate runs all passing are green; an older failing suite is red; one in "
+          "flight is a wait",
+          platform_gate(rollup(ok_g, ok_g), H0)[0] == "green"
+          and platform_gate(rollup(("COMPLETED", "FAILURE"), ok_g), H0)[0] == "red"
+          and platform_gate(rollup(ok_g, ("IN_PROGRESS", None)), H0)[0] == "wait")
+    nonreq = {"__typename": "CheckRun", "name": "tests / fast (3.14)", "status": "COMPLETED",
+              "conclusion": "FAILURE", "isRequired": False}
+    check("A5 platform: no required gate run (another app's gate, or none) is red; GitHub requiring "
+          "anything besides gate is red; a non-required red is not counted (null)",
+          platform_gate(rollup(), H0)[0] == "red"
+          and platform_gate(rollup(ok_g, extra=[dict(nonreq, isRequired=True)]), H0)[0] == "red"
+          and platform_gate(rollup(ok_g, extra=[nonreq]), H0)[0] == "green")
+    check("A5 platform: a rollup of another head, or one not read whole, is unread, never agreement",
+          platform_gate(rollup(ok_g, oid="f" * 40), H0)[0] == "unread"
+          and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
+          and platform_gate({"data": None}, H0)[0] == "unread")
+    gate_req = {"required": f"{GATE}\n"}
+    for what, w, merges in (
+            ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
+            ("train green, GitHub red (a suite the train never saw): a disagreement stops it",
+             dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g, ("COMPLETED", "FAILURE"))))), False),
+            ("train green, the rollup unreadable: stopped, never agreement",
+             dict(gate_req, runs=[gt()]), False),
+            ("head (i) at the train: an older red suite stops it before any cross-check",
+             dict(gate_req, runs=[gt("failure", 1, "1"), gt("success", 2, "2")],
+                  rollup=(0, json.dumps(rollup(ok_g)))), False)):
+        rc, lines, calls = go(w)
+        check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
+              and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
+    check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
+          and not any("statusCheckRollup" in " ".join(c) for c in calls))
     # (b) a stale check-run: in progress over a completed workflow run.
     url = "https://github.com/o/r/actions/runs/119308796140/job/5"
     stale_cr = cr("budget-raise-gate", "in_progress", cid=7, url=url)
@@ -3100,9 +3357,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
 
     red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
     check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
-          "(rc 1); the same runs read as main's tip drop PR_ONLY and are GREEN (rc 0)",
-          cli(red_pc)[0] == 1 and cli(red_pc)[1].startswith("RED ")
-          and cli(red_pc, "fast\npr-contract\n", "--main")[0] == 0)
+          "(rc 1); PR_ONLY is empty under the umbrella, so main's tip reads the same runs RED too",
+          PR_ONLY == () and cli(red_pc)[0] == 1 and cli(red_pc)[1].startswith("RED ")
+          and cli(red_pc, "fast\npr-contract\n", "--main")[0] == 1)
     check("K15 (d): a head still in flight is WAIT (rc 3) and reviewable; an unreadable ruleset refuses (rc 2)",
           cli([cr("fast", "in_progress"), cr("pr-contract")])[0] == 3 and cli(red_pc, "")[0] == 2)
     # (c) a DIRTY head, from git merge-tree against a throwaway repository:
@@ -3220,7 +3477,9 @@ def _batch_self_test(check) -> None:
             g(L, "config", k, v)
         return {"R": R, "L": L, "base": base, "red": set(), "base_sha": g(R, "rev-parse", base)[1], "heads": heads, "merged": {}, "pushed": [], "dispatched": [],
                 "approved": [], "gc": 0, "ci_red": "policy-docs", "after_merge": {}, "target": base,
-                "required": f"{R0}\npolicy-docs\npr-contract\n"}
+                # Nothing is PR-only under the umbrella (PR_ONLY empty), so the
+                # world's ruleset names no context only a pull-request event writes.
+                "required": f"{R0}\npolicy-docs\n"}
 
     def ci(w: dict, sha: str) -> list[dict]:
         L = w["L"]
@@ -3562,7 +3821,7 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["merged"] and not w["pushed"] and "ci:" in w["lines"][-1]
           and "TIMEOUT" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
-    check("a red NON-required context (pr-contract, PR_ONLY) does not hold admission: "
+    check("a red NON-required context (pr-contract, not in the world's ruleset) does not hold admission: "
           "admission waits only the ruleset's required set, as settle/proof already does (R9-ADMIT-REQ)",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(stuck_nonreq=True))
@@ -3836,7 +4095,7 @@ def _parser() -> argparse.ArgumentParser:
                                  "(no untracked file) with HEAD at origin/<branch>, detach it and go on. "
                                  "Default: off -- the HOLDER refusal.")
     train_opts.add_argument("--approver-role", default="the orchestrator")
-    train_opts.add_argument("--ignore-red", action="append", help="a check whose red does not stop the train (default nightly-status)")
+    train_opts.add_argument("--ignore-red", action="append", help="a check whose red does not stop the train (default tests / nightly-status)")
     train_opts.add_argument("--state-dir", default=os.path.join(os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"), "merge_train"))
     r = sub.add_parser("run", parents=[common, train_opts])
     r.add_argument("queue")
@@ -3901,7 +4160,7 @@ def main(argv: list[str]) -> int:
         print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
         return {"green": 0, "red": 1, "wait": 3}[state]
     queue = json.loads(Path(a.queue).read_text())
-    ignore = tuple(a.ignore_red) if a.ignore_red else ("nightly-status",)
+    ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
                 bot_prs=a.bot_prs, pre_flight=a.pre_flight, free_holders=a.free_holders)
     if a.cmd == "batch":

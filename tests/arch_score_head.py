@@ -45,19 +45,8 @@ R = Results("architecture score on today's tree (R9-EG-A1)")
 _C = "coordinator:HeatPumpOptimizerCoordinator."
 CYCLE_HUB_WRITERS = {
     _C + "_update_current_state": (
-        {"_current_state." + f for f in (
-            "buffer_tank_temperature", "dhw_hours_since_legionella", "dhw_temperature",
-            "floor_return_temperature", "lower_floor_temperature", "outdoor_temperature",
-            "room_temperature", "slab_temperature", "solar_radiation",
-            "upper_floor_temperature", "wood_tank_temperature")}
-        | {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
-        "this cycle's sensor readings into the live state"),
-    "thermal_model:ThermalModel.update_slab_from_return_temp": (
-        {"_current_state.floor_return_temperature", "_current_state.slab_temperature"},
-        "the slab estimate advanced from this cycle's return reading"),
-    "thermal_model:ThermalModel.update_ecl110_displace_state": (
-        {"_current_state.ecl110_displace_command", "_current_state.ecl110_effective_displace"},
-        "the ECL110 displacement state from this cycle's command"),
+        {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
+        "this cycle's humidity and valve readings into the live parameters"),
     _C + "_refresh_model_corrections": (
         {"_thermal_params." + f for f in (
             "dhw_inlet_current", "flow_curve_bias", "flow_curve_indoor_target",
@@ -82,13 +71,6 @@ CYCLE_HUB_WRITERS = {
         {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
     "dhw_learning:DhwProfileLearner.async_learn_usage": (
         {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
-    # Event callbacks (counter C16, ARCH2-s2 P4's instrument half): Home Assistant calls them back
-    # with the live hubs, so a write there is a reading at the event that changed it.
-    _C + "_async_handle_ecl110_state_message": (
-        {"_current_state.ecl110_effective_displace", "_current_state.ecl110_displace_command"},
-        "the ECL110 MQTT state message stores the controller's displacement"),
-    _C + "_on_power_event": (
-        {"_current_state.peak_guard_active"}, "the meter event flips the peak guard on a crossing"),
 }
 LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
 #: The planted writes the controls add: one as async_run_optimization's first
@@ -108,10 +90,6 @@ _PRESOLVE = '        getattr(self, "_ctx", self)._opt_config.peak_count = 3\n'
 #: the table shrinks only by a deliberate edit that says the function went
 #: under. Keyed ``module.qualname``, never a line number.
 PARAMS_OVER_10_LEFT = {
-    "away.resolve":
-        "the operating-mode resolver's five option groups, each keyword-only "
-        "with its own default; a record would re-wrap the mode dict its "
-        "callers already hold",
     "comfort_band._pair_violations":
         "two (key, default) quartets read out of the candidate and current "
         "option dicts; those dicts are the records, and a schedule record "

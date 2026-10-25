@@ -60,6 +60,9 @@ _FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 # name, file, old (exactly once in the file), new
 MUTANTS = [
     ("S01", "ci-watch.sh", '[ -n "$RS" ] && REQ=$(gh api', '[ -n "$RS" ] || REQ=$(gh api'),
+    # r10-ci-layout-p2-u9a: A5, gate read per check suite and success only.
+    ("ci-watch-1", "ci-watch.sh", 'k = ($1 == "gate") ? $1 SUBSEP $5 : $1;', "k = $1;"),
+    ("ci-watch-2", "ci-watch.sh", '($2 == "completed" && $3 != "success")', '($3 == "failure")'),
     ("S02", "cloud_dispatch.py", "return len(head) == 40 and set(head) <= LOWER_HEX",
      "return len(head) != 40 and set(head) <= LOWER_HEX"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
@@ -79,8 +82,11 @@ MUTANTS = [
      '        ids[g] = _task_id(g, ids)\n    lanes = sorted({open_[g].get("lane") and "?"'),
     ("S14", "pr_args.sh", '"$*" >&2; exit 1; }', '"$*" >&2; exit 0; }'),
     ("S15", "pr_cap.py", 'a = pr.get("author") or {}', 'a = pr.get("author") and {}'),
-    ("S16", "proof_watch.py", 'and last[n].get("conclusion") not in GREEN)',
-     'and last[n].get("conclusion") in GREEN)'),
+    ("S16", "proof_watch.py", '_, pending, red = _train().classify(last, self.required_names())',
+     '_, red, pending = _train().classify(last, self.required_names())'),
+    # r10-ci-layout-p2-u9a: the watch reads the train's per-suite gate (A5), never newest-wins.
+    ("proof_watch-1", "proof_watch.py", "return _train().latest_runs(_json_docs(raw))",
+     'return {c["name"]: c for c in _json_docs(raw)}'),
     ("S17", "prune_refs.py", "    if sha in main_reachable:\n        return DELETE_MERGED",
      "    if sha not in main_reachable:\n        return DELETE_MERGED"),
     ("S18", "queue_pre_flight.py", "if not mt.is_sha(v):", "if mt.is_sha(v):"),
@@ -116,7 +122,7 @@ MUTANTS = [
     # self-tests did not reach. Each mutant is the carry's, verbatim.
     ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
      "true  # mut:push-update"),
-    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+    ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
      "true  # mut:push-open"),
     ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
     ("S38", "merge_pr.sh",
@@ -156,16 +162,71 @@ MUTANTS = [
      "    if False:\n        return None\n    names"),
     ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
      "        if False:\n            raise Stop(\"build\""),
+    # r10-ci-layout-p2-u9a (A5): gate per check suite, success only, and GitHub's own evaluation.
+    ("merge_train-19", "merge_train.py", "    if suites:\n        out[GATE] = min(", "    if False:\n        out[GATE] = min("),
+    ("merge_train-20", "merge_train.py", "(GATE_GREEN if cr.get(\"name\") == GATE else GREEN)", "GREEN"),
+    ("merge_train-21", "merge_train.py", "        if GATE in req:\n            self.cross_check(", "        if False:\n            self.cross_check("),
+    ("merge_train-22", "merge_train.py", "    if not gates or other:\n", "    if not gates:\n"),
+    ("merge_train-23", "merge_train.py", "    if commit.get(\"oid\") != head:\n", "    if False:\n"),
+    ("merge_train-24", "merge_train.py", "    return sorted(set(required) | set(owed))", "    return required"),
+    # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
+    ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
+     'PIN_CHAIN = re.compile(r"^(?:'),
+    # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
+    ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
+    ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
     ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
     ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
     ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-ci-layout-p2-u9a: a unit's red under the gate ruleset is REQUIRED (DESIGN-P2 9 item 11).
+    ("orchestrator_tick-5", "orchestrator_tick.py", "gating = mt.gating_names(req) or []", "gating = req or []"),
+    # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
+    ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
+    ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
+    ("ci_probe-3", "ci_probe.py", "if login != OWNER:", 'if login == "":'),
+    ("ci_probe-4", "ci_probe.py", "if repo != REPO:", "if False:"),
+    # route B (P2a): git owns the SHA shape; the exact-name test and review's re-check after the fetch.
+    ("ci_probe-5", "ci_probe.py", "return r.returncode == 0 and r.stdout.strip() == sha", "return r.returncode == 0"),
+    ("ci_probe-6", "ci_probe.py", "            self.fetch(self.remote, self.num(pr))\n        if not self.commit(sha):\n",
+     "            self.fetch(self.remote, self.num(pr))\n        if False:\n"),
+    ("ci_probe-7", "ci_probe.py", "        if not self.commit(sha):\n            raise Refuse(f\"'{sha}' is not the full SHA",
+     "        if False:\n            raise Refuse(f\"'{sha}' is not the full SHA"),
+    # r10-ci-layout-p2b U6: the three added writes. -8/-9 the SARIF's commit and category shapes, -10 its ref,
+    # -11 the dismissal reason list, -12 the dismissal comment's host-path refusal, -13 the disable endpoint,
+    # -14 the workflow-name guard of workflow-disable alone (dispatch's twin guard is untouched).
+    ("ci_probe-8", "ci_probe.py", "        if not SHA_RE.match(commit):\n", "        if False:\n"),
+    ("ci_probe-9", "ci_probe.py", "        if not CATEGORY_RE.match(category):\n", "        if False:\n"),
+    ("ci_probe-10", "ci_probe.py", '"ref": f"refs/pull/{self.num(pr)}/merge"', '"ref": "refs/heads/main"'),
+    ("ci_probe-11", "ci_probe.py", "        if reason not in DISMISS_REASONS:\n", "        if False:\n"),
+    ("ci_probe-12", "ci_probe.py", "        why = ref_privacy.body_refusal(comment)\n", "        why = None\n"),
+    ("ci_probe-13", "ci_probe.py", 'self.r(f"actions/workflows/{workflow}/disable")', 'self.r(f"actions/workflows/{workflow}/enable")'),
+    ("ci_probe-14", "ci_probe.py", "def do_workflow_disable(self, workflow: str) -> str:\n        if not re.match(",
+     "def do_workflow_disable(self, workflow: str) -> str:\n        if False and re.match("),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # R10-FLOW-TOOLKIT-MEASURE: the path walk, the per-run cache, the absorb count, the record split.
+    ("ci_critpath-1", "ci_critpath.py", "n = max(live, key=lambda x: ends[x])", "n = min(live, key=lambda x: ends[x])"),
+    ("ci_critpath-2", "ci_critpath.py", "        if f.exists():\n", "        if False:\n"),
+    ("ci_critpath-3", "ci_critpath.py", 'q = "".join(f"&{k}={v}" for k, v in (("event", event), ("branch", branch)) if v)',
+     'q = ""'),
+    ("ci_critpath-4", "ci_critpath.py", "p.stdout if p.returncode == 0\n", "p.stdout if False\n"),
+    ("flow_metrics-1", "flow_metrics.py", "n += any(p in mainline for p in line.split())", "n += 0"),
+    ("flow_metrics-2", "flow_metrics.py", 'fixes = [m for m in ms if not m["branch"].startswith(record)]',
+     "fixes = list(ms)"),
+    # r10-ci-layout P2a U9c: the ruleset cut-over instrument lives in tools/ci/,
+    # so its file is named from the repository root. -1 skips the read-back's
+    # second half, -2 its first, -3 the staged-hash precondition.
+    ("ruleset_cutover-1", "tools/ci/ruleset_cutover.py",
+     "    if without_checks(after) != without_checks(six(rollback)):", "    if False:"),
+    ("ruleset_cutover-2", "tools/ci/ruleset_cutover.py",
+     "    if put != want or contexts(after) != NEW_CHECKS:", "    if False:"),
+    ("ruleset_cutover-3", "tools/ci/ruleset_cutover.py",
+     'out.append(("staged-hash", a == b,', 'out.append(("staged-hash", True,'),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
     ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
@@ -189,6 +250,20 @@ MUTANTS = [
     ("cloud_relay-11", "cloud_relay.sh",
      'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
      'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
+    # R10-FLY-RELAY-REVIEW-FF: the confirm arm (P-O), the non-fast-forward re-apply, the remote tip,
+    # the probe arm's transient retry and its owed refusal
+    ("cloud_relay-12", "cloud_relay.sh", '[ -z "${CONFIRM:-}" ] || confirm_arm; ', ''),
+    ("cloud_relay-13", "cloud_relay.sh", 'if grep -qxF "$pr $tree" "$bus/posted-signed" 2>/dev/null || ! grep', 'if ! grep'),
+    ("cloud_relay-14", "cloud_relay.sh", 'if [ "${n:-0}" -ge "$max" ]; then', 'if false; then'),
+    ("cloud_relay-15", "cloud_relay.sh", 'if ! awk -v p="$pr" -v h="$head" -v n="$nonce"', 'if false && ! awk -v p="$pr" -v h="$head" -v n="$nonce"'),
+    ("cloud_relay-16", "cloud_relay.sh", "grep -Eq 'non-fast-forward|fetch first' \"$d/push.err\" || return 1", 'return 1'),
+    ("cloud_relay-17", "cloud_relay.sh", 'if tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ]; then\n      echo',
+     'if false; then\n      echo'),
+    ("cloud_relay-18", "cloud_relay.sh", '= "$wt" ] && sha2=$tip', '= "$wt" ] && sha2=$(printf \'%s\\n\' "$out" | awk \'END { print $NF }\')'),
+    ("cloud_relay-19", "cloud_relay.sh", 'if [ $rc = 2 ] || [ "$n" -ge "$max" ]; then', 'if true; then'),
+    ("cloud_relay-20", "cloud_relay.sh", 'level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo', 'echo'),
+    ("cloud_relay-21", "cloud_relay.sh", '"confirm failed: $(last_line "$out")"', '"confirm failed"'),
+    ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
@@ -197,6 +272,36 @@ MUTANTS = [
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
     ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
      '  true \\\n'),
+    # R10-CI-LAYOUT P2a U0a: tools/ci/, named repo-relative (a file with a `/`); the
+    # steps that run their self-tests are P2a's glue, so these run once it is wired.
+    ("gate-1", "tools/ci/gate.py", "        summary(outcome, why)\n        return 3\n",
+     "        summary(outcome, why)\n        return 0\n"),
+    ("gate-2", "tools/ci/gate.py", 'if int(r.get("run_attempt", 1)) >= ATTEMPT_CAP:', "if False:"),
+    ("gate-3", "tools/ci/gate.py", 'return sweep.main(["--run", str(a.run)], get, post)', "return 0"),
+    ("ghapi-1", "tools/ci/ghapi.py", 'if status in (403, 429) and "rate limit" in text and "exceed" in text:',
+     'if status == 429 and "rate limit" in text and "exceed" in text:'),
+    ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
+    # P2a glue: the extra request headers alert_list's SARIF read is bound through.
+    ("ghapi-3", "tools/ci/ghapi.py", "        req.add_header(k, v)\n", "        pass\n"),
+    ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
+    ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
+     'if r["status"] in UNFINISHED)'),
+    # r10-ci-layout-p2a-u0b: the sweep driver's own block (per-file ids; the step is the glue's).
+    ("sweep_driver-1", "sweep_driver.py", "if n > 1 and not self.chain:", "if n > 1 and self.chain:"),
+    ("sweep_driver-2", "sweep_driver.py", "if status in (403, 429):\n            reset", "if status in (429,):\n            reset"),
+    ("sweep_driver-3", "sweep_driver.py", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.20", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.0"),
+    # r10-ci-layout-p2-u9d: the harness and CI readers. failure_logs' unit-prefix join, the
+    # merge_throughput series join, and (steps owed by the coordinator) the predictor's carry
+    # arm and the local alert read.
+    ("failure_logs-1", "failure_logs.sh", "sed 's# / #-#g' | ", ""),
+    ("merge_throughput-1", "tools/audit/merge_throughput.py", "            rows += json.load(fh)\n",
+     "            rows = json.load(fh)\n"),
+    ("ci_predict-1", "tools/pr/ci_predict.py", 'for r in res["rows"] if r["status"] != "routed"]',
+     'for r in res["rows"] if False]'),
+    ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
+    ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
+     "        if False:\n            return 3,"),
+    ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
@@ -236,8 +341,13 @@ def steps() -> list[tuple[str, str]]:
     return out
 
 
+def rel(file: str) -> str:
+    """A seat file by its name; any other instrument by its repo-relative path."""
+    return file if "/" in file else f"{SEAT}/{file}"
+
+
 def step_for(file: str) -> tuple[str, str]:
-    pat = re.compile(re.escape(f"{SEAT}/{file}") + r" --self-test")
+    pat = re.compile(re.escape(rel(file)) + r" --self-test")
     hits = [s for s in steps() if pat.search(s[1])]
     assert len(hits) == 1, f"{file}: {len(hits)} steps"
     return hits[0]
@@ -300,7 +410,7 @@ def main(want: list[str]) -> int:
     for name, file, old, new, extra in plan:
         if not pick(name):
             continue
-        path = ROOT / SEAT / file
+        path = ROOT / rel(file)
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2

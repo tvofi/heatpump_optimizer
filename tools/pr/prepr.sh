@@ -16,6 +16,7 @@
 # the re-execution is the proof.
 #
 #   tools/audit/prepr.sh [body.md] [intended-issue-numbers...]
+#   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
 #
@@ -155,8 +156,11 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   if ($0 ~ /PINNED/ || $0 ~ /git (checkout|restore) [^#]*--/) mentions = 1
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \}\}[[:space:]]*$/) expr = "pr"
+  # A ci.yml callee's dispatch naming a PR takes its base before `github.sha`.
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
+  # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
   # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
   if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
@@ -444,14 +448,15 @@ PY
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
 # Every PREDICT line prints above the step line; the step line is the last.
-predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 none, 1 predicted, 3 skipped
+predict_line() { # base ref, [file the unpinned site keys are written to], [body file]; rc 0 none, 1 predicted, 3 skipped
   local out r
   if [ ! -f tools/pr/ci_predict.py ]; then
     echo "tools/pr/ci_predict.py is not in this tree"; return 3
   fi
-  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" 2>&1); r=$?
+  local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
-    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
+    | sed -nE 's/^PREDICT tests \/ mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
     0|1) printf '%s\n' "$out" | grep '^PREDICT' | sed 's/^/           /' >&2
          printf '%s\n' "$out" | tail -1; return "$r" ;;
@@ -680,6 +685,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
     args+=(--existing-file "$ex")
   fi
+  # The base too, so a raise whose body has no `## Raise justification` is
+  # refused here (policy_lint's raise arm reads the diff with the gate's own
+  # raises_between), and at body_push.sh's --body-check, not first at the train.
+  [ -n "${BASE:-}" ] && args+=(--base "$BASE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
   rc=$?
   rm -f "$ex"
@@ -780,6 +789,7 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
   else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
+  [ -z "${BODY_LOG:-}" ] || cp -f "$out" "$BODY_LOG"   # --body-check prints every ERROR
   rm -f "$out"; return "$r"
 }
 
@@ -1022,7 +1032,7 @@ PY
 # PREPR_SKIP_CLOSURES holds for the closures step.
 REDS_JQ='.check_runs[]
          | select(.status == "completed" and .conclusion == "failure")
-         | select(.name != "pr-contract")
+         | select(.name != "pr-contract / pr-contract" and .name != "gate")
          | .name'
 
 gh_credential() { # gh binary -> the token on stdout, rc 1 when none
@@ -1030,6 +1040,16 @@ gh_credential() { # gh binary -> the token on stdout, rc 1 when none
   case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
   command -v "$1" >/dev/null 2>&1 || return 1
   "$1" auth token 2>/dev/null
+}
+
+alert_reds() { # the branch's own remote head ref -> rc 0: alert lines (maybe none); else the last line says why unread
+  local ghc tok url repo
+  ghc=${PREPR_GH:-gh}
+  [ -z "${PREPR_NO_ALERTS:-}" ] || { echo "code-scanning alerts NOT READ: PREPR_NO_ALERTS is set"; return 3; }
+  tok=$(gh_credential "$ghc") || { echo "code-scanning alerts NOT READ: no token"; return 3; }
+  url=$(git remote get-url origin 2>/dev/null); repo=${url##*github.com[:/]}; repo=${repo%.git}
+  case "$repo" in */*) ;; *) echo "code-scanning alerts NOT READ: origin is not a GitHub remote"; return 3 ;; esac
+  GITHUB_TOKEN=$tok python3 -I "${PREPR_LOCAL_ALERTS:-tools/pr/local_alerts.py}" --repo "$repo" --branch "${1#origin/}" 2>&1
 }
 
 ancestry_reds() { # the branch's own remote head ref
@@ -1079,19 +1099,26 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   local names r n out reds=()
   names=$(ancestry_reds "$5"); r=$?
   [ "$r" -eq 3 ] && { printf '%s\n' "$names"; return 3; }
+  # The alert listing pr-contract adds to its red list (R4-1): the same
+  # tools/ci/alert_list.py, through tools/pr/local_alerts.py. A pre-check, so
+  # an unread listing is said and left to pr-contract, which fails closed.
+  local alerts ar unread=""
+  alerts=$(alert_reds "$5"); ar=$?
+  if [ "$ar" -ne 0 ]; then unread="[$(printf '%s' "$alerts" | tail -1)] "; alerts=""
+  elif [ -n "$alerts" ]; then names=$(printf '%s\n%s\n' "$names" "$alerts" | grep .); fi
   if [ -z "$names" ]; then
-    printf 'no red check run stands on any commit this branch pushed'
+    printf '%sno red check run stands on any commit this branch pushed' "$unread"
     return 0
   fi
   while IFS= read -r n; do [ -n "$n" ] && reds+=("$n"); done <<<"$names"
   out=$(mktemp)
   body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then
-    printf 'the body answers every red this branch pushed (%s)' "$(echo $names)"
+    printf '%sthe body answers every red this branch pushed (%s)' "$unread" "$(echo $names)"
   else
     # The refusal printed is the red gate's own sentence, not this wrapper's,
     # so the row that reads it pins WHICH check refused.
-    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
+    printf '%sRED UNANSWERED (%s): %s' "$unread" "$(echo $names)" "$(body_refusal "$out")"
   fi
   rm -f "$out"; return "$r"
 }
@@ -1278,6 +1305,25 @@ if [ "${1:-}" = "--version-edit" ]; then
   exit "$ve"
 fi
 
+# `body_push.sh`'s entry point: `prepr.sh --body-check <body.md>`, step 7's
+# pr-body check alone (`body_line`, so the predicted budget red rides along),
+# over this checkout's HEAD against `origin/main`. A cloud fixer's body reached
+# `open_pr.sh` unlinted and bounced there, one orchestrator round per refusal
+# (dev/audit/rca/R10-RCA-BODY-LINT.md). Offline: the red history is read at the
+# open, never here. Step 6d's unpinned sites are not fed: the open still is.
+if [ "${1:-}" = "--body-check" ]; then
+  [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
+  BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
+  P=$(mktemp); BODY_LOG=$(mktemp)
+  if diff_paths "$BASE" "$P"; then
+    line=$(unset GITHUB_TOKEN GH_TOKEN; body_line "$2" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$P" "$BASE" HEAD); r=$?
+    grep 'ERROR' "$BODY_LOG"
+  else line="the changed-path list did not derive from $BASE...HEAD"; r=1; fi
+  rm -f "$P" "$BODY_LOG"
+  if [ "$r" -eq 0 ]; then echo "pr-body ok: $line"; else echo "REFUSE pr-body: $line"; fi
+  exit "$r"
+fi
+
 # --- the class: an early-exit grep reading a pipe under pipefail ---------------
 # `printf|echo ... | grep -q` under `set -o pipefail` reads a SIGPIPE'd writer
 # (141) as no match, on a tiny input too: driven 3,000 times at load 90-110,
@@ -1364,7 +1410,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry; do
+  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry attribution; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
     st $? 1 "a body with $f is refused"
   done
@@ -1381,6 +1427,8 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; fi
+  st $? 0 "a healthy body naming claude.ai in another sense is silent (the attribution arm's null control)"
 
   # The hooks check, driven over one fixture per way a wiring can be wrong.
   # `empty` and `broken` matter most: a settings file with no hooks, and one
@@ -1490,6 +1538,7 @@ if [ "${1:-}" = "--self-test" ]; then
   DABS=$(cd "$D" && pwd -P)
   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
+  export PREPR_NO_ALERTS=1   # the rows below never reach code scanning; the alert rows opt in
   (
     set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
@@ -1578,6 +1627,24 @@ EOS
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 3 "an absent gh skips the arm (never refuses)"
   case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  # The alert listing (R4-1): `alert_reds` runs tools/pr/local_alerts.py, replaced here
+  # by a script printing one alert line (the plant) or none (the null). An alert is a
+  # red the body must name; a listing that could not be read says so and never refuses.
+  printf '#!/usr/bin/env python3\nprint("code-scanning alert 5 (py/x)")\n' >"$RA/alerts-one.py"
+  printf '#!/usr/bin/env python3\n' >"$RA/alerts-none.py"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    PREPR_NO_ALERTS= PREPR_LOCAL_ALERTS="$RA/alerts-one.py" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 1 "an open code-scanning alert the body does not name is refused"
+  case "$got" in *'code-scanning alert 5 (py/x)'*'does not name it'*) st 1 1 "and the refusal names the alert";; *) st 0 1 "and the refusal names the alert";; esac
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    PREPR_NO_ALERTS= PREPR_LOCAL_ALERTS="$RA/alerts-none.py" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 0 "a listing with no alert passes (null control)"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 0 "alerts that were not read leave the arm passing, never refusing"
+  case "$got" in '[code-scanning alerts NOT READ'*) st 1 1 "and the line says they were not read";; *) st 0 1 "and the line says they were not read";; esac
   rm -rf "${RA:?}"
 
   # Step 7's budget arm, driven through `body_line` -- the function the step
@@ -1760,6 +1827,8 @@ EOS
   st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
+  case "$(declare -f body_check)" in *'args+=(--base "$BASE")'*) true ;; *) false ;; esac
+  st $? 0 "body_check hands policy_lint the base, so a raise with no \`## Raise justification\` is refused here and at body_push, not first at the train"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -2113,7 +2182,7 @@ EOS
     && $G commit -qam rowedit) >/dev/null 2>&1
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
-    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
     >/dev/null 2>&1; echo $?); }
   st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
   st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
@@ -2315,6 +2384,12 @@ EOF
     && $G checkout -q -b pglobsib pexsib \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pglobsib \
+    && $G checkout -q -b pleft origin/main \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;t=json.loads(c.CLOSURES.read_text());h='tests/harness_headers.py';f=next(x for x in t['inert_reads'][h] if x.startswith('dev/audit/harnesses/') and x not in t['closures'][h] and c.is_inert(x));p=P.Path('tests/closure.py');s=p.read_text();p.write_text(s.replace('INERT_EXCEPT = (\\n','INERT_EXCEPT = (\\n    \\'%s\\',\\n'%f,1));P.Path('$PDX/left').write_text(f)" \
+    && $G commit -qam pleft \
+    && $G checkout -q -b pleftrec pleft \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());f=P.Path('$PDX/left').read_text();[p['closures'].__setitem__(k,sorted(set(p['closures'][k])|{f})) for k,v in p['inert_reads'].items() if f in v];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pleftrec \
     && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
     && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
@@ -2332,13 +2407,13 @@ EOF
     && $G checkout -q -b pstaleun pstale && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pstaleun) >/dev/null 2>&1
   predict_at() { (cd "$PDX/r" && git checkout -q "$1" && predict_line origin/main 2>&1 >/dev/null; echo "rc=$?"); }
   got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
-  got=$(predict_at porphan); grep -q 'PREDICT fast .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
+  got=$(predict_at porphan); grep -q 'PREDICT tests / fast (3.14) .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts entities' refusal of a new file in no closure and not on INERT"
-  got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED custom_components/heatpump_optimizer/zz_planted.py: read by .*a new import from custom_components/heatpump_optimizer/away.py' <<<"$got"
+  got=$(predict_at pimport); grep -q 'PREDICT tests / closures .*UNDER-SCOPED custom_components/heatpump_optimizer/zz_planted.py: read by .*a new import from custom_components/heatpump_optimizer/away.py' <<<"$got"
   st $? 0 "6d predicts UNDER-SCOPED for a new import from a file a closure lists"
-  got=$(predict_at pfunc); grep -q 'PREDICT closures .*UNDER-SCOPED' <<<"$got"
+  got=$(predict_at pfunc); grep -q 'PREDICT tests / closures .*UNDER-SCOPED' <<<"$got"
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
-  got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
+  got=$(predict_at pinert); grep -q 'PREDICT tests / closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
   got=$(cd "$PDX/r" && git checkout -q pinert \
     && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert 2>&1; echo "rc=$?")
@@ -2354,9 +2429,14 @@ EOF
   st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
   got=$(predict_at pexsib); grep -q 'INERT READS tests/zz_reader.py' <<<"$got"
   st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
-  got=$(predict_at pglobsib); grep -q 'PREDICT closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
+  got=$(predict_at pglobsib); grep -q 'PREDICT tests / closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
   st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
-  got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
+  LEFT=$(cat "$PDX/left" 2>/dev/null)
+  got=$(predict_at pleft); [ -n "$LEFT" ] && grep -qF "PREDICT tests / closures UNDER-SCOPED tests/harness_headers.py: $LEFT leaves INERT" <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d predicts UNDER-SCOPED for a file an INERT edit takes out while the table lists it under inert_reads alone (r10-rca-inert-closure-recording)"
+  got=$(predict_at pleftrec); grep -q 'leaves INERT' <<<"$got"
+  st $? 1 "and is quiet once the closure lists it, the INERT edit otherwise the same (null control)"
+  got=$(predict_at pedge); grep -q 'PREDICT tests / closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got"
   st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
   got=$(cd "$PDX/r" && git checkout -q pedge \
@@ -2384,7 +2464,7 @@ EOF
   printf 'body\n' > "$PDX/BODY.md"
   bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
   got=$(bpush pinert)
-  grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  grep -q 'PREDICT tests / closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
   st $? 0 "body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2)"
   (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1 && git commit -qam 'closures: the probe harness (inert read)')
   got=$(cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-pinert "$PDX/BODY.md" 2>&1; echo "rc=$?")
@@ -2396,6 +2476,31 @@ EOF
     && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-skip "$PDX/BODY.md" 2>&1; echo "rc=$?"; mv "$PDX/ci_predict.away" tools/pr/ci_predict.py)
   grep -q 'carries no tools/pr/ci_predict.py' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a checkout with no predictor rather than passing it silently"
+  grep -q 'a result body' <<<"$(bpush pnull)"
+  st $? 0 "a topic with no handoff/<topic> is a result body, and the pr-body lint is not run on it (null control)"
+  # R10-RCA-BODY-LINT: a topic whose code is at handoff/<topic> is a PR body,
+  # and body_push runs prepr step 7 on it (`--body-check`) before the push.
+  (cd "$PDX/r" && git checkout -q -f pnull && git push -q origin HEAD:refs/heads/handoff/zz-lint)
+  bbody() { # forward-carry text, friction text -> $PDX/lint.md, at pnull's head
+    printf '## Head\n\n`%s`\n\n## Mutation proof\n\nnone\n\n## Null control\n\nnone\n\n## Figures\n\nnone\n\n## Red checks\n\nnone\n\n## Forward-carry\n\n%s\n\n## Friction\n\n%s\n' \
+      "$(cd "$PDX/r" && git rev-parse HEAD)" "$1" "$2" > "$PDX/lint.md"; }
+  lpush() { (cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-lint "$PDX/lint.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' refs/heads/handoff-body/zz-lint); }
+  bbody '- the SIGKILL clause is owed. Carry: R10-UPDATE-PR-SIGNALS' '- a seat line that names no rule'; got=$(lpush)
+  grep -q 'ERROR .*names no destination file' <<<"$got" && grep -q 'ERROR .*line does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses a PR body whose Forward-carry names no file and whose Friction does not parse, printing each ERROR, and pushes nothing (#2524)"
+  bbody none 'none
+
+https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+  grep -q "ERROR .*carries a tool's attribution (session-link)" <<<"$got" && ! grep -q 'does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+  bbody none none; got=$(lpush)
+  grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
+  st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
+  (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
+  grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"
   (cd "$PDX/r" && git remote set-url origin "$BPO" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane
@@ -2405,7 +2510,7 @@ EOF
   # same reason.
   got=$(predict_at plane); grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)"
-  got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
+  got=$(predict_at pmut); grep -q 'PREDICT tests / mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
   st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
   grep -q '^rc=0$' <<<"$got"
   st $? 0 "and an unpinned site warns, never refuses: mutation-autofix may pin it after the push"
@@ -2414,12 +2519,21 @@ EOF
   grep -q '^rc=1$' <<<"$got"
   st $? 0 "a stale pin refuses, unlike an unpinned site: mutation-autofix never drops a pin"
   got=$(cd "$PDX/r" && git checkout -q pstaleun && predict_line pstale 2>&1 >/dev/null; echo "rc=$?")
-  grep -q 'PREDICT mutation .*STALE PIN ON MAIN' <<<"$got" && grep -q '^rc=0$' <<<"$got"
+  grep -q 'PREDICT tests / mutation .*STALE PIN ON MAIN' <<<"$got" && grep -q '^rc=0$' <<<"$got"
   st $? 0 "a stale pin main already carries warns and names main, never refuses an unrelated branch (null control)"
   got=$(cd "$PDX/r" && git checkout -q pinh && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
   grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d charges no branch with an unrecorded script main already carries (null control)"
   st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
+  # pr-contract's carry check, predicted from the body (ci_predict.py --body): a finding
+  # carried to a group the roster lacks is the plant; a body with nothing to carry, the null.
+  printf '## Forward-carry\n\n- a finding the plant routes nowhere\n\n  Carry: R10-NO-SUCH-GROUP\n' >"$PDX/carry-plant.md"
+  printf '## Forward-carry\n\nnone\n' >"$PDX/carry-null.md"
+  got=$(cd "$PDX/r" && git checkout -q pnull && predict_line origin/main "" "$PDX/carry-plant.md" 2>&1 >/dev/null; echo "rc=$?")
+  grep -q 'PREDICT pr-contract / pr-contract CARRY BAD' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d predicts pr-contract's carry refusal for a destination the roster lacks, and refuses (rc=1)"
+  got=$(cd "$PDX/r" && git checkout -q pnull && predict_line origin/main "" "$PDX/carry-null.md" 2>&1 >/dev/null; echo "rc=$?")
+  st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a body with no finding to carry (null control)"
   got=$(cd "$PDX/r" && git checkout -q planes && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
   grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d charges no branch that only edits the derive script with a script main already left unrecorded (C1: a lane edit can drop nothing)"
@@ -2471,6 +2585,16 @@ EOF
   printf 'jobs:\n  only-pr:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'x.mjs'" > "$WF/pr.yml"
   [ -z "$(pinned_graders "$WF/pr.yml")$(pinned_paths "$WF/pr.yml")$(pin_read problems "$WF/pr.yml")" ]
   st $? 0 "a pin that never grades main is not counted, and is not a problem (null control)"
+  # R10-CI-LAYOUT P2b: pr-contract.yml as a workflow_call callee of ci.yml (U6)
+  # pins `... || format('origin/{0}', inputs.base)`, the PR's base on a
+  # `workflow_dispatch -f pr= -f base=`. It still never grades main, so it is
+  # the PR-only class; any other fallback stays unclassified.
+  printf 'jobs:\n  callee:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format(%s, inputs.base) }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'origin/{0}'" "'x.mjs'" > "$WF/callee.yml"
+  [ -z "$(pinned_graders "$WF/callee.yml")$(pinned_paths "$WF/callee.yml")$(pin_read problems "$WF/callee.yml")" ]
+  st $? 0 "a callee pin falling back to the dispatched PR's base is the PR-only class, not counted and not a problem"
+  sed 's/format(.origin\/{0}., inputs.base)/inputs.base/' "$WF/callee.yml" > "$WF/callee-bare.yml"
+  [ -n "$(pin_read problems "$WF/callee-bare.yml")" ]
+  st $? 0 "and a bare \`inputs.base\` fallback, a branch name no checkout resolves, stays unclassified (null control)"
   touch "$WF/empty/none.yml"
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
@@ -2485,15 +2609,16 @@ EOF
   st $? 0 "a pinned grader called only above rc=0 is named"
   for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
-    PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
+    PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY' || { st 1 0 "governance.yml perturbation ($pert) changes the file"; continue; }
 import os, sys
 p = sys.argv[1]; s = open(p).read(); k = os.environ["PERT"]
+cur = "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"
 own = "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check"
 full = "if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else " + own + "; fi"
 if k == "unquoted": t = s.replace('git checkout "$PINNED" --', 'git checkout $PINNED --', 1)
 elif k == "braced": t = s.replace('git checkout "$PINNED" --', 'git checkout "${PINNED}" --', 1)
-elif k == "no-pinned-line": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n", "", 1)
-elif k == "env-indirect": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}", "PINNED: ${{ env.PIN_SHA }}", 1)
+elif k == "no-pinned-line": t = s.replace(cur + "\n", "", 1)
+elif k == "env-indirect": t = s.replace(cur, "PINNED: ${{ env.PIN_SHA }}", 1)
 elif k == "x-flag": t = s.replace(own, own.replace("-I ", "-I -X utf8 "), 1)
 elif k == "bare-python": t = s.replace(own, own.replace("python3 ", "python "), 1)
 elif k == "uv-run": t = s.replace(own, "uv run " + own.replace("python3 ", "python "), 1)
@@ -2501,8 +2626,7 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     head, _, body = s.partition("\njobs:\n")
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
-elif k == "queue-base": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}",
-                                      "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}")
+elif k == "queue-base": t = s.replace(cur, "PINNED: ${{ github.event.pull_request.base.sha || github.sha }}")
 else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
@@ -2858,13 +2982,6 @@ else
   say skip "brief_lint" "no pinned path changed, so CI's briefs job reads this head's copy"
 fi
 
-# --- 3f2. the contract re-run's decision, from its own fixtures (D13-s1-03).
-# `pr-contract-rerun.yml` runs the default branch's copy; its self-test is
-# offline and under a second, so the local path is the self-test.
-if test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; else python3 -I tools/pr/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; fi
-step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
-rm -f /tmp/prepr-crr.$$
-
 # --- 3f3. field coverage (I3 barrier), which `policy-docs` runs from the base
 # once the base carries it. The whole program: without `gh` its ruleset arm
 # prints its UNCHECKED skip, and the other arms are offline.
@@ -3022,7 +3139,7 @@ fi
 
 # --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
-PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES")
+PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}")
 case $? in
   3) say skip "ci predict" "$PREDICT_LINE" ;;
   0) step "ci predict" 0 "$PREDICT_LINE" ;;

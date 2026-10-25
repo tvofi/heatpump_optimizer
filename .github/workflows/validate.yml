@@ -1,26 +1,14 @@
 name: Validate
 
+# A called workflow of ci.yml's umbrella: the caller owns the triggers, the
+# run-id concurrency group and the grant (`contents: read`). It takes no inputs
+# and no secrets.
 on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-  # The merge queue (round-9 process review item 2): this file's required
-  # contexts run on the queue's merge commit as on a pull request.
-  merge_group:
-    types: [checks_requested]
-  workflow_dispatch:
+  workflow_call:
 
 # Read-only validation: the GITHUB_TOKEN needs nothing beyond checkout.
 permissions:
   contents: read
-
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   validate-hacs:
