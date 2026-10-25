@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 35df1b35b..1982784dd 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -609,7 +609,7 @@ heavy_run() { # log file, command... -> the command's rc
+   set -m
+   "$@" >>"$log" 2>&1 & hpid=$!
+   ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+-    kill -TERM -- -"$hpid" 2>/dev/null ) & wpid=$!
++    kill -TERM "$hpid" 2>/dev/null ) & wpid=$!
+   wait "$hpid"; r=$?
+   kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
+   [ -n "$m" ] || set +m

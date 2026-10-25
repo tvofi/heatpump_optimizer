@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 35df1b35b..11541272c 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -834,7 +834,7 @@ carry_line() { # body file -> one line; rc 0 every finding item routed, 1 refuse
+     printf 'REFUSE: %s could not be fetched, so no destination was read where fix-review step 10 reads it (a stale mirror reads like a current one)' "${ref#origin/}"
+     return 1
+   fi
+-  out=$(python3 -I tools/audit/carry_audit.py --roster-ref "$ref" check --body "$1" 2>&1); r=$?
++  out=$(python3 -I tools/audit/carry_audit.py check --body "$1" 2>&1); r=$?
+   if [ "$r" -eq 0 ]; then
+     printf '%s, at %s %s' "$(tail -1 <<<"$out")" "$ref" "$(git rev-parse --short "$ref")"
+     return 0
