@@ -124,15 +124,26 @@ export function parseHistogram(text) {
   }
   const entries = []
   const census = new Map()
+  let censusRows = 0
   for (const line of String(text).split('\n')) {
     const m = line.match(WOULD_OPEN_RE)
     if (m) entries.push({ key: m[1], kind: m[2], count: Number(m[3]), threshold: Number(m[4]), line: line.trim() })
     const c = line.replace(/\r$/, '').match(CENSUS_RE)
-    if (c) census.set(c[4], { kind: c[1], prs: Number(c[2]), entries: Number(c[3]) })
+    if (c) {
+      // One KEY can head rows of two kinds (`harness` is both a verdict class
+      // and a friction rule id), so the Map's size is not the row count: the
+      // summary's `N key(s)` counts rows. The Map keeps the larger PR count
+      // for a shared key, because a lookup that finds the smaller would call
+      // a key below threshold that another kind has at or over it.
+      censusRows += 1
+      const cell = { kind: c[1], prs: Number(c[2]), entries: Number(c[3]) }
+      const prior = census.get(c[4])
+      if (!prior || cell.prs > prior.prs) census.set(c[4], cell)
+    }
   }
   const declared = Number(CENSUS_SUMMARY_RE.exec(text)[1])
-  if (census.size !== declared) {
-    out.why = `the census summary declares ${declared} key(s) and ${census.size} row(s) parsed: a partial census is not a measurement of the keys it is missing`
+  if (censusRows !== declared) {
+    out.why = `the census summary declares ${declared} key(s) and ${censusRows} row(s) parsed: a partial census is not a measurement of the keys it is missing`
     return out
   }
   out.ok = true
@@ -1057,6 +1068,13 @@ export function selfTest() {
   const partial = parseHistogram(
     `${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\nCENSUS\tverdict class\t3\t4\tblocked\nCENSUS: 2 key(s)${THRESHOLD_LINE}\nWOULD OPEN: 1 issue(s)`)
   st(partial.ok, false, 'a census that declares more keys than it prints is refused (a partial census is not a measurement of what it omits)')
+  // One key under two kinds is two rows and one Map cell (the live window had
+  // `harness` as a verdict class and as a friction rule id): the census is
+  // complete, not partial, and the cell keeps the larger count.
+  const twoKinds = parseHistogram(
+    `${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\nCENSUS\tverdict class\t2\t2\tharness\nCENSUS\tfriction rule id\t1\t1\tharness\nCENSUS: 2 key(s)${THRESHOLD_LINE}\nWOULD OPEN: 1 issue(s)`)
+  st(twoKinds.ok, true, 'a key shared by two kinds is two census rows, which the summary counts: the census is whole, not partial')
+  st(twoKinds.census.get('harness')?.prs, 2, 'and the shared key keeps the larger PR count, never the smaller')
   const noThreshold = parseHistogram(`${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\n${CENSUS(CROWS)}\nWOULD OPEN: 1 issue(s)`)
   st(noThreshold.ok, false, 'a histogram that does not print its own threshold is refused rather than compared against a number typed here')
 
