@@ -1,0 +1,17 @@
+head e6455b8fe617ec28d6916977778e7499a6d2fd27; pr-contract runs started after nightly-ha concluded (01:55:52Z):
+== job 121053606313
+red checks the body must answer: ,tests / nightly-ha (stable)
+  record   red-history           18 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-ha (stable)
+HEAD: `## Head` names 0303eae; accepted autofix commit(s) on top of it: e6455b8 (ci: merge main)
+  ERROR   [pr-body] <pr-body.md>: check `tests / nightly-ha (stable)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 1 error(s) in <pr-body.md>
+no version edit: origin/main...e6455b8fe617ec28d6916977778e7499a6d2fd27 moves none of VERSION, the manifest version or a notes heading
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+== job 121055642825
+red checks the body must answer: ,tests / nightly-ha (stable)
+  record   red-history           18 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-ha (stable)
+HEAD: `## Head` names 0303eae; accepted autofix commit(s) on top of it: e6455b8 (ci: merge main)
+  ERROR   [pr-body] <pr-body.md>: check `tests / nightly-ha (stable)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 1 error(s) in <pr-body.md>
+no version edit: origin/main...e6455b8fe617ec28d6916977778e7499a6d2fd27 moves none of VERSION, the manifest version or a notes heading
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
