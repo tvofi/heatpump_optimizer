@@ -1,0 +1,53 @@
+== HEAD 5ac9dfc1e2b35dad3f42e3246fd45297e626b9fd vs SBOM 2026-10-25T15:53:42Z
+githubactions: 18 pinned, 18 in the graph, 0 missing, 0 stale
+npm: 119 pinned, 119 in the graph, 0 missing, 0 stale
+pypi: 122 pinned, 123 in the graph, 4 missing, 5 stale
+  missing from the graph: aiohttp@3.14.5
+  missing from the graph: certifi@2026.10.19
+  missing from the graph: pillow@13.0.0
+  missing from the graph: uv@0.13.4
+  in the graph, not the tree: aiohttp@3.14.3
+  in the graph, not the tree: certifi@2026.7.22
+  in the graph, not the tree: pillow@12.3.0
+  in the graph, not the tree: uv@0.12.5
+  in the graph, not the tree: yarl@1.24.5
+alerts: unread
+STALE: the graph differs from the tree
+exit=1
+== NULL CONTROL tree 2622b31c
+exit=2
+== origin/main bc52ad2af1d0cfe95896119b649fa56e14c74b5b
+githubactions: 18 pinned, 18 in the graph, 0 missing, 0 stale
+npm: 119 pinned, 119 in the graph, 0 missing, 0 stale
+pypi: 122 pinned, 123 in the graph, 4 missing, 5 stale
+  missing from the graph: aiohttp@3.14.5
+  missing from the graph: certifi@2026.10.19
+  missing from the graph: pillow@13.0.0
+  missing from the graph: uv@0.13.4
+  in the graph, not the tree: aiohttp@3.14.3
+  in the graph, not the tree: certifi@2026.7.22
+  in the graph, not the tree: pillow@12.3.0
+  in the graph, not the tree: uv@0.12.5
+  in the graph, not the tree: yarl@1.24.5
+alerts: unread
+STALE: the graph differs from the tree
+exit=1
+== NULL CONTROL tree 2622b31c (depgraph.py at zz/pr/, ROOT=parents[2])
+githubactions: 13 pinned, 18 in the graph, 0 missing, 5 stale
+  in the graph, not the tree: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+  in the graph, not the tree: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+  in the graph, not the tree: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+  in the graph, not the tree: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98
+  in the graph, not the tree: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+npm: 120 pinned, 119 in the graph, 4 missing, 3 stale
+  missing from the graph: dompurify@3.4.16
+  missing from the graph: fsevents@2.3.2
+  missing from the graph: playwright@1.56.1
+  missing from the graph: playwright-core@1.56.1
+  in the graph, not the tree: dompurify@3.4.17
+  in the graph, not the tree: playwright@1.64.1
+  in the graph, not the tree: playwright-core@1.64.1
+pypi: 123 pinned, 123 in the graph, 0 missing, 0 stale
+alerts: unread
+STALE: the graph differs from the tree
+exit=1
