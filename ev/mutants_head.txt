@@ -1,0 +1,12 @@
+worktree at ffbcb3cb5626e19fae8802dc1b6e66e3cc1e7a1e
+selftest: 9 checks, 0 failed
+82:            inv = e["id"] < low
+selftest: 9 checks, 5 failed ['inverted', 'ordered', 'red_inverted', 'red_ordered']
+codescan_wait self-test: 17 checks, 0 failed
+139:        print(f"FAIL closed: {e}", file=sys.stderr)
+142:        print(f"FAIL closed: {type(e).__name__}: {e}", file=sys.stderr)
+STRUCTURE RATCHET PASSED
+M3 mutant (line 139 stderr dropped):
+ok  17 WAIT_MAX_S bounds steps 1 and 4 together, not each (waited 600 s: 'FAIL no analysis at refs/pull/77/merge with commit_sha m1 for leg(s) python after 600 s')
+codescan_wait self-test: 17 checks, 1 failed
+0
