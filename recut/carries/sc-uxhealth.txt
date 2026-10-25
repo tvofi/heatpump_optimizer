@@ -1,0 +1,1 @@
+From R10-SCORES (handoff-body/r10-scores at 8f564875), Forward-carry: **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix.

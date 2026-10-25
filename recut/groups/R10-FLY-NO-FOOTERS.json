@@ -1,0 +1,41 @@
+{
+ "group": "R10-FLY-NO-FOOTERS",
+ "lane": "FLY",
+ "kind": "instrument",
+ "class": "instrument",
+ "size": "S",
+ "issues": [],
+ "fixes": [],
+ "after": [],
+ "files": [
+  ".claude/settings.json",
+  "tools/policy/policy_lint.mjs",
+  "tests/entities.py",
+  "tools/pr/prepr.sh"
+ ],
+ "carry": [],
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "resume": {
+  "stage": "in-progress",
+  "branch": "handoff/r10-fly-no-footers",
+  "pr": 2636,
+  "commit": null,
+  "last_step": null,
+  "next_step": "review and merge the open pull request (#2636)",
+  "note": "Registered after the pull request opened; stage recorded as in-progress because in-review is not a classified roster stage."
+ },
+ "brief": "Owner ruling (tvofi, 2026-10-22): no Claude attribution footers or session links in seat output, that is no generated-with line, no co-author or session trailer, and no session URL in commits, pull request bodies or comments. The pull request bans them in the harness settings and refuses them in the policy lint, an entities check and prepr, each with a planted-defect control. Follow dev/governance/roles/fixer.md."
+}

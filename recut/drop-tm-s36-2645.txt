@@ -1,0 +1,1 @@
+r10_seat_selftests_mutants: stale: `S36`'s pattern (`out=$(push_app 2)  # mut:pu

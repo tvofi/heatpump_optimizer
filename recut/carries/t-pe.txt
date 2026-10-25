@@ -1,0 +1,6 @@
+Triage P-E (s4, 2026-10-23 03:45Z, accepted, narrowed to a git-only detector), verbatim:
+When a dispatched cloud seat's return ref and the PR head have not moved N hours after dispatch, report "SEAT ENDED NO RETURN <topic> <cse>".
+
+Measured facts: no rule looks for a dispatched fixer with no return (orchestrator_tick.py and cloud_relay.sh: none), and the 6 h silence on #2620 is a real hole. The proposed mechanism needed RemoteTrigger list_runs, and cloud_relay.sh is bash and subagent seats lack RemoteTrigger, so it cannot be called from the pass. Detector: for each dispatched cse in the sessions record, report the line when the return ref has not moved and no PR head moved within a threshold (for example 2 h) after dispatch time; the worker_status check, if wanted, is a main-side enrichment. An added tick line in existing instruments, not a new rule or lint class.
+Open point the fixer must close first: where cloud-sessions.tsv is written and what its created_at column holds were not found; confirm the record's shape before writing the detector.
+Cost: S-M, about 40-80 lines plus a fixture with a null control (a seat that did return must not be reported). If the tick line is wanted in orchestrator_tick.py, that part belongs to R10-FLY-CAP-LINE.

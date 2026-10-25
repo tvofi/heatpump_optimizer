@@ -1,0 +1,1 @@
+From #2629 (R10-RECORD-API-BUDGET), Friction: tools/audit/seat/seat_venv.sh: stale: `uv` has no download for the cpython-3.14.7 the typing census records, so the seat venv cannot build in this container. The gate ran under the system Python 3.13 with `tests/requirements-ci.txt` installed without hashes.

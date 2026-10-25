@@ -1,0 +1,72 @@
+0 append-group R10-ORCH-DISPATCH-REG rc=0 OK e76de0b10fc594efdb8a5c93e8a94c53696f5ed9
+1 append-group R10-ORCH-BEATD rc=0 OK 194895ad651a68720c747f26faf491fda49e557c
+2 append-group R10-ORCH-PLANPAGE rc=0 OK d18d2da9c586a46b511c518d17c0a7af465a581f
+3 append-group R10-ORCH-ROSTER-SCHEMA rc=0 OK 510d7e3c150b7bb6a343997ab34b7fa9978b974b
+4 append-group R10-FLY-WORKTREE-GC rc=0 OK 57f8692d2f31fed79c9a438238c13c000d398fcd
+5 append-group R10-FLY-DAEMONIZE-ARGV rc=0 OK 0b0412cb937d32de66e5ab9cd0393d92ab409a0d
+6 append-group R10-FLY-CIPREDICT-LAYOUT rc=0 OK 50169b224b71e58c76ddb0c465be8d37c77972e6
+7 append-group R10-FLY-CLOUD-SETUP-TOOLCHAIN rc=0 OK 3d42fc2cdf273bb38b1db0429ab6270386d6f1dc
+8 append-group R10-FLY-YIELD-GUARD rc=0 OK 8b2818ce938c75029c52e8052d068902a6ecc3ed
+9 append-group R10-FLY-ENVMATRIX-NOREMOTE rc=0 OK 26fc1a153d46781ff9191c901fdb44e9f4ce298e
+10 append-carry R10-FLY-CARRY-DISPOSITION cd-1 rc=0 OK 699006cf59fd270329a40c0547af09fadcf92785
+11 append-carry R10-FLY-CARRY-DISPOSITION cd-38 rc=0 OK dd7962ecfd9103edf429fb0430cbebc1b9b9fcba
+12 append-carry R10-UPDATE-PR-SIGNALS ups-9 rc=0 OK fc81bbcaea3aadbe1fb03224f0a6659d9416cf02
+13 append-carry R10-FLY-CAP-LINE cap-27 rc=0 OK d076d7eeea139d9b426920ca0aea9975029fd869
+14 drop-carry MACHINERY #0 rc=0 OK 1989705385afaaaccf5a035074cdf701cd88b6f5
+15 drop-carry MACHINERY #1 rc=0 OK c5a60131ed48173f0e3ecdefce7da8c2fb0bf3ff
+16 drop-carry MACHINERY #2 rc=0 OK e9698f1f5b406038277d91d88359f606e3141581
+17 drop-carry MACHINERY #3 rc=0 OK 7a976e94b72705f00b0d10c3785185e1f06cf89d
+18 drop-carry MACHINERY #4 rc=2 FAIL roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+roster_edit: REFUSED: push of 4dd30be89139 to handoff/audit-r10-roster failed with origin unmoved (no race); nothing of this edit reached origin: remote: fatal error in commit_refs        
+To https://github.com/tvofi/heatpump_optimizer.git
+ ! [remote rejected]     4dd30be8913934ebca24641783b3a575c54ad072 -> handoff/audit-r10-roster (failure)
+error: failed to push some refs to 'https://github.com/tvofi/heatpump_optimizer.git'
+
+-- retry from 18 after transient GitHub commit_refs error
+18 drop-carry MACHINERY #4 rc=0 OK aab4df19947f0a1218e1286c40463524e94f585e
+19 drop-carry MACHINERY #5 rc=0 OK 85feedef72d6cdc2663a882fff60ee093d71be31
+20 drop-carry MACHINERY #6 rc=0 OK f0578d43b020af978017b4e234f5d22801440739
+21 drop-carry MACHINERY #7 rc=0 OK ce332c2cbc853b89556d1a9416c0fc3f52956a3b
+22 drop-carry MACHINERY #8 rc=0 OK 9d0bb139db41854fbbf63a15baeac79040dc89cb
+23 drop-carry MACHINERY #9 rc=0 OK 47f6201cb7c3f00f9b2cc60a2e4d7b21518d9d8f
+24 drop-carry MACHINERY #10 rc=0 OK 787c53d8f5c0ca1bf89861e2c0cd1189c0be7331
+25 drop-carry MACHINERY #11 rc=0 OK b06cc046600c6d2b4a4c2acdb7661e25f106c3c6
+26 drop-carry MACHINERY #12 rc=0 OK 3023fa4a5a47593fea7de063637f397c48df2e74
+27 drop-carry MACHINERY #13 rc=0 OK a2ac19ae4315b8cd2de0866b1b65aac1663e7d83
+28 drop-carry MACHINERY #14 rc=0 OK d5f217a3364dbbe61a02666154f16919e1662311
+29 drop-carry MACHINERY #15 rc=0 OK 021d1ebd918f606a4f7d36f528346b77c0e51228
+30 drop-carry MACHINERY #16 rc=0 OK 2f6e6ad47a8b2e7a8b0eec747eb8c27ba2724407
+31 drop-carry MACHINERY #17 rc=0 OK 99963b50c30382c07c18762bdb835fd76418eb21
+32 drop-carry MACHINERY #18 rc=0 OK 7ff79cd2e475a60f535253b001eb33fc9445f504
+33 drop-carry MACHINERY #19 rc=0 OK ecf78253b156988c4b3d682e90fbe85a73756b70
+34 drop-carry MACHINERY #20 rc=0 OK 773029169312fe4764c73ede11d3695536f6c8a0
+35 drop-carry MACHINERY #21 rc=0 OK eedd0592b0753bb13b4bf75baec5cc3e56bacc5b
+36 drop-carry MACHINERY #22 rc=0 OK a2610dcb46223792824621e4c43bb4ed8cc1315c
+37 drop-carry MACHINERY #23 rc=0 OK 76c24ec8612bb89a6005155afd0f39c5fdf8f9c7
+38 drop-carry MACHINERY #24 rc=0 OK 7944f08d7742e60267ed1bdf693f21ac1e8a17e6
+39 drop-carry MACHINERY #25 rc=0 OK c4926408c933aeb56238e7402f2283bfdc12f4e3
+40 drop-carry MACHINERY #26 rc=0 OK 469bc2e7307bfd36d63367cbb74993d55d809bec
+41 drop-carry MACHINERY #27 rc=0 OK 1611191e94cdba918f6fa10c44a734eb05b491a5
+42 drop-carry MACHINERY #28 rc=0 OK c8f349d74d80a8cec035fc192c1c412898d588d3
+43 drop-carry MACHINERY #29 rc=0 OK cb91d5b8e38a9ec9c0af82fae64abae9f8a9b3b2
+44 drop-carry MACHINERY #30 rc=0 OK 104e096165819973e6cc3abca5ca0f538ccf4de7
+45 drop-carry MACHINERY #31 rc=0 OK f03d59cf13a3b79c801589c8aa53f87a6b09ea6c
+46 drop-carry MACHINERY #32 rc=0 OK 890ff984cf3bbd4395bcd8823f107cb4f3f8863f
+47 drop-carry MACHINERY #33 rc=0 OK 03acbf981ff992da5eb21b36e4e7a8d8a07c2d23
+48 machinery note rc=0 OK c322af44cafdd3be036fadc49b379ca0eae32b12
+49 machinery stage rc=3 FAIL roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+roster_edit: LINT GATE REFUSED the push
+--lint-cwd /Users/timmalmstrom/hpo-seats/r10s4/gc-main is at cf01e82eec28, not origin/main (fc7173fe7876): the stale-worktree trap; lint from a fresh main checkout
+the commit is local at d52648f65d0b in /Users/timmalmstrom/hpo-seats/r10s4/roster-edit-wt (detached); nothing pushed
+
+-- retry from 49 (main moved mid-op)
+49 machinery stage rc=0 OK 65f327f223e6c3c0f817359cb5a4c8cbffe1ea5f
+50 toolkit-model after rc=0 OK 2803b0f3e34966da728de67023baa965310ddaff
+51 playbook after rc=0 OK ae27f39468a97095ad38ab674037429e57ef9bde
+52 append-carry R10-FLOW-DESIGN-STAGES t-designstages rc=0 OK 770048ac2ddccf3bbbab223b7cb0b7de22d05350
+53 append-carry R10-FLY-PRUNE-REFS t-prune rc=0 OK b032771c165f82f3ce1fe958dd6320e525f0e5da
+54 append-carry R10-FLY-RELAY-REVIEW-FF t-reviewff rc=0 OK 5ac811f3581187763bc413ffe0901b5275cab22b
+55 append-carry R10-ORCH-BEATD t-beatd rc=0 OK 146f32ce04a65504ffd04c0ee629dbfaf0d4226e
+56 rca-body-lint done rc=0 OK 1923e29cc6b5f1be2375fa44ce53a4cb4ea85782
+ALL DONE

@@ -1,0 +1,1 @@
+From #2629 (R10-RECORD-API-BUDGET), Forward-carry for the deciding seat: **M3's inputs, for decision O-1:** where M0's limit is read (`RATE_LIMIT before:`/`after:` in the `record` log), how demand after M1+M2 is re-measured (`record_burst_replay.py` at the deciding seat's main), and that the #2606 review's 5-run estimate is not the replay's figure.
