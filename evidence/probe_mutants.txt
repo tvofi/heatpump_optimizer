@@ -1,0 +1,35 @@
+== MUTANT M1
+VIOL solar 0 30 0 True False False True 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+VIOL solar 0 30 0 True False True False 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+VIOL solar 0 30 0 False True True True 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+VIOL solar 0 30 0 False True False True 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+VIOL solar 0 30 0 False True True False 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+VIOL solar 0 30 0 False False True True 1 {'phase': 'counting', 'progress': 1.0, 'waiting_for': None, 'eta_days': 0.0, 'samples': 30, 'samples_needed': 30} ['eta-nonpos']
+== MUTANT M3
+RESULT grid rows=25920 violations=0
+== MUTANT R-waitany
+VIOL house 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': 50} ['waiting_for']
+VIOL lower 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['waiting_for']
+VIOL solar 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': 30} ['waiting_for']
+VIOL gains 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': 114} ['waiting_for']
+VIOL house 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': 50} ['waiting_for']
+VIOL lower 0 0 0 True True True True 1 {'phase': 'waiting', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['waiting_for']
+== MUTANT R-eta-always-none-noop
+RESULT grid rows=25920 violations=0
+TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'
+== MUTANT R-eta-on-settling
+VIOL lower 0 0 300 True True True True 1 {'phase': 'settling', 'progress': 0.998, 'waiting_for': None, 'eta_days': 1.0, 'samples': 300, 'samples_needed': None} ['eta-outside-counting']
+VIOL lower 0 0 300 True False True True 1 {'phase': 'settling', 'progress': 0.998, 'waiting_for': None, 'eta_days': 1.0, 'samples': 300, 'samples_needed': None} ['eta-outside-counting']
+VIOL lower 0 0 300 False True True True 1 {'phase': 'settling', 'progress': 0.998, 'waiting_for': None, 'eta_days': 1.0, 'samples': 300, 'samples_needed': None} ['eta-outside-counting']
+VIOL lower 0 0 300 False False True True 1 {'phase': 'settling', 'progress': 0.998, 'waiting_for': None, 'eta_days': 1.0, 'samples': 300, 'samples_needed': None} ['eta-outside-counting']
+VIOL lower 0 29 5 True True True True 1 {'phase': 'settling', 'progress': 0.096, 'waiting_for': None, 'eta_days': 1.0, 'samples': 5, 'samples_needed': None} ['eta-outside-counting']
+VIOL lower 0 29 5 True False True True 1 {'phase': 'settling', 'progress': 0.096, 'waiting_for': None, 'eta_days': 1.0, 'samples': 5, 'samples_needed': None} ['eta-outside-counting']
+== MUTANT S4
+VIOL lower 0 0 0 True True True False 0 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+VIOL lower 0 0 0 True True True False 1 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+VIOL lower 0 0 0 True True True False 1 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+VIOL lower 0 0 0 True True True False 1 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+VIOL lower 0 0 0 True False False True 0 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+VIOL lower 0 0 0 True False False True 1 {'phase': 'settling', 'progress': 0.0, 'waiting_for': None, 'eta_days': None, 'samples': 0, 'samples_needed': None} ['lower-on-wrong']
+== MUTANT S2
+RESULT grid rows=25920 violations=0
