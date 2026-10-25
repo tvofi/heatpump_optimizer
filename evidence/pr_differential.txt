@@ -1,0 +1,13 @@
+$ node dev/audit/harnesses/r10_merge_subject_differential.mjs origin/main (cwd worktree at head)
+tree lines=90745 refused_main=0 refused_head=0 main_not_head=0
+plants lines=714 refused_main=245 refused_head=245 main_not_head=0
+generated lines=17568 refused_main=7200 refused_head=7200 main_not_head=0
+null lines=7200 refused_main=0 refused_head=0
+TOTAL lines=109027 refused_main=7445 refused_head=7445 main_not_head=0
+exit=0
+$ ... origin/main 4aad9c117 (null control)
+tree lines=90745 refused_main=0 refused_head=0 main_not_head=0
+plants lines=714 refused_main=245 refused_head=190 main_not_head=55
+generated lines=17568 refused_main=7200 refused_head=1800 main_not_head=5400
+null lines=7200 refused_main=0 refused_head=0
+TOTAL lines=109027 refused_main=7445 refused_head=1990 main_not_head=5455
