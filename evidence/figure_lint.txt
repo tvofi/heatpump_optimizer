@@ -1,0 +1,5 @@
+             `tests/features.py` is in the tree at this head
+
+FIGURES: 8 resolved, 1 not verified, 1 refused
+A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+rc=1
