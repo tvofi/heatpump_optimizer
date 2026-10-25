@@ -1,2 +1,0 @@
-train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)
-rc=0
