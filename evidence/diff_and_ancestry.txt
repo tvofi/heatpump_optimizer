@@ -1,0 +1,31 @@
+head: c4b83673c90896606c365bce779e4b5bfb51a571
+merge-base: 973618e6f9410f7864993837cfc6153bb9b21fca
+origin/main: 1aa765fdd202647debaa7699f74bc15cf52ab674
+ dev/programme/delivery/2765.md | 2 +-
+ dev/programme/delivery/2788.md | 2 +-
+ dev/programme/delivery/2789.md | 1 +
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+diff --git a/dev/programme/delivery/2765.md b/dev/programme/delivery/2765.md
+index 7a489dba4..0bca2f502 100644
+--- a/dev/programme/delivery/2765.md
++++ b/dev/programme/delivery/2765.md
+@@ -1 +1 @@
+-- [#2765](https://github.com/tvofi/heatpump_optimizer/pull/2765) — **open**, R10-FLY-YIELD-GUARD: the review-strength guardrail (R10-FLY-YIELD-GUARD)
++- [#2765](https://github.com/tvofi/heatpump_optimizer/pull/2765) — **merged `8a11b8b`**, R10-FLY-YIELD-GUARD: the review-strength guardrail (R10-FLY-YIELD-GUARD).
+diff --git a/dev/programme/delivery/2788.md b/dev/programme/delivery/2788.md
+index 4f873e447..4235f1b78 100644
+--- a/dev/programme/delivery/2788.md
++++ b/dev/programme/delivery/2788.md
+@@ -1 +1 @@
+-- [#2788](https://github.com/tvofi/heatpump_optimizer/pull/2788) — **open**, record: delivery rows (autofix)
++- [#2788](https://github.com/tvofi/heatpump_optimizer/pull/2788) — **merged `973618e`**, record: delivery rows for #2756, #2758, #2779, #2782, #2786 (autofix).
+diff --git a/dev/programme/delivery/2789.md b/dev/programme/delivery/2789.md
+new file mode 100644
+index 000000000..6c9919bc7
+--- /dev/null
++++ b/dev/programme/delivery/2789.md
+@@ -0,0 +1 @@
++- [#2789](https://github.com/tvofi/heatpump_optimizer/pull/2789) — **open**, record: delivery rows (autofix)
+merge-tree: 0e1fe3e0246472a902eb4f68da944eaaab96915d rc=0
+8a11b8bdd6bfdca0b5f6bd356638fad2b234525f ancestor-of-main=yes Merge pull request #2765 from tvofi/fix/r10-fly-yield-guard
+973618e6f9410f7864993837cfc6153bb9b21fca ancestor-of-main=yes Merge pull request #2788 from tvofi/record/autofix
