@@ -59,3 +59,25 @@ Cost of the proposal:
 Cost of not doing it: one `--record` plus a re-review of one head when it happens, on two instances so far.
 Binding: an unmeasured benefit is DEFER, never ACCEPT. Two instances and no timing leave the trade unproven, and the proposal reverses a deliberate design choice of the ratchet. The cheaper alternative is to let `prepr.sh`, which fixers re-run after any merge, print the `--record` command on exit 2; it already does.
 What would change the answer: a third instance, or a measurement that the repair costs more than one fixer turn. Then the bot job is worth costing against the `ci-autofix.md` precedent.
+
+## P100: bus.sh dispatch forces seat commits onto Dependabot branches (S6-V34)
+Verdict: ACCEPT NARROWED -> R10-FLY-CARRY-DISPOSITION (the group whose carries already edit `bus.sh`: P66, P76). In `bus.sh dispatch`, when every commit in `origin/main..<head>` is authored by `dependabot[bot]`, check the delivery row at `origin/main:dev/programme/delivery/<pr>.md` instead of at the head. All other heads keep the head-carries-its-row test unchanged.
+- REJECTED: reading the row from origin/main for every head. It would undo #1990 class E, where a row that lands after the verdict moves the head.
+- REJECTED: detecting the author through the GitHub API. The commit authors are in git, and the audit seats spare the API.
+Source: s6 `proposals.md` `## V34`.
+Instances: 2, both as the orchestrator reported them; I did not open the PRs.
+- #2773: dispatch w26 added a merge commit and a delivery row (78672bb, 558fcd6) to the Dependabot branch, and pr-contract and the gate went red.
+- #2678: the same trap.
+Measured on main:
+- `bus.sh dispatch` (line 377) dies unless `git cat-file -e "$h:dev/programme/delivery/<pr>.md"` succeeds. A Dependabot head can never carry that row, so the seat is pushed to write it onto the bot branch.
+- `tools/policy/dependabot_contract.mjs` refuses any branch commit not authored by `dependabot[bot]` and committed by `web-flow`. So the one path `dispatch` leaves open is the one the contract forbids. The two checks contradict each other for this class of PR.
+- The reason for the head-carries-row rule (a row written after the verdict moves the head) does not apply here: a Dependabot head is never moved by the seat, so a row on main cannot stale it.
+Cost:
+- About ten lines in the `dispatch` arm: one `git log --format=%an origin/main..$h`, an all-bot test, and a second `git cat-file -e origin/main:$row`.
+- Two self-test cases in `bus.sh`'s existing throwaway repo: a bot-only head with the row on main passes; the null control, a bot head with the row nowhere, is still refused, and a mixed head (one human commit) still needs its own row.
+- No API calls and no standing CPU.
+- The row for a Dependabot PR must still land on main through a record PR. That path exists and is what the V34 text proposes.
+- The cost of not doing it: each instance turns two CI checks red on a PR the contract exists to keep green, plus a cleanup of seat commits that the Dependabot branch must lose (a force-reset by the bot's rebase).
+Binding: two instances with one cause, a check that contradicts another policy check, fixed in about ten lines with a null control. The narrowing keeps the ordering guarantee for every seat-authored head.
+What would change the answer: a Dependabot PR whose row on main still cannot be written before dispatch. That would make the record-PR path the blocker, which is a different item.
+Carry text (for `roster_edit.py append-carry R10-FLY-CARRY-DISPOSITION`, citing `triage: dev/programme/triage/s6-batch21.md#P100`): "In tools/audit/seat/bus.sh `dispatch`, before the head-carries-its-delivery-row die, test whether every commit in `origin/main..<head>` has author `dependabot[bot]` (git log --format=%an, no API call). If so, require the row at `origin/main:dev/programme/delivery/<pr>.md` instead of at the head; any other head keeps the existing test. Self-test in the bus.sh throwaway repo: a bot-only head with the row on origin/main passes; the null control, a bot-only head with the row nowhere, is refused; a head with one non-bot commit and the row only on origin/main is refused. Mutation proof: dropping the all-bot test fails the mixed-head case. Basis: on 2026-10-25 dispatch w26 added a merge commit and a delivery row to #2773 (78672bb, 558fcd6), turning pr-contract and the gate red against tools/policy/dependabot_contract.mjs; #2678 is the same trap."
