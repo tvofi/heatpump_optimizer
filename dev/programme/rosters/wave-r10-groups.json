@@ -1260,8 +1260,7 @@
     "R10-FAHRENHEIT"
    ],
    "carry": [
-    "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry.",
-    "Test-coverage residual of this group's fix (#2329): handoff r10-earlycutoff-coverage at ecaf178c (5 days old at 2026-10-21, no group of its own) adds four direct assertions to tests/features.py for early_cutoff.py's detach path. Open it from that handoff under this group; re-measure at your merge base before opening, since the handoff predates main's newer commits."
+    "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry."
    ],
    "architect_note": null,
    "resume": {
@@ -2556,8 +2555,7 @@
     "R10-REF-PRIVACY"
    ],
    "carry": [
-    "Every fix carries a self-test case that fails at the merge base.",
-    "Instrument defect, observed 2026-10-20 (orchestrator): `orchestrator_tick.py`'s train liveness (around lines 470-492) counts every live `merge_train.py` process and, at `len(live) > 1`, prints \"a merge race (two trains interleave); kill all but one\". `_seat_procs` filters the tick itself and shell wrappers but not `--self-test`, so a reviewer's `merge_train.py --self-test` beside a real batch reads as a race \u2014 measured 2026-10-20 with the TRAIN-HOLD reviewer's self-test beside batch b16, and following the line would have killed a reviewer mid-run. Fix: exclude `--self-test` in that command string, with a mutant that puts it back and reddens the arm. Declined as adjacent by the WIP-cap fixer to keep its evidence tree stable; queued here separately."
+    "Every fix carries a self-test case that fails at the merge base."
    ],
    "architect_note": null,
    "resume": {
@@ -4119,8 +4117,7 @@
     "Item E's three `INERT_EXCEPT` entries follow the recording, but the call site that reads them is unnamed; if a later seat finds the read is an artefact of the recorder's in-process path, the three go back to INERT with the artefact fixed. Either way the entries only over-select. Carry: R10-CI-LAYOUT",
     "`instrument-self-tests`'s step \"Refuse a push that names the host, and an unregistered pusher\" is red at the base and at this head with the same 16 refusals: `ref_privacy --check` prints `REFUSE <path>: registered in PUSHERS but holds no push site; drop the entry` for 16 entries, `tools/release/stamp.py`, `tools/pr/push.sh` and `tools/audit/seat/bus.sh` among them. Set-compared at both ends (`python3 -I tools/audit/seat/ref_privacy.py --check` at the head and at a detached `4e5801eb5`), the only difference is the diff-window figure (`605` vs `92 line(s) added since`); no file this diff touches is named, so it adds no refusal. The failing command is its own cheapest detector (seconds, no network); the standing cost is that step's seconds on every pull request, and the answer is a registry decision about which files may push, outside this group's brief. Carry: R10-CI-LAYOUT. (from #2529)",
     "The restore-closure guard in `wave-script` prints \"the base does not carry the derivation; skipped\" on this pull request by construction (the base cannot carry the tool it adds). The first pull request after this one must confirm it runs; if it still skips, the guard is inert. Carry: R10-CI-LAYOUT. (from #2529)",
-    "finding-propagation: unclear: the roster carry names seven unwired files and \"their directories\"; the approved plan addendum (row 2) widens the same rule to all of `tools/`. I took the plan's scope, wired 11, and the carry's seven are inside it, so the outcome is the same but the two texts read differently. Carry: R10-CI-LAYOUT. (from #2529)",
-    "From #2589 (#2589): main's ci-ratchet red is runner-speed variance on main, owned by this group's pay-don't-raise finding above; #2589 touches no script that ci-ratchet times."
+    "finding-propagation: unclear: the roster carry names seven unwired files and \"their directories\"; the approved plan addendum (row 2) widens the same rule to all of `tools/`. I took the plan's scope, wired 11, and the carry's seven are inside it, so the outcome is the same but the two texts read differently. Carry: R10-CI-LAYOUT. (from #2529)"
    ],
    "architect_note": null,
    "resume": {
@@ -4217,8 +4214,7 @@
     "Source: #2445 Forward-carry. Flat-price null control for R10-SETPOINT-POWER weakened from plan identity to \"never worse\": the relaxed solver start also unsticks flat-price solves (20 of 32 census cells move, all lower). Ruled by the orchestrator under mandate 6175172275: the control for solver-start changes is \"never worse, and every flat-price move lowers the objective\". Owed at the stamp: record the ruling in the release notes and in the measurement-discipline control list.",
     "Source: #2445 Forward-carry. Raspberry Pi CPU of the relaxed setpoint start is estimated only (+8 to +16 s per clamped solve, from +2.0 to +2.7 s measured on arm64). Owed after the stamp: a measured process_time on the owner's Pi install at the release head and its base, and cap the relaxed pass's maxiter if a clamped solve exceeds the update-interval budget.",
     "Source: #2445 review (merge verdict 40c4e119) Friction. Two equivalent-mutant survivors and one architecture-dependent figure, folded so none is dropped: (1) X5, the hot-water path passing first=0 instead of len(extra_starts), survives because no fixture passes extra_starts; the first-structural-start index is unchecked on both paths. Owed: a fixture with extra_starts whose plan differs when first is wrong; control X5 red, null control unmutated green. (2) X6, the warm pass also getting a relaxed start, changes cost only. (3) The census figures depend on the architecture: arm64 spread 24/0/8, flat 20/0/12; x86_64 23/0/9, 16/0/16. The invariant (higher = 0, every moved plan lower) holds on both. Owed at the stamp: quote the invariant, not a literal count, in the release notes.",
-    "From PR r10-ci-layout-p0: R10-STAMP: `stamp.py` rule 2 needs a green Tests push run at HEAD, and `ci-ratchet` is part of that run. The stamp can run once the B4 window above reads green, which is before PR 1 (review B7). It must not wait for the first push run after this merge alone.",
-    "Observation (not blocking): nothing expires the override at merge. `stress.py`'s docstring says \"for THIS branch\", but on main it keeps every later PR's floors at (18,6) until the next stress re-record drops it. That is the #1207 override's precedent (HANDOVER: \"dropped by the next re-record\"), so this is the existing rule, not a defect of this diff. The reviewer called it the #1207 precedent, low severity. (from #2368, review 6261081933)"
+    "From PR r10-ci-layout-p0: R10-STAMP: `stamp.py` rule 2 needs a green Tests push run at HEAD, and `ci-ratchet` is part of that run. The stamp can run once the B4 window above reads green, which is before PR 1 (review B7). It must not wait for the first push run after this merge alone."
    ],
    "architect_note": null,
    "group": "R10-STAMP",
@@ -4435,9 +4431,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "From #2609's red at ff83a3d7 (fast (3.14), check-run 119826108493): a docs PR whose README.md or docs/*.md change moved the round-4 D6 claims counts (dev/audit/rounds/round4/D6/claims.py, rows C108 links and C110 images) reached CI with the committed claims.json and claims.md stale, because its seats ran prepr with PREPR_SKIP_CLOSURES=1 and nothing else runs tests/harness_headers.py' byte-identical check before the push. Owed: prepr runs the executed-harness byte-identity check (or claims.py alone, a few seconds) whenever the diff touches README.md or docs/*.md, even with closures skipped. Null control: a README link added without re-recording goes red in prepr."
-   ],
+   "carry": [],
    "architect_note": null,
    "group": "R10-PREPR-UNPINNED-RED",
    "findings": [],
