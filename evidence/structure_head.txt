@@ -1,5 +1,5 @@
 ########## counting-rule self-check ##########
-  ok   56 counting rules hold
+  ok   73 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
   custom_components/heatpump_optimizer/coordinator.py:2866-11290  8425 LOC  231 methods  HeatPumpOptimizerCoordinator
   custom_components/heatpump_optimizer/optimizer.py:2269-5709  3441 LOC  52 methods  HeatPumpOptimizer
@@ -193,14 +193,14 @@
   integration_version: __init__:async_setup_entry
 
 ########## coordinator seam table (helpers charged: 20) ##########
-  internal call occurrences: 371, crossing a seam: 152 (ratio 0.4097, evidence only)
+  internal call occurrences: 426, crossing a seam: 178 (ratio 0.4178, evidence only)
   seam        units  attrs  xattr  xmeth    cut
-  dhw            18      3     54     10     64
-  learning       36     37    223     62    285
-  fetch          27      9     63     31     94
-  grid           23     27    115     40    155
-  views          19      3     82     28    110
-  seam_cut_total = 708
+  dhw            18      3     25      8     33
+  learning       36     37     95     32    127
+  fetch          27      9     53     14     67
+  grid           23     27     78     25    103
+  views          19      3     83     11     94
+  seam_cut_total = 424
 
 ########## RESULT lines ##########
 RESULT class_excess_loc=18207 count
@@ -220,10 +220,10 @@ RESULT max_method_loc=373 count
 RESULT methods_over_150=17 count
 RESULT methods_over_200=9 count
 RESULT name_kept_members=38 count
-RESULT seam_cut_total=708 count
+RESULT seam_cut_total=424 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 15f0b5924f3c) ##########
+########## ratchet vs structure_budgets.json (recorded_at e463e95e255d) ##########
   ok   class_excess_loc 18207 <= 18207
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 146 <= 146
@@ -241,6 +241,19 @@ RESULT thread_factor=1.0 ratio
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
   ok   name_kept_members 38 <= 38
-  ok   seam_cut_total 708 <= 708
+FAIL seam_cut_total 424 > 418 (+6)
 
-STRUCTURE RATCHET PASSED
+1 STRUCTURE BUDGET(S) BREACHED
+Three responses, all of them deliberate: pay for the lines
+elsewhere; re-record because the tree genuinely improved; or, for
+a genuine new production FEATURE, RAISE the budget because the
+capability is worth the structure it costs. Paying is the first
+question; a raise is for when the honest answer is that you
+cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION
+before the branch is pushed -- stop and ask, do not push and
+explain.
+A budget may only be re-recorded deliberately, on a clean tree,
+with the reason in the COMMIT -- never to make a failure go away.
+--record refuses any row that moves the wrong way unless you pass
+--allow-regression="<reason>", and that reason belongs in the commit
+message: main's history keeps it and never a pull-request body.
