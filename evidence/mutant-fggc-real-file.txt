@@ -1,4 +1,0 @@
-mut:fggc deleted 1 line(s) of tools/audit/seat/pr_args.sh
-  FAIL update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock
-  ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 121 checks, 1 failed
