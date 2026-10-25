@@ -854,7 +854,8 @@ async def _pump_command(night):
     try:
         dt_util.freeze(night[0])
         coord._optimization_result = SimpleNamespace(
-            timestamps=[dt_util.now()], power_schedule=schedule
+            timestamps=[dt_util.now()], power_schedule=schedule,
+            dhw_power_schedule=[],
         )
         dt_util.freeze(night[1])
         await coord._async_drive_pumps()

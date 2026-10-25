@@ -110,9 +110,6 @@ PARAMS_OVER_10_LEFT = {
         "a keyword-only scenario probe for the diagnostics estimate, every "
         "parameter an independent knob with a published default; a record "
         "would move those defaults into a second home",
-    "wood_fuel.build_wood_fuel_view":
-        "the wood-furnace card view; the series it reads are derived views, "
-        "not the planner's positional arrays",
 }
 
 #: The seven planted parameters the control appends to hold_demand_kw's

@@ -339,7 +339,6 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
-    CHANNEL_ACTIVE_KW,
     ForecastSeries,
     HeatPumpOptimizer,
     OptimizationConfig,
@@ -3960,7 +3959,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             idx = 0
             schedule = None
             if result is not None and result.power_schedule:
-                schedule = result.power_schedule
+                schedule = channel_heating_steps(result.power_schedule, result.dhw_power_schedule)
                 dt_hours = max(ctx._opt_config.dt_hours, 1e-6)
                 if result.timestamps:
                     # #1299: the plan walks real instants, not wall clocks.
@@ -4289,7 +4288,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         powers: list[float],
         prices: list[float],
         dt_hours: float,
-        threshold: float = CHANNEL_ACTIVE_KW,
         reasons: list[str] | None = None,
         other_powers: list[float] | None = None,
     ) -> list[PlanSlot]:
@@ -4297,8 +4295,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         The step schedule is what the optimizer produces, but what a person
         wants to see is "the pump runs from 02:00 to 04:30 and that costs 4.20".
-        Consecutive steps above ``threshold`` kW are merged into one slot and
-        summarised with their energy, average price and cost.
+        Consecutive steps the channel heats at (``channel_heating_steps``) are
+        merged into one slot and summarised with their energy, price and cost.
 
         Each slot also carries the reason code that dominates it, so an
         unexpected slot is no longer indistinguishable from a bug.
@@ -4313,6 +4311,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         slots: list[PlanSlot] = []
         start_idx: int | None = None
+        heating = channel_heating_steps(powers, other_powers)
+        other_heating = channel_heating_steps(other_powers or [], powers)
 
         def close(end_idx: int) -> None:
             assert start_idx is not None
@@ -4335,13 +4335,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "cost": round(cost, 2),
             }
             if other_powers is not None:
-                shared = sum(
-                    other_powers[i]
-                    for i in span
-                    if i < len(other_powers)
-                    and other_powers[i] > threshold
-                    and powers[i] > threshold
-                ) * dt_hours
+                shared = dt_hours * sum(
+                    other_powers[i] for i in span if i < len(other_heating) and other_heating[i]
+                )
                 if shared > 1e-9:
                     slot["shared_kwh"] = round(shared, 3)
             if reasons:
@@ -4357,8 +4353,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     slot["reasons"] = sorted(set(codes))
             slots.append(slot)
 
-        for i, power in enumerate(powers):
-            if power > threshold:
+        for i, on in enumerate(heating):
+            if on:
                 if start_idx is None:
                     start_idx = i
             elif start_idx is not None:
@@ -11205,6 +11201,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     list(simulated.dhw_power_schedule or []),
                     list(simulated.prices),
                     ctx._opt_config.dt_hours,
+                    other_powers=list(simulated.power_schedule),
                 )
             ),
             "space_slots": len(
@@ -11213,6 +11210,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     list(simulated.power_schedule),
                     list(simulated.prices),
                     ctx._opt_config.dt_hours,
+                    other_powers=list(simulated.dhw_power_schedule or []),
                 )
             ),
             "compressor_starts": simulated.compressor_starts,

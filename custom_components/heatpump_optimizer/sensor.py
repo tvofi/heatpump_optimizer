@@ -51,7 +51,6 @@ from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
-from .optimizer import CHANNEL_ACTIVE_KW
 from .thermal_model import feedback_gaps
 
 if TYPE_CHECKING:
@@ -1193,27 +1192,17 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
         if self.coordinator.data:
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
-                # #1644 (D8-s1-02): count periods the way the plan does.
-                # The plan view merges consecutive steps above
-                # CHANNEL_ACTIVE_KW into one slot (coordinator _plan_slots),
-                # so a period of several steps made this step-count disagree
-                # with the plan's slot count. Read the plan's own slot list
-                # when it is published; a payload without the plan dict
-                # still answers, by merging the same contiguous runs at the
-                # same threshold, read from the same constant.
+                # #1644 (D8-s1-02): a period is one of the plan's own slots
+                # (coordinator _plan_slots, merged on channel_heating_steps),
+                # so this count is DHW Heating Plan's slot count. The
+                # coordinator publishes dhw_plan beside every non-empty
+                # dhw_schedule; a payload without it has no period count to
+                # give (D8-s1-01: a raw dhw_power step does not say whether
+                # the plan runs the pump), so the state is unknown.
                 plan = self.coordinator.data.get("dhw_plan")
-                if isinstance(plan, dict) and isinstance(plan.get("slots"), list):
-                    periods = len(plan["slots"])
-                else:
-                    periods = sum(
-                        1
-                        for i, s in enumerate(schedule)
-                        if s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW
-                        and (
-                            i == 0
-                            or schedule[i - 1].get("dhw_power", 0) <= CHANNEL_ACTIVE_KW
-                        )
-                    )
+                if not (isinstance(plan, dict) and isinstance(plan.get("slots"), list)):
+                    return None
+                periods = len(plan["slots"])
                 return f"{periods} heating period{'s' if periods != 1 else ''}"
             return "no schedule"
         return "no schedule"
