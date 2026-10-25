@@ -16,10 +16,12 @@ fails=0; a replacement whose text is not found exactly once aborts.
 """
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from r10_plan_page_mutants import fail_name  # noqa: E402 -- the one FAIL-line grammar
 
 ROOT = Path(__file__).resolve().parents[3]
 PAGE = "tools/audit/seat/plan_page.py"
@@ -75,7 +77,7 @@ def main(argv: list[str]) -> int:
         survived += verdict in ("SURVIVED", "CRASHED")
         print(f"RESULT mutant={name} rc={rc} fails={len(fails)} verdict={verdict}")
         for ln in fails:
-            print("   ", re.sub(r"\(got: .*", "", ln))
+            print("   ", fail_name(ln))
     print(f"RESULT survived={survived}")
     return 1 if survived else 0
 
