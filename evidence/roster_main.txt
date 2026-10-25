@@ -1,7 +1,0 @@
-[('instrument', 101), ('defect', 29), ('owner', 16), ('policy', 10), ('arch', 7), ('study', 7), ('production', 7), ('rca', 6), ('feature', 3), ('fix', 3), ('docs', 1), ('record', 1), ('doc', 1)]
-R10-FLOW-JIDOKA {'stage': 'in-progress', 'branch': 'handoff/r10-flow-jidoka', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'rca: topic r10-rca-body-check-parity'}
-R10-FLOW-BODY-ONLY {'stage': 'not-started', 'branch': 'handoff/r10-flow-body-only', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'Lean flow study 2026-10-21 (owner-adopted)'}
-R10-ROUND-PLAYBOOK {'stage': 'not-started', 'branch': 'handoff/r10-round-playbook', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': 'Owner request 2026-10-21; the last group before the closure stamp.'}
-R10-ORCH-REVIEW-PACKET {'stage': 'not-started', 'branch': 'handoff/r10-orch-review-packet', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'owner card 8, 2026-10-24'}
-R10-PROOF-CODEQL on main: False
-roster ref 32ffe43c0: PROOF-CODEQL [{'stage': 'queued', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer (no after-groups)', 'note': None}]
