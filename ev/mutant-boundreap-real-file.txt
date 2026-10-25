@@ -1,0 +1,4 @@
+mut:boundreap deleted 1 line(s) of tools/audit/seat/pr_args.sh
+  FAIL pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 121 checks, 1 failed
