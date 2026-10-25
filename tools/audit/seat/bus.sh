@@ -356,6 +356,27 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
     printf 'BUS refused %s %s: the poster refused (%s): %s\n' "$pr" "$c" "$POSTER" "$(tail -n 1 "$body.log")"; return 1
   fi
   printf 'BUS posted %s %s %s\n' "$pr" "$c" "$first"
+  train_add "$pr" "$first"
+}
+
+# THE EVENT ADD (R10-FLOW-AUTOTRAIN; tvofi, 2026-10-24: "the dispatch seat's
+# verdict confirmation calls train.sh add"). A merge verdict this machine has
+# just posted goes to the merge train -- the live train's next batch, or a train
+# started over it -- through merge_train.py's `add --auto`, whose admission
+# re-reads the verdict this post wrote. Off unless HPO_BUS_TRAIN_STATE names
+# the train's state dir; HPO_BUS_TRAIN_MANDATE is a started train's --mandate;
+# HPO_BUS_TRAIN_CMD replaces the command (the self-test's stub). Its whole
+# output is appended to $S/train-add.log. A refused add never fails the post:
+# `merge_train.py sweep` is the backstop for a head this missed.
+train_add() { # pr first-line -> one `BUS train-add <pr> rc=<rc> <add's last line>` for a merge verdict
+  local sha rc log=$S/train-add.log
+  [ -n "${HPO_BUS_TRAIN_STATE:-}" ] || return 0
+  case $2 in "Fix review: merge "*) sha=$(verdict_sha "$2") || return 0 ;; *) return 0 ;; esac
+  printf '== %s add %s %s\n' "$(date -u +%FT%TZ)" "$1" "$sha" >> "$log"
+  ${HPO_BUS_TRAIN_CMD:-python3 "$ROOT/tools/audit/seat/merge_train.py"} add "$1" "$sha" --repo "$REPO" \
+    --state-dir "$HPO_BUS_TRAIN_STATE" ${HPO_BUS_TRAIN_MANDATE:+--mandate "$HPO_BUS_TRAIN_MANDATE"} --auto \
+    </dev/null >> "$log" 2>&1; rc=$?
+  printf 'BUS train-add %s rc=%s %s\n' "$1" "$rc" "$(tail -n 1 "$log")"
 }
 
 dispatch() { # pr head reviewer -> records the dispatch, prints the nonce line for the brief
@@ -768,9 +789,15 @@ P
   out=$(seat confirm 7 "$r1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no hpo-approver key" && [ "$(calls)" = 0 ]
   expect "confirm refuses on a machine without the approver key" $?
-  out=$(run confirm 7 "$r1")
+  # The event add (R10-FLOW-AUTOTRAIN): a stub `add` that records its argv and
+  # prints a train's line; HPO_BUS_TRAIN_STATE turns the add on.
+  printf '#!/bin/bash\nprintf "%%s|" "$@" >> "%s/train-argv"; echo; echo "ADDED #$2 to the live train (pid 1)"\n' "$W" > "$W/addstub"
+  out=$(HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_MANDATE=M1 HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 7 "$r1")
   v1=$(tip verdict/7)
   echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts it once" $?
+  [ "$(echo "$out" | tail -n 1)" = "BUS train-add 7 rc=0 ADDED #7 to the live train (pid 1)" ] \
+    && [ "$(cat "$W/train-argv")" = "add|7|$h1|--repo|o/r|--state-dir|$W/train|--mandate|M1|--auto|" ]
+  expect "a posted merge verdict is added to the train at its head, after the post (the event add)" $?
   [ "$(tip "verdict/7^{tree}")" = "$(tip "review/7^{tree}")" ]; expect "the signed verdict carries the reviewer's tree unchanged" $?
   grep -q "^bus: verdict/7 at $v1, confirmed from cmsg_R (review/7 at $r1);" "$W/last"; expect "the posted body names the reviewer and the proposal" $?
   [ "$(head -n 1 "$W/last")" = "Fix review: merge $h1" ]; expect "the posted body keeps the reviewer's first line" $?
@@ -807,11 +834,14 @@ P
   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N2" > "$W/blocked.md"
   out=$(seat push-verdict 7 "$W/blocked.md" "$W/ev2")
   r2=$(tip review/7)
-  out=$(run confirm 7 "$r2")
+  : > "$W/train-argv"
+  out=$(HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 7 "$r2")
   v2=$(tip verdict/7)
   echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
     && [ "$(tip verdict/7^)" = "$tt" ]
   expect "a later round fast-forwards the verdict ref and is posted" $?
+  ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
+  expect "a posted blocked verdict adds nothing to the train" $?
   # The replay the round-2 review drove: round 1's signed merge re-committed
   # by a keyless seat after round 2's block, to supersede it.
   t=$(git -C "$W/seat" log -1 --format=%B "$v1" | git -C "$W/seat" commit-tree "$(tip "$v1^{tree}")" -p "$v2")
@@ -853,11 +883,16 @@ B
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N9" > "$W/merge9.md"
   out=$(seat push-verdict 9 "$W/merge9.md" "$W/ev1")
   r9=$(tip review/9)
-  out=$(BUS_TEST_POSTER_FAIL=1 run confirm 9 "$r9")
+  : > "$W/train-argv"
+  out=$(BUS_TEST_POSTER_FAIL=1 HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 9 "$r9")
   echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
   expect "a poster refusal is reported and not recorded as posted" $?
-  out=$(run post 9)
+  ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
+  expect "a merge verdict the poster refused adds nothing to the train" $?
+  out=$(HPO_BUS_TRAIN_CMD="bash $W/addstub" run post 9)
   echo "$out" | grep -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
+  [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && [ ! -s "$W/train-argv" ]
+  expect "null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict prints only its BUS posted line and adds nothing (the add is off by default)" $?
 
   git -C "$W/seat" push -q origin :refs/heads/handoff/t1
   out=$(run watch --once)
