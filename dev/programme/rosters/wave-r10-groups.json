@@ -9723,6 +9723,50 @@
     "commit": null
    },
    "brief": "triage: dev/programme/triage/s6-batch16.md#P85. Do not dispatch until the PR drain lifts. Shard the nightly ledger lane, one push per night. (1) tests/mutation_table.py: honour `--shard K/N` with `--drain`, taking `pin_shard` over `drain_pool`'s slice for the night's seed at a cap of N times `--max`, so that shards are disjoint whole-anchor slices of one seed; let the shard merge also union the drain's survivor list (the file `write_drain` writes) (extend `merge_pin_shards`, or add a sibling built on the same fold). (2) .github/workflows/nightly.yml: give `mutation-ledger` a 4-shard matrix, each `--jobs 4 --max 80 --budget-minutes 240` with `timeout-minutes: 330` kept. `mutation-ledger-push` downloads every shard's artifact and merges them before it applies. Save the pool-seconds cache from one shard only (its key is per run id). Leave `mutation-nightly` unchanged, because it records nothing. Move the daily cron from `17 2 * * *` to `37 0 * * *` so the one push lands between 03:00 and 05:00Z. This moves `slow`, `nightly-ha`, `mutation-nightly` and `record-autofix`'s scheduled arm, none of which depends on the hour; tests/entities.py needs only a daily cron. (3) tests/entities.py: shards are disjoint and their union equals the unsharded slice for one seed (null), and the merged survivors are the union. Basis: 40 ledger mutants took about 146 min at `--jobs 3` on 23 and 24 Oct (3.65 wall-min, about 11 core-min each), so 80 at 4 workers is about 220 min per shard, and kills ran 20 to 28 of 40, about 190 a night at 320, converging the roughly 3400 killable sites in about 3 weeks. Start only after R10-MUTATION-ANCHOR's attribution fix has merged. Controls: the first sharded scheduled night reports its `created_at`, each shard's drawn and evaluated counts, minutes per mutant, timed-out count and partial flag, the merged kill and survivor counts, and the push's landing time, against run 40054585693 (40 in 146 min, `--jobs 3`, created 02:32:21Z) as the null. If shards clip, step `--max` to 70. If timeouts rise above that baseline night or a CPU-bounded harness is refused, use `--jobs 3 --max 65` per shard. Step the shard count down to 1 when a night's kills fall under a quarter of its draw for three nights running. Name the measured figures in the body.\n"
+  },
+  {
+   "group": "R10-MERGE-SUBJECT-CASEARM",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/policy/agreement.mjs",
+    "tests/closure.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate",
+   "rca": [],
+   "after": [
+    "R10-MERGE-SUBJECT-HARDEN"
+   ],
+   "carry": [],
+   "architect_note": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-merge-subject-casearm",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "split from #2697 (three-round rule)"
+   },
+   "brief": "Split from #2697 under the three-round rule (orchestrator ruling 2026-10-25, mandate 6329234399). The merge-subject guard counts a shell case-arm writer spelled without the opening parenthesis (`  never) gh pr merge \"$n\" --squash --subject \"...\" ;;`) as a merge call but never reads its subject (refused=0 at e73424f2, 683dd52c, d0d35231), while the `(never)` spelling is refused=1. Close the class by a rule that enumerates every case-arm spelling (with and without the leading paren, any indentation, multi-pattern arms a|b)), not by adding one more spelling. Failing test first: the r8 handoff of #2697 adds the failing test for this spelling marked for this group. The #2697 round-6 regression probe runs at both ends."
   }
  ]
 }
