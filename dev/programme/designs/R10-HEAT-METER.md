@@ -2,7 +2,13 @@
 
 This is the group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/R10-HEAT-METER` only and is never merged. Issue #2261, owner request 2026-10-15. **No finder harness: owner report.**
 
-**Revision 1** answers the design review `design-verdict/R10-HEAT-METER` at `fabd19b8a`, which returned revise on `04de6ae7f` with points 1-5. It also follows two sets of orchestrator rulings under mandate 6329234399:
+**Revision 2** answers round 2 (`design-verdict/R10-HEAT-METER` at `636a85b3`, revise on `e23ace899`, points A-D):
+- A: the span closes on elapsed time.
+- B: per-cycle gates are ANDed across the span for the learners.
+- C: a point sample is never time-split.
+- D: no store migration.
+
+**Revision 1** answered the design review `design-verdict/R10-HEAT-METER` at `fabd19b8a`, which returned revise on `04de6ae7f` with points 1-5. It also follows two sets of orchestrator rulings under mandate 6329234399:
 - Combination modes fall back to #2753's whole-unit treatment.
 - The mode entity becomes optional and the refusal goes.
 - Adding a meter does not wipe the scale unless the replay will use the meter.
@@ -56,7 +62,10 @@ The mode source of each segment:
 - **Attribution, one owner** (review point 4): `attribution(shares, plan_split) -> Attribution(space_frac, dhw_frac, observed)`.
   - With `shares` it returns the observed fractions; with `None`, the caller's `plan_split` fractions.
   - Its consumers are pure functions next to it:
-    - `space_heat_kw(heat_kw, a)`: observed returns `heat_kw * space_frac`; else #2753's rule, `heat_kw` iff `dhw_frac == 0 and space_frac > 0`, else `None`.
+    - `space_heat_kw(heat_kw, a, integrated)`:
+      - Observed with `integrated` (a counter span's mean, energy over the same window as the dwell): returns `heat_kw * space_frac`.
+      - Observed with a point source (thermal kW, flow): returns `heat_kw` only when `dhw_frac == 0`, else `None`. A point sample is never time-split (point C).
+      - Unobserved: #2753's rule, `heat_kw` iff `dhw_frac == 0 and space_frac > 0`, else `None`.
     - `cop_duty(a, share_limit)`: space, DHW or blended, against the caller's `_COP_CURVE_SHARE`.
     - `dhw_share(a)`.
 
@@ -79,8 +88,16 @@ The mode source of each segment:
   - `probe_install(...).measured_heat` is true for either heat key.
 - **Precedence.** Counter, then thermal kW, then flow meter. A configured source that reads unusable gives `None` and never falls back. The counter wins because it integrates cycling, where the thermal key is a point sample.
 - **Counter rule** (review point 2; probe `dev/programme/designs/R10-HEAT-METER-probes/fixed_span_probe.py`).
-  - The span is fixed in advance at `K = max(1, floor(HOUSE_LOSS_MAX_SAMPLE_HOURS / interval_h))` cycles: 3 at the 30 min default.
-  - At span close, `delta = counter_now - counter_at_span_start`, divided by the whole span.
+  - **The span closes on elapsed time, not on a cycle count** (point A). The figure is `elapsed_h`, measured between read instants since the span's first reading.
+    - It closes at the first read with `elapsed_h >= max(HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS - interval_h - SPAN_CLOSE_ALLOWANCE_H)`.
+    - A span with `elapsed_h > HOUSE_LOSS_MAX_SAMPLE_HOURS` is refused and re-baselined. That is the same strict comparison as the learner's own check in `_async_learn_house_heat_loss`, so a span the meter accepts never reaches that check out of range.
+    - `SPAN_CLOSE_ALLOWANCE_H = 0.05` (3 min) is the refresh-drift tolerance. Home Assistant schedules a refresh after the previous one ends, so the cadence is the interval plus the solve time, and an event-driven refresh lands at any time.
+  - At span close, `delta = counter_now - counter_at_span_start`, divided by the measured `elapsed_h`.
+  - Probe `dev/programme/designs/R10-HEAT-METER-probes/time_span_probe.py`. The drift is the interval plus the solve time: 2.5 s, the largest `solve_cpu_ms` measured in the tree, in `dev/audit/rounds/round10/catchup/d9/out/cont_fuse.txt`; 25 s as a Pi-class x10 allowance; and a 120 s stress row. Event-driven refreshes land at a 5 % rate per cycle.
+    - The time rule with the allowance accepts all 20000 spans in every row, with `dt_h` 0.950-1.483.
+    - Without the allowance, it refuses up to 128.
+    - Null: the K = 3 cycle rule accepts 0 of 20000 at every solve time without events, which is the reviewer's finding.
+    - The owner's bundle, which would give the real cadence, is not in this container. The fixer re-measures there.
   - A span is accepted or refused on an independent figure, never on the quantised delta itself. The test is `q / expected_kwh <= HEAT_RESOLUTION_EPS`, where:
     - `expected_kwh` is the electric counter's span delta times the reference COP, or with no electric counter the commanded energy times the modelled COP;
     - `q` is the smallest positive step the counter has shown, and the span is refused until one is seen.
@@ -88,14 +105,24 @@ The mode source of each segment:
   - Alignment is by read instant (carry dr1-lag-idle): both counters are read in the same cycle, so the paired deltas share instants.
   - Probe, integer-kWh counter, `EPS = 0.5`: 0.6 kW refuses every span; 1.5 kW reads 1.500 (sd 0.289); 2.2 kW reads 2.200; null 3.0 reads 3.000. #04de6ae7f's rule read 0.6 kW as 2.000 (the reviewer's probe).
 - **Span-aligned learners** (counter installs only).
-  - The house and lower-floor learners take their sample at span close, from the snapshot at span start. Their `dt_h` therefore equals `span_h` by construction.
+  - Each learner keeps its span-start snapshot (state and time) in `HeatEnergyMeter`. At span close, it replays from that snapshot over `elapsed_h` with the span's `space_heat_kw`.
+  - **Per-cycle gates, ANDed** (point B). Every cycle still runs `_async_learn_house_heat_loss`'s and the lower-floor learner's gate block exactly as today:
+    - the freeze (`replay_freeze` over `_learning_frozen`, stale inputs included);
+    - the boost freeze;
+    - `vent_only`;
+    - a `None` `_interval_space_power`;
+    - the min/max `dt_h`.
+    Each learner ANDs its outcome into its own `span_clean` flag. One gated cycle refuses that learner's span.
+  - **Ventilation detector cadence: unchanged, per cycle.** The per-cycle path keeps snapshotting every cycle and keeps replaying, so the detector gets its residual each cycle with the inputs #2753 gives it (draw-inferred heat on a counter install).
+  - **Which path folds the scale.** Until the basis is earned, the per-cycle path also folds the scale, as #2753 does. The first accepted span's fold earns the basis, and the void path wipes the per-cycle evidence. From then on, on a counter install, the per-cycle path feeds the detector only, and the scale folds at span close alone. No window is counted twice.
   - The COP fold runs at span close on the paired deltas. Each per-cycle gate (frozen, frost, distorted, duty floor) is ANDed across the span: one gated cycle refuses the span.
   - With a thermal-kW or flow source, sampling stays per cycle, as #2753 has it.
 - **COP.** On a counter span, the electrical figure is the electric counter delta. With no electric counter, the fold refuses with `COP_REFUSED_UNALIGNED = "unaligned_meters"` (`custom_components/heatpump_optimizer/accuracy.py`); the house replay still uses the heat. `cop_evidence` (#2753) is called unchanged.
 - **Re-anchor, earned not configured.** `HEAT_LOSS_BASES = ("commanded", "metered", "measured_heat")`.
   - The learner's live basis becomes `measured_heat` at the **first fold whose replay used a non-`None` `space_heat_kw`**. That fold runs the existing void path (`heat_loss_basis_voids`, then `reanchor_heat_loss` at confidence 0) before it applies.
   - A meter the replay never uses, such as an install whose selector stays a combination mode on mixed plans, keeps its scale.
-  - The upgrade flag persists with the learner, through the store's versioned migration.
+  - **No store migration** (point D). The earned basis is written to the existing `house_heat_loss_basis` choice field. `_heat_loss_anchors` returns `measured_heat` only when the stored basis is already `measured_heat` and `probe_install(...).measured_heat` still holds; otherwise it returns the configured basis, as today. A missing value reads as not earned.
+  - The field's `unread` text in `custom_components/heatpump_optimizer/store.py` still says "re-derived from the configured meters". Per the orchestrator's ruling, store.py is out of `files`, so that text goes stale. See the first note for the fixer.
 - **Invariants.**
   - No heat key and no mode entity: bit-identical.
   - Thermal key with no observed single-duty mode: #2753's figures.
@@ -111,6 +138,7 @@ sites: attribution(dwell.shares(span), their plan split) -> space_heat_kw | cop_
 ## Alternatives rejected
 
 - **Counter state in `flow_meter.py`:** its functions are stateless, and the dwell is mode accounting.
+- **A cycle-count span** (K cycles): refused against the learner's strict `dt_h > MAX` bound on every span (null rows of `time_span_probe.out`).
 - **Per-cycle counter deltas,** with zero refused and the baseline advanced: a selection on the quantised value, so 0.6 kW reads 2.0 (verdict probe).
 - **Keep the baseline and accept at the first quantum:** the stopping rule still biases. `dev/programme/designs/R10-HEAT-METER-probes/first_quantum_probe.py`, N=1: the mean of span means reads 1.667 at 1.5 kW.
 - **Refuse combination modes:** strictly worse than #2753 on every such install (review point 1).
@@ -135,6 +163,10 @@ sites: attribution(dwell.shares(span), their plan split) -> space_heat_kw | cop_
   - a planted reset is refused;
   - a planted rollover is refused;
   - a planted integer counter at 0.6 kW is refused and at 1.5 kW reads unbiased over N spans;
+  - a jittered cadence plus one event-driven cycle closes the span inside `[MIN, MAX]`;
+  - a span with one frozen, boosted or `vent_only` middle cycle is refused for that learner;
+  - the detector still steps every cycle on a counter install;
+  - a `heat` then `DHW` interval on a thermal-kW install gives `None`, not half;
   - single-duty `heat` then `DHW` inside one span splits at `last_changed`;
   - an owned single-duty step counts as observed;
   - a combination mode and a last-good mode both reproduce #2753's figure;
@@ -153,12 +185,15 @@ sites: attribution(dwell.shares(span), their plan split) -> space_heat_kw | cop_
   - counter-first precedence;
   - the `observed` test in `attribution`;
   - the `last_changed` split;
-  - the earned-basis upgrade.
+  - the earned-basis upgrade;
+  - the time-close comparison;
+  - the `span_clean` AND;
+  - the `integrated` branch in `space_heat_kw`.
 - **Classification:** `heat_energy.py` goes into a measured closure.
 
 ## Hot files and serial position
 
-`files` grows by `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py`, `custom_components/heatpump_optimizer/store.py` (the upgrade flag's migration) and `custom_components/heatpump_optimizer/translations/sv.json`. Open groups on these files are R10-ARCH-SHAPES (already before) and R10-UX-HEALTH (after).
+`files` grows by `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py`, and `custom_components/heatpump_optimizer/translations/sv.json`. Open groups on these files are R10-ARCH-SHAPES (already before) and R10-UX-HEALTH (after).
 
 Serial positions:
 - `config_flow.py`: 2 of 3.
@@ -169,7 +204,8 @@ Serial positions:
 
 - Carry: R10-RATIO-ANCHOR. On #2698's clamp-reset item, the decision under mandate 6329234399 is **keep "clamp means reset"**. It is orthogonal to this group: the void path enters `reanchor_heat_loss` at confidence 0, where both clamp branches (`if a and not`, `if b and not`) are skipped. The re-measurement at this group's merge base stays with the fixer.
 - Carry: dismissed: unobservable with one meter under a combination selector. The SAV attribution residue: the observed split fixes single-duty intervals, and under a combination selector the plan split and its docstrings stay.
-- Carry: R10-HEAT-METER (item dr1-basis-mix). After the upgrade, an interval with `None` heat still replays draw-inferred heat under `measured_heat`, as #2753 does. Say so in `HEAT_LOSS_BASES`'s comment, because freezing them would be worse than #2753 on combination selectors.
+- Decision: orchestrator. The verdict at `636a85b3` keeps store.py in `files` for one string, the `unread` text of `house_heat_loss_basis`, which becomes "earned at the first measured-heat fold". The orchestrator's ruling removes store.py. If it stays out, that text is stale after this group. The recommendation is to re-admit store.py for that one string, with no version bump and no migration.
+- Carry: R10-HEAT-METER (item dr1-basis-mix). After the upgrade, on a thermal-kW install, an interval with `None` heat still replays draw-inferred heat under `measured_heat`, as #2753 does. On a counter install, the scale folds only at span close, so there is no mix. Say so in `HEAT_LOSS_BASES`'s comment, because freezing them would be worse than #2753 on combination selectors.
 - Carry: R10-HEAT-METER (item dr1-store-choice). `house_heat_loss_basis` is a `Domain("choice")` (`custom_components/heatpump_optimizer/store.py`). Test a downgrade reading `measured_heat` and the schema check's acceptance of the third choice.
 - Carry: R10-HEAT-METER (item dr1-lag-idle). Align on the read instant, never on `last_updated`. An idle counter is old and correct.
 - Carry: R10-HEAT-METER (item dr1-last-good). A `MODE_SOURCE_LAST_GOOD` reading's `last_changed` is the stale state's own, so the segment is unobserved.
