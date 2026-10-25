@@ -3066,9 +3066,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-replay-scoped",
-    "commit": null,
+    "commit": "bed70a722",
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
     "note": null,
