@@ -1,0 +1,35 @@
+Fix review: blocked bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d root-cause-unanswered: governance / delivery-status is red at the head, ## Red checks says none, and pr-contract refuses the body for it
+
+bus-nonce: 25938b578e46b8ac8e4c16dc392c8365
+
+Round: first review of the fixer's handoff (round 1).
+Head measured: bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d. It was still the live head of fix/r10-proof-codeql when this verdict was written (ev/HEAD.txt). origin/main was f3ffb1c635327365841ad430ce8fad7488a02d61. `dev/governance/roles/` has no diff between the merge base and origin/main, so this contract copy is current.
+
+## Block
+
+- `governance / delivery-status` (job 121300270336) concluded failure at 21:52:26Z on this head. `pr-contract / pr-contract` (job 121310250433) started after it, at 22:26:52Z, read the body and refused it: "check `governance / delivery-status` is red and `## Red checks` does not name it ... this diff touches what it reads (.github/workflows/ci.yml, .github/workflows/governance.yml)". Both `gate` runs are red only because of that refusal. Because a required context is red, this head cannot merge (ev/pr-contract-error.txt, ev/check-runs.txt).
+- Substance: the red is not this PR's. The job prints `DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 8 overdue`, and every overdue row is another merged PR's (#2798, #2799, #2780, #2749, #2775, #2797, #2762, #2795). This diff changes governance.yml only in a comment (ev/red-logs.txt). So the repair is a body-only edit and moves no code: under `## Red checks`, name `governance / delivery-status`, give main's overdue rows as its cause, and say that the touched workflow lines are comments plus the prelude restore, which the job does not read. After that, pr-contract can re-check the body. Measured on its own, the code would otherwise have earned `merge` (see Evidence).
+- Class: I chose `root-cause-unanswered` because pr-contract refuses the body. Rule 11 says that while it refuses, the seat waits or hands back. My dispatch requires a parseable verdict, so this block is that hand-back. Once pr-contract is green at the same head, a re-verdict needs no re-measurement.
+
+## Findings
+
+- Three of my mutants survive both self-tests, and the body does not list them: (A1) deleting the `onto` naming check `or not ps[0].startswith(m.group(3))` in `proof_entries`; (A2) deleting `len(ps) != 2`; (A3) deleting the `r.get("head_sha") == head` filter in `proof_scope`. I traced each one, and each is equivalent in effect. Under A1 the walk still follows the real parent 1, and the merge-tree tree check still holds. Under A2 a one-parent link raises IndexError, which is caught and gives None, and an octopus link's tree must still equal merge-tree(p1, p2). Under A3 the API query already filters by head_sha. So these are untested defensive guards, not soundness holes. Carry: dismissed: each mutant is equivalent under the tree check, the real parent walk and the API's own head_sha filter
+- `proof_scope` accepts as evidence any `pull_request` run at the entry head, whatever that run's base branch. ci.yml's `pull_request` trigger has no branch filter, so a stacked PR at the same head, targeting a non-main base where the leg legitimately skipped, would also count. Real consequences are bounded by three things: the train's admission waits each entry head's required contexts against main, a proof's code-scanning upload is read by nobody, and main's push run analyzes in full after the merge. Filtering runs on `pull_requests[].base.ref == "main"` would close the gap in one line. Carry: dismissed: bounded by admission's required-context wait at each head and main's full push analysis, so no head move is warranted for it
+- The entities pin on ci.yml's restore step matches step text by substring. A mutant that sets `PINNED=$(git rev-parse HEAD)` and keeps `git merge-base FETCH_HEAD HEAD` in a trailing comment passes it (ev/entities-pin-mutants.txt). This is the pin's documented shape, the same as the codeql.yml shapes above it. Carry: dismissed: the text-pin shape is the file's stated convention, and the four real mutants of the arm all fail it
+- The "after" hold saving is not measured. As the body says, no proof can take the new arm before merge, and it is owed over at least three batches after merge. Carry: #201
+
+## Evidence
+
+- RESULT self-tests at head: codeql_scope 90 checks, 0 failed; prelude 38, 0 failed; gate 37, 0 failed; codescan_wait 17, 0 failed (ev/selftests-head.txt).
+- RESULT mutation proof, re-run by me (ev/mutants.txt). Each of M1–M10 fails, and the counts match the body: M1 5+2, M2 9, M3 3+1, M4 2+2, M5 1, M6 1, M7 1, M8 1, M9 prelude 1, M10 prelude 1. My extra mutants: A4 (ApiError not caught) crashes prelude's self-test, which is fail-closed red, not a skip; A5 (unverifiable chain treated as full evidence) gives 1 FAIL. A1–A3 survive (Findings). Tree restored clean.
+- RESULT entities pin mutants (ev/entities-pin-mutants.txt): batch arm deleted FAIL; closure.py dropped FAIL; own tip restored FAIL; main tip restored instead of merge base FAIL; head ok.
+- RESULT `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: ALL 2446 ENTITY CHECKS PASSED (ev/entities-head.txt). `tests/structure.py`: STRUCTURE RATCHET PASSED. archscore `--diff` merge base: `Architecture score: dS +0.0000 NULL`. Scope: `MODE: FULL`.
+- Null control: the codeql_scope rows (push to main, a push to a batch/ ref, a dispatch on main) and the prelude rows (push to main, a dispatch on main, a batch/ dispatch naming a pr) all analyze on full evidence at the head. M2 and M10 show those rows bite.
+- Figure re-derived: run 40222343141 (`batch/20261025-183357-1`). The python leg took 33.2 min and ended at 34.3; the last other successful job, `tests / lane-proofs`, ended at 17.2; hold 17.1 (ev/hold-40222343141.txt). This matches the body's 33.1/34.3/17.2/17.1 to rounding. The other three rows were not re-derived.
+- Untouched: VERSION, the manifest, RELEASE_NOTES.md, tests/golden, the budgets and closures.json are not in the three-dot diff (ev/untouched.txt); pr-contract's own line agrees. There is no claim-file change, so env_drift is not engaged.
+- Merge: `git merge-tree --write-tree origin/main bff57cc0c` exits 0, tree 29d5cac6e (ev/merge-tree.txt).
+- The delivery row `dev/programme/delivery/2837.md` is in the three-dot diff.
+- Class: the brief's seam is one site, CodeQL leg scoping for the proof event. The body names no enumeration rule, and its issue states one seam.
+- Forward-carry: the body says none, and I found nothing this PR changes that a later stage's brief must carry.
+- CI on the head: every workflow had concluded. The reds are pr-contract (2 runs), gate (2 runs, both from pr-contract) and governance / delivery-status, which is not a required check and does not block on its own. `tests / mutation` is green. All other contexts are success, skipped or neutral (ev/check-runs.txt).
+- Instrument: this review used only the PR's committed self-tests and my own scratch mutant drivers (ev/ is the record). I built no harness that needs to land.

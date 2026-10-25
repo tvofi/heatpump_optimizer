@@ -1,0 +1,8 @@
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  ok   after a floor-FAIL re-validation each coverage ledger holds one row per script and no `reused` row
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   a budget refusal names a tail-cut site as one that survived every shared driver, a never-started one as not started, and a tail-cut-only run as no verdict measured -- all refused, none PASSED
+  ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+ALL 2446 ENTITY CHECKS PASSED

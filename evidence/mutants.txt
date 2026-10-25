@@ -1,0 +1,16 @@
+RESULT M1 proof arm off: | codeql_scope.py: rc=1 fails=5 codeql_scope self-test: 90 checks, 5 failed | prelude.py: rc=1 fails=2 prelude self-test: 38 checks, 2 failed
+RESULT M2 skip on any push: | codeql_scope.py: rc=1 fails=9 codeql_scope self-test: 90 checks, 9 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M3 .github force deleted: | codeql_scope.py: rc=1 fails=3 codeql_scope self-test: 90 checks, 3 failed | prelude.py: rc=1 fails=1 prelude self-test: 38 checks, 1 failed
+RESULT M4 bare check deleted: | codeql_scope.py: rc=1 fails=2 codeql_scope self-test: 90 checks, 2 failed | prelude.py: rc=1 fails=2 prelude self-test: 38 checks, 2 failed
+RESULT M5 not proven -> is None: | codeql_scope.py: rc=1 fails=1 codeql_scope self-test: 90 checks, 1 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M6 tree re-merge deleted: | codeql_scope.py: rc=1 fails=1 codeql_scope self-test: 90 checks, 1 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M7 parent2 naming deleted: | codeql_scope.py: rc=1 fails=1 codeql_scope self-test: 90 checks, 1 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT A1 parent1 'onto' naming deleted: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT A2 two-parent check deleted: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M8 any job state counts: | codeql_scope.py: rc=1 fails=1 codeql_scope self-test: 90 checks, 1 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M9 event filter deleted: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=1 fails=1 prelude self-test: 38 checks, 1 failed
+RESULT A3 head_sha filter deleted: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=0 fails=0 prelude self-test: 38 checks, 0 failed
+RESULT M10 pr-naming dispatch is a proof: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=1 fails=1 prelude self-test: 38 checks, 1 failed
+RESULT A4 ApiError not caught: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=1 fails=0 ghapi.ApiError: repos/o/r/actions/workflows/ci.yml/runs: HTTP 502
+RESULT A5 unverifiable chain -> proven={}: | codeql_scope.py: rc=0 fails=0 codeql_scope self-test: 90 checks, 0 failed | prelude.py: rc=1 fails=1 prelude self-test: 38 checks, 1 failed
+restored: clean
