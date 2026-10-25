@@ -1,0 +1,8 @@
+$ grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' dev/programme/triage/s6-batch28.md | sort | uniq -c
+      8 Verdict: ACCEPT
+$ grep -c '^## P'
+8
+$ host/home path grep (home and temp prefixes)
+rc=1 (1 = none)
+$ roster_edit.ruling_verdict P150..P158
+{'P150': 'ACCEPT', 'P151': 'ACCEPT', 'P152': 'ACCEPT', 'P153': 'ACCEPT', 'P154': 'ACCEPT', 'P155': 'ACCEPT', 'P156': 'ACCEPT', 'P157': 'ACCEPT', 'P158': None}
