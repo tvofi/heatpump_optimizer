@@ -99,6 +99,24 @@ def verdict_allowlist(approve_script: Path) -> "tuple[set[str], int] | None":
     return set(authors.group(1).split()), int(vid.group(1))
 
 
+#: The verdict grammar fix-review.md sends reviewers to: bus.sh's verdict_sha,
+#: whose two patterns are app_comment.sh's, character for character. The one
+#: Python reader: merge_train.py's queue and orchestrator_tick.py's verdict
+#: levels call `parse_verdict`, never a copy (agreement_py.py refuses one).
+VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
+VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
+
+
+def parse_verdict(first: str) -> "tuple[str, str] | None":
+    """("merge" or "blocked", the verdict's 40-hex head) for a verdict's first
+    line inside the grammar; None for any other line."""
+    for kind, rx in (("merge", VERDICT_MERGE), ("blocked", VERDICT_BLOCKED)):
+        m = rx.match(first)
+        if m:
+            return kind, m.group(1)
+    return None
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""
