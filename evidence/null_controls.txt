@@ -1,0 +1,7 @@
+RESULT roster_open_group_issues= 72
+RESULT case=empty-issue-set polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-closed polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-open polyline=yes distinct_y=73 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-unplanned-flat polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=offline polyline=no distinct_y=0 open_now=[] note='Omitted: GitHub state was not available (no '
+RESULT all-open close_at= 72 unplanned= 0 other= [201]
