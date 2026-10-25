@@ -37542,6 +37542,67 @@ R.check(
     "slow still re-runs run.sh, or dropped rolling/replay/the value report",
 )
 
+# The timed lane on the pull request that reaches what it times
+# (R10-REPLAY-SCOPED; tvofi 2026-10-15: "Hard no, only when relevant").
+# `closure.replay_reach` is the rule `closure-scope` runs; it reads the lane's
+# own COST_FILES, so the pins below drive it with the lane's tuple, imported,
+# and with a source that names none (the fail-closed arm). The null controls are
+# paths beside the reach that must not run it: a package file outside the
+# cost set, a cost-file name one directory down, the export tooling, a gate file.
+_RR_PKG = "custom_components/heatpump_optimizer/"
+_RR_IN = ([_RR_PKG + _f for _f in (*_replay.COST_FILES, "optimizer.py")]
+          + ["tests/replay.py", "tests/replay/synthetic-dhw-only.json"])
+_RR_OUT = [_RR_PKG + "const.py", _RR_PKG + "translations/coordinator.py",
+           "tools/replay/export.py", ".github/workflows/tests.yml", "README.md",
+           "tests/entities.py", "tests/replay/notes.md"]
+_RR_MISS = [_f for _f in _RR_IN if _closure.replay_reach([_f]) != [_f]]
+_RR_FALSE = [_f for _f in _RR_OUT if _closure.replay_reach([_f])]
+R.check(
+    "replay reach: the rule reads the lane's own COST_FILES",
+    _closure.replay_cost_files() == _replay.COST_FILES,
+    f"closure read {_closure.replay_cost_files()!r}, the lane names {_replay.COST_FILES!r}",
+)
+R.check(
+    "replay reach: every cost file, the optimizer, the lane and a fixture run "
+    "the timed lane; nothing beside them does",
+    not _RR_MISS and not _RR_FALSE and _closure.replay_reach(_RR_IN + _RR_OUT) == _RR_IN
+    and _closure.replay_reach([]) == [],
+    f"missed {_RR_MISS}; ran on {_RR_FALSE}",
+)
+R.check(
+    "replay reach: a lane source naming no COST_FILES runs the lane, never skips it",
+    _closure.replay_decision(["README.md"], source="X = 1\n")[0] is True
+    and _closure.replay_decision(["README.md"], source="def (\n")[0] is True
+    and _closure.replay_decision(["README.md"])[0] is False
+    and _closure.replay_decision([_RR_PKG + "optimizer.py"])[0] is True,
+    f"{_closure.replay_decision(['README.md'], source='X = 1')!r}",
+)
+_RP_JOB = _workflow_job(_TESTS_YML, "replay")
+_RP_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+_RP_REACH: list = []
+try:
+    for _rv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _rf in ("true", "false", ""):
+            _rgot = _gh_eval(_gh_if(_RP_JOB), {"github.event_name": _rv,
+                                               "needs.closure-scope.outputs.replay": _rf})
+            if _rgot != (_rv == "pull_request" and _rf == "true"):
+                _RP_REACH.append((_rv, _rf, _rgot))
+except Exception as _rp_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _RP_REACH = [f"{type(_rp_exc).__name__}: {_rp_exc}"]
+R.check(
+    "the timed replay runs on a pull request whose diff reaches it, and on "
+    "nothing else in tests.yml (nightly runs it in full)",
+    not _RP_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _RP_JOB, re.M) is not None
+    and "replay: ${{ steps.decide.outputs.replay }}" in _RP_SCOPE
+    and 'python tests/closure.py replay-reach --files-from "$RUNNER_TEMP/changed.txt"'
+        ' >> "$GITHUB_OUTPUT"' in _RP_SCOPE
+    and 'echo "replay=false" >> "$GITHUB_OUTPUT"' in _RP_SCOPE
+    and "run: python3 tests/replay.py\n" in _RP_JOB
+    and re.search(r"^      HPO_JOB_GRADES: nothing$", _RP_JOB, re.M) is not None,
+    f"(event, replay, ran) wrong: {_RP_REACH}",
+)
+
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran
 # on, in three arms (the tree, the process route made unusable, a sysid night
 # armed through its fit). Red at 3dfebc16: the sensor-advisor re-simulated on
