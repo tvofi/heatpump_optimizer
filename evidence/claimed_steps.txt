@@ -1,4 +1,0 @@
-main dhw_cold_tank 26 space 0.050007 dhw 0.0 on False cheap_price idle
-main horizon_48h 153 space 0.496462 dhw 0.0 on False cheap_price idle
-head dhw_cold_tank 26 space 0.050007 dhw 0.0 on False cheap_price idle
-head horizon_48h 153 space 0.496462 dhw 0.0 on False cheap_price idle
