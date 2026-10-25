@@ -29,15 +29,20 @@ THE METRICS, each an answer to a named cost:
   script_runs_full_case_pr   the same count on a full-case pull-request run
                   (every script measured and re-derived once). Scoping's
                   ratchet: what a full-case PR costs may only shrink.
-  critical_path_minutes   median wall minutes of the last completed push
-                  runs of the tests workflow (the GitHub API run list,
-                  fetched by --gather-runs): a `CI` run from its creation
-                  to its last `tests / *` job's completion, a pre-umbrella
-                  Tests run from creation to its update, as before.
-                  A NOISY metric: recorded at the window's p75 for headroom,
-                  because shared runners vary far more than the medians do
-                  (Bencher documents >30 % variance on shared runners); the
-                  ratchet refuses beyond the headroom, not beyond the median.
+  critical_path_minutes   median WORK minutes of the last completed push
+                  runs of the tests workflow (the GitHub API run list with
+                  each run's jobs, fetched by --gather-runs): a run's
+                  critical path to its last `tests / *` job (a pre-umbrella
+                  Tests run: its every job) with each job's runner queue
+                  removed -- see run_minutes. Never the wall: the wall reads
+                  the account's runner contention, which an overlapping
+                  train's sibling pushes multiply (59.7 wall on 32.1 work,
+                  CI job 121295715608).
+                  A NOISY metric still (hosts differ by ~2 minutes on the
+                  same work): graded at the window's median, recorded at the
+                  p90 of a wider window (`--gather-runs FILE --window 40`),
+                  so the ratchet refuses a median beyond the work's own
+                  run-to-run noise, never one slow host.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
 
@@ -59,7 +64,7 @@ Usage (the ci-ratchet job; stdlib only besides the archscore import):
     python3 tests/ci_ratchet.py --metrics-dir DIR --runs-json FILE \
         --record "reason"
     python3 tests/ci_ratchet.py --gather --metrics-dir DIR   # the job's fetch
-    python3 tests/ci_ratchet.py --gather-runs FILE           # its runs.json
+    python3 tests/ci_ratchet.py --gather-runs FILE [--window N]  # its runs.json
     python3 tests/ci_ratchet.py --self-test                  # offline, no network
 
 --metrics-dir holds the ci-metrics artifacts of this run and the recent
@@ -69,7 +74,7 @@ window, flat: lines of
 lane artifacts of one run group as one run), plus the fast lane's single
 <fast>\tmode\t<full|scoped>\t<n_run>\t<n_skip>\t<event>\t<run id>.
 --runs-json is the GitHub API workflow-runs listing for critical path, each
-`CI` run carrying its own `jobs` (what --gather-runs writes).
+run carrying its own `jobs` (what --gather-runs writes).
 --record re-records every metric from what was just derived, refusing without
 a reason.
 """
@@ -477,34 +482,71 @@ def run_kind(r: dict) -> "str | None":
     return PUSH_RUN_KIND.get(path.rsplit("/", 1)[-1]) if path else None
 
 
+QUEUE_EPS = 2.0      # seconds: the API's 1 s timestamps round a ready edge
+
+
 def run_minutes(r: dict) -> "float | None":
-    """One completed push run's tests wall in minutes; None for a run that
-    is neither the umbrella's nor a pre-umbrella Tests run, or not completed.
-    A CI run without its jobs, or with no completed `tests / *` job, refuses:
-    its wall is unknown, never its run's."""
+    """One completed push run's tests WORK in minutes: its critical path with
+    every runner wait removed. None for a run that is neither the umbrella's
+    nor a pre-umbrella Tests run, not completed, or with a counted job that
+    was cancelled (its work was cut short, so it is unknown, not small).
+
+    A job's `created_at` is when its last need finished (the API creates a
+    job when it becomes ready), so `started_at - created_at` is its runner
+    queue and `completed_at - started_at` its work. Each job's zero-queue end
+    is its work plus the zero-queue end of the job that finished last at its
+    ready time -- ci_critpath.py's walk-back rule, the need that ended last --
+    and the metric is the latest zero-queue end among the counted jobs: a CI
+    run's `tests / *` jobs, a Tests run's every job. The wall (creation to the
+    last tests job) read the account's runner contention: an overlapping
+    train's three sibling pushes queued the same 32 minutes of lanes for 17-24
+    minutes and read 59.7 (main red, CI job 121295715608).
+
+    A run without its jobs, with no completed counted job, or with a ran job
+    missing a timestamp refuses: its work is unknown, never its wall."""
     kind = run_kind(r)
     if r.get("status") != "completed" or kind is None:
         return None
-    if kind == "Tests":
-        end = _at(r["updated_at"])
-    else:
-        jobs = r.get("jobs")
-        if not isinstance(jobs, list):
-            raise _refusal(f"CI push run {r.get('id')} carries no jobs list; "
-                           "--gather-runs embeds them (fail closed)")
-        ends = [_at(j["completed_at"]) for j in jobs
-                if str(j.get("name") or "").startswith(TESTS_JOB_PREFIX) and j.get("completed_at")]
-        if not ends:
-            raise _refusal(f"CI push run {r.get('id')} has no completed "
-                           f"`{TESTS_JOB_PREFIX}*` job (fail closed)")
-        end = max(ends)
-    return (end - _at(r["created_at"])).total_seconds() / 60
+    jobs = r.get("jobs")
+    if not isinstance(jobs, list):
+        raise _refusal(f"{kind} push run {r.get('id')} carries no jobs list; "
+                       "--gather-runs embeds them (fail closed)")
+    counted = ((lambda n: n.startswith(TESTS_JOB_PREFIX)) if kind == "CI"
+               else (lambda n: True))
+    ran = [j for j in jobs if j.get("completed_at")]
+    for j in ran:
+        if not (j.get("created_at") and j.get("started_at")):
+            raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
+                           "has no created_at/started_at; its queue is unknown "
+                           "(fail closed)")
+    if any(counted(str(j.get("name") or "")) and j.get("conclusion") == "cancelled"
+           for j in ran):
+        return None
+    ran.sort(key=lambda j: (_at(j["created_at"]), _at(j["completed_at"])))
+    done: list[tuple[float, float]] = []      # (completed, zero-queue end) seen
+    tests_ends = []
+    for j in ran:
+        ready = _at(j["created_at"]).timestamp() + QUEUE_EPS
+        before = [(c, e) for c, e in done if c <= ready]
+        base = 0.0
+        if before:
+            last = max(c for c, _ in before)
+            base = max(e for c, e in before if c >= last - QUEUE_EPS)
+        end = base + max(0.0, (_at(j["completed_at"]) - _at(j["started_at"])).total_seconds())
+        done.append((_at(j["completed_at"]).timestamp(), end))
+        if counted(str(j.get("name") or "")):
+            tests_ends.append(end)
+    if not tests_ends:
+        raise _refusal(f"{kind} push run {r.get('id')} has no completed "
+                       f"{'`' + TESTS_JOB_PREFIX + '*` ' if kind == 'CI' else ''}job (fail closed)")
+    return round(max(tests_ends) / 60, 3)
 
 
-def gather_runs(out_file, *, repo=None, runner=None) -> int:
-    """The ci-ratchet job's runs.json: the newest PUSH_WINDOW push runs of
-    ci.yml and the pre-umbrella tests.yml together, each CI run with its jobs.
-    Any failed read refuses by name: a short window is not a fast one."""
+def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW) -> int:
+    """The ci-ratchet job's runs.json: the newest `window` (PUSH_WINDOW when
+    grading) push runs of ci.yml and the pre-umbrella tests.yml together, each
+    with its jobs. Any failed read refuses by name: a short window is not a
+    fast one."""
     repo = repo or os.environ.get("GITHUB_REPOSITORY")
     if not repo:
         raise _refusal("--gather-runs needs GITHUB_REPOSITORY")
@@ -518,10 +560,10 @@ def gather_runs(out_file, *, repo=None, runner=None) -> int:
         return proc.stdout
     runs = []
     for wf in PUSH_RUNS:
-        runs += json.loads(api(PUSH_RUNS_URL.format(repo=repo, wf=wf, n=PUSH_WINDOW))).get("workflow_runs") or []
-    runs = sorted(runs, key=lambda r: r.get("created_at") or "", reverse=True)[:PUSH_WINDOW]
+        runs += json.loads(api(PUSH_RUNS_URL.format(repo=repo, wf=wf, n=window))).get("workflow_runs") or []
+    runs = sorted(runs, key=lambda r: r.get("created_at") or "", reverse=True)[:window]
     for r in runs:
-        if run_kind(r) == "CI":
+        if run_kind(r) is not None:
             r["jobs"] = [json.loads(x) for x in api(
                 "--paginate", "--jq", ".jobs[]", JOBS_URL.format(repo=repo, run=r["id"])).splitlines() if x.strip()]
     Path(out_file).write_text(json.dumps({"workflow_runs": runs}))
@@ -529,8 +571,11 @@ def gather_runs(out_file, *, repo=None, runner=None) -> int:
     return len(runs)
 
 
-def critical_path_minutes(runs_json: Path) -> float:
-    """Median of run_minutes over the window's COMPLETED push runs."""
+def critical_path_minutes(runs_json: Path, stat: str = "median") -> float:
+    """The window's COMPLETED push runs' work (run_minutes): the median when
+    grading, the p90 (nearest rank, the ceil(0.9 n)-th smallest) when
+    recording -- the budget's headroom is the metric's own run-to-run noise,
+    so a median past it is growth in most of the window, not one slow host."""
     runs = json.loads(runs_json.read_text())["workflow_runs"]
     minutes = [m for m in map(run_minutes, runs) if m is not None]
     if not minutes:
@@ -539,11 +584,14 @@ def critical_path_minutes(runs_json: Path) -> float:
                          "(fail closed)")
     minutes.sort()
     n = len(minutes)
+    if stat == "p90":
+        return minutes[math.ceil(0.9 * n) - 1]
     mid = n // 2
     return minutes[mid] if n % 2 else (minutes[mid - 1] + minutes[mid]) / 2
 
 
-def derive(metrics_dir: Path, runs_json: Path | None) -> dict[str, float]:
+def derive(metrics_dir: Path, runs_json: Path | None,
+           record: bool = False) -> dict[str, float]:
     derived: dict[str, float] = dict(archscore_metrics())
     events = read_metrics(metrics_dir)
     push_runs = [rows for (event, _), rows in events.items()
@@ -565,7 +613,8 @@ def derive(metrics_dir: Path, runs_json: Path | None) -> dict[str, float]:
     if full_pr:
         derived["script_runs_full_case_pr"] = max(full_pr)
     if runs_json is not None:
-        derived["critical_path_minutes"] = critical_path_minutes(runs_json)
+        derived["critical_path_minutes"] = critical_path_minutes(
+            runs_json, "p90" if record else "median")
     return derived
 
 
@@ -819,10 +868,13 @@ def self_test() -> int:
 
     # --- the push runs' window across the umbrella cut-over (P2b) -----------
     def ci_run(rid, created, tests_end, *, other_end="2026-10-22T02:00:00Z", jobs=True):
-        js = [{"name": "tests / fast (3.14)", "completed_at": tests_end},
-              {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z"},
-              {"name": "gate", "completed_at": other_end},
-              {"name": "codeql / Analyze (python)", "completed_at": other_end}]
+        # Every job ready and started at the run's creation (no queue), so its
+        # work is its span: the wall these fixtures were written against.
+        t0 = {"created_at": created, "started_at": created}
+        js = [{"name": "tests / fast (3.14)", "completed_at": tests_end, **t0},
+              {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z", **t0},
+              {"name": "gate", "completed_at": other_end, **t0},
+              {"name": "codeql / Analyze (python)", "completed_at": other_end, **t0}]
         # `.name` as the API returns it under ci.yml's run-name, not "CI".
         return {"id": rid, "name": f"CI code pr=- base=- sha={rid:040d}",
                 "path": ".github/workflows/ci.yml", "status": "completed",
@@ -830,11 +882,14 @@ def self_test() -> int:
                 "updated_at": other_end, **({"jobs": js} if jobs else {})}
     tests_run = {"id": 1, "name": "Tests", "path": ".github/workflows/tests.yml",
                  "status": "completed",
-                 "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z"}
+                 "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z",
+                 "jobs": [{"name": "fast (3.14)", "created_at": "2026-10-21T00:00:00Z",
+                           "started_at": "2026-10-21T00:00:00Z",
+                           "completed_at": "2026-10-21T00:50:00Z"}]}
     m, msg = safe(lambda: run_minutes(ci_run(2, "2026-10-22T00:00:00Z", "2026-10-22T00:40:00Z")))
     ck("a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)",
        m == 40.0, msg or f"got {m}")
-    ck("a pre-umbrella Tests push run is measured as before: created to updated (the null: 50)",
+    ck("a pre-umbrella Tests push run is measured on its every job (the null: 50)",
        run_minutes(tests_run) == 50.0)
     ck("another workflow's run, or one not completed, is not in the window",
        run_minutes({**tests_run, "name": "Card", "path": ".github/workflows/card.yml"}) is None
@@ -885,14 +940,75 @@ def self_test() -> int:
             return subprocess.CompletedProcess(argv, 0, json.dumps({"workflow_runs": listings[wf]}), "")
         n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh))
         got = json.loads(f.read_text())["workflow_runs"] if n else []
-        ck("--gather-runs keeps the newest 8 push runs of ci.yml and tests.yml together, jobs on each CI run only",
+        ck("--gather-runs keeps the newest 8 push runs of ci.yml and tests.yml together, jobs on every run",
            n == 8 and [run_kind(r) for r in got].count("CI") == 5
-           and all(("jobs" in r) == (run_kind(r) == "CI") for r in got)
-           and sum("/jobs?" in a[-1] for a in reads) == 5, msg or f"n={n}")
+           and all("jobs" in r for r in got)
+           and sum("/jobs?" in a[-1] for a in reads) == 8, msg or f"n={n}")
+        reads.clear()
+        n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh, window=3))
+        ck("--gather-runs --window N keeps the newest N (a record's wider window)",
+           n == 3 and sum("/jobs?" in a[-1] for a in reads) == 3
+           and all("per_page=3" in a[-1] for a in reads if "/jobs?" not in a[-1]), msg or f"n={n}")
         msg = refused(lambda: gather_runs(f, repo="o/r", runner=lambda argv, **_kw: subprocess.CompletedProcess(
             argv, 1, "", "gh: HTTP 502")))
         ck("a failed runs read refuses by name (a short window is not a fast one)",
            "failed (rc 1)" in msg and "HTTP 502" in msg, msg or "no refusal")
+
+    # --- runner queue is not work (main red, CI job 121295715608) ----------
+    # Run 40225415246, its timeline as the jobs API gave it (minutes from the
+    # run's creation): every heavy lane was created at +0.5 and waited 17-24
+    # minutes for a runner behind three other push runs of one overlapping
+    # train, so its wall read 59.7 while the same lanes' work read 32 -- the
+    # 33.7-minute run da12aa37d queued nothing. The metric is the work.
+    def j(name, created, started, completed, conclusion="success"):
+        at = lambda m: (datetime(2026, 10, 25, 19, 18, 35, tzinfo=timezone.utc)
+                        .timestamp() + m * 60)
+        iso = lambda m: datetime.fromtimestamp(at(m), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return {"name": name, "created_at": iso(created), "started_at": iso(started),
+                "completed_at": iso(completed), "conclusion": conclusion}
+    queued = [j("prelude", 0.0, 0.2, 0.5), j("tests / closure-scope", 0.5, 0.5, 0.5, "skipped"),
+              j("codeql / Analyze (python)", 0.5, 15.5, 34.9),
+              j("tests / arch-instrument", 0.5, 17.9, 49.7), j("tests / closures", 0.5, 18.5, 45.1),
+              j("tests / coverage", 0.5, 24.6, 51.9), j("tests / fast (3.14)", 0.5, 24.8, 54.6),
+              j("tests / coverage-ratchet", 51.9, 52.7, 52.9),
+              j("tests / ci-ratchet", 54.6, 58.6, 59.7), j("gate", 59.7, 66.7, 67.1)]
+    run_q = {**ci_run(5, "2026-10-25T19:18:35Z", None), "jobs": queued}
+    m, msg = safe(lambda: run_minutes(run_q))
+    ck("a run whose lanes queued for runners reads its work, not its wall "
+       "(32.1 = prelude 0.3 + arch-instrument 31.8, not 59.7)",
+       m is not None and abs(m - 32.1) < 0.05, msg or f"got {m}")
+    # The null control: the same jobs and work, replayed with no runner wait
+    # (each ready at its last need's end and started at once), whose wall IS
+    # its work -- the old wall measure and this one must agree on it.
+    run_n = {**run_q, "jobs": [
+        j("prelude", 0.0, 0.0, 0.3), j("tests / closure-scope", 0.3, 0.3, 0.3, "skipped"),
+        j("codeql / Analyze (python)", 0.3, 0.3, 19.7),
+        j("tests / arch-instrument", 0.3, 0.3, 32.1), j("tests / closures", 0.3, 0.3, 26.9),
+        j("tests / coverage", 0.3, 0.3, 27.6), j("tests / fast (3.14)", 0.3, 0.3, 30.1),
+        j("tests / coverage-ratchet", 27.6, 27.6, 27.8),
+        j("tests / ci-ratchet", 30.1, 30.1, 31.2), j("gate", 32.1, 32.1, 32.5)]}
+    m0, msg = safe(lambda: run_minutes(run_n))
+    ck("the same work with no queue reads the same 32.1, its wall (the null control)",
+       m0 is not None and m is not None and abs(m0 - m) < 0.05 and abs(m0 - 32.1) < 0.05,
+       msg or f"got {m0} vs {m}")
+    run_s = {**run_q, "jobs": queued[:-2] + [j("tests / ci-ratchet", 54.6, 58.6, 69.7)]}
+    m1, msg = safe(lambda: run_minutes(run_s))
+    ck("a slower job on the critical path still grows the metric (10 more minutes of ci-ratchet)",
+       m1 is not None and abs(m1 - (0.3 + 29.8 + 11.1)) < 0.05, msg or f"got {m1}")
+    run_c = {**run_q, "jobs": queued[:-2] + [j("tests / ci-ratchet", 54.6, 58.6, 59.0, "cancelled")]}
+    mc, msg = safe(lambda: run_minutes(run_c))
+    ck("a run with a cancelled `tests / *` job is not in the window (its work was cut short)",
+       mc is None, msg or f"got {mc}")
+    with tempfile.TemporaryDirectory() as td:
+        f = Path(td) / "runs.json"
+        f.write_text(json.dumps({"workflow_runs": [
+            {**run_q, "id": i} for i in range(1, 4)] + [{**run_s, "id": 9}]}))
+        g, msg = safe(lambda: critical_path_minutes(f))
+        r, msg2 = safe(lambda: critical_path_minutes(f, stat="p90"))
+        ck("the grade is the window's median, a record its p90 (headroom for the "
+           "metric's own noise, never for the queue)",
+           g is not None and abs(g - 32.1) < 0.05 and r is not None and abs(r - 41.2) < 0.05,
+           msg or msg2 or f"median {g} p90 {r}")
 
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
@@ -916,10 +1032,13 @@ def main(argv: list[str] | None = None) -> int:
         gather(metrics_dir)
         return 0
     if argv[:1] == ["--gather-runs"]:
-        if len(argv) != 2:
-            print("ci-ratchet: --gather-runs needs exactly FILE", file=sys.stderr)
+        window = PUSH_WINDOW
+        if len(argv) == 4 and argv[2] == "--window" and argv[3].isdigit() and int(argv[3]) > 0:
+            window = int(argv[3])
+        elif len(argv) != 2:
+            print("ci-ratchet: --gather-runs needs exactly FILE [--window N]", file=sys.stderr)
             return 2
-        gather_runs(argv[1])
+        gather_runs(argv[1], window=window)
         return 0
     record_reason = None
     if "--record" in argv:
@@ -950,7 +1069,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ci-ratchet: refusing the budget table: {p}",
                   file=sys.stderr)
         return 1
-    derived = derive(metrics_dir, runs_json)
+    derived = derive(metrics_dir, runs_json, record=record_reason is not None)
     if record_reason is not None:
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                               capture_output=True, text=True,

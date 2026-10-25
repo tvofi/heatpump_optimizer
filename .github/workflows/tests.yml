@@ -2310,8 +2310,9 @@ jobs:
           python3 -I tests/ci_ratchet.py --gather --metrics-dir "$M"
       # The window is ci.yml's push runs and, across the cut-over, the
       # pre-umbrella Tests runs, each carrying its jobs: the critical path is
-      # a CI run's span to its last `tests / *` job (U9a). Its reads and its
-      # refusals are tests/ci_ratchet.py's, self-tested above.
+      # a run's work to its last `tests / *` job with runner queue removed
+      # (U9a). Its reads and its refusals are tests/ci_ratchet.py's,
+      # self-tested above.
       - name: Fetch the recent push runs' durations
         env:
           GH_TOKEN: ${{ github.token }}

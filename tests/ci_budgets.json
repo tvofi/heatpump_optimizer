@@ -23,8 +23,8 @@
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
- "critical_path_minutes": 54.825,
- "reason": "Re-record (R10-LIVESTATE, #2232): archscore.hub_solve_writes 41 -> 16 and archscore.shared_inplace_writes 22 -> 3, both the archscore vector measured on this branch over base fd7e289d0. The live thermal state is copied, then published whole (ARCH-s1 P1, ARCH2-s2 P4): the cycle's sensor block, the legionella hours, the ECL110 lag, the slab seeds and both event callbacks write a private copy, so no in-place hub write remains under the cycle or event roots; the away state is published whole (P2) and collaborators own their fields (P3). The event-root drop of 3 is confirmed by dev/audit/rounds/round10/D7/arch2-s2/event_hub_writes.py reading 0 at head (3 at base). No other row moves.",
+ "critical_path_minutes": 34.267,
+ "reason": "Re-record critical_path_minutes 54.825 -> 34.267 (main red, CI job 121295715608): the metric is now each push run's tests critical path with runner queue removed, not its wall, graded at the 8-run median and recorded at the p90 of `--gather-runs --window 40` taken at main f3ffb1c63 (40 CI push runs, work 20.1..34.65 min, median 32.55). The old 54.825 was a 2026-10-12 median of walls; queue for runners, not work, took the median to 59.6 under an overlapping train. Every other row stands as recorded at recorded_at (R10-LIVESTATE, #2232).",
  "recorded_at": "fd7e289d0a09862b57f0509bf1071c54b9054799",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 54
