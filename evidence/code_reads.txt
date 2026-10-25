@@ -1,0 +1,149 @@
+reads at da12aa37d (origin/main = merge base of 204ffce804bbf0f602ad258b42c6fea0c9ddbf15)
+dev/governance/roles/proposal-triage.md:     8	finding's fix) is not a proposal and keeps its own route. One sonnet seat at
+dev/governance/roles/proposal-triage.md:     9	medium effort: judgement with an oracle.
+tools/audit/seat/cloud_dispatch.py:   116	    if role == "reviewer":
+tools/audit/seat/cloud_dispatch.py:   117	        body = (
+tools/audit/seat/cloud_dispatch.py:   118	            "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
+tools/audit/seat/cloud_dispatch.py:   119	            f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
+tools/audit/seat/cloud_dispatch.py:   120	            "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
+tools/audit/seat/cloud_dispatch.py:   121	            "every figure in the body at this head. Check that it merges with origin/main "
+tools/audit/seat/cloud_dispatch.py:   122	            "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
+tools/audit/seat/cloud_dispatch.py:   181	        if not pr.isdigit():
+tools/audit/seat/cloud_dispatch.py:   182	            raise Refusal("a reviewer needs --pr <number>")
+tools/audit/seat/cloud_dispatch.py:   391	              dispatch(role="reviewer", head=first, pr="7", nonce="abc123") == "dispatch/reviewer-r10-x")
+tools/audit/seat/cloud_dispatch.py:   503	def self_test() -> int:
+tools/audit/seat/merge_train.py:   328	NOT_GATING = ("record", "record-autofix", "nightly-status", "delivery-status")
+tools/audit/seat/merge_train.py:   417	def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
+tools/audit/seat/merge_train.py:   787	def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
+tools/audit/seat/merge_train.py:   805	            pending = set(json.loads((t.state / QUEUE_PENDING).read_text())) if live else set()
+tools/audit/seat/merge_train.py:   806	        except (OSError, ValueError):
+tools/audit/seat/merge_train.py:   807	            pending = set()
+tools/audit/seat/merge_train.py:   808	        if str(pr).isdigit() and int(pr) in pending | {int(e["pr"]) for e in spooled}:
+tools/audit/seat/merge_train.py:   809	            t.log(f"ALREADY #{pr}: queued in the {'live train (pid %d)' % live if live else 'spool'}; nothing added")
+tools/audit/seat/merge_train.py:   810	            return 0
+tools/audit/seat/merge_train.py:   817	        if live:
+tools/audit/seat/merge_train.py:   818	            spool_append(t.state, entry)
+tools/audit/seat/merge_train.py:   819	            t.log(f"ADDED #{pr} to the live train (pid {live}); it joins the batch after the one running")
+tools/audit/seat/merge_train.py:  1103	    def wait_ci(self, h: str, only: "list[str] | None" = None,
+tools/audit/seat/merge_train.py:  1134	            if only is None and runs and len(runs) >= self.min_runs and all(
+tools/audit/seat/merge_train.py:  1135	                    c.get("status") == "completed" for c in runs):
+tools/audit/seat/merge_train.py:  1136	                return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+tools/audit/seat/merge_train.py:  2286	    def skip(self, pr: int, phase: str, why: str, cls: "str | None" = None) -> None:
+tools/audit/seat/merge_train.py:  2287	        """`--skip-bad`: record one skipped entry -- logged as
+tools/audit/seat/merge_train.py:  2288	        `SKIP #<pr> <phase>: <reason>` (the reason echoed verbatim from the Stop
+tools/audit/seat/merge_train.py:  2289	        that would otherwise have printed `TRAIN STOPPED`, its block class in
+tools/audit/seat/merge_train.py:  2290	        brackets when the shape is a known one) and collected for skipped.json.
+tools/audit/seat/merge_train.py:  2291	        A red main is never skippable: the caller re-raises it."""
+tools/audit/seat/merge_train.py:  2292	        self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))
+tools/audit/seat/merge_train.py:  2293	        row = {"pr": pr, "phase": phase, "reason": why}
+tools/audit/seat/merge_train.py:  2294	        if cls:
+tools/audit/seat/merge_train.py:  2295	            row["class"] = cls
+tools/audit/seat/merge_train.py:  2296	        self.skipped.append(row)
+tools/audit/seat/merge_train.py:  2317	        seen = {int(e["pr"]) for b in batches for e in b}
+tools/audit/seat/merge_train.py:  2356	    def queue_take(self, batches: "list[list[dict]]", k: int, seen: "set[int]") -> bool:
+tools/audit/seat/merge_train.py:  2367	            for e in added:
+tools/audit/seat/merge_train.py:  2368	                if int(e["pr"]) in seen:
+tools/audit/seat/merge_train.py:  2369	                    self.log(f"ALREADY #{e['pr']}: in this train already; not queued twice")
+tools/audit/seat/merge_train.py:  2370	                    continue
+tools/audit/seat/merge_train.py:  5471	    c = sub.add_parser("classify", parents=[common],
+tools/audit/seat/merge_train.py:  5472	                       help="GREEN (rc 0), RED (rc 1), WAIT (rc 3) over the required contexts; "
+tools/audit/seat/merge_train.py:  5473	                            "unreadable rc 2; a head is reviewable unless RED")
+.github/workflows/ci.yml:    74	  prelude:
+tools/audit/seat/ci-watch.sh:     2	# CI watcher v3: alerts only on NEW states (per-PR signature file), exits 1 with a report.
+tools/plan/replan.py:    12	    `git show`; `tools/plan/durations.json` (the measured, cached durations);
+tools/plan/replan.py:    13	    `VERSION` from the checkout. No network and no GitHub state: the same
+tools/plan/replan.py:    14	    inputs produce byte-identical output. `--measure-ci` is the one network
+tools/plan/replan.py:    15	    path and it only rewrites the durations file, never a plan.
+tools/plan/replan.py:    94	LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
+tools/plan/replan.py:    95	
+tools/plan/replan.py:    96	DEFAULT_CAPS = {
+tools/plan/replan.py:    97	    "slots": 6,              # open pull requests; the owner's cap
+tools/plan/replan.py:   174	def is_done(group: dict) -> bool:
+tools/plan/replan.py:   175	    return (group.get("resume") or {}).get("stage") in ("done", "rca-done")
+tools/plan/replan.py:   319	    dur_h = {}
+tools/plan/replan.py:   320	    for n in open_:
+tools/plan/replan.py:   321	        stage = (G[n].get("resume") or {}).get("stage")
+tools/plan/replan.py:   322	        is_live = stage in LIVE_STAGES
+tools/plan/replan.py:  1211	def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
+tools/plan/replan.py:  1281	    p.add_argument("--durations", default=None,
+tools/plan/replan.py:  1292	    p.add_argument("--slots", type=int, default=DEFAULT_CAPS["slots"])
+tools/audit/seat/roster_lib.py:    33	DONE_STAGES = ("done", "rca-done")
+tools/audit/seat/roster_lib.py:   205	def is_open(group: dict) -> bool:
+tools/audit/seat/roster_lib.py:   206	    return (group.get("resume") or {}).get("stage") not in DONE_STAGES
+tools/audit/seat/roster_lib.py:   232	        oa = [a for a in g.get("after") or [] if is_open(G[a])]
+tools/audit/seat/roster_lib.py:   239	def critical_path(roster: dict) -> list:
+tools/audit/seat/orchestrator_tick.py:  1148	        open_g = rl.open_groups(roster)
+tools/audit/seat/orchestrator_tick.py:  1154	            blockers = [a for a in (g.get("after") or []) if a in open_g]
+tools/audit/seat/orchestrator_tick.py:  1161	            elif stage in UNBLOCKABLE_STAGES:
+tools/audit/seat/orchestrator_tick.py:  1162	                self.line(S, f"{gid}: UNBLOCKED, not started -- start a fixer "
+tools/audit/seat/orchestrator_tick.py:  1163	                             f"on {rl.branch_of(g)}", flag=True)
+tools/audit/seat/plan_page.py:   189	        blk = [a for a in entry.get("after") or [] if a in G and a not in done]
+tools/audit/seat/plan_table.py:    81	            deps = [ids[a] for a in open_[g].get("after") or [] if a in open_]
+tools/audit/seat/handover_prompt.py:    49	                  if all(a not in open_ for a in gr.get("after") or []))
+tools/audit/seat/ledger.py:   108	OPS = ("open", "close", "attempt")
+tools/audit/seat/ledger.py:   542	        if cmd in ("open", "close") and len(args) >= 3:
+tools/audit/seat/ledger.py:   543	            record(home, log, cmd, args[0], args[1], args[2], " ".join(args[3:]))
+tools/audit/seat/ledger.py:   655	        record(e, log, "close", "reviewer-fire", "12", A, "stale")
+tools/audit/seat/ledger.py:   656	        check("a close at another sha closes nothing", any(o[1] == "12" for o in fold(events(e, log))[0]))
+tools/audit/seat/ledger.py:   657	        record(e, log, "close", "reviewer-fire", "12", B, "fired")
+tools/audit/seat/ledger.py:   505	def review_owed(prs: list, readback: dict, dispatched: set) -> list[str]:
+tools/audit/seat/ledger.py:   506	    """`REVIEW OWED: #N <head12>` per open non-draft PR whose comments were
+tools/audit/seat/ledger.py:   507	    read, no verdict names its head, and no dispatch record is at that head."""
+tools/audit/seat/ledger.py:   508	    out = []
+tools/audit/seat/ledger.py:   509	    for pr in sorted(prs, key=lambda p: p["number"]):
+tools/audit/seat/ledger.py:   510	        n, head = pr["number"], pr.get("headRefOid") or ""
+tools/audit/seat/ledger.py:   511	        if pr.get("isDraft") or str(n) not in readback or not head:
+tools/audit/seat/ledger.py:   512	            continue
+tools/audit/seat/ledger.py:   513	        if any(verdict_head(l) == head for l in readback[str(n)]) or (str(n), head) in dispatched:
+tools/audit/seat/ledger.py:   514	            continue
+tools/audit/seat/ledger.py:   515	        out.append(f"REVIEW OWED: #{n} {head[:12]}")
+tools/audit/seat/tick_loop.sh:    16	#   2. orchestrator_tick.py with the given args. The board goes to --out (default
+tools/audit/seat/tick_loop.sh:    17	#      $HPO_STATE_DIR/tick.txt, written whole then renamed, so a reader never sees
+tools/audit/seat/tick_loop.sh:    18	#      half a board).
+tools/audit/seat/sweep_template.md:    41	| `tick_alive` | the tick seat's liveness file, touched every pass |
+tools/audit/seat/sweep_template.md:    42	| `tick_log` | the tick seat's log |
+tools/audit/seat/sweep_template.md:    43	| `tick_brief` | the tick seat's brief, the prompt a restarted tick seat receives |
+tools/audit/seat/sweep_template.md:    44	| `tick_stale_min` | minutes after which a silent tick seat is dead |
+tools/audit/seat/bus.sh:    22	# later round never needs a force-push. A
+tools/audit/seat/bus.sh:    23	# crossed-out verdict stays in the ref's history; only the tip is posted.
+tools/audit/seat/bus.sh:    24	#
+tools/audit/seat/bus.sh:    25	# THE ORDERING. `dispatch` refuses a head that carries no
+tools/audit/seat/bus.sh:    26	# `dev/programme/delivery/<pr>.md`, the pull request's own delivery row
+tools/audit/seat/bus.sh:    27	# (delivery-status-tracking.md). The row is the orchestrator's and lands
+tools/audit/seat/bus.sh:    28	# before the review: a row written after the verdict moves the head off the
+tools/audit/seat/bus.sh:    29	# one the reviewer measured, which `app_approve.sh --carry` refuses as a
+tools/audit/seat/bus.sh:    30	# commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
+tools/audit/seat/bus.sh:    31	# A verdict posts only against a dispatch's nonce, so this is the one place
+tools/audit/seat/bus.sh:    32	# that can keep the row from landing late.
+tools/audit/seat/bus.sh:   382	dispatch() { # pr head reviewer -> records the dispatch, prints the nonce line for the brief
+tools/audit/seat/open_pr.sh:    48	git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+tools/pr/app_approve.sh:   243	        || { echo "$c is not the automatic merge of its parents"; return 1; }
+dev/governance/roles/fixer.md:   307	## Past three rounds, re-cut rather than repair
+dev/governance/roles/fixer.md:   308	
+dev/governance/roles/fixer.md:   309	The owner's rule. At the **fourth** round, replace the body instead of repairing
+dev/governance/roles/fixer.md:   310	it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
+dev/governance/roles/fixer.md:   311	fire, and only figures re-taken in that pass. Round history is deleted, not
+dev/governance/roles/fixer.md:   312	restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
+dev/governance/roles/fixer.md:   313	tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
+dev/governance/roles/fixer.md:   314	so the orchestrator splits the branch or closes it.
+dev/governance/roles/fix-review.md:   140	**Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
+tools/audit/carry_audit.py:   414	    u = sum(r["status"] == "unrouted" for r in rows)
+tools/audit/carry_audit.py:   415	    b = sum(r["status"] == "bad" for r in rows)
+tools/audit/carry_audit.py:   416	    print(f"CARRY-AUDIT{(' ' + label.strip()) if label else ''}: {len(rows)} finding item(s): "
+tools/audit/carry_audit.py:   417	          f"{len(rows) - u - b} routed, {u} unrouted, {b} bad destination(s)")
+tools/audit/carry_audit.py:   418	    return 1 if (u or b) else 0
+tools/pr/head_note.py:    20	def head_offset(body: str) -> int:
+dev/governance/roles/orchestrator.md:   109	- **Four standing seats do the routine work, never you inline**:
+CLAUDE.md:   122	| `standing-tick.md` | reports only owed or new tick-board items |
+ "sizes_hours": {
+  "L": 20.1,
+  "M": 11.4,
+  "S": 13.1,
+  "XL": 30.2
+ },
+ "sizes_provenance": "median (latest merge - earliest PR commit) over 25 done round-10 groups: S n=16, M n=7, L n=2; XL = 1.5 x L because no XL group has merged. Wall-clock including review rounds and queueing, so a group that waited in review inflates its size (S 13.1 > M 11.4). Measured in wave-data.md section 3 at 2026-10-18; no merged group has changed the method since.",
+roster_edit.py size grep:
+0
+tools/audit/seat/roster_edit.py:   655	    p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
+tools/audit/seat/roster_edit.py:   656	                                  "edit-brief", "append-carry", "set-resume",
+tools/audit/seat/roster_edit.py:   657	                                  "set-after", "drop-carry"))

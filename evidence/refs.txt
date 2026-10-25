@@ -1,0 +1,7 @@
+e23ace899 2026-10-25T17:44:53+01:00 design R10-HEAT-METER: revision 1 (answers design review fabd19b8a)
+04de6ae7f 2026-10-25T17:34:27+01:00 design(R10-HEAT-METER): architect note, extended (designer seat)
+da12aa37d 2026-10-25T17:06:48+01:00 Merge pull request #2712 from tvofi/fix/r10-demand-overbook
+636a85b36 2026-10-25T17:48:41+01:00 design-verdict R10-HEAT-METER: revise e23ace899 (round 2)
+fabd19b8a 2026-10-25T17:40:56+01:00 design-verdict R10-HEAT-METER: revise 04de6ae7f (round 1)
+840fab86f 2026-10-25T17:41:57+01:00 triage: batch 26, P130-P139 (plan-optimisation cards V51-V60)
+7d3e293b8 2026-10-25T17:47:32+01:00 dispatch: dispatch/fixer-r10-flow-jidoka
