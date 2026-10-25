@@ -1,141 +1,102 @@
-== e73424f2
-ok   got=1 want=1 py wrap-after-gh
-ok   got=1 want=1 py wrap-after-pr
-ok   got=1 want=1 py wrap-after-merge
-ok   got=1 want=1 py nested-outer-call
-ok   got=1 want=1 py nested-dict-args
-ok   got=1 want=1 py prior-closed-group
-ok   got=0 want=0 py prior-unclosed-sibling-null
-ok   got=0 want=0 py later-stmt-flag-null
-ok   got=1 want=1 py quote-across-line
-ok   got=1 want=1 py closer-in-string-before-pr
-ok   got=1 want=1 mjs wrap-after-gh
-ok   got=1 want=1 mjs wrap-after-pr
-ok   got=1 want=1 mjs wrap-after-merge
-ok   got=1 want=1 mjs nested-outer-call
-ok   got=1 want=1 mjs nested-dict-args
-ok   got=1 want=1 mjs prior-closed-group
-ok   got=0 want=0 mjs prior-unclosed-sibling-null
-ok   got=0 want=0 mjs later-stmt-flag-null
-ok   got=1 want=1 mjs quote-across-line
-ok   got=1 want=1 mjs closer-in-string-before-pr
-ok   got=1 want=1 py py-comment-paren-before-pr
-ok   got=1 want=1 py py-comment-closer-before-pr
-ok   got=1 want=1 py py-comment-closer-after-merge
-ok   got=1 want=1 py py-triple-before
-ok   got=1 want=1 py py-exploded-trailing-comma
-MISS got=0 want=1 py py-blank-in-bracket
-ok   got=1 want=1 py py-blank-after-pr
-ok   got=1 want=1 mjs js-line-comment-closer
-ok   got=1 want=1 mjs js-block-comment-closer-before
-MISS got=0 want=1 mjs js-block-comment-closer-after
-ok   got=1 want=1 mjs js-backtick-closer-after
-ok   got=1 want=1 mjs js-backtick-closer-before
-ok   got=1 want=1 mjs js-backtick-multiline-before
-ok   got=1 want=1 mjs js-template-program
-MISS got=0 want=1 mjs js-regex-closer
-ok   got=1 want=1 sh sh-continuation
-ok   got=1 want=1 sh sh-array
-ok   got=1 want=1 sh sh-comment-paren
-MISS got=0 want=1 sh sh-case-paren
-ok   got=1 want=1 sh sh-closer-in-dq-after
-ok   got=0 want=0 py null-view-wrapped
-ok   got=0 want=0 py null-sibling-table-later
-ok   got=0 want=0 md null-prose-md
-ok   got=0 want=0 py null-earlier-stmt-flag
-ok   got=0 want=0 py null-earlier-open-bracket-flag
-ok   got=0 want=0 py null-enclosing-call-earlier-flag
-== 683dd52c
-MISS got=0 want=1 py wrap-after-gh
-ok   got=1 want=1 py wrap-after-pr
-ok   got=1 want=1 py wrap-after-merge
-MISS got=0 want=1 py nested-outer-call
-MISS got=0 want=1 py nested-dict-args
-MISS got=0 want=1 py prior-closed-group
-ok   got=0 want=0 py prior-unclosed-sibling-null
-ok   got=0 want=0 py later-stmt-flag-null
-MISS got=0 want=1 py quote-across-line
-MISS got=0 want=1 py closer-in-string-before-pr
-MISS got=0 want=1 mjs wrap-after-gh
-ok   got=1 want=1 mjs wrap-after-pr
-ok   got=1 want=1 mjs wrap-after-merge
-MISS got=0 want=1 mjs nested-outer-call
-MISS got=0 want=1 mjs nested-dict-args
-MISS got=0 want=1 mjs prior-closed-group
-ok   got=0 want=0 mjs prior-unclosed-sibling-null
-ok   got=0 want=0 mjs later-stmt-flag-null
-MISS got=0 want=1 mjs quote-across-line
-MISS got=0 want=1 mjs closer-in-string-before-pr
-MISS got=0 want=1 py py-comment-paren-before-pr
-MISS got=0 want=1 py py-comment-closer-before-pr
-MISS got=0 want=1 py py-comment-closer-after-merge
-MISS got=0 want=1 py py-triple-before
-MISS got=0 want=1 py py-exploded-trailing-comma
-MISS got=0 want=1 py py-blank-in-bracket
-ok   got=1 want=1 py py-blank-after-pr
-MISS got=0 want=1 mjs js-line-comment-closer
-MISS got=0 want=1 mjs js-block-comment-closer-before
-MISS got=0 want=1 mjs js-block-comment-closer-after
-ok   got=1 want=1 mjs js-backtick-closer-after
-MISS got=0 want=1 mjs js-backtick-closer-before
-MISS got=0 want=1 mjs js-backtick-multiline-before
-ok   got=1 want=1 mjs js-template-program
-MISS got=0 want=1 mjs js-regex-closer
-ok   got=1 want=1 sh sh-continuation
-MISS got=0 want=1 sh sh-array
-ok   got=1 want=1 sh sh-comment-paren
-MISS got=0 want=1 sh sh-case-paren
-ok   got=1 want=1 sh sh-closer-in-dq-after
-ok   got=0 want=0 py null-view-wrapped
-ok   got=0 want=0 py null-sibling-table-later
-ok   got=0 want=0 md null-prose-md
-ok   got=0 want=0 py null-earlier-stmt-flag
-ok   got=0 want=0 py null-earlier-open-bracket-flag
-ok   got=0 want=0 py null-enclosing-call-earlier-flag
-== d0d35231
-ok   got=1 want=1 py wrap-after-gh
-ok   got=1 want=1 py wrap-after-pr
-ok   got=1 want=1 py wrap-after-merge
-ok   got=1 want=1 py nested-outer-call
-MISS got=0 want=1 py nested-dict-args
-ok   got=1 want=1 py prior-closed-group
-ok   got=0 want=0 py prior-unclosed-sibling-null
-ok   got=0 want=0 py later-stmt-flag-null
-MISS got=0 want=1 py quote-across-line
-MISS got=0 want=1 py closer-in-string-before-pr
-ok   got=1 want=1 mjs wrap-after-gh
-ok   got=1 want=1 mjs wrap-after-pr
-ok   got=1 want=1 mjs wrap-after-merge
-ok   got=1 want=1 mjs nested-outer-call
-MISS got=0 want=1 mjs nested-dict-args
-ok   got=1 want=1 mjs prior-closed-group
-ok   got=0 want=0 mjs prior-unclosed-sibling-null
-ok   got=0 want=0 mjs later-stmt-flag-null
-MISS got=0 want=1 mjs quote-across-line
-MISS got=0 want=1 mjs closer-in-string-before-pr
-MISS got=0 want=1 py py-comment-paren-before-pr
-MISS got=0 want=1 py py-comment-closer-before-pr
-MISS got=0 want=1 py py-comment-closer-after-merge
-ok   got=1 want=1 py py-triple-before
-MISS got=0 want=1 py py-exploded-trailing-comma
-MISS got=0 want=1 py py-blank-in-bracket
-ok   got=1 want=1 py py-blank-after-pr
-MISS got=0 want=1 mjs js-line-comment-closer
-MISS got=0 want=1 mjs js-block-comment-closer-before
-MISS got=0 want=1 mjs js-block-comment-closer-after
-ok   got=1 want=1 mjs js-backtick-closer-after
-MISS got=0 want=1 mjs js-backtick-closer-before
-MISS got=0 want=1 mjs js-backtick-multiline-before
-ok   got=1 want=1 mjs js-template-program
-MISS got=0 want=1 mjs js-regex-closer
-ok   got=1 want=1 sh sh-continuation
-MISS got=0 want=1 sh sh-array
-ok   got=1 want=1 sh sh-comment-paren
-MISS got=0 want=1 sh sh-case-paren
-ok   got=1 want=1 sh sh-closer-in-dq-after
-ok   got=0 want=0 py null-view-wrapped
-ok   got=0 want=0 py null-sibling-table-later
-ok   got=0 want=0 md null-prose-md
-ok   got=0 want=0 py null-earlier-stmt-flag
-ok   got=0 want=0 py null-earlier-open-bracket-flag
-ok   got=0 want=0 py null-enclosing-call-earlier-flag
+== guard 4aad9c1175318dec0b90da4113259c3ddb38309f.mjs
+MISS "case arm" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "case arm" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "case arm" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "case arm" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "case arm" f.sh "gh pr merge 9 -t s ;;"
+MISS "case arm" f.sh "gh pr merge 9 -t s"
+MISS "case arm" f.md "gh pr merge 9 -t s ;;"
+MISS "case arm" f.md "gh pr merge 9 -t s"
+MISS "case arm" f.sh "gh pr merge 9 --body b ;;"
+MISS "case arm" f.sh "gh pr merge 9 --body b"
+MISS "case arm" f.md "gh pr merge 9 --body b ;;"
+MISS "case arm" f.md "gh pr merge 9 --body b"
+MISS "arm a|b" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm a|b" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm a|b" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm a|b" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm a|b" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm a|b" f.sh "gh pr merge 9 -t s"
+MISS "arm a|b" f.md "gh pr merge 9 -t s ;;"
+MISS "arm a|b" f.md "gh pr merge 9 -t s"
+MISS "arm a|b" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm a|b" f.sh "gh pr merge 9 --body b"
+MISS "arm a|b" f.md "gh pr merge 9 --body b ;;"
+MISS "arm a|b" f.md "gh pr merge 9 --body b"
+MISS "arm *" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm *" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm *" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm *" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm *" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm *" f.sh "gh pr merge 9 -t s"
+MISS "arm *" f.md "gh pr merge 9 -t s ;;"
+MISS "arm *" f.md "gh pr merge 9 -t s"
+MISS "arm *" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm *" f.sh "gh pr merge 9 --body b"
+MISS "arm *" f.md "gh pr merge 9 --body b ;;"
+MISS "arm *" f.md "gh pr merge 9 --body b"
+MISS "arm glob [0-9]*" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm glob [0-9]*" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 -t s"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 -t s ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 -t s"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 --body b"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 --body b ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 --body b"
+PROBE refused=180 of 228; null refused=0 of 8
+== guard 880b667aa.mjs
+PROBE refused=228 of 228; null refused=0 of 8
+== guard 683dd52c.mjs
+MISS "case arm" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "case arm" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "case arm" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "case arm" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "case arm" f.sh "gh pr merge 9 -t s ;;"
+MISS "case arm" f.sh "gh pr merge 9 -t s"
+MISS "case arm" f.md "gh pr merge 9 -t s ;;"
+MISS "case arm" f.md "gh pr merge 9 -t s"
+MISS "case arm" f.sh "gh pr merge 9 --body b ;;"
+MISS "case arm" f.sh "gh pr merge 9 --body b"
+MISS "case arm" f.md "gh pr merge 9 --body b ;;"
+MISS "case arm" f.md "gh pr merge 9 --body b"
+MISS "arm a|b" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm a|b" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm a|b" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm a|b" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm a|b" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm a|b" f.sh "gh pr merge 9 -t s"
+MISS "arm a|b" f.md "gh pr merge 9 -t s ;;"
+MISS "arm a|b" f.md "gh pr merge 9 -t s"
+MISS "arm a|b" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm a|b" f.sh "gh pr merge 9 --body b"
+MISS "arm a|b" f.md "gh pr merge 9 --body b ;;"
+MISS "arm a|b" f.md "gh pr merge 9 --body b"
+MISS "arm *" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm *" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm *" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm *" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm *" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm *" f.sh "gh pr merge 9 -t s"
+MISS "arm *" f.md "gh pr merge 9 -t s ;;"
+MISS "arm *" f.md "gh pr merge 9 -t s"
+MISS "arm *" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm *" f.sh "gh pr merge 9 --body b"
+MISS "arm *" f.md "gh pr merge 9 --body b ;;"
+MISS "arm *" f.md "gh pr merge 9 --body b"
+MISS "arm glob [0-9]*" f.sh "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm glob [0-9]*" f.md "gh pr merge \"$n\" --squash --subject \"x\" ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge \"$n\" --squash --subject \"x\""
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 -t s ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 -t s"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 -t s ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 -t s"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 --body b ;;"
+MISS "arm glob [0-9]*" f.sh "gh pr merge 9 --body b"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 --body b ;;"
+MISS "arm glob [0-9]*" f.md "gh pr merge 9 --body b"
+PROBE refused=180 of 228; null refused=0 of 8

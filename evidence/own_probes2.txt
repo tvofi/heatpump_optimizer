@@ -1,33 +1,45 @@
-== e73424f2
-PASSES  sh sh case arm, one line
-PASSES  md sh case arm, one line, .md
-refused sh sh case arm, (a) form control
-PASSES  sh sh stray closer then call
-PASSES  py py blank line inside argv before pr
-PASSES  mjs js blank line inside argv before pr
-PASSES  py py blank line, control: flag in sibling
-PASSES  mjs js block comment with closer after merge
-refused mjs js block comment no closer after merge (control)
-PASSES  mjs js regex closer
-== 683dd52c
-PASSES  sh sh case arm, one line
-PASSES  md sh case arm, one line, .md
-refused sh sh case arm, (a) form control
-PASSES  sh sh stray closer then call
-PASSES  py py blank line inside argv before pr
-PASSES  mjs js blank line inside argv before pr
-PASSES  py py blank line, control: flag in sibling
-PASSES  mjs js block comment with closer after merge
-refused mjs js block comment no closer after merge (control)
-PASSES  mjs js regex closer
-== d0d35231
-PASSES  sh sh case arm, one line
-PASSES  md sh case arm, one line, .md
-refused sh sh case arm, (a) form control
-PASSES  sh sh stray closer then call
-PASSES  py py blank line inside argv before pr
-PASSES  mjs js blank line inside argv before pr
-PASSES  py py blank line, control: flag in sibling
-PASSES  mjs js block comment with closer after merge
-refused mjs js block comment no closer after merge (control)
-PASSES  mjs js regex closer
+== guard 4aad9c1175318dec0b90da4113259c3ddb38309f.mjs
+MISS    f.md "1) gh pr merge 9 --subject x"
+MISS    f.md "a) run `gh pr merge 9 --subject x`"
+MISS    f.md "- step 2) `gh pr merge 9 -t x`"
+MISS    f.md ":) gh pr merge 9 --subject x"
+refused f.md "(see above) gh pr merge 9 --subject x"
+refused f.mjs "foo(() => {\n  a()\n}); execSync(\"gh pr merge 9 --subject x\")"
+refused f.mjs "}) ; execSync(\"gh pr merge 9 --subject x\")"
+refused f.py "x = [\n 1,\n]; os.system(\"gh pr merge 9 --subject x\")"
+refused f.py "x = (1\n); os.system(\"gh pr merge 9 -t x\")"
+MISS    f.sh "x=(\n a\n); gh pr merge 9 --subject x"
+refused f.sh "echo \"a)\" ; gh pr merge 9 --subject x"
+refused f.sh "echo 'b)' ; gh pr merge 9 -t x"
+refused f.sh "# step 1) then\ngh pr merge 9 --subject x"
+PROBE2 refused=8 of 13
+== guard 880b667aa.mjs
+refused f.md "1) gh pr merge 9 --subject x"
+refused f.md "a) run `gh pr merge 9 --subject x`"
+refused f.md "- step 2) `gh pr merge 9 -t x`"
+refused f.md ":) gh pr merge 9 --subject x"
+refused f.md "(see above) gh pr merge 9 --subject x"
+refused f.mjs "foo(() => {\n  a()\n}); execSync(\"gh pr merge 9 --subject x\")"
+refused f.mjs "}) ; execSync(\"gh pr merge 9 --subject x\")"
+refused f.py "x = [\n 1,\n]; os.system(\"gh pr merge 9 --subject x\")"
+refused f.py "x = (1\n); os.system(\"gh pr merge 9 -t x\")"
+refused f.sh "x=(\n a\n); gh pr merge 9 --subject x"
+refused f.sh "echo \"a)\" ; gh pr merge 9 --subject x"
+refused f.sh "echo 'b)' ; gh pr merge 9 -t x"
+refused f.sh "# step 1) then\ngh pr merge 9 --subject x"
+PROBE2 refused=13 of 13
+== guard 683dd52c.mjs
+MISS    f.md "1) gh pr merge 9 --subject x"
+MISS    f.md "a) run `gh pr merge 9 --subject x`"
+MISS    f.md "- step 2) `gh pr merge 9 -t x`"
+MISS    f.md ":) gh pr merge 9 --subject x"
+refused f.md "(see above) gh pr merge 9 --subject x"
+refused f.mjs "foo(() => {\n  a()\n}); execSync(\"gh pr merge 9 --subject x\")"
+refused f.mjs "}) ; execSync(\"gh pr merge 9 --subject x\")"
+refused f.py "x = [\n 1,\n]; os.system(\"gh pr merge 9 --subject x\")"
+refused f.py "x = (1\n); os.system(\"gh pr merge 9 -t x\")"
+MISS    f.sh "x=(\n a\n); gh pr merge 9 --subject x"
+refused f.sh "echo \"a)\" ; gh pr merge 9 --subject x"
+refused f.sh "echo 'b)' ; gh pr merge 9 -t x"
+refused f.sh "# step 1) then\ngh pr merge 9 --subject x"
+PROBE2 refused=8 of 13
