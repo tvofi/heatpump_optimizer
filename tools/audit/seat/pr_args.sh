@@ -203,7 +203,9 @@ pr_wait() { # <pid> <log>: wait for the asynchronous pusher -- a stop signal int
 # land undispositioned: the self-test runs this census on the tree. Each path the
 # grep returns has one disposition in PR_PUSHERS:
 #   runner     runs a push or prepr: it installs pr_exit_trap, and every line
-#              running "$_push" or "$prepr" runs it asynchronously (`&`);
+#              running "$_push" or "$prepr" runs it asynchronously (`&`); one
+#              that takes pr_branch_lock runs each such line under pr_push_hold,
+#              so the lock outlives that push (R10-UPDATE-PR-SIGNALS);
 #   runner-py  a Python runner: a stop TERMs, never SIGKILLs, the tool whose own
 #              EXIT trap reaps the tree (`.terminate()`), and its entry calls
 #              stop_on_signal(), so a TERM/HUP to it unwinds to that handler;
@@ -252,6 +254,9 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
         elif printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' \
              | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
           echo "OPEN $f runner: a push runs in the foreground, so an INT waits behind it"; bad=1
+        elif printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_branch_lock[[:space:]]' \
+             && printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' | grep -qv 'pr_push_hold'; then
+          echo "OPEN $f runner: a push under the branch lock holds no push lock, so the lock can end before it"; bad=1
         else echo "ok   $f runner"; fi ;;
       runner-py)
         if printf '%s\n' "$txt" | grep -qF '.terminate()' && printf '%s\n' "$txt" | grep -qE '^[[:space:]]+stop_on_signal\(\)'; then
@@ -610,6 +615,12 @@ STUB
   census "" "" tools/audit/seat/handoff_push.sh '/bash "\$_push"/s/ &$//'
   [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/handoff_push.sh runner: a push runs in the foreground" "$t/census"
   ck "  a runner whose push runs in the foreground is refused (its \`2>&1\` backgrounds nothing)" $?
+  census "" "" tools/audit/seat/update_pr.sh 's/{ pr_push_hold; //'
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/update_pr.sh runner: a push under the branch lock holds no push lock" "$t/census"
+  ck "  a runner under the branch lock whose push holds no push lock is refused" $?
+  census "" "" tools/audit/seat/update_pr.sh '/^pr_branch_lock /d; s/{ pr_push_hold; //'
+  [ "$(cat "$t/rc")" = 0 ]
+  ck "  null control: the same runner without its branch lock needs no push lock" $?
   arm "update_pr: two arguments refuse, naming the count" arity \
     "update_pr: REFUSE: 2 argument(s), at least 3 needed" update_pr.sh fix/x "$code"
   arm "update_pr: an abbreviated code sha refuses as not 40-hex" hex \
