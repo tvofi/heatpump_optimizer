@@ -9670,7 +9670,9 @@
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/train.sh"
    ],
-   "carry": [],
+   "carry": [
+    "tools/audit/seat/merge_train.py: take the approval's review-event CI run off the merge's critical path. Every `app_approve.sh` approval starts a `CI review pr=<n>` run of `ci.yml` (`pull_request_review`), and the merge is refused by base-branch policy until that run concludes: runs of 66 s, 74 s and 76 s for #2709, #2741 and #2710 on 2026-10-24. `land` then pays two refused 30-s attempts, about 1.8 min per merge. (1) Approve each entry once its head is fixed at admission, while the proof or the earlier entries' merges run, not inside `land` just before the merge. (2) Post no second approval when the approver's APPROVED review already sits at exactly that head: `app_approve.sh` always POSTs, and #2741 was approved twice around a `[MAIN-MOVED]` re-prove, starting a second review run. A head that moved still gets a fresh approval at its new head. (3) Before the first merge attempt, wait for the head's review-event run to conclude, instead of the blind 30-s retry grain (a poll on the check-runs at the head, or `mergeStateStatus`). Controls: in a batch of 2 or more, every entry's approve-to-merge gap is under 20 s and its refused-attempt count is 0; one review run per entry per head; the null is a single-entry batch approved inside `land` (today's path), which still shows about 70 to 110 s. A self-test row and a mutant for the no-second-approval check."
+   ],
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-train-upgrade"
