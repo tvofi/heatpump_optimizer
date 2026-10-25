@@ -1,0 +1,24 @@
+19674e803 tvofi
+Merge commit '2c5b1b6123166b3817fdde82ff8caf64ed23feae' into fix/audit-r10-roster
+
+2c5b1b612 tvofi
+roster_edit set-after R10-ORCH-BEATD (tools/audit/seat/roster_edit.py)
+
+db9badf4c tvofi
+record: the delivery row for #2797
+
+6f64a9923 tvofi
+Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+
+f57b6d52e tvofi
+roster_edit append-carry R10-MERGE-SUBJECT-CASEARM (tools/audit/seat/roster_edit.py)
+
+e78d7dedd tvofi
+roster_edit append-carry R10-ORCH-BEATD (tools/audit/seat/roster_edit.py)
+
+c6097875c tvofi
+roster_edit append-carry R10-FLOW-ROSTER-FREEZE (tools/audit/seat/roster_edit.py)
+
+461550d9a tvofi
+roster_edit set-after R10-FLOW-ROSTER-FREEZE (tools/audit/seat/roster_edit.py)
+
