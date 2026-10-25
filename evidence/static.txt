@@ -1,18 +1,2 @@
-# claim/version files, three-dot from merge base
-(empty = untouched)
-# merge-tree vs origin/main c176ee55de7c658b0b870182c5dd55d0843ad8f7
-9220a0a7cc8f82436680238093806aa83c66dfc0
-exit 0
-# closures.json diff
-diff --git a/tests/closures.json b/tests/closures.json
-index 94aaa2037..f92b44beb 100644
---- a/tests/closures.json
-+++ b/tests/closures.json
-@@ -3577,6 +3577,7 @@
-    "dev/audit/harnesses/r10_field_coverage_paths.sh",
-    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
-    "dev/audit/harnesses/r10_ftol_cell_search.py",
-+   "dev/audit/harnesses/r10_gate_defer_race.py",
-    "dev/audit/harnesses/r10_gate_priority_base.py",
-    "dev/audit/harnesses/r10_gh_read_retry_mutants.py",
-    "dev/audit/harnesses/r10_i1_action_guards.py",
+diff-exit=0
+vs-fixer-base quiet exit=0

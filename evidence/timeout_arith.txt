@@ -1,0 +1,2 @@
+jobs=31 pre max=19 med=15 judge max=8 med=7 post max=3
+worst = 19 + 720 (GATE_WAIT_MAX_S, last sleep ends <=720) + 8 (final read+publish) + 3 = 750 s vs 900 s timeout; spare 150 s
