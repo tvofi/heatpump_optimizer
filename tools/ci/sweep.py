@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""`gate.py --sweep --run <id>`: re-judge the older `gate` jobs once a newer one is green.
+"""`gate.py --sweep --run <id>`: re-judge the other red `gate` jobs at a head once one is green.
 
 DESIGN-P2.md 4.3 items 1 and 4. Run for a `CI` completion V; acts only when V's latest
 `gate` is green at the PR's LIVE head and covers the newest event (V's gate started
-after every run at the head was created). Then, for every OLDER `ci.yml` run at the head:
+after every run at the head was created). Then, for every OTHER `ci.yml` run at the head,
+lower or higher id (an id orders nothing: GitHub numbers a same-second push and body edit
+out of order, and prelude.waits_on makes the higher-id code run's gate the one that waits):
   - its latest `gate` completed and not `success` -> re-run that `gate` job;
   - its `gate` attempt requested and not completed (N5-4: queued, waiting, pending,
     requested, in_progress) -> poll, and re-run it if it completes red.
@@ -112,7 +114,7 @@ class Sweep:
             self.out(f"SKIP run {run_id}: its gate is not green and newest-covering; a newer run's sweep owns convergence")
             return 0
         polled = {}
-        for r in sorted((r for r in runs if r["id"] < v["id"]), key=lambda r: r["id"]):
+        for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
             g = self.gate_of(r["id"])
             if g and g.get("status") == "completed":
                 self.judge(r, g, "completed red")
