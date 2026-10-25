@@ -213,7 +213,9 @@ pr_wait() { # <pid> <log>: wait for the asynchronous pusher -- a stop signal int
 # never a pattern -- when the self-test exits, when the bound
 # PR_SELFTEST_SECONDS (default 1200) passes, or once the supervisor is gone, a
 # SIGKILLed one too: a watchdog outside the session reads a pipe only the
-# supervisor holds, whose EOF says so. A group or session kill is safe here and
+# supervisor holds, whose EOF says so. The watchdog is a session of its own as
+# well, so a SIGKILL to the caller's group, which takes the supervisor, never takes
+# it too (round 2 left 11 unbounded survivors that way). A group or session kill is safe here and
 # only here: the session is the self-test's own (pr_kill's never-a-group is for a
 # pusher's tree, which shares its group with its caller). A self-test re-execs
 # itself through it once (PR_BOUND guards the second entry), so `--self-test`
@@ -249,6 +251,7 @@ if kid == 0:
 dog = os.fork()
 if dog == 0:  # outside the session: at the deadline, or at EOF once the supervisor is gone, a SIGKILLed one too
   os.close(w); os.close(tr)
+  os.setsid()  # mut:dogsid
   if not select.select([r], [], [], lim)[0]:
     sys.stderr.write("%s: BOUND: the self-test passed %d s, so its whole session is ended\n" % (name, lim)); os.write(tw, b"T")
   end(kid)  # mut:dogend
@@ -1123,6 +1126,42 @@ BCHILD
   ck "pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog" "$( [ "$(cat "$t/bup") $(cat "$t/bstate")" = "up free" ] && echo 0 || echo 1 )"
   bndkill dogend 2>/dev/null
   ck "  mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on" "$( [ "$(cat "$t/bstate")" = held ] && echo 0 || echo 1 )"
+  # A SIGKILL to the caller's whole group (a stopped loop, a daemonizer, a reap by group) takes the
+  # supervisor with it; the watchdog, a session of its own, is out of its reach and ends the self-test.
+  # The caller is a session of its own here, so the group kill reaches nothing of this self-test's.
+  sidlive() { # <sid>: how many live processes the session holds; a zombie holds nothing
+    python3 -I -c 'import os, sys
+n = 0
+for d in os.listdir("/proc"):
+  try:
+    st = open("/proc/%s/stat" % d).read().rsplit(")", 1)[1].split()
+    n += int(st[3]) == int(sys.argv[1]) and st[0] != "Z"
+  except (OSError, IndexError, ValueError): pass
+print(n)' "$1"
+  }
+  bndgrp() { # <mutant>: writes the child's session survivors and the caller's to $t/bgrp
+    local up k=0 csid
+    copyin "$1"; rm -f "$t/bl" "$t/bm"
+    PR_SELFTEST_SECONDS=60 python3 -I -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
+      bash -c 'p=$1; shift; . "$p"; pr_bounded bt bash "$@"' bnd "$m/tools/audit/seat/pr_args.sh" \
+      "$t/bchild.sh" "$t/bl" "$t/bm" wait 2>/dev/null & up=$!
+    while [ ! -s "$t/bm" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"
+    csid=$(python3 -I -c 'import os, sys; print(os.getsid(int(sys.argv[1])))' "$(cat "$t/bm")" 2>/dev/null)
+    kill -KILL -- "-$up"; wait "$up" 2>/dev/null
+    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    lockstate "$t/bl" > "$t/bstate"; echo "$(sidlive "${csid:-0}") $(sidlive "$up")" > "$t/bgrp"; bndend
+  }
+  if [ -d /proc ]; then
+    bndgrp - 2>/dev/null
+    ck "pr_bounded: a SIGKILL to its caller's whole group still ends the self-test, 0 survivors in either session" \
+       "$( [ "$(cat "$t/bup") $(cat "$t/bstate") $(cat "$t/bgrp")" = "up free 0 0" ] && echo 0 || echo 1 )"
+    bndgrp dogsid 2>/dev/null
+    ck "  mutant mut:dogsid (its line deleted): the group kill takes the watchdog too and the self-test runs on" \
+       "$( [ "$(cat "$t/bstate")" = held ] && echo 0 || echo 1 )"
+  else
+    echo "  skip pr_bounded: the group-KILL arm counts a session through /proc, which this host lacks"
+  fi
   # A `# mut:` line is a whole statement: copyin deletes one line, so a predicate continued from the
   # line above leaves that line running on into the next (round 2's first mut:fggc did, and its arm
   # read the broken copy as a pass). mutshape <files...>: exit 1 naming each such line.
