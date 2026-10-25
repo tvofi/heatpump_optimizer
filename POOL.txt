@@ -37,3 +37,4 @@ dispatch/fixer-r10-demand-overbook-r5
 dispatch/fixer-r10-thermal-power-option-r3
 dispatch/fixer-r10-thermal-power-option-r4
 dispatch/fixer-r10-demand-overbook-r6
+dispatch/fixer-r10-flow-autotrain-r4
