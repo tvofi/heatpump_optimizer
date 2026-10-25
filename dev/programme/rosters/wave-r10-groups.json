@@ -8287,9 +8287,7 @@
     2505
    ],
    "fixes": [],
-   "after": [
-    "R10-ORCH-LEDGER"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/bus.sh"
    ],
