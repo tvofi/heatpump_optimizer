@@ -64,8 +64,8 @@ coord_dhw  # R10-LEARNER-ETA: data.learner_progress and the model status sensor'
 coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
 coord_minimal  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
 coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-dhw_cold_tank  # R10-ARCH-SHAPES D8-s1-01: step 26, a sub-running space share the plan calls off, is idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 2 leaves
-horizon_48h  # R10-ARCH-SHAPES D8-s1-01: step 153, a sub-running space share the plan calls off, is idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 2 leaves
+away_setback  # R10-ARCH-SHAPES D8-s1-01: steps 40 and 44, a sub-running space share the plan calls off, are idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 4 leaves, Linux x86_64 runner
+valve_storage_small_tank  # R10-ARCH-SHAPES D8-s1-01: step 77, a sub-running space share the plan calls off, is idle to the space classifier (scheduled -> idle_coasting); 1 leaf, Linux x86_64 runner
 # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
 # coord fixture's data gains that one key and its 24 leaves (house counting at
 # zero samples toward its gate, the other three off, no

@@ -18780,6 +18780,20 @@ R.check(
     ).solar_radiation is None,
     "a legacy sample (no field) must load as unknown, not as zero",
 )
+R.check(
+    "a stored sample's numbers go through const.finite_float: a bool or a "
+    "non-finite value loads as unknown (D7-s2-58 class)",
+    AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "solar_radiation": True}
+    ).solar_radiation is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "nan"}
+    ).actual_temp is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "21.5"}
+    ).actual_temp == 21.5,
+    "True used to load as 1.0",
+)
 
 
 def _rs_clip(**over):
@@ -20940,6 +20954,23 @@ R.check(
     and _cs6._current_action["dhw_reason"] == _cs6_sysid_reason
     and _cs6._current_action["mode"] == "system_identification",
     repr(_cs6._current_action),
+)
+
+# D8-s1-01 class sweep: the experiment's on flag is the pump's running rule
+# (planned_draw_runs, MIN_RUNNING_DRAW_KW), not the 0.05 kW channel line. Null
+# control: the 2.0 kW command above is on.
+_cs6_low = _t2_coord()
+_cs6_low._current_action = {"power": 1.0, "space_reason": None, "dhw_reason": None}
+_cs6_low._sysid.phase = PHASE_ARMED
+_cs6_low._sysid.step = lambda **kw: 0.07
+_sysid_cycle(_cs6_low, np.array([1.0]))
+R.check(
+    "an experiment command under the running floor does not mark the pump on "
+    "(D8-s1-01)",
+    _cs6._current_action["heat_pump_on"] is True
+    and _cs6_low._current_action["heat_pump_on"] is False,
+    f"2.0 kW -> {_cs6._current_action.get('heat_pump_on')!r}, "
+    f"0.07 kW -> {_cs6_low._current_action.get('heat_pump_on')!r}",
 )
 
 # --- #40 the month freeze --------------------------------------------------------
