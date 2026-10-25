@@ -284,6 +284,48 @@ class DrawRange:
         return out
 
 
+def running_kw(draw: DrawRange | None, drawn_kw: float) -> float:
+    """``drawn_kw`` where it is the compressor running, else ``0.0``.
+
+    At or below ``RUNNING_FLOOR_KW``, or ``IDLE_MARGIN`` times the learned
+    idle draw, the meter reads standby, circulation and the controller,
+    which heat nothing.
+    """
+    idle = None if draw is None else draw.idle_kw()
+    floor = RUNNING_FLOOR_KW if idle is None else max(RUNNING_FLOOR_KW, IDLE_MARGIN * idle)
+    return float(drawn_kw)
+
+
+def space_share(space_kw: float, dhw_kw: float) -> float:
+    """The space circuit's share of one metered sum, by the plan's own split.
+
+    A plan that asked nothing gives the whole reading to space.
+    """
+    total = space_kw + dhw_kw
+    return space_kw / total if total > 1e-6 else 1.0
+
+
+def space_draw_kw(
+    draw: DrawRange | None,
+    drawn_kw: float | None,
+    split: tuple[float, float],
+    *,
+    shared: bool,
+    space_served: bool,
+) -> float | None:
+    """The space circuit's metered draw over one interval, or ``None``.
+
+    The running draw apportioned by ``split``, the plan's (space, hot water)
+    ask as the pump could serve it. ``None`` with no reading, or one a
+    resistive element ``shared``; ``0.0`` while the pump's mode heats no
+    rooms. Not gated on the pump drawing what it was asked: a pump drawing
+    less is what this measures.
+    """
+    if drawn_kw is None or shared:
+        return None
+    return running_kw(draw, drawn_kw) * space_share(*split) if space_served else 0.0
+
+
 def _stored_idle(raw: Any) -> list[float]:
     """The readable idle readings of a stored record; a bad one is dropped."""
     return [
