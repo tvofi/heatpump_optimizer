@@ -891,8 +891,8 @@ B
   expect "a merge verdict the poster refused adds nothing to the train" $?
   out=$(HPO_BUS_TRAIN_CMD="bash $W/addstub" run post 9)
   echo "$out" | grep -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
-  ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
-  expect "null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict adds nothing (the add is off by default)" $?
+  [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && [ ! -s "$W/train-argv" ]
+  expect "null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict prints only its BUS posted line and adds nothing (the add is off by default)" $?
 
   git -C "$W/seat" push -q origin :refs/heads/handoff/t1
   out=$(run watch --once)

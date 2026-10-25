@@ -78,7 +78,9 @@ mut R3 $F '            if view.get("baseRefName") != self.base:' '            if
 mut R4 $F '                if "CARRY: yes" not in o:
                     return (f"carry:' '                if False:
                     return (f"carry:'
-mut R5 $F '            if f"{ROW_DIR}/{pr}.md" not in files:' '            if False:'
+mut R5 $F '            if f"{ROW_DIR}/{pr}.md" not in files:
+                return f"row: #{pr} has no' '            if False:
+                return f"row: #{pr} has no'
 mut R6 $F '            if raises and not held:' '            if False:'
 mut R7 $F '            if pol and not self.mandate_id():' '            if False:'
 # The sweep (sweep, AUTO_TRAIN_FLAGS) and train_add's one-train rule under it.
