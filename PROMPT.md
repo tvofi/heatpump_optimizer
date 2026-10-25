@@ -1,0 +1,20 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-flow-mq-probe, at head dfcd8d9be1dab28cfe52f684764befd1e19291de. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch dfcd8d9be1dab28cfe52f684764befd1e19291de for the base you were given.
+Output: push the code to refs/heads/handoff/r10-flow-mq-probe, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-flow-mq-probe <body.md>`, which pushes refs/heads/handoff-body/r10-flow-mq-probe; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: tests.yml refuses a queue commit with no second parent and pins its base to the queue base, and pr-contract.yml derives the pull request from the queue ref. A queue would test the merged result once per pitch while the reviewed head stays unchanged, which removes the head-moved re-reviews and most main absorbs. Probe on a throwaway branch under a throwaway ruleset (the pattern HANDOVER records for the stamp's step 5): merge method merge, per decision 0010. Record, for every context main-protect-checks requires, whether it reports on merge_group, in both arms. Never touch main-protect-checks: the probe's report goes to the owner, who decides.
+
+After: R10-CI-LAYOUT-P2
+
+Seam note: R10-FLOW-RECORD-PITCH (already running, topic r10-flow-record-pitch) owns the record-autofix job and tools/audit/seat/record_row.py. You (R10-FLOW-MQ-PROBE) own tests.yml's merge_group handling and .github/workflows/pr-contract.yml. Do not edit the record-autofix job or record_row.py; if your change needs one, say so in your result.
+
+Carries (from the roster at 23b0a4cb; every one binds you):
+
+[0] HANDOVER trap: a required context that never reports blocks every merge, in either direction.
+
+[1] Pre-study: the Lean flow pre-study, section K9.
+
+[2] tvofi 2026-10-24 card 4 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this probe runs right after R10-CI-LAYOUT-P2 closes, before the groups that build head-carry and absorb machinery, and its report ends with an explicit adopt-or-decline recommendation for each held group: R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY, R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE and part (a) of R10-FLOW-BODY-ONLY. The orchestrator takes the owner's decision on that report and closes each group the queue makes moot, so this group's merge is not the release of the held groups; the roster edit that closes or releases them is. The after-edges on those groups hold them until this group is done.
