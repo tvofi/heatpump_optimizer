@@ -1,0 +1,9 @@
+    needs: prelude
+    needs: prelude
+  gate:
+    needs: [prelude, pr-contract]
+--
+2. Measure with the **finder's** harness, not the fixer's: at the baseline
+   SHA and at the PR head, printing your own `RESULT` lines. A fixer who
+  gate:
+    needs: [prelude, pr-contract]
