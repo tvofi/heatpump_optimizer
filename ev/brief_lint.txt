@@ -1,0 +1,2 @@
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+TOTAL: 0 error(s) across 48 file(s)
