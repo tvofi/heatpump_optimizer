@@ -1,0 +1,38 @@
+RESULT first_refresh_light_reaches_writers=_async_learn_price_shape
+RESULT setup_passes_skip_first_solve=1
+RESULT baseline_assignments__last_buffer_temp_sample=1 (1 init + 1 inside _async_learn_buffer_cooling expected)
+RESULT baseline_assignments__pending_prediction=1 (1 init + 1 at the end of _record_accuracy expected)
+RESULT baseline_assignments_dhw_last_temp_sample=1 (1 init + 1 inside async_learn_dynamics expected)
+RESULT buffer_cooling_closed_by=_async_learn_buffer_cooling:previous_temp_is_None_or_previous_time_is_None(_last_buffer_temp_sample_init_None,_assigned_only_inside_it)
+RESULT buffer_cooling_fresh_call_writes=0
+RESULT buffer_cooling_gate_open_writer_wrote=1
+RESULT buffer_cooling_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT dhw_dynamics_closed_by=DhwProfileLearner.async_learn_dynamics:previous_temp_is_None_or_previous_time_is_None(last_temp_sample_init_None,_assigned_only_inside_it)
+RESULT dhw_dynamics_fresh_call_writes=0
+RESULT dhw_dynamics_gate_open_writer_wrote=1
+RESULT dhw_dynamics_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT legionella_cycle_closed_by=LegionellaGuard.async_track_cycle:commanded_false_and_boost_active_false(_current_action_init_{},_boost_active_init_False,_plan_adopted_after_learners)
+RESULT legionella_cycle_fresh_call_writes=0
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+RESULT legionella_cycle_gate_open_writer_wrote=1
+RESULT legionella_cycle_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT price_shape_writer_wrote=1
+RESULT price_shape_lost=0 null=0 concurrent_lost=0 wrote_before_read=0
+RESULT price_shape_refold_next_cycle_recovers=0 (lost_before=0)
+RESULT energy_totals_closed_by=_record_accuracy:pending_is_None,_then_0.05<=elapsed<=2.0(_pending_prediction_init_None,_first_set_at_end_of__record_accuracy)
+RESULT energy_totals_fresh_call_writes=0
+RESULT energy_totals_gate_open_writer_wrote=1
+RESULT energy_totals_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT ledger_closed_by=_record_accuracy:pending_is_None,_then_0.05<=elapsed<=2.0(_pending_prediction_init_None,_first_set_at_end_of__record_accuracy)
+RESULT ledger_fresh_call_writes=0
+RESULT ledger_gate_open_writer_wrote=1
+RESULT ledger_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT accuracy_closed_by=_record_accuracy:pending_is_None,_then_0.05<=elapsed<=2.0(_pending_prediction_init_None,_first_set_at_end_of__record_accuracy)
+RESULT accuracy_fresh_call_writes=0
+RESULT accuracy_gate_open_writer_wrote=1
+RESULT accuracy_gate_open_lost=1 null=0 concurrent_lost=1 wrote_before_read=1
+RESULT extra_legionella_observer_writer_wrote=1
+RESULT extra_legionella_observer_lost=0 null=0 concurrent_lost=0 wrote_before_read=0
+rc=0

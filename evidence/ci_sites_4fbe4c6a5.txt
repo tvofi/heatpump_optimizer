@@ -1,0 +1,25 @@
+custom_components/heatpump_optimizer/coordinator.py:2245 RETURN_DEL: return changes
+custom_components/heatpump_optimizer/coordinator.py:2803 RETURN_DEL: return round(params.house_heat_loss_base * scale, 4)
+custom_components/heatpump_optimizer/coordinator.py:2855 CMP_BOUND*2: if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
+custom_components/heatpump_optimizer/coordinator.py:2855 GUARD_OFF: if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
+custom_components/heatpump_optimizer/coordinator.py:2863 CLAMP_DROP: return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0
+custom_components/heatpump_optimizer/coordinator.py:2863 RETURN_DEL: return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0
+custom_components/heatpump_optimizer/coordinator.py:3210 RETURN_DEL: return thermal_params, OptimizationConfig.from_mapping(config)
+custom_components/heatpump_optimizer/coordinator.py:5443 GUARD_OFF: if previous_state is None or previous_time is None or power is None:
+custom_components/heatpump_optimizer/coordinator.py:5446 GUARD_OFF: if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HO
+custom_components/heatpump_optimizer/coordinator.py:5448 RETURN_DEL: return FabricInterval(previous_state, previous_time, now, dt_h, power)
+custom_components/heatpump_optimizer/coordinator.py:5490 GUARD_OFF: if interval is None or observed is None:
+custom_components/heatpump_optimizer/coordinator.py:5627 GUARD_OFF: if interval is None or observed is None:
+custom_components/heatpump_optimizer/coordinator.py:6270 GUARD_OFF: if resets_fabric:
+custom_components/heatpump_optimizer/coordinator.py:6278 GUARD_OFF: if "ecl110_displace_min" in params:
+custom_components/heatpump_optimizer/coordinator.py:6280 GUARD_OFF: if "ecl110_displace_max" in params:
+custom_components/heatpump_optimizer/coordinator.py:6292 GUARD_OFF: if CONF_DHW_COOLING_RATE in params:
+custom_components/heatpump_optimizer/coordinator.py:6304 GUARD_OFF: if resets_fabric:
+custom_components/heatpump_optimizer/coordinator.py:6306 GUARD_OFF: if CONF_DHW_COOLING_RATE in params:
+custom_components/heatpump_optimizer/coordinator.py:6479 GUARD_OFF: if _ctx_of(self)._thermal_params.two_tank_modelled:
+custom_components/heatpump_optimizer/dhw_learning.py:158 CLAMP_DROP: raw = np.clip(np.asarray(profile if usable else self._params().dhw_hourl
+custom_components/heatpump_optimizer/presets.py:301 RETURN_DEL: return min(taus), max(taus)
+custom_components/heatpump_optimizer/thermal_model.py:565 GUARD_OFF: if self.two_zone_enabled:
+custom_components/heatpump_optimizer/thermal_model.py:567 RETURN_DEL: return self.heat_loss_coefficient
+custom_components/heatpump_optimizer/thermal_model.py:579 GUARD_OFF: if self.two_zone_enabled:
+custom_components/heatpump_optimizer/thermal_model.py:583 RETURN_DEL: return zones + self.slab_thermal_mass
