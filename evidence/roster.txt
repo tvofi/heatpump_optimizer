@@ -1,0 +1,38 @@
+===== origin/main c9cbe6b45
+R10-ROUND-PLAYBOOK stage= not-started pr= None carries= 1
+R10-FLOW-JIDOKA stage= in-progress pr= None carries= 21
+R10-ORCH-REVIEW-PACKET stage= not-started pr= None carries= 3
+R10-ORCH-ROSTER-SCHEMA stage= not-started pr= None carries= 17
+R10-FLOW-DESIGN-STAGES stage= not-started pr= None carries= 12
+R10-ARCH-SHAPES stage= in-progress pr= 2819 carries= 8
+R10-ADVISOR-RESIDUE stage= not-started pr= None carries= 9
+R10-GATE-YIELD stage= done pr= None carries= 1
+R10-FLY-YIELD-GUARD stage= done pr= None carries= 3
+-- cited carries (0-based index, as earlier batches cite them)
+R10-FLOW-JIDOKA 11 P-Q (triage batch 9): prepr.sh --body-check (what body_push.sh and open_pr's prepr step 7 run) never calls carry_audit.py check --body, which pr-contract runs and body_patch.sh runs after the open (#2
+R10-FLOW-JIDOKA 16 (triage: dev/programme/triage/s6-batch8.md#P67) `prepr.sh --fill-red` (passed by `body_push.sh` and `open_pr.sh`): when step 6d lists unpinned sites and `## Red checks` lacks `mutation`, insert one li
+R10-FLOW-JIDOKA 18 (triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tests ref_privacy --check'): three CI reds 
+R10-ORCH-ROSTER-SCHEMA 16 From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.py:205-206`) tests only `DONE_STAGES` (`("done", "rca-done")`, line 33), so `carry_audit.py`'s destination check (lines 330-334) p
+-- R10-ROUND-PLAYBOOK carries
+0 tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing 
+===== handoff/audit-r10-roster 32ffe43c0
+R10-ROUND-PLAYBOOK stage= not-started pr= None carries= 5
+R10-FLOW-JIDOKA stage= in-progress pr= None carries= 21
+R10-ORCH-REVIEW-PACKET stage= not-started pr= None carries= 4
+R10-ORCH-ROSTER-SCHEMA stage= not-started pr= None carries= 21
+R10-FLOW-DESIGN-STAGES stage= not-started pr= None carries= 15
+R10-ARCH-SHAPES stage= in-progress pr= 2819 carries= 8
+R10-ADVISOR-RESIDUE stage= not-started pr= None carries= 9
+R10-GATE-YIELD stage= done pr= None carries= 1
+R10-FLY-YIELD-GUARD stage= done pr= None carries= 3
+-- cited carries (0-based index, as earlier batches cite them)
+R10-FLOW-JIDOKA 11 P-Q (triage batch 9): prepr.sh --body-check (what body_push.sh and open_pr's prepr step 7 run) never calls carry_audit.py check --body, which pr-contract runs and body_patch.sh runs after the open (#2
+R10-FLOW-JIDOKA 16 (triage: dev/programme/triage/s6-batch8.md#P67) `prepr.sh --fill-red` (passed by `body_push.sh` and `open_pr.sh`): when step 6d lists unpinned sites and `## Red checks` lacks `mutation`, insert one li
+R10-FLOW-JIDOKA 18 (triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tests ref_privacy --check'): three CI reds 
+R10-ORCH-ROSTER-SCHEMA 16 From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.py:205-206`) tests only `DONE_STAGES` (`("done", "rca-done")`, line 33), so `carry_audit.py`'s destination check (lines 330-334) p
+-- R10-ROUND-PLAYBOOK carries
+0 tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing 
+1 Round-11 decision item (tvofi, 2026-10-25, orchestrator session: "this should be a round 11 decision"): whether to move the repository to a GitHub organization so the native merge queue can replace th
+2 Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). HANDOVER trap: a required context that never reports blocks
+3 Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). Pre-study: the Lean flow pre-study, section K9.
+4 Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). tvofi 2026-10-24 card 4 (owner accepted; CARDS.json (prestu
