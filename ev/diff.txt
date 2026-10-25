@@ -1,0 +1,21 @@
+diff --git a/dev/programme/delivery/2790.md b/dev/programme/delivery/2790.md
+index 1282156a6..af854c76e 100644
+--- a/dev/programme/delivery/2790.md
++++ b/dev/programme/delivery/2790.md
+@@ -1 +1 @@
+-- [#2790](https://github.com/tvofi/heatpump_optimizer/pull/2790) — **open**, triage: s6 batch 21, P100 (S6-V34 accepted narrowed)
++- [#2790](https://github.com/tvofi/heatpump_optimizer/pull/2790) — **merged `ab3aade`**, triage: s6 batch 21, P100 (S6-V34 accepted narrowed).
+diff --git a/dev/programme/delivery/2791.md b/dev/programme/delivery/2791.md
+index b2a6ff4dd..df0a9c506 100644
+--- a/dev/programme/delivery/2791.md
++++ b/dev/programme/delivery/2791.md
+@@ -1 +1 @@
+-- [#2791](https://github.com/tvofi/heatpump_optimizer/pull/2791) — **open**, record: delivery rows (autofix)
++- [#2791](https://github.com/tvofi/heatpump_optimizer/pull/2791) — **merged `21a1e04`**, record: delivery rows for #2787, #2789 (autofix).
+diff --git a/dev/programme/delivery/2794.md b/dev/programme/delivery/2794.md
+new file mode 100644
+index 000000000..10e4e5e17
+--- /dev/null
++++ b/dev/programme/delivery/2794.md
+@@ -0,0 +1 @@
++- [#2794](https://github.com/tvofi/heatpump_optimizer/pull/2794) — **open**, record: delivery rows (autofix)

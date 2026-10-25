@@ -1,0 +1,13 @@
+RECORD_ENUM: api
+WINDOW_CACHE: off -- no --window-cache, so this mode fetched the window itself
+GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
+RECORD: 0 merged pull request(s) in 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f..origin/main; 0 without a disposition in dev/programme/plan-2026-09-open-issues.md, dev/programme/HANDOVER.md or dev/programme/delivery/
+RECORD_CLASS: 0 record-class merge(s) self-disposing (record-class), listed above and not counted; 0 merge(s) under the disposition bar
+TABLES: 0 split table(s) across 2 disposition document(s)
+CAPS: 0 stated cap(s) disagreeing with policy_budgets.json across 2 disposition document(s)
+RENDER: 14 table(s), 252 row(s), 4 list(s), 64 item(s) across 2 disposition document(s)
+
+KNOWN-BAD: 0 of 0 recorded record-class defect(s) still present, in 0 recorded occurrence(s)
+
+TOTAL: 0 error(s) over 0 merged pull request(s)
+rc=0
