@@ -3680,14 +3680,21 @@ def _p2_match_node(types, pattern, pre):
 
 def _p2_match_channel_line(n, parents):
     """The channel line, 0.05 kW, however it is spelt (D8-s1-01): a power
-    comparison against the literal, any read of ``CHANNEL_ACTIVE_KW`` by name
-    (a reader that renamed the literal is still a reader), or a new
-    module-level kW constant bound to 0.05 (a second owner)."""
+    comparison against the literal, a threshold or kW parameter defaulting to
+    it, any read of ``CHANNEL_ACTIVE_KW`` by name (a reader that renamed the
+    literal is still a reader), or a new module-level kW constant bound to
+    0.05 (a second owner)."""
     if isinstance(n, ast.Compare):
         return (len(n.ops) == 1
                 and 0.05 in (getattr(n.left, "value", None),
                              getattr(n.comparators[0], "value", None))
-                and bool(re.search(r"power|_kw\b|\bkw\b|dhw", ast.unparse(n))))
+                and bool(re.search(r"power|space|_kw\b|\bkw\b|dhw", ast.unparse(n))))
+    sig = parents.get(n)
+    if isinstance(n, ast.Constant) and n.value == 0.05 and isinstance(sig, ast.arguments):
+        pos = sig.posonlyargs + sig.args
+        pairs = list(zip(pos[len(pos) - len(sig.defaults):], sig.defaults))
+        pairs += list(zip(sig.kwonlyargs, sig.kw_defaults))
+        return any(d is n and re.search(r"threshold|_kw$", a.arg) for a, d in pairs)
     if isinstance(n, (ast.Name, ast.Attribute)):
         return (getattr(n, "id", getattr(n, "attr", None)) == "CHANNEL_ACTIVE_KW"
                 and isinstance(n.ctx, ast.Load))
@@ -4294,6 +4301,7 @@ _P2_CHANNEL_SPELLINGS = {
     "literal": "\n\ndef _p2_plant(space_power):\n    return space_power[0] > 0.05\n",
     "alias": "\n\n_PLAN_ACTIVE_KW = 0.05\n",
     "default": "\n\ndef _p2_plant(p, threshold=CHANNEL_ACTIVE_KW):\n    return p > threshold\n",
+    "literal default": "\n\ndef _p2_plant(p, threshold=0.05):\n    return p > threshold\n",
 }
 _p2_channel_planted = {
     k: "channel_active_kw" in _p2_fails(_p2_scan(
@@ -4302,7 +4310,7 @@ _p2_channel_planted = {
 }
 R.check(
     "and D8-s1-01's rule fails on each spelling of the channel line: the "
-    "literal, a second module constant and a default naming CHANNEL_ACTIVE_KW",
+    "literal, a second module constant, and a default naming either",
     all(_p2_channel_planted.values()),
     f"{_p2_channel_planted}",
 )
