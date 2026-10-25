@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v gh)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(grep -nE '^#{1,3} .*[Rr]ound [0-9]|^## Round|^# Round' docs/audit-2026-09.md)",
+      "Bash(gh issue *)",
+      "Bash(cd /Users/timmalmstrom/fix-r8-p8b *)",
+      "Bash(ls -d /private/tmp/r9-main 2>&1; ls /Users/timmalmstrom/hpo-orch/state/ 2>&1; ls /tmp/r9-orch/ 2>&1 | head)"
+    ]
+  }
+}
