@@ -477,6 +477,15 @@ class LegionellaGuard:
         """
         await self.disinfect.release_blind()
 
+    async def async_observe(self, dhw_temp: float | None, reader: Any) -> float | None:
+        """One cycle: the observer on a reading, the cycle follower regardless; ``hours_since``."""
+        if dhw_temp is not None:
+            await self.async_track(dhw_temp)
+        self.disinfect.observe(reader)
+        await self.async_track_cycle(dhw_temp)
+        self.check_ceiling()
+        return self.hours_since()
+
     def check_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.
 
