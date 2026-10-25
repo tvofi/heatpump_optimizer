@@ -1,0 +1,53 @@
+== UNMUTATED
+  ok    pins: a hash-locked line, its name normalized
+  ok    npm: scoped and nested lock entries, root skipped
+  ok    actions: a pinned ref, local uses skipped
+  ok    null control: an SBOM equal to the pins is OK
+  ok    a stale version is STALE
+  ok      and names both sides
+  ok    a pin missing from the graph is STALE
+  ok    a graph package the tree dropped is STALE
+  ok    an unenumerated ecosystem refuses
+  ok    alerts: none open is OK
+  ok    alerts: an open alert the tree pins past is STALE
+  ok    alerts: patched == pinned counts as fixed
+  ok    alerts: a real open alert (pinned below patched) is not staleness
+  ok    alerts: 2026.10.19 orders above 2026.7.22, not as text
+  ok    alerts: an unorderable version refuses
+  ok    alerts: a package pinned nowhere refuses
+  ok    snapshot: one manifest per lock, named as Dependabot named it
+  ok    snapshot: every pin a direct purl
+  ok    snapshot: the required fields
+  ok    a range refuses
+  ok    the tree's pip locks parse, every one non-empty
+  ok    the tree's npm locks and actions parse
+depgraph self-test: 22 checks, 0 failed
+== MUTANT: stale |= bool(missing or extra) -> stale |= False
+  FAIL  a stale version is STALE: 0 != 1
+  FAIL  a pin missing from the graph is STALE: 0 != 1
+  FAIL  a graph package the tree dropped is STALE: 0 != 1
+depgraph self-test: 22 checks, 3 failed
+== MUTANT: release(v) >= release(patched) -> release(v) > release(patched)
+  FAIL  alerts: patched == pinned counts as fixed: 0 != 1
+depgraph self-test: 22 checks, 1 failed
+== MUTANT: raise ValueError(f"the SBOM reports -> continue  # ValueError(f"the SBOM reports
+  FAIL  an unenumerated ecosystem refuses: 0 != 2
+depgraph self-test: 22 checks, 1 failed
+== MUTANT: manifests["/" + rel] = -> manifests[rel] =
+  FAIL  snapshot: one manifest per lock, named as Dependabot named it: ['tests/requirements-build.txt', 'tests/requirements-ci.txt'] != ['/tests/requirements-build.txt', '/tests/requirements-ci.txt']
+Traceback (most recent call last):
+KeyError: '/tests/requirements-ci.txt'
+== MUTANT: if fixed: -> if False:
+  FAIL  alerts: an open alert the tree pins past is STALE: 0 != 1
+  FAIL  alerts: patched == pinned counts as fixed: 0 != 1
+  FAIL  alerts: 2026.10.19 orders above 2026.7.22, not as text: 0 != 1
+depgraph self-test: 22 checks, 3 failed
+== MUTANT: elif unjudged and code == 0: -> elif False:
+  FAIL  alerts: an unorderable version refuses: 0 != 2
+  FAIL  alerts: a package pinned nowhere refuses: 0 != 2
+depgraph self-test: 22 checks, 2 failed
+== MUTANT: IGNORED_PURL_TYPES = {"github"} -> IGNORED_PURL_TYPES = {"github", "cargo"}
+  FAIL  an unenumerated ecosystem refuses: 0 != 2
+depgraph self-test: 22 checks, 1 failed
+== MUTANT: if key and "version" in pkg -> if "version" in pkg
+depgraph self-test: 22 checks, 0 failed
