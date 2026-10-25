@@ -1,0 +1,8 @@
+MUTANT s_sensorfb (sensor.py: if s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW -> if s.get("dhw_power", 0) >= CHANNEL_ACTIVE_KW) tests/entities.py rc=1
+  FAIL a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)  [path=None why=fatal: not a git repository (or any of the parent directories): .git]
+  FAIL a resolvable ref builds the baseline worktree and unregisters cleanly (null control)  [a HEAD add refused: fatal: not a git repository (or any of the parent directories): .git]
+  FAIL exactly one handover, with no date in its name  [found none; durable state belongs in the single dev/programme/HANDOVER.md and volatile state on #201, never in both]
+  FAIL and that commit is reachable from HEAD  [updated-for: 0cc148b2f80fe224ffe2c504b29fd4f0908183df is not an ancestor of HEAD -- re-point it at the merge this handover reflects (a shallow clone cannot answer this; the gate jobs check out with fetch-depth: 0)]
+MUTANT s_sensorfb (sensor.py: if s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW -> if s.get("dhw_power", 0) >= CHANNEL_ACTIVE_KW) tests/features.py rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+1 of 4391 FEATURE CHECKS FAILED

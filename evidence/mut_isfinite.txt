@@ -1,0 +1,4 @@
+MUTANT isfinite (inputs.py: if kw is None or not math.isfinite(kw): -> if kw is None:) tests/features.py rc=1
+  FAIL a power state parses to finite kW under the caller's sign policy, or to no reading  [got {('-400', 'W'): (-0.4, 0.0, None), ('0', 'kW'): (0.0, 0.0, None), ('2500', 'W'): (2.5, 2.5, 2.5), ('inf', 'kW'): (None, None, None), ('1e400', 'kW'): (None, None, None), ('1e306', 'MW'): (inf, inf, inf), ('unknown', 'kW'): (None, None, None), ('3', 'furlong'): (None, None, None)}]
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+2 of 4391 FEATURE CHECKS FAILED

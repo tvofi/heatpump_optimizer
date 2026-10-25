@@ -1,0 +1,4 @@
+MUTANT freeze (coordinator.py: if coord._pump_signals.freeze_reason is not None: -> if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:) tests/features.py rc=1
+  FAIL an offline, faulted or cooling pump's interval never teaches the frequency map  [{'pump_offline': True, 'pump_fault': True, 'pump_cooling': False}]
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+2 of 4391 FEATURE CHECKS FAILED
