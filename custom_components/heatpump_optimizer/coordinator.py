@@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
@@ -66,6 +66,7 @@ from .payload import (
     GridView,
     InputHealthView,
     Insight,
+    LearnerProgress,
     LearningView,
     ManualPlan,
     MeasurementView,
@@ -301,6 +302,7 @@ from .flow_lift import FlowCurveBias, curve_supply_temp
 from .flow_meter import cop_evidence, observe_water, replay_freeze, space_reference_cop
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
+from .learner_progress import LearnerInputs, learner_progress, snapshot_rates
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
@@ -1383,6 +1385,78 @@ def house_loss_converged(samples: int) -> bool:
     cannot disagree about whether the learner has converged.
     """
     return house_loss_confidence(samples) >= _HOUSE_LOSS_CONVERGED_CONFIDENCE
+
+
+def internal_gains_gate_open(house_samples: int) -> bool:
+    """#2223: the gains profile folds only once the heat-loss level has converged.
+
+    The one gate ``_fold_internal_gains`` and the learner progress view read.
+    """
+    return house_loss_confidence(house_samples) >= INTERNAL_GAINS_MIN_UA_CONFIDENCE
+
+
+def _solar_aperture_walked(samples: int) -> float:
+    """The aperture's EWMA walk: one ``SOLAR_APERTURE_ALPHA`` step per sample past its gate."""
+    walk = max(0, samples - SOLAR_APERTURE_MIN_SAMPLES)
+    return 1.0 - (1.0 - SOLAR_APERTURE_ALPHA) ** walk
+
+
+def learner_progress_view(
+    state: ThermalState,
+    params: ThermalParameters,
+    config: Any,
+    snapshots: Sequence[Mapping[str, Any]],
+    samples: tuple[float, float, float],
+) -> dict[str, LearnerProgress]:
+    """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
+
+    ``samples`` are the house, lower and solar learners' counts; a
+    non-finite one (a corrupted store) counts as none.
+    ``learner_progress`` owns the phases, this only gathers their inputs.
+    """
+    counts = {
+        name: int(n) if np.isfinite(n) else 0
+        for name, n in zip(("house", "lower", "solar"), samples)
+    }
+    rates = snapshot_rates(snapshots, dt_util.now(), counts)
+    outdoor = state.outdoor_temperature
+
+    # The house, lower and gains folds' own dark gate (#2223), on the reading now.
+    darker = "darker" if is_sunlit_interval(state.solar_radiation) else None
+
+    def colder(zone: float) -> str | None:
+        # The house and lower folds' own ΔT gate, on the reading in force now.
+        return "colder" if zone - outdoor < HOUSE_LOSS_MIN_DELTA else None
+
+    house_cold = colder(_learned_zone_temperature(state, params))
+    house_wait = house_cold or darker
+    # The aperture folds inside the house learner, behind its ΔT gate and
+    # ahead of its dark one.
+    irradiance = float(state.solar_radiation or 0.0)
+    solar_wait = "sunnier" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE else house_cold
+    learners = {
+        "house": LearnerInputs(
+            True, counts["house"], house_loss_converged, house_loss_confidence,
+            house_wait, rates["house"],
+        ),
+        "lower": LearnerInputs(
+            params.two_zone_enabled and bool(config.lower_floor_temp_entity),
+            counts["lower"], None, house_loss_confidence,  # the same HOUSE_LOSS_ALPHA step
+            colder(state.lower_floor_temperature) or darker, rates["lower"],
+        ),
+        "solar": LearnerInputs(
+            bool(config.solar_aperture_learning_enabled), counts["solar"],
+            lambda n: n >= SOLAR_APERTURE_MIN_SAMPLES, _solar_aperture_walked,
+            solar_wait, rates["solar"],
+        ),
+        # Counts the house learner's samples until its gate opens; the profile
+        # has no count of its own past it, so settling carries no progress.
+        "gains": LearnerInputs(
+            bool(config.internal_gains_learning_enabled), counts["house"],
+            internal_gains_gate_open, None, house_wait, rates["house"],
+        ),
+    }
+    return {name: learner_progress(inputs) for name, inputs in learners.items()}
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -7618,6 +7692,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         and "the house really is like this".
         """
         ctx = _ctx_of(self)
+        ring = self._snapshot_ring
+        snaps = ring.snapshots
         return {
             "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_learner.cooling_samples,
@@ -7640,6 +7716,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
+            "learner_progress": learner_progress_view(
+                ctx._current_state, ctx._thermal_params, ctx._config, snaps,
+                (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
+            ),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,
@@ -7697,13 +7777,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "heat_curve": self._curve_learner.summary(),
             "snapshots": {
-                "count": len(self._snapshot_ring.snapshots),
-                "alarm": self._snapshot_ring.alarmed,
-                "last_taken": (
-                    self._snapshot_ring.snapshots[-1].get("taken_at")
-                    if self._snapshot_ring.snapshots
-                    else None
-                ),
+                "count": len(snaps),
+                "alarm": ring.alarmed,
+                "last_taken": snaps[-1].get("taken_at") if snaps else None,
             },
         }
     def _measurement_view(self) -> MeasurementView:
@@ -9110,10 +9186,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         residual's ΔT-part is hour-correlated, so the shape would learn it.
         """
         ctx = getattr(self, "_ctx", self)
-        settled = house_loss_confidence(getattr(self, "_house_heat_loss_samples", 0))
-        if (
-            not ctx._config.internal_gains_learning_enabled
-            or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+        if not ctx._config.internal_gains_learning_enabled or not internal_gains_gate_open(
+            getattr(self, "_house_heat_loss_samples", 0)
         ):
             return
         if is_sunlit_interval(previous_state.solar_radiation):
