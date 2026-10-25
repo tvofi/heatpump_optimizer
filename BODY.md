@@ -30,7 +30,9 @@ Alternatives considered:
 - A new `finite.py` (2c0bc14d7) was folded into `const.py` (0ef69bfcf): `const.py` is already the dependency-free module every layer imports, and a new module was one more import edge for nothing.
 - The range bound was put in the caller, not in `state_power_kw`, because only the caller owns the envelope. A PV meter or grid meter has no nameplate.
 
-The architect note's seam: every `coordinator.py` hunk is a float-coercion call site moving to the owner, plus the three power parses, `_freq_fold_blocked` and the `active_now`/`_plan_slots` lines the carries assigned here. **Raised, outside the note's seam:** round 2 adds two `coordinator.py` hunks the class enumeration required, `_async_drive_pumps` (the space pump's plan lookup) and the simulator's two `_plan_slots` calls (`other_powers=`). The orchestrator rules on them. `git merge-tree --write-tree` against R10-PARAMS-OWNER's local head `c8a234897` reports no conflict.
+The architect note's seam: every `coordinator.py` hunk is a float-coercion call site moving to the owner, plus the three power parses, `_freq_fold_blocked` and the `active_now`/`_plan_slots` lines the carries assigned here.
+
+**Architect note amendment.** Round 2 adds two `coordinator.py` hunks outside the note's seam (float coercion only). The first is `_async_drive_pumps`, the space pump's plan lookup, which now passes `channel_heating_steps` over both schedules. The second is the simulator's two `_plan_slots` calls, which now pass `other_powers=`. The class closure for D8-s1-01 requires both: the class rule returns the pump's `_PLAN_ACTIVE_KW` seat, and the simulator's slot counts read the same merge. The orchestrator accepted both hunks under mandate 6329234399 (ruling 1 to this seat, 2026-10-25). `git merge-tree --write-tree` against R10-PARAMS-OWNER's local head `c8a234897` reports no conflict.
 
 ## Head
 
@@ -127,7 +129,7 @@ All harnesses were run from a `git archive` export of each end, with `PYTHONPATH
 
 Architecture score: dS +1.8325 IMPROVES against the merge base `da12aa37d` (duplication_copies, coord_footprint, params_over_10, layer_violations and private_cross_module fall; no gate metric rises).
 
-- `coord_footprint` 2436 -> 2437 on the round-2 delta alone (`--diff 6feac7ece HEAD`): `_plan_slots` now holds two heating masks from `channel_heating_steps` where it held one threshold parameter. Two payments were considered. Folding both masks into one tuple assignment would buy the statement and improve nothing. Moving `_plan_slots` out of the coordinator is the sound payment, but it is a seam move outside this group's architect note, so it is not taken here. Against the gate's base the metric falls, 2446 -> 2437.
+- `coord_footprint` against the merge base `da12aa37d`, which is what this PR is judged on: 2446 -> 2437, with dS +1.8325. On the round-2 delta alone (`--diff 6feac7ece HEAD`) it is 2436 -> 2437, because `_plan_slots` holds two heating masks from `channel_heating_steps` where it held one threshold parameter. The orchestrator ruled under mandate 6329234399 (ruling 2, 2026-10-25) that this +1 is not a payment owed inside this PR, since the PR is judged against its merge base, where the metric falls. Folding both masks into one tuple assignment was rejected: it would buy the statement and improve nothing. Moving `_plan_slots` out of the coordinator is the sound payment. It is filed as proposal V62, for an existing group.
 
 ## Red checks
 
