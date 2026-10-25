@@ -2440,6 +2440,19 @@ if _OUT:
             f = f.f_back
         return False
 
+    def _popen_spawn():
+        """`subprocess.Popen` starts its child through `os.posix_spawn`
+        where the platform can close fds in the spawn (CPython 3.13+ on
+        glibc 2.34+), and its own event already classified that child."""
+        f = sys._getframe(2)
+        while f is not None:
+            c = f.f_code
+            if c.co_name == "_posix_spawn" and c.co_filename.endswith(
+                    os.sep + "subprocess.py"):
+                return True
+            f = f.f_back
+        return False
+
     def _text(argv):
         argv = argv if isinstance(argv, (list, tuple)) else [argv]
         return " ".join(os.fsdecode(a) if isinstance(a, bytes) else str(a)
@@ -2474,7 +2487,8 @@ if _OUT:
             else:
                 _emit("C", _text(argv))
         elif event in ("os.system", "os.exec", "os.posix_spawn", "os.spawn"):
-            _emit("F", f"{event} {_text(args[0])}")
+            if event != "os.posix_spawn" or not _popen_spawn():
+                _emit("F", f"{event} {_text(args[0])}")
 
     def _audit(event, args):
         # A hook that raises fails the operation it audits (an open, a

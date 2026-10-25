@@ -32145,7 +32145,7 @@ if os.environ.get("RCH_STRIP"):
 if os.environ.get("RCH_PATH"):
     env = {**os.environ, "PYTHONPATH": os.getcwd()}
 p = subprocess.Popen([sys.executable, "-c", child], stdout=subprocess.PIPE,
-                     env=env)
+                     env=env, close_fds=not os.environ.get("RCH_NOCLOSE"))
 p.stdout.read(1)
 p.kill()
 p.wait()
@@ -32159,6 +32159,10 @@ if os.environ.get("RCH_FORK"):
     os.waitpid(pid, 0)
 if os.environ.get("RCH_GIT"):
     subprocess.run(["git", "--version"], capture_output=True)
+if os.environ.get("RCH_SPAWN"):
+    import shutil
+    os.waitpid(os.posix_spawn(shutil.which("git"), ["git", "--version"],
+                              os.environ), 0)
 sys.exit(int(os.environ.get("RCH_RC", "0")))
 """
 _RCH_FX = "def hit():\n    return 1\n\n\ndef missed():\n    return 2\n\n\ndef child_only():\n    return 3\n"
@@ -32194,6 +32198,7 @@ R.check(
 )
 _rch_refused = {}
 for _k, _env in (("read", {"READ": "1"}), ("git", {"GIT": "1"}),
+                 ("spawn", {"SPAWN": "1"}),
                  ("strip", {"STRIP": "1"}), ("path", {"PATH": "1"}),
                  ("red", {"RC": "1"})):
     _r, _x, _e = _rch_run(**_env)
@@ -32201,13 +32206,29 @@ for _k, _env in (("read", {"READ": "1"}), ("git", {"GIT": "1"}),
                         _x is not None and _mut.never_reaches(_x, _RCH_REL, 6, _e))
 R.check(
     "and every way the row can be blind refuses the skip: a source read, a "
-    "non-Python child, a Python child without the tracer's environment or "
+    "non-Python child (through subprocess or a bare os.posix_spawn), a "
+    "Python child without the tracer's environment or "
     "its PYTHONPATH (started, never recorded), and a red run, which "
     "returns no row at all",
     _rch_refused == {"read": (0, True, False), "git": (0, True, False),
+                     "spawn": (0, True, False),
                      "strip": (0, True, False), "path": (0, True, False),
                      "red": (1, False, False)},
     f"(rc, has row, skipped) per arm: {_rch_refused}",
+)
+# Popen starts its child through os.posix_spawn wherever it can close fds
+# in the spawn (CPython 3.13+ on glibc 2.34+, CI's runner) and through
+# fork_exec elsewhere, so the clean row depends on the interpreter's build.
+# close_fds=False takes the posix_spawn route on every 3.13+, so a box
+# whose Python lacks POSIX_SPAWN_CLOSEFROM still drives it.
+_r, _x, _e = _rch_run(NOCLOSE="1")
+R.check(
+    "and a Popen child started through os.posix_spawn reads the same clean row",
+    _r.rc == 0 and _x is not None and not _mut.reach_problems(_x)
+    and {ln: _mut.never_reaches(_x, _RCH_REL, ln, _e) for ln in (2, 6, 10)}
+    == {2: False, 6: True, 10: False},
+    f"rc={_r.rc} problems={_x and _mut.reach_problems(_x)} "
+    f"processes={_x and _x['processes']}",
 )
 # A forked child inherits the tracer, and the line it alone executes is
 # reached, with every process accounted for -- a row the skip may still use.
