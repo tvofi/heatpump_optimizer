@@ -1,0 +1,58 @@
+== ci.yml @ dfcd8d9be job needs
+40:  push:
+74:  prelude:
+131:  cancel-superseded:
+167:  # and the callers it probes, and drops the rest from every `needs:`.
+168:  tests:
+169:    needs: prelude
+188:  codeql:
+189:    needs: prelude
+197:  governance:
+198:    needs: prelude
+207:  hassfest:
+208:    needs: prelude
+213:  validate:
+214:    needs: prelude
+219:  kernel-points:
+220:    needs: prelude
+229:  arch-score:
+230:    needs: prelude
+240:  budget-raise-gate:
+241:    needs: prelude
+253:  pr-contract:
+254:    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate]
+272:  refresh:
+301:  gate:
+302:    needs: [prelude, pr-contract]
+== merge_train.py drop asserts
+4655:    check("a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved",
+4659:    check("a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges",
+4868:    check("on main: entries are approved ONCE, at admission (P86: the dropped #2 too, at the head it was "
+4880:    check("a pair on a red main merges nothing and is not bisected: no proof, no drop",
+== codeql_scope 29-31
+THE RULE, fail-closed in every arm:
+  * only `pull_request` may skip. `push`, `schedule`, `merge_group` and
+    `workflow_dispatch` always analyze, so main keeps a full analysis of
+    every merged tree;
+== prelude 226, 343-344
+           "scope": "full" if ev == "push" else "auto",
+    out, why = outputs(ctx("push"), None, g(live))
+    check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
+== merge_train 5435
+    b.add_argument("--tag", default=time.strftime("%Y%m%d-%H%M%S", time.gmtime()), help="proof branches are batch/<tag>-<n>")
+== ledger 92-97
+    "handoff-hold-malformed": "derived", "handoff-held": "derived",
+    "design-build": "derived", "review-owed": "derived",
+    "probe-refused": "derived", "confirm-owed": "derived",
+    "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
+    "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
+}
+== pr_args 66 / update_pr 35 / open_pr 34
+pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run ends, or exit 75 BUSY
+pr_branch_lock "$WT.lock" "$BR" "$WT"  # one run per branch, with open_pr.sh (pr_args.sh)
+pr_branch_lock "$(dirname -- "$D")/upd-${BR//\//-}.lock" "$BR" "$WT"  # mut:oplock
+== tick 846-848
+            files = mt.conflicts(lambda argv: self.git(argv[1:]), "origin/main", head)
+            self.line(S, f"#{n}: mergeable state DIRTY -- " + (
+                mt.dirty_repair(files, CLAIM_FILES) if files else
+== pool.py on main: 0
