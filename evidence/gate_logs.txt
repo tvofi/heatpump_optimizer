@@ -1,0 +1,34 @@
+=== job 121051702423
+  PINNED: 662a3809ced43b41dba2166f04277f2d3c95e991
+  INPUT_BASE: 
+programs restored from 662a3809ced43b41dba2166f04277f2d3c95e991
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 2756
+  BASE: main
+  KIND: code
+FAIL run(s) [40149739945, 40152292145] at this head are still being judged; their gate decides
+##[error]Process completed with exit code 1.
+Post job cleanup.
+git version 2.55.0
+Adding repository directory to the temporary git global config as a safe directory
+Cleaning up orphan processes
+=== job 121057053858
+  PINNED: 662a3809ced43b41dba2166f04277f2d3c95e991
+  INPUT_BASE: 
+programs restored from 662a3809ced43b41dba2166f04277f2d3c95e991
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 2756
+  BASE: main
+  KIND: edit
+FAIL run(s) [40152292145] at this head are still being judged; their gate decides
+##[error]Process completed with exit code 1.
+Post job cleanup.
+git version 2.55.0
+Adding repository directory to the temporary git global config as a safe directory
+Cleaning up orphan processes
