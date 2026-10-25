@@ -1,0 +1,6 @@
+== gate: gate self-test: 37 checks, 0 failed
+== prelude: prelude self-test: 29 checks, 0 failed
+== sweep: sweep self-test: 23 checks, 0 failed
+== codescan_wait: codescan_wait self-test: 17 checks, 0 failed
+== ruleset_cutover: ruleset_cutover self-test: 101 checks, 0 failed
+== ghapi: ghapi self-test: 19 checks, 0 failed

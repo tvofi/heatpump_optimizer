@@ -1,0 +1,270 @@
+##### tree=head edit-s=518
+  t= 1847s run 40119483652 (waited 0 s): PASS
+  t= 1877s run 40119473491 (waited 60 s): PASS
+  t= 1883s run 40119473870 (waited 600 s): PASS
+2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+2754: sweep present re-runs 0 RESIDUAL-RED 0
+  t= 1847s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1877s run 40119473491 (waited 60 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1883s run 40119473870 (waited 600 s): FAIL tests / closures: failure (this run)
+2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 1817s run 40119473491 (waited 0 s): PASS
+  t= 1823s run 40119473870 (waited 540 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 540 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=head edit-s=760
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2147s run 40119483652 (waited 0 s): PASS
+  t= 2167s run 40119473870 sweep (waited 0 s): PASS
+  t= 2179s run 40119473491 (waited 120 s): PASS
+2754: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754: sweep present re-runs 1 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2147s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 2179s run 40119473491 (waited 120 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491] at this head are still being judged; their gate decides
+  t= 2059s run 40119473491 (waited 0 s): PASS
+  t= 2079s run 40119473870 sweep (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 720 s (judge takes a clock: True)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=head edit-s=900
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2267s run 40119483652 (waited 0 s): PASS
+  t= 2287s run 40119473870 sweep (waited 0 s): PASS
+  t= 2319s run 40119473491 (waited 120 s): PASS
+2754: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754: sweep present re-runs 1 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2267s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 2319s run 40119473491 (waited 120 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491] at this head are still being judged; their gate decides
+  t= 2199s run 40119473491 (waited 0 s): PASS
+  t= 2219s run 40119473870 sweep (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 720 s (judge takes a clock: True)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=5c0ee1093 edit-s=518
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): PASS
+  t= 1387s run 40119473491 sweep (waited 0 s): PASS
+  t= 1387s run 40119473870 sweep (waited 0 s): PASS
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754: sweep present re-runs 2 RESIDUAL-RED 0
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): FAIL run(s) [101] at this head are still being judged; their gate decides
+  t=  650s run 101 (waited 0 s): FAIL run(s) [100] at this head are still being judged; their gate decides
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: False)
+pair: sweep present re-runs 0 RESIDUAL-RED 2
+  t=   50s run 90 (waited 0 s): FAIL run(s) [99] at this head are still being judged; their gate decides
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 90 sweep (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+cascade: sweep present re-runs 3 RESIDUAL-RED 0
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): PASS
+  t= 1303s run 40119473491 sweep (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=5c0ee1093 edit-s=760
+  t=  979s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): PASS
+  t= 1387s run 40119473491 sweep (waited 0 s): PASS
+  t= 1387s run 40119473870 sweep (waited 0 s): PASS
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754: sweep present re-runs 2 RESIDUAL-RED 0
+  t=  979s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): FAIL run(s) [101] at this head are still being judged; their gate decides
+  t=  650s run 101 (waited 0 s): FAIL run(s) [100] at this head are still being judged; their gate decides
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: False)
+pair: sweep present re-runs 0 RESIDUAL-RED 2
+  t=   50s run 90 (waited 0 s): FAIL run(s) [99] at this head are still being judged; their gate decides
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 90 sweep (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+cascade: sweep present re-runs 3 RESIDUAL-RED 0
+  t=  979s run 40119473491 (waited 0 s): FAIL run(s) [40119473870] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): PASS
+  t= 1303s run 40119473491 sweep (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=5c0ee1093 edit-s=900
+  t= 1119s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): PASS
+  t= 1387s run 40119473491 sweep (waited 0 s): PASS
+  t= 1387s run 40119473870 sweep (waited 0 s): PASS
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 1119s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): FAIL run(s) [101] at this head are still being judged; their gate decides
+  t=  650s run 101 (waited 0 s): FAIL run(s) [100] at this head are still being judged; their gate decides
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: False)
+pair: sweep present re-runs 0 RESIDUAL-RED 2
+  t=   50s run 90 (waited 0 s): FAIL run(s) [99] at this head are still being judged; their gate decides
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 90 sweep (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+cascade: sweep present re-runs 3 RESIDUAL-RED 0
+  t= 1119s run 40119473491 (waited 0 s): FAIL run(s) [40119473870] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): PASS
+  t= 1303s run 40119473491 sweep (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=ce6f6511e edit-s=518
+  t= 1847s run 40119483652 (waited 0 s): PASS
+  t= 1877s run 40119473491 (waited 60 s): PASS
+  t= 1883s run 40119473870 (waited 600 s): PASS
+2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+2754: sweep present re-runs 0 RESIDUAL-RED 0
+  t= 1847s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1877s run 40119473491 (waited 60 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1883s run 40119473870 (waited 600 s): FAIL tests / closures: failure (this run)
+2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 1817s run 40119473491 (waited 0 s): PASS
+  t= 1823s run 40119473870 (waited 540 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 540 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=ce6f6511e edit-s=760
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2147s run 40119483652 (waited 0 s): PASS
+  t= 2167s run 40119473870 sweep (waited 0 s): PASS
+  t= 2179s run 40119473491 (waited 120 s): PASS
+2754: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754: sweep present re-runs 1 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2147s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 2179s run 40119473491 (waited 120 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491] at this head are still being judged; their gate decides
+  t= 2059s run 40119473491 (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 720 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 1
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+##### tree=ce6f6511e edit-s=900
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2267s run 40119483652 (waited 0 s): PASS
+  t= 2287s run 40119473870 sweep (waited 0 s): PASS
+  t= 2319s run 40119473491 (waited 120 s): PASS
+2754: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754: sweep present re-runs 1 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491, 40119483652] at this head are still being judged; their gate decides
+  t= 2267s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 2319s run 40119473491 (waited 120 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 840 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  110s run 99 (waited 0 s): PASS
+  t=  130s run 91 sweep (waited 0 s): PASS
+  t=  130s run 92 sweep (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 2003s run 40119473870 (waited 720 s): FAIL run(s) [40119473491] at this head are still being judged; their gate decides
+  t= 2199s run 40119473491 (waited 0 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 720 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 1
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
