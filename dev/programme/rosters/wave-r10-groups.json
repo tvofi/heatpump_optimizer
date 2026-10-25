@@ -1635,7 +1635,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; after you: R10-HEAT-METER). Owning seam in this group: `_thermal_params` and the coordinator context. Shape: one owner, copy-on-write, published whole. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-params-owner",
     "commit": null,
     "last_step": null,
