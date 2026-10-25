@@ -1,6 +1,6 @@
 #!/bin/bash
 # R10-MERGE-SUBJECT-HARDEN (#2697): the finder's harness at both ends, under one
-# plant per spelling a review found unseen, and one null plant.
+# plant per spelling a review found unseen, and a null plant per program form.
 #
 #   bash dev/audit/harnesses/r10_merge_subject_plants.sh [<ref>]   (from the repository root)
 #
@@ -35,6 +35,17 @@ plant '${GH:-gh} pr merge' "$MP" add "false && \${GH:-gh} pr merge 1 --merge --s
 plant '$(command -v gh) pr merge' "$MP" add "false && \$(command -v gh) pr merge 1 --merge --subject $S" "$MP"
 plant "a blank line inside the argv at $MT:$line" "$MT" sed -i.bak "${line}s/self.run(\[\"gh\", \"pr\", \"merge\", n,/self.run([\"gh\", \"pr\", \"merge\", n,\n\n            \"--subject\", \"Merge pull request #%s (x)\" % n,/" "$MT"
 rm -f "$MT.bak"
+WF=.claude/workflows/web-fix-wave.js
+plant 'an f-string program' "$MT" add "if False:  # agreement_py imports this module
+    "'os.system(f"{GH} pr merge {n} --subject x")' "$MT"
+plant 'a %-format program' "$MT" add "if False:  # agreement_py imports this module
+    "'os.system("%s pr merge %s --subject x" % (GH, n))' "$MT"
+plant 'a .format program' "$MT" add "if False:  # agreement_py imports this module
+    "'os.system("{} pr merge {} -t x".format(GH, n))' "$MT"
+plant 'a JS template program ${cfg.gh}' "$WF" add 'execSync(`${cfg.gh} pr merge ${n} --subject x`)' "$WF"
+plant 'gh pr -R $(cat r) merge' "$MP" add "false && gh pr -R \$(cat r) merge 1 -t x" "$MP"
+plant 'null: an f-string program running pr view' "$MT" add "if False:  # agreement_py imports this module
+    "'os.system(f"{GH} pr view {n} -t x")' "$MT"
 plant 'null: gh pr view -t "x y"' "$MP" add "false && gh pr view 1 -t $S --json title" "$MP"
 cp "$T/agreement.mjs" "$AG"
-git status --short -- "$AG" "$MP" "$MT"
+git status --short -- "$AG" "$MP" "$MT" "$WF"
