@@ -71,7 +71,8 @@ Each mutant was applied to the head, then `PYTHONPATH=tests/hastub python3 tests
 
 ## Red checks
 
-- `mutation`: predicted red. Its cause is the 17 sites under `## Unpinned sites`, which no ledger pin covers until `mutation-autofix` pins them after the push (`ci-autofix.md`). This is not a defect: each site is in `custom_components/`, which is that lane's scope, and the mutants listed under `## Mutation proof` show the checks in `tests/debug_collect.py` kill them. The cheaper detector already exists and ran here: `prepr.sh` step 6d, through `tools/pr/ci_predict.py`. Its standing cost is the predictor's seconds per handoff. No further detector is owed.
+- `tests / mutation`: predicted red. Its cause is the 17 sites under `## Unpinned sites`, which no ledger pin covers until `mutation-autofix` pins them after the push (`ci-autofix.md`). This is not a defect: each site is in `custom_components/`, which is that lane's scope, and the mutants listed under `## Mutation proof` show the checks in `tests/debug_collect.py` kill them. The cheaper detector already exists and ran here: `prepr.sh` step 6d, through `tools/pr/ci_predict.py`. Its standing cost is the predictor's seconds per handoff. No further detector is owed.
+- `governance / delivery-status`: red on main's own rows, not this diff's. It prints `DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 2 overdue`, the two overdue being #2762 and #2795, rows the record beats have not drained. It is not a required context and blocks no merge, and this diff adds only its own row. The detector is that check; its standing cost is one CI step, and no cheaper one is owed.
 
 ## Forward-carry
 
