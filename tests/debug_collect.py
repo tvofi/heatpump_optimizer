@@ -1526,10 +1526,10 @@ planted_paths = _carrying(planted_open)
 # The census of sections is the download's own keys, and the bundle's, so a
 # section a later change adds is refused here until the fixture plants in it.
 # The exempt ones carry no text the install supplies: a constant, the names of
-# config keys, the version stamps, and the replay half, which ``seal`` refuses
+# config keys, the version stamps, the export's clock, and the replay half, which ``seal`` refuses
 # rather than write with a dropped value in it (the checks above).
-EXEMPT = {".entry", ".config_overridden_by_options", ".domain", ".debug.schema",
-          ".debug.replay"}
+EXEMPT = {".exported_at", ".entry", ".config_overridden_by_options", ".domain",
+          ".debug.schema", ".debug.replay"}
 SECTIONS = {f".{key}" for key in planted_open if key != "debug"} | {
     f".debug.{key}" for key in planted_open["debug"]}
 _unplanted = sorted(section for section in SECTIONS - EXEMPT if not any(
@@ -1580,5 +1580,91 @@ R.check(
     diagnostics_mod._without_values(
         {"a": ("x abcdef y", 18.06324, True, 7), "abcdef": 1}, frozenset({"abcdef", "18.06324"}))
     == {"a": ["x **REDACTED** y", "**REDACTED**", True, 7], "**REDACTED**": 1},
+)
+
+# -- #2814, P119: the download says when it was taken, and how old each part is --
+# The payload's ``plan_age_minutes`` is the plan's age when the payload was
+# built; the owner's bundle read 0.8 for a plan 14 minutes old at the export.
+# The finished collection's rows are as old as the collection's end, which the
+# manifest did not say: ``days`` is the configured length.
+from heatpump_optimizer import drift  # noqa: E402
+
+PUBLISHED = T0 + timedelta(days=10)
+
+
+async def _aged_download(after, rows=()):
+    """The download ``after`` past a plan solved at ``PUBLISHED`` whose payload
+    still says 0.8 minutes, with ``rows`` in a finished collection."""
+    coord = FakeCoordinator({"last_optimization": PUBLISHED, "plan_age_minutes": 0.8})
+    coord.integration_version = "0.0.0"
+    entry = FakeEntry(entry_id="aged", options={CONF_DEBUG_COLLECT: True})
+    entry.runtime_data = coord
+    hass = _disk_hass(tempfile.gettempdir())
+    collector = debugger.DebugCollector(hass, "aged", lambda c: c.close())
+    collector.started_at, collector.final, collector.rows = T0, True, list(rows)
+    debugger._COLLECTORS[coord] = collector
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+_rows = [{"t": (T0 + timedelta(hours=h)).isoformat(), "mode": "auto"} for h in (0, 3, 1)]
+aged = asyncio.run(_aged_download(timedelta(minutes=14), _rows))
+fresh = asyncio.run(_aged_download(timedelta(minutes=1)))
+ahead = asyncio.run(_aged_download(timedelta(minutes=-5)))
+R.check(
+    "the download's plan age is measured at the export: 14 minutes after the solve it "
+    "reads 14, whatever the payload said when it was published",
+    aged["plan"]["plan_age_minutes"] == 14.0,
+    str(aged["plan"]["plan_age_minutes"]),
+)
+R.check(
+    "the null control: a plan solved a minute before the export reads 1",
+    fresh["plan"]["plan_age_minutes"] == 1.0,
+    str(fresh["plan"]["plan_age_minutes"]),
+)
+R.check(
+    "a plan stamped ahead of the export clock has an unknowable age, never 0, and a "
+    "payload with no solve has none",
+    ahead["plan"]["plan_age_minutes"] is None
+    and diagnostics_mod._plan_summary({}, PUBLISHED)["plan_age_minutes"] is None,
+    f'{ahead["plan"]["plan_age_minutes"]}',
+)
+R.check(
+    "the download carries its own export time, outside the debug half, and the debug "
+    "manifest's generated_at is the same instant",
+    aged["exported_at"] == (PUBLISHED + timedelta(minutes=14)).isoformat()
+    == aged["debug"]["manifest"]["generated_at"],
+    f'{aged.get("exported_at")} / {aged["debug"]["manifest"]["generated_at"]}',
+)
+_window = {key: aged["debug"]["manifest"].get(key)
+           for key in ("first_row_at", "last_row_at", "span_hours", "age_hours")}
+R.check(
+    "the manifest labels the finished collection: its first and last row, the 3 h the "
+    "rows span, and the last row's age at the export, not the configured 7 days",
+    _window == {"first_row_at": T0.isoformat(),
+                "last_row_at": (T0 + timedelta(hours=3)).isoformat(),
+                "span_hours": 3.0,
+                "age_hours": round((timedelta(days=10, minutes=14)
+                                    - timedelta(hours=3)).total_seconds() / 3600.0, 1)},
+    str(_window),
+)
+R.check(
+    "a collection with no row has no window, and a row stamped ahead of the export "
+    "clock has an unknowable age, never 0",
+    set(fresh["debug"]["manifest"][key] for key in _window) == {None}
+    and debugger.collection_window(_rows, T0)["age_hours"] is None,
+    str(debugger.collection_window(_rows, T0)),
+)
+R.check(
+    "a stored instant's age is the seconds to now, none for text that does not parse, "
+    "and none for an instant ahead of now",
+    drift.stored_age_seconds(T0.isoformat(), T0 + timedelta(minutes=2)) == 120.0
+    and drift.stored_age_seconds(T0, T0) == 0.0
+    and drift.stored_age_seconds("garbage", T0) is None
+    and drift.stored_age_seconds(T0 + timedelta(seconds=1), T0) is None,
 )
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

@@ -43,18 +43,27 @@ payload afterwards and redacted wherever it is: inside a message, as a key,
 or as the number under a key the coarsening does not name. A value shorter
 than ``replay_doc.LEAK_MIN_CHARS`` is not searched for, as the replay's own
 leak check does not, so a two-letter name cannot blank every word holding it.
+
+#2814: the download says when it was taken (``exported_at``), and the plan
+summary's ``plan_age_minutes`` is measured at that instant from
+``last_optimization``. The published value is the age when the payload was
+built, up to one optimisation interval earlier, so a 14-minute-old plan read
+0.8 in the owner's bundle.
 """
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
+from .drift import stored_age_seconds
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -138,8 +147,11 @@ def _without_values(value: Any, private: frozenset[str]) -> Any:
     return REDACTED if str(value) in private else value
 
 
-def _plan_summary(data: Mapping[str, Any]) -> dict[str, Any]:
-    """What the current plan is, in counts and totals: no per-step series."""
+def _plan_summary(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
+    """What the current plan is, in counts and totals: no per-step series.
+
+    Its age is measured at ``now``, the export, not copied from the payload.
+    """
 
     def channel(plan: Any) -> dict[str, Any]:
         plan = plan if isinstance(plan, Mapping) else {}
@@ -159,17 +171,21 @@ def _plan_summary(data: Mapping[str, Any]) -> dict[str, Any]:
                 "optimization_status",
                 "last_optimization",
                 "next_optimization",
-                "plan_age_minutes",
                 "plan_stale",
                 "current_action",
             )
         },
+        "plan_age_minutes": (
+            round(age / 60.0, 1)
+            if (age := stored_age_seconds(data.get("last_optimization"), now)) is not None
+            else None
+        ),
         "space": channel(data.get("space_plan")),
         "dhw": channel(data.get("dhw_plan")),
     }
 
 
-def _published_sections(coord: Any) -> dict[str, Any]:
+def _published_sections(coord: Any, now: datetime) -> dict[str, Any]:
     """The last cycle as the entities saw it: diagnosis, inputs, plan, learning."""
     data = getattr(coord, "data", None)
     data = data if isinstance(data, Mapping) else {}
@@ -179,7 +195,7 @@ def _published_sections(coord: Any) -> dict[str, Any]:
             insight.get("last_diagnosis") if isinstance(insight, Mapping) else None
         ),
         "inputs": {key: data[key] for key in INPUT_KEYS if key in data},
-        "plan": _plan_summary(data),
+        "plan": _plan_summary(data, now),
         "learning": {key: data[key] for key in LearningView.__annotations__ if key in data},
     }
 
@@ -285,6 +301,7 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
+    now = dt_util.utcnow()
     coord = entry.runtime_data if hasattr(entry, "runtime_data") else None
     snapshot = _coordinator_snapshot(coord) if coord else None
     collector = debugger.collector_for(coord) if coord else None
@@ -298,13 +315,14 @@ async def async_get_config_entry_diagnostics(
         _without_private_ids(
             _coarsen(
                 {
+                    "exported_at": now.isoformat(),
                     "entry": {
                         "version": entry.version,
                         "options_keys": sorted(entry.options.keys()),
                     },
                     **config_view(entry.data, entry.options),
                     "coordinator": snapshot,
-                    **_published_sections(coord),
+                    **_published_sections(coord, now),
                     "domain": DOMAIN,
                     # #1940: capped, so a week too large to inline is its summary.
                     "debug": debugger.capped(
