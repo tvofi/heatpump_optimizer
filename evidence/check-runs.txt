@@ -1,2 +1,0 @@
-Check runs on head b28cb6ac52dfc81b0c639a6429344a1b4bc00d30 (52 runs over two workflow runs, 40134469184 and 40134470560; read from the PR check-runs API):
-every run concluded success or skipped; none failed. gate: success (21:52:47Z and 21:58:22Z). pr-contract / pr-contract: success (21:41:05Z and 21:48:13Z).
