@@ -1,0 +1,10 @@
+origin/main: 9d0ddf8afcb82848303c60181b736c9fb7c94581
+git grep admit_add|launch_detached on origin/main tools/audit/seat/:
+(no match)
+at head:
+(no match)
+timed pitch at head:
+f3bd78c35a3b26dd02dee175868ad123df36765e:tools/audit/seat/merge_train.py:2175:def live_train(state: Path) -> "int | None":
+f3bd78c35a3b26dd02dee175868ad123df36765e:tools/audit/seat/merge_train.py:2191:def launch_train(argv: list[str], state: Path) -> "tuple[int, str]":
+f3bd78c35a3b26dd02dee175868ad123df36765e:tools/audit/seat/merge_train.py:2209:def pitch(t: Train, mandate: "str | None", launch=launch_train, ledger_log: "str | None" = None) -> int:
+f3bd78c35a3b26dd02dee175868ad123df36765e:tools/audit/seat/merge_train.py:3383:    def pitched(w, state, launch_rc=4242, pid_file=None, events=None):

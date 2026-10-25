@@ -1,0 +1,15 @@
+== R1 mutant: merge_train re-inlines merge pattern
+ tools/audit/seat/merge_train.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+  FAIL queue: the verdict grammar is proof_watch.parse_verdict's, not a copy -- a grammar swapped there admits #11 under it and leaves #11 under the old spelling
+merge_train self-test: 267 checks, 1 failed
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.2
+AGREEMENT ok
+== R2 mutant: orchestrator_tick re-inlines merge pattern
+ tools/audit/seat/orchestrator_tick.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+  FAIL verdict grammar: null control: under the swapped grammar the old spelling is no merge verdict
+orchestrator_tick self-test: 214 checks, 1 failed
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.8
+AGREEMENT ok
+0
