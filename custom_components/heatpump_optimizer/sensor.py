@@ -1984,16 +1984,16 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
     says whether the heat-loss learner -- the one every plan rests on -- has
     evidence yet, or that the COP health watch has raised an alarm. The
     attributes are one compact row per learner (value, samples, learned),
-    recorded; the per-hour gains, the capacity envelope and the system
-    identification state are bulky and change every cycle, so they stay out
-    of the recorder and the card reads them live.
+    recorded; the per-hour gains, the capacity envelope, the system
+    identification state and each learner's progress are bulky and change
+    every cycle, so they stay out of the recorder and the card reads them live.
     """
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(MODEL_STATUS_STATES)
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _unrecorded_attributes = frozenset(
-        {"internal_gains_kw", "capacity_envelope", "system_identification"}
+        {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"}
     )
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
@@ -2040,6 +2040,7 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "internal_gains_kw": data.get("internal_gains_profile"),
             "capacity_envelope": _mapping(data.get("capacity_envelope")).get("buckets"),
             "system_identification": data.get("system_identification"),
+            "learner_progress": data.get("learner_progress"),
         }
 
 

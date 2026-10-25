@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_solar_aperture_walked CLAMP_DROP 85b7464b",
+  "killed_by": "tests/features.py",
+  "old": "    walk = max(0, samples - SOLAR_APERTURE_MIN_SAMPLES)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: CLAMP_DROP (`walk = (0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

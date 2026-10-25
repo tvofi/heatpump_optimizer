@@ -30,14 +30,9 @@
 // <n>`. R10-MERGE-SUBJECT-CASEARM is a strict expected-fail: it closes only at
 // held=n of n; its routed list is #2697's three spellings outside that class.
 import fs from 'node:fs'
+import { guardEval } from './merge_subject_guard_block.mjs'
 const src = fs.readFileSync(process.argv[2] || 'tools/policy/agreement.mjs', 'utf8')
-// The guard block; a guard from before the extent reader (the merge base's) opens
-// at its subject-flag comment.
-const head = src.indexOf('// WHAT A MERGE CALL IS')
-const from = head < 0 ? src.indexOf('// What a merge call may not carry') : head; const to = src.indexOf("// WHICH LINE IS MAIN'S")
-if (from < 0 || to < 0) { console.error('seam probe: guard block not found'); process.exit(2) }
-const block = src.slice(from, to).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
-const subjectWriters = new Function(block + '\nreturn subjectWriters')()
+const subjectWriters = guardEval(src, 'subjectWriters', 'seam probe')
 const shapes = [
   'run(["gh", "pr", "merge", n] + ["--subject", s])',
   'args = ["gh", "pr", "merge", n]\nargs += ["--subject", s]\nrun(args)',
