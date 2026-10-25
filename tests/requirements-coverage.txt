@@ -4,12 +4,12 @@
 # for every `fast` run -- the workflow step that installs this says so too.
 #
 # Regenerate:
-#   echo 'coverage==7.13.1' | uv pip compile - --python-version 3.13.15 \
+#   echo 'coverage==7.16.2' | uv pip compile - --python-version 3.13.15 \
 #     --python-platform x86_64-manylinux_2_28 --generate-hashes \
 #     --no-header --no-annotate -o <body>
 # and replace everything below the blank line that ends this header.
 
-coverage==7.13.1 \
+coverage==7.16.2 \
     --hash=sha256:0403f647055de2609be776965108447deb8e384fe4a553c119e3ff6bfbab4784 \
     --hash=sha256:0642eae483cc8c2902e4af7298bf886d605e80f26382124cddc3967c2a3df09e \
     --hash=sha256:0b609fc9cdbd1f02e51f67f51e5aee60a841ef58a68d00d5ee2c0faf357481a3 \
