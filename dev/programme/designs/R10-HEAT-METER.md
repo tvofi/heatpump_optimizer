@@ -122,7 +122,7 @@ The mode source of each segment:
   - The learner's live basis becomes `measured_heat` at the **first fold whose replay used a non-`None` `space_heat_kw`**. That fold runs the existing void path (`heat_loss_basis_voids`, then `reanchor_heat_loss` at confidence 0) before it applies.
   - A meter the replay never uses, such as an install whose selector stays a combination mode on mixed plans, keeps its scale.
   - **No store migration** (point D). The earned basis is written to the existing `house_heat_loss_basis` choice field. `_heat_loss_anchors` returns `measured_heat` only when the stored basis is already `measured_heat` and `probe_install(...).measured_heat` still holds; otherwise it returns the configured basis, as today. A missing value reads as not earned.
-  - The field's `unread` text in `custom_components/heatpump_optimizer/store.py` still says "re-derived from the configured meters". Per the orchestrator's ruling, store.py is out of `files`, so that text goes stale. See the first note for the fixer.
+  - The field's `unread` text in `custom_components/heatpump_optimizer/store.py` still says "re-derived from the configured meters". It becomes "earned at the first measured-heat fold"; store.py is re-admitted for that string alone.
 - **Invariants.**
   - No heat key and no mode entity: bit-identical.
   - Thermal key with no observed single-duty mode: #2753's figures.
@@ -193,7 +193,7 @@ sites: attribution(dwell.shares(span), their plan split) -> space_heat_kw | cop_
 
 ## Hot files and serial position
 
-`files` grows by `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py`, and `custom_components/heatpump_optimizer/translations/sv.json`. Open groups on these files are R10-ARCH-SHAPES (already before) and R10-UX-HEALTH (after).
+`files` grows by `custom_components/heatpump_optimizer/heat_energy.py` (would be new), `custom_components/heatpump_optimizer/pump_signals.py`, `custom_components/heatpump_optimizer/thermal_model.py`, `custom_components/heatpump_optimizer/accuracy.py`, `custom_components/heatpump_optimizer/translations/sv.json`, and `custom_components/heatpump_optimizer/store.py` for the `house_heat_loss_basis` `unread` string only, with no version bump and no migration (orchestrator ruling under mandate 6329234399). Open groups on these files are R10-ARCH-SHAPES (already before) and R10-UX-HEALTH (after).
 
 Serial positions:
 - `config_flow.py`: 2 of 3.
@@ -204,7 +204,7 @@ Serial positions:
 
 - Carry: R10-RATIO-ANCHOR. On #2698's clamp-reset item, the decision under mandate 6329234399 is **keep "clamp means reset"**. It is orthogonal to this group: the void path enters `reanchor_heat_loss` at confidence 0, where both clamp branches (`if a and not`, `if b and not`) are skipped. The re-measurement at this group's merge base stays with the fixer.
 - Carry: dismissed: unobservable with one meter under a combination selector. The SAV attribution residue: the observed split fixes single-duty intervals, and under a combination selector the plan split and its docstrings stay.
-- Decision: orchestrator. The verdict at `636a85b3` keeps store.py in `files` for one string, the `unread` text of `house_heat_loss_basis`, which becomes "earned at the first measured-heat fold". The orchestrator's ruling removes store.py. If it stays out, that text is stale after this group. The recommendation is to re-admit store.py for that one string, with no version bump and no migration.
+- Decided by the orchestrator (mandate 6329234399): store.py is re-admitted for the `unread` text of `house_heat_loss_basis` only, which becomes "earned at the first measured-heat fold". No version bump and no migration.
 - Carry: R10-HEAT-METER (item dr1-basis-mix). After the upgrade, on a thermal-kW install, an interval with `None` heat still replays draw-inferred heat under `measured_heat`, as #2753 does. On a counter install, the scale folds only at span close, so there is no mix. Say so in `HEAT_LOSS_BASES`'s comment, because freezing them would be worse than #2753 on combination selectors.
 - Carry: R10-HEAT-METER (item dr1-store-choice). `house_heat_loss_basis` is a `Domain("choice")` (`custom_components/heatpump_optimizer/store.py`). Test a downgrade reading `measured_heat` and the schema check's acceptance of the third choice.
 - Carry: R10-HEAT-METER (item dr1-lag-idle). Align on the read instant, never on `last_updated`. An idle counter is old and correct.
