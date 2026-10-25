@@ -217,6 +217,7 @@ from . import draw_range
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
+from . import presets
 from .accuracy import (
     COP_REFUSED_BLENDED,
     COP_REFUSED_DISTORTED,
@@ -2725,13 +2726,7 @@ def _effective_house_heat_loss(
     params: ThermalParameters, scale: float
 ) -> float:
     """Configured heat loss coefficient after the learned correction, kW/°C."""
-    if params.two_zone_enabled:
-        # The learned split belongs in the total the diagnostic reports, or
-        # it would show a number the model does not actually use.
-        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-    else:
-        base = params.heat_loss_coefficient
-    return round(base * scale, 4)
+    return round(params.house_heat_loss_base * scale, 4)
 
 
 def _watched_cop_buckets(baseline: Mapping[Any, Any]) -> int:
@@ -2768,11 +2763,13 @@ def envelope_score(
 ) -> tuple[float | None, str | None]:
     """The house grade (#65) and, when it is None, the one code saying why.
 
-    The time constant ``room_thermal_mass / loss`` in hours, mapped from
-    20 h (a leaky house) to 100 h (a well-insulated one). ``loss`` is the
-    model's own whole-house figure, both zones with the learned split --
-    the one the Health tab publishes (#2239) -- so the grade is the house
-    as measured, not as configured. The codes, in precedence (#2258):
+    The time constant ``envelope_thermal_mass / loss`` in hours, placed on a
+    log scale between the shortest and the longest any shipped preset
+    derives (``presets.envelope_band_hours``). ``loss`` is the model's own
+    whole-house figure, both zones with the learned split -- the one the
+    Health tab publishes (#2239) -- and the mass is the one the dynamics
+    store, slab and zones included, so the grade is the house the model
+    simulates, as measured. The codes, in precedence (#2258):
     nothing to grade; the learner still walking from its prior; a refit
     of settled evidence outside its band of the learned scale.
     """
@@ -2781,14 +2778,15 @@ def envelope_score(
     scale = max(params.house_heat_loss_scale, 0.1)
     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
-    if loss <= 0.0 or params.room_thermal_mass <= 0:
+    if loss <= 0.0:
         return None, "no_house_model"
     if not house_loss_converged(samples):
         return None, "heat_loss_learning"
     if _refit_disagrees(advice, scale):
         return None, "heat_loss_refit_disagrees"
-    tau_h = params.room_thermal_mass / loss
-    return float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0, None
+    low_h, high_h = presets.envelope_band_hours()
+    tau_h = params.envelope_thermal_mass / loss
+    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None
 
 
 def machine_score(
