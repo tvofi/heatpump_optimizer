@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:<module> CONST 4cb25288",
+  "killed_by": "tests/features.py",
+  "old": "MIN_RATE_WINDOW_DAYS = 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: CONST (`MIN_RATE_WINDOW_DAYS = 2.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
