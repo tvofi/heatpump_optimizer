@@ -10,8 +10,10 @@
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
-# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
-# reaps its push's whole tree and ends (pr_args.sh's pr_exit_trap), and frees the lock only once that push has ended.
+# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass); no
+# other stop exits 75. A stopped (TERM/INT/HUP, to the run or its whole group) run reaps its push's whole tree and ends
+# (pr_args.sh's pr_exit_trap); the lock is freed only once that push has ended, a SIGKILLed run's too (pr_push_hold).
+# The run leaves $WT detached, not holding the branch.
 # With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
 # own verdict replaces the full prepr with the body contract when the push is exactly this PR's
 # row added onto its live head under the body plus this run's note, and runs prepr otherwise; its
@@ -33,6 +35,10 @@ WT=$P/upd-${BR//\//-}
 # on after the shell (R10-PUSHER-REAP), and only then frees the branch.
 pr_exit_trap
 pr_branch_lock "$WT.lock" "$BR" "$WT"  # one run per branch, with open_pr.sh (pr_args.sh)
+# Held now, so the worktree is this run's: it leaves it detached, never holding the branch, which the
+# merge train's recarry would read as checked out elsewhere (#2513, #2544, #2547) -- once its push has
+# ended, never under one, and before the lock is freed, so never under the next run.
+PR_AFTER_REAP="pr_push_ended && { [ ! -d \"\$WT\" ] || git -C \"\$WT\" checkout -q --detach; } 2>/dev/null || :; $PR_AFTER_REAP"  # mut:detach
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -74,7 +80,7 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 RO=""; [ "$C" != - ] || RO=--row-only  # mut:rowonly
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
+{ pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 & } 9>>"$PR_PUSH_LOCK"
 pr_wait $! $WT.log
 grep -h '^app_push: ROW-ONLY:' $WT.log || :
 echo "HEAD=$H"

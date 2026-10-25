@@ -28,6 +28,9 @@ pr_refuse() { printf '%s: REFUSE: %s\n' "${PR_NAME:-pr}" "$*" >&2; exit 1; }
 pr_stopped() { # <status> <line> <command>: the ERR trap's report
   [ "${BASH_SUBSHELL:-0}" = 0 ] || return 0
   printf '%s: STOPPED: line %s exited %s: %s\n' "${PR_NAME:-pr}" "$2" "$1" "$3" >&2
+  # 75 is BUSY to a caller (cloud_relay.sh retries it and records nothing), and only pr_lock_busy
+  # says it: a step that happens to exit 75 under errexit is a stop like any other (#2469).
+  [ "$1" != 75 ] || exit 1  # mut:busy75
 }
 pr_trap() { # errexit, and the report of every stop it makes
   set -Eeo pipefail
@@ -60,33 +63,57 @@ pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the 
   kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $1 did not report within 20 s"
   wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$1" 2>/dev/null || :)
   [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $1 (its holder exited $rc)"
-  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"
+  elif [ "$(cut -d' ' -f3 "$1" 2>/dev/null || :)" = drain ]; then o="the push of run $o (the run has ended, the push has not)"
+  else o="the lock holder of run ${o:-unknown}, which has ended,"; fi
   echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
 }
-pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run ends, or exit 75 BUSY
+pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run and its push end, or exit 75 BUSY
   # One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch the other
   # is pushing (R10-OPENPR-ROW-PUSH). $WT and $WT.log of update_pr.sh are fixed per branch, and the
   # line there that removes $WT force-removed a concurrent run's live worktree under its prepr
   # (2026-10-19/20: the orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is
   # flock(2) held by one holder process; this shell holds no fd on it, so nothing the run starts can (a
-  # detached `git gc --auto` kept an inherited one). The caller's pr_exit_trap ends the holder before
-  # the run returns, and only after its reap (R10-PUSHER-REAP): bash runs that EXIT trap when
-  # TERM/INT/HUP end the shell too, the reap spares the holder (PR_REAP_SPARE) and ends the push's
-  # tree, and then PR_AFTER_REAP frees the lock -- so a stopped run frees the lock once its push has
-  # ended, never while it runs; a SIGKILLed run's holder exits once its parent is gone.
+  # detached `git gc --auto` kept an inherited one).
+  # The holder lets go when the run ends -- USR1 from PR_AFTER_REAP, which the caller's pr_exit_trap
+  # runs after its reap, or its parent gone, as a SIGKILL leaves it -- and then not before the push's
+  # own lock (<lock-file>.push, pr_push_hold) is free: that lock belongs to an fd every process of the
+  # push inherits, so the kernel frees it when the last of them has exited, a zombie included, with
+  # no `ps` and no process-group walk (R10-UPDATE-PR-SIGNALS: #2469's round-4 drain counted the
+  # zombies a late-reaping PID 1 leaves, and failed 7 of 7). It ignores TERM, INT and HUP, so a
+  # signal to the run's whole process group does not end it beside the push it guards; a stopped
+  # run's own reap ends that push. Its third field reads `drain` once the run has ended.
   local k=0
-  python3 -I -c 'import fcntl, os, sys, time
+  PR_PUSH_LOCK=$1.push
+  python3 -I -c 'import fcntl, os, signal, sys, time
+os.closerange(3, 1024)
+for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(s, signal.SIG_IGN)  # mut:holdsig
+end = []
+signal.signal(signal.SIGUSR1, lambda *a: end.append(1))
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: sys.exit(75)
 p = os.getppid()
 f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
-while os.getppid() == p: time.sleep(2)  # mut:watch
+while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch
+f.truncate(0); f.write("%d %d drain\n" % (p, os.getpid())); f.flush()
+fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
 sys.exit(0)' "$1" </dev/null >/dev/null 2>&1 & LKP=$!
   PR_REAP_SPARE=$LKP
-  PR_AFTER_REAP='{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
+  PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
   while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
   [ "$(cat "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
+}
+pr_push_hold() { # inside `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`: lock fd 9, which the push inherits
+  # The redirection is this shell's, opened before the fork, so a SIGKILL at any point leaves the
+  # lock either with the push or with nobody; the shell's copy closes when the group ends. It waits
+  # for this run's earlier push (open_pr.sh's first), which only a detached child of it still holds.
+  local rc=0
+  python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX)' || rc=$?  # mut:pushhold
+  [ "$rc" = 0 ] || pr_refuse "could not lock $PR_PUSH_LOCK"
+}
+pr_push_ended() { # wait until no process of this run's push is left: its lock is free
+  python3 -I -c 'import fcntl, sys; fcntl.flock(open(sys.argv[1], "a"), fcntl.LOCK_EX)' "$PR_PUSH_LOCK"
 }
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
@@ -144,6 +171,7 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   # A second stop signal must not end the shell mid-reap, before the KILL below.
   trap '' TERM INT HUP  # mut:sigign
   PR_REAP_PIDS=()
+  command -v pgrep >/dev/null || printf '%s: STOPPED: no pgrep on PATH, so the tree this run started is not reaped; the branch lock stays held until its push ends\n' "${PR_NAME:-pr}" >&2  # mut:nopgrep
   pr_descendants $$
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
   pr_lead_stop  # mut:lead
@@ -263,7 +291,7 @@ pr_args_self_test() (
 echo $$ > "$REAP_DIR/started"
 echo $$ >> "$REAP_DIR/pids"
 [ -e "$REAP_DIR/fast" ] && exit 1
-[ -e "$REAP_DIR/stubborn" ] && { bash -c 'trap "" TERM; sleep 30' & echo $! >> "$REAP_DIR/pids"; }
+[ -e "$REAP_DIR/stubborn" ] && trap '' TERM HUP  # the whole push, children included, outlives TERM and HUP: only the reap's KILL ends it
 if [ -e "$REAP_DIR/ok" ]; then
   bash -c 'sleep 1' reap-child "$REAP_DIR/mark" & echo $! >> "$REAP_DIR/pids"
   wait; exit 0
@@ -297,7 +325,7 @@ STUB
     && git -C "$o" update-ref refs/heads/handoff-body/reap "$body" \
     && throwaway_git_clone -q "$o" "$m" && mkdir -p "$t/bin" "$m/tools/audit/seat" "$m/tools/pr" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
-    && printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh" \
+    && printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) [ -e "%s/gh.75" ] && exit 75; echo "a title" ;; *) exit 99 ;; esac\n' "$t" "$t" "$t" > "$t/bin/gh" \
     && echo '[]' > "$t/prs.json" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
   reapsha=$(git -C "$o" rev-parse reapup)
@@ -403,7 +431,7 @@ STUB
   # started here descends from no pusher: it is the null control for "kills only
   # what it started", and the arm the by-pid rule is mutated against.
   ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
-  "$REAP_DIR/unrelated-sleep" 300 & UNREL=$!
+  "$REAP_DIR/unrelated-sleep" 3600 & UNREL=$!
   ralive() { # <pids file> -> how many of its pids are alive; polled, since a killed child can be a zombie for a moment
     local p n k=0
     while :; do
@@ -413,10 +441,13 @@ STUB
       sleep 0.1; k=$((k + 1))
     done
   }
-  rclean() { # end this fixture's recorded pids, by pid (never a pattern)
-    local p
-    for p in $(cat "$REAP_DIR/pids" 2>/dev/null); do
-      case $p in ''|0|1|*[!0-9]*) ;; *) kill -TERM "$p" 2>/dev/null ;; esac
+  rclean() { # end this fixture's recorded pids and their children, by pid (never a pattern): a child
+    # left alive would hold the push's lock (pr_push_hold) until its own sleep ends
+    local p all q
+    all=$(cat "$REAP_DIR/pids" 2>/dev/null); q=$all
+    while [ -n "$q" ]; do q=$(for p in $q; do pgrep -P "$p" 2>/dev/null; done); all="$all $q"; done  # all of them first: a killed parent's child is reparented
+    for p in $all; do
+      case $p in ''|0|1|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac
     done
     : > "$REAP_DIR/pids"
   }
@@ -430,7 +461,7 @@ STUB
     # exec resets it, as a terminal's foreground job has it.
     python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
       bash "$m/tools/audit/seat/$sc" "$@" > "$t/out" 2>&1 & up=$!
-    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     kill -"${STOPSIG:-TERM}" "$up"; k=0
     while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
@@ -595,6 +626,14 @@ STUB
     update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+  # Only the lock says BUSY: a step that exits 75 under errexit (here `gh pr view`) is a stop, which
+  # cloud_relay.sh records, never a 75 it would retry unrecorded (#2469's round-4 carry).
+  touch "$t/gh.75"; cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x - "$t/b.md"
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "update_pr: STOPPED: line" "$t/out" && grep -qF "exited 75" "$t/out" && ! grep -qF BUSY "$t/out"
+  ck "update_pr: a step exiting 75 is reported as a stop and exits 1, never 75 (BUSY)" $?
+  cp "$t/body.md" "$t/b.md"; run busy75 update_pr.sh fix/x - "$t/b.md"; [ "$(cat "$t/rc")" = 75 ]
+  ck "  mutant mut:busy75 (its line deleted): that step's 75 reaches the caller, which would read it as BUSY" $?
+  rm -f "$t/gh.75"
   # reap: end every lock holder a fixture run recorded under $t (a mutant's may never exit), by
   # the holder pid its lock file names -- never pid 0 or 1, which kill reads as a group.
   reap() {
@@ -660,14 +699,26 @@ STUB
   ck "  mutant mut:unlock (its line deleted): the holder is still alive when the run returns" $?
   # A stopped run reaps its whole descendant tree (R10-PUSHER-REAP): branch fix/t
   # carries the same stub app_push, so a TERM is judged by what survives it.
-  # SIGKILL runs no trap, so that arm checks only the lock, which the holder
-  # frees when its parent dies. Every wait is on a condition with a bound.
+  # SIGKILL runs no trap, so sigrun below judges that case by the lock alone.
+  # Every wait is on a condition with a bound, and the lock is read by trying it
+  # (lockstate), never by a holder pid, which a late-reaped zombie still answers.
   # stoprun <mutant> <signal>: run 1 gets the signal mid-push.
   if [ ! -e "$t/fixt" ]; then
     git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
       && cp "$REAP_DIR/reap-stub.sh" "$o/tools/pr/app_push.sh" \
       && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
   fi
+  lockstate() { # <lock file>: "held" or "free", by trying it -- the kernel frees a flock at exit, not at reap
+    python3 -I -c 'import fcntl, sys
+f = open(sys.argv[1], "a")
+try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError: print("held"); sys.exit()
+print("free")' "$1"
+  }
+  untilfree() { # <lock file>: wait for the lock to be free; a bound, not a window: the arm fails past it
+    local k=0
+    while [ "$(lockstate "$1")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+  }
   updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
   stoprun() { # <mutant> <signal>
     local sd=$t/st-$1-$2 up k=0 hp
@@ -678,18 +729,16 @@ STUB
     # The exec resets the INT a background job starts with ignored (stopreap's why).
     HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
       bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
-    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
-    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
-    case $hp in ''|0|1|*[!0-9]*) echo 0 > "$t/held" ;; *) kill -0 "$hp" 2>/dev/null && echo 1 > "$t/held" || echo 0 > "$t/held" ;; esac
-    kill -"$2" "$up"
+    [ "$(lockstate "$sd/pr/upd-fix-t.lock")" = held ] && echo 1 > "$t/held" || echo 0 > "$t/held"
+    kill -"$2" "$up" 2>/dev/null
     k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
     kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
     ralive "$REAP_DIR/pids" > "$t/survivors"
     kill -0 "$UNREL" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
     touch "$REAP_DIR/fast"  # every later run's stub exits at once
-    updt 2 "$sd"; wait "$up" 2>/dev/null; updt 3 "$sd"
-    rclean
+    updt 2 "$sd"; rclean; wait "$up" 2>/dev/null; updt 3 "$sd"
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
   }
   took_lock() { ! grep -qF "update_pr: BUSY" "$t/out3" && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
@@ -703,46 +752,96 @@ STUB
   ck "update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
   stoprun stop TERM
   ck "  mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives" "$(survived)"
-  ck "  mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)" \
-     "$( ! grep -qF "update_pr: BUSY" "$t/out2" && echo 0 || echo 1 )"
-  # The lock outlives the push (main's pr_branch_lock, kept by the reap): the push holds a child
-  # that ignores TERM, so the reap's grace runs ~2 s before its KILL. heldrun <mutant>: TERM run 1
-  # mid-push, then poll; "early" when the holder is gone while a pid of the push is still alive.
-  # Mutant afterreap (sed, not a `# mut:` line) frees the lock BEFORE the reap: pr_exit_trap's order reversed.
-  heldrun() {
-    local sd=$t/hd-$1 up k=0 hp p a
-    rm -rf "$t/s$i"; git -C "$m" worktree prune
-    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok"; : > "$REAP_DIR/pids"; : > "$REAP_DIR/stubborn"
-    if [ "$1" = afterreap ]; then copyin -; sed -i 's/pr_reap; eval "${PR_AFTER_REAP:-:}"/eval "${PR_AFTER_REAP:-:}"; pr_reap/' "$m/tools/audit/seat/pr_args.sh"
-    else copyin "$1"; fi
-    cp "$t/body.md" "$t/b1.md"
-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
-    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 5 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
-    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
-    echo none > "$t/early"
-    case $hp in ''|0|1|*[!0-9]*) echo nohold > "$t/early" ;; esac
-    kill -TERM "$up"; k=0
-    while kill -0 "$up" 2>/dev/null && [ $k -lt 80 ]; do
-      if ! kill -0 "$hp" 2>/dev/null; then
-        a=0; for p in $(cat "$REAP_DIR/pids"); do kill -0 "$p" 2>/dev/null && [ "$(ps -o stat= -p "$p" | cut -c1)" != Z ] && a=1; done
-        [ "$a" = 1 ] && echo early > "$t/early"
-      fi
-      sleep 0.05; k=$((k + 1))
-    done
-    wait "$up" 2>/dev/null; rm -f "$REAP_DIR/stubborn"; rclean
+  ck "  mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)" \
+     "$( grep -qF "update_pr: BUSY" "$t/out2" && echo 0 || echo 1 )"
+  # The lock outlives the push, whatever stops the run (R10-UPDATE-PR-SIGNALS). sigrun <mutant>
+  # <how>: run 1, in a process group of its own, is stopped mid-push by <how>: KILL to the run
+  # alone, or TERM or HUP to its whole group, which reaches the holder too. For a group signal the
+  # push ignores TERM and HUP, so it outlives the signal until the reap's KILL.
+  # The wait is for the condition the run must reach: the holder's `drain` mark, or the lock free.
+  # The mark is written before the drain, so one read after that wait tells which came first.
+  sigrun() {
+    local sd=$t/sg-$1-$2 lf up k=0 sig=${2#grp}
+    rm -rf "$t/s$i" "$sd"; git -C "$m" worktree prune; lf=$sd/pr/upd-fix-t.lock
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$REAP_DIR/stubborn" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
+    [ "$sig" = "$2" ] || : > "$REAP_DIR/stubborn"
+    copyin "$1"; cp "$t/body.md" "$t/b1.md"
+    HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; os.setsid(); signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
+    if [ "$sig" = "$2" ]; then kill -"$sig" "$up"; else kill -"$sig" -- "-$up"; fi 2>/dev/null
+    k=0; while [ "$(cut -d' ' -f3 "$lf" 2>/dev/null)" != drain ] && [ "$(lockstate "$lf")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    lockstate "$lf" > "$t/state"; cut -d' ' -f3 "$lf" 2>/dev/null > "$t/mark" || :
+    [ "$sig$1" != KILL- ] || { touch "$REAP_DIR/fast"; updt 2 "$sd"; }  # every later run's stub exits at once
+    rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"
+    k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
+    touch "$REAP_DIR/fast"; wait "$up" 2>/dev/null; updt 3 "$sd"
+    rm -f "$REAP_DIR/stubborn"; rclean
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
   }
-  heldrun -
-  ck "update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it" \
-     "$( [ "$(cat "$t/early")" = none ] && echo 0 || echo 1 )"
-  heldrun afterreap
-  ck "  mutant afterreap (pr_exit_trap's order reversed by sed: the lock freed before the reap): the holder is gone while the push still runs" \
-     "$( [ "$(cat "$t/early")" = early ] && echo 0 || echo 1 )"
-  stoprun - KILL
-  ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" "$( took_lock && echo 0 || echo 1 )"
+  sigheld() { [ "$(cat "$t/treen")" -ge 4 ] && [ "$(cat "$t/mark")" = drain ] && [ "$(cat "$t/state")" = held ] && echo 0 || echo 1; }
+  sigfreed() { [ "$(cat "$t/after")" = free ] && [ "$(cat "$t/pusher")" = gone ] && took_lock && echo 0 || echo 1; }
+  sigrun - KILL 2>/dev/null  # the killed run's job notice
+  ck "update_pr: a SIGKILLed run's lock stays held while its push runs" "$(sigheld)"
+  ck "update_pr: and a run meanwhile is BUSY, naming that push" \
+     "$( grep -qF "update_pr: BUSY: the push of run" "$t/out2" && echo 0 || echo 1 )"
+  ck "update_pr: once that push ends the lock is free, and a later run takes it" "$(sigfreed)"
+  sigrun drain KILL 2>/dev/null
+  ck "  mutant mut:drain (its line deleted): the holder lets go once the run is gone, while the push runs" \
+     "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/state")" = free ] && echo 0 || echo 1 )"
+  sigrun pushhold KILL 2>/dev/null
+  ck "  mutant mut:pushhold (its line deleted): the push holds no lock, so the holder lets go while it runs" \
+     "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/state")" = free ] && echo 0 || echo 1 )"
+  for g in grpTERM grpHUP; do
+    sigrun - $g 2>/dev/null
+    ck "update_pr: ${g#grp} to the run's whole group: the holder outlives it and drains, letting go once nothing of the push holds its lock" \
+       "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/mark")" = drain ] && echo 0 || echo 1 )"
+    ck "update_pr: and then the lock is free, and a later run takes it" "$(sigfreed)"
+  done
+  sigrun holdsig grpTERM 2>/dev/null
+  ck "  mutant mut:holdsig (its line deleted): the group's TERM ends the holder, which never drains" \
+     "$( [ "$(cat "$t/mark")" != drain ] && [ "$(cat "$t/state")" = free ] && echo 0 || echo 1 )"
   stoprun watch TERM
-  ck "  mutant mut:watch (the holder's wait line deleted): the holder exits at once, so it is not held during the push" \
-     "$( [ "$(cat "$t/held")" = 0 ] && echo 0 || echo 1 )"
+  ck "  mutant mut:watch (the holder's wait line deleted): the holder lets go at once, so the run never holds the lock and refuses" \
+     "$( [ "$(cat "$t/held")" = 0 ] && grep -qF "update_pr: REFUSE: could not take the per-branch lock" "$t/out1" && echo 0 || echo 1 )"
+  # With no ps and no pgrep (the R10-ROSTER-OPS carry from #2469 round 3: a host without ps re-execed
+  # forever there): a PATH of links to every command but those two. A TERMed run says it cannot reap,
+  # and its lock stays held until the push it could not end has ended; nothing hangs past that.
+  if [ ! -d "$t/nops" ]; then
+    mkdir -p "$t/nops"
+    for g in $(printf '%s\n' "$PATH" | tr ':' ' '); do
+      for k in "$g"/*; do
+        case ${k##*/} in ps|pgrep) continue ;; esac
+        [ -x "$k" ] && [ ! -e "$t/nops/${k##*/}" ] && ln -s "$k" "$t/nops/${k##*/}"
+      done
+    done 2>/dev/null
+  fi
+  nopsrun() { # <mutant>
+    local sd=$t/np-$1 lf up k=0
+    rm -rf "$t/s$i" "$sd"; git -C "$m" worktree prune; lf=$sd/pr/upd-fix-t.lock
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$t/out3"; : > "$REAP_DIR/pids"
+    copyin "$1"; cp "$t/body.md" "$t/b1.md"
+    PATH=$t/nops HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
+    kill -TERM "$up"
+    k=0; while ! grep -qF "no pgrep" "$t/out1" && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    lockstate "$lf" > "$t/state"
+    rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"
+    k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
+    touch "$REAP_DIR/fast"; wait "$up" 2>/dev/null; updt 3 "$sd"; rclean
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  nopsrun -
+  ck "update_pr: with no ps or pgrep a TERMed run says it cannot reap, and keeps the lock while its push runs" \
+     "$( grep -qF "update_pr: STOPPED: no pgrep on PATH" "$t/out1" && [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/state")" = held ] && echo 0 || echo 1 )"
+  ck "update_pr: and once that push ends the run is gone, the lock free, and a later run takes it" "$(sigfreed)"
+  nopsrun nopgrep
+  ck "  mutant mut:nopgrep (its line deleted): the run stops without saying its tree was not reaped" \
+     "$( ! grep -qF "no pgrep" "$t/out1" && echo 0 || echo 1 )"
   stopok() { # the null control: a run that succeeds leaves nothing behind
     local sd=$t/okrun
     rm -rf "$sd"; git -C "$m" worktree prune; rm -f "$REAP_DIR/started" "$REAP_DIR/fast"
@@ -858,6 +957,12 @@ STUB
       && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
     ck "null control: update_pr with code sha '${c:0:7}' passes every check, and its failed push names its log" $?
   done
+  # The run leaves its worktree detached (the merge train parked #2513, #2544 and #2547 on it).
+  ! git -C "$t/s$i/pr/upd-fix-x" symbolic-ref -q HEAD >/dev/null && [ -z "$(git -C "$m" worktree list | grep -F '[fix/x]')" ]
+  ck "update_pr: the run leaves its worktree detached, so no worktree holds the branch" $?
+  cp "$t/body.md" "$t/b.md"; run detach update_pr.sh fix/x - "$t/b.md"
+  git -C "$t/s$i/pr/upd-fix-x" symbolic-ref -q HEAD >/dev/null
+  ck "  mutant mut:detach (its line deleted): the worktree still holds fix/x" $?
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
