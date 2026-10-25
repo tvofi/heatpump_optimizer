@@ -778,7 +778,10 @@ sweep's standing-seat liveness step keep them alive.
   vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
-  verdicts, `--tree` and the roster ref cut there). When: a flow guardrail
+  verdicts, `--tree` and the roster ref cut there). `--guardrail` prints the
+  review-strength guardrail's arms, report-only: incidence of the last 30
+  PRs and of each seat family's last 20 against P0 = 0.28 with REAL widened
+  by REAL_EXTRA, and the blocked words neither real nor taught. When: a flow guardrail
   or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
   is its first use. Refusal: an out-of-grammar subject is its own row,
   never a verdict.
