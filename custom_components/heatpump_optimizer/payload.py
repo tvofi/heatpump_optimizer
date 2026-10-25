@@ -216,7 +216,7 @@ class SolarAperture(TypedDict, total=False):
 class LearnerProgress(TypedDict):
     phase: str  # "off" | "waiting" | "counting" | "settling"
     progress: float | None
-    waiting_for: str | None  # "colder" | "sunnier"
+    waiting_for: str | None  # "colder" | "darker" | "sunnier"
     eta_days: float | None  # counting only
     samples: int
     samples_needed: int | None
