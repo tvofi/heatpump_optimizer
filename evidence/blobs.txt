@@ -1,0 +1,7 @@
+head 54f6f50e6f8a4171e87306f0e8cf4aeffb35afc0 roster blob 64bf29ca58cab83d366faef6519c219096c0a7cc
+c57fa3768 roster blob 64bf29ca58cab83d366faef6519c219096c0a7cc
+merge-base 1afbbceae roster blob a1673a3a294fcc8f101fe12c2e4d6121cf403632 == handoff 86dfec465 blob a1673a3a294fcc8f101fe12c2e4d6121cf403632
+origin/main roster blob a1673a3a294fcc8f101fe12c2e4d6121cf403632
+ dev/programme/delivery/2787.md             |  1 +
+ dev/programme/rosters/wave-r10-groups.json | 62 ++++++++++++++++++------------
+ 2 files changed, 38 insertions(+), 25 deletions(-)
