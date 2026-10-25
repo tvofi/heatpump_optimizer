@@ -10,3 +10,4 @@ Real red: `tests / fast (3.14)` fails in `python3 tests/structure.py`: seam_cut_
 Also the `pr-contract` red there: `## Red checks` does not name `tests / fast (3.14)`. Re-take the whole body so Red checks names it (structure.py seam_cut_total) and answers with the cheaper detector (tests/structure.py in prepr before the handoff) and why it did not catch it. The `gate` red ("still being judged") is the codescan wait race (R10-RCA-CODESCAN-WAIT #2756, R10-GATE-DEFER #2770); name it as such.
 Push handoff/r10-learner-eta-r4 (new 40-hex tip) and handoff-body/r10-learner-eta-r4 per the fixer contract.
 no host or home paths in anything you push
+Push your return refs (the handoff, then handoff-body as the return signal) as soon as prepr passes; a result left only in your session is lost work. The previous attempt at this brief ended with no ref pushed.
