@@ -1,0 +1,8 @@
+M1	learner_progress.py	if needed is not None and needed > n:	if needed is not None:
+M3	learner_progress.py	learner.blocked_by is not None and rate is None	learner.blocked_by is not None
+M4	coordinator.py	return "colder" if zone - outdoor < HOUSE_LOSS_MIN_DELTA else None	return None
+M5	coordinator.py	return house_loss_confidence(house_samples) >= INTERNAL_GAINS_MIN_UA_CONFIDENCE	return house_loss_converged(house_samples)
+M7	coordinator.py	walk = max(0, samples - SOLAR_APERTURE_MIN_SAMPLES)	walk = max(0, samples)
+S4	coordinator.py	params.two_zone_enabled and bool(config.lower_floor_temp_entity)	params.two_zone_enabled or bool(config.lower_floor_temp_entity)
+S5	learner_progress.py	MIN_RATE_WINDOW_DAYS = 1.0	MIN_RATE_WINDOW_DAYS = 2.0
+NULL	learner_progress.py	MIN_RATE_WINDOW_DAYS = 1.0	MIN_RATE_WINDOW_DAYS = 1.0  # null
