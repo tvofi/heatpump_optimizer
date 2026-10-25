@@ -194,11 +194,12 @@ from .inputs import (
     InputHealth,
     InputReader,
     age_of,
-    normalize_power_kw,
+    finite_float,
     normalize_price_per_kwh,
     parse_bool,
     price_per_kwh,
     stale_summary,
+    state_power_kw,
     state_unit,
     temperature_c,
     write_setpoint_c,
@@ -387,26 +388,6 @@ def _plain_types(value: Any) -> Any:
     return value
 
 
-def _as_float(value: Any, default: float) -> float:
-    """Coerce a forecast/sensor value to a finite float.
-
-    Weather integrations are free to report a key as ``None`` (Home Assistant's
-    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
-    through produces a ``TypeError`` on the next comparison, or a silent NaN
-    that poisons the whole optimization horizon, so anything that is not a
-    finite number falls back to ``default``.
-    """
-    if value is None:
-        return default
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return default
-    if not np.isfinite(result):
-        return default
-    return result
-
-
 def _storable_sample_count(raw: Any) -> int:
     """A stored sample count a fold could have written (D1-s2-03).
 
@@ -427,11 +408,8 @@ def _at_least(raw: Any, lo: float, default: float) -> float:
     The aperture fit's sums of squares and sample weight are never negative
     as its fold writes them (F9.3); its means and covariance are signed.
     """
-    try:
-        value = float(raw)
-    except (TypeError, ValueError, OverflowError):
-        return default
-    return value if np.isfinite(value) and value >= lo else default
+    value = finite_float(raw)
+    return value if value is not None and value >= lo else default
 
 
 def _learned_pair(entry: Any) -> list[Any]:
@@ -729,7 +707,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
         # `_weather_series` falls back to, which starts the series at now.
         entry = forecast[0]
     temperature = entry.get("temperature")
-    return None if temperature is None else _as_float(temperature, 5.0)
+    return None if temperature is None else finite_float(temperature, 5.0)
 
 
 # A failed solve keeps the last good plan published — deliberately, a solver
@@ -2264,9 +2242,9 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
         if value is not None:
             row["temperature"] = value
         if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
-            row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
+            row["wind_speed"] = finite_float(entry.get("wind_speed"), 0.0) * wind
         if rain != 1.0:  # and a missing precipitation as 0.0
-            row["precipitation"] = _as_float(entry.get("precipitation"), 0.0) * rain
+            row["precipitation"] = finite_float(entry.get("precipitation"), 0.0) * rain
         rows.append(row)
     return rows
 
@@ -2712,7 +2690,7 @@ def machine_score(
 
 def operation_reason(score_day: Mapping[str, Any]) -> str:
     """Why the operation grade is None: a free-price reset, or no day scored yet."""
-    free = _as_float(score_day.get("free_streak"), 0.0)
+    free = finite_float(score_day.get("free_streak"), 0.0)
     return "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
 
 
@@ -3891,7 +3869,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
             action = self._current_action or {}
             curve_driven = bool(action.get("heat_pump_on")) or (
-                abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
+                abs(finite_float(action.get("displace_value"), 0.0)) > 0.01
             )
             state = _ctx_of(self)._current_state  # after the await above
             zones = [state.room_temperature]
@@ -5009,8 +4987,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._weather_forecast:
             first = self._weather_forecast[0]
             return (
-                max(0.0, _as_float(first.get("wind_speed"), 0.0)),
-                max(0.0, _as_float(first.get("precipitation"), 0.0)),
+                max(0.0, finite_float(first.get("wind_speed"), 0.0)),
+                max(0.0, finite_float(first.get("precipitation"), 0.0)),
             )
         return 0.0, 0.0
 
@@ -5102,12 +5080,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the one persistence write (``updated_at`` moves every save, so
         the content-hash skip cannot gate this store).
         """
-        anchor = _as_float(stored.get("house_heat_loss_anchor"), 0.0)
+        anchor = finite_float(stored.get("house_heat_loss_anchor"), 0.0)
         live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
         current = live["house_heat_loss_anchor"]
         void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
         pair = heat_loss_anchor_pair(
-            (anchor, _as_float(stored.get("lower_floor_loss_anchor"), 0.0)),
+            (anchor, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)),
             (current, live["lower_floor_loss_anchor"]),
             ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
         )
@@ -6744,8 +6722,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     self._weather_forecast = forecast_data
 
                     # The solar forecast, if present; a non-numeric irradiance is
-                    # refused by _as_float, not thrown (R5-D1-07).
-                    self._solar_radiation_forecast = [_as_float(
+                    # refused by finite_float, not thrown (R5-D1-07).
+                    self._solar_radiation_forecast = [finite_float(
                         fc.get("solar_irradiance") or fc.get("native_solar_irradiance", 0.0), 0.0
                     ) for fc in self._weather_forecast]
 
@@ -6997,19 +6975,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tuple[datetime | None, tuple[float, float, float, float, float]]
         ] = []
         for idx, entry in enumerate(self._weather_forecast):
-            temp = _as_float(entry.get("temperature"), 5.0)
-            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0))
-            rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
+            temp = finite_float(entry.get("temperature"), 5.0)
+            gust = max(0.0, finite_float(entry.get("wind_speed"), 0.0))
+            rain = max(0.0, finite_float(entry.get("precipitation"), 0.0))
             # NaN, not a guess: the model reads NaN as "use the ambient
             # value", while any invented number would select a real
             # defrost bucket (#21).
-            rh = _as_float(entry.get("humidity"), float("nan"))
+            rh = finite_float(entry.get("humidity"), float("nan"))
 
             irradiance = 0.0
             if idx < len(self._solar_radiation_forecast):
-                irradiance = _as_float(self._solar_radiation_forecast[idx], 0.0)
+                irradiance = finite_float(self._solar_radiation_forecast[idx], 0.0)
             if irradiance == 0.0:
-                irradiance = _as_float(
+                irradiance = finite_float(
                     entry.get("solar_irradiance")
                     or entry.get("native_solar_irradiance"),
                     0.0,
@@ -7839,7 +7817,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # coordinator's data stays byte-for-byte identical.
             return {}
         totals = [
-            _as_float(entry.get("total"), 0.0) for entry in self._prices
+            finite_float(entry.get("total"), 0.0) for entry in self._prices
         ]
         positives = [t for t in totals if t > 0.0]
         ratio = (
@@ -8444,14 +8422,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         fuse = self._fuse_kw()
         if not tariff.enabled and fuse is None:
             return
-        try:
-            raw_state: Any = getattr(new_state, "state", None)
-            raw = float(raw_state)
-        except (TypeError, ValueError):
-            return
-        attrs = getattr(new_state, "attributes", {}) or {}
-        kw = normalize_power_kw(raw, attrs.get("unit_of_measurement"))
-        if kw is None or not np.isfinite(kw):
+        kw = state_power_kw(new_state)
+        if kw is None:
             return
 
         # Time-weighted fold (#7): the listener knows real sample spacing,
@@ -9516,18 +9488,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = config.production_entity
         if not entity_id:
             return None
-        state = self.hass.states.get(entity_id)
-        if state is None or str(state.state).lower() in ("unknown", "unavailable", ""):
-            return None
-        try:
-            value = float(state.state)
-        except (TypeError, ValueError):
-            return None
-        unit = state.attributes.get("unit_of_measurement")
-        converted = normalize_power_kw(value, unit)
-        if converted is None or not np.isfinite(converted):
-            return None
-        return max(0.0, converted)
+        return state_power_kw(self.hass.states.get(entity_id), sign="clamp")
 
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int
@@ -10055,7 +10016,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         planned_total = planned_space + planned_dhw
 
         when = pending.get("when") or dt_util.now()
-        spot = _as_float(pending.get("spot_price"), float("nan"))
+        spot = finite_float(pending.get("spot_price"), float("nan"))
 
         # T6 #40: a settlement landing in a new month means the old month
         # just closed — freeze its receipt before anything else books.
@@ -10117,7 +10078,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # so every later SEK claim can reconcile against the month's
         # receipts, and the fee never contaminates the spot column the
         # contract comparison settles on.
-        fee = _as_float(pending.get("grid_fee"), 0.0)
+        fee = finite_float(pending.get("grid_fee"), 0.0)
         # T4a #11: while the immersion element runs, the draw beyond what
         # the plan commanded is resistive heat. Its kWh are CARVED OUT of
         # the spot line, not booked on top of it — the lines must sum to
@@ -10325,13 +10286,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
         if spot_known and np.isfinite(sek):  # #2229: an unpriced kWh pays nothing
-            book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
-            book["sek"] = _as_float(book.get("sek"), 0.0) + sek
+            book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+            book["sek"] = finite_float(book.get("sek"), 0.0) + sek
         if spot_known and np.isfinite(spot) and elapsed_hours > 0:
             book["spot_sum"] = (
-                _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
+                finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
             )
-            book["spot_h"] = _as_float(book.get("spot_h"), 0.0) + elapsed_hours
+            book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -10343,23 +10304,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         book = self._score_day
         self._score_day = {}
-        kwh = _as_float(book.get("kwh"), 0.0)
-        hours = _as_float(book.get("spot_h"), 0.0)
+        kwh = finite_float(book.get("kwh"), 0.0)
+        hours = finite_float(book.get("spot_h"), 0.0)
         if kwh < 0.2 or hours < 1.0:
             return
-        mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
+        mean_spot = finite_float(book.get("spot_sum"), 0.0) / hours
         if mean_spot <= 0.01:
             # Free or negative-price days: the ratio is meaningless, no
             # evidence. A short run freezes the EMA in place; past
             # SCORE_FREE_SPAN_RESET closes (1/SCORE_ALPHA, the EMA's
             # memory horizon) it resets (#908) -- no stale spring grade
             # on a summer date, and the streak rides the day book.
-            streak = _as_float(book.get("free_streak"), 0.0) + 1.0
+            streak = finite_float(book.get("free_streak"), 0.0) + 1.0
             self._score_day = {"free_streak": streak}
             if streak >= SCORE_FREE_SPAN_RESET:
                 self._operation_score = None
         else:
-            paid_mean = _as_float(book.get("sek"), 0.0) / kwh
+            paid_mean = finite_float(book.get("sek"), 0.0) / kwh
             saved_fraction = 1.0 - paid_mean / mean_spot
             sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
             if self._operation_score is not None:
@@ -10739,7 +10700,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         planned = float(self._current_action.get("setpoint", requested))
         delta = float(requested) - planned
         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
-        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices]))
+        mean_price = float(np.mean([finite_float(p, 0.0) for p in prices]))
         # Spot on BOTH sides of the ratio: the denominator is a mean over raw
         # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
         # every override's price-weight by the fee regardless of hour.

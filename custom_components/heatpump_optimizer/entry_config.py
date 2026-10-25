@@ -15,7 +15,6 @@ schedule, the topology).
 """
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Container, Iterator, Mapping
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
@@ -24,36 +23,18 @@ from typing import Any
 from . import mixing_valve
 from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
 from . import const
+from .inputs import finite_float
 
 Parse = Callable[[Any, Any], Any]
 
 
-def _number(value: Any, default: float) -> float:
-    """A finite float; anything else, a stored string or a NaN, is the default."""
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return default
-    return result if math.isfinite(result) else default
-
-
 def _refused_number(value: Any, default: float) -> float | None:
     """A finite float, or None for a stored value that is not one."""
-    result = _number(value, math.nan)
-    return None if math.isnan(result) else result
+    return finite_float(value)
 
 
 def _nonzero_number(value: Any, default: float) -> float:
-    return _number(value, default) or default
-
-
-def _optional_number(value: Any, default: float | None) -> float | None:
-    """A finite float, or the default (None for every optional field).
-
-    An empty string is absent, not zero: it is refused like any other text.
-    """
-    result = _refused_number(value, math.nan)
-    return default if result is None else result
+    return finite_float(value, default) or default
 
 
 def _whole(value: Any, default: int | None) -> int | None:
@@ -168,53 +149,53 @@ class EntryConfig(Mapping[str, Any]):
     wear_autotune_enabled: bool = _key(const.DEFAULT_WEAR_AUTOTUNE_ENABLED, _flag)
 
     # Numbers.
-    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, _number)
-    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, _number)
-    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, _number)
-    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, _number)
-    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number)
-    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number)
-    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, _number)
-    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, _number)
-    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, _number)
-    cop_scale: float = _key(const.DEFAULT_COP_SCALE, _number)
+    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, finite_float)
+    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, finite_float)
+    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, finite_float)
+    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, finite_float)
+    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, finite_float)
+    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, finite_float)
+    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, finite_float)
+    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, finite_float)
+    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, finite_float)
+    cop_scale: float = _key(const.DEFAULT_COP_SCALE, finite_float)
     # A volume of 0 is an unset field, not an empty tank.
     dhw_tank_volume: float = _key(const.DEFAULT_DHW_TANK_VOLUME, _nonzero_number)
-    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, _number)
-    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, _number)
-    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number)
-    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number)
-    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, _number)
-    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, _number)
-    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, _number)
-    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, _number)
-    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number)
-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _number)
-    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, _number)
-    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number)
-    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, _number)
-    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, _number)
-    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, _number)
-    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, _number)
-    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, _number)
-    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, _number)
-    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, _number)
-    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, _number)
-    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, _number)
-    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, _number)
-    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, _number)
-    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, _number)
-    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, _number)
-    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, _number)
+    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, finite_float)
+    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, finite_float)
+    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
+    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
+    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
+    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
+    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
+    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
+    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
+    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
+    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
+    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
+    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
+    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, finite_float)
+    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, finite_float)
+    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, finite_float)
+    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, finite_float)
+    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, finite_float)
+    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, finite_float)
+    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, finite_float)
+    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, finite_float)
+    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, finite_float)
+    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
+    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
+    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
+    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
 
     # A fraction this version cannot read caps nothing: None, not the default.
     silent_mode_power_fraction: float | None = _key(const.DEFAULT_SILENT_MODE_FRACTION, _refused_number)
 
     # Optional numbers: None keeps the weekday or ordinary-day value.
-    comfort_temp_day_weekend: float | None = _key(None, _optional_number)
-    comfort_temp_night_weekend: float | None = _key(None, _optional_number)
-    holiday_comfort_temp_day: float | None = _key(None, _optional_number)
-    holiday_comfort_temp_night: float | None = _key(None, _optional_number)
+    comfort_temp_day_weekend: float | None = _key(None, finite_float)
+    comfort_temp_night_weekend: float | None = _key(None, finite_float)
+    holiday_comfort_temp_day: float | None = _key(None, finite_float)
+    holiday_comfort_temp_night: float | None = _key(None, finite_float)
 
     # Whole numbers.
     day_end_hour: int = _key(const.DEFAULT_DAY_END_HOUR, _whole)

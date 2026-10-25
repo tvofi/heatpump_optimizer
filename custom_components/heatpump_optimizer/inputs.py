@@ -41,7 +41,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal, overload
 from weakref import WeakKeyDictionary
 
 from .const import (
@@ -371,12 +371,60 @@ def state_unit(state: Any) -> Any:
     return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
 
 
-def _finite(raw: Any) -> float | None:
+@overload
+def finite_float(value: Any) -> float | None: ...
+@overload
+def finite_float(value: Any, default: float) -> float: ...
+@overload
+def finite_float(value: Any, default: float | None) -> float | None: ...
+def finite_float(value: Any, default: float | None = None) -> float | None:
+    """``value`` as a finite float; anything else is ``default``.
+
+    The one coercion every reader shares (D7-s2-58): ``None``, text that is
+    not a number, NaN, an infinity and an int past a double (an attribute-
+    or service-fed value orjson never parsed) are all unreadable, never a
+    raise and never a non-finite number handed on to the solver. A ``bool``
+    is not a number here, although ``float()`` takes it: ``True`` read as
+    1.0 kW, 1.0 degC or a 1.0 price is a guess, not a reading.
+    """
+    if isinstance(value, bool):
+        return default
     try:
-        value = float(raw)
+        result = float(value)
     except (TypeError, ValueError, OverflowError):
+        return default
+    return result if math.isfinite(result) else default
+
+
+def state_power_kw(
+    state: Any, sign: Literal["signed", "clamp", "positive"] = "signed"
+) -> float | None:
+    """A power entity's live state as finite kW, or ``None`` (D7-s2-61).
+
+    The one parse of a power state outside ``InputReader`` (which adds the
+    staleness of a configured input, :func:`age_limit_for`): the state must
+    be a finite number, its declared unit one :func:`normalize_power_kw`
+    knows, and the converted figure finite too -- a MW reading near the
+    float ceiling overflows on conversion. ``sign`` is the caller's policy,
+    because the meters differ in what a sign means: ``signed`` keeps it (a
+    grid meter exports below zero), ``clamp`` reads a negative as 0.0 (a
+    production meter's standby draw is no production), ``positive`` reads
+    zero or less as no reading (a ceiling cannot be zero). A range bound is
+    the caller's too, against the envelope it owns.
+    """
+    if state is None:
         return None
-    return value if math.isfinite(value) else None
+    value = finite_float(getattr(state, "state", None))
+    if value is None:
+        return None
+    kw = normalize_power_kw(value, state_unit(state))
+    if kw is None or not math.isfinite(kw):
+        return None
+    if sign == "clamp":
+        return max(0.0, kw)
+    if sign == "positive":
+        return kw if kw > 0.0 else None
+    return kw
 
 
 def temperature_c(raw: Any, unit: Any) -> float | None:
@@ -385,7 +433,7 @@ def temperature_c(raw: Any, unit: Any) -> float | None:
     Converted when ``unit`` is a temperature unit and adopted raw otherwise,
     which is what :func:`_value_in_model_units` does for ``read`` (#961).
     """
-    value = _finite(raw)
+    value = finite_float(raw)
     if value is None:
         return None
     converted = normalize_temperature_c(value, unit)
@@ -494,7 +542,7 @@ def setpoint_step(hass: Any, entity_id: str) -> float:
     """The step the entity accepts a set-point on, in its own unit."""
     state = hass.states.get(entity_id)
     attrs = getattr(state, "attributes", None) or {}
-    step = _finite(attrs.get(_STEP_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_STEP_KEY)))
+    step = finite_float(attrs.get(_STEP_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_STEP_KEY)))
     return step if step is not None and step > 0.0 else DEFAULT_SETPOINT_STEP
 
 
@@ -615,7 +663,7 @@ def price_per_kwh(raw: Any, unit: Any) -> float | None:
     number. An unparseable unit keeps the raw number, as every install read
     it before; the coordinator's ``price_unit_unrecognised`` notice names it.
     """
-    value = _finite(raw)
+    value = finite_float(raw)
     if value is None:
         return None
     converted = normalize_price_per_kwh(value, unit)
@@ -636,13 +684,7 @@ def _value_in_model_units(
     carry no convertible unit at all — but noted at debug, because a
     silently raw °F was exactly the defect.
     """
-    attributes = getattr(state, "attributes", None)
-    unit = None
-    if attributes is not None:
-        try:
-            unit = attributes.get("unit_of_measurement")
-        except AttributeError:  # pragma: no cover - defensive
-            unit = None
+    unit = state_unit(state)
     # R5-D1-06 (#1297): `float()` parses "nan"/"inf"/"1e999" without
     # raising, so a hostile or broken sensor state reached the thermal
     # state as a non-finite float -- a "nan" indoor temperature published
@@ -1040,14 +1082,7 @@ class InputReader:
         if reading.value is None:
             return reading
         state = self.hass.states.get(reading.entity_id)
-        unit = None
-        attributes = getattr(state, "attributes", None)
-        if attributes is not None:
-            try:
-                unit = attributes.get("unit_of_measurement")
-            except AttributeError:  # pragma: no cover - defensive
-                unit = None
-        converted = normalize_power_kw(reading.value, unit)
+        converted = normalize_power_kw(reading.value, state_unit(state))
         if converted is None:
             reading.value = None
             if reading.problem is None:

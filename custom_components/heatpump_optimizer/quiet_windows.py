@@ -80,7 +80,7 @@ from .dhw_schedule import (
     parse_windows,
     windows_for_day,
 )
-from .inputs import normalize_power_kw
+from .inputs import state_power_kw
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .drift import utc_step_starts
 
@@ -313,23 +313,24 @@ def _power_entity_kw(
     """A heat-pump power entity's reading in kW, or ``None``.
 
     The entity's own declared unit converts to kW through the same
-    normaliser every other power read uses; an unrecognised unit is no
-    reading rather than a guess, because a wrongly scaled ceiling is worse
-    than none.
+    normaliser every other power read uses; an unrecognised unit, a
+    non-finite figure and a reading at or below zero are no reading rather
+    than a guess, because a wrongly scaled ceiling is worse than none.
     """
-    state = get_state(power_id)
-    if state is None:
-        return None
-    try:
-        value = float(state.state)
-    except (TypeError, ValueError):
-        return None
-    if value <= 0.0:
-        return None
-    kw = normalize_power_kw(
-        value, (state.attributes or {}).get("unit_of_measurement")
-    )
-    return kw if kw is not None and kw > 0.0 else None
+    return state_power_kw(get_state(power_id), sign="positive")
+
+
+def _within_nameplate(kw: float | None, p_max: float) -> float | None:
+    """``kw`` when it is a draw the nameplate admits, ``(0, p_max]``, else ``None``.
+
+    The range bound on a measured ceiling (D7-s2-61): ``silent_cap_kw``
+    clipped a reading past the nameplate down to ``p_max`` itself, so an
+    absurd figure -- a wrong entity, a wrong unit, a frequency past its
+    configured maximum -- read as "silent costs nothing" and lifted the cap
+    entirely, and the fallbacks never ran. A figure the nameplate does not
+    admit is no measurement.
+    """
+    return kw if kw is not None and 0.0 < kw <= p_max else None
 
 
 def measured_ceiling_kw(
@@ -343,13 +344,15 @@ def measured_ceiling_kw(
     then a compressor-frequency reading scaled by ``hz / hz_max`` over the
     range the frequency configuration carries. The figure is read once, on
     the loop, when the solve's inputs are assembled; it is the install's
-    answer to "what does silent cost", not a time series.
+    answer to "what does silent cost", not a time series. Either figure is
+    held to :func:`_within_nameplate`, so one the nameplate does not admit
+    falls through to the next source.
     """
     if get_state is None or p_max <= 0.0:
         return None
     power_id = config.get(CONF_POWER_ENTITY)
     if isinstance(power_id, str) and power_id:
-        kw = _power_entity_kw(power_id, get_state)
+        kw = _within_nameplate(_power_entity_kw(power_id, get_state), float(p_max))
         if kw is not None:
             return kw
     hz, _, hz_max, _ = freq_control.resolve_reading(
@@ -362,7 +365,7 @@ def measured_ceiling_kw(
               or DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
     )
     if hz is not None and hz > 0.0 and hz_max > 0.0:
-        return hz / hz_max * float(p_max)
+        return _within_nameplate(hz / hz_max * float(p_max), float(p_max))
     return None
 
 
@@ -373,7 +376,7 @@ def silent_cap_kw(
 ) -> float | None:
     """The in-window electrical ceiling a silent step carries, in kW.
 
-    A measured figure when the install exposes one, clipped into the same
+    A measured figure when the install exposes one, raised to the same
     floor the configured fraction answers to -- the floor is the capacity
     envelope's, not the fraction's, so it holds for both. Otherwise the
     configured ``silent_mode_power_fraction`` exactly as configured:
@@ -385,10 +388,7 @@ def silent_cap_kw(
         return None
     measured = measured_ceiling_kw(config, get_state, p_max)
     if measured is not None:
-        return min(
-            max(float(measured), CAPACITY_FLOOR_FRACTION * float(p_max)),
-            float(p_max),
-        )
+        return max(measured, CAPACITY_FLOOR_FRACTION * float(p_max))
     try:
         fraction = float(
             config.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)

@@ -157,7 +157,8 @@ from .const import (
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
+    InputReader, finite_float, quantise_setpoint_c, read_setpoint, setpoint_range_c,
+    write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import CurrentAction
@@ -461,15 +462,7 @@ def _space_target(
 
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
-    return (
-        _finite_or_none(_planned_room(result, now, "power_schedule"))
-    )
-
-
-def _finite_or_none(value: Any) -> float | None:
-    return (
-        float(value) if isinstance(value, (int, float)) else None
-    )
+    return finite_float(_planned_room(result, now, "power_schedule"))
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:

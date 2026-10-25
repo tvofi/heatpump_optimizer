@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 from .payload import Payload
-from .inputs import _finite
+from .inputs import finite_float
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle
@@ -220,7 +220,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
             if start is None or end is None:
                 continue
             if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
-                return _finite(step.get("outdoor"))
+                return finite_float(step.get("outdoor"))
         return None
 
     @property
