@@ -1,0 +1,5 @@
+rows(|): 86
+NOT APPLIED: 0
+survivors(180 of 180): 2
+Y9 slice end exclusive at close 
+Y10 blank-line return removed only text tail 
