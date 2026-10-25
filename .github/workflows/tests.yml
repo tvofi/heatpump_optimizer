@@ -82,7 +82,8 @@ name: Tests
 #   only lane that runs the integration inside a real Home Assistant, run,
 #   unrequired, on a pull request whose diff touches what its driver reads
 #   (#2056), over the composite action .github/actions/nightly-ha that the
-#   nightly arm shares.
+#   nightly arm shares. And `replay`, the timed replay lane, run unrequired
+#   on a pull request whose diff reaches what it times (R10-REPLAY-SCOPED).
 #
 # * nightly-status — every pull request, seconds, stdlib only. Reads the
 #   last CONCLUDED scheduled run of nightly.yml and goes RED if any of
@@ -527,7 +528,10 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/pw-browsers
-          key: pw-chromium-1.56.1
+          # Keyed on the lock, not a typed version: a playwright bump (a
+          # Dependabot one included) is a new key, so the new Chromium is
+          # cached instead of downloaded on every run under the old key.
+          key: pw-chromium-${{ hashFiles('tests/pwlane/package-lock.json') }}
 
       - name: Install playwright and Chromium
         if: needs.closure-scope.outputs.browser_skip != 'skip'
@@ -1295,6 +1299,44 @@ jobs:
         with:
           image: ${{ matrix.image }}
 
+  # The timed replay lane on the pull request that reaches what it times
+  # (R10-REPLAY-SCOPED; tvofi, 2026-10-15: "Hard no, only when relevant").
+  # nightly.yml's `slow` job runs tests/replay.py in full every night; this arm
+  # runs the same command once, on a pull request whose diff reaches the
+  # lane's per-cycle cost files, the optimizer, the lane or a fixture --
+  # `closure-scope`'s `replay` output, decided by tests/closure.py's
+  # `replay_reach`. Never on every pull request: a blanket per-PR lane is
+  # refused for good. Unrequired, and its verdict is about the pull request's
+  # own code: it grades nothing (codeowners_gap.py's rule). tests/entities.py
+  # pins the reach and the wiring.
+  replay:
+    needs: [closure-scope]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.closure-scope.outputs.replay == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HPO_JOB_GRADES: nothing
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Replay recorded days through the real coordinator
+        env:
+          PYTHONPATH: tests/hastub
+        run: python3 tests/replay.py
+
   # The telling. `nightly-ha` and `slow` run on nightly.yml's `schedule` (and
   # dispatch), never on a pull request but for nightly-ha's driver arm above,
   # and are not required contexts -- so a
@@ -1680,6 +1722,7 @@ jobs:
       case: ${{ steps.decide.outputs.case }}
       scripts: ${{ steps.decide.outputs.scripts }}
       nightly_ha: ${{ steps.decide.outputs.nightly_ha }}
+      replay: ${{ steps.decide.outputs.replay }}
       # R9-CI-SKIP: the heavy lanes' skip decisions and the state a green
       # run of each would record. Empty on every event the skip arm does not
       # cover (push above all), which every lane's `if:` reads as RUN.
@@ -1847,8 +1890,10 @@ jobs:
             cat "$RUNNER_TEMP/changed.txt"
             # The nightly-ha lane is a pull-request decision: on a dispatch it
             # keeps its pre-a1 behaviour (the job stays skipped) rather than
-            # widening this change beyond the closures arm it is for.
+            # widening this change beyond the closures arm it is for. The
+            # timed replay is a pull-request decision too.
             echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
+            echo "replay=false" >> "$GITHUB_OUTPUT"
           else
             python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
             # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
@@ -1869,6 +1914,9 @@ jobs:
               echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
               echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
             fi
+            # The timed replay (R10-REPLAY-SCOPED): the rule and its reach
+            # are tests/closure.py's `replay_reach`, which prints its reason.
+            python tests/closure.py replay-reach --files-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
           fi
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \

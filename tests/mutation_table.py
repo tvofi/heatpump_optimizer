@@ -234,7 +234,7 @@ def _bound_mutants(node: ast.Compare, line: str):
         left = right
 
 
-def candidates(path: Path, kinds: frozenset = RATCHETED):
+def candidates(path: Path, kinds: frozenset = RATCHETED, src: str | None = None):
     """Single-line mutants of one production file, of the operators in `kinds`.
 
     Seven ratcheted operators, each a change a careless edit could really make:
@@ -242,12 +242,12 @@ def candidates(path: Path, kinds: frozenset = RATCHETED):
     conjunction weakened, a module constant doubled, a comparison bound moved
     by one.
     """
-    return (m for m in _generate(path, "CMP_BOUND" in kinds)
+    return (m for m in _generate(path, "CMP_BOUND" in kinds, src)
             if m["kind"] in kinds)
 
 
-def _generate(path: Path, bounds: bool):
-    src = path.read_text()
+def _generate(path: Path, bounds: bool, src: str | None = None):
+    src = path.read_text() if src is None else src
     lines = src.splitlines()
     try:
         tree = ast.parse(src)
@@ -678,6 +678,35 @@ def triaged_site(triage: dict, mut: dict) -> bool:
     """True when a survivor_triage mark covers THIS site, by the key and the
     `old` pin every disposition uses (`disposition_matches`)."""
     return disposition_matches(triage.get(ledger_key(mut)), mut)
+
+
+def invalidated_rows(budgets: dict, rel: str, before: str,
+                     after: str) -> list[str]:
+    """The ledger rows that rewriting `rel` from `before` to `after` makes
+    stale by itself, as paths under the row directory (`ledger_relpath`).
+
+    A row is pinned to its line's text, so a mutant of a line that carries
+    one -- the site's own pin when the nightly or `--anchor` re-drives it, a
+    second operator's pin on the same line under `--pin-killed`, or a pin
+    whose ordinal the rewrite shifts -- leaves a row naming a site the mutated
+    tree does not generate, and `TRIAGE_JUDGE` goes red for the row's sake
+    and not the code's: an equivalent rewrite read killed (R10's anchor
+    finding). Hidden from the mutant's tree, the row cannot vote, and a kill
+    is a check that saw the mutation.
+    """
+    def named(src: str) -> set[tuple[str, str]]:
+        sites = anchor_sites(src, list(candidates(ROOT / rel, RATCHETED, src)))
+        return {(s["anchor"], s["old"]) for s in sites}
+
+    was, now = named(before), named(after)
+    out: list[str] = []
+    for m in LEDGER_MAPS:
+        for key, entry in sorted(budgets.get(m, {}).items()):
+            old = entry.get("old") if isinstance(entry, dict) else None
+            path = ledger_relpath(m, key)
+            if path and (key, old) in was and (key, old) not in now:
+                out.append(path)
+    return out
 
 
 def triage_problems(triage: dict) -> list[str]:
@@ -1188,13 +1217,19 @@ def apply_pins(pins_dir: str, head: str) -> str:
 
 
 def pin_entry(site: dict, script: str, run: "ScriptRun",
-              baseline: "ScriptRun", ref: str, how: str = "--pin-killed") -> dict:
-    """The `killed_by` disposition one measured kill earns."""
+              baseline: "ScriptRun", how: str = "--pin-killed") -> dict:
+    """The `killed_by` disposition one measured kill earns.
+
+    A function of the mutant and its runs alone, never of the base it was
+    measured on (P-L, #2632): a bot's pin and a fixer's pin of one mutant are
+    then the same bytes, so their add/add merges under git's default merge,
+    on GitHub too. The base is in git's history already.
+    """
     return {
         "killed_by": script,
         "old": site["old"],
-        "reason": (f"Recorded by `mutation_table.py {how}` against "
-                   f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
+        "reason": (f"Recorded by `mutation_table.py {how}`: "
+                   f"{site['kind']} (`{site['new'].strip()}`) took "
                    f"{script} from rc={baseline.rc} failed={baseline.failed} "
                    f"to rc={run.rc} failed={run.failed}."),
     }
@@ -1203,7 +1238,7 @@ def pin_entry(site: dict, script: str, run: "ScriptRun",
 def pin_results(results: list[tuple[dict, str]],
                 kill_runs: dict[tuple[int, str], "ScriptRun"],
                 baseline: dict[str, "ScriptRun"], sites: list[dict],
-                ref: str, how: str = "--pin-killed") -> tuple[dict, list[str], int]:
+                how: str = "--pin-killed") -> tuple[dict, list[str], int]:
     """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
 
     A disposition covers EVERY inventory site under its anchor, and an anchor
@@ -1240,7 +1275,7 @@ def pin_results(results: list[tuple[dict, str]],
                 report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
         if whole:
             mut, script, run, _ = got[0]
-            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref,
+            entries[anchor] = pin_entry(mut, script, run, baseline[script],
                                         how)
             if len(got) > 1:
                 entries[anchor]["reason"] += (
@@ -3427,7 +3462,7 @@ def selftest_pin_drive(sites: int = 8, jobs: int = 4,
         out = schedule(pool, workers, cost, drive)
         entries, _, _ = pin_results(
             out, kill_runs, {s: ScriptRun(0, 0, 1.0) for s in drivers},
-            pool, "r")
+            pool)
         return ([v for _, v in out],
                 json.dumps(entries, sort_keys=True, indent=2))
 
@@ -3989,6 +4024,7 @@ def main(argv: list[str] | None = None) -> int:
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
+        hidden: dict[int, list[str]] = {}
         kill_runs: dict[tuple[int, str], ScriptRun] = {}
         outcomes: dict[tuple[int, str], bool | None] = {}
         for mut in pool:
@@ -4006,6 +4042,15 @@ def main(argv: list[str] | None = None) -> int:
                 results.append((mut, "SKIP-UNPARSEABLE"))
                 continue
             mutated[id(mut)] = "".join(lines)
+            hidden[id(mut)] = invalidated_rows(
+                budgets, mut["file"], (trees[0] / mut["file"]).read_text(),
+                mutated[id(mut)])
+        rows_at = ledger_dir().relative_to(ROOT)
+        n_hid = sum(bool(v) for v in hidden.values())
+        if n_hid:
+            print(f"  {n_hid} mutant(s) rewrite a line a ledger row pins: "
+                  f"each row is hidden from that mutant's tree, so it cannot "
+                  f"read killed for the row's sake (invalidated_rows)")
 
         def drive(w: int, mut: dict, s: str) -> bool:
             # One task per worker at a time, so a tree carries one mutant.
@@ -4017,13 +4062,20 @@ def main(argv: list[str] | None = None) -> int:
                 return False
             path = trees[w] / mut["file"]
             original = path.read_text()
+            rows = {p: p.read_text() for p in
+                    (trees[w] / rows_at / r for r in hidden[id(mut)])
+                    if p.is_file()}
             path.write_text(mutated[id(mut)])
+            for p in rows:
+                p.unlink()
             try:
                 extra_args, extra_env = drive_spec(s, ref)
                 limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
                 run = run_script(s, trees[w], limit, extra_args, extra_env)
             finally:
                 path.write_text(original)
+                for p, text in rows.items():
+                    p.write_text(text)
             if not run.timed_out:
                 # The budget's cost estimate: the dearest run seen.
                 seconds[s] = max(seconds.get(s, 0.0), run.seconds)
@@ -4086,7 +4138,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.drain:
         head = _rev(ROOT, "HEAD") or ""
         entries, report, _ = pin_results(results, kill_runs, baseline, sites,
-                                         head, how="--drain")
+                                         how="--drain")
         print("\n".join(report))
         survivors = drain_survivors(results, entries)
         status = write_drain(Path(args.drain), entries, head, survivors)
@@ -4095,7 +4147,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.pin_killed:
         entries, report, pin_rc = pin_results(results, kill_runs, baseline,
-                                              sites, rbase)
+                                              sites)
         print("\n".join(report))
         budgets.setdefault("killed_by", {}).update(entries)
         fixed, _ = normalize(budgets, sites)
