@@ -25,11 +25,11 @@ Alternatives considered:
 
 ## Head
 
-33abc2d7f codeql_scope arm, ff50ec19c comment, c6fd1c07f restore and pin. Everything below is measured at c6fd1c07f66e0f3b9196fb7c6cff4cb2d9e8e2e9, cut from origin/main c9cbe6b458a7053f914649eb02d5296d6cd8c0f4. The checks ran before the three commits were re-authored, which changed one commit's author identity and nothing else; the head's tree is byte-identical to the tree measured.
+d4b5be92f codeql_scope arm, 189cb733e comment, 7ac871272 restore and pin. Everything below is measured at 7ac871272bc1725a882d9538e359b3aa71a52d87, cut from origin/main c9cbe6b458a7053f914649eb02d5296d6cd8c0f4. The checks ran before the three commits were re-authored, which changed one commit's author identity and nothing else; the head's tree is byte-identical to the tree measured.
 
 ## Mutation proof
 
-Each mutant was applied to a scratch worktree at 33abc2d7f; `git diff 33abc2d7f c6fd1c07f -- tools/` is empty, so those files are the head's. Each was then checked against `python3 -I tools/pr/codeql_scope.py --self-test` and `python3 -I tools/ci/prelude.py --self-test`, and restored:
+Each mutant was applied to a scratch worktree at d4b5be92f; `git diff d4b5be92f 7ac871272 -- tools/` is empty, so those files are the head's. Each was then checked against `python3 -I tools/pr/codeql_scope.py --self-test` and `python3 -I tools/ci/prelude.py --self-test`, and restored:
 - M1, proof arm off (`proof = False`): 5 codeql_scope FAILs, including "a proof whose entries all analyzed python skips it". Also 2 prelude FAILs ("proof: full evidence skips every leg").
 - **M2, skips on any push** (`proof = event != "pull_request"`): 9 FAILs, including "push to main analyzes python on the same evidence (null control)", "a push to a batch/ ref analyzes python: the proof is the dispatch" and "a dispatch on main analyzes python".
 - M3, `.github/` force deleted: 3 FAILs ("a proof's .github/ change analyzes <leg>"), plus 1 prelude FAIL.
