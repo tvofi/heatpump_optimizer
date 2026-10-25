@@ -4,11 +4,11 @@ Alternative rejected: a separate script patching plan.html (the reference) is a 
 
 ## Head
 
-97caf81235b9f93b6f66bec01e3bbc7ac1e95b73
+18cd6fdc2980a69de94ad9e26756900d2457dbdf
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r10_plan_issues_chart_mutants.py` at the head above: M0 null rc=0 fails=0; every mutant killed with a FAIL line: earlier-finish (min for max), closed-counted, unplanned-dropped, unplanned-also-closes, other-uncounted, offline-not-omitted, gh-missing-crashes, not-first. `python3 dev/audit/harnesses/r10_plan_page_mutants.py`: survived=0 (an earlier draft of the section reused the `stampline` class and let `stamp-on-axis` survive; own classes now).
+`python3 dev/audit/harnesses/r10_plan_issues_chart_mutants.py` at the head above: M0 null rc=0 fails=0; every mutant killed with a FAIL line: earlier-finish (min for max), closed-counted, unplanned-dropped, unplanned-also-closes, other-uncounted, offline-not-omitted, gh-missing-crashes, not-first. `python3 dev/audit/harnesses/r10_plan_page_mutants.py`: survived=0 (`fail_name`, the one FAIL-line grammar, now lives in `r10_plan_page_mutants.py` and the new driver imports it, so `node tools/policy/agreement.mjs --py-json` reports unregistered=0; an earlier draft of the section reused the `stampline` class and let `stamp-on-axis` survive; own classes now).
 
 ## Null control
 
