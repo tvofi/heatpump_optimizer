@@ -1,0 +1,4 @@
+  ok   seam_cut_total 420 <= 420
+
+STRUCTURE RATCHET PASSED
+structure rc=0
