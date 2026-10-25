@@ -1,0 +1,23 @@
+RESULT M1-keep-published: rc=1 3 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL the download's plan age is measured at the export: 14 minutes after the solve it reads 14, whatever the payload said when it was published  [0.8]
+      FAIL the null control: a plan solved a minute before the export reads 1  [0.8]
+      FAIL a plan stamped ahead of the export clock has an unknowable age, never 0, and a payload with no solve has none  [0.8]
+RESULT M2-no-exported_at: rc=1 KeyError: 'exported_at'
+      FAIL the fixture plants a private value in every section of the download and of its debug bundle, bar the exempt ones, and every exempt one is still a section  [unplanted=[] exempt-gone=['.exported_
+RESULT M3-no-window: rc=1 KeyError: 'first_row_at'
+      FAIL the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days  [{'first_row_at': None, 'last_row_at
+RESULT M4-no-ahead-guard: rc=1 3 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL a plan stamped ahead of the export clock has an unknowable age, never 0, and a payload with no solve has none  [-5.0]
+      FAIL a collection with no row has no window, and a row stamped ahead of the export clock has an unknowable age, never 0  [{'first_row_at': '2026-01-12T00:00:00+00:00', 'last_row_at': '2026-01-12T03:
+      FAIL a stored instant's age is the seconds to now, none for text that does not parse, and none for an instant ahead of now
+RESULT M5-ahead-zero: rc=1 3 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL a plan stamped ahead of the export clock has an unknowable age, never 0, and a payload with no solve has none  [0.0]
+      FAIL a collection with no row has no window, and a row stamped ahead of the export clock has an unknowable age, never 0  [{'first_row_at': '2026-01-12T00:00:00+00:00', 'last_row_at': '2026-01-12T03:
+      FAIL a stored instant's age is the seconds to now, none for text that does not parse, and none for an instant ahead of now
+RESULT M6-minmax-swap: rc=1 1 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days  [{'first_row_at': '2026-01-12T00:00:
+RESULT M7-age-from-first: rc=1 2 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days  [{'first_row_at': '2026-01-12T00:00:
+      FAIL a collection with no row has no window, and a row stamped ahead of the export clock has an unknowable age, never 0  [{'first_row_at': '2026-01-12T00:00:00+00:00', 'last_row_at': '2026-01-12T03:
+RESULT M8-window-gen-clock: rc=1 1 of 135 DEBUG COLLECT CHECKS FAILED
+      FAIL the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days  [{'first_row_at': '2026-01-12T00:00:
