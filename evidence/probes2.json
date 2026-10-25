@@ -1,0 +1,8 @@
+[
+["w-gh-own-line", "run([GH,\n     \"pr\", \"merge\", str(n),\n     \"--subject\", s])"],
+["w-gh-own-line2", "subprocess.run([\"gh\",\n                \"pr\", \"merge\", str(n), \"--squash\",\n                \"--subject\", s], check=True)"],
+["w-js", "execFileSync('gh',\n  ['pr', 'merge', String(n),\n   '--subject', s])"],
+["w-sh", "gh \\\n  pr merge 9 \\\n  --subject x"],
+["w-ctrl-same", "run([GH, \"pr\", \"merge\", str(n),\n     \"--subject\", s])"],
+["w-view", "run([GH,\n     \"pr\", \"view\", str(n),\n     \"--subject\", s])"]
+]
