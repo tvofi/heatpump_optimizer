@@ -1,0 +1,18 @@
+== origin/handoff/audit-r10-roster
+NOTE body item 590e9eed: R10-ORCH-BEATD
+NOTE body item 27d516e4: R10-FLOW-ROSTER-FREEZE
+NOTE body item 90e205d4: R10-FLY-CARRY-DISPOSITION
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+BAD-DEST body item 52da3e35: R10-NO-SUCH-GROUP-ZZ: R10-NO-SUCH-GROUP-ZZ is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+null rc=1
+== origin/main
+NOTE body item 590e9eed: R10-ORCH-BEATD
+NOTE body item 27d516e4: R10-FLOW-ROSTER-FREEZE
+NOTE body item 90e205d4: R10-FLY-CARRY-DISPOSITION
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+BAD-DEST body item 52da3e35: R10-NO-SUCH-GROUP-ZZ: R10-NO-SUCH-GROUP-ZZ is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+null rc=1

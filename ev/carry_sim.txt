@@ -1,0 +1,8 @@
+RESULT ruling_verdict P97 ACCEPT
+RESULT ruling_verdict P98 ACCEPT
+RESULT ruling_verdict P99 DEFER
+RESULT ruling_verdict P100 ACCEPT
+RESULT ruling_verdict P101 None
+RESULT triage_refusal P97 R10-ORCH-BEATD None
+RESULT triage_refusal P98 R10-FLOW-ROSTER-FREEZE None
+RESULT triage_refusal P100 R10-FLY-CARRY-DISPOSITION None
