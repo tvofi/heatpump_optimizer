@@ -7,7 +7,7 @@ The root-cause record for #2697 (R10-MERGE-SUBJECT-HARDEN), which was blocked ei
 
 ## Head
 
-`b85b5f37667839ea2fe88fa23b18ce10b9486b20`, one commit on origin/main `102f74975840088fbb29ea37c40b47aa2c126d15`. Everything below was measured at that head.
+`b85b5f37667839ea2fe88fa23b18ce10b9486b20`, one commit on its merge base `102f74975840088fbb29ea37c40b47aa2c126d15`. Everything below was measured at that head. Round 2 is body-only: the head and the record are unchanged. origin/main has since moved to `de794b537`; the tree-planted run below was repeated with that origin/main as base and gives the same figures.
 
 ## Mutation proof
 
@@ -34,8 +34,12 @@ none
 
 ## Forward-carry
 
-- To the round-9 brief of R10-MERGE-SUBJECT-HARDEN. Acceptance (1) asks for a differential over the finder's corpus, the reviewer's cases and the fixer's own closer-in-lead lines. That is a hand-bounded corpus. At `4aad9c117` the tree-planted corpus returns 54 `main_not_head` lines outside the quote-blind closer bucket (a quote, or a bracket inside a quote, in the lead, for example `stamp.py`'s `'raise Refuse("rows"'`). Run `differential.mjs planted origin/main <head>` as the differential, and dispose every line it returns. Carry: R10-MERGE-SUBJECT-HARDEN
-- The same 54 lines, for the group that inherits whatever round 9 leaves open. Its brief should state the tree-planted differential at its merge base as its control. Carry: R10-MERGE-SUBJECT-CASEARM
+Both carries are in the tree on the roster branch `handoff/audit-r10-roster`, in `dev/programme/rosters/wave-r10-groups.json`, written with `roster_edit.py append-carry`. Each one's precondition is the planted differential with its null control, measured at a merge base:
+
+- To R10-MERGE-SUBJECT-HARDEN (its round-9 brief), at roster SHA `3cd2bab6a67d6ee3361b523b13e049dc1454d1a2`. Acceptance (1) asks for a differential over the finder's corpus, the reviewer's cases and the fixer's own closer-in-lead lines. That is a hand-bounded corpus. At `4aad9c117` the tree-planted corpus returns 54 `main_not_head` lines outside the quote-blind closer bucket (a quote, or a bracket inside a quote, in the lead, for example `stamp.py`'s `'raise Refuse("rows"'`). The carry, as it reads at that SHA: "Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it." Carry: R10-MERGE-SUBJECT-HARDEN
+- To R10-MERGE-SUBJECT-CASEARM, the group that inherits whatever round 9 leaves open, at roster SHA `00ceb9aa4455b0f1270ef6c7755d51838a2dd536`. It carries the same precondition, word for word, after #2697's round-8 carry, which it does not replace. Carry: R10-MERGE-SUBJECT-CASEARM
+
+Read back: `git show <sha>:dev/programme/rosters/wave-r10-groups.json` holds each string under its group, and `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json`, run in a checkout of `00ceb9aa4`, raises no error on either group; it prints `TOTAL: 1 error(s)`, and that one is `[R10-IMMERSION-LATCH]`'s `coordinator.py:8761-8820` citation, which it prints identically at `fe2648fe7`, before both carries. Re-measured for this body: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main origin/main 4aad9c117` prints `main_not_head=0` for origin/main as head (the null control) and `main_not_head=8070`, of which 54 are `other`, at `4aad9c117`.
 
 ## Friction
 
