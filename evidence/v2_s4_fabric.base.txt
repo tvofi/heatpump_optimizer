@@ -1,7 +1,0 @@
-RESULT tree=main
-RESULT lower_house_lower_samples_after_12=12 count
-RESULT lower_house_house_samples_after_12=12 count
-RESULT house_lower_lower_samples_after_12=0 count
-RESULT house_lower_house_samples_after_12=12 count
-RESULT load1=0.55
-rc=0

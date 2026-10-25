@@ -1,0 +1,2 @@
+RESULT seam_cut_total=419 count
+STRUCTURE RATCHET PASSED
