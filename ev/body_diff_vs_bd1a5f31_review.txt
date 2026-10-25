@@ -1,0 +1,6 @@
+21a22,23
+> `45d083123c6f45482dae00bbef4b82bf6e50bc04` merges origin/main `0825aee641c8` into this PR's previous head `bd1a5f31c7a25282420285197412882f4a40a162`; the only conflict was tests/golden/claimed_drift.txt, resolved by hand: main's R10-LEARNER-ETA coord_* claims kept in place of the superseded R10-SCORES lines, this PR's own claims kept (config_flow); no code changed.
+> 
+109a112,113
+> 
+> 
