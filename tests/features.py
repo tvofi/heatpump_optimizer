@@ -34693,11 +34693,20 @@ _lg_short = _lg_coord()
 _lg_before = _lg_short._legionella.hours_since()
 _lg_cycle(_lg_short, [50.0, 52.0, 53.5, 54.0])
 _lg_after = _lg_short._legionella.hours_since()
+_lg_due_after = _lg_short._legionella.due_in_hours()
+# R10-LEGIONELLA-COMPLETION (D15 lead L8): the shortfall leaves the cycle due
+# again a day later, not a whole interval later. Spaced by the interval, one
+# cut-off boost a week was all an install that never finished ever got.
 R.check(
-    "a tank that never gets hot still completes its cycle rather than "
-    "latching overdue",
-    _lg_before > 168.0 and _lg_after < 1.0,
-    f"{_lg_before:.0f} h before, {_lg_after:.2f} h after",
+    "a tank that never gets hot is retried a day later, neither latching "
+    "overdue nor waiting out the interval",
+    _lg_before > 168.0
+    and _lg_after is not None
+    and 143.0 < _lg_after < 145.0
+    and _lg_due_after is not None
+    and 23.0 < _lg_due_after <= 24.0
+    and _lg_due_after == _lg_short._legionella.due_in_hours(),
+    f"{_lg_before:.0f} h before, {_lg_after} h after, due in {_lg_due_after} h",
 )
 R.check(
     "…and it is recorded as an attempt, not as a successful cycle",
@@ -34716,16 +34725,64 @@ R.check(
     f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
+# A window the plan reopens inside that retry is the same attempt: the cycle
+# step flaps between step 0 and step 1, and a re-stamp per solve would keep
+# the retry a day away for ever.
+_lg_fold_stamp = _lg_short._legionella.attempt
+_lg_cycle(_lg_short, [54.0, 55.5])
+R.check(
+    "a window reopened inside the retry folds into its attempt, peak kept",
+    _lg_short._legionella.attempt == _lg_fold_stamp
+    and _lg_short._legionella.attempt_peak == 55.5
+    and _lg_short._legionella.last_cycle == _LG_LAST,
+    f"stamp {_lg_short._legionella.attempt!r} (was {_lg_fold_stamp!r}), "
+    f"peak {_lg_short._legionella.attempt_peak!r}",
+)
+
+
+def _lg_overdue(coord):
+    """The overdue notice's placeholders as the guard's own cycle leaves them."""
+    _asyncio.run(coord._legionella.async_observe(None, None))
+    for i in getattr(coord.hass, "issues", []):
+        if i[1] == "dhw_legionella_overdue":
+            return i[2].get("translation_placeholders")
+    return None
+
+
+# The last completion is what is overdue, whatever the attempts did: a cycle
+# with a silent probe, or one cut off before it got hot, raises none of the
+# attempt notices, and that is how 66 days went by without a word.
+_lg_overdue_short = _lg_overdue(_lg_short)
+_lg_silent = _lg_coord()
+_lg_cycle(_lg_silent, [None, None])
+_lg_overdue_silent = _lg_overdue(_lg_silent)
+R.check(
+    "a cycle overdue since its last confirmed completion is loud, with a "
+    "silent probe too",
+    _lg_overdue_short is not None
+    and int(_lg_overdue_short["days"]) >= 8
+    and _lg_overdue_short["interval_days"] == "7"
+    and _lg_overdue_silent is not None
+    and not any(
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_unverified")
+        for i in getattr(_lg_silent.hass, "issues", [])
+    ),
+    f"short {_lg_overdue_short!r}, silent probe {_lg_overdue_silent!r}",
+)
+
 # A cycle that does reach temperature clears both the attempt and the notice.
 _lg_short._current_action = {"dhw_reason": "idle"}
 _asyncio.run(_lg_short._legionella.async_track(59.5))
 R.check(
-    "a cycle that reaches temperature clears the notice and the attempt",
+    "a cycle that reaches temperature clears the notices and the attempt, "
+    "and restarts the countdown",
     _lg_short._legionella.attempt is None
+    and (_lg_short._legionella.hours_since() or 99.0) < 1.0
     and not any(
-        i[1] == "dhw_legionella_unreachable"
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_overdue")
         for i in getattr(_lg_short.hass, "issues", [])
     ),
+    f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
 # No tank probe at all: the observer cannot run, so the countdown had no
@@ -34749,6 +34806,16 @@ R.check(
     and _lg_blind._legionella.attempt is not None,
     f"{_lg_blind_since} h since, attempt "
     f"{_lg_blind._legionella.attempt!r}",
+)
+R.check(
+    "…a whole interval later, since a retry without a probe learns nothing, "
+    "and the unverified notice speaks for it rather than the overdue one",
+    _lg_overdue(_lg_blind) is None
+    and any(
+        i[1] == "dhw_legionella_unverified"
+        for i in getattr(_lg_blind.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_blind.hass, 'issues', [])]}",
 )
 
 # A boost nobody commanded must not credit anything.
@@ -35379,9 +35446,16 @@ R.check(
     _lg_gap._legionella.last_cycle == _LG_LAST,
     f"completion {_lg_gap._legionella.last_cycle!r}",
 )
+from heatpump_optimizer.legionella import DHW_LEGIONELLA_RETRY_HOURS as _LG_RETRY_H
+
+# The timer moves to "due again a retry later" (R10-LEGIONELLA-COMPLETION):
+# off the overdue latch, short of a whole fresh interval.
+_LG_RETRY_AGE = 168.0 - _LG_RETRY_H
 R.check(
     "…and the timer moves anyway, instead of latching at 192 h",
-    _lg_gap_before > 168.0 and _lg_gap_after is not None and _lg_gap_after < 1.0,
+    _lg_gap_before > 168.0
+    and _lg_gap_after is not None
+    and _LG_RETRY_AGE <= _lg_gap_after < _LG_RETRY_AGE + 1.0,
     f"{_lg_gap_before:.0f} h before, {_lg_gap_after} h after",
 )
 R.check(
@@ -35429,7 +35503,7 @@ R.check(
     "a boost still commanded after the bound is judged rather than waited on",
     _lg_stuck_before > 168.0
     and _lg_stuck_after is not None
-    and _lg_stuck_after < 1.0
+    and _lg_stuck_after <= _LG_RETRY_AGE + 1e-6
     and _lg_stuck._legionella.attempt_peak == 54.0,
     f"{_lg_stuck_before:.0f} h before, {_lg_stuck_after} h after, peak "
     f"{_lg_stuck._legionella.attempt_peak!r}",

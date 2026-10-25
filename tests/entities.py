@@ -3821,7 +3821,7 @@ def _p2_registry(sources):
              match=_p2_match_proxy(px["dhw_enabled"]),
              owners=["thermal_model.py::_dhw_enabled_from_config"],
              dispositions={
-                 "legionella.py::LegionellaGuard.async_track_cycle":
+                 "legionella.py::LegionellaGuard._has_probe":
                      "probe presence, not the hot-water fact",
                  "coordinator.py::HeatPumpOptimizerCoordinator._dhw_probe_temperature":
                      "probe presence",

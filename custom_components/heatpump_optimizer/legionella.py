@@ -35,12 +35,29 @@ from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
 from .entry_config import EntryConfig
 from .payload import REASON_LEGIONELLA, CurrentAction
-from .issues import create_issue
+from .issues import clear_issue, create_issue, set_issue
 from .thermal_model import ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)
 
 LEGIONELLA_STORE_VERSION = 1
+
+#: How soon a cycle that fell short is tried again, when a tank probe can tell
+#: the next try apart. Spacing it by the whole interval let one cut-off boost
+#: push the next try a week out, so a pump that never finished went weeks with
+#: one 15-minute attempt each (D15 lead L8: 66 days without a completion). A
+#: day keeps it off every plan while staying inside one 24 h horizon.
+DHW_LEGIONELLA_RETRY_HOURS = 24.0
+
+
+def days_since_confirmed(
+    last_cycle: datetime | None, now: datetime, interval_days: float, *, watched: bool
+) -> int | None:
+    """Whole days since the last confirmed cycle once past the interval, else None."""
+    if not watched or last_cycle is None:
+        return None
+    age_h = utc_elapsed_seconds(now, last_cycle) / 3600.0
+    return int(age_h // 24.0) if age_h > interval_days * 24.0 else None
 
 
 class LegionellaGuard:
@@ -97,8 +114,8 @@ class LegionellaGuard:
         self.boost_started: datetime | None = None
         #: When a commanded cycle last FINISHED SHORT of the disinfection
         #: temperature, and how far it got. This is not success and is never
-        #: reported as such; it exists so the retry happens once per
-        #: interval instead of on the first step of every single plan.
+        #: reported as such; it exists so the retry is spaced by ``hours_since``
+        #: instead of landing on the first step of every single plan.
         self.attempt: datetime | None = None
         self.attempt_peak: float | None = None
         #: The (disinfection temp, charge limit, interval) the ceiling notice
@@ -109,6 +126,9 @@ class LegionellaGuard:
         #: overdue days so a worsening situation updates the text without
         #: re-raising the issue every cycle.
         self.mode_block_notice: int | None = None
+        #: Whole days since the last confirmed cycle while the overdue notice
+        #: stands, or None when none is.
+        self.overdue_notice: int | None = None
 
     async def async_load(self) -> None:
         """Load the timestamp of the last completed anti-legionella cycle.
@@ -224,6 +244,7 @@ class LegionellaGuard:
         self.attempt_peak = None
         self.clear_unreachable_issue()
         self.clear_unverified_issue()
+        self.check_overdue()
         _LOGGER.info(
             "DHW anti-legionella cycle observed at %.1f°C, timer reset", dhw_temp
         )
@@ -234,36 +255,15 @@ class LegionellaGuard:
     ) -> None:
         """Follow the disinfection boost the PLAN commanded, to its end.
 
-        The observer above resets the timer only on seeing the tank at
-        ``legionella_temp - 1``. That is the only reset path there is, and it
-        has two holes:
-
-        * a pump that cannot physically get the tank to 60 °C never triggers
-          it, so ``hours_since`` runs past the interval and never comes back;
-        * with no tank probe configured it cannot run at all, while the
-          countdown keeps advancing on the clock.
-
-        Either way the cycle is permanently overdue — and an overdue cycle
-        used to pin a 60 °C requirement on the first step of every plan, for
-        ever, while never actually disinfecting anything. Both the scheduling
-        half and the user-facing half of that are fixed here: the boost the
-        plan commanded is followed to its end, and what happened is recorded
-        honestly.
-
-        "Its end" has to be bounded, because a cycle the tank cannot finish
-        is re-commanded on every solve and its boost window never closes on
-        its own. After ``DHW_LEGIONELLA_BOOST_MAX_HOURS`` the window is
-        closed here and judged on what it managed — otherwise a pump heating
-        towards a temperature it will never reach would do so indefinitely,
-        and nothing would ever be recorded or reported.
-
-        Success is never inferred from the peak this saw. The observer above
-        owns that decision, and its rule differs with the free-disinfection
-        flag; asking "did the observer credit a cycle while this boost ran?"
-        is the same question on both sides of it. Reading the peak instead
-        left a cycle topping out in the half-degree between the two rules
-        neither credited nor recorded, with the countdown pinned at its
-        overdue value for ever.
+        The observer above credits only a tank seen at temperature, so a pump
+        that cannot get there, or a tank with no probe, would leave the cycle
+        overdue and pinned on every plan. The commanded boost is followed to
+        its end instead, and judged: an attempt, never a completion, spaced by
+        ``hours_since``. The end is bounded by
+        ``DHW_LEGIONELLA_BOOST_MAX_HOURS``, because a cycle the tank cannot
+        finish is re-commanded on every solve and its window never closes.
+        Success is the observer's credit during the boost, never this peak:
+        the observer's rule differs with the free-disinfection flag.
         """
         params = self._params
         if not params.dhw_legionella_enabled:
@@ -340,9 +340,17 @@ class LegionellaGuard:
         )
         if credited:
             return
+        if self._pending_attempt() is not None and (
+            utc_elapsed_seconds(now, self.attempt) < self._retry_hours() * 3600.0
+        ):
+            # Reopened inside the retry it already serves (the plan's cycle
+            # step flaps between step 0 and 1): the same attempt, whose clock
+            # a re-stamp per solve would never let run out.
+            if peak is not None:
+                self.attempt_peak = max(peak, self.attempt_peak or peak)
+            return
 
-        has_probe = bool(EntryConfig.from_mapping(self._config).dhw_temp_entity)
-        if not has_probe:
+        if not self._has_probe():
             # No way to verify, ever. What is recorded is an ATTEMPT, not a
             # completion: nothing observed the tank, and this integration
             # publishes a plan — the actuation may be an external automation
@@ -367,12 +375,12 @@ class LegionellaGuard:
         if peak is None:
             # A probe exists but said nothing for the whole boost. Nothing was
             # observed, so nothing is claimed — but the retry is still spaced
-            # by the interval rather than repeated on every solve.
+            # by ``DHW_LEGIONELLA_RETRY_HOURS``, not repeated on every solve.
             self.attempt = now
             self.attempt_peak = None
             _LOGGER.warning(
                 "DHW anti-legionella cycle ran with no usable tank reading; "
-                "it cannot be confirmed and will be retried next interval"
+                "it cannot be confirmed and will be retried within a day"
             )
             await self.async_save()
             return
@@ -382,12 +390,12 @@ class LegionellaGuard:
         if peak >= target - 1.0:
             # It got to temperature but the completion was never credited —
             # under the free-disinfection flag that means the hold was not
-            # observed for long enough. The retry is spaced by the interval,
+            # observed for long enough. The retry is spaced by ``hours_since``,
             # and no "cannot reach temperature" notice is raised, because the
             # tank plainly can.
             _LOGGER.warning(
                 "DHW anti-legionella cycle reached %.1f °C but the completion "
-                "could not be confirmed; it will be retried next interval",
+                "could not be confirmed; it will be retried within a day",
                 peak,
             )
         else:
@@ -446,24 +454,13 @@ class LegionellaGuard:
         if switch.failed == self.write_failed_notice:
             return
         self.write_failed_notice = switch.failed
-        if not switch.failed:
-            try:
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, "dhw_disinfection_write_failed"
-                )
-            except Exception as err:  # noqa: BLE001 - clearing is best-effort
-                _LOGGER.debug("Could not clear disinfection switch notice: %s", err)
-            return
-        create_issue(
+        # Not persistent: the write is retried every cycle, and the notice
+        # goes with the first one that lands.
+        set_issue(
             self.hass,
-            DOMAIN,
             "dhw_disinfection_write_failed",
-            is_fixable=False,
-            # Not persistent: the write is retried every cycle, and the
-            # notice goes with the first one that lands.
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_disinfection_write_failed",
-            translation_placeholders={"entity_id": str(switch.failed_entity)},
+            switch.failed,
+            placeholders={"entity_id": str(switch.failed_entity)},
         )
 
     async def async_release_switch(self) -> None:
@@ -484,7 +481,12 @@ class LegionellaGuard:
         self.disinfect.observe(reader)
         await self.async_track_cycle(dhw_temp)
         self.check_ceiling()
+        self.check_overdue()
         return self.hours_since()
+
+    def _has_probe(self) -> bool:
+        """Whether a tank sensor is configured to verify a cycle at all."""
+        return bool(EntryConfig.from_mapping(self._config).dhw_temp_entity)
 
     def check_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.
@@ -530,25 +532,14 @@ class LegionellaGuard:
         if signature == self.ceiling_notice:
             return
         self.ceiling_notice = signature
-        if signature is None:
-            try:
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, "dhw_legionella_above_setpoint"
-                )
-            except Exception as err:  # noqa: BLE001 - clearing is best-effort
-                _LOGGER.debug("Could not clear legionella ceiling notice: %s", err)
-            return
-        legionella, setpoint, interval = signature
-        create_issue(
+        legionella, setpoint, interval = signature or (0.0, 0.0, 0.0)
+        # Not persistent: it is derived from configuration, so it is
+        # re-raised on the next cycle for as long as the pair stands.
+        set_issue(
             self.hass,
-            DOMAIN,
             "dhw_legionella_above_setpoint",
-            is_fixable=False,
-            # Not persistent: it is derived from configuration, so it is
-            # re-raised on the next cycle for as long as the pair stands.
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_above_setpoint",
-            translation_placeholders={
+            signature is not None,
+            placeholders={
                 "legionella_temp": f"{legionella:.0f}",
                 "setpoint": f"{setpoint:.0f}",
                 "interval_days": f"{interval:.0f}",
@@ -564,26 +555,17 @@ class LegionellaGuard:
         the tank is being disinfected weekly and it is not. Persistent, because
         the fact survives a restart in the store.
         """
-        create_issue(
+        set_issue(
             self.hass,
-            DOMAIN,
             "dhw_legionella_unreachable",
-            is_fixable=False,
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_unreachable",
-            translation_placeholders={
-                "reached": f"{peak:.1f}",
-                "target": f"{target:.0f}",
-            },
+            True,
+            persistent=True,
+            placeholders={"reached": f"{peak:.1f}", "target": f"{target:.0f}"},
         )
 
     def clear_unreachable_issue(self) -> None:
         """Take the notice down once a cycle actually reaches temperature."""
-        try:
-            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unreachable")
-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
-            _LOGGER.debug("Could not clear legionella issue: %s", err)
+        clear_issue(self.hass, "dhw_legionella_unreachable")
 
     def raise_unverified_issue(self, target: float) -> None:
         """Say that the cycle was commanded but nothing confirmed it ran.
@@ -595,45 +577,55 @@ class LegionellaGuard:
         the one failure mode worth a notice all by itself. Persistent,
         because the fact survives a restart.
         """
-        create_issue(
+        set_issue(
             self.hass,
-            DOMAIN,
             "dhw_legionella_unverified",
-            is_fixable=False,
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_unverified",
-            translation_placeholders={"target": f"{target:.0f}"},
+            True,
+            persistent=True,
+            placeholders={"target": f"{target:.0f}"},
         )
 
     def clear_unverified_issue(self) -> None:
         """Take it down once a cycle is actually observed at temperature."""
-        try:
-            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unverified")
-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
-            _LOGGER.debug("Could not clear legionella notice: %s", err)
+        clear_issue(self.hass, "dhw_legionella_unverified")
 
     def hours_since(self) -> float | None:
-        """Hours since the last anti-legionella cycle, or None if unknown.
+        """The countdown's age in hours, which the planner places the cycle by.
 
-        A cycle that RAN but fell short counts here too. It is not success —
-        nothing pretends it was — but it does bound the retry rate. Without
-        it, a pump that cannot reach the disinfection temperature leaves the
-        timer permanently overdue, and an overdue timer used to pin a 60 °C
-        requirement on the first step of every plan for ever: the boost was
-        re-commanded every quarter of an hour and never once completed.
+        Hours since the last completed cycle, except after a newer cycle that
+        RAN but fell short. That is not success and nothing pretends it was,
+        but it bounds the retry rate: an overdue age used to pin a 60 °C
+        requirement on the first step of every plan, re-commanded every
+        quarter of an hour and never once completed. So the age after an
+        attempt leaves the cycle due again ``DHW_LEGIONELLA_RETRY_HOURS``
+        later, never later than the completion itself makes it. With no tank
+        probe a retry learns nothing a later one would not, and the attempt
+        spaces the next by the whole interval, as a completion would.
         """
         last = self.last_cycle
-        attempt = self.attempt
-        if attempt is not None and (
-            last is None or dt_util.as_utc(attempt) > dt_util.as_utc(last)
-        ):
-            last = attempt
-        if last is None:
-            return None
+        attempt = self._pending_attempt()
         # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
-        since = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(last)
-        return max(0.0, since.total_seconds() / 3600.0)
+        now = dt_util.now()
+        since = None if last is None else utc_elapsed_seconds(now, last) / 3600.0
+        if attempt is not None:
+            interval_h = max(0.0, float(self._params.dhw_legionella_interval_days) * 24.0)
+            age = interval_h - self._retry_hours() + utc_elapsed_seconds(now, attempt) / 3600.0
+            since = age if since is None else min(since, age)
+        if since is None:
+            return None
+        return max(0.0, since)
+
+    def _pending_attempt(self) -> datetime | None:
+        """The attempt newer than the last completion, which the retry serves."""
+        attempt, last = self.attempt, self.last_cycle
+        if attempt is None or (last is not None and utc_elapsed_seconds(attempt, last) <= 0):
+            return None
+        return attempt
+
+    def _retry_hours(self) -> float:
+        """How long after an attempt the cycle is due again (``hours_since``)."""
+        interval_h = max(0.0, float(self._params.dhw_legionella_interval_days) * 24.0)
+        return min(interval_h, DHW_LEGIONELLA_RETRY_HOURS) if self._has_probe() else interval_h
 
     def due_in_hours(self) -> float | None:
         """Hours left before the next anti-legionella cycle is required."""
@@ -644,6 +636,37 @@ class LegionellaGuard:
         if since is None:
             return None
         return float(round(params.dhw_legionella_interval_days * 24.0 - since, 1))
+
+    def check_overdue(self) -> None:
+        """Say so while no cycle has been confirmed for longer than the interval.
+
+        The attempt notices each speak for one way a cycle can fall short,
+        and a cycle cut off before it got hot, or one with a silent probe,
+        raises none of them: the countdown restarted on each attempt and the
+        tank went weeks undisinfected without a word (D15 lead L8). This one
+        reads the last confirmed completion alone, whatever the attempts did.
+        With no tank probe ``dhw_legionella_unverified`` is that notice.
+        """
+        params = self._params
+        days = days_since_confirmed(
+            self.last_cycle,
+            dt_util.now(),
+            float(params.dhw_legionella_interval_days),
+            watched=bool(params.dhw_enabled and params.dhw_legionella_enabled)
+            and self._has_probe(),
+        )
+        if days == self.overdue_notice:
+            return
+        self.overdue_notice = days
+        set_issue(
+            self.hass,
+            "dhw_legionella_overdue",
+            days is not None,
+            placeholders={
+                "days": f"{days}",
+                "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
+            },
+        )
 
     def check_mode_block(self, dhw_blocked: bool) -> None:
         """Say so when a mode block is holding disinfection past its deadline.
@@ -675,32 +698,20 @@ class LegionellaGuard:
         if overdue_days == self.mode_block_notice:
             return
         self.mode_block_notice = overdue_days
-        if overdue_days is None:
-            try:
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, "dhw_legionella_mode_blocked"
-                )
-            except Exception as err:  # noqa: BLE001 - clearing is best-effort
-                _LOGGER.debug(
-                    "Could not clear legionella mode-block notice: %s", err
-                )
-            return
-        _LOGGER.warning(
-            "The anti-legionella cycle has been due for %d day(s) but the "
-            "heat pump's mode makes no hot water, so it cannot be planned",
-            overdue_days,
-        )
-        create_issue(
+        if overdue_days is not None:
+            _LOGGER.warning(
+                "The anti-legionella cycle has been due for %d day(s) but the "
+                "heat pump's mode makes no hot water, so it cannot be planned",
+                overdue_days,
+            )
+        # Not persistent: it is derived from the live mode reading, so it is
+        # re-raised on the next cycle for as long as the mode stands.
+        set_issue(
             self.hass,
-            DOMAIN,
             "dhw_legionella_mode_blocked",
-            is_fixable=False,
-            # Not persistent: it is derived from the live mode reading, so it
-            # is re-raised on the next cycle for as long as the mode stands.
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_mode_blocked",
-            translation_placeholders={
-                "overdue_days": f"{overdue_days:d}",
+            overdue_days is not None,
+            placeholders={
+                "overdue_days": f"{overdue_days}",
                 "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
             },
         )
