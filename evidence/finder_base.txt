@@ -92,8 +92,8 @@ RESULT pooled.house.settled_flags=24 false_settled=20 false_rate=0.83
 RESULT pooled.lower.settled_flags=28 false_settled=14 false_rate=0.50
 RESULT pooled.solar.settled_flags=2 false_settled=2 false_rate=1.00
 RESULT pooled.gains.settled_flags=0 false_settled=0 false_rate=nan
-RESULT wall_s=20.3
+RESULT wall_s=17.6
 RESULT thread_factor=1.000
-RESULT load1=1.18
+RESULT load1=4.91
 RESULT swapins=n/a(macOS)
-rc=0
+exit 0

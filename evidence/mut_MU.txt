@@ -1,0 +1,9 @@
+mutant MU at af3b69b4de43393384436303298c5ac71718400d: custom_components/heatpump_optimizer/sensor.py
+old: "system_identification", "learner_progress"}
+new: "system_identification"}
+applied
+ custom_components/heatpump_optimizer/sensor.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+exit 1
+  FAIL R10-LEARNER-ETA: the Health tab's source sensor publishes learner_progress as the view has it  [suffix _learning_model_status pub [({'house': {'phase': 'counting', 'progress': 0.6, 'waiting_for': None, 'eta_days': 2.0, 'samples': 30, 'samples_needed': 50}, 'lower': {'phase': 'off', 'progress'
+1 of 4384 FEATURE CHECKS FAILED

@@ -1,0 +1,9 @@
+mutant RC at af3b69b4de43393384436303298c5ac71718400d: custom_components/heatpump_optimizer/coordinator.py
+old: solar_wait = "sunnier" if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE
+new: solar_wait = "sunnier" if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE
+applied
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+exit 1
+  FAIL R10-LEARNER-ETA: the ΔT and irradiance edges admit a sample, and the gate count settles  [edge {'house': {'phase': 'counting', 'progress': 0.6, 'waiting_for': None, 'eta_days': None, 'samples': 30, 'samples_needed': 50}, 'solar': {'phase': 'waiting', 'progress': 0.133, 'waiting_for': 'sunnie
+1 of 4384 FEATURE CHECKS FAILED

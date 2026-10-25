@@ -1,4 +1,0 @@
-PROBE coordinator.data has learner_progress: True
-PROBE coordinator.data learner_progress.house: {'phase': 'counting', 'progress': 0.2, 'waiting_for': None, 'eta_days': None, 'samples': 10, 'samples_needed': 50}
-PROBE ModelStatusSensor attribute keys: ['capacity_envelope', 'cop', 'heat_loss', 'heat_loss_w_per_k', 'internal_gains_kw', 'lower_floor', 'solar_aperture', 'system_identification', 'tank_cooling']
-PROBE eta_days or samples_needed in sensor attrs: False

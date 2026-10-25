@@ -1,2 +1,2 @@
 RESULT field=absent
-rc=0
+exit 0
