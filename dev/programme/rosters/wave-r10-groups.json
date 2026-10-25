@@ -9980,6 +9980,48 @@
     "stage": "queued",
     "branch": null
    }
+  },
+  {
+   "group": "R10-PROOF-CODEQL",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 5,
+   "files": [
+    "tools/pr/codeql_scope.py",
+    "tools/ci/prelude.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "GROUP R10-PROOF-CODEQL (new, size S, orchestrator-sourced under mandate 6329234399; triage ruling P158 in PR #2829). A train batch proof (a push to `batch/<tag>-<n>`, `merge_train.py`) analyzes every CodeQL leg in full (`prelude.py` gives a push full scope; `codeql_scope.py` lets only `pull_request` skip), and the python leg's 28-30 min held the 2026-10-25 s41 batch-1 proof after every other check was green. Change: `codeql_scope.decide` lets a push to a `batch/` ref skip a leg when every entry head the proof merges has a successful or legitimately skipped analysis of that leg at that head, uploading the stand-in category as a skipped PR leg does. Fail closed: an unreadable entry list, an entry with no analysis at its head, or any changed file under `.github/` analyzes. Pushes to main and every other event keep analyzing in full (the rule that main keeps a full analysis of every merged tree is unchanged). This revises DESIGN-P2 D-5's push arm for proof refs only, under mandate 6329234399; say so in the body. Controls: a proof whose entries all analyzed python at their heads skips the python leg and uploads its category; one entry without an analysis analyzes it; a push to main analyzes every leg (null); a `.github/` change analyzes every leg; a mutant that skips on any push fails the main arm. Measure the proof's wall time before and after over at least three batches.",
+   "resume": {
+    "stage": "queued",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (no after-groups)",
+    "note": null
+   }
   }
  ]
 }
