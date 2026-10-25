@@ -1,14 +1,17 @@
-[36;1m# a failed fetch is "no reds" -- the fail-open this wiring closes.[0m
-  record   red-history           17 commit(s) between origin/main and this head, every failure conclusion across them: none
-  ok         python3 dev/audit/harnesses/r10_thermal_power_option.py 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3
-  ok         python3 tests/closure.py select --diff 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 --workdir <tmp>
-  ok         tests/arch_score.py
-  ok         tests/ha_contract.py
-  ok         PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main
-  ok         python3 tests/structure.py
-  ok         python3 tools/audit/archscore/score.py --diff 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 HEAD
-  ok         tools/pr/ci_predict.py --base origin/main
-  ok         tests/features.py
-[36;1m# arithmetic as the seat's prepr.sh states: closes = a number after a[0m
-[36;1m# `fixes`; intended = closes minus never.[0m
-[36;1mINTENDED=$(jq -rs --rawfile body <tmp> '. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")' dev/programme/rosters/wave-r*-groups.json)[0m
+head e6455b8fe617ec28d6916977778e7499a6d2fd27; pr-contract runs started after nightly-ha concluded (01:55:52Z):
+== job 121053606313
+red checks the body must answer: ,tests / nightly-ha (stable)
+  record   red-history           18 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-ha (stable)
+HEAD: `## Head` names 0303eae; accepted autofix commit(s) on top of it: e6455b8 (ci: merge main)
+  ERROR   [pr-body] <pr-body.md>: check `tests / nightly-ha (stable)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 1 error(s) in <pr-body.md>
+no version edit: origin/main...e6455b8fe617ec28d6916977778e7499a6d2fd27 moves none of VERSION, the manifest version or a notes heading
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+== job 121055642825
+red checks the body must answer: ,tests / nightly-ha (stable)
+  record   red-history           18 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-ha (stable)
+HEAD: `## Head` names 0303eae; accepted autofix commit(s) on top of it: e6455b8 (ci: merge main)
+  ERROR   [pr-body] <pr-body.md>: check `tests / nightly-ha (stable)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 1 error(s) in <pr-body.md>
+no version edit: origin/main...e6455b8fe617ec28d6916977778e7499a6d2fd27 moves none of VERSION, the manifest version or a notes heading
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
