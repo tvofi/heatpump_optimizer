@@ -1,0 +1,12 @@
+node tools/policy/policy_lint.mjs --pr-body body.md --head 5a529f15155b00eb1885a3a5ac39b2ad2ffb218c --base 4944b20d5 --title ... --paths-file paths --author hpo-author[bot] --commits-file commits
+  record   red-history           4 commit(s) between origin/main and this head, every failure conclusion across them: none
+PR-BODY: 0 error(s) in body.md   rc=0
+tools/pr/prepr.sh --body-check body.md
+pr-body ok: PR-BODY: 0 error(s) in body.md -- no budget leaf raised over 4944b20d5...5a529f151   rc=0
+python3 -I tools/audit/carry_audit.py --roster-ref origin/main check --body body.md
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)   rc=0
+roster_edit.ruling_verdict(s6-batch15.md, 'P84') = ACCEPT ; 'P99' = None
+rg Verdict count: 1 ACCEPT
+merge_train.py lines at a260e5630: 4174
+policy_lint --corpus-filter over CLAUDE.md, dev/governance/roles/fixer.md, dev/programme/triage/s6-batch13.md, dev/programme/delivery/2755.md, tests/README.md -> CLAUDE.md, dev/governance/roles/fixer.md, tests/README.md (triage and delivery paths classed non-policy)
+policy_gate at merge_train.py:1001; MANDATE_CITE budget_raise_gate.py:121; MANDATE_COVERS_POLICY :129; mandate_state :354
