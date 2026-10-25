@@ -17,9 +17,24 @@
 // .mjs and .sh name, with the subject on a later line (refused) and with none
 // and a later statement's flag (the null control): `WRAPPED merge refused=<k>
 // of <n>; null refused=<j> of <n>`.
+// Then THE CLASS #2697 CLOSES, as a table: one row per spelling, each run with
+// a subject (refused) and as its null twin (`pr view`, or the call without the
+// subject field: passed). A row is the rule's, not an instance's: the table is
+// the stated class, and a spelling it does not list is not claimed. It prints
+// `CLASS <row>: merge refused|PASSED; null passed|REFUSED` and
+// `CLASS merge refused=<k> of <n>; null refused=<j> of <n>`; the PROGRAM-CLASS
+// and WRAPPED lines above are its program and extent rows.
+// Last, the spellings OPEN at #2697's head, each named by the group that owns
+// it: `OPEN <group> <spelling>: XFAIL` while the guard does not read its
+// subject, `held` once it does, and `OPEN <group> expected-fail: held=<k> of
+// <n>`. R10-MERGE-SUBJECT-CASEARM is a strict expected-fail: it closes only at
+// held=n of n; its routed list is #2697's two spellings outside that class.
 import fs from 'node:fs'
 const src = fs.readFileSync(process.argv[2] || 'tools/policy/agreement.mjs', 'utf8')
-const from = src.indexOf('// WHAT A MERGE CALL IS'); const to = src.indexOf("// WHICH LINE IS MAIN'S")
+// The guard block; a guard from before the extent reader (the merge base's) opens
+// at its subject-flag comment.
+const head = src.indexOf('// WHAT A MERGE CALL IS')
+const from = head < 0 ? src.indexOf('// What a merge call may not carry') : head; const to = src.indexOf("// WHICH LINE IS MAIN'S")
 if (from < 0 || to < 0) { console.error('seam probe: guard block not found'); process.exit(2) }
 const block = src.slice(from, to).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
 const subjectWriters = new Function(block + '\nreturn subjectWriters')()
@@ -71,3 +86,82 @@ for (const [name, [form, subj]] of Object.entries(wrapped)) {
   }
 }
 console.log(`WRAPPED merge refused=${wm} of ${wt}; null refused=${wn} of ${wt}`)
+const fl = (v, f) => `gh pr ${v} 9 ${f}`
+const rows = [
+  ['gh pr merge', 'f.sh', (v) => `gh pr ${v} 9 --squash --subject "x y"`],
+  ['a double-quoted word', 'f.sh', (v) => `gh pr "${v}" 9 --subject x`],
+  ['a single-quoted word', 'f.sh', (v) => `gh pr '${v}' 9 -t x`],
+  ['a \\-newline before pr', 'f.sh', (v) => `gh \\\n  pr ${v} 9 --subject x`],
+  ['a \\-newline before merge', 'f.sh', (v) => `gh pr \\\n  ${v} 9 --subject x`],
+  ['the subject on a continued line', 'f.sh', (v) => `gh pr ${v} 9 --squash \\\n  --subject x`],
+  ['a Python argv', 'f.py', (v) => `run(["gh", "pr", "${v}", n, "--subject", s])`],
+  ['a single-quoted argv', 'f.py', (v) => `run(['gh', 'pr', '${v}', n, '--subject', s])`],
+  ['a space before an argv comma', 'f.py', (v) => `run(["gh", "pr" , "${v}", n, "-t", s])`],
+  ['a # comment between the words', 'f.py', (v) => `run(["gh", "pr",  # c\n     "${v}", n, "--subject", s])`],
+  ['a // comment between the words', 'f.mjs', (v) => `execFileSync('gh', ['pr', // c\n  '${v}', n, '--subject', s])`],
+  ['a /* */ comment between the words', 'f.mjs', (v) => `execFileSync('gh', ['pr', /* c */ '${v}', n, '--subject', s])`],
+  ['two adjacent literals', 'f.py', (v) => `os.system("gh pr " "${v} 9 --subject x")`],
+  ['-R o/r between', 'f.sh', (v) => `gh pr -R o/r ${v} 9 --subject x`],
+  ['--subject "x y" between', 'f.sh', (v) => `gh pr --subject "x y" ${v} 9`],
+  ['-t "x y" between', 'f.sh', (v) => `gh pr -t "x y" ${v} 9`],
+  ['-R $(cat r) between', 'f.sh', (v) => `gh pr -R $(cat r) ${v} 9 -t x`],
+  ['-R "$O"/"$R" between', 'f.sh', (v) => `gh pr -R "$O"/"$R" ${v} 9 -t x`],
+  ['-R {repo} between', 'f.py', (v) => `os.system(f"gh pr -R {repo} ${v} {n} --subject x")`],
+  ['a subscript value between', 'f.py', (v) => `run(["gh", "pr", "-R", cfg["repo"], "${v}", n, "--subject", s])`],
+  ['an environ value between', 'f.py', (v) => `run(["gh", "pr", "-R", os.environ["REPO"], "${v}", n, "-t", s])`],
+  ['an indexed value between', 'f.py', (v) => `run(["gh", "pr", "-R", REPOS[0], "${v}", n, "-t", s])`],
+  ['a call value between', 'f.py', (v) => `run(["gh", "pr", "-R", join(o, r), "${v}", n, "--subject", s])`],
+  ['an f-string value between', 'f.py', (v) => `run(["gh", "pr", "-R", f"{o}/{r}", "${v}", n, "--subject", s])`],
+  ['a JS subscript value between', 'f.mjs', (v) => `execFileSync('gh', ['pr', '-R', cfg['repo'], '${v}', n, '--subject', s])`],
+  ...['--subject x', '--subject=x', '--title x', '--body x', '--body-file f', '-t x', '-tx', '-b x', '-F f', '-mt x', '-dmb x', '-mF f']
+    .map((f) => [`the flag ${f}`, 'f.sh', (v) => fl(v, f)]),
+  ['an exploded call of separate arguments', 'f.py', (v) => `run(\n    "gh",\n    "pr",\n    "${v}",\n    n,\n    "--subject",\n    s,\n)`],
+  ['a call split over lines', 'f.py', (v) => `self.run(["gh", "pr", "${v}", n, "--repo", R,\n         "--subject", s])`],
+  ['a paren in a shell comment above', 'f.sh', (v) => `# merge (via gh\ngh pr ${v} 9 --subject x`],
+  ['merge_pull_request(commit_title=)', 'f.py', (v) => v === 'merge' ? 'merge_pull_request(o, r, n, commit_title=s)' : 'merge_pull_request(o, r, n)'],
+  ['/pulls/N/merge -f commit_message=', 'f.sh', (v) => v === 'merge' ? 'gh api -X PUT repos/o/r/pulls/9/merge -f commit_message=x' : 'gh api -X PUT repos/o/r/pulls/9/merge'],
+  ['mergePullRequest(commitHeadline:)', 'f.mjs', (v) => v === 'merge' ? 'q(`mutation { mergePullRequest(input: {pullRequestId: $id, commitHeadline: "x"}) { clientMutationId } }`)' : 'q(`mutation { mergePullRequest(input: {pullRequestId: $id}) { clientMutationId } }`)'],
+]
+let cm = 0, cn = 0
+for (const [name, f, t] of rows) {
+  const m = subjectWriters([f], () => t('merge') + '\n').bad.length === 1; const z = subjectWriters([f], () => t('view') + '\n').bad.length > 0
+  console.log(`CLASS ${name} ${f}: merge ${m ? 'refused' : 'PASSED'}; null ${z ? 'REFUSED' : 'passed'}`)
+  cm += m; cn += z
+}
+console.log(`CLASS merge refused=${cm} of ${rows.length}; null refused=${cn} of ${rows.length}`)
+// R10-MERGE-SUBJECT-CASEARM owns every shell case-arm spelling of a merge
+// writer: with and without the leading paren, at any indentation, and
+// multi-pattern arms. #2697's extent starts the forward read at the line's
+// start, so an unmatched `)` there ends the call before `pr`.
+const open = {
+  'R10-MERGE-SUBJECT-CASEARM': [
+    ...['', '  ', '        ', '\t'].flatMap((ind) => ['never)', '(never)', 'a|b)', '(a|b)'].flatMap((pat) => ['f.sh', 'f.md'].map((f) =>
+      [`${JSON.stringify(ind + pat)} ${f}`, f, (v) => `case "$m" in\n${ind}${pat} gh pr ${v} "$n" --squash --subject "x" ;;\nesac`]))),
+    ['one-line x) gh pr merge 9 -t s f.sh', 'f.sh', (v) => `x) gh pr ${v} 9 -t s`],
+  ],
+  // Two spellings outside that class text, routed to the same group by #2697's
+  // body (the guard's next owner): a blank line between the argv's bracket and
+  // `pr` in a Python or JS file, and a closer in a JS block comment after merge.
+  'R10-MERGE-SUBJECT-CASEARM routed': [
+    ['a blank line in a Python argv f.py', 'f.py', (v) => `run([
+    "gh",
+
+    "pr", "${v}", n,
+    "--subject", s])`],
+    ['a blank line in a JS argv f.mjs', 'f.mjs', (v) => `execFileSync('gh', [
+
+  'pr', '${v}', n,
+  '--subject', s])`],
+    ['a closer in a JS block comment f.mjs', 'f.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /* ) */ '--subject', s])`],
+  ],
+}
+for (const [group, spellings] of Object.entries(open)) {
+  let k = 0, z = 0
+  for (const [name, f, t] of spellings) {
+    const m = subjectWriters([f], () => t('merge') + '\n').bad.length === 1
+    if (subjectWriters([f], () => t('view') + '\n').bad.length) z++
+    console.log(`OPEN ${group} ${name}: ${m ? 'held' : 'XFAIL'}`)
+    k += m
+  }
+  console.log(`OPEN ${group} expected-fail: held=${k} of ${spellings.length}; null refused=${z} of ${spellings.length}`)
+}

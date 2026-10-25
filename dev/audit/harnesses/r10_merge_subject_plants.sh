@@ -59,6 +59,14 @@ plant 'an exploded argv' "$MT" add "if False:  # agreement_py imports this modul
     ])" "$MT"
 plant 'a subscript value between pr and merge' "$MT" add "if False:  # agreement_py imports this module
     "'run(["gh", "pr", "-R", cfg["repo"], "merge", n, "--subject", s])' "$MT"
+# OPEN, owned by R10-MERGE-SUBJECT-CASEARM: refused=0 at #2697's head while it
+# is open, refused=1 at the merge base; its control is the paren spelling.
+plant 'OPEN R10-MERGE-SUBJECT-CASEARM: a case arm without its paren' "$MP" add "case \"\$m\" in
+  never) gh pr merge \"\$n\" --squash --subject $S ;;
+esac" "$MP"
+plant 'control: the same case arm with its paren' "$MP" add "case \"\$m\" in
+  (never) gh pr merge \"\$n\" --squash --subject $S ;;
+esac" "$MP"
 plant 'null: an argv wrapped after its program, no subject' "$MT" add "if False:  # agreement_py imports this module
     subprocess.run([\"gh\",
                     \"pr\", \"merge\", str(n), \"--squash\"],
