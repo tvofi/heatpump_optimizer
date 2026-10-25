@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort GUARD_OFF e00915fb",
+  "killed_by": "tests/features.py",
+  "old": "        if margin <= 0.0 and self._curve_learner.bias < 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
