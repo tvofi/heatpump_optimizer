@@ -8319,7 +8319,8 @@
    "after": [
     "R10-ORCH-DISPATCH-REG",
     "R10-POLICY-FIXER-MD",
-    "R10-ORCH-REVIEW-PACKET"
+    "R10-ORCH-REVIEW-PACKET",
+    "R10-FLOW-ROSTER-FREEZE"
    ],
    "files": [
     "tools/audit/seat/daemonize.py",
