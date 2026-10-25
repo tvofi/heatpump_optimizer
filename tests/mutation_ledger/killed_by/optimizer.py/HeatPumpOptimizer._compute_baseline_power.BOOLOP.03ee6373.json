@@ -2,5 +2,5 @@
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power BOOLOP 03ee6373",
   "killed_by": "tests/features.py",
   "old": "            if two_tank and state.wood_tank_temperature is not None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9d0ddf8afcb82848303c60181b736c9fb7c94581: BOOLOP (`if two_tank or state.wood_tank_temperature is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5c0ee109305fc4f377c9326c712156b9ceb0e638: BOOLOP (`if two_tank or state.wood_tank_temperature is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 }
