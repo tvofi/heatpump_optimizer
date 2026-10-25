@@ -1,0 +1,28 @@
+6610:     def _learning_frozen(self, *keys: str) -> str | None:
+6664:         # ``reading.entity_id`` is the load-bearing half of the predicate: a
+6665:         # slot the user never configured reads as ``not_configured`` with no
+6666:         # entity, and must NOT freeze learning — otherwise every install
+6667:         # without an optional sensor would never learn anything.
+6668:         health = self._input_health
+6669:         if health is not None:
+6670:             for key in keys:
+6671:                 reading = health.readings.get(key)
+6672:                 if reading is not None and reading.entity_id and not reading.ok:
+6673:                     return f"{reading.problem}:{key}"
+8838:     def _detect_immersion(self) -> None:
+8895:             del self._immersion_events[:-20]
+10105:     def _accumulate_energy(
+10201:         immersion_excess = 0.0
+10202:         if (
+10203:             self._immersion_active
+10204:             and sample.actual_power_kw is not None
+10205:             and sample.actual_power_kw > planned_total
+10206:         ):
+10207:             immersion_excess = min(
+10208:                 energy,
+10209:                 max(
+10210:                     0.0,
+10211:                     (sample.actual_power_kw - planned_total) * elapsed_hours,
+10212:                 ),
+10213:             )
+10214:         metered = energy - immersion_excess
