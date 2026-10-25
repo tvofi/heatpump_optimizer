@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/ledger.py b/custom_components/heatpump_optimizer/ledger.py
+index 01bde9996..fa1e2b83e 100644
+--- a/custom_components/heatpump_optimizer/ledger.py
++++ b/custom_components/heatpump_optimizer/ledger.py
+@@ -280,7 +280,7 @@ class MonthlyLedger:
+         month carries it the day a new one opens. None before any priced
+         interval has settled.
+         """
+-        keys = (month_key(now), month_key(now.replace(day=1) - timedelta(days=1)))
++        keys = (month_key(now), month_key(now - timedelta(days=1)))
+         total, count = 0.0, 0
+         for key in keys:
+             entry = self.months.get(key, {}).get("meta", {}).get(SPOT_PRICE_META)

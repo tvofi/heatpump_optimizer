@@ -1,0 +1,3 @@
+  FAIL #2257: the sensor-gap row prices at the recent kWh price, the price now only without one
+1 of 4407 FEATURE CHECKS FAILED
+rc=1

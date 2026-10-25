@@ -1,0 +1,20 @@
+RESULT inbox null day 0 winter_typical  gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 1 winter_moderate gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 2 winter_narrow   gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 3 shoulder        gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 4 winter_extreme  gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 5 winter_typical  gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null day 6 flat            gap   83.7..  83.7 hot_water   18.3..  18.3
+RESULT inbox null gap       mean   83.7 range   83.7..  83.7 (max/min 1.00) widest_day    0.0 day_means   83.7..  83.7
+RESULT inbox null hot_water mean   18.3 range   18.3..  18.3 (max/min 1.00) widest_day    0.0 day_means   18.3..  18.3
+RESULT inbox varying day 0 winter_typical  gap  107.8.. 108.2 hot_water   23.7..  24.0
+RESULT inbox varying day 1 winter_moderate gap  107.7.. 108.1 hot_water   23.4..  24.0
+RESULT inbox varying day 2 winter_narrow   gap  107.6.. 107.9 hot_water   23.4..  24.0
+RESULT inbox varying day 3 shoulder        gap  106.7.. 107.8 hot_water   23.4..  23.7
+RESULT inbox varying day 4 winter_extreme  gap  106.4.. 109.3 hot_water   23.4..  24.0
+RESULT inbox varying day 5 winter_typical  gap  108.8.. 109.2 hot_water   23.7..  24.3
+RESULT inbox varying day 6 flat            gap  108.4.. 109.0 hot_water   23.7..  24.3
+RESULT inbox varying gap       mean  108.0 range  106.4.. 109.3 (max/min 1.03) widest_day    2.9 day_means  107.1.. 109.0
+RESULT inbox varying hot_water mean   23.8 range   23.4..  24.3 (max/min 1.04) widest_day    0.6 day_means   23.6..  24.0
+VERDICT inbox the null reads flat; the varying rows move by the max/min above
+rc=0

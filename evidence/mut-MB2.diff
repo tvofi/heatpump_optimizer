@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index a13bad3fa..0d64960ac 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7984,7 +7984,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if self._energy_totals_since is None:
+             self._energy_totals_since = dt_util.now().date().isoformat()
+         data["energy_totals_counting_since"] = self._energy_totals_since
+-        data["dhw_advisor"] = self._dhw_setpoint_sweep(data.get("recent_kwh_price"))
++        data["dhw_advisor"] = self._dhw_setpoint_sweep()
+         # Which of the battery's stores stand on a thermometer. Labelled
+         # here rather than inside the view because this is where the
+         # reading map is already assembled (#282).

@@ -1,0 +1,36 @@
+RESULT asym null 00:00 cooler -51.53 warmer +51.53 gap  -0.00
+RESULT asym null 02:00 cooler -46.84 warmer +46.84 gap  +0.00
+RESULT asym null 04:00 cooler -42.15 warmer +42.15 gap  +0.00
+RESULT asym null 06:00 cooler -45.05 warmer +56.16 gap +11.10
+RESULT asym null 08:00 cooler -53.78 warmer +53.72 gap  -0.06
+RESULT asym null 10:00 cooler -55.68 warmer +55.72 gap  +0.04
+RESULT asym null 12:00 cooler -55.51 warmer +55.58 gap  +0.07
+RESULT asym null 14:00 cooler -55.42 warmer +55.51 gap  +0.09
+RESULT asym null 16:00 cooler -55.36 warmer +55.46 gap  +0.10
+RESULT asym null 18:00 cooler -55.33 warmer +55.44 gap  +0.10
+RESULT asym null 20:00 cooler -55.32 warmer +55.42 gap  +0.11
+RESULT asym null 22:00 cooler -56.21 warmer +56.21 gap  +0.00
+RESULT asym null gap -0.06..+11.10 of mean magnitude 52.83 (worst 21.0 %)
+RESULT asym varying 00:00 cooler -67.90 warmer +67.90 gap  -0.00
+RESULT asym varying 02:00 cooler -65.38 warmer +65.38 gap  +0.00
+RESULT asym varying 04:00 cooler -62.79 warmer +62.79 gap  +0.00
+RESULT asym varying 06:00 cooler -59.42 warmer +61.50 gap  +2.09
+RESULT asym varying 08:00 cooler -74.73 warmer +74.88 gap  +0.16
+RESULT asym varying 10:00 cooler -74.29 warmer +74.18 gap  -0.10
+RESULT asym varying 12:00 cooler -74.12 warmer +74.06 gap  -0.06
+RESULT asym varying 14:00 cooler -74.06 warmer +74.03 gap  -0.03
+RESULT asym varying 16:00 cooler -74.08 warmer +74.05 gap  -0.02
+RESULT asym varying 18:00 cooler -69.34 warmer +69.33 gap  -0.01
+RESULT asym varying 20:00 cooler -64.70 warmer +64.70 gap  -0.01
+RESULT asym varying 22:00 cooler -60.66 warmer +60.66 gap  +0.00
+RESULT asym varying gap -0.10..+2.09 of mean magnitude 68.54 (worst 3.0 %)
+VERDICT asym the gap moves with the start hour in the null too: the estimator's, not the prices'
+RESULT mixing null 00:00 per-degree by schedule shift -2..+2  51.53  51.53  51.53  51.53  51.53 spread 0.0 %
+RESULT mixing null 07:00 per-degree by schedule shift -2..+2  47.04  56.06  56.10  56.05  56.03 spread 16.7 %
+RESULT mixing null 15:00 per-degree by schedule shift -2..+2  55.13  55.33  55.43  55.52  55.59 spread 0.8 %
+RESULT mixing varying 00:00 per-degree by schedule shift -2..+2  67.90  67.90  67.90  67.90  67.90 spread 0.0 %
+RESULT mixing varying 07:00 per-degree by schedule shift -2..+2  58.93  70.16  79.95  79.96  79.85 spread 28.5 %
+RESULT mixing varying 15:00 per-degree by schedule shift -2..+2  81.11  77.32  74.05  74.06  74.11 spread 9.3 %
+RESULT mixing worst spread 28.5 % of the per-degree figure
+VERDICT mixing the held degree moves with where the schedule sits
+rc=0

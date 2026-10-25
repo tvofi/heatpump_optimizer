@@ -1,0 +1,44 @@
+  ok   73 counting rules hold
+  ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
+  ok   custom_components/heatpump_optimizer/const.py  CONF_HOUSE_HEAT_LOSS_SCALE
+  ok   custom_components/heatpump_optimizer/const.py  CONF_LOWER_FLOOR_LOSS_RATIO
+  ok   custom_components/heatpump_optimizer/const.py  CONF_SOLAR_UPPER_FRACTION
+########## RESULT lines ##########
+RESULT class_excess_loc=18101 count
+RESULT const_modules_over_50=3 count
+RESULT coordinator_attrs=143 count
+RESULT coordinator_multiassigned_attrs=110 count
+RESULT coordinator_private_reach=0 count
+RESULT dead_methods=0 count
+RESULT dead_top_level_symbols=1 count
+RESULT duplication_copies=16 count
+RESULT functions_cc_over_15=30 count
+RESULT functions_cc_over_25=8 count
+RESULT import_cycle_modules=0 count
+RESULT max_cc=44 count
+RESULT max_class_loc=8306 count
+RESULT max_method_loc=373 count
+RESULT methods_over_150=17 count
+RESULT methods_over_200=9 count
+RESULT name_kept_members=38 count
+RESULT seam_cut_total=419 count
+RESULT thread_factor=1.0 ratio
+  ok   class_excess_loc 18101 <= 18101
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 143 <= 143
+  ok   coordinator_multiassigned_attrs 110 <= 110
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 16 <= 16
+  ok   functions_cc_over_15 30 <= 30
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 8306 <= 8306
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 419 <= 419
+STRUCTURE RATCHET PASSED
