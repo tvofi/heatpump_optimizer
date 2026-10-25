@@ -21095,6 +21095,22 @@ R.check(
     set(_CODEQL_JOBS) == {"analyze"},
     f"jobs={sorted(_CODEQL_JOBS)}",
 )
+# r10-proof-codeql: a train proof (a dispatch on a batch/ ref) may skip a leg,
+# so its prelude decides with main's programs -- restored from the proof's merge
+# base with main -- and with main's changed-file producer, tests/closure.py,
+# never its entries' copies. Pinned on the step's text, as the codeql.yml
+# shapes above are; the ci.yml checkout lists every restored path on one line.
+_CI_RESTORE = next((str(st.get("run", "")) for st in
+                    ((_CI_DOC.get("jobs") or {}).get("prelude") or {}).get("steps") or []
+                    if st.get("name") == "Restore the programs from the base"), "")
+_CI_RESTORED = next((ln.split("--", 1)[1].split() for ln in _CI_RESTORE.splitlines()
+                     if 'git checkout "$PINNED" --' in ln), [])
+R.check(
+    "ci.yml's prelude restores codeql_scope.py and tests/closure.py, and a batch/ proof restores them from its merge base with main",
+    "refs/heads/batch/*" in _CI_RESTORE and "git merge-base FETCH_HEAD HEAD" in _CI_RESTORE
+    and {"tools/pr/codeql_scope.py", "tests/closure.py"} <= set(_CI_RESTORED),
+    f"restored={_CI_RESTORED}; batch arm={'refs/heads/batch/*' in _CI_RESTORE}",
+)
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
 # stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
