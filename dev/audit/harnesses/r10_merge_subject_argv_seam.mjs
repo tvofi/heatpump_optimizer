@@ -12,6 +12,11 @@
 // `pr merge` (each must be refused, ["f:1"]) and once `pr view` (the null
 // control, each must be []). It prints one PROGRAM-CLASS line per shape and
 // a total: `PROGRAM-CLASS merge refused=<k> of <n>; view refused=<j> of <n>`.
+// Then the extent class: each argv shape whose open bracket stands lines before
+// `pr` (wrapped after the program, exploded one element per line), under a .py,
+// .mjs and .sh name, with the subject on a later line (refused) and with none
+// and a later statement's flag (the null control): `WRAPPED merge refused=<k>
+// of <n>; null refused=<j> of <n>`.
 import fs from 'node:fs'
 const src = fs.readFileSync(process.argv[2] || 'tools/policy/agreement.mjs', 'utf8')
 const from = src.indexOf('// WHAT A MERGE CALL IS'); const to = src.indexOf("// WHICH LINE IS MAIN'S")
@@ -51,3 +56,18 @@ for (const [name, form] of Object.entries(forms)) {
   km += m; kv += w; tot += programs.length
 }
 console.log(`PROGRAM-CLASS merge refused=${km} of ${tot}; view refused=${kv} of ${tot}`)
+const wrapped = {
+  'argv wrapped after gh': [(e) => `subprocess.run(["gh",\n               "pr", "merge", str(n), "--squash",${e}], check=True)\n`, '\n               "--subject", s'],
+  'argv wrapped after GH': [(e) => `run([GH,\n     "pr", "merge", str(n),${e}])\n`, '\n     "--subject", s'],
+  'exploded argv': [(e) => `run([\n    "gh",\n    "pr",\n    "merge",\n    str(n),${e}\n])\n`, '\n    "--subject",\n    s,'],
+  'exploded JS argv': [(e) => `execFileSync('gh', [\n  'pr',\n  'merge',\n  String(n),${e}\n])\n`, "\n  '--subject',\n  s,"],
+}
+let wm = 0, wn = 0, wt = 0
+for (const [name, [form, subj]] of Object.entries(wrapped)) {
+  for (const f of ['f.py', 'f.mjs', 'f.sh']) {
+    const m = subjectWriters([f], () => form(subj)).bad.length === 1; const z = subjectWriters([f], () => form('') + 'other("--subject", s)\n').bad.length > 0
+    console.log(`WRAPPED ${name} ${f}: merge ${m ? 'refused' : 'PASSED'}; null ${z ? 'REFUSED' : 'passed'}`)
+    wm += m; wn += z; wt++
+  }
+}
+console.log(`WRAPPED merge refused=${wm} of ${wt}; null refused=${wn} of ${wt}`)
