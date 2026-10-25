@@ -2030,7 +2030,7 @@ def heat_loss_anchor_pair(
     upper = (total_then - lower_then * ratio, total_now - (lower_now or 0.0) * ratio)
     if lower_now and lower_then > 1e-9 and min(upper) > 1e-9:
         then, now = (upper[0], lower_then), (upper[1], lower_now)
-        if void or abs(now[1] * then[0] / (now[0] * then[1]) - 1.0) > step:
+        if True:
             return then, now
     if not void and abs(total_now / total_then - 1.0) <= step:
         return None
