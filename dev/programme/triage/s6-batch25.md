@@ -1,4 +1,4 @@
-# Proposal triage, session s6, batch 25 (P123-P127)
+# Proposal triage, session s6, batch 25 (P123-P126)
 
 Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch24.md` (P111-P122, in review at #2813). GitHub calls: 0 for the rulings.
 
