@@ -1,0 +1,20 @@
+R10-FLOW-POSTMERGE verbatim-contained: True len 882 952
+  prefix: From triage P96 (a) (triage: dev/programme/triage/s6-batch20.md#P96): 
+  suffix: 
+R10-FLOW-AUTOTRAIN verbatim-contained: True len 515 733
+  prefix: From triage P96 (b) (triage: dev/programme/triage/s6-batch20.md#P96): 
+  suffix:  TRAIN-UPGRADE (#2772, ac0a616a2) may already implement the carried-single admission; if so this carry is a pin (test + null control), not new code.
+R10-ORCH-BEATD verbatim-contained: True len 762 821
+  prefix: From P97 (triage: dev/programme/triage/s6-batch21.md#P97): 
+  suffix: 
+R10-FLOW-ROSTER-FREEZE verbatim-contained: True len 1116 1382
+  prefix: From P98 (triage: dev/programme/triage/s6-batch21.md#P98): Routing note (orchestrator ruling 2026-10-25): this rides R10-FLOW-ROSTER-FREEZE as a carry, with no new group; arm (b2) is a later opener cut from this group after arm (a) merges, not part of arm (a)'s PR. 
+  suffix: 
+R10-FLY-CARRY-DISPOSITION verbatim-contained: True len 850 911
+  prefix: From P100 (triage: dev/programme/triage/s6-batch21.md#P100): 
+  suffix: 
+{'stage': 'done', 'branch': 'handoff/r10-train-upgrade', 'commit': 'ac0a616a2ba3b6afaeabbe25c67bbc48d13ff217'}
+{'stage': 'in-progress', 'branch': 'handoff/r10-flow-autotrain', 'commit': None, 'last_step': None, 'next_step': 'cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)', 'note': 'Lean flow study 2026-10-21 (owner-adopted)'}
+['R10-FLOW-PULL', 'R10-TICK-RELAY-DECOUPLE', 'R10-TRAIN-UPGRADE']
+{'stage': 'not-started', 'branch': 'handoff/r10-flow-roster-freeze', 'commit': None, 'last_step': None, 'next_step': 'dispatch arm (a) fixer', 'note': 'arm (b) merged #2779 c01d54b98; arm (a) relay freeze owed as its own PR; six carries (hold-file grammar, P-H hold, card 1 seat retirement) ride arm (a)'}
+{'stage': 'in-progress', 'branch': 'handoff/r10-merge-subject-harden', 'commit': None, 'last_step': None, 'next_step': 'cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)', 'note': None, 'pr': 2697}
