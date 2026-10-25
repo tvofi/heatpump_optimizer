@@ -1,8 +1,8 @@
-Roster for round 10, batch 12. It records the roster seat's four ops after `2c5b1b612`, the tip #2797 carries: a brief re-pin on R10-IMMERSION-LATCH, R10-CONFIG-NOTICES set done at #2762, and the #2798 precondition carry on R10-MERGE-SUBJECT-HARDEN and on R10-MERGE-SUBJECT-CASEARM. Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 12. It records the roster seat's 57 ops since #2797 (merged `b89fea13e`, roster tip `2c5b1b612`): the R10-IMMERSION-LATCH brief re-pin and carry, the R10-CONFIG-NOTICES done stage, the #2798 precondition carries, the rehome carries and carry drops of the 2026-10-25 hygiene pass, the three consolidation folds (R10-FLY-RECORD-BEAT, R10-FLY-POOL-INSTRUMENT and R10-ROUTING-INVARIANTS each set absorbed), and two carries on R10-ORCH-ROSTER-SCHEMA. Part of #201. It closes nothing by keyword and leaves #201 open.
 
 ## Head
 
-The authored head is `00ceb9aa4`, the tip of `handoff/audit-r10-roster`. This branch also holds #2797's five ops (`461550d9a` to `2c5b1b612`), which are not in this batch. #2797 is open at `19674e803`, verdicted MERGE, so until it merges this pull request's diff against main carries those five ops as well; after it merges the diff is the four below. The pull request merges origin/main (`de794b537`) into the head. The roster file is the only file the ops touch, and main's copy has the blob `711deb853817`, the same as at `8c9da6653`, so the merge is clean. Each op is a `roster_edit.py` push whose lint gate printed `TOTAL: 0 error(s)`. The change is one file, `dev/programme/rosters/wave-r10-groups.json`.
+The authored head is `a654772a1`, the tip of `handoff/audit-r10-roster`. The pull request merges origin/main (`b89fea13e`) into it. The roster file is the only file these ops touch (`git log --no-merges --format=%h 2c5b1b612..a654772a1` lists them; the delivery row apart). Each op is a `roster_edit.py` push whose lint gate printed `TOTAL: 0 error(s)`. The change is one file, `dev/programme/rosters/wave-r10-groups.json`.
 
 ## Mutation proof
 
@@ -10,17 +10,22 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-`git show origin/main:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin` prints `711deb853817afdbe746e7763c327f7cd0f0f156`, the blob at `8c9da6653` that both batches build on, so nothing main wrote since is overwritten. Before the re-pin, `node tools/policy/brief_lint.mjs` on main's own unmodified roster at `de794b537` printed `TOTAL: 2 error(s)`, both in the R10-IMMERSION-LATCH brief; after, each op's gate printed 0.
+`git show 2c5b1b612:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin` and the same at `origin/main` both print a blob starting `ae5988d3415d`, so main's roster equals the base of these ops and nothing main wrote since is overwritten. Before the IMMERSION-LATCH re-pin, `node tools/policy/brief_lint.mjs` on main's unmodified roster at `de794b537` printed `TOTAL: 2 error(s)`, both in that brief; the re-pin cleared it.
 
 ## Figures
 
-The 4 ops, by roster SHA: `5f94b943b` edit-brief R10-IMMERSION-LATCH ("line shift after #2762; pins only"): coordinator.py:8860-8919 became 8761-8820 (holds `def _detect_immersion` and `max_electrical_power`) and coordinator.py:10221-10235 became 10122-10136 (the immersion_excess block in `_accumulate_energy`), both a 99-line shift, each range checked in source, no other word changed (read back byte-equal to the edited text); `fe2648fe7` set-stage R10-CONFIG-NOTICES done at `de794b53765388da42b2b5f22da455ccfe3fe912` (#2762), its next_step left as it was; `3cd2bab6a` append-carry R10-MERGE-SUBJECT-HARDEN and `00ceb9aa4` append-carry R10-MERGE-SUBJECT-CASEARM, the #2798 precondition control text (read back: n_carry 5 and 2, exact match, 434 of 434 each).
+By op, from `git log --no-merges --format=%s 2c5b1b612..a654772a1` over the roster file: 20 append-carry, 16 drop-carry, 12 wire-issue, 4 set-stage, 3 set-resume, 1 set-after, 1 edit-brief; 57 in all.
 
-Measured by loading the roster as JSON at `2c5b1b612` and at `00ceb9aa4` and comparing groups by id: 189 then 189 groups, none removed, none new, 4 changed (R10-IMMERSION-LATCH, R10-CONFIG-NOTICES, R10-MERGE-SUBJECT-HARDEN, R10-MERGE-SUBJECT-CASEARM). Groups by `resume.stage`, before then after: done 115 then 116, in-progress 12 then 11, others unchanged (not-started 50, queued 6, carries-open 5, absorbed 1).
+- edit-brief R10-IMMERSION-LATCH (`5f94b943b`, "line shift after #2762; pins only"): coordinator.py:8860-8919 became 8761-8820 and 10221-10235 became 10122-10136, each range checked in source for the cited symbol, no other word changed.
+- set-stage R10-CONFIG-NOTICES done at `de794b537` (#2762): `fe2648fe7`.
+- The 16 drop-carry ops (`fa2de4493` to `3bbb06c33`) each name one entry by a unique `--match` prefix and dropped it; the pushed commit is the readback.
+- Folds: R10-FLY-RECORD-BEAT, R10-FLY-POOL-INSTRUMENT and R10-ROUTING-INVARIANTS are stage absorbed (`2553c1974`, `5993ed9fa`, `eb30e6233`), their carries and issues re-homed to R10-FLOW-POSTMERGE, R10-FLOW-DESIGN-STAGES and R10-ORCH-ROSTER-SCHEMA. R10-ARCH-DOCS's after list (`c4c2a2ed1`) dropped exactly those three: 82 edges to 79, none added.
+
+Measured by loading the roster as JSON at origin/main and at the head and comparing groups by id: 189 then 189 groups, none removed, none new, 27 changed. Groups by `resume.stage`, main then head: done 115 then 116, in-progress 12 then 11, not-started 50 then 47, queued 6 then 6, absorbed 1 then 4, carries-open 5 then 5.
 
 ## Red checks
 
-Not read by this seat for this body; this pull request changes only the roster JSON. Its re-pin clears the brief_lint red on main's roster. The orchestrator reads main's check-runs.
+Not read by this seat for this body; this pull request changes only the roster JSON, which no red check on main reads. The orchestrator reads main's check-runs.
 
 ## Forward-carry
 
@@ -28,4 +33,4 @@ none
 
 ## Friction
 
-none
+`roster_queue.py run` passed a trailing `# comment` on a queue line as arguments to `roster_edit.py` (16 drop-carry ops refused rc=2); I re-ran them with the comments stripped. The orchestrator is routing the tool defect.
