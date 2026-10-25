@@ -45,11 +45,33 @@ A malformed `merge_queue` rule (03b, 03d) and an unknown type (03c) fail
 refused **by name**, with an empty reason. That is the response the API gives
 for a rule type the repository cannot use. It is not a parameter error: had
 the parameters been wrong, 01 would have read like 03b or 03d. The GraphQL read
-agrees: `repository.mergeQueue(branch:"main")` is `null` on a `User` owner
-(`mq-probe/05-graphql-mergequeue.json`). This record does not quote GitHub's
+`repository.mergeQueue(branch:"main")` is `null`
+(`mq-probe/05-graphql-mergequeue.json`), but that field is `null` on any
+repository with no queue configured on `main`, organization-owned or not. It
+cannot tell "no queue is possible" from "no queue is configured", so it is not
+independent agreement with the refusal; it corroborates only the owner type
+the same file reads. This record does not quote GitHub's
 published availability rule (organization-owned repositories), because the
 documentation fetch did not return it. The attribution to the owner type is
 inference from the refusal, with no wording from GitHub behind it.
+
+### Positive control: not taken (open)
+
+The refusals above are all negative controls. They separate a schema error
+from a rule refused by name, but they do not show that the rest of the request
+(the name, the `refs/heads/probe/mq-r10` condition, the enforcement, and this
+caller's ruleset-write permission) would be accepted. Only an accepted POST of
+the same body minus `merge_queue` (`jq 'del(.rules[]|select(.type=="merge_queue"))'`
+over `01-ruleset-post.body.json`, leaving `required_status_checks` on `gate`)
+shows that, followed by a DELETE of its id, a GET of the id reading 404, and a
+rulesets list reading the same three ids. Round 2 of this group was dispatched
+to take it, under the owner's grant. The round-2 seat's POST was refused by
+that seat's own tool-permission layer before any request left the session, so
+no request was sent and nothing was created. **Until a seat permitted to write
+a ruleset takes the control, the attribution of the 422 to the `merge_queue`
+rule alone is not shown.** The recommendations below would not change if the
+control were accepted; if it were refused, the 422 would no longer be evidence
+about the queue and the probe would be re-run.
 
 ### Nothing was created, so nothing was left behind (read-back)
 
@@ -103,7 +125,13 @@ cannot exist.
 
 All five depend on one fact: **the queue cannot replace any of them on this
 repository.** Every one is **adopt** (build as briefed), and the queue is
-**declined** as infeasible:
+**declined** as infeasible. Only three of the five carry an `after` edge on
+R10-FLOW-MQ-PROBE in `dev/programme/rosters/wave-r10-groups.json`
+(R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY, R10-FLY-CARRY-DOC-CONTEXT), so
+the release edit removes three edges. R10-TRAIN-OVERLAP-GRADE is already
+released (`after: []` by the orchestrator's ruling of 2026-10-24), and
+R10-FLOW-BODY-ONLY (a) is held by carry text only, its `after` naming other
+groups:
 
 | group | recommendation | why |
 |---|---|---|
