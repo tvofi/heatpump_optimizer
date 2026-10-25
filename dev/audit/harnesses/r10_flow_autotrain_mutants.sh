@@ -83,6 +83,14 @@ mut R5 $F '            if f"{ROW_DIR}/{pr}.md" not in files:
                 return f"row: #{pr} has no'
 mut R6 $F '            if raises and not held:' '            if False:'
 mut R7 $F '            if pol and not self.mandate_id():' '            if False:'
+# P96(b), the carried single into a live train: the add reads its carry without
+# the queue lock (C1), or never reads it at all (C2).
+mut C1 $F '    with queue_lock(t.state):
+        live = read_pid(t.state / QUEUE_OPEN)' '    with contextlib.nullcontext():
+        live = read_pid(t.state / QUEUE_OPEN)'
+mut C2 $F '            if v != h:
+                o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]' '            if False:
+                o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]'
 # The sweep (sweep, AUTO_TRAIN_FLAGS) and train_add's one-train rule under it.
 mut S1 $F '        if seen.get(str(pr)) == head:' '        if False:'
 mut S2 $F '        if rc == 2:

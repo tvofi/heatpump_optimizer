@@ -5282,6 +5282,66 @@ def _add_self_test(check) -> None:
         check("add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled",
               rc == 1 and lines[-1].startswith("ADD REFUSED #9 carry: the verdict") and len(spool_read(st)[0]) == 1)
 
+        # P96(b): a CARRIED single -- its verdict an ancestor of its head, the gap
+        # main's own automatic merge -- joins the live train for its NEXT batch,
+        # the carry read by the real app_approve.sh --carry while the add holds
+        # the queue lock. Null control: a head carrying a commit of the branch's
+        # own past the verdict is refused by the `carry` rule.
+        from throwaway_git import throwaway_git_init
+        gd = Path(tempfile.mkdtemp(dir=tmp.name))
+        genv = throwaway_git_init(gd, "-q", "-b", "main")
+
+        def git(*a):
+            return subprocess.run(["git", *a], cwd=gd, env=genv, capture_output=True, text=True,
+                                  check=True).stdout.strip()
+        (gd / "m.txt").write_text("0\n")
+        git("add", "-A"); git("commit", "-qm", "base"); git("checkout", "-qb", "pr")
+        (gd / "a.py").write_text("x\n")
+        git("add", "-A"); git("commit", "-qm", "fix: the reviewed change")
+        cv = git("rev-parse", "HEAD")
+        git("checkout", "-q", "main"); (gd / "m.txt").write_text("1\n"); git("commit", "-qam", "main moves")
+        git("update-ref", "refs/remotes/origin/main", "main")
+        git("checkout", "-q", "pr"); git("merge", "-q", "--no-edit", "main")
+        ch = git("rev-parse", "HEAD")
+        (gd / "a.py").write_text("y\n"); git("commit", "-qam", "fix: an unreviewed delta")
+        cn = git("rev-parse", "HEAD")
+        held: list = []
+
+        def carried(pr, head):
+            base = stub({"pr": pr, "verdict": cv,
+                         "view": (0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": head}))})
+
+            def run(argv, cwd=ROOT, stdin=None):
+                if "--carry" not in argv:
+                    return base(argv, cwd, stdin)
+                with open(st / QUEUE_LOCK, "a") as fh:
+                    try:
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                        held.append(False)
+                    except BlockingIOError:
+                        held.append(True)
+                p = subprocess.run(["bash", str(ROOT / tool("app_approve")), *argv[2:]], cwd=gd, env=genv,
+                                   capture_output=True, text=True)
+                return p.returncode, p.stdout + p.stderr
+            lines: list = []
+            t = Train("o/r", st, None, "", (), 1, run=run, log=lines.append)
+            return train_add(t, {"pr": pr, "verdict": cv, "verdict_comment": "42"},
+                             ["bash", "train.sh", "--repo", "o/r"], launch=launch, settle=0.3), lines
+
+        rc, lines = carried(10, ch)
+        check("add, a train live: a CARRIED single (verdict an ancestor of its head, main's merge the gap) passes "
+              "app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)",
+              rc == 0 and held == [True] and lines[-1].startswith("ADDED #10 to the live train") and len(got) == 1
+              and [(e["pr"], e["verdict"]) for e in spool_read(st)[0]][-1:] == [(10, cv)])
+        rc, lines = carried(11, cn)
+        check("null control: a head carrying a non-main delta past its verdict is refused by the `carry` rule "
+              "(app_approve.sh's own CARRY: no), nothing spooled",
+              rc == 1 and lines[-1].startswith(f"ADD REFUSED #11 carry: the verdict {cv[:12]} does not carry to "
+                                               f"head {cn[:12]}: CARRY: no")
+              and f": {cn} is a commit of the" in lines[-1]
+              and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
+
         st = Path(tempfile.mkdtemp(dir=tmp.name))
         with queue_lock(st):
             spool_append(st, {"pr": 5, "verdict": H})  # a stopped train's leftover
