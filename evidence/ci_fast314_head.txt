@@ -1,0 +1,12 @@
+2026-10-25T03:09:37.5464555Z   GOLDEN_MODE: drift
+2026-10-25T03:09:38.0002658Z   MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+2026-10-25T03:20:33.8366992Z ALL 117 closure shrink pins PASSED
+2026-10-25T03:20:33.9305884Z   ok   and the same jobs under a passing run conclusion are still PASSED
+2026-10-25T03:20:33.9378796Z   ok   the reach tracer reads a clean run's row: an executed line is reached, one no process executed is never, and a SIGKILLed child's line counts
+2026-10-25T03:20:33.9380021Z   ok   and a Popen child started through os.posix_spawn reads the same clean row
+2026-10-25T03:20:33.9433430Z   ok   a budget refusal names a tail-cut site as one that survived every shared driver, a never-started one as not started, and a tail-cut-only run as no verdict measured -- all refused, none
+2026-10-25T03:20:33.9435599Z   ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+2026-10-25T03:20:33.9485409Z ALL 2445 ENTITY CHECKS PASSED
+2026-10-25T03:20:33.9498942Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2026-10-25T03:20:33.9560792Z ALL 112 HARNESS HEADER CHECKS PASSED
+2026-10-25T03:20:33.9895244Z 5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN

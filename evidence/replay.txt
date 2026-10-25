@@ -1,0 +1,59 @@
+  traced tests/block_duty.py: rc=0 7.6s lines=6392 problems=none
+  traced tests/arch_score_head.py: rc=0 49.7s lines=0 problems=none
+  traced tests/config_flow_steps.py: rc=0 18.8s lines=17144 problems=none
+  traced tests/debug_collect.py: rc=0 1.2s lines=7160 problems=none
+  traced tests/deployment_shape.py: rc=0 2.6s lines=0 problems=['starts a non-Python process: git -C /tmp/reach-replay-13f8scs7/w0 ls-files -z -- custom_components/heatpump_optimizer', '2 processes started, 1 recorded']
+  traced tests/backtest.py: rc=0 76.4s lines=5164 problems=none
+  traced tests/doc_claims.py: rc=0 6.3s lines=12108 problems=['starts a non-Python process: git add -A (+9)']
+  traced tests/edge.py: rc=0 25.2s lines=6376 problems=none
+  traced tests/boost_drift_replay.py: rc=0 241.3s lines=10430 problems=none
+  traced tests/env_drift.py: rc=0 241.9s lines=0 problems=['starts a non-Python process: git diff --no-renames --name-only HEAD (+14)', '3 processes started, 1 recorded']
+  traced tests/finite_boundary.py: rc=0 75.8s lines=13015 problems=none
+  traced tests/frontend.py: rc=0 0.1s lines=706 problems=none
+  traced tests/guard_pins.py: rc=0 0.8s lines=6083 problems=none
+  traced tests/manual_plan.py: rc=0 7.0s lines=13952 problems=none
+  traced tests/open_meteo.py: rc=0 0.3s lines=891 problems=none
+  traced tests/entities.py: rc=0 451.8s lines=21203 problems=['starts a non-Python process: /tmp/tmp_75u_ntd/py-spy dump --nonblocking --pid 3190 (+660)']
+  traced tests/plan_view.py: rc=0 1.0s lines=8768 problems=none
+  traced tests/solar_alignment.py: rc=0 0.9s lines=7535 problems=none
+  traced tests/optimality.py: rc=0 127.0s lines=6122 problems=none
+  traced tests/structure.py: rc=0 22.4s lines=0 problems=['starts a non-Python process: git merge-base --is-ancestor e463e95e255dac31ed229e520e197b5710a07d94 origin/main (+1)']
+  traced tests/validate.py: rc=0 23.1s lines=6311 problems=none
+  traced tests/wood_advisor.py: rc=0 0.8s lines=7096 problems=none
+  traced tests/typing_ruler.py: rc=0 31.7s lines=0 problems=['starts a non-Python process: /tmp/tmp3udxxjiu/green-interpreter /tmp/reach-replay-13f8scs7/w1/tests/typing_ruler.py --mypy (+1)', '3 processes started, 2 recorded']
+  traced tests/features.py: rc=0 387.6s lines=28910 problems=['starts a non-Python process: git merge-base HEAD origin/main (+1)', '38 processes started, 37 recorded']
+  traced tests/harness_headers.py: rc=0 146.3s lines=0 problems=['starts a non-Python process: git status --porcelain -- dev/audit/rounds/round4/D6', '28 processes started, 19 recorded']
+  traced tests/stress.py: rc=0 243.7s lines=7175 problems=['starts a non-Python process: git rev-parse --verify --quiet HEAD^1^{commit} (+9)', '18 processes started, 9 recorded']
+
+HEAD 3581be11be2b89478d7044c9a6a3d5bba0923e71
+PAIRS 122960 over 6076 anchored sites and 26 traced drivers: reached 9995, never 40092, run 72873
+  tests/arch_score_head.py: rc=0 49.7s never=0 reached=0 run=6299  [reads 81 production file(s) as text]
+  tests/backtest.py: rc=0 76.4s never=1547 reached=679 run=0
+  tests/block_duty.py: rc=0 7.6s never=5005 reached=388 run=0
+  tests/boost_drift_replay.py: rc=0 241.3s never=3919 reached=1463 run=3  [reads 1 production file(s) as text]
+  tests/config_flow_steps.py: rc=0 18.8s never=0 reached=0 run=6289  [reads 80 production file(s) as text]
+  tests/debug_collect.py: rc=0 1.2s never=5089 reached=393 run=99  [reads 1 production file(s) as text]
+  tests/deployment_shape.py: rc=0 2.6s never=0 reached=0 run=6299  [starts a non-Python process: git -C /tmp/reach-replay-13f8scs7/w0 ls-files -z -- custom_components/heatpump_optimizer; 2 processes started, 1 recorded]  [reads 81 production file(s) as text]
+  tests/doc_claims.py: rc=0 6.3s never=0 reached=0 run=6299  [starts a non-Python process: git add -A (+9)]  [reads 81 production file(s) as text]
+  tests/edge.py: rc=0 25.2s never=1202 reached=1024 run=0
+  tests/entities.py: rc=0 451.8s never=0 reached=0 run=6299  [starts a non-Python process: /tmp/tmp_75u_ntd/py-spy dump --nonblocking --pid 3190 (+660)]  [reads 86 production file(s) as text]
+  tests/env_drift.py: rc=0 241.9s never=0 reached=0 run=6299  [starts a non-Python process: git diff --no-renames --name-only HEAD (+14); 3 processes started, 1 recorded]
+  tests/features.py: rc=0 387.6s never=0 reached=0 run=6299  [starts a non-Python process: git merge-base HEAD origin/main (+1); 38 processes started, 37 recorded]  [reads 81 production file(s) as text]
+  tests/finite_boundary.py: rc=0 75.8s never=0 reached=0 run=6299  [reads 81 production file(s) as text]
+  tests/frontend.py: rc=0 0.1s never=16 reached=0 run=17  [reads 1 production file(s) as text]
+  tests/guard_pins.py: rc=0 0.8s never=2726 reached=709 run=0
+  tests/harness_headers.py: rc=0 146.3s never=0 reached=0 run=6299  [starts a non-Python process: git status --porcelain -- dev/audit/rounds/round4/D6; 28 processes started, 19 recorded]
+  tests/manual_plan.py: rc=0 7.0s never=3522 reached=1541 run=1155  [reads 1 production file(s) as text]
+  tests/open_meteo.py: rc=0 0.3s never=18 reached=67 run=0
+  tests/optimality.py: rc=0 127.0s never=1336 reached=890 run=0
+  tests/plan_view.py: rc=0 1.0s never=4402 reached=980 run=0
+  tests/solar_alignment.py: rc=0 0.9s never=4787 reached=595 run=0
+  tests/stress.py: rc=0 243.7s never=0 reached=0 run=2320  [starts a non-Python process: git rev-parse --verify --quiet HEAD^1^{commit} (+9); 18 processes started, 9 recorded]  [reads 1 production file(s) as text]
+  tests/structure.py: rc=0 22.4s never=0 reached=0 run=6299  [starts a non-Python process: git merge-base --is-ancestor e463e95e255dac31ed229e520e197b5710a07d94 origin/main (+1)]  [reads 81 production file(s) as text]
+  tests/typing_ruler.py: rc=0 31.7s never=0 reached=0 run=6299  [starts a non-Python process: /tmp/tmp3udxxjiu/green-interpreter /tmp/reach-replay-13f8scs7/w1/tests/typing_ruler.py --mypy (+1); 3 processes started, 2 recorded]  [reads 81 production file(s) as text]
+  tests/validate.py: rc=0 23.1s never=1277 reached=949 run=0
+  tests/wood_advisor.py: rc=0 0.8s never=5246 reached=317 run=0
+SURVIVOR SWEEP over the inventory at recorded solo seconds: 16537598 s every pair, 14803523 s without the never rows (10.5% less)
+LEDGER REPLAY 2116 killed_by rows matching a current site: reached 363, run 1753
+LEDGER REPLAY: no killer is a never row
+EXIT 0

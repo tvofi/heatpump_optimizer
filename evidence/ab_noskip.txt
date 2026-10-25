@@ -1,0 +1,52 @@
+  3990 unpinned site(s) of 6299 candidate sites, 3990 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 10 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+MUTATION TABLE -- scope full: every production module
+  SKIP tests/harness_headers.py (this scope does not drive it at all: it measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011))
+  SKIP tests/stress.py (this scope does not drive it at all: it measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011))
+  3 drawn site(s) hold a survivor_triage mark: tests/entities.py, which would call them killed for the mark's sake, is not one of their drivers
+  8 mutant(s) over 81 file(s); drivers in play: tests/arch_score_head.py, tests/backtest.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/frontend.py, tests/guard_pins.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'HEAD^1' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/device_prefill.py:107 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/arch_score_head.py: rc=0 failed=0 43s
+  baseline tests/env_drift.py: rc=0 failed=0 121s
+  baseline tests/block_duty.py: rc=0 failed=0 1s
+  baseline tests/backtest.py: rc=0 failed=0 71s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 17s
+  baseline tests/debug_collect.py: rc=0 failed=0 1s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 6s
+  baseline tests/edge.py: rc=0 failed=0 25s
+  baseline tests/boost_drift_replay.py: rc=0 failed=0 229s
+  baseline tests/finite_boundary.py: rc=0 failed=0 71s
+  baseline tests/frontend.py: rc=0 failed=0 0s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/manual_plan.py: rc=0 failed=0 8s
+  baseline tests/optimality.py: rc=0 failed=0 120s
+  baseline tests/features.py: rc=0 failed=0 395s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 19s
+  baseline tests/typing_ruler.py: rc=0 failed=0 27s
+  baseline tests/validate.py: rc=0 failed=0 24s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  null control custom_components/heatpump_optimizer/device_prefill.py:107 NULL_COMMENT survived every driver
+  2 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 2 reproduced, 0 not reproduced, 0 not re-verified
+  ok    custom_components/heatpump_optimizer/device_prefill.py:261 GUARD_OFF  -- killed by tests/features.py
+  LIVES custom_components/heatpump_optimizer/dhw_learning.py:165 CMP_BOUND
+  LIVES custom_components/heatpump_optimizer/frontend.py:87 BOOLOP
+  LIVES custom_components/heatpump_optimizer/legionella.py:382 CMP_BOUND
+  ok    custom_components/heatpump_optimizer/narrative.py:157 CLAMP_DROP  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/optimizer.py:5589 CMP_BOUND  -- killed by tests/features.py
+  LIVES custom_components/heatpump_optimizer/pv.py:143 CMP_BOUND
+  ok    custom_components/heatpump_optimizer/replay_doc.py:502 BOOLOP  -- killed by tests/debug_collect.py
+
+  4 survivor(s) of 8 evaluated = 50.0%, cap 30.0%
+    custom_components/heatpump_optimizer/dhw_learning.py:165 CMP_BOUND: low, high = (mid, high) if np.mean(np.clip(raw * mid, lo, hi)) < 1.0 els
+    custom_components/heatpump_optimizer/frontend.py:87 BOOLOP: if resources is None and isinstance(lovelace, dict):
+    custom_components/heatpump_optimizer/legionella.py:382 CMP_BOUND: if peak >= target - 1.0:
+    custom_components/heatpump_optimizer/pv.py:143 CMP_BOUND: "surplus_hours": round(float(np.sum(surplus > 1e-6) * dt_hours), 2),
+
+MUTATION TABLE BREACHED
+  - 50.0% of mutants survived against a cap of 30.0%. A survivor is a production line no check would notice being wrong. Pin the ones above, or record the ones measured equivalent under survivor_triage in tests/mutation_budgets.json with the reason that says so.
+EXIT 1
