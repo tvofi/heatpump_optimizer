@@ -14,6 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-PARAMS-OWNER (stage in-progress, branch `handoff/r10-params-owner`): `git fetch origin handoff/r10-params-owner && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ARCH-SHAPES (stage in-progress, branch `handoff/r10-arch-shapes`): `git fetch origin handoff/r10-arch-shapes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage in-progress, branch `handoff/r10-sav-comfort`): `git fetch origin handoff/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MERGE-SUBJECT-HARDEN (stage in-progress, branch `handoff/r10-merge-subject-harden`): `git fetch origin handoff/r10-merge-subject-harden && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage in-progress): no branch pushed yet, so nothing to fetch
