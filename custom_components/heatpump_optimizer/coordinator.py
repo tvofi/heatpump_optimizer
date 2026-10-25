@@ -6485,9 +6485,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tank = dhw.value if dhw.ok else None
         if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
             self._learner_freeze_reason = frozen
-        _ctx_of(self).publish(
-            self, dhw_hours_since_legionella=await self._legionella.async_observe(tank, reader)
-        )
+        hours = await self._legionella.async_observe(tank, reader)
+        _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
 
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)

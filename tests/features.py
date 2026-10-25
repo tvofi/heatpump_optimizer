@@ -19651,8 +19651,9 @@ R.check(
     "the learners that replay with them",
     "params.solar_aperture_scale =" in _run_src2
     and "params.internal_gains_profile =" in _run_src2
-    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
-    < _upd_src2.find("self._refresh_model_corrections()"),
+    and 0 < _upd_src2.find("self._async_learn_interval(")
+    < _upd_src2.find("self._refresh_model_corrections()")
+    and "self._async_learn_house_heat_loss()" in inspect.getsource(_Coord._async_learn_interval),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",
 )
