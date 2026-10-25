@@ -1,0 +1,253 @@
+diff --git a/dev/programme/delivery/2812.md b/dev/programme/delivery/2812.md
+new file mode 100644
+index 000000000..2aff29827
+--- /dev/null
++++ b/dev/programme/delivery/2812.md
+@@ -0,0 +1 @@
++- [#2812](https://github.com/tvofi/heatpump_optimizer/pull/2812) — **open**, roster: round-10 batch 13 (roster ops on handoff/audit-r10-roster through e64be204d: CASEARM carry, LEARNER-ETA/MUTANT-SKIP/FLOW-AUTOTRAIN done, coordinator pin re-pin, #2712 PIN-DRIVE carry on FLY-LEDGER-SAMPLE)
+diff --git a/dev/programme/rosters/wave-r10-groups.json b/dev/programme/rosters/wave-r10-groups.json
+index d3b890726..b7f33d15e 100644
+--- a/dev/programme/rosters/wave-r10-groups.json
++++ b/dev/programme/rosters/wave-r10-groups.json
+@@ -1823,9 +1823,9 @@
+    ],
+    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
+    "resume": {
+-    "stage": "in-progress",
++    "stage": "done",
+     "branch": "handoff/r10-learner-eta",
+-    "commit": null,
++    "commit": "60cd447a021558df4a1c5e8e71ed5c24b199d01e",
+     "last_step": null,
+     "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_01HtYTAbefmKwnintURpriMz); return handoff-body/r10-learner-eta",
+     "note": null,
+@@ -1950,7 +1950,9 @@
+     "R10-UX-HEALTH renders the state; the score dash rule is R10-SCORES'.",
+     "From the D15 production triage of the owner's 7.0.4 diagnostics bundle (2026-10-24; derived ratios only): \"Learning: observed COP\" pinned for 31 h on one folded interval whose draw was 2.30x its ask (implied COP 0.43x the space curve, against about 1.1x on the previous fold), outdoor steady within 7-11 degC and no input stale. Three seams. (1) `_cop_reference_curve`/`_commanded_split` (custom_components/heatpump_optimizer/coordinator.py:4482-4852) pick the curve from the plan's split as the mode can serve it, not from the duty the pump actually ran; the pump-duty ledger records it ran hot water the plan did not command (11 `dhw-instead` steps in the published day), so a pump-initiated hot-water run folds against the space curve and the space ask. Refuse a fold whose observed duty differs from the planned duty. (2) `MeasuredCop.record` (accuracy.py:873) latches one interval and `ObservedCOPSensor` (sensor.py:1670) publishes it with no age while every later interval is refused (`last_refusal` `duty_floor`); show the sample's time or the honest not-measurable state this group adds. (3) The accuracy residual (coordinator.py:9901-9924) re-subtracts the latched COP on every sample, so 89 consecutive samples carry a residual that is a pure function of outdoor temperature. Controls: a synthetic install whose pump runs unplanned hot water folds nothing for those intervals; a draw-follows-plan install still folds (your existing null); one mutant per seam.",
+     "Correction to the D15 triage carry on the observed-COP latch (2026-10-24; derived ratios only). Seam (1) of the earlier carry, a hot-water run folded against the space curve, is withdrawn. The bundle has no mode history for the interval (the pump-duty ledger is not persisted and starts 17 h later), but the code rules DHW-only out. The stored record says `curve_dhw` False, and a commanded ask of 1.26 kW folded. Under an observed DHW-only mode, `_commanded_split` (coordinator.py:4482-4511) zeroes space, so a space-curve fold with that ask is impossible: the interval ran in a space-capable mode. Real cause: the arbiter commanded a 44-46 degC flow set-point, and the pump drew 2.30x the plan's kW to meet it. The fold reads ask over draw as efficiency (COP-GATE's premise). The ask was under the nameplate third (1.26 against 1.33 kW), so `judge_ratio` (accuracy.py:844-871) could only fold through `follows_ask` returning True. That evidence window is misaligned. `draw_range.fold` runs in `_record_accuracy` (coordinator.py:9838), called at :5670 after `async_run_optimization` (:5634) has adopted the next action, so it pairs the closed interval's meter with the next step's ask. Of the 32 stored draw samples, 14 match the next accuracy row's ask, 0 match the same row's, and 15 are ambiguous (a constant ask). The COP fold itself (:6494, before the solve) and the accuracy pairing are aligned. Fix the pairing, then re-judge `follows_ask`. Seams (2), the latch with no age, and (3), the residual reusing the latch, stand. Controls: a synthetic install whose draw follows a flow set-point and not the kW ask folds nothing; the draw window pairs each meter reading with its own step's ask (mutation: swap to the next step); your existing draw-follows-plan null still folds.",
+-    "From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md). 'A heat meter' in this brief includes the thermal power entity `CONF_THERMAL_POWER_ENTITY`, probed as `thermal_model.probe_install(...).measured_heat`, as well as R10-HEAT-METER's energy key. With it and an electrical meter, COP is observable: `_fold_measured_cop` folds heat over electricity (`flow_meter.cop_evidence`) and skips the commanded-ratio gates, and harness `dev/audit/harnesses/r10_thermal_power_option.py`'s `metered` arm holds `cop_scale` at the plant's own 0.9 at every outdoor point (spread 0.0000 at #2753's head). A gate keyed on HEAT-METER's key alone would mark a thermal-power install 'not measurable' while its fold learns. Control: a thermal-power-metered install is never given the not-measurable state, and its fold still moves `cop_scale`."
++    "From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md). 'A heat meter' in this brief includes the thermal power entity `CONF_THERMAL_POWER_ENTITY`, probed as `thermal_model.probe_install(...).measured_heat`, as well as R10-HEAT-METER's energy key. With it and an electrical meter, COP is observable: `_fold_measured_cop` folds heat over electricity (`flow_meter.cop_evidence`) and skips the commanded-ratio gates, and harness `dev/audit/harnesses/r10_thermal_power_option.py`'s `metered` arm holds `cop_scale` at the plant's own 0.9 at every outdoor point (spread 0.0000 at #2753's head). A gate keyed on HEAT-METER's key alone would mark a thermal-power install 'not measurable' while its fold learns. Control: a thermal-power-metered install is never given the not-measurable state, and its fold still moves `cop_scale`.",
++    "Owner's spec (tvofi, 2026-10-25): the heat-pump grade gets the same hover reason codes as the house grade, covering what raises or lowers it. While it has no grade yet, the codes say why: samples per outdoor band against the requirement, and samples refused by freezes.",
++    "The hover also explains the metric in plain words: seasonal COP by outdoor band, the samples required, and what 'no grade yet' means (owner, 2026-10-25)."
+    ],
+    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+    "resume": {
+@@ -1969,7 +1971,9 @@
+    "kind": "owner",
+    "issues": [
+     2253,
+-    2263
++    2263,
++    2809,
++    2815
+    ],
+    "fixes": [],
+    "findings": [
+@@ -2016,7 +2020,10 @@
+     "From R10-SCORES (handoff-body/r10-scores at 8f564875), Forward-carry: **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix.",
+     "(from R10-SCORES #2647, Forward-carry) **R10-UX-HEALTH**: the score sensor is `unknown` (available) while it waits, with `waiting_for` and `reasons`; `healthWaiting` lists it. The card ships `score.reason_*` strings (en, sv) for every code; UX-HEALTH renders `reasons` on the Health `score` row and owns its copy. The Health tab's heat-loss \"learned\" now means converged (50 samples), not one sample.",
+     "From R10-LEARNER-ETA (#2260, handoff/r10-learner-eta), finding-propagation.md: item 5 renders `learner_progress` (per learner: house, lower, solar, gains), and only it, for a learner's state. The card reads it as the `learner_progress` attribute of the model status sensor, the entity HEALTH_MODEL_SUFFIX (`_learning_model_status`) names, the Health tab's one source (`ModelStatusSensor` in sensor.py, unrecorded like `system_identification`); it is the learning view's `learner_progress` unchanged, and None when the view has none. `phase` is off, waiting, counting or settling; `waiting_for` (colder, darker, sunnier) is set only while waiting; `eta_days` is set only while counting and is the time until that learner's gate opens (for the house, the \"learned\" label), never until the value converges; `progress` is samples over `samples_needed` while counting and the fraction of the EWMA walk traversed while settling (None for gains). Precondition: a day figure is rendered from `eta_days` alone and labelled as the gate, and a settling learner shows progress and no day figure. Control: on the R10-IDENT plants dev/audit/harnesses/r10_learner_eta.py prints `gate_err` near zero and `settle_err` weeks negative for the same ETAs, so reading the figure as convergence is the study's defect again; re-measure at your merge base (eta_on_settling must read 0), and add a card fixture with phase settling and a non-null eta_days field that must render no day figure.",
+-    "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobservable, not as a trusted learned scale. Harness dev/audit/harnesses/r10_demand_overbook.py."
++    "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobservable, not as a trusted learned scale. Harness dev/audit/harnesses/r10_demand_overbook.py.",
++    "#2809 [D15]: Finalize Debug Collection publishes the wrong unavailable reason, and HA hides it while greyed out; surface the right state.",
++    "#2815 [D15]: no UI control starts a new debug collection; only the debug_collect action with start does, and toggling the option off deletes the collection.",
++    "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building."
+    ],
+    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+    "resume": {
+@@ -4769,7 +4776,8 @@
+    "lane": "IN",
+    "kind": "production",
+    "issues": [
+-    2498
++    2498,
++    2808
+    ],
+    "fixes": [],
+    "class": "production",
+@@ -4798,7 +4806,8 @@
+     "R10-NIGHT-FOLDS"
+    ],
+    "carry": [
+-    "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle."
++    "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle.",
++    "#2808 [D15]: Run System Identification arms an experiment that can never run (the house learner is past its sample limit), aborts on any learning freeze, and records no visible outcome. Settle the gate and the user-visible outcome here."
+    ],
+    "architect_note": null,
+    "group": "R10-CEILING-PROBE",
+@@ -5302,7 +5311,7 @@
+     2508
+    ],
+    "fixes": [],
+-   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6552-6559). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
++   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6664-6673). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
+    "resume": {
+     "stage": "not-started",
+     "branch": null
+@@ -5331,10 +5340,11 @@
+    "fixes": [],
+    "brief": "Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothing in round 10 names it (found by the 2026-10-20 slip screen). The option, verbatim: skipping a driver on a mutant line it never executes. In practice the mutation lane runs every driver against every mutant, and a driver whose tests never reach the mutated line cannot kill it, so those runs are pure cost; skipping them saves CI time with the same killing power. The risk is asymmetric: one wrong skip loses a real killer, the mutant survives, and the lane either reports a false survivor or hides a genuine test gap -- which is why the deferral demanded a 595-row replay. Build it measure-first, in this order, and do not reorder: (1) build the 595-row replay -- for every mutant/driver pair, record from a real run whether that driver executes the mutated line, and land the matrix as a checked-in artifact with its command; (2) enable a skip only where a matrix row says the driver never reaches the line -- no skip may be enabled without its row, and a pair with no row must run; (3) prove with a null control that the kill set under skipping is identical to the kill set without it on the whole matrix, and that the survivor set is unchanged. If the matrix shows no pair is skippable, record that measurement and stop: the answer is then a recorded refusal, not a feature. The 595 figure is the row count from #1930's harness at that head -- re-derive it, do not carry it.",
+    "resume": {
+-    "stage": "in-progress",
++    "stage": "done",
+     "branch": null,
+     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
+-    "pr": 2749
++    "pr": 2749,
++    "commit": "6b5d2a8169d64ab9ec276cfa2670ae32b2e2053b"
+    }
+   },
+   {
+@@ -6807,9 +6817,9 @@
+    "architect_note": "",
+    "brief": "The merge pitch as a mechanism, not an agent's turn (Lean flow study, mechanisation). Today the orchestrator builds every train queue by hand: merge_train.py documents the queue schema in its docstring and nothing writes one, so a pitch happens only when an agent's turn assembles pull request numbers, verdict heads and comment ids. Every input is already machine-readable: the confirmed verdict on the verdict bus ref, the pull request's head, and tools/pr/app_approve.sh --carry, which decides whether a merge verdict on one head carries to another (only main merges whose tree equals merge-tree's result, or driver-file bot commits, and an identical branch diff). Add a queue builder to merge_train.py that writes the queue from the open non-record pull requests whose newest verdict is merge at the head or carries to it, oldest first, and leaves budget and policy paths to the serial route the batch admit already applies. Then run tools/audit/seat/queue_pre_flight.py, then train.sh with --bot-prs --approval-carry --pre-flight, once per pitch, from the tick loop, and never while a train's pidfile is live. Every merge goes through merge_pr.sh or the train, which approve (app_approve.sh, or tvofi's review under the mandate on a code-owned path) before merging; a posted merge verdict is not a GitHub approval. Controls: a fixture with one verdicted head, one carried head, one head the carry refuses, one blocked verdict and one budget file builds exactly the expected queue; an empty queue starts no train; a live pidfile starts none; mutants of each admission rule fail named arms. The first live pitch runs with the orchestrator watching.",
+    "resume": {
+-    "stage": "in-progress",
++    "stage": "done",
+     "branch": "handoff/r10-flow-autotrain",
+-    "commit": null,
++    "commit": "0825aee641c8afb1e67be2a6af9d07e9c9dec9fa",
+     "last_step": null,
+     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
+     "note": "Lean flow study 2026-10-21 (owner-adopted)",
+@@ -7406,7 +7416,8 @@
+     "commit": null,
+     "last_step": null,
+     "next_step": "dispatch a fixer (fly-in, lane F)",
+-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
++    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
++    "pr": 2811
+    }
+   },
+   {
+@@ -9179,7 +9190,7 @@
+     "Re-homed from R10-FAHRENHEIT (done; the carry was appended after it was done, from #2465 fix review 6291407983); issue #2805. A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low, and custom_components/heatpump_optimizer/setpoint_check.py re-raises the issue. Round the written floor UP to the entity's step, so it is never below the requested value. Failing test first across \u00b0C and \u00b0F steps, a mutation proof, and a null control: an on-step floor writes unchanged. This adds setpoint_check.py to this group's files; the seam is the disinfection-floor write path only."
+    ],
+    "architect_note": null,
+-   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8761-8820) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1144) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10122-10136) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
++   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8838-8895) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1144) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10201-10214) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
+    "resume": {
+     "stage": "queued",
+     "branch": null,
+@@ -9196,7 +9207,8 @@
+    "severity": "medium",
+    "size": "S",
+    "issues": [
+-    2271
++    2271,
++    2814
+    ],
+    "fixes": [],
+    "findings": [],
+@@ -9222,7 +9234,8 @@
+     "custom_components/heatpump_optimizer/diagnostics.py"
+    ],
+    "carry": [
+-    "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes."
++    "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes.",
++    "#2814 [D15]: the export does not label the frozen 7-day debug collection (no end time or age; days is a constant 7). The plan's stated age is wrong (0.8 min vs 14.1 min actual), and the download has no export time."
+    ],
+    "resume": {
+     "stage": "not-started",
+@@ -9334,7 +9347,8 @@
+    "severity": "medium",
+    "size": "M",
+    "issues": [
+-    2272
++    2272,
++    2810
+    ],
+    "fixes": [
+     2272
+@@ -9368,7 +9382,8 @@
+    ],
+    "carry": [
+     "From #2514 (R10-REPLAY-LANE, merged 0280e6e), body: the group's headline item, a real recorded day, is not in the tree; tests/replay/ holds only synthetic-dhw-only.json (git ls-tree origin/main tests/replay/). It must be produced on the owner's Home Assistant box with `python3 tools/replay/export.py --config-dir /config --days 1 --out /config/hpo-replay-<day>.json`, checked with `export.py --check`, then committed as tests/replay/<day>.json.",
+-    "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it."
++    "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it.",
++    "#2810 [D15]: a non-credential string collision refuses the whole replay half, and the refusal names nothing."
+    ],
+    "resume": {
+     "stage": "not-started",
+@@ -9739,7 +9754,9 @@
+    "files": [
+     "tests/mutation_table.py"
+    ],
+-   "carry": [],
++   "carry": [
++    "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA"
++   ],
+    "model": {
+     "fixer": "sonnet",
+     "reviewer": "opus",
+@@ -9797,7 +9814,8 @@
+    ],
+    "carry": [
+     "From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagation.md). The brief for R10-MERGE-SUBJECT-CASEARM must record two things. First, a regression-against-main control: over the finder's harness corpus plus the reviewer's unmatched-closer line (\"down) with gh pr merge 9 --subject x\"), every line refused at origin/main must still be refused at the head. Second, the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms.",
+-    "From R10-RCA-MERGE-SUBJECT-CLASS-OPEN (#2798, dev/audit/rca/R10-RCA-MERGE-SUBJECT-CLASS-OPEN.md). Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it."
++    "From R10-RCA-MERGE-SUBJECT-CLASS-OPEN (#2798, dev/audit/rca/R10-RCA-MERGE-SUBJECT-CLASS-OPEN.md). Precondition control: `node dev/audit/rca/merge-subject-class-open/differential.mjs planted origin/main <head>` must return main_not_head=0, re-measured at the merge base. At 4aad9c117 it returns 54 other lines, and the null control with origin/main at both ends returns main_not_head=0. A hand-bounded corpus alone does not satisfy it.",
++    "From R10-MERGE-SUBJECT-HARDEN #2697 r9 (verdict/2697 abeeccc7: blocked carry-missing only; the code passes, and the planted differential shows main_not_head=0). The brief's \"close the case-arm class\" is already done by r9 itself, so this group's remaining scope is the three subject spellings #2697's body routes here as open: (1) a blank line inside a Python argv, (2) a blank line inside a JS argv, and (3) a `)` inside a JS block comment. Each is a merge-subject guard input that the case-arm fix does not reach. Control: plant each spelling in a merge subject at main and at the head. The guard must refuse it at this group's head and must have accepted it at #2697's merged head. Re-measure at your merge base."
+    ],
+    "architect_note": null,
+    "resume": {
+@@ -9809,6 +9827,59 @@
+     "note": "split from #2697 (three-round rule)"
+    },
+    "brief": "Split from #2697 under the three-round rule (orchestrator ruling 2026-10-25, mandate 6329234399). The merge-subject guard counts a shell case-arm writer spelled without the opening parenthesis (`  never) gh pr merge \"$n\" --squash --subject \"...\" ;;`) as a merge call but never reads its subject (refused=0 at e73424f2, 683dd52c, d0d35231), while the `(never)` spelling is refused=1. Close the class by a rule that enumerates every case-arm spelling (with and without the leading paren, any indentation, multi-pattern arms a|b)), not by adding one more spelling. Failing test first: the r8 handoff of #2697 adds the failing test for this spelling marked for this group. The #2697 round-6 regression probe runs at both ends."
++  },
++  {
++   "group": "R10-HOUSE-GRADE",
++   "lane": "IN",
++   "kind": "defect",
++   "issues": [
++    2816
++   ],
++   "fixes": [],
++   "findings": [],
++   "class": "production",
++   "severity": "medium",
++   "size": "M",
++   "wave": 2,
++   "files": [
++    "custom_components/heatpump_optimizer/coordinator.py",
++    "custom_components/heatpump_optimizer/presets.py",
++    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
++   ],
++   "hot_files": [
++    "custom_components/heatpump_optimizer/coordinator.py"
++   ],
++   "fixerModel": "opus",
++   "reviewerModel": "opus",
++   "model": {
++    "fixer": "opus",
++    "reviewer": "opus",
++    "rca": null,
++    "runner": "haiku",
++    "record": "sonnet"
++   },
++   "effort": "medium",
++   "fixture": false,
++   "owner_gate": null,
++   "rca": [],
++   "after": [
++    "R10-PARAMS-OWNER"
++   ],
++   "carry": [
++    "Owner's spec (tvofi, 2026-10-25, #2816): the house grade is normalized by building TYPE and ERA (configured), as measured envelope loss (W/K, thermal-mass corrected) relative to typical for that type and era. A house losing more than typical for its type and era scores below typical, but never 0: 0 is reserved for no data. Typical for its type and era scores mid-scale, and better than typical scores above. The owner's case (about 100 years old, new windows and added insulation in the last 20 years), with learned loss about 1.5x typical pre-1960, must land low but clearly nonzero. Acceptance: a monotone, continuous map from loss ratio to grade, with a null control at loss ratio 1.0 giving mid-scale for each era.",
++    "Owner's spec (tvofi, 2026-10-25, #2816): the grade carries reason codes, shown on hover in the card, that explain what drives it up or down. For example: loss vs typical for type and era, thermal-mass correction, learned vs configured heat loss, data age or confidence, freezes such as the vent latch. Each code names its direction and its rough contribution. Acceptance: every grade the card shows has at least one reason code, and the codes' contributions account for the distance from mid-scale.",
++    "The hover also explains the metric in plain words: envelope loss in W/K, thermal-mass correction, normalization by type and era, and what mid-scale means (owner, 2026-10-25)."
++   ],
++   "architect_note": "",
++   "brief": "From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). The house grade should measure envelope loss in W/K, corrected for thermal mass, and normalized by the configured house type and/or building period. At main, and in R10-PARAMS-OWNER, `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py` grades a time constant against one all-era band, and the configured era, structure and area never enter it. The owner's specification: a 100-year-old house with new windows and added insulation should score at least 30-40. Seams: `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py`, the era and structure presets in `custom_components/heatpump_optimizer/presets.py`, and the score strings in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`. Build it measure-first: derive the loss in W/K from the learned parameters, show on a null control that two houses of equal envelope but different era score the same after normalization and that the old-house example above reaches the stated floor, then change the grade. Edge: after R10-PARAMS-OWNER, which reshapes the same function.",
++   "resume": {
++    "stage": "not-started",
++    "branch": null,
++    "commit": null,
++    "last_step": null,
++    "next_step": null,
++    "note": null
++   }
+   }
+  ]
+ }
+\ No newline at end of file

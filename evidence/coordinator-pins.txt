@@ -1,63 +1,28 @@
-coordinator.py identical at 60cd447a0 and origin/main: yes
-== origin/main custom_components/heatpump_optimizer/coordinator.py:1113,1119
-  1113	def _learned_zone_temperature(
-  1114	    state: ThermalState, params: ThermalParameters
-  1115	) -> float:
-  1116	    """The zone a heat-loss fold's residual is read on: upper floor, else room."""
-  1117	    if params.two_zone_enabled:
-  1118	        return state.upper_floor_temperature
-  1119	    return state.room_temperature
-== origin/main custom_components/heatpump_optimizer/coordinator.py:6610,6610
-  6610	    def _learning_frozen(self, *keys: str) -> str | None:
-== origin/main custom_components/heatpump_optimizer/coordinator.py:6664,6673
-  6664	        # ``reading.entity_id`` is the load-bearing half of the predicate: a
-  6665	        # slot the user never configured reads as ``not_configured`` with no
-  6666	        # entity, and must NOT freeze learning — otherwise every install
-  6667	        # without an optional sensor would never learn anything.
-  6668	        health = self._input_health
-  6669	        if health is not None:
-  6670	            for key in keys:
-  6671	                reading = health.readings.get(key)
-  6672	                if reading is not None and reading.entity_id and not reading.ok:
-  6673	                    return f"{reading.problem}:{key}"
-== origin/main custom_components/heatpump_optimizer/coordinator.py:8838,8840
-  8838	    def _detect_immersion(self) -> None:
-  8839	        """#11: notice the immersion element wearing the pump's meter.
-  8840	
-== origin/main custom_components/heatpump_optimizer/coordinator.py:8893,8897
-  8893	        if self._pump_signals.electric_heat.dhw_booster_started:
-  8894	            self._immersion_events.append(now.isoformat())
-  8895	            del self._immersion_events[:-20]
-  8896	
-  8897	    # -- T5 comfort floors (#16 #54), both gated ---------------------------
-== origin/main custom_components/heatpump_optimizer/coordinator.py:10122,10136
- 10122	        # No price covered the interval (#2229): the energy totals take its
- 10123	        # kWh and no cost; NaN, which the ledger refuses line by line, keeps
- 10124	        # its priced lines and spot sample out rather than booking 0.0.
- 10125	        known_price = pending.get("price")
- 10126	        price = float("nan") if known_price is None else float(known_price)
- 10127	        planned_space = float(pending.get("space_power") or 0.0)
- 10128	        planned_dhw = float(pending.get("dhw_power") or 0.0)
- 10129	        planned_total = planned_space + planned_dhw
- 10130	
- 10131	        when = pending.get("when") or dt_util.now()
- 10132	        spot = _as_float(pending.get("spot_price"), float("nan"))
- 10133	
- 10134	        # T6 #40: a settlement landing in a new month means the old month
- 10135	        # just closed — freeze its receipt before anything else books.
- 10136	        self._roll_month(when)
-== origin/main custom_components/heatpump_optimizer/coordinator.py:10201,10214
- 10201	        immersion_excess = 0.0
- 10202	        if (
- 10203	            self._immersion_active
- 10204	            and sample.actual_power_kw is not None
- 10205	            and sample.actual_power_kw > planned_total
- 10206	        ):
- 10207	            immersion_excess = min(
- 10208	                energy,
- 10209	                max(
- 10210	                    0.0,
- 10211	                    (sample.actual_power_kw - planned_total) * elapsed_hours,
- 10212	                ),
- 10213	            )
- 10214	        metered = energy - immersion_excess
+6610:     def _learning_frozen(self, *keys: str) -> str | None:
+6664:         # ``reading.entity_id`` is the load-bearing half of the predicate: a
+6665:         # slot the user never configured reads as ``not_configured`` with no
+6666:         # entity, and must NOT freeze learning — otherwise every install
+6667:         # without an optional sensor would never learn anything.
+6668:         health = self._input_health
+6669:         if health is not None:
+6670:             for key in keys:
+6671:                 reading = health.readings.get(key)
+6672:                 if reading is not None and reading.entity_id and not reading.ok:
+6673:                     return f"{reading.problem}:{key}"
+8838:     def _detect_immersion(self) -> None:
+8895:             del self._immersion_events[:-20]
+10105:     def _accumulate_energy(
+10201:         immersion_excess = 0.0
+10202:         if (
+10203:             self._immersion_active
+10204:             and sample.actual_power_kw is not None
+10205:             and sample.actual_power_kw > planned_total
+10206:         ):
+10207:             immersion_excess = min(
+10208:                 energy,
+10209:                 max(
+10210:                     0.0,
+10211:                     (sample.actual_power_kw - planned_total) * elapsed_hours,
+10212:                 ),
+10213:             )
+10214:         metered = energy - immersion_excess
