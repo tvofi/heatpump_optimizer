@@ -19027,6 +19027,61 @@ R.check(
     f"{_rs_d_view['model_restart']} {_rs_d_view['scores']}",
 )
 
+# R10-SCORES' forward carry, decided by R10-PARAMS-OWNER as the parameters'
+# owner: the grade's time constant reads every store the dynamics drain through
+# the house's loss (the zones, or the room, and the emitter slab), and its band
+# is the one the shipped presets derive, on a log scale -- the leakiest preset
+# grades 0 and the tightest 100, no other one clipped to either. The 20-100 h
+# band on the room mass clipped 78 of these 240 presets at the merge base.
+import itertools as _env_it  # noqa: E402
+
+from heatpump_optimizer import presets as _env_presets  # noqa: E402
+from heatpump_optimizer.coordinator import _effective_house_heat_loss  # noqa: E402
+from heatpump_optimizer.coordinator import envelope_score as _env_score  # noqa: E402
+
+
+def _env_params(**kw):
+    return ThermalParameters.from_config(_env_presets.derive(_env_presets.BuildingPreset(**kw)))
+
+
+def _env_grade(params):
+    return _env_score(params, 10**6, {})[0]
+
+
+_env_cells = []
+for _env_key in _env_it.product(
+        _env_presets.STRUCTURES, _env_presets.ERAS, _env_presets.FOUNDATIONS,
+        _env_presets.EMITTERS, (False, True)):
+    _env_p = _env_params(**dict(zip(
+        ("structure", "era", "foundation", "lower_emitter", "two_zone"), _env_key)))
+    _env_tau = (getattr(_env_p, "envelope_thermal_mass", _env_p.room_thermal_mass)
+                / _effective_house_heat_loss(_env_p, 1.0))
+    _env_cells.append((round(_env_tau, 6), _env_grade(_env_p)))
+_env_lo, _env_hi = min(_env_cells)[0], max(_env_cells)[0]
+# Clipped: a preset at 0 or 100 that is not itself the band's end. Two presets
+# tie at each end where derive maps them to one house (timber on a slab over a
+# crawl space derives as the crawl-space structure, #93).
+_env_clipped = [c for c in _env_cells
+                if (c[1] == 0.0 and c[0] != _env_lo) or (c[1] == 100.0 and c[0] != _env_hi)]
+R.check(
+    "the house grade's band is the presets' own: the leakiest grades 0, the "
+    "tightest 100, and no other preset is clipped to either",
+    not _env_clipped and min(g for _t, g in _env_cells) == 0.0
+    and max(g for _t, g in _env_cells) == 100.0,
+    f"{len(_env_cells)} presets, {len(_env_clipped)} clipped",
+)
+_env_floor = _env_params(lower_emitter="floor")
+_env_zoned = _env_params(two_zone=True)
+R.check(
+    "the house grade reads the mass the dynamics store: a floor-heated slab "
+    "moves it, and a two-zone house's unused room mass does not",
+    _env_grade(replace(_env_floor, slab_thermal_mass=2 * _env_floor.slab_thermal_mass))
+    > _env_grade(_env_floor)
+    and _env_grade(replace(_env_zoned, room_thermal_mass=5 * _env_zoned.room_thermal_mass))
+    == _env_grade(_env_zoned),
+    f"floor {_env_grade(_env_floor)}, two-zone {_env_grade(_env_zoned)}",
+)
+
 # --- persistence: the detectors' memory rides the thermal store ----------------------
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
