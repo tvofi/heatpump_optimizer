@@ -6488,8 +6488,7 @@
    "rca": [],
    "after": [
     "R10-CI-LAYOUT-P2",
-    "R10-FLOW-PULL",
-    "R10-FLOW-MQ-PROBE"
+    "R10-FLOW-PULL"
    ],
    "carry": [
     "Conditional: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, heads no longer absorb main and a record merge no longer stales them; close this group as not needed instead of building it.",
