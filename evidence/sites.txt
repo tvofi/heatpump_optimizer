@@ -1,0 +1,13 @@
+# carries-open on main
+origin/main:tools/audit/seat/roster_sync.py:27:`carries-open`, `rca-done`, and any wording a later roster introduces -- is left alone and
+origin/main:tools/audit/seat/roster_sync.py:95:#: `carries-open`: the group's code is done but it still owns open carries; a
+origin/main:tools/audit/seat/roster_sync.py:99:                    "carries-open")
+origin/main:tools/audit/seat/roster_sync.py:657:         "resume": {"stage": "carries-open", "branch": "handoff/r9-co"}},
+origin/main:tools/audit/seat/roster_sync.py:778:        check("a carries-open group with a merged PR is never overwritten",
+# derive span
+243:def chosen(hits: list[PR]) -> PR | None:
+263:def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
+299:def commit_verdict(prefix: str, commits: list[str],
+315:def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
+# op_set_stage
+153:def op_set_stage(roster, group, stage, at_sha):
