@@ -796,6 +796,25 @@ async function selfTest() {
   probes.push(['null control: the wrapped and exploded argv with no subject pass',
     kinds('subprocess.run(["gh",\n               "pr", "merge", str(n), "--squash"],\n              check=True)\nother("--subject", s)\n').every((k) => k === 0)
     && kinds('run([\n    "gh",\n    "pr",\n    "merge",\n    str(n),\n])\nother("--subject", s)\n').every((k) => k === 0)])
+  // An option value between `pr` and `merge` is one expression of any shape --
+  // a subscript, a call, a prefixed string, adjacent shell words -- and a gap
+  // may hold a comment or join two adjacent string literals.
+  const EXPRESSION_GAPS = [
+    ['a subscript value', (v) => `run(["gh", "pr", "-R", cfg["repo"], "${v}", n, "--subject", s])\n`],
+    ['an environment subscript value', (v) => `run(["gh", "pr", "--repo", os.environ["REPO"], "${v}", n, "-t", s])\n`],
+    ['an f-string value', (v) => `run(["gh", "pr", "-R", f"{owner}/{repo}", "${v}", n, "-t", s])\n`],
+    ['an indexed value', (v) => `run(["gh", "pr", "-R", REPOS[0], "${v}", n, "-t", s])\n`],
+    ['a call value', (v) => `run(["gh", "pr", "-R", join(o, r), "${v}", n, "-t", s])\n`],
+    ['a JS subscript value', (v) => `execFileSync('gh', ['pr', '-R', cfg['repo'], '${v}', n, '-t', s])\n`],
+    ['adjacent shell words as one value', (v) => `gh pr -R "$O"/"$R" ${v} 9 -t x\n`],
+    ['a Python comment between the words', (v) => `run(["gh", "pr",  # the ${v === 'merge' ? 'call' : 'view'}\n     "${v}", n, "--subject", s])\n`],
+    ['a JS block comment between the words', (v) => `execFileSync('gh', ['pr', /* c */ '${v}', n, '-t', s])\n`],
+    ['adjacent string literals across the words', (v) => `os.system("gh pr " "${v} 9 --subject x")\n`],
+  ]
+  for (const [what, src] of EXPRESSION_GAPS) {
+    probes.push([`gap: ${what} is still a merge call, refused at its line`, ((r) => r.length === 1 && r[0].includes('tools/x:1:'))(wr(src('merge')))])
+    probes.push([`null control: ${what} running pr view is not a merge call`, !wr(src('view')).length])
+  }
   probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
   // The walk itself, on a real repository: a recarried branch's own
   // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
