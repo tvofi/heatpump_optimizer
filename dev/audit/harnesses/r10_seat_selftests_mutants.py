@@ -263,6 +263,18 @@ MUTANTS = [
     ("cloud_relay-19", "cloud_relay.sh", 'if [ $rc = 2 ] || [ "$n" -ge "$max" ]; then', 'if true; then'),
     ("cloud_relay-20", "cloud_relay.sh", 'level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo', 'echo'),
     ("cloud_relay-21", "cloud_relay.sh", '"confirm failed: $(last_line "$out")"', '"confirm failed"'),
+    # R10-FLOW-ROSTER-FREEZE (a): the freeze dropped, each of its reads, the release, its level
+    ("cloud_relay-22", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze',
+     '    if false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
+    ("cloud_relay-23", "cloud_relay.sh", '    case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac\n', ''),
+    ("cloud_relay-24", "cloud_relay.sh", '"blocked $2") return 1;; esac', 'esac'),
+    ("cloud_relay-25", "cloud_relay.sh", "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { f = 1 }",
+     "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p { f = 1 }"),
+    ("cloud_relay-26", "cloud_relay.sh", '$1 == "detached" && at { f = 1 }', '$1 == "detached" { f = 1 }'),
+    ("cloud_relay-27", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why', '    if why'),
+    ("cloud_relay-28", "cloud_relay.sh",
+     'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
+     'continue'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
