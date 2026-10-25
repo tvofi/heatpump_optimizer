@@ -1828,7 +1828,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_01HtYTAbefmKwnintURpriMz); return handoff-body/r10-learner-eta",
-    "note": null
+    "note": null,
+    "pr": 2775
    },
    "brief": "G-ID-4. The study found no honest ETA while a learner is settling: count ETAs are 13-37 days early. Add a payload field per learner with progress, phase and what it is waiting for (colder or sunnier weather), and a day count only for counting gates. The Health copy renders it in R10-UX-HEALTH. Harness `dev/audit/rounds/round10/study-ident/eta_rolling.py` at 4f2d513c9.\n\nForward-carried (finding-propagation.md): (1) Validate against synthetic ground truth (the study's harness); a day count shown for a settling learner is the defect.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
@@ -3778,7 +3779,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
-    "note": null
+    "note": null,
+    "pr": 2745
    },
    "brief": "Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. (1) The month row's comfort-matched null: the flat-price null must separate comfort, COP timing and stored heat, not be driven to 0. (2) The summer_dhw_only start-bound limit: the start-of-horizon settlement is capped by the thermostat's space-heat cost, which leaves summer_dhw_only negative. Seams: optimizer.py and ledger.py. The acceptance is the carried comfort text from R10-SAV-BASELINE, which you re-measure at your merge base. Part of #201."
   },
@@ -4891,7 +4893,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "rca",
-    "note": null
+    "note": null,
+    "pr": 2712
    },
    "class": "production",
    "group": "R10-DEMAND-OVERBOOK",
@@ -5272,7 +5275,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_0137yKHgnrnwkvENYhwNibrQ); return handoff-body/r10-thermal-power-option"
+    "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_0137yKHgnrnwkvENYhwNibrQ); return handoff-body/r10-thermal-power-option",
+    "pr": 2753
    }
   },
   {
@@ -5328,7 +5332,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)"
+    "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
+    "pr": 2749
    }
   },
   {
@@ -6806,7 +6811,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "pr": 2780
    }
   },
   {
@@ -8704,8 +8710,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "branch": null
+    "stage": "done",
+    "branch": null,
+    "commit": "93931ab2b2750ed13a0dd8706513f65ffdb0caf2"
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The env-matrix no-remote arm went red in CI and held locally; reproduce it in CI's shape, name the cause, and fix the arm or record why it is not deterministic. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
