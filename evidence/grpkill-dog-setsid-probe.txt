@@ -1,0 +1,5 @@
+before kill: processes in pgid 18513: 1; bound sessions: 1
+sessions led by the supervisor's children: 18517
+18518
+session 18517: 0 live process(es) 3 s after the group KILL
+session 18518: 0 live process(es) 3 s after the group KILL

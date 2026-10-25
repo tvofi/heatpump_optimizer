@@ -1,4 +1,0 @@
-the push (git fetch) exited
-HELD after the push exited
-16860     1 /usr/lib/git-core/git gc --auto --quiet
-git version 2.43.0
