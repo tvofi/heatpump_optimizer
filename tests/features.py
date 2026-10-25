@@ -12372,7 +12372,7 @@ async def _price_fold(c):
     await c._async_learn_price_shape()
 
 
-async def _restore(c):
+async def _race_restore_snapshot(c):
     c._snapshot_ring.best_restore = lambda: {"learners": {"dhw_profile": {"cooling_rate": 2.5}}}
     await c.async_restore_learned_snapshot()
 
@@ -12390,7 +12390,7 @@ _RACES = {
         _dhw_load, lambda c: c.async_update_thermal_params({"dhw_cooling_rate": 2.5}),
         lambda c: (c._dhw_learner.cooling_rate, c._dhw_learner.cooling_samples), (2.5, 0)),
     "restore_snapshot's restored DHW profile": (
-        _dhw_load, _restore,
+        _dhw_load, _race_restore_snapshot,
         lambda c: c._dhw_learner.cooling_rate, 2.5),
     "the price shape's folded day (#2674 lead 4)": (
         _price_load, _price_fold,
