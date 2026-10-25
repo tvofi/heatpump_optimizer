@@ -1,0 +1,63 @@
+head 7ae5e30e0df57b522d527945d398ccc547e0389b
+prior head (parent 1) 1b6df0e492decf43f14575faaa991408eb81501d
+main parent (parent 2) 0825aee641c8afb1e67be2a6af9d07e9c9dec9fa
+merge-base(P,M) b89fea13e99f23cc75f01bb1604030cabea4ca66
+B lines: 721
+P lines: 777
+M lines: 730
+H lines: 786
+SAV-COMFORT claim lines at H: 41
+
+== diff base->main
+62,66c62,75
+< coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+---
+> coord_all_features  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_dhw  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_minimal  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
+> # coord fixture's data gains that one key and its 24 leaves (house counting at
+> # zero samples toward its gate, the other three off, no
+> # eta_days anywhere), and the model status sensor publishes the same subtree
+> # as its learner_progress attribute (the Health tab's source); nothing else
+> # moves. Measured with env_drift --all against origin/main ab00437c9 in one
+> # environment: exactly these five move, in those two keys, "present on one side
+> # only". The committed files were patched in those paths from a head
+> # recording; no other leaf was re-recorded.
+
+== diff prior->head
+103,107c103,116
+< coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+---
+> coord_all_features  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_dhw  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_minimal  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+> # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
+> # coord fixture's data gains that one key and its 24 leaves (house counting at
+> # zero samples toward its gate, the other three off, no
+> # eta_days anywhere), and the model status sensor publishes the same subtree
+> # as its learner_progress attribute (the Health tab's source); nothing else
+> # moves. Measured with env_drift --all against origin/main ab00437c9 in one
+> # environment: exactly these five move, in those two keys, "present on one side
+> # only". The committed files were patched in those paths from a head
+> # recording; no other leaf was re-recorded.
+
+== diff union-merge(P,B,M) -> head (only the five superseded R10-SCORES lines)
+103,107d102
+< coord_all_features  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_dhw  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_grid_fee  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_minimal  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
+< coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reasons and model_restart added
