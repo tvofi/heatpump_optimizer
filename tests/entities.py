@@ -38913,7 +38913,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_async_load_thermal_learning"): 1,
         ("coordinator.py", "_async_setup_peak_guard"): 1,
         ("coordinator.py", "async_restore_learned_snapshot"): 1,
-        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
     },
     "one record per failed call, an event and not a held condition (the "

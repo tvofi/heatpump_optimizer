@@ -12427,7 +12427,8 @@ asyncio.run(
 R.check(
     "the displace limit is mirrored where the publisher clamps against it",
     param_coord._ecl110_displace_max == 14.0
-    and params.ecl110_displace_max == 14.0,
+    # The snapshot published now: the one bound earlier stays whole (D7-s1-82).
+    and param_coord._thermal_params.ecl110_displace_max == 14.0,
 )
 
 asyncio.run(
@@ -21021,42 +21022,56 @@ _ce._house_heat_loss_samples = 1000
 _ce._thermal_params.room_thermal_mass = 10.0
 _ce._thermal_params.heat_loss_coefficient = 0.1
 _ce._thermal_params.house_heat_loss_scale = 1.0
+# The band is the presets' own (R10-SCORES, decided by R10-PARAMS-OWNER):
+# a house at the longest time constant any preset derives grades 100, one at
+# the shortest 0. The mass is the envelope's, slab included.
+from heatpump_optimizer import presets as _ce_presets  # noqa: E402
+
+_ce_low_h, _ce_high_h = _ce_presets.envelope_band_hours()
+_ce_mass = _ce._thermal_params.envelope_thermal_mass
+
+
+def _ce_grade(loss, scale=1.0):
+    _ce._thermal_params.heat_loss_coefficient = loss
+    _ce._thermal_params.house_heat_loss_scale = scale
+    return _ce._scores_view(_rs_advice(_ce))["envelope"]
+
+
 R.check(
-    "a 100-hour house grades 100 on the envelope",
-    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "a house at the longest preset time constant grades 100 on the envelope",
+    abs(_ce_grade(_ce_mass / _ce_high_h) - 100.0) < 1e-6,
+    f"band {_ce_low_h:.1f}-{_ce_high_h:.1f} h, envelope mass {_ce_mass}",
 )
-_ce._thermal_params.heat_loss_coefficient = 0.5
 R.check(
-    "a 20-hour house grades 0 — the learned loss scale keeps it honest",
-    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+    "a house at the shortest preset time constant grades 0 on the envelope",
+    abs(_ce_grade(_ce_mass / _ce_low_h)) < 1e-6,
 )
-_ce._thermal_params.heat_loss_coefficient = 0.05
 R.check(
-    "#2258: a house past 100 hours grades 100, not more",
-    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
-    "tau = 10 / 0.05 = 200 h, clipped to the top of the band",
+    "#2258: a house past the longest time constant grades 100, not more",
+    _ce_grade(_ce_mass / (2.0 * _ce_high_h)) == 100.0,
 )
-_ce._thermal_params.heat_loss_coefficient = 1.0
 R.check(
-    "#2258: a house under 20 hours grades 0, not less",
-    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
-    "tau = 10 / 1.0 = 10 h, clipped to the bottom of the band",
+    "#2258: a house under the shortest time constant grades 0, not less",
+    _ce_grade(_ce_mass / (0.5 * _ce_low_h)) == 0.0,
 )
-_ce._thermal_params.heat_loss_coefficient = 0.5
-_ce._thermal_params.house_heat_loss_scale = 0.0
+R.check(
+    "the band is a log scale: the geometric middle of the band grades 50",
+    abs(_ce_grade(_ce_mass / (_ce_low_h * _ce_high_h) ** 0.5) - 50.0) < 1e-6,
+)
+_ce_floored = _ce_grade(0.5, scale=0.1)
 R.check(
     "#2258: a configured scale under the learner's clamp is floored at 0.1, "
     "not read as a house with no loss",
-    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
-    "loss = 0.5 x 0.1 = 0.05 kW/K -> tau 200 h; with no floor the loss is 0",
+    _ce_grade(0.5, scale=0.0) == _ce_floored and _ce_floored is not None,
+    f"scale 0.0 grades {_ce_grade(0.5, scale=0.0)}, scale 0.1 {_ce_floored}",
 )
-_ce._thermal_params.heat_loss_coefficient = 0.25
-_ce._thermal_params.house_heat_loss_scale = 0.5
+_ce_measured = _ce_grade(0.25, scale=0.5)
 R.check(
     "the envelope grade follows the house as measured, not as configured",
-    abs(_ce._scores_view(_rs_advice(_ce))["envelope"] - 75.0) < 0.1,
-    "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
+    _ce_measured == _ce_grade(0.125) and _ce_measured != _ce_grade(0.25),
+    "0.25 kW/K configured at a learned scale of 0.5 grades as a 0.125 kW/K house",
 )
+_ce._thermal_params.house_heat_loss_scale = 1.0
 # The time constant needs both halves: a house with no thermal mass, or one
 # with no loss, has no envelope evidence -- None, never a grade of 0 and
 # never a division by zero.
@@ -21079,7 +21094,9 @@ R.check(
 _ce1 = _t2_coord()
 _ce1._house_heat_loss_samples = 1000
 _ce1._thermal_params.heat_loss_coefficient = 0.25
+# Massless is the envelope's mass: the room and the emitter slab.
 _ce1._thermal_params.room_thermal_mass = 0.0
+_ce1._thermal_params.slab_thermal_mass = 0.0
 _ce1_massless = _ce1._scores_view(_rs_advice(_ce1))
 _ce1._thermal_params.room_thermal_mass = 10.0
 _ce1._thermal_params.heat_loss_coefficient = 1e-6
@@ -21312,11 +21329,11 @@ R.check(
 )
 _ce._operation_score = None
 _ce._cop_baseline.clear()
-_ce._thermal_params.heat_loss_coefficient = 0.417
+_ce._thermal_params.heat_loss_coefficient = _ce_mass / (1.05 * _ce_low_h)
 _ce._thermal_params.house_heat_loss_scale = 1.0
 _leaky = _ce._scores_view(_rs_advice(_ce))
 R.check(
-    "a ~24 h house is not 5/100 overall while nothing has been driven",
+    "a house near the leakiest preset is not 5/100 overall while nothing has been driven",
     _leaky["overall"] is None
     and _leaky["envelope"] is not None
     and _leaky["envelope"] < 10.0,
@@ -21359,7 +21376,10 @@ _sc_tp.house_heat_loss_scale = 1.0
 _sc_health = _sc_two._learning_view()["house_heat_loss_effective"]
 _sc_one = _t2_coord()
 _sc_one._house_heat_loss_samples = 1000
-_sc_one._thermal_params.room_thermal_mass = 8.0
+# The same envelope mass (the zones' on the two-zone house), so the two
+# grades differ only by the loss basis this check is about.
+_sc_one._thermal_params.room_thermal_mass = (
+    _sc_tp.upper_floor_thermal_mass + _sc_tp.lower_floor_thermal_mass)
 _sc_one._thermal_params.heat_loss_coefficient = _sc_health
 _sc_one._thermal_params.house_heat_loss_scale = 1.0
 R.check(
