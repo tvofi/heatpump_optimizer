@@ -1447,9 +1447,9 @@
    "carry": [],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: none). Owning seam in this group: the config-notice fields. Shape: move them behind the owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-config-notices",
-    "commit": null,
+    "commit": "de794b53765388da42b2b5f22da455ccfe3fe912",
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-24T08:01Z (routine trig_01YbjZdtATQr9W6ewLZAnW2V); return handoff-body/r10-config-notices",
     "note": null
