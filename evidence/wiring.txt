@@ -1,0 +1,23 @@
+== selftest_wiring
+selftest_wiring: 97 self-testing, 97 wired, 0 unwired
+== structure
+STRUCTURE RATCHET PASSED
+== closure select vs merge-base c29f3089b
+.github/workflows/dependency-graph.yml
+.github/workflows/governance.yml
+dev/programme/delivery/2811.md
+tests/closures.json
+tools/audit/seat/INSTRUMENTS.md
+tools/pr/depgraph.py
+== workflow readers
+tests/entities.py:46:_PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
+tests/entities.py:47:_COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
+tests/entities.py:1662:_tests_workflow = Path(".github/workflows/tests.yml").read_text()
+tests/entities.py:1687:    f".github/workflows/tests.yml runs on {_ci_pythons}",
+tests/entities.py:18851:        (d / ".claude/workflows").mkdir(parents=True)
+tests/entities.py:18856:        _copy_policy_lint_tree(d / ".claude/workflows")
+tests/entities.py:18894:        (d / ".claude/workflows/policy_lint.mjs").write_text(
+tests/entities.py:18900:        # .claude/workflows/. A pre-flight that spells only the old path finds
+== closure keys holding dependency-graph.yml
+/closures/tests/entities.py
+/closures/tests/harness_headers.py

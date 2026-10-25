@@ -1,0 +1,12 @@
+head 5ac9dfc1e2b35dad3f42e3246fd45297e626b9fd
+origin/main bc52ad2af1d0cfe95896119b649fa56e14c74b5b merge-base c29f3089beff847adbdd0ae3dc739f4a071f5756
+182d8246680c4c911f4ce73f63aaf24358a7bdcb
+merge-tree exit=0
+== VERSION/manifest/notes touched:
+== host/home paths in diff:
+none
+== claim files touched:
+== roles diff vs main:
+== takeover items: requirements/actions version changes in diff:
++      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
++      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
