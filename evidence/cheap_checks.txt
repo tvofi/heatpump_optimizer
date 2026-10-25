@@ -1,5 +1,0 @@
-  ok   seam_cut_total 420 <= 420
-
-STRUCTURE RATCHET PASSED
-policy_lint_budgets rc=0
-RULES-SYNC ok: every generated rule is the generated form of its source

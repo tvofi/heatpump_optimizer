@@ -1,9 +1,9 @@
 ==========================================================================
-DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f377c9326c712156b9ceb0e638 from scratch
-  key       d3a23b61feec6c12d198edb07a274d1af2e8f260ede2ec7fe1d8fbd73b64000f
-  entry     <cache>
-    baseline_commit  0e678690eb2b
-    baseline_tree    26a7c796376f
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f from scratch
+  key       f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d.json
+    baseline_commit  7879d52f5fda
+    baseline_tree    4c8f738f4082
     cache_format     391552c099c1
     driver_sha256    7e5272a739a5
     environment      6c0b911d7e89
@@ -17,7 +17,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
 ==========================================================================
   captured 56 scenarios from branch
   captured 56 scenarios from baseline
-  cached   the 5c0ee109305fc4f377c9326c712156b9ceb0e638 baseline under key d3a23b61feec6c12 in <cache>
+  cached   the 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f baseline under key f70ffbec3aebe963 in ~/.cache/heatpump_optimizer/drift-baseline/f70ffbec3aebe963365a17f3407be8cb99f98d711dcad3ac6926c20fd49bbf9d.json
 
 ########## committed fixtures: staleness (#347) ##########
   56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
@@ -26,7 +26,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
   A float-bearing fixture can only be re-recorded honestly in the environment
   that records them all; a dev box would poison it. Nothing here is failed on.
   no committed fixture is stale
-  ok    away_setback is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
+  ok    away_setback is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
   CLAIMED building_preset: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 128.829 -> 126.452, savings % 49.36 -> 48.30; no plan key moves)
          building_preset.baseline_cost: 128.828573 vs 126.451692
          building_preset.deferred_energy_cost: 34.175769 vs 34.314685
@@ -47,13 +47,13 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
          confidence_margins.baseline_cost: 124.869053 vs 124.002411
          confidence_margins.deferred_energy_cost: 17.053289 vs 17.108462
          confidence_margins.predicted_savings: 58.270943 vs 57.349128
-  ok    config_flow is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    cool_rainy_summer is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    coord_all_features is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    coord_dhw is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    coord_grid_fee is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    coord_minimal is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
-  ok    coord_two_zone is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
+  ok    config_flow is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    cool_rainy_summer is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_all_features is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_dhw is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_grid_fee is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_minimal is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
+  ok    coord_two_zone is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
   CLAIMED cop_scale_learned: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 101.508 -> 100.654, savings % 54.34 -> 53.90; no plan key moves)
          cop_scale_learned.baseline_cost: 101.508492 vs 100.653603
          cop_scale_learned.deferred_energy_cost: 16.953519 vs 17.007185
@@ -106,7 +106,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
          horizon_48h.baseline_cost: 245.357715 vs 238.272091
          horizon_48h.deferred_energy_cost: 32.608414 vs 32.828811
          horizon_48h.predicted_savings: 124.827796 vs 117.521775
-  ok    horizon_6h is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
+  ok    horizon_6h is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
   CLAIMED legionella_due: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 121.826, savings % 50.72 -> 49.33; no plan key moves)
          legionella_due.baseline_cost: 124.869053 vs 121.825559
          legionella_due.deferred_energy_cost: 31.217875 vs 31.411387
@@ -119,7 +119,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
          legionella_off.baseline_cost: 124.869053 vs 122.021759
          legionella_off.deferred_energy_cost: 30.604817 vs 30.785861
          legionella_off.predicted_savings: 63.201995 vs 60.173656
-  ok    mild_windy_rain is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
+  ok    mild_windy_rain is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
   may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
   CLAIMED negative_prices: 3 leaves moved (R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -13.19 -> 16.17; no plan key moves)
          negative_prices.deferred_energy_cost: 1.813187 vs 1.10906
@@ -136,7 +136,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
          price_risk.predicted_savings: 69.715641 vs 66.274773
   may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
   may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
-  ok    start_above_band is byte-identical to 5c0ee109305fc4f377c9326c712156b9ceb0e638 here
+  ok    start_above_band is byte-identical to 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f here
   CLAIMED start_below_band: 4 leaves moved (R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 124.869 -> 114.473, savings % 25.07 -> 17.68; no plan key moves)
          start_below_band.baseline_cost: 124.869053 vs 114.473311
          start_below_band.deferred_energy_cost: -13.579716 vs -12.919725
@@ -206,6 +206,6 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 5c0ee109305fc4f37
          wood_two_tank_smart_write.deferred_energy_cost: 29.042659 vs 25.117177
          wood_two_tank_smart_write.predicted_savings: 84.112644 vs 61.735585
 
-NO UNCLAIMED DRIFT: 56 scenario(s) checked against 5c0ee109305fc4f377c9326c712156b9ceb0e638
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f
 NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
 rc=0

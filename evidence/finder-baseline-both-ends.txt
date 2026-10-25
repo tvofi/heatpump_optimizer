@@ -1,6 +1,4 @@
-== base 5c0ee109305fc4f377c9326c712156b9ceb0e638
-transient: start room 21.0 slab 22.0: booked baseline step 0 = 2.06 kW
-transient: start room 20.0 slab 21.0: booked baseline step 0 = 2.06 kW
+=== finder-main-copy base
 transient: start room 19.0 slab 20.0: booked baseline step 0 = 2.06 kW
 transient: start room 22.0 slab 23.5: booked baseline step 0 = 2.06 kW
 transient: spread of the booked step across start states = 0.00 kW
@@ -13,9 +11,7 @@ null: plan kWh 112.6 vs booked thermostat kWh 128.4; plan mean room 18.72 C vs m
 null: flat price, 2 days, re-plan every 1.00 h: baseline 154.1 actual 135.09 saved 19.01 (12.338180574038821 %)
 null: DEFECT
 arms run 4, defect 1: null
-== wt 36c985d335d7dd9545a1df974442541bb65412b9
-transient: start room 21.0 slab 22.0: booked baseline step 0 = 1.95 kW
-transient: start room 20.0 slab 21.0: booked baseline step 0 = 1.90 kW
+=== finder-main-copy wt
 transient: start room 19.0 slab 20.0: booked baseline step 0 = 1.88 kW
 transient: start room 22.0 slab 23.5: booked baseline step 0 = 1.95 kW
 transient: spread of the booked step across start states = 0.07 kW
