@@ -1,0 +1,2 @@
+HTTP/2.0 422 Unprocessable Entity
+{"message":"Invalid request.\n\nInvalid property /rules/0: data matches no possible input. See `documentation_url`.","documentation_url":"https://docs.github.com/rest/repos/rules#create-a-repository-ruleset","status":"422"}gh: Invalid request.

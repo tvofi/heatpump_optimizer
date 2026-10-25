@@ -1,0 +1,9 @@
+arm MERGE (two parents):
+ACCEPTED REF=b096b5a2 CLAIM_HEAD=00e580a9 prhead=00e580a9
+Squash commit -- not updating HEAD
+arm SQUASH (one parent):
+REFUSED: no second parent
+rc=1
+refs/heads/gh-readonly-queue/main/pr-2715-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -> number=2715
+refs/heads/gh-readonly-queue/probe/mq-r10/pr-12-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb -> number=12
+refs/heads/gh-readonly-queue/main/pr-12-short -> number=

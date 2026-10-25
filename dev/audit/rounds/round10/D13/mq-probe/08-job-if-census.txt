@@ -1,0 +1,19 @@
+ok    arch-score / arch-score: if mentions pull_request=False merge_group=False
+ok    budget-raise-gate / budget-raise-gate: if mentions pull_request=False merge_group=False
+ok    codeql / Analyze (actions): if mentions pull_request=False merge_group=False
+ok    codeql / Analyze (javascript-typescript): if mentions pull_request=False merge_group=False
+ok    codeql / Analyze (python): if mentions pull_request=False merge_group=False
+ok    governance / env-matrix: if mentions pull_request=False merge_group=False
+ok    governance / policy-docs: if mentions pull_request=False merge_group=False
+ok    governance / wave-script: if mentions pull_request=False merge_group=False
+ok    hassfest / hassfest: if mentions pull_request=False merge_group=False
+ok    pr-contract / pr-contract: if mentions pull_request=False merge_group=False
+ok    tests / arch-instrument: if mentions pull_request=True merge_group=True
+ok    tests / briefs: if mentions pull_request=True merge_group=True
+ok    tests / browser: if mentions pull_request=True merge_group=True
+ok    tests / closure-scope: if mentions pull_request=True merge_group=True
+ok    tests / closures: if mentions pull_request=False merge_group=False
+tests / fast (3.14): JOB NOT FOUND BY NAME (matrix/templated)
+ok    tests / mutation: if mentions pull_request=True merge_group=True
+ok    tests / typing: if mentions pull_request=True merge_group=True
+ok    validate / validate-hacs: if mentions pull_request=False merge_group=False

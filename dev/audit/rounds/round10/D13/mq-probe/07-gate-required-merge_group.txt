@@ -1,0 +1,5 @@
+merge_group reaches_cc=False class=pr n=18 missing_from_fixture=['arch-score / arch-score', 'tests / ci-ratchet', 'tests / coverage', 'tests / coverage-ratchet']
+merge_group reaches_cc=True class=pr-cc n=19 missing_from_fixture=['tests / ci-ratchet', 'tests / coverage', 'tests / coverage-ratchet']
+pull_request reaches_cc=False class=pr n=18 missing_from_fixture=['arch-score / arch-score', 'tests / ci-ratchet', 'tests / coverage', 'tests / coverage-ratchet']
+pull_request reaches_cc=True class=pr-cc n=19 missing_from_fixture=['tests / ci-ratchet', 'tests / coverage', 'tests / coverage-ratchet']
+derive(non-main queue)= ('code', '12', 'probe/mq-r10') workset= {'tests', 'codeql', 'validate', 'pr-contract', 'budget-raise-gate', 'hassfest', 'arch-score', 'governance'}
