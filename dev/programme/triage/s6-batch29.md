@@ -2,7 +2,7 @@
 
 Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch28.md` (P150-P157). This batch holds 8-10 entries and merges only through the train queue (tvofi, 2026-10-25). V79-V103 are 25 tvofi-accepted ideas (throughput T, first-pass yield F, quality Q); they are ruled across batches 29-31, ordered by round-10 closure time saved, and round-11 items are recorded in R10-ROUND-PLAYBOOK as batch 28 did. Facts read at origin/main dfcd8d9be and roster 63d8938eb.
 
-Most of the dispatch-side carries below (P159-P161, with P140, P144, P146 and P149 of batch 27) land on R10-FLOW-DESIGN-STAGES, the owner of `cloud_dispatch.py`, the dispatch templates and the absorbed pool instrument (its carry 10). This group's fixer cuts them as one release-and-pool sub-PR, separate from the design-stage work, and the orchestrator resizes the group M -> L once the `set-size` op (P139) exists.
+After the round-1 re-cut, this batch adds no carry to R10-FLOW-DESIGN-STAGES: P159-P161 are DEFER.
 
 Round-1 re-cut (verdict 6402371947, 2026-10-25): an unmeasured benefit is DEFER, never ACCEPT. P158 and P163 are ACCEPT as trials, each with a measurement and a removal criterion. P164 is ACCEPT measure-first. P159-P162 and P165-P167 are DEFER.
 
