@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:learner_progress_view.colder CMP_BOUND 959b8308",
+  "killed_by": "tests/features.py",
+  "old": "        return \"colder\" if zone - outdoor < HOUSE_LOSS_MIN_DELTA else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e97f5749b441b282e43bd99dbcbb762e9d10a369: CMP_BOUND (`return \"colder\" if zone - outdoor <= HOUSE_LOSS_MIN_DELTA else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
