@@ -1,0 +1,25 @@
+6c428b63d R10-PARAMS-OWNER resume not-started -> in-progress 2817 None
+d99761d3e R10-ARCH-SHAPES resume not-started -> in-progress 2819 None
+2d45acb7a R10-ORCH-ROSTER-SCHEMA carry 16 -> 17 ['From #2818 r1 (verdict 6399767889): `roster_lib.is_open` (`roster_lib.']
+aa679f28b R10-DEMAND-OVERBOOK resume in-progress -> done 2712 da12aa37dee15b9e9567bd6c848493436f2592dd
+29b0b8ff2 R10-ORCH-DISPATCH-REG after - ['R10-ORCH-LEDGER'] + []
+3b5942aac R10-CLOSEOUT-CLEANUP after - ['R10-ARCH-DOCS', 'R10-ROUND-PLAYBOOK'] + []
+d87475fe1 R10-UPDATE-PR-SIGNALS resume in-progress -> carries-open None fd9914851
+558125209 R10-ROUND-PLAYBOOK after - ['R10-ARCH-DOCS'] + []
+0378e16f9 R10-HEAT-METER carry 10 -> 11 ['Approved design (design-review.md): design/R10-HEAT-METER 21f4fbfe9723']
+42008e799 R10-COP-GATE carry 7 -> 8 ["From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9"]
+33c505efc R10-UX-HEALTH carry 14 -> 15 ["From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9"]
+1ac59f510 R10-RATIO-ANCHOR carry 3 -> 4 ["From R10-HEAT-METER's design (orchestrator ruling under mandate 632923"]
+121417d60 R10-UPDATE-PR-SIGNALS resume carries-open -> in-progress None fd9914851
+5f420bfa5 NEW GROUP R10-LEGIONELLA-COMPLETION queued
+7ea11e81c R10-FLOW-DESIGN-STAGES carry 11 -> 12 ['Reviewer pool arm: `cloud_dispatch.py --role reviewer --head SHA --pr ']
+f0b011d33 R10-TRAIN-OVERLAP-GRADE carry 7 -> 8 ['Spool edits through the instrument: `merge_train.py add --front <pr>` ']
+fac3e1de0 R10-COP-GATE carry 8 -> 9 ['D15 live-bundle lead L1 (owner install, 2026-10-25; unverified, from R']
+96aa9bc6f R10-COP-GATE carry 9 -> 10 ['D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the']
+006990549 R10-BUFFER-STORE carry 2 -> 3 ['D15 live-bundle lead L3 (owner install; unverified): `accuracy.power_r']
+50742450e R10-BUFFER-STORE carry 3 -> 4 ['D15 live-bundle lead L4 (owner install; unverified, provisional timing']
+22fe609e0 R10-SAV-ACTUATION carry 1 -> 2 ['D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verif']
+02ee07bea R10-HEAT-METER carry 11 -> 12 ['D15 live-bundle lead L6 (owner install; unverified): at finalisation t']
+78e5a4d84 R10-DIAG-REDACT carry 2 -> 3 ['D15 live-bundle lead L7 (owner install; unverified): `data.plan.plan_a']
+460d9f19b R10-HEAT-METER carry 12 -> 13 ['D15 live-bundle lead L9 (owner install; unverified): 5 of the 8 weekly']
+9e5f5cf1c R10-ARCH-DOCS after - [] + ['R10-LEGIONELLA-COMPLETION']

@@ -1,0 +1,5 @@
+             no segment of this names a program this check knows
+  unverified git log --no-merges --reverse --format='%h %s' 9442cb4ea..9e5f5cf1c -- dev/programme/rosters/
+             `git log` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+
+FIGURES: 0 resolved, 26 not verified, 0 refused
