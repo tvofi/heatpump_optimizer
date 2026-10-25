@@ -23,7 +23,7 @@ rule (DESIGN-P2 4.1, "FAIL 'still being judged; their gate decides'"). Its run o
 designed one, and the defer rule worked as written. The two mechanisms share one symptom
 and one misreading, section 2.
 
-**Which exit path fired: the log cannot say, and that gap is part of the finding.** The
+**Which exit path fired: at `e97f5749b` the log could not say, and that gap was part of the finding.** The
 step runs `codescan_wait.py ... > /tmp/pr-alerts.txt`. Under `set -euo pipefail`, exit 1
 ends the step before the `printf` that would echo the file, so the `FAIL closed:` line
 reaches no log. In both logs the only output between the command and `##[error]Process
@@ -45,6 +45,9 @@ completed with exit code 1.` is the env block (job 120879819973: 13:04:07.78Z to
   rc 1, in 3 s. **Null control**: the same command for #2704's edit run 40096299978, where
   every codeql job of the code run had completed, gave rc 0 with an empty list.
   `--self-test` printed `13 checks, 0 failed`.
+
+Since R10-CI-LAYOUT-P2 carry 25 (`00a9ab4f2`) the `FAIL closed:` line goes to stderr, so a
+log now names its exit path: #2756's own `718fcadb` red logs `... after 600 s` (section 5).
 
 ## 2. The cause, named
 
@@ -183,7 +186,7 @@ codeql had not finished when `pr-contract` started (`leg_unfinished True`, `--ro
 is 14 %. At 10 min each, that is **about 95 min a day**, for as long as heads keep arriving
 in the push-then-edit pattern.
 
-### Candidate countermeasures (not built here: carried, section 5)
+### Candidate countermeasures (as costed at `e97f5749b`; what has since landed is section 5)
 
 | id | change | standing cost | passes? |
 |---|---|---|---|
@@ -194,31 +197,79 @@ in the push-then-edit pattern.
 | M4 | self-test cases: `prelude.py` (an edit run below a busy code run waits) and `codescan_wait.py` (case 6 restated as "an edit run whose code run is still analysing does not FAIL, because its prelude waited") | under 1 s in `governance` | passes; the detector owed by trigger 2 |
 | M5 | the tick ignores a red `gate` whose log says `still being judged`, and a red edit-run `pr-contract` while a code run at the head is still running | one log or jobs read per red PR head per tick | owner's or orchestrator's call; not costed here |
 
-## 5. Countermeasure: carried, not built
+## 5. Countermeasure: what landed, and what is carried
 
-M1, M3 and M4 are the countermeasure for state (c). They change what the ordering keys on
-and add the test the design lacked. They are carried to the group that owns the umbrella's
-job graph, following the brief's routing (triage P62, `dev/programme/triage/s6-batch4.md#P62`):
+Re-read for #2756's second review round, against `origin/main` `5c0ee1093` at 2026-10-25 00:37Z.
+The table in section 4 was written at `e97f5749b`; three of its rows have since been built,
+on two branches, and none of them by this record.
 
-Carry: R10-CI-LAYOUT-P2
+- **M2 and M3 are on `main`**, landed by R10-CI-LAYOUT-P2 carry 25 (`00a9ab4f2`, with its
+  failing-test commit `cd376eb70`). `codescan_wait.py` step 1 now polls under the one
+  `WAIT_MAX_S` (600 s) that also bounds step 4, and `main()` prints `FAIL closed:` on stderr,
+  so the job log shows it while stdout stays the alert file. `--self-test` cases 14 to 17 pin
+  both: it prints `17 checks, 0 failed`; with `file=sys.stderr` dropped from the `Fail`
+  print in `main()` it prints `17 checks, 1 failed` (case 16). Section 1's instrument gap is
+  therefore closed, and the roster's line that M3 "stays owed here" (main's roster,
+  R10-RCA-CODESCAN-WAIT carry 0) describes the tree before carry 25.
+- **The section 4 window, re-read.** The same harness command, window unchanged, run
+  2026-10-25 at 00:37Z, prints 202 runs, `INVERTED 27, ORDERED 67`, `RED edit runs: 16
+  INVERTED, 0 ORDERED; 28 job attempts, 16 heads, 14 PRs` and `RERUN ... 12 (FRESH 2,
+  CARRIED 10)`. The INVERTED/ORDERED split and the null (0 ORDERED red) are unchanged; the
+  red count grew because heads still running at the first read (`49400254`, `dba7f86b`,
+  `ae77c415`, `cd7dc09a`) have since finished red, all with `leg_unfinished True`. The
+  28.1 min median's rule: over the `--rows` lines with `red_attempts` above 0 and a
+  `last_codeql_leg_done`, the minutes from `edit_pr_contract_start` to it; at the first read
+  that was the 13 red heads less `cd7dc09a`, whose leg had not finished, giving 12 heads,
+  0.4 to 29.7 min, median 28.1. Re-read it is 16 heads, 0.4 to 43.8 min, median 26.2, and
+  14 of the 16 are above 600 s (`16d3ee72` 0.4 min and `3580acc0` 6.1 min are not).
+- **M2 alone fails, as its row predicts.** #2756's own head `718fcadb` is an inverted pair:
+  edit run 40123245316 below code run 40123245376, both created 18:59:50Z. The edit run's
+  `pr-contract / pr-contract` (job 120959896354) started 19:03:25Z and logged, at 19:12:59Z,
+  `FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s`;
+  the code run's `codeql / Analyze (python)` completed at 19:26:29Z, 23.1 min after that job
+  started. `gate` 120962237384 then failed on the edit run. Read from
+  `commits/<sha>/check-runs`, `actions/runs/<id>/jobs?filter=all` and the job's log.
+- **M1 and M4's `prelude.py` case are on R10-GATE-DEFER's branch**, `handoff/r10-gate-defer`
+  `5150d1723`, not on `main`: `prelude.wait_sources` waits on every run `waits_on` returns,
+  an earlier run or a code run of any id. Its `--self-test` prints `29 checks, 0 failed`;
+  with `waits_on` reduced to main's id rule (`run["id"] < run_id`) it prints `29 checks,
+  1 failed`, the case "M1: waits for a LATER code run". The ordered-pair case ("waits for an
+  earlier run, not a later non-code or held one") passes under that mutant, the null control.
+- **M4's `codescan_wait.py` half is dropped.** Case 6 ("no finished codeql unit at this head
+  for an edit run FAILs") is right as written once M1 is in: an edit run reaches step 1 only
+  after its code runs can add no source, so a missing unit there is a real refusal, and
+  since carry 25 it is reached only after the 600 s bound.
+- **M5** is R10-GATE-DEFER's brief: it removes the red a deferring `gate` publishes, the #2704
+  shape. That shape recurred at #2756's head `a569538e`: `gate` 120973683700 on code run
+  40124637935, `FAIL run(s) [40124909955] at this head are still being judged`.
 
-`R10-CI-LAYOUT-P2` is on main's roster, `dev/programme/rosters/wave-r10-groups.json` at
-`e97f5749b`, so no roster SHA is needed. The brief's triage citation does not resolve
-here. `dev/programme/triage/s6-batch4.md` is not on `origin/main`. The one fetched ref that
-carries it, `wip-sync/ext-wt-8aef46d4` `3545ece63`, lists P54 to P59 and no P62. This
-record states that, and does not invent P62's wording.
+What is still owed is the precondition and the demonstrations, which belong in
+R10-GATE-DEFER's brief (`roster_edit.py append-carry R10-GATE-DEFER`, the orchestrator's
+write). The carry text:
 
-The carried fix must demonstrate the following, as `defect-root-cause.md` requires for a
-check-shaped countermeasure:
+> From R10-RCA-CODESCAN-WAIT (#2756, `dev/audit/rca/R10-RCA-CODESCAN-WAIT.md` section 5).
+> Precondition: `codescan_wait.py`'s step-1 poll (M2, on main since `00a9ab4f2`) is legitimate
+> only beside M1 (`prelude.waits_on` waiting on a code run of any id), because its 600 s
+> `WAIT_MAX_S` is below the time from an inverted edit run's `pr-contract` start to its code
+> run's last codeql leg on 14 of the 16 red heads of the record's window (median 26.2 min,
+> re-read 2026-10-25; 23.1 min at #2756's `718fcadb`, which failed at the bound). Do not raise the bound instead of landing M1.
+> Control: the prelude self-test's M1 case fails with `waits_on` reduced to `run["id"] <
+> run_id` while the ordered-pair case still passes. After the merge,
+> `env -u GH_TOKEN python3 -I dev/audit/harnesses/r10_codescan_wait_race.py --since <merge
+> time> --until <at least 24 h later>` prints `RED edit runs: 0 INVERTED, 0 ORDERED` with
+> `INVERTED` above 0 (a window with no inverted pair demonstrates nothing). Remeasure: the
+> same command over the 24 h before the merge is the null and must print a red INVERTED count
+> above 0; quote both with their windows, not this record's numbers. The harness pages
+> `jobs?filter=all` at 100, and on 2026-10-25 page 2 of a 7-attempt run (40126133450)
+> answered HTTP 502 where `per_page=30` answered 200: page smaller or retry a 5xx first.
 
-- M4's new case fails on `e97f5749b`'s `prelude.py` and `codescan_wait.py` (the inverted
-  pair goes red) and passes once M1 is in.
-- A null control: an ordered pair still waits exactly as today.
-- The harness above, run before and after over a window that straddles the change, prints
-  `RED ... 0 INVERTED` after it.
-- M5 is the orchestrator's: `orchestrator_tick.py` is a seat instrument, not a CI unit. It is
-  recorded here so the carried group can decide whether the umbrella removes its cause
-  (M1 removes the codescan red, but not the designed defer red of the #2704 shape).
+Carry: R10-GATE-DEFER
+
+`R10-GATE-DEFER` is a live group (`resume.stage: in-progress`) on main's roster,
+`dev/programme/rosters/wave-r10-groups.json` at `5c0ee1093`. R10-CI-LAYOUT-P2, the destination
+this record first named, is `done` there and is no destination. The brief's triage citation
+(`dev/programme/triage/s6-batch4.md#P62`) does not resolve on `origin/main`; main's roster
+carries P62's text as R10-CI-LAYOUT-P2's `carry[27]`, the pre-record prescription (M2).
 
 ## 6. Not covered
 
