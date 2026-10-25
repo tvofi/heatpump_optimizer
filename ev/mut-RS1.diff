@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index a27427c00..3b060ec3b 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -104,7 +104,7 @@ def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> d
+         "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
+         "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
+         "monthly_settled_cost_delta": round(per_month(
+-            spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
++            spend - sim.deferred_energy_cost + live.deferred_energy_cost, horizon_hours), 2),
+     }
+ 
+ 

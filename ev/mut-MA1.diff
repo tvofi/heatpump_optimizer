@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index a13bad3fa..2ee7d557d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -8790,7 +8790,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "feasible": breach <= 0.05,
+             "comfort_shortfall_c": round(breach, 2),
+             "worst_margin_kw": round(candidate_kw - peak, 2),
+-            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
++            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+         }
+     def _outage_recovery_active(self, now: datetime) -> bool:
+         return (

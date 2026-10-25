@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index 6ecf50106..79b44b6d4 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -2808,7 +2808,7 @@ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> floa
+     that is off by a whole month (D8-01, #1226).
+     """
+     rate = _as_float(data.get("recent_kwh_price"))
+-    if rate is None or rate <= 0.0:
++    if rate is None:
+         rate = _as_float(data.get("current_price"))
+     if rate is None or rate <= 0.0:
+         rate = EntryConfig.from_mapping(config).contract_fixed_price
