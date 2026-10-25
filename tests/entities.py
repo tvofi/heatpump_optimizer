@@ -27867,7 +27867,8 @@ _MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
                          Path("tools/audit/seat/merge_train.py").read_text())
 
 
-def _train_hold_status(code: int, body: str, pitch_rc: int = 0) -> "tuple[str, bool]":
+def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 1,
+                       approver: str = "", calls: "list | None" = None) -> "tuple[str, bool]":
     """The automerge step's `status=` and whether it warned "unreadable" over a
     stubbed API whose train-hold read answers (code, body); every other read is
     the minimum the step needs.
@@ -27880,12 +27881,16 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0) -> "tuple[str, b
     beat with no train running logs a warning.
 
     `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
-    default, so the hold's own arms read as before), 4 the pitch's wait."""
+    default, so the hold's own arms read as before), 4 the pitch's wait.
+    `guard_rc` is the first guard's exit (the refusing default; 0 passes it,
+    and the green wait after it still refuses), `approver` the approver App's
+    token, and `calls`, when given, receives every curl argv the step ran."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         (t / "tools" / "audit" / "seat").mkdir(parents=True)
         (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
-            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else 1)\n")
+            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else 1 "
+            f"if '--require-green' in sys.argv else {guard_rc})\n")
         answers = t / "answers.json"
         answers.write_text(json.dumps({
             "hold": {"code": code, "body": body},
@@ -27899,6 +27904,7 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0) -> "tuple[str, b
             "import json, sys\n"
             f"ans = json.load(open({str(answers)!r}))\n"
             "a = sys.argv[1:]\n"
+            f"open({str(t / 'calls.log')!r}, 'a').write(json.dumps(a) + '\\n')\n"
             "url = a[-1]\n"
             "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
             "       else 'reviews' if '/reviews' in url\n"
@@ -27918,8 +27924,10 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0) -> "tuple[str, b
         p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
                            env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
                                 "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42",
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": approver, "NUM": "42",
                                 "EVENT": "push"})
+        if calls is not None and (t / "calls.log").exists():
+            calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
         warned = "unreadable" in (p.stdout + p.stderr)
         return (found[-1] if found else ""), warned
@@ -27959,24 +27967,40 @@ R.check(
 )
 # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
 # stub: record_row.py's `--pitch-check` answering 4 skips the merge with
-# status skip-pitch before the guard; 0 proceeds to it; a crashed check is no
-# pitch. A live train answers first, so the hold arm is unchanged by it. The
-# decision itself (a young record merge waits, a stale backlog proceeds) is
-# record_row.py's `pitch_wait`, driven both ways by its --self-test.
+# status skip-pitch AFTER the guard and the approver App's review, so the
+# train's --bot-prs sweep -- which merges on record_row.py's guard alone and
+# posts no review -- finds a head main's ruleset accepts (directive [7]:
+# record pull requests ride trains rather than race them). 0 proceeds to the
+# green wait; a crashed check is no pitch; a refused head never waits; a live
+# train answers first, so the hold arm is unchanged by it. The decision itself
+# (a young record merge waits, a stale backlog proceeds) is record_row.py's
+# `pitch_wait`, driven both ways by its --self-test.
+_PITCH_CALLS: list = []
+_PITCH_ST = _train_hold_status(422, "{}", pitch_rc=4, guard_rc=0, approver="ap0",
+                               calls=_PITCH_CALLS)
+_PITCH_REVIEWED = any("POST" in c and "Authorization: Bearer ap0" in c
+                      and c[-1].endswith("/pulls/42/reviews") for c in _PITCH_CALLS)
+_PITCH_MERGED = any(c[-1].endswith("/merge") for c in _PITCH_CALLS)
 R.check(
     "nightly.yml's automerge waits the pitch when record_row.py says so, after "
-    "the train hold and before the guard (executed)",
-    _train_hold_status(422, "{}", pitch_rc=4) == ("skip-pitch", False)
-    and _train_hold_status(200, _hold_when(-60), pitch_rc=4) == ("skip-train-hold", False),
-    f"pitch 4 -> {_train_hold_status(422, '{}', pitch_rc=4)!r}; a live hold "
-    f"with pitch 4 -> {_train_hold_status(200, _hold_when(-60), pitch_rc=4)!r}",
+    "the train hold, the guard and the approver App's review, before the merge "
+    "(executed)",
+    _PITCH_ST == ("skip-pitch", False) and _PITCH_REVIEWED and not _PITCH_MERGED
+    and _train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)
+    == ("skip-train-hold", False),
+    f"pitch 4 -> {_PITCH_ST!r}, reviewed={_PITCH_REVIEWED}, merged={_PITCH_MERGED}; "
+    f"a live hold with pitch 4 -> "
+    f"{_train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)!r}",
 )
 R.check(
-    "and no pitch, or a pitch check that crashed, reaches the guard (null controls)",
-    _train_hold_status(422, "{}", pitch_rc=0) == ("refused", False)
-    and _train_hold_status(422, "{}", pitch_rc=1) == ("refused", False),
-    "a pitch that never says wait must leave the pre-fix path: the guard runs "
-    "and, stubbed to refuse, reports `refused`",
+    "and no pitch, or a pitch check that crashed, reaches the green wait; a "
+    "head the guard refuses never waits the pitch (null controls)",
+    _train_hold_status(422, "{}", pitch_rc=0, guard_rc=0) == ("refused", False)
+    and _train_hold_status(422, "{}", pitch_rc=1, guard_rc=0) == ("refused", False)
+    and _train_hold_status(422, "{}", pitch_rc=4, guard_rc=1) == ("refused", False),
+    "a pitch that never says wait must leave the pre-fix path: the green "
+    "wait runs and, stubbed to refuse, reports `refused`; and the guard "
+    "answers before the pitch",
 )
 R.check(
     "the beat's hold ref and the train's hold ref name the same branch",

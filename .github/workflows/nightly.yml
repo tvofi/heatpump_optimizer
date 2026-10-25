@@ -997,26 +997,6 @@ jobs:
           elif [ "$hold_code" != 404 ] && [ "$hold_code" != 422 ]; then
             echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
           fi
-          # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6). A record merge
-          # moves main under every open head, so a push beat leaves the pull
-          # request for the train's --bot-prs sweep while the last record
-          # merge on main is younger than record_row.py's PITCH_S -- unless
-          # the oldest owed merge is two pitches or BATCH_AGE_COMMITS commits
-          # old, the bounded staleness that keeps one row per merge true. The
-          # nightly and a dispatch never pitch. Behind the train hold, so a
-          # live train still answers first; a pitch check that fails is no
-          # pitch, the pre-fix behaviour.
-          if python3 -I tools/audit/seat/record_row.py --pitch-check \
-               --merges-file "$RUNNER_TEMP/merges.json" --event "$EVENT"; then
-            :
-          else
-            pitch=$?
-            if [ "$pitch" = 4 ]; then
-              echo "::notice::#$NUM waits the pitch for the train's sweep or a later beat"
-              say skip-pitch; exit 0
-            fi
-            echo "::warning::the pitch check exited $pitch; no pitch applied"
-          fi
           HEAD=$(pr_field 'd["head"]["sha"]') || {
             echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
           if ! guard; then
@@ -1035,6 +1015,29 @@ jobs:
                 -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
                 echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
             fi
+          fi
+          # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6). A record merge
+          # moves main under every open head, so a push beat leaves the pull
+          # request for the train's --bot-prs sweep while the last record
+          # merge on main is younger than record_row.py's PITCH_S -- unless
+          # the oldest owed merge is two pitches or BATCH_AGE_COMMITS commits
+          # old, the bounded staleness that keeps one row per merge true. The
+          # nightly and a dispatch never pitch. Behind the train hold, so a
+          # live train still answers first; after the guard and the approval,
+          # so a pitched head is one the guard passed and the approver App
+          # reviewed: the sweep merges it on the guard alone and posts no
+          # review, and main's ruleset wants one. A pitch check that fails is
+          # no pitch, the pre-fix behaviour.
+          if python3 -I tools/audit/seat/record_row.py --pitch-check \
+               --merges-file "$RUNNER_TEMP/merges.json" --event "$EVENT"; then
+            :
+          else
+            pitch=$?
+            if [ "$pitch" = 4 ]; then
+              echo "::notice::#$NUM waits the pitch for the train's sweep or a later beat"
+              say skip-pitch; exit 0
+            fi
+            echo "::warning::the pitch check exited $pitch; no pitch applied"
           fi
           # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
           # runs under `bash -e` (GitHub's `run:` default), so a bare call
