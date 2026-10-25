@@ -1,4 +1,19 @@
-461550d9a set-after R10-FLOW-ROSTER-FREEZE changed_fields ['after'] other_groups_changed [] append_shape True replay_bytes_equal True dump_roundtrip True
-c6097875c append-carry R10-FLOW-ROSTER-FREEZE changed_fields ['carry'] other_groups_changed [] append_shape True replay_bytes_equal True dump_roundtrip True
-e78d7dedd append-carry R10-ORCH-BEATD changed_fields ['carry'] other_groups_changed [] append_shape True replay_bytes_equal True dump_roundtrip True
-f57b6d52e append-carry R10-MERGE-SUBJECT-CASEARM changed_fields ['carry'] other_groups_changed [] append_shape True replay_bytes_equal True dump_roundtrip True
+replay 2c5b1b612 byte-identical: True
+cycle at head: None
+BEATD after: ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD', 'R10-ORCH-REVIEW-PACKET', 'R10-FLOW-ROSTER-FREEZE']
+FREEZE after: ['R10-ROSTER-OPS', 'R10-FLOW-RELAY-HOLD', 'R10-UPDATE-PR-SIGNALS']
+groups 189 189 removed set() new set()
+changed ['R10-FLOW-ROSTER-FREEZE', 'R10-ORCH-BEATD', 'R10-MERGE-SUBJECT-CASEARM']
+main {'done': 115, 'in-progress': 12, 'not-started': 50, 'queued': 6, 'absorbed': 1, 'carries-open': 5}
+head {'done': 115, 'in-progress': 12, 'not-started': 50, 'queued': 6, 'absorbed': 1, 'carries-open': 5}
+R10-FLOW-ROSTER-FREEZE fields changed: ['after', 'carry'] carry 7 -> 8 prefix True
+  stage not-started
+R10-ORCH-BEATD fields changed: ['after', 'carry'] carry 22 -> 23 prefix True
+  stage not-started
+R10-MERGE-SUBJECT-CASEARM fields changed: ['carry'] carry 0 -> 1 prefix True
+  stage not-started
+BEATD new carry: From R10-FLOW-ROSTER-FREEZE arm (a) (carry 5, tvofi 2026-10-24 card 1): this group merges after ROSTER-FREEZE, so its contract edit owns the standing roster seat's retirement in dev/governance/roles/standing-roster.md. A beat job runs tools/audit/seat/roster_queue.py run over the orchestrator's roster queue file (roster_edit.py ops with --lint-cwd at a fresh origin/main and --push), writing one 'roster: <op> <group> pushed <sha>' or 'refused <reason>' line per op into the digest; a refusal is never retried past the lint gate. Binding (owner, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. The seat stays until the job lands a seeded no-op-safe op on a scratch roster branch and refuses a seeded lint failure, with the seat running beside it for one cycle.
+CASEARM n_carry 1 469
+FREEZE new carry: From #2792 review (verdict comment 6394610388): mutant R1 in review_freeze (`|| { echo UNREAD; return 0; }` -> `|| { return 1; }`) survives with the self-test green; the b2 opener adds a self-test arm that kills it.
+FREEZE carries mentioning later: [5, 6]
+Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, neve

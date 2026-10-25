@@ -1,1 +1,5 @@
-Check runs on db9badf4cca06967539de272c8f038460671ce53 (PR check-runs API, 55 runs, two workflow runs 40177308814 and 40177309192): every completed run concluded success or skipped; none failure, cancelled or timed_out. pr-contract / pr-contract success (08:50:52Z and 08:52:56Z); gate success (08:53:18Z, both runs); tests / briefs success; governance / delivery-status success; tests / mutation success; budget-raise-gate success; arch-score success.
+check-runs API on 19674e8034f6901775800446b5cefdc212461836 (pull_request_read get_check_runs), read 2026-10-25 after 09:14Z: 46 runs.
+conclusion failure/cancelled/timed_out: 0
+in_progress: governance / instrument-self-tests; prelude (runs 40179431441, 40179414582)
+all others: success or skipped (fast (3.14), closures, closure-scope, briefs, wave-script, policy-docs, delivery-status, nightly-status, mutation, budget-raise-gate, arch-score, env-matrix, hassfest, validate-hacs, codeql ...)
+no check-run named pr-contract appears in the listing at read time
