@@ -1,0 +1,6 @@
+Architecture score: dS +16.8185 IMPROVES
+  hub_solve_writes 16 -> 1  +16.8049
+  coord_footprint 2446 -> 2423  +0.0136
+  reflective_writes 15 -> 11  (gate only)
+  computed_attr_access 32 -> 28  (gate only)
+rc=0

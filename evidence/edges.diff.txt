@@ -1,0 +1,30 @@
+23c23
+< cut_dhw attr _thermal_params read-in dhw owned-by []
+---
+> cut_dhw attr _thermal_params read-in dhw owned-by ['core']
+30a31
+> cut_dhw call dhw -> coordinator._publish_params [core]
+71c72
+< cut_fetch attr _thermal_params read-in fetch owned-by []
+---
+> cut_fetch attr _thermal_params read-in fetch owned-by ['core']
+152a154
+> cut_grid attr _price_model_store owned-by grid read-from learning
+168c170
+< cut_grid attr _thermal_params read-in grid owned-by []
+---
+> cut_grid attr _thermal_params read-in grid owned-by ['core']
+276a279
+> cut_learning attr _price_model_store read-in learning owned-by ['grid']
+288a292
+> cut_learning attr _thermal_learning_store owned-by learning read-from core
+290c294
+< cut_learning attr _thermal_params read-in learning owned-by []
+---
+> cut_learning attr _thermal_params read-in learning owned-by ['core']
+325a330
+> cut_learning call learning -> coordinator._publish_params [core]
+403c408
+< cut_views attr _thermal_params read-in views owned-by []
+---
+> cut_views attr _thermal_params read-in views owned-by ['core']

@@ -1,0 +1,40 @@
+[36;1m    if hasattr(mutation_table, "merge_pin_shards"):[0m
+[36;1m        merged = mutation_table.merge_pin_shards([0m
+[36;1m            os.environ["SHARDS_DIR"], pins)[0m
+[36;1m        print(f"shards merged: {merged}")[0m
+[36;1m    else:[0m
+[36;1m        # A base older than the shards: whole on shard 1.[0m
+[36;1m        pins = os.environ["SHARDS_DIR"] + "/mutation-pins-1"[0m
+[36;1m    status = mutation_table.apply_pins(pins, head)[0m
+[36;1mprint(f"AUTOFIX: {status}")[0m
+[36;1mwith open(os.environ["GITHUB_OUTPUT"], "a") as fh:[0m
+[36;1m    fh.write(f"status={status}\n")[0m
+[36;1mPY[0m
+shell: /usr/bin/bash -e {0}
+env:
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+allowed=True
+shards merged: measured
+AUTOFIX: skip-head-moved
+[36;1mpython3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \[0m
+[36;1m  --status "skip-head-moved"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation-autofix: skip-head-moved -- nothing owed to a human.
+Post job cleanup.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.55.0
+Temporarily overriding HOME='/home/runner/work/_temp/01de9689-d46b-4796-92f3-bd2033bb6139' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Cleaning up orphan processes
