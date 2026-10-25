@@ -1,8 +1,9 @@
 # The gate sweep (R10-CI-LAYOUT P2b, unit U0c; DESIGN-P2 2.1, 4.3 items 1
 # and 4; decision M-2: ship it). When a CI run completes, `gate.py --sweep`
-# re-runs the `gate` of every OLDER run at that PR head whose gate is red, and
-# polls the ones still running, once the completed run's own gate is green at
-# the live head (tools/ci/sweep.py). It replaces budget-raise-gate-rerun.yml.
+# re-runs the `gate` of every OTHER run at that PR head whose gate is red, of
+# either id, and polls the ones still running, once the completed run's own gate
+# is green at the live head (tools/ci/sweep.py). It replaces
+# budget-raise-gate-rerun.yml.
 #
 # `workflow_run` runs only the default branch's copy of this file, at the
 # default branch's commit, so the program is main's and no pull-request string
