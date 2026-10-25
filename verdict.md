@@ -1,0 +1,31 @@
+Fix review: merge f50079edb6659a67bab727b9beb68492d41ab191
+
+bus-nonce: 84c613f869d588552a4c02d4ee043d63
+
+Round 2 (delta review of #2818 since 5e29f43f94309b03a97448b85cf444b3905d87fa; round 1 blocked ruling-refuted). Measured head f50079edb6659a67bab727b9beb68492d41ab191, which is the PR's live head at review time.
+
+## Findings
+
+- The re-rule calls the new class "the PR's own delivery-row commit", but `app_approve.sh --carry <verdict> <head> [<main ref>]` (`tools/pr/app_approve.sh:564-568`) takes no PR number, so `carry()` cannot check that the row belongs to this PR. The carry text binds the path to the `#<N>` in the commit subject instead. So a tvofi-authored `record: the delivery row for #M` that touches only `dev/programme/delivery/M.md` would also carry onto PR N. The ruling's cross-PR control only catches a subject/path mismatch. The fixer has two options: thread the PR number into `--carry`, which means editing `merge_train.py`'s four call sites (1698, 1997, 2091, 2444) and contradicts "no `merge_train.py` edit"; or state plainly that the binding is subject-to-path and add a control for a consistent row of another PR. Carry: R10-FLY-CARRY-DOC-CONTEXT
+- The `app_push.sh` `row_only_verdict` edit (accept `M`) reverses refusals that self-tests pin on purpose. `oedit` at `tools/pr/app_push.sh:1064` and "real git: a rewrite of a row the live head carries runs prepr" at :1117 both assert today that a row edit runs prepr. The header (b) at :115-116 says "exactly one added file". The ruling's controls say only "`--row-only` with a row edit passes". The fixer must invert those two arms and edit the header (b) in the same change, and must keep (c)'s open-row check. That edit only skips prepr. The carry does not need it, because a row edit that runs prepr still carries under the new `carry()` class. Carry: R10-FLY-CARRY-DOC-CONTEXT
+
+## Evidence
+
+- Delta since 5e29f43f: `dev/programme/triage/s6-batch25.md` only, 6+/6-. The header line and P123's Verdict, Instances, Cost, Binding and Carry text changed. P124, P125 and P126 are byte-identical between the two heads (section hashes compared). The PR changes only `dev/programme/delivery/2818.md` and `dev/programme/triage/s6-batch25.md` (ev/pr-stat.txt).
+- I checked the file:line claims at origin/main da12aa37d. For every cited file the content equals the ruling's base bc52ad2af:
+  - `app_approve.sh`: `bot_author` :203, `bot_paths` :211, `carry()` :221, the automatic-merge refusal :243, "a commit of the branch's own" :245, confinement and author check :259-263, claims-only-drop :266. All true, and the reading is right: `ci:` subjects and the remerge claims subject carry, and every other non-merge commit refuses.
+  - I reproduced the instance: `app_approve.sh --carry 966901c16 5e29f43f9` prints `CARRY: no ... 5e29f43f9... is a commit of the branch's own (record: the delivery row for #2818)` (ev/carry-row-refusal.txt). 5e29f43f9 changes only A `dev/programme/delivery/2818.md`, authored and committed by tvofi.
+  - `tools/audit/seat/delivery_row.sh` :30-39 `commit_row` sets both author and committer to tvofi and uses the subject `record: the delivery row for #<N>`. True.
+  - `tools/audit/seat/merge_train.py`: :54 is step 3 "carry", and the `--carry` calls are at 1698, 1997, 2091 and 2444. True. The re-rule correctly routes the predicate to `carry()`.
+  - `tools/audit/seat/state_docs.py` :13-14 names the orphan ref `handoff/audit-r<N>-plan`. True.
+  - `tools/pr/app_push.sh` :216-218: the `A`-only check is at :217-218, and :216 is the line before it. The range covers it and the reading ("accepts only an added row") is right.
+  - `dev/governance/roles/orchestrator.md` section 11: the heading is at :226 and the carry bullet at :229-233, with the quoted clause at :231-232. True.
+  - `fix-review.md` :91-94 defers to section 11. True. CLAUDE.md :116 is the `fix-review.md` index row. True.
+  - `tools/audit/seat/bus.sh` :25-32 says a late row "costs a re-review". True.
+- Roster: R10-FLY-CARRY-DOC-CONTEXT exists on origin/main and on handoff/audit-r10-roster 2d45acb7a061132542c614000d334c6d01ea5fe7, with stage not-started, not absorbed, files `tools/pr/app_approve.sh`, and the P17 brief on carry condition (3). Its `after` is R10-FLY-GH-READ-RETRY and R10-FLOW-MQ-PROBE. The ruling discusses only the probe hold. No defect: "release ahead of the probe" leaves the other edge as it is.
+- Forward-carry: 2d45acb7a (the roster branch tip) is `roster_edit append-carry R10-ORCH-ROSTER-SCHEMA`. It appends the #2818 r1 `roster_lib.is_open`/`absorbed` carry, which includes its controls (null: an open group passes; a mutant that drops `absorbed`). `carry_audit.py --roster-ref 2d45acb7a check --body` on the body's Forward-carry section prints `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)` with rc 0.
+- Figures: `grep -oE '^Verdict: (ACCEPT|DEFER|REJECT)' ... | sort | uniq -c` at the head gives 4 ACCEPT, which matches the body. `roster_edit.ruling_verdict` gives ACCEPT for P123 to P126 and None for P127, which matches the body's null control. P123's Instances carry a reference (#2807, #2813, "not re-derived here") and a command chain (`carry()` lines, `delivery_row.sh`). Cost names files and lines. Binding gives the subject, path and author binding (see Findings for the PR-number gap).
+- Merge: `git merge-tree --write-tree origin/main f50079edb6659a67bab727b9beb68492d41ab191` exits 0 with tree 2e2128466f66537b60cc42519e4d006efc596ee9. There was no claim-file conflict and the driver was not invoked (ev/merge-tree.txt).
+- CI on f50079edb6659a67bab727b9beb68492d41ab191 from the check-runs API: 43 runs. None concluded failure. Two were still in_progress at read time (`governance / instrument-self-tests`, one `prelude`), and the rest were success or skipped. There is no red check to answer, and the body's "Red checks: none" is consistent. The diff writes no production line, so `mutation` evaluates no mutant.
+- `VERSION`, `RELEASE_NOTES.md` and the manifest are untouched. No host or home path appears in the PR diff. The commits carry no Co-Authored-By or Claude trailer.
+- The body's `## Head` names f50079edb6659a67bab727b9beb68492d41ab191 on merge base bc52ad2af, which is the head I measured.
