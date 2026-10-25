@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 35df1b35b..8cde7cf20 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -1184,7 +1184,6 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
+ # before the blocked head). 7c reads check runs over the network anyway, so it
+ # fetches the ref first. An unfetchable ref is a skip, as every unread 7c input is.
+ reds_head_sha() { # remote head ref <remote>/<branch> -> its sha, fetched now; rc 3 none on the remote
+-  git fetch -q --no-tags "${1%%/*}" "+refs/heads/${1#*/}:refs/remotes/$1" >/dev/null 2>&1 || return 3
+   git rev-parse --verify --quiet "refs/remotes/$1" || return 3
+ }
+ 
