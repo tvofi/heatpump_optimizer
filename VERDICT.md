@@ -1,65 +1,105 @@
-Fix review: blocked b537cfe9100801c1316c42ca25d2c9494ddedf92 class-open: coordinator._plan_slots and sensor DHWScheduleSensor fallback still count a step the plan declares off
+Fix review: blocked 734ad21fa28847281236822e7a751f9c185d236c claim-drift: on Linux the claimed dhw_cold_tank and horizon_48h do not move (2 STALE) while away_setback and valve_storage_small_tank move unclaimed (2 UNCLAIMED), env_drift.py --all rc=1
 
-bus-nonce: fa774a635f7c258b92251dee804b0bd8
-
-Round 1 (no earlier verdict on #2819). Measured head `b537cfe9100801c1316c42ca25d2c9494ddedf92`, merge base `bc52ad2af1d0cfe95896119b649fa56e14c74b5b`, on Linux x86_64 with load1 below 2. The finder harnesses ran from `git archive` exports of both ends.
+bus-nonce: 5ef4149d49fa41ac0f78d25654c27816
 
 ## Block
 
-D8-s1-01 names three seams that read the channel draw against 0.05 kW instead of the plan's running rule: `_build_plan_views` `active_now`, the `_plan_slots` merge, and the `DHWScheduleSensor` fallback (`dev/audit/rounds/round10/D8/s1/REPORT.md`: "Its 'N slots planned' count therefore includes steps the plan declares off"). Its fix scope is: "the plan views and the plan sensors take the plan's running rule (`planned_draws_run` / `heat_pump_on_schedule`), not a literal 0.05". This diff routes only `active_now` through the new owner `optimizer.channel_heating_steps`. The other two changed only their spelling:
+This is fix-review round 2 for #2819, from the cloud reviewer seat, claim `rev-2819-5ef4149d`. I measured head `734ad21fa28847281236822e7a751f9c185d236c` from detached worktrees on Linux x86_64 (`/opt/hpo` CI venv, numpy 2.4.6, scipy 1.17.1). `git ls-remote` showed it was still `refs/pull/2819/head` when this verdict was written. The merge base with origin/main is now `dfcd8d9be` (origin/main itself). The fixer's base `da12aa37d` was measured as well.
 
-- `coordinator.py` `_plan_slots(..., threshold: float = CHANNEL_ACTIVE_KW, ...)` still merges every step with `powers[i] > threshold`, whatever `planned_draws_run` says.
-- `sensor.py:1211` still counts `s.get("dhw_power", 0) > CHANNEL_ACTIVE_KW`.
+1. **claim-drift (step 4).** I ran `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all dfcd8d9be1dab28cfe52f684764befd1e19291de` at the head. It exits rc=1 (`ev/env_drift_all.txt`):
+   - The two claims `06eccb1a5` adds are `STALE claim for dhw_cold_tank` and `STALE claim for horizon_48h`. Both scenarios are byte-identical to the merge base on this box, and the tool prints the `RUNNER-CONDITIONAL CANDIDATE (#996 class)` decision tree for each.
+   - The same classifier fix moves two other scenarios here, and neither is claimed:
+     - `away_setback`: `space_reasons[40,44]` `cheap_price -> idle_coasting`, and `dhw_reasons[40,44]` `idle_other_channel -> idle_coasting` (4 leaves);
+     - `valve_storage_small_tank`: `space_reasons[77]` `scheduled -> idle_coasting` (1 leaf).
 
-The body says the threshold and the fallback "read them", meaning the constant and `channel_heating_steps`. They read the constant only.
+   This is the drift D8-s1-01's classifier change predicts: sub-running space shares the plan calls off become idle. But on Linux it lands on different scenarios from the ones the macOS arm64 run claimed. The body says every round-2 figure was taken on macOS arm64, and that its `GOLDEN_MODE=drift` run was the claim's null control. That is the dev-box reading `env_drift.py`'s #996 text says the runner overrules. Brief item 5 asked whether the claims reproduce on Linux: they do not. The fix is to follow the tool's pre-agreed decision tree, with the CI runner as judge of record:
+   - remove the two claims (or post the #996 instances);
+   - claim `away_setback` and `valve_storage_small_tank` with their direction, if the runner shows the same moves;
+   - re-run `env_drift.py --all` on Linux.
 
-Measured:
+   `tests / fast (3.14)` was still in progress at write time, so CI has not yet confirmed or refuted this reading. If its `env_drift --all` comes back green on this head, this block is void and the class-open below stands alone.
 
-- `f1_active_now.py`: `slot_steps_declared_off=5` at base and **5 at head**. The body says 0 at both; the finder's report says 4. The `--perturb` arm leaves the count unchanged by design ("the slot threshold is a separate literal"), so the head did not move the finder's secondary metric.
-- Reviewer probe `ev/drivers/slot_probe.py` at head: two 0.07 kW steps give `channel_heating_steps=[False, False, False, False]`, but `_plan_slots` publishes **1 slot** for them. The new owner and the slot list disagree on the same input.
-- The class rule hides these sites instead of closing them. The `channel_active_kw` P2 entry in `tests/entities.py` matches only a `Compare` against the literal `0.05`. Renaming the literal to `CHANNEL_ACTIVE_KW` takes both sites out of the rule's reach, so the registry reads zero undispositioned sites while the behaviour is unchanged (fix-review step 14: a spelling move on the instrument).
+2. **class-open (step 6), the second block.** Location: `pump_arbiter.py::step_duty`, and `optimizer.py::HeatPumpOptimizer.get_current_action` (`dhw_heating_active`).
+   - **The claim.** The body says `optimizer.channel_heating_steps` is now the "one reader of 'does this channel heat at this step'", and that every seat answering that question from a raw draw reads the plan's running rule.
+   - **The two seats that still answer it another way.** Both test each circuit's own draw against the pump's running floor, 0.1 kW:
+     - `step_duty` uses `planned_draw_runs(space[i])` and `planned_draw_runs(dhw[i])`. This decides which duty the arbiter serves.
+     - `get_current_action` uses `dhw_power > 0.1`. That flag feeds the DHW learner's `heating_active`, the climate attributes and the payload.
+   - **Why the P2 rule misses them.** The rule spells only 0.05, so it cannot see either seat. `dhw_heating_active` is dispositioned only in the sibling `plan_running_rule` registry (D12-s2-01), as "the DHW circuit's own activity". That is the fact `channel_heating_steps` now owns.
+   - **Reviewer probe** (`ev/drivers/channel_rules.py`, my own instrument, disclosed), output in `ev/probe_channel_rules.txt`. At the head, 3 of 6 straddling steps disagree:
+     - (space 0.30, dhw 0.08): DHW is heating per `channel_heating_steps`, but `step_duty=space` and `dhw_heating_active=False`.
+     - (0.08, 0.50): space is heating, but `step_duty=dhw`.
+     - (0.08, 0.08): both channels are heating and the plan runs (0.16 > 0.1), but `step_duty=idle`.
+   - **Solver output, not only synthetic steps.** `ev/drivers/golden_split.py` over the 40 committed golden plans that carry both channels finds 7 of 3864 steps (`ev/probe_golden_split.txt`): `cycling_cost` 60, `fuse_guard` 62, `shoulder_two_zone` 84-87 and `tariff_plus_two_zone` 68. Each has a space share of 0.055-0.099 kW beside a DHW draw of 0.6-2.8 kW. On these steps:
+     - the space plan sensor says "heating now", and the slot merge counts the step;
+     - the space circulation pump, which this PR moves onto `channel_heating_steps`, runs;
+     - the arbiter serves duty `dhw` only.
 
-To unblock: `_plan_slots`, the slot merge's `shared_kwh` test and the sensor fallback decide on `channel_heating_steps` (or `heat_pump_on_schedule`), and the matcher follows the named constant as well as the literal. Otherwise each site is dispositioned with a reason and the owner's agreement, and the body's `slot_steps_declared_off` figure is corrected.
+     That is D8-s1-01's shape on the channel axis: a plan sensor heating, the actuating seat not.
+   - **Not a regression.** Every one of these readings is the same at the base. But the body states the class closed, and neither seat is in the diff or dispositioned in the body.
+   - **To unblock**, do either of these:
+     - route `step_duty` and `dhw_heating_active` through `channel_heating_steps`, if the arbiter should serve what the plan views publish (a behaviour change that needs its own golden claim);
+     - disposition both in the `channel_active_kw` registry and the body, with the reason the arbiter's per-circuit floor is a different fact, and widen the rule to reach them.
+
+Round 2 delta (`41c7f46d2..9c9d12c82`): the round-1 block itself is closed. `_plan_slots` and the sensor fallback now read the running rule, and the finder's secondary metric falls on Linux (Evidence).
 
 ## Findings
 
-- Finite-float class beyond the census rule: `tests/finite_boundary.py::_finite_float_coercers` reads only module-level functions with a `float` / `float | None` return annotation. `accuracy.py` `AccuracySample.from_dict.num` is a nested coercer (`float()` under `except (TypeError, ValueError, OverflowError)` plus `np.isfinite`) with its own bool policy, so `True` reads 1.0. It is the shape `const.finite_float` now owns, outside the rule and outside any disposition. I widened the rule (`ev/drivers/ff_census.py --wide`: nested functions, no annotation filter) and it returns 16 candidates at head. I judged only `num` to be a real twin; the rest are predicates or formatters. The body should route `num` to the owner or disposition it, and say how far the rule reaches. Carry: R10-ARCH-SHAPES
-- The disposition of the 63 unpinned sites, "pinned by mutation-autofix (custom_components/ site)", is a relabel for survivors. `ci-autofix.md`'s `mutation-autofix` pins only killed mutants (`ci: pin killed mutants`), and survivor triage is never automated. I sampled three listed sites and all three survived the scripts that exercise them:
-  - `sensor.py:1211` CMP_BOUND (`>` to `>=`) against `tests/entities.py` and `tests/features.py`;
-  - `dhw_schedule.py:151` CMP_BOUND (`>= 3` to `> 3`) against `tests/features.py` and `tests/entities.py`;
-  - `wood_fuel.py:134` CMP_BOUND (`<` to `<=`) against `tests/wood_advisor.py` and `tests/features.py`.
+- **Instrument reach (step 14).** `tests/entities.py::_p2_match_channel_line` needs a single-op Compare whose source mentions `power|space|_kw|kw|dhw`, or a default named `threshold|*_kw`. Planted into `topology.py` (`ev/p2_rule_null_controls.txt`), it catches the literal compare, the keyword default and a `line_kw` positional default, as the body claims. It misses three spellings:
+  - a chained `0.0 < dhw_kw <= 0.05`;
+  - a default named `line`;
+  - an operand named `override`, or `draw` compared against a local line.
 
-  The FAIL sets equal the unmutated archive's. A script outside those I ran could still kill them, and CI's mutation lane has not run at this head, so this is a sample, not the table. The `## Red checks` `mutation` line owes the survivors their own answer. Carry: R10-ARCH-SHAPES
-- The finite-float figure's driver (13 to 1) and the mutation driver are named in the body by machine paths under a user home directory, and neither landed. `fixer.md` step 18 requires a driver that a body figure needs reproduced to land in the PR, and `tools/audit/seat/tmp_paths.py` refuses machine paths. I rebuilt the census driver as `ev/drivers/ff_census.py` (my own instrument, disclosed) and it reproduces 13 to 1. The body's machine paths should go, and the census driver should land, or the body should state the figure as `_finite_float_coercers` applied to the base tree by a named landed command. Carry: R10-ARCH-SHAPES
+  One such spelling exists in production and neither registry sees it: `coordinator.py` system-identification override, `"heat_pump_on": override > 0.05`. That is the pump's on flag set from 0.05 rather than `planned_draw_runs` (0.1). So is `accuracy.py::AccuracyTracker.power_ratio`, `pred > 0.05`, a sibling of the dispositioned `delivered_ratio` floor. Both predate this diff. Carry: R10-ARCH-SHAPES
+- **Round-1 carry still open (finite-float class).** `accuracy.py` `AccuracySample.from_dict.num` is still a nested float coercer with its own bool policy (`float(True)` reads 1.0). It is outside `_finite_float_coercers`' reach, and neither the diff nor the body routes it to `const.finite_float` or dispositions it. Carry: R10-ARCH-SHAPES
+- **Round-1 carry still open (unpinned sites).** `## Unpinned sites` still dispositions all 71 sites as "pinned by mutation-autofix". `ci-autofix.md`'s `mutation-autofix` pins killed mutants only, and survivor triage is never automated. `tests / mutation-autofix` was in progress at write time. Survivors among the 71, once its commit lands, owe the `## Red checks` `mutation` line their own answer. Carry: R10-ARCH-SHAPES
+- **Body text.** The "Architect note amendment" calls the two round-2 `coordinator.py` hunks "(float coercion only)". They are running-rule plumbing, not float coercion (Evidence). Carry: R10-ARCH-SHAPES
 
 ## Evidence
 
-Every figure below is my own RESULT at the measured head against the merge base (files under `ev/`):
+- **Finder harness**, `dev/audit/rounds/round10/D8/s1/f1_active_now.py` (sha1 `766cc95a3b886f3f70d122a167028d2313d78048`, identical at every end), on Linux with `PYTHONPATH=tests/hastub:custom_components` (`ev/f1_*.txt`):
 
-- D7-s2-61, `probe_coercion_reach.py` (`ev/harness_*.txt`):
-  - base: `1e6`, `1e400` and `inf` give `silent_cap_kw=6.0`, `inf_changes_decision=1`;
-  - head: all three give 4.2, `inf_changes_decision=0`;
-  - `unknown` reads 4.2 and `3` reads 3.6 at both ends (the null control holds);
-  - `perturbed_1e400_equals_unknown=1` at both ends;
-  - `_step_kw(nan|inf)` is nan/inf at base and None at head; `nan_reaches_flow=0` at both.
+  | end | heating_now_while_off | slot_steps_declared_off |
+  |---|---|---|
+  | `da12aa37d` | 2 | 5 |
+  | `6feac7ece` | 0 | 5 |
+  | `dfcd8d9be` (main) | 2 | 5 |
+  | head | 0 | 0 |
 
-  This matches the body's 6.0 to 4.2.
-- D8-s1-01, `f1_active_now.py`: `heating_now_while_off` 2 at base, 0 at head; `--perturb` gives 0 at both; `snapshots=36`. The body says 1 to 0. The harness header says the count is exact per machine (BLAS), so the direction holds and the absolute base value differs on this box. The secondary metric is under `## Block`.
-- D7-s2-01 `pump_offline` arm, `learner_gates.py`: `freq_map` is INGEST at base and frozen at head; `pump_offline.learners_ingesting` 1 to 0; `freq_map_clean_folds=8` and `freq_map_defrost_folds=0` at both ends. This matches the body.
-- Weekday twins (`PYTHONPATH=tests/hastub:custom_components`): normal/perturb/identity read 0/49/0 at both ends (`ev/weekday_twins.txt`). The perturbation moves the count, so the finding is live. This matches the body.
-- Hour-clock grep: 5 at base, 2 at head, the same sites the body lists (`ev/hour_clock.txt`).
-- Finite-float census: head's `_finite_float_coercers` returns 13 at base (the body's list exactly) and 1 at head (`const.py::finite_float`), via my `ev/drivers/ff_census.py` (`ev/ff_census.txt`).
-- `finite_float` behaviour: `True` gives None, `b'3'` None, `'3.5'` 3.5, nan None, `10**400` None, `'1e400'` None, `2` 2.0 (`ev/finite_float_probe.txt`). The bool and bytes behaviour change is as the body states.
-- Archscore: `score.py --diff bc52ad2af b537cfe9`: `Architecture score: dS +1.2702 IMPROVES`; `coord_footprint` 2445 to 2435, `duplication_copies` 39 to 37, `layer_violations` 17 to 13, `private_cross_module` 12 to 10. This matches the body's coord_footprint and dS (`ev/archscore.txt`).
-- `tests/entities.py` in detached worktrees: 2 of 2445 FAIL at base and 2 of 2448 at head, with identical FAIL-name sets (`gate-sweep.yml` U0c, `graders-head-copy` delivery_status, and nested harness self-test lines). In archive copies the FAIL sets are identical at base and head. The body's 4 is this box's 2; the failures are the base's, not this diff's.
-- Mutation proof, my own mutants in archive copies of the head (`ev/mut_*.txt`), all killed:
-  - `_within_nameplate` to `return kw`: `manual_plan.py` 2 of 132;
-  - `finite_float` bool policy dropped: `finite_boundary.py` 1 of 108;
-  - `state_power_kw` isfinite dropped: `features.py`, "a power state parses to finite kW...";
-  - `_freq_fold_blocked` narrowed to cooling: `features.py`, "an offline, faulted or cooling pump's interval...".
+  - `snapshots=36` and `steps=192` at every end.
+  - `--perturb`: `heating_now_while_off=0` at every end, and `slot_steps_declared_off` 5/5/5/0 (untouched by design). The harness moves under its own perturbation.
+  - macOS figures (the body): base 1 and 0. Linux figures: base 2 and 5. The harness header says the counts are exact per machine/BLAS. On Linux the slot arm does measure, and it falls 5 -> 0 at this head. The round-2 class claim for the three named seams holds here.
+- **Companion**, `dev/audit/harnesses/r10_channel_running_rule.py` (`ev/companion.txt`): `da12aa37d` reads 5/5/2 (`'2 heating periods'`), `6feac7ece` reads 5/5/2, and the head reads 0/0/0 (`sensor_state=None`). `--perturb` reads 0/0/0 at every end, with `perturbed=1`. This matches the body exactly.
+- **Rule reach**, `dev/audit/harnesses/r10_channel_line_reach.py head <tree>`: 16 at `da12aa37d`, 15 at `6feac7ece`, 16 at main and 10 at the head. The site lists match the body's dispositions.
+- **Mutation proof**, re-run by me in copies of the head worktree with `tests/features.py` (`ev/mutants_features.txt`, `ev/feat_*.txt`). The control prints `ALL 4409 FEATURE CHECKS PASSED`, rc=0. Each mutant fails exactly the check the body names, `1 of 4409`:
+  - `_plan_slots` heating to `[p > 0.05 ...]`;
+  - `_async_drive_pumps` schedule to `[p > 0.05 ...]`;
+  - `classify_space_steps` `_heating_draws` line deleted;
+  - `wood_fuel_from_parts` runs to `[p > 0.05 ...]`.
 
-  The `features.py` #363 failure of an archive copy is excluded, as in the body.
-- Merge with main: `git merge-tree --write-tree origin/main b537cfe9` exits 0 (with origin/main at `da12aa37d`, `LEDGER-MERGE: resolved tests/structure_budgets.json`), so GitHub's `dirty` is the driver file only. Merged with #2817's head `935a7a6b1fa123b16ba85f3e38756a29527f36ca`, it exits 0 and the same ledger driver resolves. `tests/entities.py` on that merged tree has the head's FAIL set exactly, so no entities disposition clashes. #2817 renames `async_update_thermal_params` dispositions to `_thermal_param_changes`, which is disjoint from this diff's entries.
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched; no claim file changed; the diff adds no host, home or temp path.
-- CI at the measured head: the only check run is `arm` (skipped). Both CI runs (`CI code`, `CI edit`) are on the earlier head `21d646821` and were in progress, so no gate check on this head has concluded and step 11 has nothing to answer yet.
-- Head moved under the review: the branch is now `6feac7eceeff979bfe3692555179565bde565d9b`, a merge of origin/main `da12aa37d` (#2712) on top of the measured head (`ev/HEAD_AT_POST.txt`). It touches `coordinator.py`, `draw_range.py` and `legionella.py` outside the blocking sites. At the new head, `_plan_slots`'s `threshold: float = CHANNEL_ACTIVE_KW` and `sensor.py:1211` are byte-identical, so the block stands there too. I did not re-take the other figures at the new head.
+  All four are killed. I did not re-run the `tests/entities.py` sensor and instrument mutants.
+- **Coordinator hunks (brief item 2).** `git diff 6feac7ece 9c9d12c82 -- coordinator.py` has five hunks, and none is outside the named set:
+  - the `CHANNEL_ACTIVE_KW` import removal;
+  - `_async_drive_pumps`: `schedule = channel_heating_steps(result.power_schedule, result.dhw_power_schedule)`, where `plan_commands_heat` now takes bools;
+  - `_plan_slots`: threshold parameter removed, two masks added, `shared_kwh` now gated on `other_heating`;
+  - the slot loop on `heating`;
+  - the simulator's two `other_powers=` arguments.
+
+  The behaviour change is the intended one: the space pump and slots skip steps the plan does not run.
+- **coord_footprint (ruling 2).** `tools/audit/archscore/score.py --diff da12aa37d HEAD` at the head gives `Architecture score: dS +1.8325 IMPROVES`, with:
+  - duplication_copies 38 -> 35;
+  - coord_footprint 2446 -> 2437;
+  - params_over_10 7 -> 6;
+  - layer_violations 17 -> 13;
+  - private_cross_module 12 -> 10.
+
+  `--diff dfcd8d9be HEAD` gives the same. `tests/structure.py` prints `STRUCTURE RATCHET PASSED` (`ev/structure_archscore.txt`). The merge-base figures are confirmed. Per the ruling, I did not block on the +1.
+- **Claims file (brief item 4).** Three-dot diff against `dfcd8d9be`: only the two added lines (`ev/claim_diff.txt`). `claims-for: 7.0.4` equals `VERSION` 7.0.4, and each line states its direction. Neither scenario is in the may-drift lists `env_drift.py` printed. The Linux reproduction is under Block.
+- **Release stamps.** `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (empty three-dot diff).
+- **Merge.** `git merge-tree --write-tree origin/main 734ad21fa` exits rc=0 with tree `8f9013700` and no conflict (`ev/merge_tree.txt`).
+- **CI on this head** (check-runs API, 48 runs):
+  - Green: arch-score, typing, replay, browser, briefs, env-matrix, instrument-self-tests, policy-docs, budget-raise-gate, closure-scope, hassfest, validate-hacs, wave-script, nightly-status, and mutation-pins 1-12.
+  - Red:
+    - `tests / mutation` is the predicted unpinned-sites red. The body names it and answers it by `ci_predict.py` (`ci-autofix.md`).
+    - `governance / delivery-status` is OVERDUE on #2762 and #2795 only. The log says "This check is NOT a required context and a red here blocks no merge", and this diff's row does not reach the overdue rows, so it is not this PR's.
+  - Still running: `tests / fast`, closures, coverage, mutation-autofix and codeql-python. So step 11 is not concluded for them.
+- **Head SHA in the body.** The body's `## Head` names `734ad21fa`, the head I measured.

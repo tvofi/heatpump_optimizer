@@ -1,4 +1,0 @@
-MUTANT nameplate (quiet_windows.py: return kw if kw is not None and 0.0 < kw <= p_max else None -> return kw) tests/manual_plan.py rc=1
-  FAIL a non-finite or over-nameplate power reading is no measurement  [got {'inf': 3.5, '1e400': 3.5, '100': 100.0, '5.001': 5.001}]
-  FAIL a frequency past its configured maximum measures nothing  [got 7.5]
-2 of 132 manual plan checks FAILED

@@ -1,3 +1,0 @@
-MUTANT boolpolicy (const.py: if isinstance(value, bool) or not isinstance(value, (Real, str)): -> if not isinstance(value, (Real, str)):) tests/finite_boundary.py rc=1
-  FAIL const.finite_float reads a real number or numeric text, and nothing else -- not a bool, bytes, NaN, an infinity or an int past a double  [wrong={'True': 1.0, 'False': 0.0}]
-1 of 108 FINITE BOUNDARY CHECKS FAILED
