@@ -69,10 +69,10 @@ DHW_COOLING_MIN_DELTA = 5.0
 class DhwProfileLearner:
     """Usage profile, day-type profiles, draw statistics and cooling rate.
 
-    ``params`` is the coordinator's live ``ThermalParameters``: the learner
-    writes the pattern and the cooling rate into it exactly where the
-    coordinator's methods did, so the solver reads what was learned without
-    a second copy. ``frozen`` answers why learning should be skipped this
+    ``params`` reads the coordinator's published ``ThermalParameters`` and
+    ``publish`` proposes the pattern and the cooling rate to their one
+    writer, so the solver reads what was learned without a second copy and
+    no snapshot is ever edited in place (D7-s1-82). ``frozen`` answers why learning should be skipped this
     interval, ``heating_active`` whether the plan is heating the tank now, and
     ``external_heat_active`` whether a wood burn is driving the tank — the
     three coordinator facts the learner observes and never owns.
@@ -82,13 +82,15 @@ class DhwProfileLearner:
         self,
         hass: HomeAssistant,
         entry_id: str,
-        params: ThermalParameters,
+        params: Callable[[], ThermalParameters],
         *,
+        publish: Callable[..., None],
         frozen: Callable[[str], str | None],
         heating_active: Callable[[], bool],
         external_heat_active: Callable[[], bool],
     ) -> None:
         self._params = params
+        self._publish = publish
         self._frozen = frozen
         self._heating_active = heating_active
         self._external_heat_active = external_heat_active
@@ -98,12 +100,12 @@ class DhwProfileLearner:
         # has hours below the intensity floor, and a raw seed was what the
         # first restart reshaped (#1747's carry).
         self.hourly_profile: list[float] = self.normalize_profile(
-            params.dhw_hourly_draw_pattern
+            params().dhw_hourly_draw_pattern
         )
         # Self-learned standby cooling of the tank, in °C/h at the reference
         # condition (45 °C tank, 20 °C ambient). Seeded from the configured
         # default until enough quiet decay has been observed.
-        self.cooling_rate: float = float(params.dhw_cooling_rate)
+        self.cooling_rate: float = float(params().dhw_cooling_rate)
         self.cooling_samples: int = 0
         self.heating_since_sample: bool = False
         self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
@@ -153,7 +155,7 @@ class DhwProfileLearner:
         except (TypeError, ValueError, OverflowError):
             usable = False
         lo, hi = DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY
-        raw = np.clip(np.asarray(profile if usable else self._params.dhw_hourly_draw_pattern, dtype=float), lo, hi)
+        raw = np.clip(np.asarray(profile if usable else self._params().dhw_hourly_draw_pattern, dtype=float), lo, hi)
         avg = float(np.mean(raw))
         out = raw if abs(avg - 1.0) <= 1e-12 else np.clip(raw / avg, lo, hi)
         if abs(float(np.mean(out)) - 1.0) > 1e-12:
@@ -177,9 +179,7 @@ class DhwProfileLearner:
         profile = stored.get("hourly_profile")
         if isinstance(profile, list) and len(profile) == 24:
             self.hourly_profile = self.normalize_profile(profile)
-            self._params.dhw_hourly_draw_pattern = (
-                self.hourly_profile.copy()
-            )
+            self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
             _LOGGER.info("Loaded learned DHW usage profile from storage")
 
         # #18: day-type profiles are additive keys. A pooled-only store —
@@ -222,14 +222,22 @@ class DhwProfileLearner:
         self.cooling_rate = float(
             np.clip(rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
         )
-        self._params.dhw_cooling_rate = self.cooling_rate
+        self._publish(dhw_cooling_rate=self.cooling_rate)
 
-    async def async_set_cooling_rate(self, rate: float) -> None:
+    def set_cooling_rate(self, rate: float) -> None:
         """An explicit value replaces the learned one and resets the sample
-        count, so the learner treats it as the new starting point."""
+        count, so the learner treats it as the new starting point. A caller
+        that can run before the startup read lands awaits
+        ``async_wait_for_read`` first (ls-r1)."""
         self.apply_cooling_rate(rate)
         self.cooling_samples = 0
-        await self.async_save_profile()
+
+    async def async_wait_for_read(self) -> None:
+        """Return once the profile store's startup read, if in flight, has landed.
+
+        ls-r1: a command written before that read lands is overwritten by it.
+        """
+        await self.profile_store.async_wait_for_read()
 
     def payload(self) -> dict[str, Any]:
         """The DHW profile store's exact save shape.
@@ -254,9 +262,7 @@ class DhwProfileLearner:
         hourly = profile.get("hourly_profile")
         if isinstance(hourly, list) and len(hourly) == 24:
             self.hourly_profile = self.normalize_profile(hourly)
-            self._params.dhw_hourly_draw_pattern = (
-                self.hourly_profile.copy()
-            )
+            self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
         # The day-type profiles restore alongside the pooled one, or a
         # rollback would blend a rolled-back pool with un-rolled-back
         # day shapes — half of one week, half of another.
@@ -403,7 +409,7 @@ class DhwProfileLearner:
         """
         if self._external_heat_active():
             return
-        params = self._params
+        params = self._params()
         if not params.dhw_enabled:
             return
         standby_rate = (
@@ -520,7 +526,7 @@ class DhwProfileLearner:
             + DHW_PROFILE_EWMA_ALPHA * draw_intensity
         )
         self.hourly_profile = self.normalize_profile(profile)
-        self._params.dhw_hourly_draw_pattern = self.hourly_profile.copy()
+        self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
 
         # #18: the same observation also teaches this day type's own
         # profile. Both are normalised independently, so each day type
