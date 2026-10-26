@@ -3605,6 +3605,8 @@
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
+   "dev/audit/harnesses/r10_card_harmony.mjs",
+   "dev/audit/harnesses/r10_card_voice_states.mjs",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
    "dev/audit/harnesses/r10_carry_sweep_rows.py",
    "dev/audit/harnesses/r10_ci_gate_core.py",
