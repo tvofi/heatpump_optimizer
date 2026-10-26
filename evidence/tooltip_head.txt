@@ -1,9 +1,0 @@
-RESULT w=375 page=tile tooltip=10.92px h143
-RESULT w=375 page=plan tooltip=no visible tooltip
-RESULT w=768 page=tile tooltip=10.92px h221
-RESULT w=768 page=plan tooltip=12.88px h250
-RESULT w=1280 page=tile tooltip=10.92px h221
-RESULT w=1280 page=plan tooltip=12.88px h250
-RESULT w=375 page=plan dialog-tooltip-font=10.92
-RESULT w=768 page=plan dialog-tooltip-font=12.88
-RESULT w=1280 page=plan dialog-tooltip-font=12.88

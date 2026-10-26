@@ -1,57 +1,47 @@
-Fix review: blocked 11e8075d7975f34ab4baa8f2eb84220223443552 root-cause-detectable: pr-contract / pr-contract is red at this head (preflight refuses 'Closes #2506', which the roster lists in issues and in no group's fixes), so the required gate is red, and the body's Red checks does not name it; tools/pr/preflight.sh reproduces it locally in seconds
+Fix review: merge c32202c92dee44a30cef953fa5edf1a94b27e527
 
-bus-nonce: 57fc2f09f6dd5e6a333bf8c0c60e1ca4
+bus-nonce: 0d7a0bb6da4025bb503fa9444b697769
 
 ## Round
 
-Round 2: a delta review of 2cfb8b96..11e8075d. The code delta is 59c744f4 (two card CSS rules plus `reveal()` and the tspan selector in `tests/card_browser.mjs`). The rest is a merge of origin/main 7d205697. I measured from detached worktrees at the head and at the merge base 7d2056970e08135bdc7c2cab4063427a2efa1c30. `git diff 7d205697...origin/main -- dev/governance/roles/` is empty, so the role files are current. Before writing, `git ls-remote` gave 11e8075d7975f34ab4baa8f2eb84220223443552 for both refs/pull/2841/head and fix/r10-card-voice.
-
-## Block
-
-- `pr-contract / pr-contract` concluded **failure** on this head in both runs: 121382577420, and 121383146856, which started 03:29:02Z after every other workflow had concluded. The one required check, `gate`, is therefore red too (121382733183, 121383314617; its log reads `FAIL pr-contract / pr-contract: failure`).
-- The failing step is `Pre-flight the body for unmeasured claims`: `REFUSE 'Closes #2506' closes #2506; not in the intended list`.
-  - The workflow builds the intended list as the body's closes minus the roster's `issues` that no group names in `fixes`. R10-CARD-VOICE has `issues: [2506], fixes: []` at both origin/main and the head, and no group lists 2506 in `fixes`. So #2506 is a "Part of" issue, and a closing keyword on it is refused.
-  - Reproduced in this seat with the workflow's own jq derivation over the head's rosters and the live body: `INTENDED=''`, then `bash tools/pr/preflight.sh` gave rc=1 with the same REFUSE line.
-  - Null control: the same body with `Closes #2506` changed to `Part of #2506` gives rc=0.
-- This refusal is not new. It is identical at the previous head 2cfb8b96 (pr-contract 121344531377 and 121344052741 failed, and both `gate` runs failed), and neither the body nor the round-1 verdict names it.
-- The body's `## Red checks` does not name `pr-contract` or `gate`. A cheaper detector exists: `tools/pr/preflight.sh <roster fixes> < body` (prepr.sh's preflight step) runs in seconds before the handoff.
-- Two ways to clear it: the author can edit the body (`Part of #2506`, which needs no code push), or the orchestrator can, if the roster really intends this group to close #2506, move 2506 into the group's `fixes` with roster_edit. Either way the body then owes its red-check line. The code delta itself passes every check below.
+Round 3 is a delta review of 11e8075d..c32202c9. The delta holds no code. It has two merges: `33ca9a2f` brings in the authored head 0fec20feb (11e8075d plus origin/main f6784210, with the claim-file resolution), and `c32202c9` brings in origin/main 11b7a9d7, which is roster batch 17 / #2850. I measured from detached worktrees at the head and at the merge base 11b7a9d739db46a5a62e9f9cf01a8f527a974137, which is origin/main now. I ran `git ls-remote` before writing: refs/pull/2841/head and fix/r10-card-voice both read c32202c92dee44a30cef953fa5edf1a94b27e527, so the head did not move.
 
 ## Findings
 
-- The required `gate` is red at this head on the pr-contract refusal of `Closes #2506` (see Block). Severity: blocking. Carry: R10-CARD-VOICE
-- The head no longer merges cleanly with the current origin/main 28800999. `git merge-tree --write-tree origin/main 11e8075d` exits 1 with `MERGE-CLAIM: refused tests/golden/claimed_drift.txt`. Main has since merged #2753, which claims `config_flow` (R10 thermal power option), and this branch rewrote the list to its own five coordinator claims. Per fix-review.md step 13, a refused claim file goes to the orchestrator to resolve by hand and is not a defect in the authored work. The resolution keeps this branch's five lines plus main's `config_flow` line only if #2753's drift is in the merged tree's diff; otherwise this branch's five alone. tests/closures.json resolved through its LEDGER-MERGE driver. Carry: R10-CARD-VOICE
-- The round-2 rule `dialog.expanded .tooltip { font-size: 0.78em; }` (<=600 px) renders the phone dialog's tooltip at 10.92 px. That is under the ramp's 12 px floor (HARMONY.md V3) and 0.12 px under the merge base's 11.04 px. It equals the tile's own tooltip (10.92 px at both ends), so V1 holds.
-  - The harmony study's census, and my re-run of it, count no hover pop-up, so "0 HTML text nodes under 12 px" does not cover tooltips at either end. On the tile, tooltips sat under 12 px before this PR.
-  - Whether a phone pop-up may sit under the 12 px step to stay inside its chart (R9-UX-1) is a design call this PR did not have to make.
-  - Carry: #201
-- carry_audit.py prints `1 unrouted` for this PR. The item is in the round-1 verdict comment 6405898036 (item 4f705cf3, its `- **C1 (H1):**` measurement bullet under `## Evidence`), not in the PR body. The body's own items are 4 routed and 0 unrouted (pr-contract's CARRY-AUDIT line agrees). This PR cannot edit that comment. Carry: dismissed: the item is a prior reviewer's measurement bullet that hands nothing on; the body itself has 0 unrouted
+- The round-2 carry is still open. The phone dialog's tooltip renders at 10.92 px, which is under the ramp's 12 px step. This PR states that as a design call it did not have to make, and the body routes it the same way. Carry: #201
 
 ## Evidence
 
-- **P9 grid, the finder's harness** (`HPO_BROWSER_SCOPE=full node tests/card_browser.mjs` after `PYTHONPATH=tests/hastub python3 tests/plan_view.py`, in each worktree):
-  - Head 11e8075d: rc=0, `ALL BROWSER CHECKS PASSED`, `P9 grid: 324 cells, 20375 text runs, 850 box-intersecting pairs inked, 105 colour rules`. Both of round 1's checks pass: 0 cells threw and 0 pop-ups outside (ev/browser_head.txt). The body's figures (324 / 20375 / 850) match exactly.
-  - Merge base 7d205697: rc=0, `ALL BROWSER CHECKS PASSED`, `324 cells, 19736 text runs, 660 box-intersecting pairs inked, 102 colour rules` (ev/browser_base.txt).
-  - CI: `tests / browser` concluded success on this head (check run 121371418761, 02:57:54Z).
-- **Null control.** The head with 59c744f4's two card CSS hunks reverted (`.slot-menu` width rule and the phone `.tooltip` 0.78em rule), with the harness left as at the head, gives rc=1: `FAIL P9 grid: no pop-up leaves the viewport or its chart`, `10: div.slot-menu 6.7px outside | div.tooltip 4.5px outside | div.slot-menu 5.3px outside`. That is round 1's exact failure (ev/browser_null_control.txt). So the card fix, not the harness change, clears the pop-up check.
-  - The `threw` check stays green in that control because `reveal()` is a harness change. I read it as sound: a pair it cannot bring into the viewport, or whose runs scrolled apart, is pushed to `bad.threw` and fails the check, so it does not stop measuring anything.
-  - The tspan selector adds ink and cannot hide a shared pair. The body's MH1/MH2 mutants cover both.
-- **C1 is not weakened.** I re-measured with the study's own harness (6aea0d10 `harness.html` and `states.js`, copied untracked into each worktree), using my own driver (ev/harmony_measure.cjs; disclosed as mine, not the finder's), at 375/768/1280 and in light and dark (ev/harmony_study_harness_*.txt):
-  - Dialog base: head 14.00 / 14.00 / 14.00 px; base 12.00 / 12.00 / 12.90.
-  - HTML text nodes under 12 px at the head: 0 on every page (tile, plan, setup, savings, advisor, health), at every width and theme.
-  - Base, by page at 375 / 768 / 1280: plan 21/22/22, setup 3, advisor 8, health 13, savings 0, tile 5.
-  - wi-hint: head 12.00 at every width; base 10.20 / 10.20 / 10.96.
-  - wi-group-title: head 12.60 at every width; base 10.80 / 10.80 / 11.61.
-  - None of these moved from the round-1 verdict's values. The study's own driver, `r10_card_harmony.mjs`, I did not re-run; the body reports it byte-identical across 2cfb8b96 and 59c744f4.
-- **Tooltip font-size**, computed on the study harness, plan page (ev/tooltip_*.txt): head 10.92 / 12.88 / 12.88 px; base 11.04 / 11.04 / 11.87 px. The tile's tooltip is 10.92 px at both ends.
-- **CI at this head** (check-runs API, every run concluded):
-  - Green: tests / browser, fast (3.14), coverage, coverage-ratchet, closures, closure-scope, mutation, typing, briefs, arch-instrument, graders-head-copy, lane-proofs, nightly-status; governance / env-matrix, instrument-self-tests, policy-docs, wave-script; arch-score; budget-raise-gate; hassfest; validate-hacs; codeql (actions, javascript-typescript, python).
-  - Red: pr-contract / pr-contract and gate (see Block), and governance / delivery-status.
-  - delivery-status is red on programme-wide OVERDUE rows for other PRs (#2795 … #2812). This PR's diff adds only its own row `dev/programme/delivery/2841.md`, and its log says it is not a required context and blocks no merge. Under defect-root-cause.md it is main's, not this PR's.
-  - pr-contract's body checks otherwise read `PR-BODY: 0 error(s)`, `FIGURES: 20 resolved, 7 not verified, 0 refused`, and `no version edit`.
-- **Merge and claims.**
-  - merge-tree against origin/main 28800999 exits 1, with the claim-file refusal recorded under Findings (ev/merge_tree.txt). Against the PR's own base 7d205697 the merge is clean (the body's statement).
-  - VERSION, the manifest version and RELEASE_NOTES are untouched in the three-dot diff. `claims-for: 7.0.4` in both claim files equals VERSION 7.0.4.
-  - `dev/programme/delivery/2841.md` is in the three-dot diff.
-- **Carries 1–6.** The delta touches only the tooltip size at <=600 px and the slot menu's width. It changes none of the H1–H4 or C1–C3 answers from round 1, which I did not reopen beyond C1's re-measure above.
-- **Figures I did not re-derive:** the body's MB/MC/MH1/MH2 mutant outputs, its 231 px / 51 px pop-up heights at 2cfb8b96, and card_drift's `44 state(s) moved and claimed` at 59c744f4.
+- **1. The code is unchanged.** I took the three-dot diff over custom_components, tests/card*, tests/card_browser.mjs and dev/audit/harnesses at two points: 11e8075d against its base 7d205697, and the head against its base 11b7a9d7. Both diffs give the same stable patch-id, 839e4a87 (ev/code_delta.txt). `git diff 0fec20feb c32202c9` over the card, the rig, the browser harness, the drift harness, topology.py, the r10_card_* harnesses and docs prints nothing. Round 2's evidence therefore still holds. I re-ran the finder's harness at the head anyway:
+  - Command: `PYTHONPATH=tests/hastub python3 tests/plan_view.py`, then `HPO_BROWSER_SCOPE=full node tests/card_browser.mjs`.
+  - Result: rc=0, `ALL BROWSER CHECKS PASSED`, `P9 grid: 324 cells, 20375 text runs, 850 box-intersecting pairs inked, 105 colour rules` (ev/browser_head.txt).
+  - `every cell mounted` and `no pop-up leaves the viewport or its chart` are both ok, so both round-1 failures stay gone.
+  - Round 2's base run and null control are carried unchanged, because the code is byte-identical.
+  - An earlier browser run of mine overlapped two of my own card mutants. That run also printed the same figures, but I discarded it as evidence (ev/browser_head_overlapped_by_mutants.txt). The run cited above is a clean re-run on the restored card (`cmp` equal, `git status` clean).
+- **2. The "Closes #2506" decision.** I read the issue body and checked the body's ten-point table against it. Every point the issue states is in the table: the type disc, the wood tank's spring, the one accent pipe, configured-but-not-modelled spoken, the button naming the page with the path stated once, the chip on all-set boxes, the coil's three states in words with one visible at a time, the docs corrected, no new token voice, and the fixer.md proof obligations. I re-ran each command the table and the Figures name:
+  - `node tests/card.mjs` at the head: rc=0, `ALL CARD CHECKS PASSED`. All eight named card checks print `ok` exactly once (ev/card_head.txt, ev/card_features_run.txt).
+  - `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4433 FEATURE CHECKS PASSED`, including `ok the setup description tells a configured coil from a modelled one` (ev/features_head.txt).
+  - `node dev/audit/harnesses/r10_card_voice_states.mjs <plandata>`, run in each worktree on that tree's own plan_view payload, with the head's harness copied into the base tree:
+    - Head: active, off and none give badge_types 8/8/7, wood_badge coil / coil off / store, coil_pipes_accent 1/1/0, configure_buttons 8 of 8 boxes in every state, buttons_naming_page 8, and dest_caption 1. The coil wording shows one state per state.
+    - Base: badge_types 0, wood_badge none, accent pipes 0, configure_buttons 5/4/4, naming 0, and dest_caption 0.
+    - These match the body's Figures exactly (ev/voice_states_head.txt, ev/voice_states_base.txt).
+  - Docs: `upper-right wall` reads 2 at the base and 0 at the head. `setup-contour` reads 12 at the base and 0 at the head in each of the three hydronic SVGs. `setup-coil` reads 2/1/1 at the base and 0 at the head (ev/docs_tokens.txt).
+  - Tokens: there are 35 distinct `--hpo-` names at the base and 35 at the head, and `comm -13` is empty (ev/docs_tokens.txt).
+  - My own mutants, planted in the head card one at a time and each restored afterwards:
+    - R1 drops the ` coil-pipe` class on the coil edge. `node tests/card.mjs` gives rc=1 with `FAIL the coil's pipe is the one accent pipe, dashed when not modelled`.
+    - R2 renames the `.setup-dest` paragraph's class. It gives rc=1 with `FAIL and the page states once where that page is` (ev/mutant_R1_coilpipe.txt, ev/mutant_R2_dest.txt).
+  - Preflight, using pr-contract's own jq derivation over the live PR body:
+    - Live roster (origin/main 11b7a9d7, R10-CARD-VOICE `issues [2506], fixes [2506]`): INTENDED='2506', `tools/pr/preflight.sh` rc=0.
+    - Control, the roster just before batch 17's wire-issue commit c22e7b2e (8396866d, `fixes []`): INTENDED='', rc=1 with `REFUSE 'Closes #2506' closes #2506; not in the intended list` (ev/preflight.txt).
+- **3. claimed_drift and merge.**
+  - `git merge-tree --write-tree origin/main c32202c9` exits 0 with tree 2e122a4f. That tree diffs empty against the head's tree.
+  - tests/golden/claimed_drift.txt at the head lists exactly six entries: this branch's five `coord_*` R10-CARD-VOICE claims and main's `config_flow` (#2753) line. The three-dot diff touches only those five claim lines and the added R10-CARD-VOICE comment block.
+  - `claims-for: 7.0.4` appears in both claim files and equals VERSION 7.0.4.
+  - `python3 tests/env_drift.py` gives rc=0, `NO UNCLAIMED DRIFT`, `NO STALE FIXTURE`, and no refusal of a fixture that is both claimed and may-drift. CI's `--all` judgement is in the green `tests / fast (3.14)` at this head.
+  - VERSION, the manifest and RELEASE_NOTES.md are absent from the three-dot diff.
+  - dev/programme/delivery/2841.md is in it (ev/merge_claims.txt).
+- **4. carry_audit.** `python3 -I tools/audit/carry_audit.py pr 2841` reports `6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)` (ev/carry_audit.txt). The delta is merges only and changes no answer to the six roster carries, so I did not reopen them.
+- **5. CI at this head.** I read the commit's check-runs API: 55 runs, all completed, every one success or skipped, none red (ev/check_runs.txt).
+  - gate (121427020951) and pr-contract / pr-contract (121426780725, started 06:14:25Z) concluded success. That pr-contract run started after every other run had concluded, so it is the body-check evidence.
+  - The body's `## Red checks` names and answers the reds of the range at 11e8075d: pr-contract and gate, tests / browser at 2cfb8b96, governance / delivery-status, and the local entities.py pair. Each one names a cheaper detector or states that none exists. It names no red that this head shows, because the head shows none.
+- **6. Three-round rule.** This is round 3, and I flag nothing beyond the open carry above. I did not re-derive the body's mutant outputs M1–M20, MB, MC, MH1 or MH2, its harmony px figures (round 2 re-measured C1), card_drift's `44 state(s) moved and claimed`, the structure and archscore lines, or `closure.py select`. They describe code that is byte-identical to what round 2 measured, and CI's mutation, closures, arch-score and fast jobs are green at this head.
