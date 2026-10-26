@@ -1,0 +1,9 @@
+ALL 117 closure shrink pins PASSED
+ALL 112 HARNESS HEADER CHECKS PASSED
+STRUCTURE RATCHET PASSED
+TOTAL: 0 error(s) across 50 policy file(s)
+  53 2385 dev/governance/rules/claim-files.md
+claims hygiene: origin/main ok
+Architecture score: dS +0.0000 NULL
+
+RULES-SYNC ok: every generated rule is the generated form of its source
