@@ -2327,9 +2327,7 @@
     "R10-N-move-stale-path"
    ],
    "after": [],
-   "carry": [
-    "Whether the 35 evidence-only seams are by design under D2 is a brief edit owed to R10-BRIEFS-FOLD."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
