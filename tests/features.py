@@ -18623,11 +18623,11 @@ def _drift_run(unhealthy_day=None):
         c._accuracy.temperature_bias = lambda: 0.9
         for d in range(1, 6):
             if d == unhealthy_day:
-                c._inputs_healthy = lambda: False
+                c._inputs_unhealthy = lambda: "stale:indoor_temp_entity"
             _dt_mod.now = lambda d=d: base + timedelta(days=d)
             _asyncio.run(c._async_watch_learning_drift())
             if d == unhealthy_day:
-                del c._inputs_healthy
+                del c._inputs_unhealthy
     finally:
         _dt_mod.now = real_now
     return c
@@ -27901,7 +27901,7 @@ for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
 _lf_u = _lf_drive("unavailable", cycles=2)
 R.check(
     "the input-health gate on the drift watchdog sees it too",
-    not _lf_u._inputs_healthy(),
+    _lf_u._inputs_unhealthy() is not None,
     "an unavailable sensor must suppress a drift alarm exactly as a stale "
     "one does, or the watchdog rolls back learners the sensor broke",
 )
@@ -31310,7 +31310,7 @@ R.check(
     "the freeze is plant-wide: it does not depend on which key is asked about",
     _psd_offline._learning_frozen("indoor_temp_entity")
     == pump_signals.FREEZE_OFFLINE
-    and not _psd_offline._inputs_healthy(),
+    and _psd_offline._inputs_unhealthy() == pump_signals.FREEZE_OFFLINE,
     "the pump being absent invalidates the interval, not one reading of it",
 )
 
@@ -70655,6 +70655,77 @@ R.check(
     and abs(_he_led._last_interval_record["realised"]["electrical_power"] - 1.0) < 1e-9,
     f"space {_he_tot['space_energy_kwh']} dhw {_he_tot['dhw_energy_kwh']} diag "
     f"{_he_led._last_interval_record['realised']['electrical_power']}",
+)
+
+
+# The resolution bound was re-measured at the real span (design carry
+# dr3-eps-at-span): a 30 min cadence closes at 1.0 h, where the design's 0.5
+# refuses an integer-kWh counter at 1.5 kW (one step against 1.5 expected).
+_he.HEAT_RESOLUTION_EPS, _he_eps_saved = 0.5, _he.HEAT_RESOLUTION_EPS
+try:
+    _he_i15_half = _he_int(1.5)
+finally:
+    _he.HEAT_RESOLUTION_EPS = _he_eps_saved
+R.check(
+    "null control for the resolution bound: at the design's 0.5 the one-hour "
+    "span refuses every integer-kWh span at 1.5 kW, which 1.0 reads",
+    _he_i15_half[0] > 100 and _he_i15_half[1] == 0 and _he_i15[1] == _he_i15[0],
+    f"0.5: {_he_i15_half}; 1.0: {_he_i15}",
+)
+
+# D15 lead L6: a grid-import house meter holds 0 W for hours while PV covers
+# the house, reporting only on change; it is healthy, so its on-change limit is
+# unbounded. Null control: one seen re-reporting, then silent 40 min, is stale.
+_he_house = _fb_const.CONF_HOUSE_POWER_ENTITY
+
+
+def _he_house_read(**stamps):
+    return _fmReader(FakeHass({"sensor.house": FakeState("0", unit="W", **stamps)}),
+                     {_he_house: "sensor.house"}, now=lambda: NOW).read_power_kw(_he_house)
+
+
+_he_pv_hold = _he_house_read(last_updated=minutes_ago(240, NOW))
+_he_pv_dead = _he_house_read(last_updated=minutes_ago(300, NOW), last_reported=minutes_ago(40, NOW))
+R.check(
+    "a house meter holding 0 W for 4 h on change only reads 0 kW (PV covering "
+    "the house); one that re-reported and then fell silent 40 min is stale",
+    _he_pv_hold.ok and _he_pv_hold.value == 0.0 and _he_pv_dead.problem == "stale",
+    f"hold {_he_pv_hold.problem} {_he_pv_hold.value!r}; dead {_he_pv_dead.problem}",
+)
+
+
+# D15 lead L9: a snapshot taken on an unhealthy day names the input that made
+# it so (worst of day: the first reason), so the next diagnostics bundle
+# answers which input marked each weekly snapshot unhealthy. Null control: a
+# healthy day records none. Driven through the real heartbeat.
+def _he_heartbeat(reasons):
+    c = _t2_coord()
+    c._snapshots_loaded = True
+    feed = iter(reasons)
+    c._learning_frozen = lambda *keys: next(feed)
+    saves = []
+
+    async def _save():
+        saves.append(len(c._snapshot_ring.snapshots))
+
+    c._async_save_snapshots = _save
+    for _ in reasons:
+        c._snapshot_ring.snapshots.clear()
+        _asyncio.run(c._async_watch_learning_drift())
+    return c._snapshot_ring.snapshots[-1]
+
+
+_he_l9_bad = _he_heartbeat(["stale:outdoor_temp_entity"])
+_he_l9_good = _he_heartbeat([None])
+R.check(
+    "a snapshot on an unhealthy day names the input that made it so, and a "
+    "healthy day names none (D15 L9)",
+    _he_l9_bad["healthy"] is False and _he_l9_bad["unhealthy_input"] == "stale:outdoor_temp_entity"
+    and _he_l9_good["healthy"] is True and _he_l9_good["unhealthy_input"] is None
+    and _he_store.admitted("snapshots", {"snapshots": [
+        {"healthy": False, "unhealthy_input": "stale:outdoor_temp_entity"}, {"healthy": True, "unhealthy_input": None}]}),
+    f"bad {_he_l9_bad.get('healthy')} {_he_l9_bad.get('unhealthy_input')!r}; good "
+    f"{_he_l9_good.get('healthy')} {_he_l9_good.get('unhealthy_input')!r}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

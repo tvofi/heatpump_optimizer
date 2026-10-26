@@ -473,6 +473,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     "snapshots": {
         "snapshots/#/taken_at": _AT, "snapshots/#/healthy": _FLAG, "snapshots/#/accuracy": _ABSENT,
         "snapshots/#/alarmed_at_capture": _FLAG,
+        "snapshots/#/unhealthy_input": Domain("text", null=True),
         "snapshots/#/accuracy/samples": Domain("int", 0, HISTORY_LENGTH),
         "snapshots/#/accuracy/temperature_mae": Domain("real", 0.0, null=True),
         **{f"snapshots/#/accuracy/{k}": _N for k in (

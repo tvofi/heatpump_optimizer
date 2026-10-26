@@ -128,7 +128,7 @@
   "_init_runtime_state": "core",
   "_init_thermal_learning": "learning",
   "_input_health_view": "views",
-  "_inputs_healthy": "core",
+  "_inputs_unhealthy": "core",
   "_insight_view": "views",
   "_interval_space_power": "grid",
   "_known_prices_for": "fetch",
