@@ -2328,7 +2328,6 @@
    ],
    "after": [],
    "carry": [
-    "RCA `dev/audit/rca/R10-N-move-stale-path.md` at d23205d13; its countermeasure ships here.",
     "Whether the 35 evidence-only seams are by design under D2 is a brief edit owed to R10-BRIEFS-FOLD."
    ],
    "architect_note": null,
