@@ -1,0 +1,12 @@
+== b281d0325 tree, base record_row
+ENUMERATE 370 call(s) for 185 merge(s) over v7.0.4..HEAD, per push to main
+rc=0
+== b281d0325 tree, fixed record_row
+ENUMERATE 185 call(s) for 185 merge(s) over v7.0.4..HEAD, per push to main
+rc=0
+== null control SINCE=HEAD (fixed)
+ENUMERATE 0 call(s) for 0 merge(s) over HEAD..HEAD, per push to main
+rc=0
+== null control SINCE=HEAD (base)
+ENUMERATE 0 call(s) for 0 merge(s) over HEAD..HEAD, per push to main
+rc=0
