@@ -23,6 +23,19 @@ What changes:
   - **C3:** `DIALOG_FONT_PX_MAX` 21 → 18.
   - **Drift states:** `savings_page`, `savings_empty`, `health_page`, `setup_not_published` and `advisor_empty` are added to `tests/card_drift.mjs`.
 
+Round 2, the fix review's block on `2cfb8b96` (`tests / browser` red: 29 P9 grid cells threw on screenshot, and pop-ups left the viewport by 4.5–6.7 px). Its cause is H1's 14 px floor, in three places:
+
+- **The dialog's tooltip outgrew its phone-width chart.** `dialog.expanded .tooltip` is 0.92 em. On the old 12 px floor that came to 11.04 px, about the tile's own 0.78 em of 14 px. On the 14 px floor it is 12.88 px, and the shared-step tooltip, with ten rows and two prose blocks, ran past the bottom of the 189 px chart it must stay inside (R9-UX-1). Inside the `<=600 px` media query it now keeps the tile's 0.78 em. At 768 and 1280 it is unchanged.
+- **The slot menu wrapped after it was clamped.** An absolutely positioned box shrinks to fit the room to the right of its `left`. `openMenu` measured the menu before placing it (one line), then placed it near the chart's right edge, where 14 px text wraps to two lines. The 51 px box ran past the window's bottom edge. `.slot-menu` now has `width: max-content; max-width: 100%`, so the size it is measured at is the size it is placed at.
+- **The P9 grid could not ink pairs off-screen.** The grid screenshots each pair of text runs whose boxes intersect, to compare their ink, and a screenshot only clips what the viewport shows. Carry 4's replay scroller puts the savings replay's y-axis labels below the fold at 375. The setup map's sideways scroller puts the new Configure buttons past the scroller's edge. Every such cell threw. `reveal()` in `tests/card_browser.mjs` scrolls a pair into view before inking it. It leaves a pair that is already in view where it is, and refuses a pair whose two runs scrolled apart, since one clip would then compare the wrong pixels.
+- **The grid's ink was blind to `<tspan>` glyphs, at the base too.** `inkMode` hides `*` with `!important` and re-shows only the marked run. That rule also matched a `<text>`'s tspans, so a wrapped Configure page name screenshotted blank and could never share ink. Without this fix, the null control below reads 0 even at 1280. The tspans of the marked run are now shown with it.
+
+Alternatives considered for round 2:
+
+- **Clamping the menu to the window as well as its chart** was built and then dropped. Its mutant left the grid green (no cell needs it), so it was unpinned, and the wrap above explained the 1280 cell on its own.
+- **Lowering the dialog's tooltip at every width** (0.78 em everywhere) lost. It would shrink the 1280 tooltip below the base's 11.9 px where the chart has room.
+- **Moving the pairs into the viewport by resizing the page** lost. It would change the layout being measured.
+
 Design choices, named so a later seat reads them as choices:
 
 - **The "not modelled" reason line says *needs the two-tank layout*, not the prototype's *needs 2 zones, valve, probe*.** `topology_layout_valid` accepts `single_tank_valve` even when all three are present (it is the stored off-switch for the two-tank model), so the prototype's wording would be false for that install.
@@ -40,9 +53,9 @@ Alternatives considered:
 
 ## Head
 
-fd23cf4807d696fb59b6925841ad69c0fbb35802
+59c744f4c71b38563b962a521aae83596fbc48d0
 
-Merge base `f3ffb1c635327365841ad430ce8fad7488a02d61`: `origin/main` was merged in (commit `29e4a13c3`, no conflict) after the first handoff `cd87041dd` was refused by prepr. The branch was cut at `da12aa37d`; main's 167 commits between the two touch no file under `custom_components`, `tests/golden` or the card rig (`git diff --name-only da12aa37d f3ffb1c` lists delivery, triage, roster, `tools/site`, merge-subject harnesses, `tests/closures.json`, `tools/policy/agreement.mjs` and `friction_issues.mjs`, one role file). The figures below marked `f3ffb1c` were re-run at this merge base; those marked `da12aa37d` measure card and solver output that file list shows main did not move.
+This continues #2841's head `2cfb8b9660f5940d27a8ed38c5c54e77e9a821e3` with one commit (`59c744f4c`, the round-2 fix). The merge base is `5261ba84139d9459465ccd842b61b04c2b1329d8`, which `2cfb8b96` merged in (`f5234d65e`). `git merge-tree --write-tree origin/main HEAD` against `origin/main` `7d2056970e08` (fetched 2026-10-26) reports no conflict, so main was not merged again (fixer.md step 6). Main's 80 commits since the merge base leave this group's roster entry byte-identical (sha1 of the canonical JSON matches at both refs). Figures below marked `5261ba84` were re-run in this seat. Those marked `f3ffb1c` or `da12aa37d` are round 1's: they measure card and solver output that no commit since has moved, as the fix review re-measured at `5261ba84`.
 
 ## Mutation proof
 
@@ -73,6 +86,15 @@ M11, M14, M15, M16, M17 and M19 were run again after `cssRule` replaced the per-
 
 Failing first: the head's `tests/card.mjs` run against the base card goes red on 21 of the new checks by name. It then aborts at `the row arithmetic that sets each box height is unchanged`, which imports `SETUP_CHIP_LINE`, a production symbol only the head defines.
 
+Round 2's mutants were each applied to the fixed card or lane, then the P9 grid was run over the states named (a scratch driver that runs only `p9Grid` from `tests/card_browser.mjs`, filtered to those states), and the file was restored (`cmp` against a saved copy):
+
+- MB, `width: max-content; max-width: 100%; box-sizing: border-box;` deleted from `.slot-menu` → `P9 grid: no pop-up leaves the viewport or its chart` (`div.slot-menu 6.7px outside | div.slot-menu 5.3px outside`, 5 cells).
+- MC, the phone `dialog.expanded .tooltip { font-size: 0.78em; }` deleted → `P9 grid: no pop-up leaves the viewport or its chart` (`div.tooltip 49.5px outside`, 5 cells).
+- MH1, the `scrollIntoView` line deleted from `reveal()` → `P9 grid: every cell mounted and every driver step found its target` (`threw 28: text "-20" x text "0" cannot be inked: outside the viewport after scrolling to it`).
+- MH2, the `tspan` selector deleted from `inkMode`, under the null control's perturbation below → `P9 grid: no two text runs share ink` reads `0`, the blind reading. With the selector present, the same perturbation reads red.
+
+Failing first: `HPO_BROWSER_SCOPE=full node tests/card_browser.mjs` at `2cfb8b96`, the PR head, fails `P9 grid: every cell mounted and every driver step found its target` (threw 29) and `P9 grid: no pop-up leaves the viewport or its chart` (10). Those are the review's two checks, reproduced in this seat. At `59c744f4c` both pass.
+
 ## Null control
 
 - **The pre-study's own harnesses** (`docs/design/card-symbols/NOTES.md` at `2cc4d5eb`, blob `b38e9dc904c78fbfa0c9e9d95aaf165f13315fe1`), run unchanged at the base, reproduce NOTES exactly: `box() calls: 8`, `title keys … 11`, `CSS rules naming .setup-box: 2`; and the configure driver reports 5 chips, all with the same entry destination.
@@ -88,6 +110,9 @@ Failing first: the head's `tests/card.mjs` run against the base card goes red on
 - **The themed arm for H3a is not a no-op,** contrary to the study's prediction. With a theme defining `--secondary-background-color` (#111111 as the stand-in), the row reads 14.44:1 at the base and 11.08:1 at the head: it now takes the card's own `--hpo-surface-2` pair in every theme, as V5 requires. Both clear AA by a wide margin.
 - **The instrument fix's control:** the exact-derivative `flowAtMid` applied to the merge base's `tests/card.mjs` alone leaves the base's verdicts unchanged (all checks pass, `the six cases really are six different slopes` included).
 - **The figures' control:** regenerating `docs/img/model/hydronic-*.svg` at the base does not reproduce the committed files. They were already stale there (12 `setup-contour` and 1–2 `setup-coil` matches each in the committed files; 0 of either when regenerated at the base). So the figure diff in this PR is that staleness plus this card change.
+- **Round 2's ink instrument.** The perturbation draws each Configure page name on its label's baseline (`yTop + 13` for `yTop + 25` in `setupSvg`'s `chip`), which must share ink. Over `setup_two_tank`, the grid at `59c744f4c` reports `no two text runs share ink` red: 611–696 px per pair at 1280, and 156 px at 375 dark-on-light, a pair that sits past the scroller's edge and that `reveal()` scrolled to. The same perturbation without the `tspan` selector reads 0 at every width.
+- **Round 2's pop-up control, the base.** At `5261ba84`, over the same driver, `shared_steps_hover` and `menu_right_edge` at 375 pass. The tooltip is 178 px tall at 11.04 px, inside its 189 px chart, and the menu is one 31 px line at 12 px. At `2cfb8b96` the same cells are 231 px and 51 px.
+- **Round 2 leaves H1–H4's measurements alone.** `node dev/audit/harnesses/r10_card_harmony.mjs` at `2cfb8b96` and at `59c744f4c` writes byte-identical JSON (`cmp`). The study's harness drives no hover or menu, so neither change reaches it.
 
 ## Figures
 
@@ -122,6 +147,13 @@ Failing first: the head's `tests/card.mjs` run against the base card goes red on
 - Scoped gate, from `python3 tests/closure.py select --diff f3ffb1c635327365841ad430ce8fad7488a02d61`: `MODE: SCOPED -- 24 script(s) run, 9 scoped out`.
   - Run with `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=da12aa37d tests/run.sh`: 23 of the 24 green.
   - `tests/entities.py` fails 2 of 2445 checks at this head and the same 2 at the merge base (see Red checks).
+- Browser lane, from `HPO_BROWSER_SCOPE=full node tests/card_browser.mjs` after `python3 tests/plan_view.py`: rc 1 at `2cfb8b96` (the two P9 checks above), and `ALL BROWSER CHECKS PASSED` at `59c744f4c`. The grid's own summary line at `59c744f4c` reads `324 cells, 20375 text runs, 850 box-intersecting pairs inked`.
+- Card drift at `59c744f4c`, from `node tests/card_drift.mjs 5261ba84139d9459465ccd842b61b04c2b1329d8`: `44 state(s) moved and claimed, 1 identical`, the same line as round 1. Round 2 moves only stylesheet text, which the existing claims classify.
+- `node tests/card.mjs` at `59c744f4c`: `ALL CARD CHECKS PASSED`.
+- `python3 tests/structure.py` at `59c744f4c`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff 5261ba84139d9459465ccd842b61b04c2b1329d8 HEAD`: `Architecture score: dS +0.0000 NULL`.
+- Scoped gate, from `python3 tests/closure.py select --diff 5261ba84139d9459465ccd842b61b04c2b1329d8`: `MODE: SCOPED -- 24 script(s) run, 9 scoped out`. That is the same 24 scripts as before round 2: `tests/card_browser.mjs` is not a `run.sh` script, and its CI job is `tests / browser`.
+- The 24 scripts at `59c744f4c`, from `PYTHONPATH=tests/hastub GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=5261ba84139d9459465ccd842b61b04c2b1329d8 bash tests/run.sh`: 23 green. `tests/entities.py` reads `2 of 2445 ENTITY CHECKS FAILED`, the two named under Red checks, and `PYTHONPATH=tests/hastub python3 tests/entities.py` at `5261ba84` reads the same line with the same two names.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at `59c744f4c`: `no closures, fast, wave-script or instrument red predicted`.
 
 ## Red checks
 
@@ -132,10 +164,12 @@ Failing first: the head's `tests/card.mjs` run against the base card goes red on
 - **The agreement lane** went red on this branch: `UNREGISTERED "[.*+?^${}()|[\\]\\\\]" in .claude/workflows/policy_lint.mjs, tests/card.mjs`. It was answered before the handoff by replacing the second spelling with `cssRule`, a plain string search (commit `4c9985b80`); that answer was incomplete. The first handoff (`cd87041dd`) was refused by the same lane for three literals shared by `tests/card.mjs` and this PR's own harness `r10_card_voice_states.mjs`: `"Wood furnace tank"`, `class="setup-chip-hit"` and `class="setup-dest"`. Registering them in `SHARED_GRAMMARS` (commit `15de3f725`) turned the branch's lane green, but `tools/pr/ci_predict.py` predicted `governance / wave-script` red anyway: that job runs the base's copy of `agreement.mjs` over the branch, so a registry entry added on a branch is not read. Commit `fd23cf480` reverts the registration (`agreement.mjs` is byte-identical to main's) and has the harness count the three by string search instead. Its output at this head is byte-identical before and after (`cmp` of the four JSON lines). The lane now reads `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`. The cheaper detector existed and ran in this seat (`prepr.sh` step 3f4, about 7 s, and the `ci predict` step).
 - **The claim-files line** names both `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` as changed. Both are real claims, kept: each line names its fixture and direction (the five coord captures ADD-ONLY, 2 leaves each; the 44 card states as classified under Figures), and both files' `claims-for:` reads `7.0.4`, equal to `VERSION`. The removed `R10-LEARNER-ETA` and `R10-SCORES` lines are main's earlier branches' claims, which `claim-files.md` says excuse only the diff that wrote them.
 - **Two closure INERT READS reds** were predicted for the new harnesses (`tools/pr/ci_predict.py`) and repaired before the handoff with `--apply-inert`.
+- **`tests / browser`** went red on `2cfb8b96` (the fix review's block). The cheaper detector existed: this lane run locally before the handoff, about 4 minutes in this container. It was not run because round 1 kept to the scoped gate's 24 scripts, and that set never includes `tests/card_browser.mjs`. It runs as its own CI job. The detector's standing cost is those 4 minutes on every card-touching handoff. `fixer.md` step 5 names only `scope.run` and `run_always`, so the lane is a gap in what a fixer is told to run for a card diff. That gap is carried under Forward-carry rather than fixed here, since the role contract is policy. Round 2 ran the full lane at both ends (Figures).
 
 ## Forward-carry
 
-none
+- **The P9 grid's states leak into one another, masking a base collision on the tile.** `p9Grid` mounts every state of a cell in one browser context, so the legend choice `hidden_series` stores in localStorage holds for every state after it. With `localStorage.clear()` after each `page.goto` (measured, then reverted), the full grid goes red on `no two text runs share ink`, 30 pairs. They are `text "0" x text "1"`, `"1" x "2"` and `"2" x "3"`, 2–4 px each, in `wood_alert` and `wood_lane` at 375 in all five themes. The same 30 pairs read red at the base `5261ba84` under the same reset, and 0 with the leak at both ends. So the collision is the base's, and this PR does not cause it. The grid's state set therefore measures less than its names say: a later card seat can trust that a P9 cell measured its named state only once the reset is in, with the tile collision fixed in the same change. Re-measure at that seat's own merge base. `R10-UX-HEALTH` is the next live group that changes the card and runs this grid. This seat's brief allows no push but the two return refs, so the orchestrator writes the brief text. Carry: R10-UX-HEALTH
+- **The browser lane is not in what a card fixer runs.** See Red checks. The destination is `fixer.md` step 5, a policy change the owner approves. Carry: #201
 
 ## Friction
 
