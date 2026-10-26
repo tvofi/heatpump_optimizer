@@ -3833,8 +3833,7 @@ def _p2_registry(sources):
                  # hot-water SPEC to judge an off window against it; it
                  # never answers whether hot water is enabled.
                  "services.py::_refuse_quiet_conflicts": "overlap validation",
-                 "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
-                     "windows update",
+                 "coordinator.py::_thermal_param_changes": "windows update",
                  "quick_setup.py::stored_answers": answer,
                  # F1.2's two reads (its carry-in to this registry):
                  "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_dhw":
@@ -4432,7 +4431,7 @@ if _EntryConfig is not None:
         c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
                                        lower_floor_temperature=19.9)
         c._current_action = {"power": 2.0}
-        asyncio.run(c._async_learn_lower_floor_loss())
+        asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
         return c._lower_floor_loss_samples
 
     def _ec_widening(tripped):
@@ -4551,9 +4550,11 @@ if _EntryConfig is not None:
 # value) is not a mapping read and is not returned.
 #: (module, function, CONF name) -> why the read is not an entry-config read.
 _EC_DISPOSITIONS = {
-    ("coordinator.py", "async_update_thermal_params", key): "the set_thermal_params service's call data"
-    for key in ("CONF_BUFFER_COOLING_RATE", "CONF_DHW_COOLING_RATE",
-                "CONF_DHW_SCHEDULE_ENABLED", "CONF_DHW_WINDOWS")
+    ("coordinator.py", function, key): "the set_thermal_params service's call data"
+    for function, key in (
+        ("async_update_thermal_params", "CONF_BUFFER_COOLING_RATE"),
+        ("async_update_thermal_params", "CONF_DHW_COOLING_RATE"),
+        ("_thermal_param_changes", "CONF_DHW_WINDOWS"))
 }
 #: Modules whose readers still take the merged mapping, and why.
 _EC_RESIDUAL = {
@@ -39131,7 +39132,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_async_load_thermal_learning"): 1,
         ("coordinator.py", "_async_setup_peak_guard"): 1,
         ("coordinator.py", "async_restore_learned_snapshot"): 1,
-        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
     },
     "one record per failed call, an event and not a held condition (the "

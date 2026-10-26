@@ -735,7 +735,7 @@ def check_vent_feed() -> None:
     fed0 = coord._vent_cusum.last_fed
     stat0 = coord._vent_cusum.stat
     scale0 = coord._house_heat_loss_scale
-    asyncio.run(coord._async_learn_house_heat_loss())
+    asyncio.run(coord._async_learn_house_heat_loss(coord._close_fabric_interval()))
     R.check(
         "vent tripped + overlay live: the learner reports the ventilation "
         "reason and stays folded (no scale move)",

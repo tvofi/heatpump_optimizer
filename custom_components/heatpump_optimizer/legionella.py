@@ -50,7 +50,7 @@ class LegionellaGuard:
         self,
         hass: HomeAssistant,
         entry_id: str,
-        params: ThermalParameters,
+        params: Callable[[], ThermalParameters],
         config: dict[str, Any],
         *,
         action: Callable[[], CurrentAction],
@@ -58,6 +58,7 @@ class LegionellaGuard:
         dhw_blocked: Callable[[], bool],
     ) -> None:
         self.hass = hass
+        #: Reads the coordinator's published parameters, never holds a snapshot.
         self._params = params
         self._config = config
         #: The action the plan currently commands, observed and never held.
@@ -187,7 +188,10 @@ class LegionellaGuard:
         nothing. With the flag off the historical instant-credit rule is
         untouched.
         """
-        target = float(self._params.dhw_legionella_temp)
+        # #2674: the store's startup read would land on top of a cycle
+        # credited before it, and the credit would be lost.
+        await self.store.async_wait_for_read()
+        target = float(self._params().dhw_legionella_temp)
         now = dt_util.now()
 
         if EntryConfig.from_mapping(self._config).dhw_free_disinfection_enabled:
@@ -265,7 +269,7 @@ class LegionellaGuard:
         neither credited nor recorded, with the countdown pinned at its
         overdue value for ever.
         """
-        params = self._params
+        params = self._params()
         if not params.dhw_legionella_enabled:
             self.boost_active = False
             self.boost_peak = None
@@ -498,7 +502,7 @@ class LegionellaGuard:
         as the two config-flow pages; the flow's own validator warns at save
         time, but a service call never touches a form.
         """
-        params = self._params
+        params = self._params()
         legionella = float(params.dhw_legionella_temp)
         setpoint = float(params.dhw_setpoint)
         # The stock pair says nothing. `dhw_enabled=True` alone gives 55/60,
@@ -637,7 +641,7 @@ class LegionellaGuard:
 
     def due_in_hours(self) -> float | None:
         """Hours left before the next anti-legionella cycle is required."""
-        params = self._params
+        params = self._params()
         if not params.dhw_legionella_enabled:
             return None
         since = self.hours_since()
@@ -661,7 +665,7 @@ class LegionellaGuard:
         anywhere else. Putting hot water back into the plan would promise
         water the hardware refuses to heat.
         """
-        params = self._params
+        params = self._params()
         due = self.due_in_hours()
         overdue_days: int | None = None
         if (
