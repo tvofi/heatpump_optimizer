@@ -91,7 +91,7 @@ KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
     "handoff-hold-malformed": "derived", "handoff-held": "derived",
     "design-build": "derived", "review-owed": "derived",
-    "probe-refused": "derived", "confirm-owed": "derived",
+    "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
