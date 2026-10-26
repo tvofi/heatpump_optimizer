@@ -29,7 +29,7 @@
 export const meta = {
   name: 'audit-plan',
   description: 'P3: the architect/planner seat and the plan reviewer between audit-verify and the fix wave; the roster draft, ADRs and move plan on plan/r<N>',
-  phases: ['Read the draft', 'Plan the architecture', 'Plan review', 'Hand off'],
+  phases: ['Read the draft', 'Plan the architecture', 'Publish the plan', 'Plan review', 'Record the verdict'],
 }
 
 const round = args?.round ?? 11
@@ -117,50 +117,68 @@ const writePlan = await agent(
 if (!writePlan) throw new Error('the plan write failed (agent returned null); relaunch')
 if (writePlan.brief_lint_rc !== 0) throw new Error(`the roster draft fails brief_lint (rc=${writePlan.brief_lint_rc}); fix it before review`)
 
+phase('Publish the plan')
+const publish = await agent(
+  `In ${worktree}, commit ${planDir}/ and ${draft} with the subject "audit round ${round}: P3 plan" (no footer, no session link) and publish that commit as the constant ref ${planRef}: run tools/audit/seat/ref_privacy.py guard --ref ${planRef} first, then git push origin HEAD:refs/heads/${planRef} and read back origin's tip. A refused or failed push is returned, never forced. Do not open a pull request.
+Return JSON {sha: <the published commit, 40 hex>, pushed: <bool>, readback: <string>, command: <the exact command line the orchestrator runs if pushed is false>}.`,
+  { label: 'plan/publish', phase: 'Publish the plan', schema: { type: 'object', required: ['sha'], properties: { sha: { type: 'string' }, pushed: { type: 'boolean' }, readback: { type: 'string' }, command: { type: 'string' } } } },
+)
+if (!publish) throw new Error('the plan publish failed (agent returned null); relaunch')
+if (!/^[0-9a-f]{40}$/.test(String(publish.sha))) throw new Error(`the plan publish returned ${JSON.stringify(publish.sha)}, not a 40-hex commit`)
+let planSha = String(publish.sha)
+log(`plan ${planRef} published at ${planSha}${publish.pushed === false ? ` (NOT PUSHED; the orchestrator runs: ${publish.command ?? '(no command returned)'})` : ''}`)
+
+// The reviewer reviews the plan at its published SHA, and says which SHA it
+// answered for: a verdict on a tree the ref no longer holds is not this plan's
+// verdict (`plan-review.md`, "at that SHA").
 phase('Plan review')
-const review = (n) => agent(
-  `You are the architecture-plan reviewer of audit round ${round}, never the architect. Work in ${worktree} (from ${repo}); the plan is ${planDir}/PLAN.json, ${planDir}/PLAN.md and its ADRs. Read dev/governance/roles/plan-review.md and attack the plan at its current tree, one line per point:
+const reviewed = (v, sha, n) => {
+  if (String(v.sha) !== sha) throw new Error(`plan/review-${n} answered for ${JSON.stringify(v.sha)}, the plan ref is at ${sha}; a review of another tree is not this plan's verdict`)
+  return v
+}
+const review = (n, sha) => agent(
+  `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
 1. recount the triage (every verified finding once, with a reason);
 2. attack the three largest groups and the three on the critical chain (is the owning seam real in the code? is any edge a file order edge?);
 3. re-derive each move's predicted dS from its prototype or prediction (a prediction resting on a renamed or split count, a deleted feature or a scorer change is metric-gamed);
 4. check the target's conditions: admissible end to end, the spread rule, the holdouts named, fitness functions per move;
 5. check the time: re-run the projection, the critical chain and the hot-file order;
 6. check the ADRs against the scenarios.
-Return JSON {verdict: "approve"|"revise", points: [string]}.`,
-  { label: `plan/review-${n}`, phase: 'Plan review', schema: { type: 'object', required: ['verdict', 'points'], properties: { verdict: { type: 'string', enum: ['approve', 'revise'] }, points: { type: 'array', items: { type: 'string' } } } } },
+Return JSON {verdict: "approve"|"revise", sha: "${sha}", points: [string]}.`,
+  { label: `plan/review-${n}`, phase: 'Plan review', schema: { type: 'object', required: ['verdict', 'sha', 'points'], properties: { verdict: { type: 'string', enum: ['approve', 'revise'] }, sha: { type: 'string' }, points: { type: 'array', items: { type: 'string' } } } } },
 )
-let verdict = await review(1)
-if (!verdict) throw new Error('the plan reviewer failed (agent returned null); relaunch')
+let verdict = reviewed(await review(1, planSha), planSha, 1)
 let revisions = 0
 while (verdict.verdict === 'revise' && revisions < 2) {
   revisions += 1
   const revised = await agent(
-    `You are the architect/planner of audit round ${round}, in ${worktree}. The plan reviewer returned revise with these points: ${JSON.stringify(verdict.points)}. Address each one in ${planDir}/ (the ADRs and PLAN.md; update PLAN.json's moves and projected dS if a prediction changes) and re-run the roster's brief_lint. Do not argue a point away without a measurement: the reviewer's next pass reads the plan, not your reply. Return JSON {addressed: [string]}.`,
-    { label: `plan/revise-${revisions}`, phase: 'Plan review', schema: { type: 'object', required: ['addressed'], properties: { addressed: { type: 'array', items: { type: 'string' } } } } },
+    `You are the architect/planner of audit round ${round}, in ${worktree}. The plan reviewer returned revise at ${planSha} with these points: ${JSON.stringify(verdict.points)}. Address each one in ${planDir}/ (the ADRs and PLAN.md; update PLAN.json's moves and projected dS if a prediction changes), re-run the roster's brief_lint, then commit with the subject "audit round ${round}: P3 plan revision ${revisions}" and push it as the constant ref ${planRef} after tools/audit/seat/ref_privacy.py guard --ref ${planRef}, with git push origin HEAD:refs/heads/${planRef}; read back the ref's tip. Do not argue a point away without a measurement: the reviewer's next pass reads the plan, not your reply. Return JSON {sha: <the pushed commit, 40 hex>, addressed: [string]}.`,
+    { label: `plan/revise-${revisions}`, phase: 'Plan review', schema: { type: 'object', required: ['sha', 'addressed'], properties: { sha: { type: 'string' }, addressed: { type: 'array', items: { type: 'string' } } } } },
   )
   if (!revised) throw new Error(`the revision ${revisions} failed (agent returned null); relaunch`)
-  verdict = await review(revisions + 1)
-  if (!verdict) throw new Error('the plan reviewer failed on a later pass (agent returned null); relaunch')
+  if (!/^[0-9a-f]{40}$/.test(String(revised.sha))) throw new Error(`revision ${revisions} returned ${JSON.stringify(revised.sha)}, not a 40-hex commit`)
+  planSha = String(revised.sha)
+  verdict = reviewed(await review(revisions + 1, planSha), planSha, revisions + 1)
 }
 const ownerDecision = verdict.verdict !== 'approve'
 if (ownerDecision) log(`plan review did not approve after ${revisions} revision(s): the open points go to the owner, never to a third round: ${JSON.stringify(verdict.points)}`)
 
-phase('Hand off')
+phase('Record the verdict')
 const handoff = await agent(
-  `Hand off the P3 plan of audit round ${round} from ${worktree}. The reviewer's last verdict is ${JSON.stringify(verdict)}${ownerDecision ? ' and it is NOT an approval: the owner decides with these open points, so say so in the commit body' : ''}.
-Write ${planDir}/REVIEW.md with the verdict and every point. Commit ${planDir}/ and ${draft} with the subject "audit round ${round}: P3 plan" (no footer, no session link). Push the commit as the constant ref ${planRef}: run tools/audit/seat/ref_privacy.py guard --ref ${planRef} first, then git push origin HEAD:refs/heads/${planRef} and read back the remote tip; a refused or failed push is returned, never forced. Do not open a pull request.
-Return JSON {ref: "${planRef}", sha: <40-hex>, pushed: <bool>, readback: <string>, command: <the exact command line the orchestrator runs if pushed is false>}.`,
-  { label: 'plan/handoff', phase: 'Hand off', schema: { type: 'object', required: ['ref', 'sha'], properties: { ref: { type: 'string' }, sha: { type: 'string' }, pushed: { type: 'boolean' } } } },
+  `Record the P3 verdict of audit round ${round} in ${worktree}. The reviewer's last verdict is ${JSON.stringify(verdict)} at ${planSha}${ownerDecision ? ' and it is NOT an approval: the owner decides with these open points, so say so in the file and the commit body' : ''}.
+Write ${planDir}/REVIEW.md whose first line is exactly "Plan review: ${verdict.verdict} ${planSha}", followed by every point. Commit it with the subject "audit round ${round}: P3 plan verdict" (no footer, no session link) and push it as the constant ref ${planRef}: run tools/audit/seat/ref_privacy.py guard --ref ${planRef} first, then git push origin HEAD:refs/heads/${planRef} and read back the ref's tip. A refused or failed push is returned, never forced. Do not open a pull request.
+Return JSON {ref: "${planRef}", sha: <the pushed verdict commit, 40 hex>, reviewed: "${planSha}", pushed: <bool>, readback: <string>, command: <the exact command line the orchestrator runs if pushed is false>}.`,
+  { label: 'plan/verdict', phase: 'Record the verdict', schema: { type: 'object', required: ['ref', 'sha'], properties: { ref: { type: 'string' }, sha: { type: 'string' }, reviewed: { type: 'string' }, pushed: { type: 'boolean' }, readback: { type: 'string' }, command: { type: 'string' } } } },
 )
-if (!handoff) throw new Error('the plan handoff failed (agent returned null); relaunch')
-if (!/^[0-9a-f]{40}$/.test(String(handoff.sha))) throw new Error(`the handoff returned ${JSON.stringify(handoff.sha)}, not a 40-hex commit`)
-log(`plan ${planRef} at ${handoff.sha}${handoff.pushed === false ? ` (NOT PUSHED; orchestrator runs: ${handoff.command ?? '(no command returned)'})` : ''}`)
+if (!handoff) throw new Error('the plan verdict record failed (agent returned null); relaunch')
+if (!/^[0-9a-f]{40}$/.test(String(handoff.sha))) throw new Error(`the verdict record returned ${JSON.stringify(handoff.sha)}, not a 40-hex commit`)
+log(`plan ${planRef}: reviewed ${planSha}, verdict recorded at ${handoff.sha}${handoff.pushed === false ? ` (NOT PUSHED; orchestrator runs: ${handoff.command ?? '(no command returned)'})` : ''}`)
 
 return {
   round, fork, draft, draft_groups: groups.length, findings: findings.length,
   triage, groups: planGroups, moves: planMoves, projected_dS: moves.projected_dS,
   target_ds: targetDs, target_met: Number(moves.projected_dS) >= targetDs,
   review: verdict, revisions, owner_decision: ownerDecision,
-  plan: { ref: planRef, sha: handoff.sha, pushed: handoff.pushed !== false, command: handoff.command ?? null },
+  plan: { ref: planRef, sha: handoff.sha, reviewed: planSha, pushed: handoff.pushed !== false, command: handoff.command ?? null },
   holdouts: draftRead.holdouts_path ?? null,
 }

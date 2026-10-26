@@ -1568,8 +1568,11 @@ await block('the P3 plan workflow', async () => {
   const pbody = psrc.slice(0, pi) + psrc.slice(psrc.indexOf('\n}\n', pi) + 3)
   const FIND = (id) => ({ id, dimension: 'D7', severity: 'medium', title: id, class: 'P3', seam: 'coordinator' })
   const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
+  const SHA = (c) => c.repeat(40)
   const drive = async (over = {}) => {
     const calls = []
+    let cur = over.publish?.sha ?? SHA('b')
+    let rev = 0
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt })
       const label = o.label
@@ -1577,7 +1580,17 @@ await block('the P3 plan workflow', async () => {
       if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
       if (label === 'plan/moves') return over.moves ?? { groups: [{ group: 'A', findings: ['D7-s1-01'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [] }
       if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
-      if (label === 'plan/handoff') return over.handoff ?? { ref: 'plan/r11', sha: 'a'.repeat(40), pushed: true }
+      if (label === 'plan/publish') return over.publish ?? { sha: cur, pushed: true }
+      if (/^plan\/review-/.test(label)) {
+        const r = over.reviewImpl ? over.reviewImpl(label, cur) : null
+        return r ?? { verdict: 'approve', sha: cur, points: [] }
+      }
+      if (/^plan\/revise-/.test(label)) {
+        rev += 1
+        cur = SHA(String(rev))
+        return over.reviseImpl ? over.reviseImpl(label, cur) : { sha: cur, addressed: ['x'] }
+      }
+      if (label === 'plan/verdict') return over.verdict ?? { ref: 'plan/r11', sha: SHA('d'), reviewed: cur, pushed: true }
       return over.agentImpl ? over.agentImpl(o) : null
     }
     const fn = new Function('agent', 'log', 'phase', 'parallel', 'args',
@@ -1597,39 +1610,50 @@ await block('the P3 plan workflow', async () => {
     { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
   await pthrows('a group with no move entry stops P3', /no move entry/,
     { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
-  await pthrows('a handoff that is not a 40-hex commit stops P3', /not a 40-hex commit/,
-    { handoff: { ref: 'plan/r11', sha: 'abc', pushed: true },
-      agentImpl: (o) => o.label.startsWith('plan/review') ? { verdict: 'approve', points: [] } : null })
+  await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
+    { publish: { sha: 'abc', pushed: true } })
+  await pthrows('a reviewer answering for another tree stops P3', /answered for/,
+    { reviewImpl: () => ({ verdict: 'approve', sha: SHA('c'), points: [] }) })
+  await pthrows('a recorded verdict that is not a 40-hex commit stops P3', /not a 40-hex commit/,
+    { verdict: { ref: 'plan/r11', sha: 'abc', pushed: true } })
 
-  const ok = await drive({ agentImpl: (o) => o.label.startsWith('plan/review') ? { verdict: 'approve', points: [] } : null })
-  t('an approved plan hands off once, with no owner decision',
-    ok.out?.revisions === 0 && ok.out?.owner_decision === false && ok.out?.plan?.sha === 'a'.repeat(40)
-    && ok.calls.filter((c) => c.label === 'plan/handoff').length === 1, J(ok.out?.plan))
-
-  const once = await drive({
-    agentImpl: (o) => o.label === 'plan/review-1' ? { verdict: 'revise', points: ['the seam is a file'] }
-      : o.label === 'plan/revise-1' ? { addressed: ['re-cut the group'] }
-        : o.label === 'plan/review-2' ? { verdict: 'approve', points: [] } : null,
-  })
-  t('one revise round re-plans and approves, and the owner is not troubled',
-    once.out?.revisions === 1 && once.out?.owner_decision === false
-    && once.calls.some((c) => c.label === 'plan/revise-1') && once.calls.some((c) => c.label === 'plan/review-2'), J(once.out?.review))
-
-  const twice = await drive({
-    agentImpl: (o) => /^plan\/review-/.test(o.label) ? { verdict: 'revise', points: [`open-${o.label}`] }
-      : /^plan\/revise-/.test(o.label) ? { addressed: ['x'] } : null,
-  })
-  t('two revise rounds at most, then the owner gets the open points (no third review)',
-    twice.out?.revisions === 2 && twice.out?.owner_decision === true
-    && !twice.calls.some((c) => c.label === 'plan/review-4'), J(twice.calls.map((c) => c.label)))
-  const hand = twice.calls.find((c) => c.label === 'plan/handoff')?.prompt ?? ''
-  t('and the handoff records that the plan is not approved', /NOT an approval/.test(hand), hand.slice(0, 200))
+  const ok = await drive()
+  t('an approved plan is published once and its verdict recorded at a 40-hex commit',
+    ok.out?.revisions === 0 && ok.out?.owner_decision === false
+    && ok.out?.plan?.sha === SHA('d') && ok.out?.plan?.reviewed === SHA('b')
+    && ok.calls.filter((c) => c.label === 'plan/publish').length === 1
+    && ok.calls.filter((c) => c.label === 'plan/review-1').length === 1
+    && ok.calls.filter((c) => c.label === 'plan/verdict').length === 1, J(ok.out?.plan))
 
   const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
   t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
     read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
-  t('the handoff pushes the constant plan/r11 ref and opens no pull request',
-    hand.includes('plan/r11') && /Do not open a pull request/.test(hand) && /git push origin HEAD:refs\/heads\/plan\/r11/.test(hand))
+  const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
+  t('the reviewer is pointed at the published plan ref and its SHA',
+    review1.includes('plan/r11') && review1.includes(SHA('b')) && /plan-review\.md/.test(review1))
+  const verdict = ok.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''
+  t('the verdict file carries the contract line with the SHA it answers for',
+    verdict.includes('Plan review: approve ' + SHA('b')))
+  t('the verdict push is the constant plan/r11 ref and opens no pull request',
+    /git push origin HEAD:refs\/heads\/plan\/r11/.test(verdict) && /Do not open a pull request/.test(verdict)
+    && /ref_privacy\.py guard --ref plan\/r11/.test(verdict))
+
+  const once = await drive({
+    reviewImpl: (label, cur) => label === 'plan/review-1' ? { verdict: 'revise', sha: cur, points: ['the seam is a file'] } : null,
+  })
+  t('one revise round re-plans, re-publishes and approves, and the owner is not troubled',
+    once.out?.revisions === 1 && once.out?.owner_decision === false
+    && once.out?.plan?.reviewed === SHA('1')
+    && once.calls.some((c) => c.label === 'plan/revise-1') && once.calls.some((c) => c.label === 'plan/review-2'), J(once.out?.review))
+
+  const twice = await drive({
+    reviewImpl: (label, cur) => ({ verdict: 'revise', sha: cur, points: ['open-' + label] }),
+  })
+  t('two revise rounds at most, then the owner gets the open points (no third review)',
+    twice.out?.revisions === 2 && twice.out?.owner_decision === true
+    && !twice.calls.some((c) => c.label === 'plan/review-4'), J(twice.calls.map((c) => c.label)))
+  const hand = twice.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''
+  t('and the recorded verdict says the plan is not approved', /NOT an approval/.test(hand), hand.slice(0, 200))
 })
 
 // The guard above is only worth having if it is actually called.
