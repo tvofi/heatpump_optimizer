@@ -793,11 +793,13 @@ def rekey_self_test() -> int:
     """--rekey-body over a scratch repository: a line main moved, and its three null controls."""
     import tempfile
     bad = 0
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+    from throwaway_git import throwaway_git_init
     with tempfile.TemporaryDirectory() as d:
         r = Path(d)
+        env = throwaway_git_init(r, "-q")
         g = lambda *a: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.test", *a],
-                                      cwd=r, capture_output=True, text=True, check=True).stdout.strip()
-        g("init", "-q")
+                                      cwd=r, env=env, capture_output=True, text=True, check=True).stdout.strip()
         (r / "a.py").write_text("x = 1\ny = 2\nz = y\nz = y\nw = 3\n")
         g("add", "a.py"); g("commit", "-q", "-m", "code")
         frm = g("rev-parse", "HEAD")
