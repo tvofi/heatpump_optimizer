@@ -1,0 +1,160 @@
+{
+ "group": "R10-ARCH-SHAPES",
+ "lane": "AR",
+ "kind": "arch",
+ "issues": [
+  2236,
+  2238,
+  2239
+ ],
+ "fixes": [
+  2236,
+  2239
+ ],
+ "findings": [
+  "D7-s2-57 (arch2-07)",
+  "D7-s2-58 (arch2-08)",
+  "D7-s2-61 (arch2-11, absorbs D7-s3-81)"
+ ],
+ "class": "P2,P3,P1",
+ "severity": "low",
+ "size": "L",
+ "wave": 22,
+ "files": [
+  "custom_components/heatpump_optimizer/dhw_draws.py",
+  "custom_components/heatpump_optimizer/dhw_schedule.py",
+  "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "custom_components/heatpump_optimizer/quiet_windows.py",
+  "custom_components/heatpump_optimizer/binary_sensor.py",
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/entry_config.py",
+  "custom_components/heatpump_optimizer/freq_control.py",
+  "custom_components/heatpump_optimizer/inputs.py",
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "custom_components/heatpump_optimizer/dhw_schedule.py"
+ ],
+ "hot_files": [
+  "coordinator.py"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [
+  "R10-SENSOR-PAYLOAD",
+  "R10-FREQ-DEFROST",
+  "R10-LIVESTATE",
+  "R10-INPUT-STALENESS"
+ ],
+ "carry": [
+  "A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm.",
+  "Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number.",
+  "Mutation-ledger re-key and a quiet-window stress re-take are owed.",
+  "From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base.",
+  "From R10-SENSOR-PAYLOAD (#2238 D8-s1-01, left open there): heating_now_while_off=1 at its head comes from active_now in coordinator._build_plan_views; the secondary 4 comes from the 0.05 kW threshold in _plan_slots. The DHW schedule sensor's fallback copies that threshold but never reaches this metric; move the fallback and _plan_slots' threshold together or D8-s1-02 reopens. Re-run the D8-s1-01 harness at your head.",
+  "Carried from R10-FREQ-DEFROST (2026-10-20, assigned by the orchestrator rather than left routed to an issue): the `pump_offline` arm of D7-s2-01 is not closed. `_freq_fold_blocked` still admits `pump_offline`, and the finder's harness reads `freq_map` = INGEST on its `pump_offline` row at both the base and the FREQ-DEFROST head. The producing group scoped itself to defrost and carried it as `Carry: #2238` with no destination group. It lands here because this group owns `freq_control.py`, where the predicate lives, and `pump_offline` is defined in `pump_signals.py`, which no group owns. Also from the same handoff, worth attacking first when this group opens the file: the P2 registry entry pins decision-context attribute reads of `*.defrosting`, so a divergent predicate that copies the flag to a local first (`d = signals.defrosting; if d:`) is invisible to it \u2014 the class barrier is narrower than its name.",
+  "Design step (owner ruling 2026-10-21): not needed; this group already has an approved design, pre-study or prototype, which serves as its design note.",
+  "From R10-INPUT-STALENESS (#2683, head 07b83e9b2, Closes #2234; finding-propagation.md). Constraint on a new power-kW reader in custom_components/heatpump_optimizer/inputs.py: at 07b83e9b2, InputReader's default age limit is no longer a fixed table lookup. When the caller passes no limit, InputReader._begin chooses it per read with inputs.age_limit_for. That function holds a polling source to INPUT_MAX_AGE_MINUTES and an on-change source to INPUT_ON_CHANGE_MAX_AGE_MINUTES, and inputs.source_polls decides which by whether last_reported has moved past last_updated. A new reader routes through InputReader so it inherits that choice. It must not read last_updated or last_reported, or compute an age, itself. Control: tests/entities.py's P2 stamp-reader registry (state_age) refuses an undispositioned stamp reader in inputs.py. At 07b83e9b2 it dispositions source_polls as the re-report fact. The #2683 r1 review (review/2683 486e987d5) ran the head's tests/features.py on base d05a44c63, where the P2 stamp-reader check fails, and at the head ALL 4345 FEATURE CHECKS PASSED. The comment fix to _RANGE_KEYS that this group also holds already landed at 07b83e9b2: git grep -n ATTR_MIN_TEMP custom_components prints nothing there. Drop that item and re-run the grep at your merge base. Re-measure the registry at your merge base with python3 tests/entities.py before and after the new reader."
+ ],
+ "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS; after you: R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your me
+-----
+{
+ "group": "R10-996-RUNNER-CLAIMS",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "M",
+ "wave": 5,
+ "files": [
+  "tests/env_drift.py",
+  "tests/golden/claimed_drift.txt"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [],
+ "carry": [],
+ "architect_note": null,
+ "brief": "GROUP R10-996-RUNNER-CLAIMS (new, size M, orchestrator-sourced under mandate 6329234399, 2026-10-25; reopens the claim-grammar decision of issue #996, whose runner-conditional instance count crosses its reopen threshold with the two R10-ARCH-SHAPES instances). Problem, measured by the R10-ARCH-SHAPES round-4 fixer's band census at d710a5af5 (harness committed by #2819 under dev/audit/harnesses/, cite its sha1): a behaviour change whose golden drift has one direction everywhere but lands on a host-dependent SET of scenarios (the solve's basin moves a planned share in or out of a band) cannot be claimed by any fixed per-fixture claim list: each CI runner host (numeric_probe and numpy_build differ between runs of one PR) reports a different set, so claims go STALE or UNCLAIMED and no state is green on every runner. Design and land a claim grammar in tests/env_drift.py for this class: a claim keyed on the drift's shape (the leaf path pattern and the from/to values), valid across any fixture set, that still refuses any drift outside that shape and any claim that matches nothing on every host the census covers. Fail closed. Controls: the parked R10-ARCH-SHAPES-CLASSIFIER arm passes on the macOS, cloud and both runner readings; a mutant drift of another shape (a value leaf, another reason pair) is refused; an unchanged tree with the claim present is refused as stale (null). Policy: the claim-files.md rule changes, so this is policy under the mandate; say so in the body. Record the decision as a comment on #996 and close the decision there.",
+ "resume": {
+  "stage": "queued",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer (designer first if sized L)",
+  "note": null
+ }
+}
+-----
+{
+ "group": "R10-ARCH-SHAPES-CLASSIFIER",
+ "lane": "AR",
+ "kind": "arch",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "class": "P2",
+ "severity": "low",
+ "size": "S",
+ "wave": 5,
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "tests/golden/claimed_drift.txt"
+ ],
+ "hot_files": [
+  "coordinator.py"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [
+  "R10-996-RUNNER-CLAIMS",
+  "R10-ARCH-SHAPES"
+ ],
+ "carry": [],
+ "architect_note": null,
+ "brief": "GROUP R10-ARCH-SHAPES-CLASSIFIER (new, size S, split from R10-ARCH-SHAPES at its round 4 under the three-round rule, orchestrator ruling 2026-10-25, mandate 6329234399). Land the reason-classifier arm of finding D8-s1-01 that #2819 parked on the branch park/r10-arch-shapes-classifier: the space and DHW step reason classifiers call a sub-running share the plan calls off idle, as the plan views, pump schedule and wood advisor already do after #2819. Its golden drift is host-dependent (see R10-996-RUNNER-CLAIMS), so it lands only on that group's claim grammar: claim the drift by shape, never by a fixed fixture list. Start from the parked commit, merge origin/main, re-execute fixer.md steps 2-8, and confirm green on the CI runner. Every carry #2819's body routes here is part of this brief.",
+ "resume": {
+  "stage": "queued",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "wait for R10-996-RUNNER-CLAIMS and R10-ARCH-SHAPES, then a fixer from the parked branch",
+  "note": null
+ }
+}
+-----
