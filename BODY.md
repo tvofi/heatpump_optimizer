@@ -44,8 +44,8 @@ One line per figure, with the command that printed it.
 - P203 ACCEPT (V123): `roster_lib.gate_kind` and the tick's call site. Carry: R10-ORCH-ROSTER-SCHEMA
 - MF1 (#2800): the pool-line measurement is satisfied — no pool handling exists at main, so the brief's premise holds and its deferral clause can be replaced. Carry: #2800
 - MF2 (#2801): the `updated-for:` measurement is answered — three checks, the tick and nightly read it, so the deferral's premise is false. Carry: #2801
-- MF3 (#2494): already fixed at `09b1d002c` and its group is done on both rosters. Leaves #2494 open for the orchestrator to close on that evidence. Carry: #2494
-- MF4 (#2509): not measurable from this seat; the group's own first step is the measurement and PR #2749 carries it. Leaves #2509 open. Carry: #2509
+- MF3 (#2494): **closed 2026-10-26** — fixed at `09b1d002c`, group done on both rosters, and the issue closed on that evidence (comment 6428891733). Carry: dismissed: issue closed on merged evidence, nothing left to propagate
+- MF4 (#2509): **closed 2026-10-26** — PR #2749 merged at `6b5d2a816`: `dev/audit/harnesses/r10_mutant_skip/matrix.tsv` is checked in and re-traced on the merged tree, `tests/mutation_table.py`'s `reach_skip` skips only on a `never_reaches` row, and the null control is in that PR's own section. Verified at `origin/main` from this seat before closing (comment 6429150817). Carry: dismissed: issue closed on merged evidence, nothing left to propagate
 - MF5 (#2501): not measurable from this seat; its fixer's first step is the measurement. Leaves #2501 open. Carry: #2501
 - the 22 other issues a done or absorbed group still lists: close-out queue, one read per merged PR. Carry: dismissed: orchestrator close-out queue, one read per merged PR
 
