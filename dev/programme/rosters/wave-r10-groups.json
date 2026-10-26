@@ -2134,7 +2134,6 @@
    "rca": [],
    "after": [],
    "carry": [
-    "RCA owed by the class issue (barriered class leaked); see `dev/audit/rounds/round10/JUDGE.md` at d23205d13.",
     "Every new kill is proven by a mutant that survives without the test (fixer.md)."
    ],
    "architect_note": null,
