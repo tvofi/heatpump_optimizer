@@ -120,6 +120,17 @@ def fetch_github(gh_repo: str) -> dict:
     return {"issues": issues, "open_prs": open_prs, "merged_prs": merged}
 
 
+def _fetch_or_offline(fetch, gh_repo: str) -> dict:
+    """`fetch`, or an empty snapshot flagged `offline` when `gh` is missing or
+    refuses: the page still draws, and the issues chart says it is omitted."""
+    try:
+        return fetch(gh_repo)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"plan_page: GitHub unavailable ({type(exc).__name__}); issue state "
+              f"and the issues chart are omitted", file=sys.stderr)
+        return {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
+
+
 # -------------------------------------------------------------------- model
 
 def group_of_branch(roster: dict, branch: str) -> str | None:
@@ -333,6 +344,95 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     return svg, len(arrows)
 
 
+# ------------------------------------------------------- projected issues
+
+def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
+    """Open GitHub issues carried by open roster groups, each projected to close
+    at the planned finish of the LAST open group carrying it. An issue closed on
+    GitHub (absent from `open_now`) is dropped; one with any carrier that has no
+    planned finish stays flat (`unplanned`); every other open issue is counted
+    in `other` (e.g. the tracking issue). Pure: `open_now` is an argument."""
+    close_at: dict = {}
+    unplanned: set = set()
+    for gid, entry in roster_lib.groups_of(roster).items():
+        pg = plan["groups"].get(gid)
+        if not pg or not roster_lib.is_open(entry):
+            continue
+        for n in entry.get("issues") or []:
+            if n not in open_now:
+                continue
+            if not pg.get("finish"):
+                unplanned.add(n)
+            else:
+                t = _t(pg["finish"])
+                close_at[n] = max(close_at.get(n, t), t)
+    for n in unplanned:
+        close_at.pop(n, None)  # one unplanned carrier: no finish is knowable
+    return {"close_at": close_at, "unplanned": unplanned,
+            "other": open_now - set(close_at) - unplanned}
+
+
+def issues_section(roster: dict, plan: dict, snap: dict) -> str:
+    """The first section of the page: the open-issue count stepping down at each
+    projected close. Omitted, with a note, when the snapshot has no GitHub state."""
+    if snap.get("offline"):
+        return ('<section>\n  <h2>Projected open issues</h2>\n  <p class="note">Omitted: '
+                'GitHub state was not available (no <code>gh</code> and no '
+                '<code>--github-snapshot</code>).</p>\n</section>\n')
+    open_now = {i["number"] for i in snap["issues"] if i["state"] == "OPEN"}
+    proj = project_issues(roster, plan, open_now)
+    close_at, unplanned = proj["close_at"], proj["unplanned"]
+    start = _t(plan["generated"]["start"])
+    cl = _t(plan["summary"]["closure"])
+    events = sorted(close_at.values())
+    end = max(events + [cl])
+    total = len(close_at) + len(unplanned)
+    pts, left = [(start, total)], total
+    for t in events:
+        t = max(t, start)
+        pts += [(t, left), (t, left - 1)]
+        left -= 1
+    pts.append((end, left))
+    W, H, L, R, T, B = 1180, 260, 50, 20, 20, 30
+    span = (end - start).total_seconds() or 1
+    ymax = max(total, 1)
+
+    def px(t: dt.datetime) -> float:
+        return L + (t - start).total_seconds() / span * (W - L - R)
+
+    def py(v: float) -> float:
+        return T + (1 - v / ymax) * (H - T - B)
+
+    path = " ".join(f"{px(t):.1f},{py(v):.1f}" for t, v in pts)
+    parts = []
+    step = max(1, round(ymax / 5))
+    for v in range(0, ymax + 1, step):
+        parts.append(f'<line x1="{L}" y1="{py(v):.1f}" x2="{W - R}" y2="{py(v):.1f}" class="grid"/>'
+                     f'<text x="{L - 8}" y="{py(v) + 4:.1f}" text-anchor="end" class="tick">{v}</text>')
+    span_h = (end - start).total_seconds() / 3600
+    for h in range(0, int(span_h) + 1, 12):
+        t = start + dt.timedelta(hours=h)
+        parts.append(f'<line x1="{px(t):.1f}" y1="{T}" x2="{px(t):.1f}" y2="{H - B}" class="grid"/>'
+                     f'<text x="{px(t):.1f}" y="{H - B + 16}" text-anchor="middle" class="tick">'
+                     f'{t.strftime("%a %Hh")}</text>')
+    parts.append(f'<line x1="{px(cl):.1f}" y1="{T}" x2="{px(cl):.1f}" y2="{H - B}" class="closeline"/>'
+                 f'<text x="{px(cl) - 4:.1f}" y="{T + 10}" text-anchor="end" class="closelab">'
+                 f'closure {cl.strftime("%d %b %H:%M")}</text>')
+    parts.append(f'<polygon points="{px(start):.1f},{py(0):.1f} {path} {px(end):.1f},{py(0):.1f}" '
+                 f'class="issarea"/><polyline points="{path}" class="occ"/>'
+                 f'<text x="{px(start) + 6:.1f}" y="{py(total) - 6:.1f}" class="tick">'
+                 f'{total} open now</text>')
+    svg = (f'<svg viewBox="0 0 {W} {H}" width="{W}" role="img" '
+           f'aria-label="Projected open issues">' + "".join(parts) + "</svg>")
+    note = (f"Open issues carried by not-done roster groups, as GitHub had them at the plan's "
+            f"start; each is projected to close at the planned finish of the last group "
+            f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
+            f"flat; {len(proj['other'])} other open issues (on no open group, e.g. "
+            f"#{TRACKING_ISSUE}) are excluded.")
+    return (f'<section>\n  <h2>Projected open issues</h2>\n  <div class="scroll">{svg}</div>\n'
+            f'  <p class="note">{html.escape(note)}</p>\n</section>\n')
+
+
 # --------------------------------------------------------------------- page
 
 def _when(s: str) -> str:
@@ -350,8 +450,9 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
     waves_of = {g: w["wave"] for w in plan["waves"] for g in w["groups"]}
     counts = {k: sum(1 for r in rows if r["st"] == k)
               for k in ("done", "live", "ready", "partial", "blocked")}
-    open_iss = sum(1 for i in snap["issues"]
-                   if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)
+    open_iss = ("—" if snap.get("offline") else str(sum(
+        1 for i in snap["issues"]
+        if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
     order = {k: i for i, k in enumerate(("S", "M", "L", "XL"))}
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
@@ -392,7 +493,8 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         "title": f"{rnd}Fix Plan",
         "now": _t(gen["start"]).strftime("%d %b %H:%M"),
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
-        "tracking": str(TRACKING_ISSUE), "open_iss": str(open_iss),
+        "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
+        "issues_chart": issues_section(roster, plan, snap),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
         "slots": str(slots), "every": str(every),
@@ -466,7 +568,7 @@ def main(argv=None, fetch=fetch_github) -> int:
     path = roster_lib.roster_path(a.repo, ref, a.roster_path)
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
-            if a.github_snapshot else fetch(a.gh_repo))
+            if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
     page = render(roster, f"{ref}:{path}", plan, snap)
     Path(a.html).write_text(page, encoding="utf-8")
     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
@@ -535,6 +637,28 @@ def _self_test() -> int:
     def fetch_refused(_repo):
         fails.append("the self-test reached for GitHub")
         raise SystemExit(3)
+
+    # Projected open issues: the pure data function, on its own roster and plan.
+    def pg(finish):
+        return {"finish": finish}
+    ir = {"groups": [
+        grp("R9-EARLY", "CO", issues=(1, 2, 5)), grp("R9-LATE", "CO", issues=(1,)),
+        grp("R9-NOFIN", "CO", issues=(3, 5)), grp("R9-GONE", "CO", stage="done", issues=(6,)),
+        grp("R9-ONLY", "CO", issues=(4, 7))]}
+    ip = {"groups": {"R9-EARLY": pg("2026-01-05T10:00:00Z"), "R9-LATE": pg("2026-01-06T10:00:00Z"),
+                     "R9-NOFIN": pg(None), "R9-GONE": pg("2026-01-05T01:00:00Z"),
+                     "R9-ONLY": pg("2026-01-05T20:00:00Z")}}
+    pr_ = project_issues(ir, ip, {1, 2, 3, 4, 5, 6, 99})
+    check("issue on two groups closes at the later finish",
+          pr_["close_at"].get(1) == _t("2026-01-06T10:00:00Z"), pr_["close_at"])
+    check("an issue closed on GitHub is not counted (7 is absent from the open set)",
+          7 not in pr_["close_at"] and 7 not in pr_["unplanned"] and 7 not in pr_["other"], pr_)
+    check("a group with no planned finish stays flat",
+          pr_["unplanned"] == {3, 5} and 3 not in pr_["close_at"], pr_)
+    check("an issue with one unplanned carrier is flat, not also closing",
+          5 not in pr_["close_at"], pr_["close_at"])
+    check("an open issue on a done group or none is excluded and counted",
+          pr_["other"] == {6, 99} and set(pr_["close_at"]) == {1, 2, 4}, pr_)
 
     with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
         repo = Path(td) / "repo"
@@ -632,12 +756,33 @@ def _self_test() -> int:
               and f"1 of {links} critical-path links are drawn" in page2,
               re.findall(r"\d+ of \d+ critical-path links", page2))
 
+        sec = issues_section(roster, plan, snap)
+        check("the issues chart is the first section, drawn from the open set",
+              0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
+              and "2 open now" in page and "1 other open issues" in page
+              and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
+        no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
+        check("no GitHub state: the chart is omitted with a note",
+              "Omitted" in issues_section(roster, plan, no_gh)
+              and "<polyline" not in issues_section(roster, plan, no_gh))
+
         out = Path(td) / "page.html"
         argv = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
                 "--github-snapshot", str(snapf)]
         check("a fresh plan renders (null control)",
               main(argv, fetch=fetch_refused) == 0 and out.is_file())
         out.unlink()
+
+        def no_gh_binary(_repo):
+            raise FileNotFoundError("gh")
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = main(argv[:-2], fetch=no_gh_binary)
+        except Exception as exc:  # a crash is the failure this check names
+            rc = f"raised {type(exc).__name__}"
+        check("no gh binary: the page is still written, chart omitted, no crash",
+              rc == 0 and out.is_file() and "Omitted" in out.read_text(encoding="utf-8"), rc)
+        out.unlink(missing_ok=True)
 
         def refused(variant: dict, why: str) -> tuple:
             """main on a fresh variant of the plan: rc, a file, the refusal."""
@@ -732,6 +877,9 @@ svg{display:block;font-family:var(--mono)}
 .slotcap{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
 .stampline{stroke:var(--done);stroke-width:1.2;stroke-dasharray:1 3}
 .stamplab{fill:var(--done);font-size:10px;font-weight:600}
+.issarea{fill:var(--accent);fill-opacity:.12}
+.closeline{stroke:var(--done);stroke-width:1.2;stroke-dasharray:1 3}
+.closelab{fill:var(--done);font-size:10px;font-weight:600}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-left:6px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:var(--muted);margin-top:10px}
 .legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;border:1px solid}
@@ -780,6 +928,7 @@ td.d{min-width:260px;max-width:440px}
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
+{{issues_chart}}
 <section>
   <h2>Swimlanes</h2>
   <div class="scroll">{{svg}}</div>
