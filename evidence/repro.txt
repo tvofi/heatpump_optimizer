@@ -1,0 +1,11 @@
+BATCH WAIT: 4 row(s) below the floor of 8
+[bare | bash -e] exit=4
+BATCH WAIT: 4 row(s) below the floor of 8
+status=batching
+[bare | bash] exit=0
+BATCH WAIT: 4 row(s) below the floor of 8
+status=batching
+[hotfix | bash -e] exit=0
+BATCH WAIT: 4 row(s) below the floor of 8
+status=batching
+[hotfix | bash] exit=0
