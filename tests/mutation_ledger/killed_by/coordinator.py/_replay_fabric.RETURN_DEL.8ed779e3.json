@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_replay_fabric RETURN_DEL 8ed779e3",
+  "killed_by": "tests/features.py",
+  "old": "    return await _replay_interval(coord, state, power, state.outdoor_temperature, start, dt_h, label, heat_kw)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
+}
