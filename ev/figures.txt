@@ -1,0 +1,10 @@
+2026-10-26T04:39:30Z
+origin/main=f6784210c9c2c89cfe82ec8bf6acb8b412629055
+head $? lines: 7
+head PIPESTATUS: 0
+main nightly $? lines:
+749:              batch=$?
+1035:            pitch=$?
+1042:          # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
+1049:          if guard --require-green; then rc=0; else rc=$?; fi
+0
