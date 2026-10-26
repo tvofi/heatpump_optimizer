@@ -1630,7 +1630,7 @@ await block('the P3 plan workflow', async () => {
     read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
   t('the reviewer is pointed at the published plan ref and its SHA',
-    review1.includes('plan/r11') && review1.includes(SHA('b')) && /plan-review\.md/.test(review1))
+    review1.includes('plan/r11 = ' + SHA('b')) && /plan-review\.md/.test(review1))
   const verdict = ok.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''
   t('the verdict file carries the contract line with the SHA it answers for',
     verdict.includes('Plan review: approve ' + SHA('b')))
