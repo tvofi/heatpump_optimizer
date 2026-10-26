@@ -52,7 +52,7 @@ from homeassistant.util import dt as dt_util
 from . import const, replay_doc
 from .accuracy import AccuracyTracker
 from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, PRIVATE_ENTITY_ID
-from .drift import stored_instant
+from .drift import stored_age_seconds, stored_instant, utc_elapsed_seconds
 from .store import (
     DOMAINS,
     QuarantiningStore,
@@ -294,6 +294,26 @@ def feed_health(
             for earlier, later in zip(stamps, stamps[1:])
         ]),
         "tibber_outage_cycles": outage_cycles,
+    }
+
+
+def collection_window(rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
+    """What the rows themselves cover, and how old the newest is at ``now`` (#2814).
+
+    A finished collection stays as it ended until it is started again, so its
+    rows can be days older than the download that carries them; the manifest's
+    ``days`` is the configured length, not what the rows span.
+    """
+    stamps = [seen for row in rows if (seen := stored_instant(row.get("t"))) is not None]
+    if not stamps:
+        return {"first_row_at": None, "last_row_at": None, "span_hours": None, "age_hours": None}
+    first, last = min(stamps), max(stamps)
+    age = stored_age_seconds(last, now)
+    return {
+        "first_row_at": first.isoformat(),
+        "last_row_at": last.isoformat(),
+        "span_hours": round(utc_elapsed_seconds(last, first) / 3600.0, 1),
+        "age_hours": round(age / 3600.0, 1) if age is not None else None,
     }
 
 
@@ -586,15 +606,17 @@ class DebugCollector:
     ) -> dict[str, Any]:
         """The ``hpo-debug/1`` bundle; with ``entry``, its replay half filled."""
         stores = await self._read()
+        now = dt_util.utcnow()
         bundle = {
             "schema": BUNDLE_SCHEMA,
             "manifest": {
-                "generated_at": dt_util.utcnow().isoformat(),
+                "generated_at": now.isoformat(),
                 "generator": __name__,
                 "integration_version": coordinator.integration_version,
                 "started_at": self.started_at.isoformat() if self.started_at else None,
                 "final": self.final,
                 "days": COLLECT_SPAN.days,
+                **collection_window(self.rows, now),
                 "cycles": len(self.rows),
                 "replay_verdict": None,
                 "replay": None,
