@@ -510,8 +510,19 @@ def unpinned(base):
                     for k, s in m.added_keys(added)]
 
 
+# The arms, in the order they run. `--only` selects one where a caller needs a
+# single question answered: `prepr.sh --fill-red` derives the `mutation` red
+# alone, and reaching it by running the other eight cost 6.5 s of CPU against
+# the 5 s budget the seat's checks meet (R10-FLOW-JIDOKA's review, 2026-10-26).
+ARMS = ("orphans", "layout", "privacy", "agreement", "no-recording",
+        "under-scoped", "inert-siblings", "left-inert", "mutation")
+
+
 def predict(root: Path, base_ref: str, pairs: set | None = None,
-            scripts: set | None = None, body: str | None = None) -> tuple[int, list[tuple[str, str]], str]:
+            scripts: set | None = None, body: str | None = None,
+            only: str | None = None) -> tuple[int, list[tuple[str, str]], str]:
+    if only is not None and only not in ARMS:
+        raise SystemExit(f"ci_predict: --only {only} is not one of {', '.join(ARMS)}")
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
@@ -522,17 +533,22 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     changed = {p for p in names.split() if p in tracked}
     table = json.loads((root / "tests" / "closures.json").read_text())
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
+    arms = (
+        ("orphans", lambda: orphans(changed, closure)),
+        ("layout", lambda: layout_preds(root, base)),
+        ("privacy", lambda: privacy_preds(root)),
+        ("agreement", lambda: agreement_preds(root, base_ref, changed)),
+        ("no-recording", lambda: no_recording(root, base, changed, closure)),
+        ("under-scoped", lambda: under_scoped(root, base, changed, tracked, closures,
+                                              inert_reads, closure, pairs, scripts)),
+        ("inert-siblings", lambda: inert_siblings(changed, inert_reads, closure, pairs)),
+        ("left-inert", lambda: left_inert(changed, closures, inert_reads, closure, scripts)),
+        ("mutation", lambda: unpinned(base)),
+    )
     preds: list[tuple[str, str]] = []
-    preds += orphans(changed, closure)
-    preds += layout_preds(root, base)
-    preds += privacy_preds(root)
-    preds += agreement_preds(root, base_ref, changed)
-    preds += no_recording(root, base, changed, closure)
-    preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
-                          closure, pairs, scripts)
-    preds += inert_siblings(changed, inert_reads, closure, pairs)
-    preds += left_inert(changed, closures, inert_reads, closure, scripts)
-    preds += unpinned(base)
+    for name, arm in arms:
+        if only is None or name == only:
+            preds += arm()
     if body:
         preds += carry_preds(root, body)
     seen, out = set(), []
@@ -606,6 +622,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--apply-inert", action="store_true",
                     help="write every predicted INERT READS entry, then predict again")
     ap.add_argument("--body", help="the pull-request body: also predict pr-contract's carry check")
+    ap.add_argument("--only", choices=ARMS,
+                    help="run only this arm: a caller that needs one question answered")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args(argv)
     if args.self_test:
@@ -613,14 +631,14 @@ def main(argv: list[str] | None = None) -> int:
     root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
     pairs: set[tuple[str, str]] = set()
     scripts: set[str] = set()
-    rc, preds, base = predict(root, args.base, pairs, scripts, args.body)
+    rc, preds, base = predict(root, args.base, pairs, scripts, args.body, args.only)
     if args.apply_inert and rc != 2:
         added = apply_inert(root, pairs)
         for script, f in added:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
             scripts = set()
-            rc, preds, base = predict(root, args.base, None, scripts, args.body)
+            rc, preds, base = predict(root, args.base, None, scripts, args.body, args.only)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2

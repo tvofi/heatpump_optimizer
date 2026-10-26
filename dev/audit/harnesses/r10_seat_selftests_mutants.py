@@ -213,6 +213,16 @@ MUTANTS = [
      '  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")\n', ''),
     ("prepr-10", "tests/harness_headers.py",
      'sys.path.insert(0, "tests")\n', 'sys.path.insert(0, "tests")\nfrom harness import Results\n'),
+    # R10-FLOW-JIDOKA (p2, round 3): 6g copies only what the generator reads,
+    # so a renamed entry must refuse the copy; and --fill-red asks the
+    # predictor one arm. prepr-12 plants in ci_predict.py; STEP_OF names the
+    # step that grades it.
+    ("prepr-11", "tools/pr/prepr.sh",
+     "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE\n",
+     "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE_MOVED\n"),
+    ("prepr-12", "tools/pr/ci_predict.py",
+     '"under-scoped", "inert-siblings", "left-inert", "mutation")',
+     '"under-scoped", "inert-siblings", "left-inert")'),
     # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
     ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
     ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
@@ -375,7 +385,8 @@ MUTANTS = [
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # A mutant planted in a file whose self-test is another instrument's step.
-STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh"}
+STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
+           "prepr-12": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
