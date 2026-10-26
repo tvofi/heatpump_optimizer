@@ -1,0 +1,7 @@
+groups main 192 merged 195 removed [] new ['R10-996-RUNNER-CLAIMS', 'R10-ARCH-SHAPES-CLASSIFIER', 'R10-PROOF-CODEQL']
+stages main {'done': 121, 'in-progress': 8, 'not-started': 46, 'queued': 8, 'absorbed': 4, 'carries-open': 5}
+stages merged {'done': 123, 'in-progress': 7, 'not-started': 45, 'queued': 11, 'absorbed': 4, 'carries-open': 5}
+DROPPED R10-FLOW-MQ-PROBE | rerouted to [('R10-ROUND-PLAYBOOK', 'not-started')] | HANDOVER trap: a required context that never reports blocks every merge, in either direction.
+DROPPED R10-FLOW-MQ-PROBE | rerouted to [('R10-ROUND-PLAYBOOK', 'not-started')] | Pre-study: the Lean flow pre-study, section K9.
+DROPPED R10-FLOW-MQ-PROBE | rerouted to [('R10-ROUND-PLAYBOOK', 'not-started')] | tvofi 2026-10-24 card 4 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree))
+dropped total 3

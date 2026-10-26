@@ -1,0 +1,9 @@
+PRs cited by ops in 709ee1929..d49603ff8 that are not merged (GitHub REST pulls/<n>, 2026-10-26):
+#2819 open  R10-ARCH-SHAPES            (cited by af7a2ee20, 12993ed8c; both also cite mandate 6329234399, recorded in merged decision 0015)
+#2834 open  R10-ADVISOR-RESIDUE        (cited by 86da909ee; that op also cites P141, merged in dev/programme/triage/s6-batch27.md)
+#2839 open  R10-HOTFIX-CI-RATCHET      (the only citation of 6073f1668)
+#2826 closed unmerged R10-FLOW-MQ-PROBE (owner closing comment 6402178136, tvofi 2026-10-25; cited by the reroute and "Resolved" carries)
+#2811, #2745, #2753, #2796 open: cited only as evidence beside a merged triage P-ruling.
+Merged on main: #2817 #2829 #2827 #2828 #2830 #2831 #2822 #2807 #2818 #2813 #2765 #2712 #2524 #2823.
+dev/audit/rounds/round10/D13/mq-probe.md: absent at origin/main and at the head (it lived only on #2826's unmerged branch).
+Triage rulings P110 P123-P126 P128-P141 P143 P144 P158 P163 P164: each found under dev/programme/triage/ at origin/main (s6-batch23, 25, 26, 27, 29).
