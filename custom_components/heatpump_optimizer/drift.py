@@ -113,6 +113,19 @@ def stored_instant(
     return when if when.tzinfo is not None else when.replace(tzinfo=naive_zone)
 
 
+def stored_age_seconds(raw: Any, now: datetime) -> float | None:
+    """Seconds from a stored instant to ``now``, or ``None``.
+
+    An instant that does not parse has no age, and one ahead of ``now`` has an
+    unknowable one, never 0 (#775's rule).
+    """
+    when = stored_instant(raw)
+    if when is None:
+        return None
+    age = utc_elapsed_seconds(now, when)
+    return age if age >= 0.0 else None
+
+
 @dataclass
 class Cusum:
     """A one-sided CUSUM with a drift allowance and hysteresis release.
