@@ -1,14 +1,18 @@
-Roster for round 10, batch 16, at the roster tip `7d6ff74590e3b331099fb36066e661a6d840ba32`: the nine roster commits the roster seat made on `handoff/audit-r10-roster` after `d49603ff8cf154a13186933897fd05f60361a8ed` (the head of batch 15, which is on main), listed by command under Figures. They are five `append-carry` ops (R10-FLOW-JIDOKA, R10-FLY-LEDGER-SAMPLE, R10-FLY-DEPGRAPH-STALE, R10-ORCH-PLANPAGE, R10-ORCH-BEATD), one `edit-brief` op on R10-IMMERSION-LATCH that re-pins `const.py:1144` to `const.py:1149` (where `IMMERSION_FACTOR` sits on main) so the roster lints clean, and three `set-stage` ops: R10-PLAN-ISSUES-CHART, R10-THERMAL-POWER-OPTION and R10-FLOW-RECORD-PITCH, each to done. Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 17, at the roster tip `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`: the eight roster commits the roster seat made on `handoff/audit-r10-roster` after `7d6ff74590e3b331099fb36066e661a6d840ba32` (the head of batch 16, which is on main as #2844, merge `21b45524d8b242c9520c9413966ff7bb26b72c7d`), listed by command under Figures. They are one `append-group` op (R10-HOTFIX-BATCH-ERREXIT), two `append-carry` ops (R10-ORCH-ROSTER-SCHEMA and R10-FLY-ROW-HEAD-CARRY), two `set-resume` ops that rewrite `next_step` on R10-THERMAL-POWER-OPTION and R10-FLOW-RECORD-PITCH, two `wire-issue --field fixes` ops (R10-FLY-CARRY-DISPOSITION takes #2428, R10-CARD-VOICE takes #2506) and one `set-stage` op (R10-DIAG-REDACT to done). Part of #201. It closes nothing by keyword and leaves #201 open.
 
-**Merge order: none.** Batch 15 is on main. Roster queue lines up to 363 are in this batch.
+**Why this batch is cut early, at eight ops:** the new group R10-HOTFIX-BATCH-ERREXIT is the critical-path fix for the nightly batch gate failing under `bash -e`, and that fix's pull request has a group check which reads main's roster, so the group must reach main before or with the hotfix. The orchestrator ruled on 2026-10-26 that this batch is cut as soon as #2844 merged, ahead of the usual eight-to-ten entries.
+
+**Correction to #2844's record text:** the title and the delivery row of #2844 read "5 ops", and nine roster ops landed there (five `append-carry`, one `edit-brief`, three `set-stage`). The delta reviewer dismissed this as record text (probe/rev-2844-35c20883, 26ef56c6a); this body states the true count so the record is not left under-counted.
+
+**Merge order: none.** Batch 16 is on main. Roster queue lines 364 to 371 are in this batch; lines 372 onward ride batch 18.
 
 ## Head
 
-The authored head is `7d6ff74590e3b331099fb36066e661a6d840ba32`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `d49603ff8cf154a13186933897fd05f60361a8ed`, and the pull request merges origin/main (`28800999b9ce23793f191101bdfc1e4f598168fc`) into it. `git merge-tree --write-tree origin/main 7d6ff74590e3b331099fb36066e661a6d840ba32` prints the tree `a52bdaca57ef168d7603d30d62d4723726b72cf7` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat origin/main a52bdaca57ef168d7603d30d62d4723726b72cf7` prints:
+The authored head is `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `7d6ff74590e3b331099fb36066e661a6d840ba32`, and the pull request merges origin/main (`0dfc063fa56ef7c5d2b202933792caf87a2ed154`) into it. `git merge-tree --write-tree origin/main c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff` prints the tree `3508b32b38aedc14f64664b8c79552aa6f0ccbf2` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat origin/main 3508b32b38aedc14f64664b8c79552aa6f0ccbf2` prints:
 
 ```
- dev/programme/rosters/wave-r10-groups.json | 23 ++++++++++++++---------
- 1 file changed, 14 insertions(+), 9 deletions(-)
+ dev/programme/rosters/wave-r10-groups.json | 68 +++++++++++++++++++++++++++---
+ 1 file changed, 61 insertions(+), 7 deletions(-)
 ```
 
 ## Mutation proof
@@ -17,42 +21,37 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `6c8e6f46ebc63c8cf352392c77944628ae9e8b0e` and the merged tree prints `b21289a28b8139c61ce5f022c8647dd60ce2f5c5`. A script that loads both files as JSON and keys groups by their `group` field printed (lines reformatted here for the page):
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `b21289a28b8139c61ce5f022c8647dd60ce2f5c5` and the merged tree prints `679a4be14bcd0908d590cbdd8fa36872c7e72c7b`. A script that loads both files as JSON and keys groups by their `group` field printed:
 
 ```
-groups main 195 head 195 (no group added or removed)
-R10-THERMAL-POWER-OPTION resume.stage in-progress->done
-R10-FLOW-JIDOKA carry 21->22
-R10-FLOW-RECORD-PITCH resume.stage not-started->done
-R10-FLY-DEPGRAPH-STALE carry 3->4
-R10-ORCH-BEATD carry 24->25
-R10-ORCH-PLANPAGE carry 6->7
-R10-IMMERSION-LATCH brief changed, carry count 1->1
-R10-FLY-LEDGER-SAMPLE carry 1->2
-R10-PLAN-ISSUES-CHART resume.stage queued->done
-resume stages main {'done': 123, 'in-progress': 7, 'not-started': 45, 'queued': 11, 'absorbed': 4, 'carries-open': 5}
-resume stages head {'done': 126, 'in-progress': 6, 'not-started': 44, 'queued': 10, 'absorbed': 4, 'carries-open': 5}
+groups main 195 head 196 added ['R10-HOTFIX-BATCH-ERREXIT'] removed []
+R10-CARD-VOICE fixes changed
+R10-THERMAL-POWER-OPTION resume.next_step changed
+R10-FLOW-RECORD-PITCH resume.next_step changed
+R10-FLY-ROW-HEAD-CARRY carry 3->4
+R10-FLY-CARRY-DISPOSITION fixes changed
+R10-ORCH-ROSTER-SCHEMA carry 21->22
+R10-DIAG-REDACT resume.stage not-started->done
 ```
 
-Exactly the nine groups the nine ops name differ, one op each, and done rises by three, taken one each from in-progress, not-started and queued, as the three `set-stage` ops imply. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init` (so no tag history): both print `TOTAL: 10 error(s) across 48 file(s)`, the same ten, none in a roster file, so the delta is zero. Before the `edit-brief` op, the roster seat's lint at a full clone refused the roster with one error, the R10-IMMERSION-LATCH `const.py:1144` pin; that op is the repair.
+Exactly the eight groups the eight ops name differ (seven edited, one added), one op each, and nothing else moved. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init`: both print `TOTAL: 10 error(s) across 48 file(s)`, so the delta is zero.
 
 ## Figures
 
-`git log --no-merges --reverse --format='%h %s' d49603ff8cf154a13186933897fd05f60361a8ed..7d6ff74590e3b331099fb36066e661a6d840ba32 -- dev/programme/rosters/` prints nine commits, oldest first, tool name dropped:
+`git log --no-merges --reverse --format='%h %s' 7d6ff74590e3b331099fb36066e661a6d840ba32..c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff -- dev/programme/rosters/` prints eight commits, oldest first, tool name dropped:
 
 ```
-e580153ed append-carry R10-FLOW-JIDOKA
-a1cefa714 append-carry R10-FLY-LEDGER-SAMPLE
-8e61c60c8 append-carry R10-FLY-DEPGRAPH-STALE
-02f265488 set-stage R10-PLAN-ISSUES-CHART
-d373c351f append-carry R10-ORCH-PLANPAGE
-f802d728c edit-brief R10-IMMERSION-LATCH
-b56e9e570 set-stage R10-THERMAL-POWER-OPTION
-0f3251614 set-stage R10-FLOW-RECORD-PITCH
-7d6ff7459 append-carry R10-ORCH-BEATD
+ec3c75629 set-stage R10-DIAG-REDACT
+3662863d2 append-group R10-HOTFIX-BATCH-ERREXIT
+2720c93cd set-resume R10-THERMAL-POWER-OPTION
+d0a908650 set-resume R10-FLOW-RECORD-PITCH
+149b45b95 append-carry R10-ORCH-ROSTER-SCHEMA
+d1c9dc98b wire-issue R10-FLY-CARRY-DISPOSITION
+8396866d1 append-carry R10-FLY-ROW-HEAD-CARRY
+c22e7b2e1 wire-issue R10-CARD-VOICE
 ```
 
-The per-group carry counts above come from the script named under Null control.
+The per-group counts above come from the script named under Null control.
 
 ## Red checks
 
