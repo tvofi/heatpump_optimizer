@@ -97,3 +97,38 @@ Binding: the value-bearing claim list. The arm is accepted only in the shape tha
 For the orchestrator, not a carry:
 - R10-996-RUNNER-CLAIMS is `queued` and sized M for its grammar work. This arm is S and independent of that design.
 - It can land as the group's first PR, ahead of the grammar, and it pays off on the critical path today. The group owns `tests/env_drift.py` and the claim-files.md change, so a second group would collide on both.
+
+## P197: the orchestrator's resume prompt is hand-kept; handover_prompt.py covers seats only (S6-V117)
+Verdict: DEFER -> R10-ORCH-BEATD (stage `not-started`, L), which already owns the orchestrator's generated handover. Its carry 13, tvofi's card 2, has the orchestrator "rotate through the handover document (`tools/audit/seat/state_docs.py` plus the resume, with `handover_prompt.py` and `resume_doc.py`)", so the item is on the roster and needs no new carry.
+- The filed arm, an `--orchestrator` arm that the state beat runs and that is fed by the seat ledger, the train symlink and #201's mandate, is REJECTED in the form that publishes to the state ref.
+- The instance's cause is not this arm's to fix. It goes back to the root-cause class that already owns it (below).
+Source: s6 `proposals.md` `## V117` (orchestrator, 2026-10-26T09:55:12Z, raised by tvofi).
+Instances: one, with its cause.
+- `RESUME-PROMPT.md` in the orchestrator's state directory was 12 h stale on 2026-10-26. It named the s42 train, #2817's plan and the w38 handover (V117).
+- The cause, from `seat-ledger.md` there: the state beat had died at 2026-10-25 17:41Z on a fetch ref-lock race in the shared `orch-wt` (line 1038, 09:53Z). The `wt_sync` loop had been dead since 10-25 11:49Z (line 1033, 09:49Z).
+- So the generated docs (`RESUME-CURRENT.md`, `NEXT-SESSION-PROMPT.md`, `PLAN-TABLE.md`) were as stale as the hand-kept prompt. A generated orchestrator arm run by that beat would have died with it.
+- Earlier stops of the same beat: `pulse.py` state-beat STOPPED on 10-25 at about 09:12Z (line 484), and its relaunch after the 12:45Z crash recovery (line 514). `dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md` counts more on 10-17, 10-19 and 10-21 (its table, I2-I4).
+
+What the interim already did:
+- `RESUME-PROMPT.md` (read at 10:55 local) now carries only the orchestrator's static bootstrap: the mandate id and expiry, binding-policy commands, standing seats, detached loops and the sweep cron.
+- For every volatile item (seat ids, the train, verdicts, pool runs) it points at the generated docs and the ledger tails. It states it "is never hand-updated with state".
+- The V117 list, a generated mandate, seat ids and handovers, live train, pool trigger ids, cron and loop liveness, is therefore split.
+  - The volatile half is already read from generated or ledger sources.
+  - The static half changes only when a mandate, a trigger or the cron is replaced. There is no measured staleness of that half: the 12 h staleness was volatile state and the dead beat.
+
+Cost of the filed arm:
+- S-M in `tools/audit/seat/handover_prompt.py` (280 lines) plus a self-test.
+- Its inputs live outside the tree: the ledger, the train symlink, `cloud-sessions.tsv`, and a GitHub read of #201 each beat.
+- `state_docs.py` pushes its outputs to the orphan state ref, and it is built "stateless ... nothing about a session or a machine is hardcoded" behind `ref_privacy` (#2310). Ledger tails, trigger ids and seat ids are exactly what that guard and tvofi's 2026-10-16 no-host-paths ruling keep off origin.
+- A local-only variant, written to the beat's `--mirror` directory and never pushed, avoids that. It is the shape carry 13 implies, and it is BEATD's to design.
+
+Binding:
+- The filed arm does not remove the instance's cause: the beat died, and anything it generates died with it.
+- Published, it carries host-local state onto origin.
+- Local-only, its residual benefit after the interim is unmeasured. That makes it DEFER, never ACCEPT, and its owner already holds it.
+- What would change the answer: a resume misled by the static half after the interim (a replaced mandate id, trigger id or cron prompt left stale in `RESUME-PROMPT.md`). Then the local-mirror arm is ruled as a BEATD carry.
+
+For the orchestrator, not a carry:
+- The 16 h undetected state-beat death is a recurrence of R10-RCA-ORCH-CONTINUITY's class. That record names `pulse.py`'s state-beat arm as the detector, wired into sweep step 5, and records the class as `detector`, not `barriered`, until the owner's call between an hourly cloud probe (A, recommended) and a CI cron (B) runs (section 6).
+- A death that the wired detector did not surface for 16 h is evidence on that open barrier call. It returns to the root-cause route (`defect-root-cause.md`), as P192 did with its class, and is not a triage item.
+- The ref-lock race itself, a beat fetching in the `orch-wt` the other loops share, belongs to BEATD's supervised beat (concern B, single-instance locks per job).
