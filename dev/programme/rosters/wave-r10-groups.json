@@ -818,7 +818,6 @@
     "R10-DEEPLINK"
    ],
    "carry": [
-    "The three D4 rows (D4-s1-01, D4-s3-01, D4-s3-02) were UNREPRODUCED by the judge (no browser on the box); they are not owed here. If the browser lane reproduces one on this tab, it folds in.",
     "D4 lead, not owed: \"19%\" against \"19 %\".",
     "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.",
     "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so copy that points at a step must name it or link the option's entity. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.",
