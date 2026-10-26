@@ -1,14 +1,14 @@
-Roster for round 10, batch 14, re-taken whole at the roster tip `709ee1929fc7e6673d167fef9e47d82528d4a68e` (round 2: the five roster commits the roster seat made after round 1's tip `9e5f5cf1c`, which #2823's review blocked at `f6f67ede`): the 30 roster commits the roster seat made on `handoff/audit-r10-roster` after `9442cb4ea` (the head of batch 13, #2812, merged as `f54f40cc`), listed by command under Figures. They are: the stage derivations for #2817 and #2819 (`roster_sync.py`) and R10-DEMAND-OVERBOOK done, an R10-ORCH-ROSTER-SCHEMA carry, five `set-after` edges, two `set-stage` ops on R10-UPDATE-PR-SIGNALS, the new group R10-LEGIONELLA-COMPLETION, the R10-HEAT-METER design carries routed to R10-COP-GATE, R10-UX-HEALTH and R10-RATIO-ANCHOR, and the D15 live-bundle leads L1 to L9 as carries on their owning groups. The five of round 2 are: the reroute of the clamp-reset ruling that the review found on done R10-RATIO-ANCHOR (`1ac59f510`) to R10-HEAT-METER (`df2ec9daa`) with its drop from R10-RATIO-ANCHOR (`1ee87a2ee`), the new group R10-PLAN-ISSUES-CHART (`ec736473f`) with its seam carry on R10-ORCH-PLANPAGE (`4aa0123eb`), and R10-ARCH-DOCS' `after` edge on it (`709ee1929`). Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 15, at the roster tip `d49603ff8cf154a13186933897fd05f60361a8ed`: the 52 roster commits the roster seat made on `handoff/audit-r10-roster` after `709ee1929fc7e6673d167fef9e47d82528d4a68e` (the head of batch 14, #2823, which is on main), listed by command under Figures. They are: 43 `append-carry` ops (the largest runs on R10-FLOW-DESIGN-STAGES, R10-ORCH-ROSTER-SCHEMA, R10-ORCH-DISPATCH-REG and R10-ROUND-PLAYBOOK), three `append-group` ops (R10-PROOF-CODEQL, R10-996-RUNNER-CLAIMS, R10-ARCH-SHAPES-CLASSIFIER), three `drop-carry` ops on R10-FLOW-MQ-PROBE, one `set-after` on R10-FLOW-RECORD-PITCH, and two `set-stage` ops: R10-FLOW-MQ-PROBE to done and R10-PARAMS-OWNER to done (its #2817 merged at `5261ba84`). Part of #201. It closes nothing by keyword and leaves #201 open.
 
-**Merge order: none.** The roster file's earlier batches, #2812 and #2813, are on main. Roster queue line 334 and the CLOSEOUT carry wait for #2822, so this batch ends at `709ee1929fc7e6673d167fef9e47d82528d4a68e`.
+**Merge order: none.** The roster file's earlier batches, through #2823, are on main. Roster queue lines up to 354 are in this batch.
 
 ## Head
 
-The authored head is `709ee1929fc7e6673d167fef9e47d82528d4a68e`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `20e9f0219119c89a9840fd6b337387adec3a8ecf`, and the pull request merges origin/main (`dfcd8d9be`, which moved after the handoff) into it, with `git merge-tree --write-tree origin/main 709ee1929fc7e6673d167fef9e47d82528d4a68e` printing a tree and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`; the pull request's own delivery row apart. `git diff --stat origin/main <merged tree>` prints:
+The authored head is `d49603ff8cf154a13186933897fd05f60361a8ed`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `709ee1929fc7e6673d167fef9e47d82528d4a68e`, and the pull request merges origin/main (`5261ba84139d9459465ccd842b61b04c2b1329d8`) into it, with `git merge-tree --write-tree origin/main d49603ff8cf154a13186933897fd05f60361a8ed` printing the tree `9ebb6bae9e45bbe322326bf48e1c0425651e8d8e` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`; the pull request's own delivery row apart. `git diff --stat origin/main 9ebb6bae9e45bbe322326bf48e1c0425651e8d8e` prints:
 
 ```
- dev/programme/rosters/wave-r10-groups.json | 150 ++++++++++++++++++++++++-----
- 1 file changed, 124 insertions(+), 26 deletions(-)
+ dev/programme/rosters/wave-r10-groups.json | 223 +++++++++++++++++++++++++----
+ 1 file changed, 196 insertions(+), 27 deletions(-)
 ```
 
 ## Mutation proof
@@ -17,73 +17,97 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `b7f33d15eed0b6d23974e784a52ad56382471e66` and the merged tree prints `bdc22109539294e43f26872fb0d8579c4f473219`. The group figures come from a script that loads both roster files as JSON and keys groups by their `group` field; its output, pasted unedited:
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `bdc22109539294e43f26872fb0d8579c4f473219` and the merged tree prints `6c8e6f46ebc63c8cf352392c77944628ae9e8b0e`. The group figures come from a script that loads both roster files as JSON and keys groups by their `group` field; its output, pasted unedited:
 
 ```
-groups main 190 head 192 removed [] new ['R10-LEGIONELLA-COMPLETION', 'R10-PLAN-ISSUES-CHART']
-changed 18
-  R10-ARCH-DOCS ['after'] 
-  R10-ARCH-SHAPES ['resume'] 
-  R10-BUFFER-STORE ['carry'] carry 2->4
-  R10-CLOSEOUT-CLEANUP ['after'] 
-  R10-COP-GATE ['carry'] carry 7->10
-  R10-DEMAND-OVERBOOK ['resume'] 
-  R10-DIAG-REDACT ['carry'] carry 2->3
-  R10-FLOW-DESIGN-STAGES ['carry'] carry 11->12
-  R10-HEAT-METER ['carry'] carry 10->14
-  R10-ORCH-DISPATCH-REG ['after'] 
-  R10-ORCH-PLANPAGE ['carry'] carry 5->6
-  R10-ORCH-ROSTER-SCHEMA ['carry'] carry 16->17
-  R10-PARAMS-OWNER ['resume'] 
-  R10-ROUND-PLAYBOOK ['after'] 
-  R10-SAV-ACTUATION ['carry'] carry 1->2
-  R10-TRAIN-OVERLAP-GRADE ['carry'] carry 7->8
-  R10-UPDATE-PR-SIGNALS ['resume'] 
-  R10-UX-HEALTH ['carry'] carry 14->15
-stages main {'absorbed': 4, 'carries-open': 5, 'done': 120, 'in-progress': 7, 'not-started': 48, 'queued': 6}
-stages head {'absorbed': 4, 'carries-open': 5, 'done': 121, 'in-progress': 8, 'not-started': 46, 'queued': 8}
+groups main 192 head 195 removed [] new ['R10-PROOF-CODEQL', 'R10-996-RUNNER-CLAIMS', 'R10-ARCH-SHAPES-CLASSIFIER']
+changed 20
+  R10-ADVISOR-RESIDUE ['carry'] carry 9->11
+  R10-CI-LAYOUT-P2 ['carry'] carry 19->20
+  R10-CLOSEOUT-CLEANUP ['carry'] carry 1->2
+  R10-FLOW-BODY-ONLY ['carry'] carry 9->10
+  R10-FLOW-DESIGN-STAGES ['carry'] carry 12->17
+  R10-FLOW-MQ-PROBE ['carry', 'resume'] carry 3->0
+  R10-FLOW-RECORD-PITCH ['after', 'carry'] carry 7->10
+  R10-FLOW-TOOLKIT-MODEL ['carry'] carry 7->8
+  R10-FLY-CARRY-DOC-CONTEXT ['carry'] carry 1->3
+  R10-FLY-OPENPR-ATOMIC ['carry'] carry 9->11
+  R10-FLY-ROW-HEAD-CARRY ['carry'] carry 1->3
+  R10-ORCH-DISPATCH-REG ['carry'] carry 10->15
+  R10-ORCH-LEDGER ['carry'] carry 13->15
+  R10-ORCH-REVIEW-PACKET ['carry'] carry 3->4
+  R10-ORCH-ROSTER-SCHEMA ['carry'] carry 17->21
+  R10-PARAMS-OWNER ['resume']
+  R10-RCA-HEADMOVED ['carry'] carry 1->2
+  R10-ROUND-PLAYBOOK ['carry'] carry 1->7
+  R10-TRAIN-OVERLAP-GRADE ['carry'] carry 8->11
+  R10-UPDATE-PR-SIGNALS ['carry'] carry 5->6
+stages main {'absorbed': 4, 'carries-open': 5, 'done': 121, 'in-progress': 8, 'not-started': 46, 'queued': 8}
+stages head {'absorbed': 4, 'carries-open': 5, 'done': 123, 'in-progress': 7, 'not-started': 45, 'queued': 11}
 ```
 
-`node tools/policy/brief_lint.mjs` on the merged tree prints `TOTAL: 0 error(s) across 48 file(s)`.
+`node tools/policy/brief_lint.mjs` on the merged tree prints `TOTAL: 0 error(s) across 48 file(s)`. The stage counts agree with the ops: done rises by two (R10-PARAMS-OWNER from in-progress, R10-FLOW-MQ-PROBE from not-started) and queued rises by the three new groups.
 
 ## Figures
 
-`git log --no-merges --reverse --format='%h %s' 9442cb4ea..709ee1929fc7e6673d167fef9e47d82528d4a68e -- dev/programme/rosters/` prints 30 commits, oldest first, tool path suffix dropped:
+`git log --no-merges --reverse --format='%h %s' 709ee1929fc7e6673d167fef9e47d82528d4a68e..d49603ff8cf154a13186933897fd05f60361a8ed -- dev/programme/rosters/` prints 52 commits, oldest first, tool path and tool name dropped:
 
 ```
-6c428b63d roster_sync: derive stages from pull requests
-d99761d3e roster_sync: derive stages from pull requests
-2d45acb7a roster_edit append-carry R10-ORCH-ROSTER-SCHEMA
-aa679f28b roster_edit set-stage R10-DEMAND-OVERBOOK
-29b0b8ff2 roster_edit set-after R10-ORCH-DISPATCH-REG
-3b5942aac roster_edit set-after R10-CLOSEOUT-CLEANUP
-d87475fe1 roster_edit set-stage R10-UPDATE-PR-SIGNALS
-558125209 roster_edit set-after R10-ROUND-PLAYBOOK
-0378e16f9 roster_edit append-carry R10-HEAT-METER
-42008e799 roster_edit append-carry R10-COP-GATE
-33c505efc roster_edit append-carry R10-UX-HEALTH
-1ac59f510 roster_edit append-carry R10-RATIO-ANCHOR
-121417d60 roster_edit set-stage R10-UPDATE-PR-SIGNALS
-5f420bfa5 roster_edit append-group R10-LEGIONELLA-COMPLETION
-7ea11e81c roster_edit append-carry R10-FLOW-DESIGN-STAGES
-f0b011d33 roster_edit append-carry R10-TRAIN-OVERLAP-GRADE
-fac3e1de0 roster_edit append-carry R10-COP-GATE
-96aa9bc6f roster_edit append-carry R10-COP-GATE
-006990549 roster_edit append-carry R10-BUFFER-STORE
-50742450e roster_edit append-carry R10-BUFFER-STORE
-22fe609e0 roster_edit append-carry R10-SAV-ACTUATION
-02ee07bea roster_edit append-carry R10-HEAT-METER
-78e5a4d84 roster_edit append-carry R10-DIAG-REDACT
-460d9f19b roster_edit append-carry R10-HEAT-METER
-9e5f5cf1c roster_edit set-after R10-ARCH-DOCS
-4aa0123eb roster_edit append-carry R10-ORCH-PLANPAGE
-df2ec9daa roster_edit append-carry R10-HEAT-METER
-1ee87a2ee roster_edit drop-carry R10-RATIO-ANCHOR
-ec736473f roster_edit append-group R10-PLAN-ISSUES-CHART
-709ee1929 roster_edit set-after R10-ARCH-DOCS
+e8b692b0f append-carry R10-FLOW-RECORD-PITCH
+23b0a4cbc set-after R10-FLOW-RECORD-PITCH
+c5b71ebe8 append-carry R10-ROUND-PLAYBOOK
+63d8938eb append-carry R10-FLOW-RECORD-PITCH
+362a47062 append-group R10-PROOF-CODEQL
+632ce575b append-carry R10-FLY-CARRY-DOC-CONTEXT
+283b24abd append-carry R10-ORCH-ROSTER-SCHEMA
+b152ce8e1 append-carry R10-FLY-OPENPR-ATOMIC
+3ad414423 append-carry R10-FLOW-DESIGN-STAGES
+e5d35f421 append-carry R10-ORCH-DISPATCH-REG
+a0e47a55b append-carry R10-FLOW-DESIGN-STAGES
+4067e63ff append-carry R10-TRAIN-OVERLAP-GRADE
+f9467b704 append-carry R10-ORCH-ROSTER-SCHEMA
+7096e9c51 append-carry R10-FLOW-TOOLKIT-MODEL
+647b22f78 append-carry R10-ORCH-LEDGER
+64a242042 append-carry R10-FLOW-DESIGN-STAGES
+87685b81e append-carry R10-ORCH-ROSTER-SCHEMA
+3e02edbef append-carry R10-ORCH-DISPATCH-REG
+940245170 append-carry R10-ORCH-REVIEW-PACKET
+f5d3478aa append-carry R10-ORCH-DISPATCH-REG
+6fe16e66c append-carry R10-ORCH-LEDGER
+ad257341b append-carry R10-ORCH-DISPATCH-REG
+07fb78581 append-carry R10-ORCH-ROSTER-SCHEMA
+048706d6e append-carry R10-ORCH-DISPATCH-REG
+ea2de744e append-carry R10-CLOSEOUT-CLEANUP
+05a6870ac append-carry R10-ROUND-PLAYBOOK
+d3f9a3ade append-carry R10-ROUND-PLAYBOOK
+0d89a0e5d append-carry R10-ROUND-PLAYBOOK
+b4535b9ab drop-carry R10-FLOW-MQ-PROBE
+1f647d21e drop-carry R10-FLOW-MQ-PROBE
+60b405dbc drop-carry R10-FLOW-MQ-PROBE
+5caa24d5b set-stage R10-FLOW-MQ-PROBE
+ff73617e7 append-carry R10-RCA-HEADMOVED
+b3c12fdee append-carry R10-CI-LAYOUT-P2
+5748f6e23 append-carry R10-FLOW-RECORD-PITCH
+e2f93d8f0 append-carry R10-FLOW-BODY-ONLY
+525e3260a append-carry R10-FLY-ROW-HEAD-CARRY
+6e90528a4 append-carry R10-FLY-CARRY-DOC-CONTEXT
+32ffe43c0 append-carry R10-TRAIN-OVERLAP-GRADE
+12dddd429 append-carry R10-ROUND-PLAYBOOK
+2b7fe35c6 append-carry R10-ROUND-PLAYBOOK
+86da909ee append-carry R10-ADVISOR-RESIDUE
+af7a2ee20 append-group R10-996-RUNNER-CLAIMS
+12993ed8c append-group R10-ARCH-SHAPES-CLASSIFIER
+0d81adc14 append-carry R10-FLOW-DESIGN-STAGES
+8449d8686 append-carry R10-ADVISOR-RESIDUE
+8e6f82c9e append-carry R10-FLY-OPENPR-ATOMIC
+7ee1d5b30 append-carry R10-FLOW-DESIGN-STAGES
+7a9c6b603 append-carry R10-UPDATE-PR-SIGNALS
+f176e044b append-carry R10-TRAIN-OVERLAP-GRADE
+6073f1668 append-carry R10-FLY-ROW-HEAD-CARRY
+d49603ff8 set-stage R10-PARAMS-OWNER
 ```
 
-`6c428b63d` and `d99761d3e` are `roster_sync.py` stage derivations: they set R10-PARAMS-OWNER (#2817) and R10-ARCH-SHAPES (#2819) from not-started to in-progress and record their pull requests, and `aa679f28b` sets R10-DEMAND-OVERBOOK done at main `da12aa37d`. `d87475fe1` and `121417d60` move R10-UPDATE-PR-SIGNALS to carries-open and back to in-progress. `29b0b8ff2` empties R10-ORCH-DISPATCH-REG's `after` (it listed R10-ORCH-LEDGER), `3b5942aac` drops R10-ARCH-DOCS and R10-ROUND-PLAYBOOK from R10-CLOSEOUT-CLEANUP's, `558125209` drops R10-ARCH-DOCS from R10-ROUND-PLAYBOOK's, `9e5f5cf1c` adds R10-LEGIONELLA-COMPLETION to R10-ARCH-DOCS' `after`, and `709ee1929` adds R10-PLAN-ISSUES-CHART to it. `5f420bfa5` appends the group R10-LEGIONELLA-COMPLETION. The remaining carries are `2d45acb7a` (R10-ORCH-ROSTER-SCHEMA, from #2818's round 1: `roster_lib.is_open` tests only `DONE_STAGES`, so an `absorbed` group passes the carry destination check), the R10-HEAT-METER design carries (`0378e16f9`, `02ee07bea`, `460d9f19b`), their routing to R10-COP-GATE, R10-UX-HEALTH and R10-RATIO-ANCHOR (`42008e799`, `33c505efc`, `1ac59f510`, `fac3e1de0`), `7ea11e81c` and `f0b011d33` (the pool and train-overlap instruments), and the D15 live-bundle leads, each marked unverified in its text and routed to the group that owns the seam: L1 and L2 to R10-COP-GATE (`fac3e1de0`, `96aa9bc6f`), L3 and L4 to R10-BUFFER-STORE (`006990549`, `50742450e`), L5 to R10-SAV-ACTUATION (`22fe609e0`), L6 to R10-HEAT-METER (`02ee07bea`), L7 to R10-DIAG-REDACT (`78e5a4d84`), and L9 to R10-HEAT-METER (`460d9f19b`). `1ac59f510` routed the R10-HEAT-METER design's clamp-reset ruling ("clamp means reset") to R10-RATIO-ANCHOR, which is done; #2823's review (6400897868) blocked on that destination, `df2ec9daa` appends the ruling to R10-HEAT-METER, whose design it comes from, and `1ee87a2ee` drops it from R10-RATIO-ANCHOR, so R10-RATIO-ANCHOR is unchanged against main (it is absent from the changed list above).
+The three new groups are `362a47062` (R10-PROOF-CODEQL, a train batch proof analyzing every CodeQL leg, triage ruling P158 in PR #2829), `af7a2ee20` (R10-996-RUNNER-CLAIMS, reopening the claim-grammar decision of issue #996) and `12993ed8c` (R10-ARCH-SHAPES-CLASSIFIER, split from R10-ARCH-SHAPES at its round 4 under the three-round rule, with `after` on R10-996-RUNNER-CLAIMS and R10-ARCH-SHAPES). `23b0a4cbc` is the one `set-after` op, on R10-FLOW-RECORD-PITCH. `b4535b9ab`, `1f647d21e` and `60b405dbc` drop the three open carries on R10-FLOW-MQ-PROBE and `5caa24d5b` sets it done, so its carry list is empty at the tip (3 to 0 above). `d49603ff8` sets R10-PARAMS-OWNER done after #2817 merged at `5261ba84`. The other 43 commits each append one carry to the group they name; the per-group carry counts above are the net figures.
 
 ## Red checks
 
