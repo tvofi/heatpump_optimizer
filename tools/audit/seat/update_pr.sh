@@ -48,6 +48,7 @@ if [ "$C" != - ]; then
   pr_code_in_handoff "$C" "$T"
 fi
 git fetch -q origin "$BR" main
+pr_tools_fresh  # the checkout holding these tools, against the main just fetched (pr_args.sh)
 OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
   [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
   git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_refuse "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
@@ -61,6 +62,9 @@ NOTE=""
 if [ "$C" != "-" ]; then $G merge -q --no-edit $C; NOTE="merges the authored code head \`$C\`"; fi
 OLD=$(git rev-parse HEAD)
 $G merge -q --no-edit origin/main
+# Keys taken at the code sha, or at the previous head when none was given, re-keyed where the merges
+# only shifted their lines (ci_predict.py --rekey-body; open_pr.sh's why).
+python3 "$PRT/ci_predict.py" --rekey-body "$B" --from "$([ "$C" = - ] && echo "$OLD" || echo "$C")" || echo "update_pr: the unpinned-site re-key did not run; prepr reads the body as written" >&2
 N=${PR_N:-$(gh pr list -R $R --head "$BR" --state open --json number -q '.[0].number')}
 [ -n "$N" ] || { echo "no open pull request at $BR, so no row to check"; exit 1; }
 # ensure_row's own guard decides; its output names the row only when it added one.

@@ -371,8 +371,8 @@ held() { # held <pr>: rc 0 listed in the hold file, 1 not listed, 2 malformed fi
 # RELEASE: `<state>/cloud-handoff-release` (the hold file's grammar, the orchestrator's) lists PRs
 # the freeze passes over: genuine new work on a merge-verdicted fix head, which voids the verdict;
 # re-dispatch with `bus.sh dispatch` after the update. The hold file outranks a release.
-# A design's workers.json (R10-ORCH-MACHINERY) has no shape yet; when it lands, its live reviewer
-# replaces the dispatch and worktree reads here, in review_freeze alone.
+# bus.sh's dispatch record is the worker registry (R10-ORCH-DISPATCH-REG), so the REVIEW read
+# above is the registry's live-reviewer read.
 review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or UNREAD and rc 0 when frozen; rc 1 when not
   local vs v bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
   vs=$(awk -v r="refs/heads/verdict/$1" '$2 == r { print $1; exit }' "$3")

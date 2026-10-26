@@ -600,6 +600,95 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
     return out
 
 
+# --- re-keying `## Unpinned sites` after a main merge (P70, P125) -----------
+# open_pr.sh and update_pr.sh merge origin/main into a handoff, and a main commit that inserts a line
+# above a disposed site shifts its `file:line KIND` key: prepr step 7d then refuses a body whose
+# every disposition still holds (2026-10-25: 19 sites on R10-PARAMS-OWNER, 15 on R10-ARCH-SHAPES,
+# each a fixer round trip). A key is rewritten only when its line, mapped through
+# `git diff -U0 <from> HEAD -- <file>`, lands outside every hunk on a line whose text is identical
+# and occurs once in the file at HEAD, and the mutation inventory still holds that KIND there. A
+# changed, removed, ambiguous or new site is left as it is, so 7d still refuses it; no disposition
+# is ever written. The rewrite is recorded as one `## Head` note (head_note.py).
+SITE_KEY = re.compile(r"(?<![A-Za-z0-9_./-])([A-Za-z0-9_./-]+\.py):(\d+) ([A-Z][A-Z_]*)(?![A-Za-z0-9_])")
+HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+\d+(?:,(\d+))? @@", re.M)
+
+
+def moved_line(diff: str, line: int) -> int | None:
+    """`line` at the diff's old side, at its new side; None when a hunk changed or removed it."""
+    shift = 0
+    for a, b, d in HUNK.findall(diff):
+        a, b, d = int(a), int(b or 1), int(d or 1)
+        if b == 0:  # an insertion after old line a
+            shift += d if a < line else 0
+        elif a <= line < a + b:
+            return None
+        elif a + b <= line:
+            shift += d - b
+    return line + shift
+
+
+def inventory_kinds(root: Path, path: str) -> set[str]:
+    """The `file:line KIND` keys the mutation inventory holds for one file at the worktree."""
+    sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
+    import mutation_table as m
+    return {m.triage_key(s) for s in m.inventory([root / path])}
+
+
+def rekey_body(root: Path, body: str, frm: str, kinds=inventory_kinds) -> tuple[str, list[str], list[str]]:
+    """The body with its moved keys rewritten, the `old -> new` list, and each key kept with why."""
+    lines = body.split("\n")
+    on, done, kept, cache = False, [], [], {}
+    for n, text in enumerate(lines):
+        if text.startswith("## "):
+            on = re.fullmatch(r"## Unpinned sites\s*", text) is not None
+        if not on:
+            continue
+        def one(mt):
+            f, old, kind = mt.group(1), int(mt.group(2)), mt.group(3)
+            key = f"{f}:{old} {kind}"
+            if f not in cache:
+                cache[f] = (git(root, "diff", "-U0", "--no-renames", frm, "HEAD", "--", f),
+                            show(root, frm, f), show(root, "HEAD", f))
+            diff, was, now = cache[f]
+            if diff is None or was is None or now is None:
+                kept.append(f"{key}: {f} does not read at {frm[:12]} and HEAD"); return mt.group(0)
+            new = moved_line(diff, old)
+            if new is None:
+                kept.append(f"{key}: the merge changed or removed its line"); return mt.group(0)
+            if new == old:
+                return mt.group(0)
+            w, h = was.split("\n"), now.split("\n")
+            if not (0 < old <= len(w) and 0 < new <= len(h)) or w[old - 1] != h[new - 1]:
+                kept.append(f"{key}: line {new} at HEAD is not its text"); return mt.group(0)
+            if h.count(h[new - 1]) != 1:
+                kept.append(f"{key}: its text is on {h.count(h[new - 1])} lines at HEAD"); return mt.group(0)
+            if f"{f}:{new} {kind}" not in kinds(root, f):
+                kept.append(f"{key}: the inventory holds no {kind} at line {new}"); return mt.group(0)
+            done.append(f"{key} -> {f}:{new} {kind}")
+            return f"{f}:{new} {kind}"
+        lines[n] = SITE_KEY.sub(one, text)
+    return "\n".join(lines), done, kept
+
+
+def rekey_main(root: Path, path: str, frm: str) -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from head_note import prefix
+    body = Path(path).read_text()
+    out, done, kept = rekey_body(root, body, frm)
+    for k in kept:
+        print(f"REKEY KEPT {k}")
+    for d in done:
+        print(f"REKEY {d}")
+    if done:
+        head = (git(root, "rev-parse", "HEAD") or "").strip()
+        out = prefix(out, f"`{head}` re-keys {len(done)} `## Unpinned sites` line(s) the main merge moved "
+                          f"from `{frm}`, each to the line at this head with identical text and kind "
+                          f"(`ci_predict.py --rekey-body`): " + "; ".join(done) + ".")
+        Path(path).write_text(out)
+    print(f"REKEY: {len(done)} re-keyed, {len(kept)} kept")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--base", default="origin/main")
@@ -607,10 +696,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="write every predicted INERT READS entry, then predict again")
     ap.add_argument("--body", help="the pull-request body: also predict pr-contract's carry check")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--rekey-body", metavar="BODY", help="re-key BODY's moved `## Unpinned sites` lines in place")
+    ap.add_argument("--from", dest="frm", metavar="SHA", help="with --rekey-body: the code sha the keys were taken at")
     args = ap.parse_args(argv)
     if args.self_test:
         return self_test()
     root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
+    if args.rekey_body:
+        if not args.frm:
+            ap.error("--rekey-body needs --from <code-sha>")
+        return rekey_main(root, args.rekey_body, args.frm)
     pairs: set[tuple[str, str]] = set()
     scripts: set[str] = set()
     rc, preds, base = predict(root, args.base, pairs, scripts, args.body)
@@ -679,6 +774,7 @@ def self_test() -> int:
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
     bad += plant_self_test(root)
+    bad += rekey_self_test()
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
@@ -691,6 +787,46 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def rekey_self_test() -> int:
+    """--rekey-body over a scratch repository: a line main moved, and its three null controls."""
+    import tempfile
+    bad = 0
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+    from throwaway_git import throwaway_git_init
+    with tempfile.TemporaryDirectory() as d:
+        r = Path(d)
+        env = throwaway_git_init(r, "-q")
+        g = lambda *a: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.test", *a],
+                                      cwd=r, env=env, capture_output=True, text=True, check=True).stdout.strip()
+        (r / "a.py").write_text("x = 1\ny = 2\nz = y\nz = y\nw = 3\n")
+        g("add", "a.py"); g("commit", "-q", "-m", "code")
+        frm = g("rev-parse", "HEAD")
+        (r / "a.py").write_text("import os\nx = 1\ny = 2\nz = y\nz = y\nw = 4\n")
+        g("commit", "-q", "-am", "main")
+        def kinds(_root, _f):
+            return {"a.py:3 NUM", "a.py:5 NAME"}
+        body = ("## Head\n\nh\n\n## Unpinned sites\n\n- a.py:2 NUM: pinned by mutation-autofix\n"
+                "- a.py:5 NUM*2: a value check\n- a.py:4 NAME: triage t\n- a.py:1 NUM: a value check\n"
+                "\n## Figures\n\na.py:2 NUM outside the section\n")
+        out, done, kept = rekey_body(r, body, frm, kinds)
+        cases = [
+            ("a key whose line only moved is re-keyed to its new line", "- a.py:3 NUM: pinned" in out
+             and done[:1] == ["a.py:2 NUM -> a.py:3 NUM"]),
+            ("a key whose line text changed is kept (null control)", "- a.py:5 NUM*2:" in out
+             and any(k.startswith("a.py:5 NUM: the merge changed") for k in kept)),
+            ("a key whose text is on two lines at HEAD is kept (null control)", "- a.py:4 NAME:" in out
+             and any("on 2 lines" in k for k in kept)),
+            ("a key the inventory holds no such kind for at the new line is kept", "- a.py:1 NUM:" in out
+             and any("holds no NUM" in k for k in kept)),
+            ("a key outside ## Unpinned sites is never touched", out.endswith("a.py:2 NUM outside the section\n")),
+            ("exactly one key is re-keyed", len(done) == 1),
+        ]
+        for label, ok in cases:
+            print(f"  {'ok  ' if ok else 'FAIL'} rekey: {label}")
+            bad += not ok
+    return bad
 
 
 # The home the self-test's predictor runs under: a seat's, which CI never judges by.
