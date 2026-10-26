@@ -15,7 +15,7 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/audit/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
+#   tools/pr/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
 #   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
