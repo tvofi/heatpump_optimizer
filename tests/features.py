@@ -40475,7 +40475,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         horizon_hours=24, time_step_minutes=15, target_temp=21.0,
         min_temp=17.0, max_temp=23.0,
     ))
-    _hb_first, _hb_sav, _hb_cost, _hb_matched = [], [], [], []
+    _hb_first, _hb_sav, _hb_cost = [], [], []
     for _hb_room, _hb_slab in ((21.0, 22.0), (20.0, 21.0), (19.0, 20.0), (22.0, 23.5)):
         _hb_plan = _hb_opt.optimize(inputs=solve_inputs(
             initial_state=_HbState(
@@ -40492,43 +40492,12 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         _hb_first.append(float(_hb_plan.baseline_power_schedule[0]))
         _hb_sav.append(float(_hb_plan.predicted_savings))
         _hb_cost.append(float(_hb_plan.predicted_cost))
-        # The comfort the plan delivered, read off its published trajectory:
-        # each step's end room (two-zone, the floors' area-weighted mean).
-        _hb_sched = np.array([
-            _hb_opt.config.get_comfort_temp(_t.hour + _t.minute / 60.0, when=_t)
-            for _t in _hb_plan.timestamps
-        ])
-        _hb_deliv = np.array(_hb_plan.room_temp_trajectory[1:])
-        _hb_matched.append(_hb_sched - max(0.0, float(np.mean(_hb_sched - _hb_deliv))))
-    # Given the comfort it holds, the thermostat is one and the same from
-    # every start: each plan's booked step 0 is the reference run from the
-    # FIRST start's state at that plan's matched schedule (#2255, #2492),
-    # plus on the hot-water path the tank reference's step, which the house
-    # start does not move.
-    _hb_ws = _HbWSeries(outdoor_temps=np.asarray(_hb_out, float), wind_speeds=np.asarray(_hb_wind, float),
-                        precipitation=np.asarray(_hb_rain, float), solar_radiation=np.asarray(_hb_sol, float))
-    _hb_other = _HbState(
-        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(_hb_out[0]),
-        upper_floor_temperature=21.0, lower_floor_temperature=21.0,
-        dhw_temperature=52.0, dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
-    )
-    _hb_rerun = [
-        float(_hb_opt._compute_baseline_power(_hb_ws, _hb_other, 0.25, _m)[0][0])
-        for _m in _hb_matched
-    ]
     R.check(
-        f"the booked thermostat step depends on the start only through the comfort delivered "
+        f"the booked thermostat step is independent of the plan's start state "
         f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
-        max(abs((a - b) - (_hb_first[0] - _hb_rerun[0])) for a, b in zip(_hb_first, _hb_rerun)) < 1e-9
-        and (_hb_dhw or _hb_first[0] == _hb_rerun[0])
+        max(_hb_first) - min(_hb_first) < 1e-9
         and 0.0 < _hb_first[0] < float(_hb_par.max_electrical_power),
-        f"booked {_hb_first} rerun {_hb_rerun}",
-    )
-    R.check(
-        f"precondition: a start below target delivers less comfort, so the matched "
-        f"schedules differ ({'two-zone, DHW' if _hb_two else 'single-zone'})",
-        _hb_matched[2][0] < _hb_matched[0][0] - 0.05,
-        repr([round(float(_m[0]), 3) for _m in _hb_matched]),
+        repr(_hb_first),
     )
     # The plan starts from the measured house and the thermostat held, so
     # the start's stored-heat gap is settled as the end's is: a plan that
@@ -40544,16 +40513,15 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
     )
     if not _hb_two:
         # And it is the steady holding power, not merely a common one: the
-        # slab-fed demand at the step's matched target (midnight: the night
-        # temperature less the plan's shortfall) over this step's COP (no
-        # DHW, no external heat here).
+        # slab-fed demand at the step's comfort target (midnight: the night
+        # temperature) over this step's COP (no DHW, no external heat here).
         _hb_q = _hb_floor_demand(
-            _hb_opt.model, float(_hb_matched[0][0]), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+            _hb_opt.model, _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
             float(_hb_sol[0]),
         )
         _hb_cop = _hb_opt.model.compute_cop(float(_hb_out[0]))
         R.check(
-            "the booked thermostat step is the steady holding power at the matched target",
+            "the booked thermostat step is the steady holding power at target",
             abs(_hb_first[0] - max(0.0, _hb_q) / _hb_cop) < 1e-9,
             f"{_hb_first[0]!r} vs {max(0.0, _hb_q) / _hb_cop!r}",
         )
@@ -40564,7 +40532,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         _hb_held = _hb_held_state(_hb_opt.model, _HbState(
             room_temperature=19.0, slab_temperature=20.0, outdoor_temperature=float(_hb_out[0]),
         ), _HbWSeries(outdoor_temps=_hb_out, wind_speeds=_hb_wind, precipitation=_hb_rain,
-                      solar_radiation=_hb_sol), float(_hb_matched[0][0]))
+                      solar_radiation=_hb_sol), _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0))
         _hb_next = _hb_opt.model.simulate_step(
             _hb_held, _hb_first[0], float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
             float(_hb_sol[0]), dt_hours=0.25, hour_of_day=0.0,
@@ -40730,113 +40698,6 @@ R.check(
     [v for dhw, v in _hd_before if not dhw] == [_hd_end]
     and [v for dhw, v in _hd_before if dhw] != [_hd_end],
     f"end handed {_hd_end!r}, settled before it {_hd_before!r}",
-)
-
-# #2492 (1): the savings reference holds the comfort the plan delivered. The
-# helper shifts the schedule by the plan's mean shortfall, uniformly, and
-# hands back the same array at or above it (or on a NaN).
-from heatpump_optimizer.optimizer import _comfort_matched_targets as _cm_match
-
-_cm_sched = np.array([20.0, 21.0, 21.0, 20.0])
-R.check(
-    "a plan below the schedule on average moves the reference down by its mean shortfall, uniformly",
-    np.array_equal(_cm_match(_cm_sched, np.array([19.0, 20.5, 21.5, 19.0])), _cm_sched - 0.5),
-    repr(_cm_match(_cm_sched, np.array([19.0, 20.5, 21.5, 19.0]))),
-)
-R.check(
-    "a plan at or above the schedule on average, or a NaN trajectory, leaves the schedule itself",
-    _cm_match(_cm_sched, _cm_sched) is _cm_sched
-    and _cm_match(_cm_sched, _cm_sched + 1.0) is _cm_sched
-    and _cm_match(_cm_sched, np.array([19.0, 23.0, 21.0, 20.0])) is _cm_sched
-    and _cm_match(_cm_sched, np.full(4, np.nan)) is _cm_sched,
-    "",
-)
-# Through the solve: a flat-price plan that runs the house below the schedule
-# books a reference at that comfort, below the thermostat at the schedule
-# itself -- the comfort it gave up is no saving.
-_hb_opt_single = _HbOpt(_HbModel(_hs_par), _HbCfg(
-    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
-))
-_cm_state = _HbState(room_temperature=21.0, slab_temperature=22.0,
-                     outdoor_temperature=float(_hb_out[0]))
-_cm_refs, _cm_held = [], []
-_cm_real_base = _hb_opt_single._compute_baseline_power
-_cm_real_gap = _hb_opt_single._start_gap_cost
-
-
-def _cm_rec_base(weather, state, dt, targets=None, **k):
-    _cm_refs.append(targets)
-    return _cm_real_base(weather, state, dt, targets, **k)
-
-
-def _cm_rec_gap(*a):
-    _cm_held.append(a[2])
-    return _cm_real_gap(*a)
-
-
-with _hs_mock.patch.object(_hb_opt_single, "_compute_baseline_power", _cm_rec_base), \
-        _hs_mock.patch.object(_hb_opt_single, "_start_gap_cost", _cm_rec_gap):
-    _cm_res = _hb_opt_single.optimize(inputs=solve_inputs(
-        initial_state=_cm_state, prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out,
-        wind_speeds=_hb_wind, precipitation=_hb_rain, solar_radiation=_hb_sol, start_time=_hb_t0,
-    ))
-R.check(
-    "the start settlement holds the house at the schedule the published reference ran",
-    len(_cm_held) == 1 and len(_cm_refs) == 2 and _cm_held[0] is _cm_refs[-1]
-    and _cm_refs[-1] is not _cm_refs[0],
-    f"{len(_cm_refs)} reference runs, {len(_cm_held)} start settlements",
-)
-_cm_full, _ = _hb_opt_single._compute_baseline_power(
-    _HbWS(outdoor_temps=np.asarray(_hb_out, float), wind_speeds=np.asarray(_hb_wind, float),
-          precipitation=np.asarray(_hb_rain, float), solar_radiation=np.asarray(_hb_sol, float)),
-    _cm_state, 0.25, np.array([
-        _hb_opt_single.config.get_comfort_temp(_t.hour + _t.minute / 60.0, when=_t)
-        for _t in _cm_res.timestamps
-    ]),
-)
-_cm_sched_res = np.array([
-    _hb_opt_single.config.get_comfort_temp(_t.hour + _t.minute / 60.0, when=_t)
-    for _t in _cm_res.timestamps
-])
-R.check(
-    "precondition: the flat-price plan holds the house below the comfort schedule on average",
-    float(np.mean(_cm_sched_res - np.array(_cm_res.room_temp_trajectory[1:]))) > 0.2,
-    repr(float(np.mean(_cm_sched_res - np.array(_cm_res.room_temp_trajectory[1:])))),
-)
-R.check(
-    "that plan's published reference buys less than a thermostat at the schedule itself",
-    sum(_cm_res.baseline_power_schedule) < float(np.sum(_cm_full)) - 1.0,
-    f"published {sum(_cm_res.baseline_power_schedule):.2f} kW-steps vs at schedule {float(np.sum(_cm_full)):.2f}",
-)
-
-# The advisor's degree price differences ``held_cost`` across what-ifs
-# (price_tiles), so it stays the thermostat at the schedule itself: the same
-# solve with the matching switched off books it as its baseline_cost. Both
-# paths, the hot-water one on the house above.
-import heatpump_optimizer.optimizer as _cm_mod
-
-_cm_hd_in = dict(
-    initial_state=_HbState(
-        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(_hb_out[0]),
-        dhw_temperature=50.0, dhw_hours_since_legionella=20.0,
-    ),
-    prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out, wind_speeds=_hb_wind,
-    precipitation=_hb_rain, solar_radiation=_hb_sol, start_time=_hb_t0,
-)
-_cm_hd = _hd_opt.optimize(inputs=solve_inputs(**_cm_hd_in))
-with _hs_mock.patch.object(_cm_mod, "_comfort_matched_targets", lambda t, d: t):
-    _cm_off = _hb_opt_single.optimize(inputs=solve_inputs(
-        initial_state=_cm_state, prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out,
-        wind_speeds=_hb_wind, precipitation=_hb_rain, solar_radiation=_hb_sol, start_time=_hb_t0,
-    ))
-    _cm_hd_off = _hd_opt.optimize(inputs=solve_inputs(**_cm_hd_in))
-R.check(
-    "held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched",
-    _cm_res.held_cost == _cm_off.baseline_cost and _cm_hd.held_cost == _cm_hd_off.baseline_cost
-    and _cm_res.baseline_cost < _cm_res.held_cost - 0.5 and _cm_hd.baseline_cost < _cm_hd.held_cost - 0.5
-    and _cm_off.power_schedule == _cm_res.power_schedule,
-    f"space held {_cm_res.held_cost!r} vs off {_cm_off.baseline_cost!r} (matched {_cm_res.baseline_cost!r}); "
-    f"hot water held {_cm_hd.held_cost!r} vs off {_cm_hd_off.baseline_cost!r} (matched {_cm_hd.baseline_cost!r})",
 )
 
 # #2492 (2): a summer house that starts above its comfort and ends above its

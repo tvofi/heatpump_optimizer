@@ -336,27 +336,6 @@ def _baseline_targets(
     return targets.tolist()
 
 
-def _comfort_matched_targets(
-    comfort_targets: np.ndarray, delivered: np.ndarray
-) -> np.ndarray:
-    """The schedule the savings reference holds: the comfort schedule, matched (#2492).
-
-    Lowered by the plan's mean shortfall below it, so the thermostat delivers
-    the comfort the plan delivered and a plan that runs the house colder books
-    no saving for it -- the flat-price null read 10.83 % saved, about 5 points
-    of it comfort. A uniform shift, not a per-step ``min``: dips below target
-    the plan pays back with heat stored in a cheap or warm hour are the timing
-    saving and survive, as the mean keeps them. A plan at or above the schedule
-    on average leaves it as it is (the same array), and heat above it is the
-    end settlement's to price at its caps. ``delivered`` is each step's end
-    room temperature, two-zone the floors' area-weighted mean.
-    """
-    shortfall = float(np.mean(comfort_targets - delivered))
-    if not shortfall > 0.0:
-        return comfort_targets
-    return comfort_targets - shortfall
-
-
 def _floor_demand_at_target(
     model: ThermalModel,
     target: float,
@@ -1628,10 +1607,6 @@ class OptimizationResult:
     # window) but charged against the savings so borrowed heat is not counted
     # as a saving.
     deferred_energy_cost: float = 0.0
-    # The thermostat at the comfort schedule itself, before the savings
-    # reference matches it to the comfort delivered (#2492): the advisor's
-    # degree price (price_tiles) differences it across what-ifs.
-    held_cost: float = float("nan")
 
     # Outdoor temperature actually used for each step, so consumers can plot
     # the plan against the weather it was made for.
@@ -2774,7 +2749,6 @@ class HeatPumpOptimizer:
         status: str,
         predicted_cost: float,
         baseline_cost: float,
-        held_cost: float,
         savings: float,
         deferred_cost: float,
         dhw_power: np.ndarray | None = None,
@@ -2834,7 +2808,6 @@ class HeatPumpOptimizer:
             outdoor_temps=h.outdoor_temps.tolist(),
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
-            held_cost=held_cost,
             predicted_savings=savings,
             savings_percentage=_savings_percentage(savings, baseline_cost),
             deferred_energy_cost=deferred_cost,
@@ -4607,13 +4580,10 @@ class HeatPumpOptimizer:
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
 
-        # The savings reference holds the comfort the plan delivered (#2492).
-        held_cost = float(energy_cost_of(baseline_power))
-        reference_targets = _comfort_matched_targets(comfort_targets, room_temps[1:])
-        if reference_targets is not comfort_targets:
-            baseline_power, baseline_end = self._compute_baseline_power(
-                weather, initial_state, dt, reference_targets,
-            )
+        # The savings reference is the plain thermostat at the comfort schedule
+        # (#2255): a counterfactual that runs all along must not depend on where
+        # the optimiser left the house, so the booked baseline is not the plan's
+        # own recovery transient.
         baseline_cost = float(energy_cost_of(baseline_power))
         predicted_cost = float(energy_cost_of(optimal_power))
 
@@ -4624,7 +4594,7 @@ class HeatPumpOptimizer:
             valve_targets=h.valve_targets, humidity=h.humidity,
         )
         deferred_cost = self._settle_horizon(
-            h, weather, reference_targets, baseline_end, optimized_end, baseline_cost,
+            h, weather, comfort_targets, baseline_end, optimized_end, baseline_cost,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4648,7 +4618,6 @@ class HeatPumpOptimizer:
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
-            held_cost=held_cost,
             savings=savings,
             deferred_cost=deferred_cost,
             baseline_power=baseline_power,
@@ -4882,11 +4851,11 @@ class HeatPumpOptimizer:
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))
 
-        # Baseline cost; its house owns the plan's refill coil and draws, and
-        # holds the comfort the plan delivered.
-        reference_targets = _comfort_matched_targets(comfort_targets, room_temps[1:])
+        # Baseline cost; its house owns the plan's refill coil and draws. The
+        # reference holds the comfort schedule, not the comfort the plan
+        # delivered (#2255): the baseline must not move with the plan's start.
         baseline_power, baseline_end = self._compute_baseline_power(
-            weather, initial_state, dt, reference_targets,
+            weather, initial_state, dt, comfort_targets,
             coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
@@ -4894,12 +4863,6 @@ class HeatPumpOptimizer:
                 initial_state, outdoor_temps, n_steps, dhw_setpoint,
                 energy_cost_of, baseline_power, optimal_space, optimal_dhw, h.humidity,
             )
-        )
-        held_cost = baseline_cost if reference_targets is comfort_targets else float(
-            energy_cost_of(self._compute_baseline_power(
-                weather, initial_state, dt, comfort_targets,
-                coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
-            )[0] + baseline_dhw)
         )
 
         # Settle up the heat the optimized plan left unstored at the horizon end.
@@ -4913,7 +4876,7 @@ class HeatPumpOptimizer:
         # the horizon. Outside a demand window that is the idle minimum, so a
         # cold tank at midnight is not treated as borrowed heat.
         deferred_cost = self._settle_horizon(
-            h, weather, reference_targets, baseline_end, optimized_end,
+            h, weather, comfort_targets, baseline_end, optimized_end,
             float(energy_cost_of(baseline_power)),
             dhw_caps=self._settlement_caps(
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
@@ -4942,7 +4905,6 @@ class HeatPumpOptimizer:
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
-            held_cost=held_cost,
             savings=savings,
             deferred_cost=deferred_cost,
             baseline_power=baseline_power + baseline_dhw,
@@ -5225,10 +5187,10 @@ class HeatPumpOptimizer:
         saving, so the controller is built from the model's own steady state
         rather than from a heuristic.
 
-        The thermostat tracks per-step comfort targets: the plan's own, which
-        the savings reference matches to the comfort delivered (#2492). A flat
-        ``target_temp`` around the clock booked a configured night setback as
-        optimizer savings — value any programmable thermostat delivers.
+        The thermostat tracks the plan's own per-step comfort targets — the
+        schedule the user set, not the comfort the plan delivered (#2492). A
+        flat ``target_temp`` around the clock booked a configured night
+        setback as optimizer savings — value any thermostat delivers.
 
         Heat is delivered to the slab and only reaches the room on the
         following step, so power is set by a cascade: the slab is driven to the
@@ -5264,7 +5226,7 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        # Read once, not per step: a matched reference runs this twice a solve.
+        # Read once, not per step: the loop below runs to the horizon's end.
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
         two_tank, k_slab = p.two_tank_modelled, p.slab_heat_transfer_floored

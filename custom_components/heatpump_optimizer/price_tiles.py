@@ -102,7 +102,7 @@ def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> d
     spend = sim.predicted_cost + extra - live.predicted_cost
     return {
         "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
-        "monthly_held_cost_delta": round(per_month(sim.held_cost - live.held_cost, horizon_hours), 2),
+        "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
         "monthly_settled_cost_delta": round(per_month(
             spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
     }
