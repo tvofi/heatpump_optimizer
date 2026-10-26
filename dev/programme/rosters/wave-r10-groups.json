@@ -2638,9 +2638,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "Measure before fixing; an independent reviewer is owed (it is the orchestrator's own instrument)."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
