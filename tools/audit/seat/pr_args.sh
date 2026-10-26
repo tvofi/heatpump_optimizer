@@ -503,10 +503,64 @@ STUB
   echo '[]' > "$t/prs.json"
   run - open_pr.sh x "$code" T G
   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
-    && [ "$(git -C "$t/s$i/pr/x/wt" rev-parse HEAD)" = "$code" ] \
     && grep -qF "open_pr: REFUSE: the push failed; its log is $t/s$i/pr/x/p1.log" "$t/out" \
     && ! grep -q STOPPED "$t/out"
   ck "null control: open_pr with the code sha passes every check, and its failed push names its log" $?
+  # A refused or stopped open tidies its worktree (P72): one whose branch origin never had is
+  # removed with its local branch, so the next open of the topic can add both again; one that is
+  # dirty, or whose branch origin holds, is kept on its branch and named (pr_release_wt).
+  [ ! -e "$t/s$i/pr/x/wt" ] && ! git -C "$m" show-ref -q --verify "refs/heads/fix/x-$i" && ! grep -qF 'open_pr: KEPT' "$t/out"
+  ck "open_pr: a refused open whose branch origin never had leaves no worktree and no local branch (P72)" $?
+  run reltidy open_pr.sh x "$code" T G
+  [ -d "$t/s$i/pr/x/wt" ] && git -C "$m" show-ref -q --verify "refs/heads/fix/x-$i"
+  ck "  mutant mut:reltidy (its line deleted): the refused open's worktree still holds its branch" $?
+  # handoff/k carries a push stub that leaves an untracked file in the worktree (k=dirt) or pushes
+  # the branch to origin (k=orig), then fails: the two worktrees the tidy must keep.
+  for k in dirt orig; do
+    [ -e "$t/fix$k" ] && continue
+    git -C "$o" checkout -q -b "handoff/$k" "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
+      && if [ "$k" = dirt ]; then printf '#!/bin/bash\n: > "$2/dirt"; exit 1\n'; else printf '#!/bin/bash\ngit -C "$2" push -q origin "$3"; exit 1\n'; fi > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add b tools/pr/app_push.sh && git -C "$o" commit -q -m "code $k" \
+      && git -C "$o" update-ref "refs/heads/handoff-body/$k" "$body" && git -C "$o" checkout -q main && touch "$t/fix$k"
+  done
+  kept() { # <mutant> <k>: open_pr on handoff/<k>; rc 0 when its worktree is kept on its branch and named
+    run "$1" open_pr.sh "$2" "$(git -C "$o" rev-parse "handoff/$2")" T G
+    git -C "$t/s$i/pr/$2/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && grep -qF "open_pr: KEPT $t/s$i/pr/$2/wt on fix/x-$i" "$t/out"
+  }
+  kept - dirt; ck "null control: a refused open whose worktree is dirty is kept on its branch and named" $?
+  kept reldirty dirt; ! grep -qF 'it is dirty' "$t/out"
+  ck "  mutant mut:reldirty (its line deleted): the dirty worktree is not named as dirty" $?
+  kept - orig; ck "null control: a refused open whose branch origin holds is kept on its branch and named" $?
+  git -C "$o" branch -qD "fix/x-$i"
+  kept relorigin orig; git -C "$o" branch -qD "fix/x-$i"; [ ! -e "$t/s$i/pr/orig/wt" ]
+  ck "  mutant mut:relorigin (its line deleted): the worktree of a branch origin holds is removed" $?
+  # pr_tools_fresh (P-P): the checkout holding these tools refuses when origin/main has commits it
+  # lacks under tools/audit/seat or tools/pr; any other path is no refusal (null control), and
+  # HPO_ALLOW_STALE_TOOLS=1 says so and goes on. A commit on the scratch origin's main makes the
+  # clone's tools stale for one run, then main returns to base.
+  fresh() { # <mutant> <path committed on origin main> <script> <args...>
+    local mu=$1 p=$2; shift 2
+    mkdir -p "$o/$(dirname "$p")" && printf 's\n' > "$o/$p" && git -C "$o" add "$p" && git -C "$o" commit -q -m "main: $p"
+    run "$mu" "$@"
+    git -C "$o" reset -q --hard "$base"; git -C "$m" fetch -q origin main
+  }
+  fresh - tools/audit/seat/zz open_pr.sh x "$code" T G
+  [ "$(cat "$t/rc")" != 0 ] && grep -qE "open_pr: REFUSE: STALE CHECKOUT [0-9a-f]{12} behind origin/main [0-9a-f]{12} by 1 commit\(s\) touching tools/audit/seat tools/pr" "$t/out" \
+    && ! grep -qF "the push failed" "$t/out"
+  ck "open_pr: tools behind origin/main under tools/audit/seat refuse, naming the count" $?
+  fresh stale tools/audit/seat/zz open_pr.sh x "$code" T G; ! grep -qF "STALE CHECKOUT" "$t/out"
+  ck "  mutant mut:stale (its line deleted): the stale tools open" $?
+  fresh - docs/zz open_pr.sh x "$code" T G
+  ! grep -qF "STALE CHECKOUT" "$t/out" && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+  ck "null control: origin/main ahead only under docs/ is no refusal; the run reaches its push" $?
+  fresh freshpaths docs/zz open_pr.sh x "$code" T G; grep -qF "STALE CHECKOUT" "$t/out"
+  ck "  mutant mut:freshpaths (its line deleted): a docs/-only difference refuses" $?
+  HPO_ALLOW_STALE_TOOLS=1 fresh - tools/pr/zz open_pr.sh x "$code" T G
+  grep -qF "open_pr: NOTICE: STALE CHECKOUT" "$t/out" && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+  ck "open_pr: HPO_ALLOW_STALE_TOOLS=1 names the stale tools and goes on to the push" $?
+  cp "$t/body.md" "$t/b.md"; fresh - tools/pr/zz update_pr.sh fix/x - "$t/b.md"
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: STALE CHECKOUT" "$t/out" && ! grep -qF "the push failed" "$t/out"
+  ck "update_pr: tools behind origin/main under tools/pr refuse too" $?
   # ---- a stopped pusher reaps its whole descendant tree (R10-PUSHER-REAP) ----
   # The stub app_push above leaves a two-level sleep tree recorded by pid, so
   # each arm counts what is still alive after the signal. The bystander sleeper
@@ -560,11 +614,14 @@ STUB
     local sd=$t/ropen
     git -C "$m" worktree prune; rm -rf "$sd"; copyin "$1"
     HPO_STATE_DIR=$sd stopreap open_pr.sh reap "$reapsha" T G
+    { [ -e "$sd/pr/reap/wt" ] || git -C "$m" show-ref -q --verify refs/heads/fix/reap; } && echo kept > "$t/ropenwt" || echo gone > "$t/ropenwt"
     git -C "$m" worktree remove --force "$sd/pr/reap" 2>/dev/null
     git -C "$m" branch -D fix/reap fix/reap-pr >/dev/null 2>&1; rm -rf "$sd"
   }
   reapopen -
   ck "open_pr: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  ck "open_pr: and the stopped open, its branch never pushed, leaves no worktree and no local branch (P-D, P72)" \
+     "$( [ "$(cat "$t/ropenwt")" = gone ] && echo 0 || echo 1 )"
   ck "open_pr: the null control -- an unrelated sleeper survives" \
      "$( [ "$(cat "$t/unrel")" = alive ] && echo 0 || echo 1 )"
   STOPSIG=INT reapopen -
@@ -980,14 +1037,16 @@ print("free")' "$1"
     git -C "$o" checkout -q -b handoff/r "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
       && cat > "$o/tools/pr/app_push.sh" <<'STUB'
 #!/bin/bash
-D=$STUB_DIR; wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; [ "$1" != --row-only ] || shift
+wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
-  2) : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+  2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+     : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
        || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
      git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED the row"; exit 0 ;;
-  *) exit 1 ;;
+  *) [ -e "$D/p3ok" ] || exit 1; git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED the row"; exit 0 ;;
 esac
 STUB
     git -C "$o" add b tools/pr/app_push.sh && git -C "$o" commit -q -m "code r" \
@@ -1011,12 +1070,51 @@ STUB
     HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
     touch "$sdir/release"; wait "$op"; echo $? > "$t/rco"
     git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
+    git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
+    cp "$sdir/argv" "$t/argv" 2>/dev/null || : > "$t/argv"
     reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
   }
   racerun -
   [ "$(cat "$t/rcu")" = 75 ] && grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] \
     && grep -q '^PR=5 ' "$t/outo" && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin" $?
+  # The opener releases the branch once, at the end (P64, P-D): a worktree level with its last push
+  # is left detached, so no worktree holds the branch for the merge train's recarry.
+  [ "$(cat "$t/opwt")" = detached ]
+  ck "open_pr: a successful open leaves its worktree detached at the pushed head" $?
+  # The row push asks app_push.sh for --row-only (P53): one full prepr per open, not two; the
+  # code push never asks (null control).
+  [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = --row-only ] && [ "$(sed -n 1p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
+  ck "open_pr: its row push passes --row-only, and its code push does not" $?
+  racerun release; [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "  mutant mut:release (its line deleted): the opened PR's worktree still holds its branch" $?
+  racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
+  ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+  # A refused row push (#2625, #2629: prepr refused p2 on a red CI reported after p1) left the row
+  # commit unpushed in the opener's worktree, on the branch, and update_pr.sh refused it as unpushed
+  # work. The opener now returns its worktree to the pushed head and releases it, so the next
+  # update_pr.sh adds the row (delivery_row.sh's ensure_row) and the PR ends with it.
+  rowless() { # <mutant>
+    local sd=$t/rowless-$1 sdir=$t/rowless-$1-stub g
+    rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null; git -C "$o" branch -qD fix/r 2>/dev/null
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    touch "$sdir/p2fail" "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
+    git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
+    reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+  }
+  rowless -
+  [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: ROWLESS: #5 is open" "$t/outo" && [ "$(cat "$t/opwt")" = detached ] \
+    && [ "$(cat "$t/rcu")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "open_pr: a refused row push leaves no stranded worktree, says the PR is rowless, and the next update_pr.sh lands the row" $?
+  rowless rowreset
+  [ "$(cat "$t/opwt")" = branch ] && grep -qF "(unpushed work" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch and update_pr.sh refuses it (the defect)" $?
   racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
   racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
