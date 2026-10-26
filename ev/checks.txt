@@ -1,0 +1,47 @@
+CodeQL	pass	9s	https://github.com/tvofi/heatpump_optimizer/runs/121635091238	
+arch-score / arch-score	pass	59s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688773540	
+budget-raise-gate / budget-raise-gate	pass	17s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688773596	
+cancel-superseded	pass	9s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686876351	
+codeql / Analyze (actions)	pass	25s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686785670	
+codeql / Analyze (javascript-typescript)	pass	1m41s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686787088	
+codeql / Analyze (python)	pass	26s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686787763	
+gate	pass	38s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121690658158	
+governance / delivery-status	pass	23s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686787233	
+governance / env-matrix	pass	5m59s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786453	
+governance / instrument-self-tests	pass	17m58s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786824	
+governance / policy-docs	pass	57s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686785894	
+governance / wave-script	pass	41s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686787537	
+hassfest / hassfest	pass	26s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786924	
+pr-contract / pr-contract	pass	2m10s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121689377799	
+prelude	pass	21s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688535607	
+refresh	pass	26s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688538669	
+tests / arch-instrument	pass	48s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686787971	
+tests / briefs	pass	35s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786326	
+tests / browser	pass	3s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788078	
+tests / closure-scope	pass	21s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786625	
+tests / closures	pass	4m38s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788553	
+tests / nightly-ha	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788690	
+tests / graders-head-copy	pass	22s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686790556	
+governance / record	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786786	
+tests / coverage-ratchet	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686790287	
+tests / typing	pass	3s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788467	
+hassfest	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688775917	
+tests / fast (3.14)	pass	3m34s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788053	
+arm	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340816472/job/121634707006	
+tests / claims-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686790543	
+tests / mutation-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686790127	
+tests / mutation-pins	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788127	
+governance	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688776152	
+tests / lane-proofs	pass	4s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686791636	
+tests	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688775006	
+tests / coverage	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788220	
+tests / nightly-status	pass	10s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786378	
+validate / validate-hacs	pass	52s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786036	
+kernel-points	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688775328	
+tests / mutation	pass	44s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686786557	
+governance / delivery-status-publish	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788229	
+tests / closures-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686790599	
+tests / ci-ratchet	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686793018	
+codeql	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688775219	
+tests / replay	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824427/job/121686788720	
+validate	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40340824539/job/121688776256	
