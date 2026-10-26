@@ -555,7 +555,6 @@ unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
 fill_red() { # body file, site-key file, head sha; rc 0 wrote the line, 3 nothing written, 1 failed
   local n sec t
   n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
-  [ "$n" -gt 0 ] || { echo "the diff adds no unpinned mutation site; nothing written"; return 3; }
   grep -q '^## Red checks[[:space:]]*$' "$1" || { echo "no \`## Red checks\` section; nothing written"; return 3; }
   sec=$(awk '/^## /{on=($0 ~ /^## Red checks[[:space:]]*$/); next} on' "$1")
   case "$sec" in *mutation*) echo "\`## Red checks\` already names mutation; nothing written"; return 3 ;; esac
