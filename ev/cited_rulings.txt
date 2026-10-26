@@ -1,0 +1,7 @@
+s5-batch1 P31 DEFER
+s5-batch1 P32 DEFER
+s6-batch4 P55 ACCEPT
+s6-batch4 P60 ACCEPT
+s6-batch24 P111 ACCEPT
+s6-batch32 P184 ACCEPT
+s6-batch32 P187 ACCEPT

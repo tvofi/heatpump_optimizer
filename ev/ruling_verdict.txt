@@ -1,0 +1,4 @@
+P192 REJECT
+P193 DEFER
+P194 ACCEPT
+triage_refusal P194 carry: None
