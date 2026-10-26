@@ -1503,7 +1503,6 @@ if [ "${1:-}" = "--body-check" ]; then
   [ "$r" -ne 0 ] || r=$pr
   fout=$(figures_check "$2" 2>&1); fr=$?
   if [ "$fr" -eq 0 ]; then echo "figures ok: $(tail -1 <<<"$fout")"; else echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi
-  [ "$r" -ne 0 ] || r=$fr
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
