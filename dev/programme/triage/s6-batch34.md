@@ -132,3 +132,51 @@ For the orchestrator, not a carry:
 - The 16 h undetected state-beat death is a recurrence of R10-RCA-ORCH-CONTINUITY's class. That record names `pulse.py`'s state-beat arm as the detector, wired into sweep step 5, and records the class as `detector`, not `barriered`, until the owner's call between an hourly cloud probe (A, recommended) and a CI cron (B) runs (section 6).
 - A death that the wired detector did not surface for 16 h is evidence on that open barrier call. It returns to the root-cause route (`defect-root-cause.md`), as P192 did with its class, and is not a triage item.
 - The ref-lock race itself, a beat fetching in the `orch-wt` the other loops share, belongs to BEATD's supervised beat (concern B, single-instance locks per job).
+
+## P198: record PRs deadlock under back-to-back trains (S6-V118)
+Verdict: ACCEPT narrowed -> a new group, R10-RECORD-HOLD-APPROVE (size S, files `.github/workflows/nightly.yml` and `tests/entities.py`).
+- The filing's arm (b) is accepted: in the step "Approve and merge a row-only record pull request" (nightly.yml line 913), the train-hold check moves from before the guard and the approval to after them, before the pitch and the merge.
+- A held beat then still runs the guard and posts the one approving review per head, and leaves the merge to the train's `--bot-prs` sweep.
+- Arm (a), the bot sweep posting the approver review itself, is REJECTED.
+Source: s6 `proposals.md` `## V118` (orchestrator, 2026-10-26T10:24:10Z).
+Instances: one deadlock, and one near-miss.
+- #2856 (`record/autofix` b6de9fad) sat at REVIEW_REQUIRED for about 3 h with every check green. Nightly run 40300518367 (09:37Z) logged "a merge train is live (hold 4s old); #2856 waits for a later beat" (`skip-train-hold`).
+- The merge seat then posted the hpo-approver verdict and review behind the same guard (comment 6413706575, review 5650544835; `seat-ledger.md` line 1046 in the orchestrator's state directory, merge w70).
+- The near-miss: #2847 was approved only because a beat landed between trains, at 04:43Z (V118).
+- The deadlock is structural, not chance. Read at 2563e2922:
+  - The hold check (nightly.yml lines 973-1002) exits before `guard` (line 1004) and before the approver App's review.
+  - `merge_train.py`'s `--bot-prs` sweep merges "on record_row.py's guard alone", and its docstring says "the approver App's review is the beat's to post".
+  - So while trains run back to back, no beat ever posts the review the sweep needs. Back-to-back trains are the normal mode of a drain.
+- The pitch block's own comment (nightly.yml, THE PITCH) and its pin in `tests/entities.py` ("after the train hold, the guard and the approver App's review, before the merge") already state the intended order: the beat approves, and the train merges. Only the hold was left ahead of the approval.
+
+Why (b), and why not (a):
+- An approval does not move main. Only the merge does, and the hold exists to keep merges off a live train (R10-TRAIN-HOLD, issue #2302). Moving the hold after the approval keeps that protection whole: a held beat still never merges.
+- (b) is a reorder inside one step, under the executed harness `tests/entities.py` already has (`_train_hold_status`, which records every stubbed call).
+- (a) adds a second site that posts approver reviews. It puts the approver App's key into the train, a local process run by the merge seat, beside the author identity it already holds. It duplicates the beat's guard-then-review logic in `merge_train.py` (about 5,600 lines, a hot file). Decision 0011 keeps verdict posting with hpo-approver behind a defined route, and the beat is that route for record PRs.
+- The workaround the merge seat used today is (a) by hand. It stays the interim until the group lands.
+
+Cost:
+- About 30 lines moved in nightly.yml. The guard then runs on held beats too: one `record_row.py --automerge-check` per beat, which the beat already ran on every un-held beat.
+- In `tests/entities.py`, two assertions change and one is added:
+  - The existing "skips while a live merge train holds" check runs with `guard_rc=1`, so after the reorder it must pass `guard_rc=0` and also assert the approver POST happened and no merge did.
+  - New: a live hold whose guard refuses returns `refused`, dismisses, and posts no review.
+  - The pitch check's "a live hold with pitch 4" arm keeps `skip-train-hold`.
+  - Null: no hold reaches the pitch and merge as today.
+  - One mutant moves the hold back ahead of the approval, and the "reviewed under a live hold" assertion must fail.
+- One S fixer round and one review round.
+
+Benefit: each record PR otherwise waits for a beat that lands between trains, about 3 h in the one measured instance, or a seat's hand approval. Record PRs carry the delivery rows whose absence turns `governance / delivery-status` OVERDUE on main. Against about 30 moved lines and two assertions, the trade is clear.
+
+Binding: the hold's purpose, which is that no merge happens under a live train. (b) is accepted because it keeps that exactly and moves only the review. (a) is rejected for its identity and hot-file surface.
+
+Brief for R10-RECORD-HOLD-APPROVE:
+- In `.github/workflows/nightly.yml`'s step "Approve and merge a row-only record pull request", move the train-hold block (`HOLD_REF=train-hold` through its `esac`/`fi`) to after the approver App's review and before THE PITCH. A held beat then runs the guard, dismisses on refusal, posts the one approving review per head, and exits `skip-train-hold` without merging.
+- Update `tests/entities.py`'s TRAIN-HOLD and PITCH checks to the new order, with the controls above. Update the nightly.yml comments that state the order.
+- No change to `merge_train.py`.
+- Instance: #2856 at b6de9fad, run 40300518367.
+- It is critical-path relevant: until it lands, every record PR during a drain needs a hand approval.
+
+For the orchestrator, not a carry:
+- The interaction is between R10-TRAIN-HOLD (the hold ahead of the approval, 17197336f, in releases since v7.0.x) and the `--bot-prs` sweep that relies on the beat's approval (R10-FLOW-RECORD-PITCH, 6b1aa629f, not in v7.0.4).
+- The orchestrator's ruling (2026-10-26) on root cause: no root cause is owed. The deadlock needs both halves, and the `--bot-prs` reliance (6b1aa629f) is not in v7.0.4, so the defect has not reached a release, and no PR went red on a check. Neither trigger in `defect-root-cause.md` fires.
+- If v7.0.5 stamps before R10-RECORD-HOLD-APPROVE merges, the defect reaches that release, and the release trigger is re-checked then. v7.0.5 waits on #2854 and #2745, so a prompt dispatch lands the fix first.
