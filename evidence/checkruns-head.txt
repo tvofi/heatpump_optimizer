@@ -1,56 +1,55 @@
-total 55
-gate completed success 2026-10-26T07:50:50Z
-pr-contract / pr-contract completed success 2026-10-26T07:50:23Z
-kernel-points completed skipped 2026-10-26T07:46:19Z
-hassfest completed skipped 2026-10-26T07:46:19Z
-governance completed skipped 2026-10-26T07:46:19Z
-tests completed skipped 2026-10-26T07:46:19Z
-codeql completed skipped 2026-10-26T07:46:19Z
-validate completed skipped 2026-10-26T07:46:19Z
-arch-score / arch-score completed success 2026-10-26T07:48:05Z
-budget-raise-gate / budget-raise-gate completed success 2026-10-26T07:48:32Z
-gate completed success 2026-10-26T07:50:42Z
-pr-contract / pr-contract completed success 2026-10-26T07:45:52Z
-tests / mutation-autofix completed skipped 2026-10-26T07:44:48Z
-tests / mutation-pins completed skipped 2026-10-26T07:44:48Z
-tests / ci-ratchet completed skipped 2026-10-26T07:43:56Z
-tests / claims-autofix completed skipped 2026-10-26T07:43:56Z
-tests / lane-proofs completed success 2026-10-26T07:44:55Z
-tests / coverage-ratchet completed success 2026-10-26T07:42:40Z
-tests / graders-head-copy completed success 2026-10-26T07:42:13Z
-tests / closures-autofix completed skipped 2026-10-26T07:32:34Z
-tests / nightly-ha completed skipped 2026-10-26T07:10:28Z
-tests / replay completed success 2026-10-26T07:14:14Z
-tests / closures completed success 2026-10-26T07:32:34Z
-tests / coverage completed success 2026-10-26T07:41:40Z
-tests / fast (3.14) completed success 2026-10-26T07:43:56Z
-tests / arch-instrument completed success 2026-10-26T07:13:48Z
-tests / browser completed success 2026-10-26T07:14:26Z
-tests / typing completed success 2026-10-26T07:12:29Z
-CodeQL completed success 2026-10-26T07:10:16Z
-governance / record completed skipped 2026-10-26T07:09:22Z
-governance / delivery-status-publish completed skipped 2026-10-26T07:09:22Z
-kernel-points completed skipped 2026-10-26T07:09:22Z
-arch-score / arch-score completed success 2026-10-26T07:11:08Z
-budget-raise-gate / budget-raise-gate completed success 2026-10-26T07:09:57Z
-tests / mutation completed success 2026-10-26T07:44:48Z
-codeql / Analyze (javascript-typescript) completed success 2026-10-26T07:11:35Z
-tests / closure-scope completed success 2026-10-26T07:10:27Z
-governance / env-matrix completed success 2026-10-26T07:16:17Z
-codeql / Analyze (actions) completed success 2026-10-26T07:10:21Z
-governance / wave-script completed success 2026-10-26T07:10:12Z
-governance / delivery-status completed success 2026-10-26T07:10:23Z
-codeql / Analyze (python) completed success 2026-10-26T07:35:08Z
-governance / instrument-self-tests completed success 2026-10-26T07:27:48Z
-tests / briefs completed success 2026-10-26T07:09:54Z
-validate / validate-hacs completed success 2026-10-26T07:10:17Z
-governance / policy-docs completed success 2026-10-26T07:13:24Z
-hassfest / hassfest completed success 2026-10-26T07:09:55Z
-tests / nightly-status completed success 2026-10-26T07:09:34Z
-refresh completed success 2026-10-26T07:09:32Z
-cancel-superseded completed success 2026-10-26T07:09:16Z
-cancel-superseded completed success 2026-10-26T07:09:14Z
-prelude completed success 2026-10-26T07:46:19Z
-prelude completed success 2026-10-26T07:09:22Z
-refresh completed success 2026-10-26T07:09:32Z
-arm completed skipped 2026-10-26T07:09:02Z
+CodeQL	completed	success
+arch-score / arch-score	completed	success
+arch-score / arch-score	completed	success
+arm	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+budget-raise-gate / budget-raise-gate	completed	success
+cancel-superseded	completed	success
+cancel-superseded	completed	success
+codeql	completed	skipped
+codeql / Analyze (actions)	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+codeql / Analyze (python)	completed	success
+gate	completed	success
+gate	completed	success
+governance	completed	skipped
+governance / delivery-status	completed	success
+governance / delivery-status-publish	completed	skipped
+governance / env-matrix	completed	success
+governance / instrument-self-tests	completed	success
+governance / policy-docs	completed	success
+governance / record	completed	skipped
+governance / wave-script	completed	success
+hassfest	completed	skipped
+hassfest / hassfest	completed	success
+kernel-points	completed	skipped
+kernel-points	completed	skipped
+pr-contract / pr-contract	completed	success
+pr-contract / pr-contract	completed	success
+prelude	completed	success
+prelude	completed	success
+refresh	completed	success
+refresh	completed	success
+tests	completed	skipped
+tests / arch-instrument	completed	success
+tests / briefs	completed	success
+tests / browser	completed	success
+tests / ci-ratchet	completed	skipped
+tests / claims-autofix	completed	skipped
+tests / closure-scope	completed	success
+tests / closures	completed	success
+tests / closures-autofix	completed	skipped
+tests / coverage	completed	success
+tests / coverage-ratchet	completed	success
+tests / fast (3.14)	completed	success
+tests / graders-head-copy	completed	success
+tests / lane-proofs	completed	success
+tests / mutation	completed	success
+tests / mutation-autofix	completed	skipped
+tests / mutation-pins	completed	skipped
+tests / nightly-ha	completed	skipped
+tests / nightly-status	completed	success
+tests / replay	completed	success
+tests / typing	completed	success
+validate	completed	skipped
+validate / validate-hacs	completed	success
