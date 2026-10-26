@@ -1,0 +1,7 @@
+Forward-carry search (step 10), run 2026-10-26 by this reviewer.
+git grep -l "span_open" origin/main origin/handoff/audit-r10-roster -- dev/ .claude/   -> no match
+Every roster ref on origin (handoff/audit-r10-roster a391746ee, fix/audit-r10-roster-pr14 9deee69ad, pr7, pr8, freeze-*, runq, sync-carries-open): count of "span_open" in dev/programme/rosters/wave-r10-groups.json = 0 on each.
+R10-COP-GATE carries at handoff/audit-r10-roster: 10; the HEAT-METER one is the design's ("COP-GATE renders the new refusal codes (unaligned_meters and the counter refusals) and never overrides them"), no span_open.
+R10-UX-HEALTH carries at handoff/audit-r10-roster: 15; the HEAT-METER one is the design's (input rows + a Health string for unaligned_meters), no span_open and no counter_* strings.
+R10-REPLAY-REAL-DAY (groups/178/carry/3 at handoff/audit-r10-roster a391746ee): holds the body's L9 carry text "From R10-HEAT-METER (#2261; D15 lead L9, ...". Present.
+Rulings cited as "mandate 6329234399 ruling 1/2/3" (EPS 1.0, L6, L9): not found in the tree at main, the roster, #2261 (0 comments), PR #2854 comments (none), or the design note at 21f4fbfe9 (which records only revision 1's rulings: mode optional, store unread string, clamp means reset, void-on-configuration refused).

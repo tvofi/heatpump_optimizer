@@ -1,0 +1,3 @@
+Architecture score: dS +0.0030 WORSENS (inadmissible: coord_footprint 2423->2440)
+  coord_footprint 2423 -> 2440  -0.0101
+  coordinator_multiassigned_attrs 110 -> 109  +0.0131
