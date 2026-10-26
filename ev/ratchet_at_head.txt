@@ -1,0 +1,13 @@
+completeness problems: 0
+ratchet base 63a1c5fe81b749ed6f0c67e81369d6edae8ed2c9 unpinned head 3943 base 3943
+ADDED UNPINNED: 0
+SITE 127 GUARD_OFF pinned tests/debug_collect.py 'if isinstance(node, Mapping):'
+SITE 129 GUARD_OFF pinned tests/debug_collect.py 'if isinstance(node, list):'
+SITE 131 BOOLOP pinned tests/debug_collect.py 'removed = under in TO_REDACT or (under in COORDINATE_KEYS an'
+SITE 133 BOOLOP pinned tests/debug_collect.py 'return {text} if removed and len(text) >= replay_doc.LEAK_MI'
+SITE 133 CMP_BOUND pinned tests/debug_collect.py 'return {text} if removed and len(text) >= replay_doc.LEAK_MI'
+SITE 133 RETURN_DEL pinned tests/debug_collect.py 'return {text} if removed and len(text) >= replay_doc.LEAK_MI'
+SITE 138 GUARD_OFF pinned tests/debug_collect.py 'if isinstance(value, str):'
+SITE 140 GUARD_OFF pinned tests/debug_collect.py 'if isinstance(value, Mapping):'
+SITE 143 GUARD_OFF pinned tests/debug_collect.py 'if isinstance(value, (list, tuple)):'
+SITE 147 RETURN_DEL pinned tests/debug_collect.py 'return REDACTED if str(value) in private else value'
