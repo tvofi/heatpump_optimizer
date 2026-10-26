@@ -4861,7 +4861,7 @@
     "branch": "wip-sync/ext-mut-297fc65b",
     "commit": "eb46ec47ad6add449c46d1f0d3bfae4694355e67",
     "last_step": null,
-    "next_step": "rca",
+    "next_step": "fixer live; eb46ec47a models the valved buffer tank in the single-zone step. No handoff branch and no PR yet: reachable at wip-sync/ext-mut-297fc65b (snapshot) and wip-sync/ext-wt-e3556a49. Push handoff/r10-buffer-store, then open the PR.",
     "note": null
    },
    "class": "production",
