@@ -1,6 +1,6 @@
 # Proposal triage, session s6, batch 33 (P192-)
 
-Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch32.md` (P184-P191). This batch holds 8-10 entries and merges only through the train queue (tvofi, 2026-10-25). Facts read at origin/main b281d0325.
+Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch32.md` (P184-P191). This batch merges only through the train queue (tvofi, 2026-10-25). It is cut at three entries rather than the usual 8-10, on the orchestrator's ruling of 2026-10-26, because a queued roster op (P194's carry) cites it and waits for it on origin/main. Facts read at origin/main b281d0325.
 
 A roster op citing an ACCEPT below resolves only once this file is on the roster branch or origin/main (`roster_edit.py` reads the ruling from there).
 
