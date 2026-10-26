@@ -9800,7 +9800,7 @@
     "branch": "wip-sync/ext-mut-3efc9ad7",
     "commit": "516d47fd7517da801802c2e73db97f17251ef090",
     "last_step": null,
-    "next_step": null,
+    "next_step": "fixer live; 516d47fd7 grades the house against its configured type and era. No handoff branch and no PR yet: the work is reachable only at wip-sync/ext-mut-3efc9ad7 (snapshot, moves every sync). Push handoff/r10-house-grade from it, then open the PR.",
     "note": null
    }
   },
