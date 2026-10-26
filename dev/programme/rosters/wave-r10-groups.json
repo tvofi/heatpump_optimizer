@@ -4725,7 +4725,7 @@
    "brief": "Ordered by tvofi 2026-10-19: fold a deliberate ceiling-set-point probe into the cheap-night system-identification experiment (sysid.py, gated on mild outdoor temperature, cheap price, night window). Purpose: set-point-driven installs never command the ceiling, so the metered draw window is censored at the top and the plugin cannot learn the pump's real maximum (owner: configured 5 kW, a Rotenso Windmi 14 kW whose real electrical maximum is believed near 3 kW). The probe writes the ceiling flow set-point for a bounded step inside the experiment window, records drawn power against the written set-point into draw_range's ceiling-commanded evidence (R10-SETPOINT-BOOST fix B), and lets the band top be learned from uncensored samples. Controls: the experiment's existing comfort and price gates hold; a probe never runs outside them; a synthetic pump with a known maximum is recovered within tolerance; duty-cycling installs unchanged; flat-price null.",
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-ceiling-probe",
+    "branch": "design/r10-ceiling-probe",
     "commit": "9ef3325660916ef055f8b9a39713e3f2a98d0afe",
     "last_step": null,
     "next_step": "Design r2 at design/r10-ceiling-probe 9ef33256 in design review; on approve set architect_note, add pump_arbiter.py and coordinator.py to files, order vs R10-LIVESTATE",
