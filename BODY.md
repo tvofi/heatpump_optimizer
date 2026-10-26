@@ -32,9 +32,28 @@ Alternatives considered:
 
 ## Head
 
-`367afeb856434fc863dd3617caac19e50f78bcfa`, cut from origin/main `da12aa37dee15b9e9567bd6c848493436f2592dd` (the merge base and the brief's head). Every figure below was taken at it, except where a line names `d8bcb95a8`: the mutants ran there, and the only change between it and the head is the harness file (`git diff d8bcb95a8 367afeb85 --stat`: `dev/audit/harnesses/r10_advisor_residue.py` alone, which no mutant or suite reads). At handoff (2026-10-25T18:46Z, `date -u`) origin/main is `dfcd8d9be`, and `git merge-tree --write-tree origin/main 367afeb85` rc 0.
+`e01608bddcaa941ba486bd4bb2e15fb28a2b6825`. It is the PR head `e2a808a6494c1445e1a6c636ec1b99e9541545ca` plus four commits:
+- `3d6a0a595` merges origin/main `df478d40be4b546a7aaad150a5d9132483534a3a` (merge, not rebase, with both merge drivers installed). The `claimnotes` driver refused `tests/golden/claimed_drift.txt` because both sides rewrote the claim list. I kept this branch's five coord claims and dropped main's `config_flow` and R10-LEARNER-ETA claim lines, since both describe diffs main already carries. `ledger_merge` resolved `tests/structure_budgets.json` (`class_excess_loc` 18085, `max_class_loc` 8236) and `tests/closures.json` without a hand edit.
+- `b2946cd12` adds the check that kills the two unpinned `_sweep_price` sites (see Mutation proof).
+- `3f0ce95ba` holds the two `killed_by` pins that `mutation_table.py --pin-killed` wrote.
+- `e01608bdd` changes one comment line in `tests/golden/claimed_drift.txt`: the note's measurement base is now `df478d40b`.
+
+The merge base is `df478d40be4b546a7aaad150a5d9132483534a3a`. The harness arms, mutants and env_drift ran at `3f0ce95ba`. `git diff 3f0ce95ba e01608bdd` is that single comment line, which no mutant, arm or capture reads. The gate and the suite figures ran at `e01608bdd`. Every figure was re-taken in this pass at the merged head (round-1 figures that I did not re-take are marked as such). At handoff (2026-10-26T06:37Z, `date -u`) origin/main is `11b7a9d73`, and `git merge-tree --write-tree origin/main e01608bdd` gives rc 0.
 
 ## Mutation proof
+
+**This round, the two sites that `tests / mutation` refused at `e2a808a6`.** Each mutant is the operator's own line, `_sweep_price`'s `return level if level > 1e-6 else max(abs(level), 0.1)` (coordinator.py, `_sweep_price`). Each ran in a `git archive` copy of `3f0ce95ba` under `PYTHONPATH=tests/hastub python3 tests/features.py`:
+
+| mutant | production line replaced | red |
+|---|---|---|
+| MS1 (CLAMP_DROP) | `max(abs(level), 0.1)` -> `(abs(level))` | `a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one` (detail: `0.0/kWh [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]`) |
+| MS2 (CMP_BOUND) | `level > 1e-6` -> `level >= 1e-6` | the same check (detail: `0.0/kWh [0.87, 0.93, … 1.23]; 1e-6/kWh [0.0, 0.0, … 0.0]`) |
+
+Each copy read `2 of 4439 FEATURE CHECKS FAILED`. The second red in both is `and the path that proceeds still stamps a resolvable recorded_at (#363)`, which a `git archive` copy fails on every run, the baseline included (fixer step 2; #1713). `mutation_table.py --pin-killed --base origin/main --scripts tests/features.py`, run on the tree, printed `pinned … coordinator.py:2031 CLAMP_DROP -- killed by tests/features.py`, the same for `CMP_BOUND`, and `PIN KILLED: 2 pinned, 0 left unpinned`. Its baseline read `rc=0 failed=0`, and its null control (`coordinator.py:518 NULL_COMMENT`) survived. Neither mutant had a killing check before `b2946cd12`. The `mutation-autofix` commit `f77f0e4cc` pinned the site's `RETURN_DEL` but left these two unpinned. The existing negative-price checks feed a level of 1.0 after `abs`, which never reaches the floor or the bound.
+
+The check encodes a design choice. It prejudges that a level of exactly 1e-6 is floored, and that only a level above 1e-6 is kept.
+
+**Round 1, not re-taken** (production is unchanged since then apart from main's merge). These ran at `d8bcb95a8`:
 
 Each mutant replaces one production line with an exact single-occurrence replacement, in a detached worktree of its own at `d8bcb95a8`, and runs the closure named. A check named is one that went red.
 
@@ -53,21 +72,21 @@ Each mutant replaces one production line with an exact single-occurrence replace
 
 Each mutant above failed exactly the checks named, and nothing else: `1 of 4407 FEATURE CHECKS FAILED` (`2 of 4407` for MA2), `1 CARD CHECK(S) FAILED` for MC1. The failing-test-first step for MX4 is that mutant. #2572's review recorded it surviving the suite at that PR's head (review 6328189370, carried in this group's roster entry); with this branch's check it fails.
 
-
 ## Null control
 
-- **The unmutated tree passes:** `ALL 4407 FEATURE CHECKS PASSED` and `ALL CARD CHECKS PASSED` at `367afeb85` (Figures).
+- **The unmutated head passes:** `ALL 4439 FEATURE CHECKS PASSED` (4438 before `b2946cd12`, the one check added) and `ALL CARD CHECKS PASSED` at the head (Figures).
+- **The new check's control:** on the unmutated tree a free-energy day prices at the floor (0.1), so its candidates rank by energy. The 1e-6/kWh day prices identically to it. One just above the bound keeps its own level: `_sweep_price(2e-6, [])` reads `2e-06` (a REPL probe at the merged head, before the check was added: `0.1 0.1 2e-06` for `(None, [0.0])`, `(1e-6, [])`, `(2e-6, [])`).
 - **Every arm of the harness carries its own null,** and each reads as it must:
   - `whatif`: the held figure, which starts held at its own target, moves on 0 of 24 rows.
   - `inbox`: at the flat price and constant outdoor temperature both rows read flat (max/min 1.00) at the base and at the head.
   - `asym` and `mixing`: the null series is what separates the estimator's own term from the prices'.
-- **The fresh-install control:** with no settled interval, the sweep prices at the feed's window (a check), and the gap row at the price now (a check).
+- **The fresh-install control:** with no settled interval, the sweep prices at the feed's window (a check), and the gap row prices at the price now (a check).
 
 ## Figures
 
 **Harness `dev/audit/harnesses/r10_advisor_residue.py`**, sha1 `ffb5f71b132ed9547aeb05f7dd7429d366bf412c`, this PR's instrument. Command: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_residue.py <arm>`.
 
-Every arm at `367afeb85`, rc 0 (no arm named runs all four). The rule each line states is the arm's own, in the harness header.
+Every arm re-run at `3f0ce95ba` (see Head), rc 0 (no arm named runs all four). The rule each line states is the arm's own, in the harness header.
 - `whatif`:
   - `RESULT whatif rows 24 plan_moves_by_start 24 held_moves_by_start 0` (a row moves when its three starts spread more than 1.0; the held figure counts any spread above 1e-9)
   - `RESULT whatif caps rows 12 spread_by_start mean plan 50.4 settled 10.1; figures reading a saving (< -1) plan 18/36 settled 1/36`
@@ -75,7 +94,7 @@ Every arm at `367afeb85`, rc 0 (no arm named runs all four). The rule each line 
   - `VERDICT whatif the plan figure moves with the start; the held figure does not`
 - `inbox`, the same harness file (sha1 above) run at both ends:
   - head: `RESULT inbox varying gap       mean  108.0 range  106.4.. 109.3 (max/min 1.03) widest_day    2.9`; `RESULT inbox varying hot_water mean   23.8 range   23.4..  24.3 (max/min 1.04) widest_day    0.6`
-  - base, a detached worktree at `da12aa37d` with the head's harness copied in: `RESULT inbox varying gap       mean  108.8 range   27.9.. 516.4 (max/min 18.50) widest_day  453.6 day_means   65.4.. 200.3`; `RESULT inbox varying hot_water mean   23.9 range   14.4..  44.4 (max/min 3.08) widest_day    0.6 day_means   14.4..  44.1`
+  - base, a detached worktree at the first merge base `da12aa37d` with the head's harness copied in (round 1, not re-taken: nothing `main` merged since touches the readers the arm drives): `RESULT inbox varying gap       mean  108.8 range   27.9.. 516.4 (max/min 18.50) widest_day  453.6 day_means   65.4.. 200.3`; `RESULT inbox varying hot_water mean   23.9 range   14.4..  44.4 (max/min 3.08) widest_day    0.6 day_means   14.4..  44.1`
   - null, identical at both ends: `RESULT inbox null gap … (max/min 1.00) widest_day    0.0` and `RESULT inbox null hot_water … (max/min 1.00) widest_day    0.0`
 - `asym`: `RESULT asym null gap -0.06..+11.10 of mean magnitude 52.83 (worst 21.0 %)`; `RESULT asym varying gap -0.10..+2.09 of mean magnitude 68.54 (worst 3.0 %)`
 - `mixing`: `RESULT mixing worst spread 28.5 % of the per-degree figure`; per instant, `RESULT mixing null 07:00 … spread 16.7 %` and `RESULT mixing varying 07:00 … 58.93  70.16  79.95  79.96  79.85 spread 28.5 %`, the others 0.0–9.3 %
@@ -83,14 +102,15 @@ Every arm at `367afeb85`, rc 0 (no arm named runs all four). The rule each line 
 `whatif`, `asym` and `mixing` call the optimizer directly, not the readers this branch changes, so they read the same at both ends by design. Their companions are the real-seam features checks (MA2 and MA3 are red there) and the fuse-advisor check (MA1).
 
 
-**The per-degree copy's delivered fraction.** `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_degree.py null` (sha1 `41ee4a43725dac312d95037575bc612f866af709`), at `367afeb85`, rc 0:
+**The per-degree copy's delivered fraction.** `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_degree.py null` (sha1 `41ee4a43725dac312d95037575bc612f866af709`), re-run at `3f0ce95ba`, rc 0, identical to its first run:
 
 - `RESULT null offset -1 delivered -0.514 K truth_per_delivered_degree +59.4 held +54.4 (-8.4 %) first_solve_plan +145.6`
 - `RESULT null offset +1 delivered +0.327 K truth_per_delivered_degree +59.4 held +54.4 (-8.4 %) first_solve_plan +85.1`
 
-This run is from this worktree before any production line changed (production at the merge base). The arm reads only the optimizer and `price_tiles.per_month`, which this branch leaves as they were.
+The arm reads only the optimizer and `price_tiles.per_month`, which this branch leaves as they were.
 
 **Class seams (fixer step 8).**
+- Re-run at `3f0ce95ba`, each returning the same sites as at round 1:
 - (a): `grep -rn "monthly_cost_delta\|monthly_settled_cost_delta\|monthly_held_cost_delta" custom_components/heatpump_optimizer --include=*.py --include=*.js` returns:
   - `price_tiles.monthly_figure` (degree reads held; cap reads settled, this diff);
   - `price_tiles.monthly_deltas` and `price_tiles.published` (the tile's publication key);
@@ -104,54 +124,73 @@ This run is from this worktree before any production line changed (production at
   - the COP-health repair's `monthly_kwh / max(1, now.day) * 30.0` (month-to-date kWh at the feed's mean, in a repair issue raised once per trip). It does not refresh, so it cannot swing day to day: outside this class, left as is.
 - (c): `grep -rn "target_minus_1\|target_plus_1" custom_components/ --include=*.py --include=*.js` returns `price_tiles.TILE_NAMES` and the card's `priceTiles`. The card's only relation between the two is `degreeRow`'s sign check; no reader compares their magnitudes.
 
-**Suite and gate figures:**
-- The scope: `python3 tests/closure.py select --diff da12aa37dee15b9e9567bd6c848493436f2592dd --workdir "$D"` -> `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`
-- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=da12aa37dee15b9e9567bd6c848493436f2592dd ./tests/run.sh` at `367afeb85` -> `1 TEST SCRIPT(S) FAILED`, rc 1. The one is `tests/entities.py`, `2 of 2445 ENTITY CHECKS FAILED`: `gate-sweep.yml: on CI's completion, …` and `graders-head-copy's delivery_status step is red only when …`. Both fail identically at the merge base (`PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached `da12aa37d` worktree -> `2 of 2445 ENTITY CHECKS FAILED`, the same two names); see Friction. Every other script passed, among them:
-  - `ALL 4407 FEATURE CHECKS PASSED` (4401 at the merge base: six checks added);
-  - `ALL CARD CHECKS PASSED` and `card_drift: identical in all 40 states`;
-  - `NO UNCLAIMED DRIFT: 56 scenario(s) checked against da12aa37dee1…` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`: the five coord fixtures, claimed `CLAIMED coord_*: 1 leaves moved` (`data.recent_kwh_price`, null);
-  - `ALL 113 STRESS CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED`, `STRUCTURE RATCHET PASSED`; `tests/typing_ruler.py` ok.
-- `python3 tools/audit/archscore/score.py --diff da12aa37dee15b9e9567bd6c848493436f2592dd` -> `Architecture score: dS +0.0012 IMPROVES`.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` -> `CI PREDICT: no closures, fast, wave-script or instrument red predicted against da12aa37dee1`; it lists the 10 unpinned sites below.
+**Suite and gate figures, at `e01608bdd`:**
+- The scope: `python3 tests/closure.py select --diff df478d40be4b546a7aaad150a5d9132483534a3a --workdir "$D"` -> `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=df478d40be4b546a7aaad150a5d9132483534a3a ./tests/run.sh` -> `1 TEST SCRIPT(S) FAILED`, rc 1. The one script is `tests/entities.py`, which reads `2 of 2449 ENTITY CHECKS FAILED`: `gate-sweep.yml: on CI's completion, …` (U0c) and `graders-head-copy's delivery_status step is red only when …`. Both fail identically at the merge base: `PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached `df478d40b` worktree reads `2 of 2449 ENTITY CHECKS FAILED`, with the same two names (Friction). Every other script passed, among them `ALL 4439 FEATURE CHECKS PASSED`, `ALL CARD CHECKS PASSED`, `ALL 113 STRESS CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED` and `ALL 84 OPTIMALITY CHECKS PASSED`
+- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all df478d40be4b546a7aaad150a5d9132483534a3a` (at `3f0ce95ba`) -> `NO UNCLAIMED DRIFT: 56 scenario(s) checked against df478d40be4b546a7aaad150a5d9132483534a3a` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`, rc 0. The five coord fixtures read `CLAIMED coord_*: 1 leaves moved` (`data.recent_kwh_price`, null).
+- `node tests/card.mjs` (after `tests/plan_view.py`) -> `ALL CARD CHECKS PASSED`.
+- `python3 tools/audit/archscore/score.py --diff df478d40be4b546a7aaad150a5d9132483534a3a` -> `Architecture score: dS +0.0012 IMPROVES`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` -> `CI PREDICT: no closures, fast, wave-script or instrument red predicted against df478d40be4b`.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`, with `class_excess_loc 18085 <= 18085`, `max_class_loc 8236 <= 8236` and `seam_cut_total 424 <= 424`.
 
 ## Unpinned sites
 
-Each is a `custom_components/` site, so `mutation-autofix`'s lane pins it after the PR opens (`ci-autofix.md`). The value checks this branch adds already read several of them.
-- `custom_components/heatpump_optimizer/coordinator.py:2007 CLAMP_DROP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:2007 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:2007 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/ledger.py:287 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/ledger.py:287 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/ledger.py:290 GUARD_OFF`: pinned by `mutation-autofix` (the empty-ledger arm of the recent-price check reads it)
-- `custom_components/heatpump_optimizer/ledger.py:294 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/ledger.py:295 RETURN_DEL`: pinned by `mutation-autofix` (the recent-price check reads it)
-- `custom_components/heatpump_optimizer/sensor.py:2813 CMP_BOUND`: pinned by `mutation-autofix` (the gap-rate check's zero-price arm reads it)
-- `custom_components/heatpump_optimizer/sensor.py:2813 GUARD_OFF`: pinned by `mutation-autofix`
+At `e2a808a6`, `tests / mutation` listed two `ADDED UNPINNED` sites. Both are now pinned by a value check:
+- `custom_components/heatpump_optimizer/coordinator.py:2031 CLAMP_DROP` (`_sweep_price`, line 2030 before the merge): pinned in `tests/mutation_ledger/killed_by/coordinator.py/_sweep_price.CLAMP_DROP.8ccdbac5.json`, `killed_by` `tests/features.py`.
+- `custom_components/heatpump_optimizer/coordinator.py:2031 CMP_BOUND`: pinned in `…/_sweep_price.CMP_BOUND.8ccdbac5.json`, `killed_by` `tests/features.py`.
+
+`mutation_table.py --pin-killed` reports `0 left unpinned` against `df478d40b`. The other eight round-1 sites were pinned by `mutation-autofix` in `f77f0e4cc`.
 
 ## Architecture score
 
 `Architecture score: dS +0.0012`: IMPROVES, admissible.
-- `coord_footprint` 2446 -> 2444: the what-if's monthly figures and the sweep's price level left the coordinator class.
+- `coord_footprint` 2423 -> 2421 against `df478d40b`: the what-if's monthly figures and the sweep's price level left the coordinator class.
 
-`python3 tests/structure.py` records `class_excess_loc` 18102 -> 18101 and `max_class_loc` 8311 -> 8306 (commit `7e0156de8`, the reason in its message). `seam_cut_total` stays at 419. No budget rises.
+The round-1 structure re-record (`class_excess_loc` 18102 -> 18101, `max_class_loc` 8311 -> 8306, commit `7e0156de8`, with its reason in the message) merged with main's own moves through `ledger_merge` to 18085 and 8236. `structure.py` reads both at zero headroom, and `seam_cut_total` stays at 424. This round adds no production line, and no budget rises.
 
 ## Red checks
 
-- `mutation`: red at open, by prediction. The 10 `custom_components/` sites under Unpinned sites have no pin yet, and `mutation-autofix`'s bot commit pins them (`ci-autofix.md`: wait for it, do not duplicate). The cheaper detector already ran: `ci_predict.py` (prepr step 6d) listed every site before the push, at the cost of one static read per handoff.
-- No other red is predicted at this head (`ci_predict.py` above). This branch has not run on CI yet.
-- The local gate's one red, `tests/entities.py`'s `gate-sweep.yml` and `graders-head-copy` checks, reads the same at the merge base in this seat, so this diff did not turn it red; the environment observation is under Friction.
+At `e2a808a6`:
+- `tests / mutation`: `MUTATION TABLE REFUSED -- 3942 unpinned site(s) against 3943 at the ratchet base 5261ba84, 2 of them added by this diff`. The two are `coordinator.py:2030 CLAMP_DROP` and `CMP_BOUND` in `_sweep_price`.
+  - **Answered:** the check in `b2946cd12` kills both, and `3f0ce95ba` pins them (Mutation proof, Unpinned sites).
+  - **Cause:** no check fed `_sweep_price` a level at or below 1e-6, so `mutation-autofix` correctly left both unpinned as survivors. The round-1 body had predicted all ten sites "pinned by `mutation-autofix`" without driving them.
+  - **The cheaper detector exists:** `mutation_table.py --pin-killed` run in the seat before the handoff tells a survivor from a pin. Its standing cost is one `features.py` baseline plus one run per new site, about 7 minutes each, run three at a time (this round: two sites, one batch). `ci_predict.py` (prepr step 6d) lists the sites in seconds but cannot tell a survivor from a pin.
+- `pr-contract / pr-contract`: `check \`tests / mutation\` is red and \`## Red checks\` does not name it`. The round-1 body named the check `mutation`, and the contract matches the check's full name.
+  - **Answered:** this section names `tests / mutation` in full.
+  - **The cheaper detector exists:** `prepr.sh --body-check`, which `body_push.sh` runs, reads the live red list. At the round-1 handoff the PR had not run, so no list existed to match. Running it again once CI reported would have caught it, at the cost of one lint run per CI round.
+- `gate`: the required aggregate. It was red only through the two checks above.
+- `governance / delivery-status`: `DELIVERY STATUS OVERDUE`. The OVERDUE rows are other PRs' rows across the programme, and it is not a required context. This diff's own row is not among them, so this is not this PR's red and is left alone.
+
+At `e01608bdd` CI has not run yet. `ci_predict.py` predicts no red. Main's push CI may be red on `tests / ci-ratchet` (GitHub's artifacts listing returns 0 bytes, and a hotfix is in flight). That red is not this diff's: it touches no file that `tests/ci_ratchet.py` reads, and it does not touch `tests/ci_ratchet.py`.
+
+## Carries
+
+From the live roster for this group, item by item:
+1. **(a) the what-if's single-solve `monthly_cost_delta` (#2572 item a47745dc).** Fixed for the cap's readers: the fuse advisor's `cost_delta_sek_month` and the cap tile read `monthly_settled_cost_delta`. Not fixed at the Plan page's what-if panel for a comfort move. That residual goes to the follow-on in item 10 (Forward-carry).
+2. **(b) the inbox's sensor-gap and hot-water rows (69e7c431).** Fixed. Both price at `MonthlyLedger.recent_kwh_price`; `inbox` spans 1.03 and 1.04, against 18.50 and 3.08 at the base.
+3. **(c) the held estimator's per-solve asymmetry (87849118).** Measured (`asym`: 21.0 % worst in the null, 3.0 % on varying prices) and recorded, not fixed. No reader compares the two tiles (Forward-carry).
+4. **MX4 survives (ae0472c3).** Fixed. The unequal-count check kills the pooled mean (MX4, round 1).
+5. **Per delivered degree against per degree of setting (e8626144).** Decided by the copy: the tile now says it prices a degree held, in en and sv, and rescaling lost (intro).
+6. **MX4, round 2 (f1c7e1de).** The same fix as item 4.
+7. **The row overstates what pressing the button saves (5df8a03b).** The same decision as item 5. MC1 pins the copy.
+8. **The null control and the copy question (5f30f170).** The same decision as item 5. The delivered fraction was re-taken (`r10_advisor_degree.py null`, Figures).
+9. **Mixing (4468b8a1).** Measured (`mixing`: 28.5 % worst) and recorded, not fixed (Forward-carry).
+10. **Residual: seam (a)'s what-if panel and #2257.** This PR stays `Part of #2257`. The panel goes to the follow-on sub-PR with P141, which closes #2257, and the group stays open after this merges (Forward-carry). Carry: #2257
+11. **P141, moving `_plan_slots` out of `coordinator.py`.** It stays a follow-on, as the brief says: this diff touches neither `_plan_slots` nor `PlanSlot` (`git diff df478d40b...e01608bdd | grep -c '_plan_slots\|PlanSlot'` reads 0). It lands after this PR, in the follow-on sub-PR in item 10 (Forward-carry).
 
 ## Forward-carry
 
-- **Seam (a) at the Plan page's what-if panel, for a comfort or schedule move.** `WhatIf.summary` still reads `monthly_cost_delta`, which moves with the house's start (`whatif` arm: the degree rows' plan spread is up to 132.0 in the null). `docs/dashboard-card.md` discloses this ("its figure includes the one-off coast or heat-up a change starts with"). No sound estimator exists within this seam:
+- **The follow-on sub-PR: seam (a) at the Plan page's what-if panel, and P141.** `WhatIf.summary` still reads `monthly_cost_delta`, which moves with the house's start (`whatif` arm: the degree rows' plan spread reaches 132.0 in the null). `docs/dashboard-card.md` discloses this ("its figure includes the one-off coast or heat-up a change starts with"). No sound estimator exists within this seam:
   - the settled figure gives the wrong sign across two schedules (+24.6 / -25.5 at the varying 00:00 rows);
   - the held figure misses a draft's non-comfort edits.
 
-  A fix needs an estimator design (an L-size designer stage), or the owner's acceptance of the disclosed copy. The brief expected this group to be the last on the issue; this body names it with Part of rather than a closing keyword, so that the residual keeps an owner. The orchestrator decides between a design group and dismissal. Carry: #2257
-- **Seam (c), the held estimator's asymmetry.** Measured and left; no reader compares the two tiles. A later change that wants a convexity check starts from the `asym` arm. Carry: dismissed: no reader compares the two tiles, and the published 30-day mean averages it over rotation starts
-- **The 30-day mean's mixing of schedules.** Measured and left: a reset at each schedule change trades the measured spread for item 6's swing. Carry: dismissed: a per-schedule reset re-introduces the day-to-day swing the owner asked the horizon to remove
+  The fix needs an estimator design, or the owner's acceptance of the disclosed copy. It goes in the follow-on sub-PR with P141's `_plan_slots` move (`dev/programme/triage/s6-batch27.md`, P141), which closes #2257. This body says Part of #2257, not Closes. Carry: #2257
+- **Seam (c), the held estimator's asymmetry.** Measured and left; no reader compares the two tiles. A later change that wants a convexity check starts from the `asym` arm in `dev/audit/harnesses/r10_advisor_residue.py`. Carry: dismissed: no reader compares the two tiles, and the published 30-day mean averages it over rotation starts
+- **The 30-day mean's mixing of schedules.** Measured and left: a reset at each schedule change trades the measured spread for item 6's swing (`mixing` arm). Carry: dismissed: a per-schedule reset re-introduces the day-to-day swing the owner asked the horizon to remove
+- **The round-1 review's evidence lines** (review 6403356769): seam (a) satisfied for the cap readers, MA3 and RS1 killed. These are the reviewer's measurements of satisfied carries, not findings. Carry: dismissed: reviewer evidence of a satisfied carry, no residual (item d01c39a6) (item e432a1e8) (item ff5267cd)
 
 ## Friction
 
 - brief-citations: unclear: the brief sizes seams (a)-(c) "with the null arm of r10_sav_null_terms.py", but that harness has no arm reading `async_simulate`, the fuse advisor, `rank_sensor_gaps` or the setpoint sweep. Its null (a flat price and a constant outdoor temperature) is reused as each arm's control in the new `dev/audit/harnesses/r10_advisor_residue.py`. Carry: dismissed: the residue harness landed here is the instrument the brief meant
-- gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2445 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `da12aa37d`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES
+- gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `df478d40b`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES
+- ci-autofix: cost: round 1 wrote ten `custom_components/` sites as "pinned by `mutation-autofix`" without driving them, and two were survivors that the bot could not pin, which cost a CI round and a fixer round. `ci-autofix.md` says to run `--pin-killed` only "when `mutation-autofix` goes red", so a body can predict a pin it has not measured. Carry: dismissed: the instrument exists (`mutation_table.py --pin-killed`, about 7 min a site); whether to require it before every handoff is the orchestrator's cost call, recorded here
