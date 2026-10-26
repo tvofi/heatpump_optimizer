@@ -1,0 +1,22 @@
+3eadd670792d0086c4f58f1bd6f41b2ba8a297c7 lost=1 2026-10-26T10:51:05+01:00 pool: drop dispatch/fixer-r10-flow-jidoka-p2-body
+7ff6cdffaf1f6e8d5bc600e7620f7e4ef16ab282 lost=1 2026-10-26T10:18:23+01:00 pool: drop dispatch/fixer-r10-flow-jidoka-p2
+4942e17911eaa1c1375d11a1cf8d4ffd726ad356 lost=1 2026-10-26T10:12:01+01:00 pool: drop dispatch/fixer-r10-rca-hotfix-batch-errexit
+fac1a860e0386b233c3cd7d4528898e5bda4ee66 lost=1 2026-10-26T10:11:58+01:00 pool: drop dispatch/fixer-r10-rca-ratelimit-recur
+234be94c834c83b07b751ef54f93306b38d949ea lost=1 2026-10-26T08:50:56+01:00 pool: drop dispatch/fixer-r10-flow-jidoka-p2-body
+03990655f1e071dc475ef0b4c4b5bb443a8b2647 lost=16 2026-10-26T07:09:00+01:00 pool: drop dispatch/fixer-r10-heat-meter-closure (job done)
+e87ff703f4f66e17eae63a0092c718b1013607b9 lost=1 2026-10-25T20:32:44+01:00 dispatch: dispatch/pool-s6
+15d7049c9d45f3cb98b04a3bda604ded2382f165 lost=1 2026-10-25T19:12:41+01:00 dispatch: dispatch/pool-s6
+1f472851a6f7b997af0427b163109c63f1daa747 lost=42 2026-10-25T17:48:56+01:00 dispatch: dispatch/pool-s6
+36d16cc91250c3390855bec89355e0eb90707eff lost=1 2026-10-25T17:47:49+01:00 dispatch: dispatch/pool-s6
+259272c0e5d7a438c6bf21225539e5bcf2d820cd lost=1 2026-10-25T11:14:23+01:00 dispatch: dispatch/pool-s6
+85b3568236a4cee45677f5b7f8a137f80a62fa53 lost=1 2026-10-25T11:14:05+01:00 dispatch: dispatch/pool-s6
+e336a9a28de60f372e44467b660314f1f519236f lost=2 2026-10-25T10:39:41+01:00 dispatch: dispatch/pool-s6
+f3802b2d206bf68f4fcfd73115037a234efcc393 lost=2 2026-10-25T10:39:21+01:00 dispatch: dispatch/pool-s6
+2533d3e77ec61f820a13360ab832ac8ea5a002c6 lost=3 2026-10-25T09:30:59+01:00 dispatch: dispatch/pool-s6
+2fcfecdf4a4ac5737986dcfad8af97503c614d83 lost=3 2026-10-25T06:12:52+01:00 dispatch: dispatch/pool-s6
+0a85b4521ab21b25e86c421cf9f41600f5ea8d5f lost=4 2026-10-25T03:14:52+01:00 dispatch: dispatch/pool-s6
+1fffde90381caeb144a27250694b2cc77842f78b lost=1 2026-10-24T19:25:58+02:00 dispatch: dispatch/pool-s6
+92c48b372c681154a4421c3fc47011fa5b066584 lost=9 2026-10-24T18:18:29+02:00 dispatch: dispatch/pool-s6
+65d01d147a268a6fddaf03a3299660a476da4c43 lost=8 2026-10-24T12:20:33+02:00 pool: five owed groups
+commits=148 lost-commits=20
+until P194 commit: commits=139 lost-commits=16

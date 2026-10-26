@@ -1,0 +1,19 @@
+== 121514320394
+15:2026-10-26T09:33:49.9276403Z ##[endgroup]
+105:2026-10-26T09:34:05.1403212Z ##[group]Determining the checkout info
+106:2026-10-26T09:34:05.1403439Z ##[endgroup]
+107:2026-10-26T09:34:05.1403614Z [command]/usr/bin/git sparse-checkout disable
+152:2026-10-26T09:34:09.4569077Z [36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.[0m
+234:2026-10-26T09:34:13.0466442Z ##[error]Process completed with exit code 1.
+240:2026-10-26T09:34:13.0918884Z ##[error]Process completed with exit code 1.
+249:2026-10-26T09:34:13.0947744Z [36;1m# the base. That unpinning is what `codeowners_gap.py --check` refuses[0m
+260:2026-10-26T09:34:13.1088999Z ##[error]Process completed with exit code 2.
+289:2026-10-26T09:34:13.9751105Z FileNotFoundError: [Errno 2] No such file or directory: '/tmp/pr-body.md'
+== 121514302317
+140:2026-10-26T09:38:09.1513403Z (node:2059) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+152:2026-10-26T09:38:09.4499671Z [36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.[0m
+170:2026-10-26T09:38:09.4504037Z [36;1m  'tools/policy/record-predicate' \[0m
+277:2026-10-26T09:38:15.7819582Z [36;1m# One admitted merge (codeowners_gap's allowlist refuses `sort -o`,[0m
+323:2026-10-26T09:38:19.9574161Z ##[error]Process completed with exit code 1.
+329:2026-10-26T09:38:19.9958878Z FIGURES: 0 resolved, 0 not verified, 0 refused
+338:2026-10-26T09:38:20.0012693Z [36;1m# the base. That unpinning is what `codeowners_gap.py --check` refuses[0m
