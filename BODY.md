@@ -1,50 +1,55 @@
-The root-cause record for R10-HOTFIX-BATCH-ERREXIT. It ran beside the hotfix and not inside it: no workflow is edited. The change is docs plus one instrument: `dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md`, its `_rca` row in `dev/audit/config/bugclasses.json`, the read-only harness `dev/audit/harnesses/r10_errexit_capture.py`, and that harness's INERT READS entry in `tests/closures.json`.
+The root-cause record for R10-HOTFIX-BATCH-ERREXIT, round 2: the answer to fix review `blocked 908237a8c` (`verdict/2849`). It ran beside the hotfix and not inside it: no workflow is edited. The diff is docs plus one read-only instrument: `dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md`, its `_rca` row in `dev/audit/config/bugclasses.json`, the harness `dev/audit/harnesses/r10_errexit_capture.py`, and that harness's INERT entry in `tests/closures.json`.
 
-**Cause, reproduced.** `nightly.yml`'s record-autofix reads `batch=$?` after a bare `record_row.py --batch-due`. The step runs under GitHub's default `/usr/bin/bash -e {0}`, so the designed exit 4 ends the step before the read. This turned jobs 121376331566 and 121376503388 red with exit code 4. The step body under `bash -e` with a stub returning 4 exits 4. With `|| batch=$?` it prints `status=batching`. `record_row.py`'s exit mapping is right and pinned (`6b1aa629f`). The YAML is what is wrong.
+**Cause, reproduced (round 1, unchanged).** `nightly.yml`'s record-autofix read `batch=$?` after a bare `record_row.py --batch-due`. Under GitHub's default `bash -e`, the designed exit 4 ended the step first (jobs 121376331566 and 121376503388, exit code 4). **State (c):** the barrier `_RAF_BARE_GREEN` ran and passed with a one-call unit, `_raf_batch_gated` pins the dead line's text, and the executed-step harness runs `bash -c` with no `-e`. The hotfix #2848 is now on main as `e0ffb1213`, so countermeasure A's precondition holds.
 
-**State (c).** A barrier for this exact hazard, `_RAF_BARE_GREEN` (`bc2ad6964`), ran and passed: its unit is one literal call, `guard --require-green`. #2836's `_raf_batch_gated` pins the dead line's text. The executed-step harness `_train_hold_status` runs `bash -c` with no `-e`. The job is `main`-only, so no PR head ran it. It is not (b): the same PR wrote `--pitch-check` as a condition.
-
-**Class.** This is the 3rd workflow-step errexit instance in 31 days: I1 `dc66cc878` (fixed by `718c94c84`), I2 `47add7334` (fixed by `bc2ad6964`), and I3 `c24adf589`. It is the 2nd of the `$?` shape. Of the 5 `$?` reads across every run block, 1 is defective.
-
-**Cost test: passes.** 0.54 s x 113 runs/day = 61 runner-s/day, against a break-even of 940 s per defect at 0.065/day measured. I2 alone cost 6.3 days. **Countermeasure (proposed, not landed):** (A) a tree-wide `$?`-after-bare-call check replacing `_RAF_BARE_GREEN`, which must land with or after the hotfix line; (B) executed step harnesses run under `bash -e -c`.
+**Round 2 answers the review.**
+- Finding 2, the `$?` read in an `if`/`while` test: fixed in the reference logic (`TEST_HEAD`), failing selftest first, mutation-proved, controls re-taken (below; record section 5 A).
+- Finding 3, B's scope: the record now enumerates every `bash -c` over workflow text under `tests/` and `tools/`, 14 sites, each with a disposition (record section 5 B). Running the five sites that lack `-e` under `bash -e -c` found a **4th instance of the class on main**: gate-sweep.yml's `out=$(python3 -I tools/ci/gate.py --sweep ...)` ends the step on any program exit of 1, so a rate limit never prints its `RATE-LIMITED` annotation. `_gs_step_verdict` shows it green only because it runs `bash -c`.
+- Finding 4: dismissed by the reviewer, restated under Friction.
+- Block 1, carry-missing: not cleared by this seat. R10-HOTFIX-BATCH-ERREXIT is now `done` on the roster branch, so `carry_audit.py` refuses it as a destination (`BAD-DEST ... is done`), and no live group owns the countermeasure. Minting one is the orchestrator's. Forward-carry below holds the exact carry text for it.
 
 ## Head
 
-a1c8d7f0c6cb6779dfbbb8f572bd5a39c1804e3c
+e1a684789f697772a3c533b4263d33ae3ea0c447
 
-It is two commits on `origin/main` `d181d014a0d9681b4f4ca217a540f7bd1bf932a2`: the record, and the closures classification `ci_predict.py --apply-inert` wrote. API figures were read on 2026-10-26 between 03:20Z and 04:10Z.
+Three commits on `origin/main` `f6784210c` (the round-1 head `908237a8c` plus this round's one commit). `origin/main` was at `ed1c9045e` at 2026-10-26T07:15Z, and `git merge-tree --write-tree origin/main HEAD` exits 0, so main was not merged in (`fixer.md` step 6).
 
 ## Mutation proof
 
-- The harness `--selftest` printed `selftest: 9 checks, 0 failed`. Each case expecting 1 hit (bare call, same line, `case $?`, continuation, shell arm) depends on the `hits.append` line, so deleting it fails 5 of them.
-- Countermeasure A on the defect: `python3 -I dev/audit/harnesses/r10_errexit_capture.py` at this head printed `HIT .github/workflows/nightly.yml job=record-autofix step='Write the rows and push the record branch'` and `RESULT hits=1`, exit 1.
-- With the hotfix line applied to a scratch `git archive` copy of `d181d014a` (`batch=0` and `--batch-due ... || batch=$?`; never landed), `--root <copy>` printed `RESULT hits=0`, exit 0.
-- Mutant: `nightly.yml:1049` reverted to a bare `guard --require-green; rc=$?` printed `hits=1`. Backtest at `bc2ad6964^` (I2 live) printed `hits=1` on `tests.yml`.
+- Failing test first: the five test-form cases were added to `--selftest` before the fix. `python3 -I dev/audit/harnesses/r10_errexit_capture.py --selftest` printed `selftest: 16 checks, 5 failed ['if test -ne', 'if test quoted', 'if test builtin', 'while test', 'same-line if']`, exit 1. With `TEST_HEAD` it printed `selftest: 16 checks, 0 failed`, exit 0.
+- Mutant: deleting the line `stmt = TEST_HEAD.sub("", stmt)` printed the same `16 checks, 5 failed` with the same five names. Restored, `0 failed`.
+- On a tree: `ed1c9045e`'s `.github/` with the hotfixed gate rewritten as the bare call then `if [ $? = 4 ]; then batch=4; fi` printed `HIT ... step='Write the rows and push the record branch'` and `hits=1`, exit 1. The round-1 copy of the harness (`908237a8c`) printed `hits=0`, exit 0, on the same tree.
+- Mutant of `ed1c9045e`: the guard's `if guard --require-green; then rc=0; else rc=$?; fi` back to `guard --require-green; rc=$?` printed `hits=1`.
 
 ## Null control
 
-- On the hotfixed copy the harness still prints `RESULT reads=5`, so its green comes from reading every site, not from skipping them. An empty `.github/` prints `REFUSED` with `blocks=0 reads=0`, exit 2.
-- Backtest at `718c94c84^` (I1 live) printed `hits=0`: I1's pipeline shape is outside the check's unit. Record section 6 says so.
-- The scoped gate (`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`) printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and named `tests/entities.py`. With `PYTHONPATH=tests/hastub` it printed `2 of 2448 ENTITY CHECKS FAILED` at this head, and the same `2 of 2448` with the same two names in a detached worktree of `origin/main` `d181d014a`: the `gate-sweep.yml ... (U0c)` check and `graders-head-copy's delivery_status step ...`. Neither reads a file this diff touches. `run_always` scripts: `tests/closure.py selftest` (`ALL 117 closure shrink pins PASSED`), `tests/layout.py` (`ok`), `tests/harness_headers.py` (`ALL 112 HARNESS HEADER CHECKS PASSED`), and `tests/structure.py` (`STRUCTURE RATCHET PASSED`).
-- `python3 tools/audit/fold_ledger.py check` printed `0 violation(s)` with 122 rca entries (121 at the base).
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` predicted no red.
+- `--root` over `ed1c9045e`'s `.github/` (the hotfix landed) printed `RESULT blocks=260`, `RESULT reads=5`, `RESULT hits=0`, exit 0: every `$?` site still read, none a hit.
+- An empty `.github/` printed `REFUSED: no errexit run block or no $? read scanned`, `blocks=0 reads=0`, exit 2.
+- This head, and `d181d014a`: `hits=1` (the I3 defect), exit 1. Backtest `bc2ad6964^` (I2 live): `hits=1` on tests.yml's `guard --require-green; rc=$?`. Backtest `718c94c84^` (I1 live): `hits=0`, I1's pipeline shape is outside the unit, as record section 6 says.
+- B's enumeration control: the `ast` walk and the two `git grep` patterns named in record section 5 B returned the same 14 sites.
+- B executed: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2449 ENTITY CHECKS PASSED` on this tree before the commit (the commit after it changes only the record), and `1 of 2449 ENTITY CHECKS FAILED` on a scratch copy of `908237a8c` whose five sites without `-e` were switched to `bash -e -c`. The one is gate-sweep.yml's U0c check, with `defects=` naming the 3 `_GS_CASES` whose program exits 1. The same step run directly with a stub `python3`: `RATE-LIMITED reset_epoch=99`, rc 1 gives step rc 1 and `::error title=RATE-LIMITED` under plain `bash`, step rc 1 and no annotation under `bash -e`; `SWEEP-DONE run=2 reruns=0`, rc 1 gives step rc 0 under `bash` and rc 1 under `bash -e`.
+- The scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and named `tests/entities.py` (its run is the line above). `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`; `python3 tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`.
 
 ## Figures
 
-- `.github` run blocks, `$?` reads and hits: `python3 -I dev/audit/harnesses/r10_errexit_capture.py`, printed at `d181d014a`.
-- The 5 `$?` sites: `grep -n -E '=\$\?|case "?\$\?|\$\? ' .github/workflows/*.yml`.
-- Prior instances: `git log --all -i -E --grep='errexit|set -e|bash -e'`, each read by hand (record section 3). Landing times come from the first first-parent commit of `origin/main` that contains each commit. `grep -c -i -E 'errexit|set -e|bash -e' RELEASE_NOTES.md` printed 0.
-- Red runs: Actions API, Nightly push runs 40262054722 and 40262110887 (`failure`, record-autofix exit code 4) and 40259634492 (`success`, `RECORD AUTOFIX: held`).
-- Countermeasure cost: `scan()` timed in-process 5 times, 0.25 to 0.54 s. 113 `ci.yml` runs/day is R10-RCA-CI-RATCHET-RUN-NAME's measurement for 2026-10-24 and was not re-taken.
+- Harness results and selftest: `python3 -I dev/audit/harnesses/r10_errexit_capture.py [--root DIR] [--selftest]`, each `--root` a `git archive <sha> .github` copy; taken 2026-10-26T07:15Z.
+- B's sites: an `ast` walk over every tracked `.py` under `tests/` and `tools/` for a list literal `["bash"|"sh", ..., "-c", ...]`, crossed with `git grep -n -E '"(ba)?sh",\s*("-[a-z]+",\s*)*"-c"' -- tests tools` and `git grep -n '\["bash", "--noprofile"' -- tests tools`.
+- Entity check counts: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`, on this tree and on the `-e` copy. Under the seat profile's `BASH_ENV` both trees printed `2 of 2449 ENTITY CHECKS FAILED` (gate-sweep U0c and graders-head-copy's delivery_status, the known BASH_ENV friction), so the comparison was re-taken without it.
+- `tests/arch_score.py`'s `base_runs_the_gate`, called alone (the whole script's calibration outran the seat's time limit) with `BASH_ENV` unset: both checks it holds printed `ok` on this tree and on the `-e` copy.
+- Every other figure is round 1's, unchanged, with its command in the record.
 
 ## Red checks
 
-none
+The new head has no check runs yet (`commits/e1a684789/check-runs` answers 422, no such commit on GitHub before the push). The round-1 head `908237a8c`, this head's parent, carries four reds, all GitHub installation rate limits read from their job logs, none reached by this diff:
+
+- `prelude` 121398617873 (04:52:40Z) and `gate` 121404488173 (04:52:59Z) and `gate` 121408083256 (05:06:52Z): `RATE-LIMITED reset_epoch=1792991224`, exit code 3, from `tools/ci/prelude.py`'s and `tools/ci/gate.py`'s own rate-limit arm. The cheaper detector exists and fired: the arm names the limit instead of crashing. The recurrence of this red is R10-RCA-RATELIMIT-RECUR's (in progress), not this record's.
+- `pr-contract / pr-contract` 121407967543 (05:06:28Z): `gh: API rate limit exceeded for installation ... (HTTP 403)`, exit 1. The same limit; same owner.
 
 ## Forward-carry
 
-- Countermeasure A and B, record section 5. A: a tree-wide check over every errexit `run:` block that refuses a `$?` read whose producer is a bare call, replacing `_RAF_BARE_GREEN`, with `dev/audit/harnesses/r10_errexit_capture.py` as the reference logic and its demonstrations. It fails on main until the hotfix line is in, so it lands in the hotfix's PR or after it merges. B: `tests/entities.py:27925` executes step text under `bash -e -c`. Also there, the class proposal: I1 to I3 as `non_round_instances` of a new class, the judge's or orchestrator's to mint. Carry: R10-HOTFIX-BATCH-ERREXIT
+- **Countermeasure A, B and the class (record section 5), plus the gate-sweep instance, for a group the orchestrator mints.** The exact carry text: "From #2849 (R10-RCA-HOTFIX-BATCH-ERREXIT). (1) Land countermeasure A: a tree-wide check over every errexit `run:` block (default shell, `bash`, `sh`) that refuses a `$?` read whose producer is a bare simple command, including a read in an `if`/`while`/`until` test, replacing `_RAF_BARE_GREEN`; reference logic and selftest are `dev/audit/harnesses/r10_errexit_capture.py` at e1a684789. Precondition: the hotfix line is on main (#2848, e0ffb1213), met. Control: at main the harness prints `blocks=260 reads=5 hits=0`, exit 0; on `d181d014a` `hits=1`, exit 1; on an empty `.github/` `REFUSED`, exit 2; re-measure with `python3 -I dev/audit/harnesses/r10_errexit_capture.py --root <tree>`. Its own mutation proof is owed by the landing fixer. Gap: A does not see a producer read through `out=$(...)`. (2) Fix gate-sweep.yml's sweep step: `out=$(python3 -I tools/ci/gate.py --sweep ...)` under the default `bash -e` ends the step on any program exit of 1 before `case` reads the outcome, so `RATE-LIMITED` prints no annotation and `SWEEP-DONE`, rc 1 is red. Fix the step (`|| true` or a condition form) and switch `tests/entities.py` `_gs_step_verdict` to `bash -e -c`; failing test first: that switch alone fails the U0c check on 3 cases. (3) Countermeasure B: switch `_train_hold_status`, `_pt_trigger`, `_cov_trust`, `_cov_marker` (`tests/entities.py`) and `tests/arch_score.py` `base_runs_the_gate` to `bash -e -c`; under `BASH_ENV` unset, all of them except `_gs_step_verdict` stayed green with `-e` on `tests/entities.py` (`tests/arch_score.py`'s `base_runs_the_gate` too). (4) Class proposal: a workflow step's meaningful nonzero exit ended by errexit before the step reads it, I1 to I4 as `non_round_instances`, the judge's or orchestrator's to mint." Carry: R10-HOTFIX-BATCH-ERREXIT (the verdict's destination; `carry_audit.py` refuses it as `done`, and the live destination is the orchestrator's to mint)
+- Finding 4 of the round-1 review, `ref_privacy.py --check` refusing on the reviewing host's identity. Carry: dismissed: instrument behaviour on a root-account host, not a host path in this diff; the added-line grep is clean
 
 ## Friction
 
-- brief: stale: the brief names `dev/programme/rca` as a possible records directory. Records live in `dev/audit/rca/`, which `defect-root-cause.md` names. Carry: dismissed: brief wording only
+- brief: stale: the round-2 brief routes the carry to R10-HOTFIX-BATCH-ERREXIT's roster carry, but that group is `done`, so `carry_audit.py` refuses it as a destination and no live group owns the countermeasure. Carry: dismissed: the orchestrator mints the destination, recorded under Forward-carry
