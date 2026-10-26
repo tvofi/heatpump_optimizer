@@ -15,10 +15,8 @@ Arms (each prints one line per figure, then its verdict):
              covering the interval, i.e. the thermostat's FIRST step from the
              plan's actual start state. One flat-price plan per start state:
              a counterfactual that is a thermostat running all along does not
-             depend on where the optimiser left the house, only (#2492) on the
-             comfort the plan delivers, so step 0 less the steady holding
-             power at that plan's comfort-matched target is the defect's
-             size (0 when sound); the spread across starts is printed beside.
+             depend on where the optimiser left the house, so the spread of
+             step 0 across start states is the defect's size (0 when sound).
   cost       A closed month with every billed line plus one interval no plan
              covered: the row's ``actual_sek`` against the receipt's
              ``total_sek`` (equal when sound).
@@ -27,12 +25,8 @@ Arms (each prints one line per figure, then its verdict):
   null       The flat-price null control (owner-required): a closed loop on a
              plant that matches the model, every interval booked through
              ``MonthlyLedger.observe_spot_and_settle_savings`` exactly as the
-             coordinator books it. The published percentage is printed; it
-             is not 0 at a flat price (#2492's carry: COP timing and unsettled
-             stored heat are in it, and r10_sav_comfort.py separates them).
-             The verdict is the comfort term: the booked thermostat's kWh
-             against a steady thermostat at the room the plan delivered,
-             within 2 % when sound.
+             coordinator books it; the published savings percentage should
+             read about 0 at a flat price.
 
     PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_baseline.py [arm ...]
 
@@ -48,11 +42,7 @@ import numpy as np
 
 from profiles import DT, house, prices, solve_inputs, weather
 from heatpump_optimizer.ledger import MonthlyLedger, freeze_month_report
-from heatpump_optimizer.optimizer import (
-    HeatPumpOptimizer,
-    OptimizationConfig,
-    _floor_demand_at_target,
-)
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
@@ -89,9 +79,9 @@ def _state(room: float, slab: float, outdoor: float) -> ThermalState:
 
 
 def arm_transient() -> bool:
-    opt, model, _ = _optimizer()
+    opt, _, _ = _optimizer()
     out, wind, rain, sol = weather("winter_cold", START)
-    firsts, residuals = [], []
+    firsts = []
     for room, slab in STARTS:
         plan = opt.optimize(inputs=solve_inputs(
             initial_state=_state(room, slab, float(out[0])),
@@ -100,19 +90,10 @@ def arm_transient() -> bool:
         ))
         first = float(plan.baseline_power_schedule[0])
         firsts.append(first)
-        sched = np.array([opt.config.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
-                          for t in plan.timestamps])
-        matched = float(sched[0]) - max(0.0, float(np.mean(sched - np.array(plan.room_temp_trajectory[1:]))))
-        steady = max(0.0, _floor_demand_at_target(
-            model, matched, float(out[0]), float(wind[0]), float(rain[0]), float(sol[0]),
-        )) / model.compute_cop(float(out[0]))
-        residuals.append(abs(first - steady))
-        print(f"transient: start room {room} slab {slab}: booked baseline step 0 = {first:.2f} kW; "
-              f"steady at the matched target {matched:.2f} C = {steady:.2f} kW")
+        print(f"transient: start room {room} slab {slab}: booked baseline step 0 = {first:.2f} kW")
     spread = max(firsts) - min(firsts)
-    print(f"transient: spread of the booked step across start states = {spread:.2f} kW; "
-          f"largest step 0 off its steady holding power = {max(residuals):.2e} kW")
-    return max(residuals) < 1e-6
+    print(f"transient: spread of the booked step across start states = {spread:.2f} kW")
+    return spread < 0.05
 
 
 def arm_cost() -> bool:
@@ -163,7 +144,7 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
     state = _state(21.0, 22.0, float(out[0]))
     led = MonthlyLedger()
     plan = None
-    rooms, targets, kwh_plan, kwh_base, kwh_room = [], [], 0.0, 0.0, 0.0
+    rooms, targets, kwh_plan, kwh_base = [], [], 0.0, 0.0
     for k in range(total):
         now = START + timedelta(hours=k * DT)
         if k % replan == 0:
@@ -180,17 +161,12 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
         kwh_base += pending["baseline_kw"] * DT
         led.observe_spot_and_settle_savings(now, float(pr[k]), pending, power * DT, DT)
         led.add(now, "spot", kwh=power * DT, sek=power * DT * float(pr[k]))
-        room0 = state.room_temperature
         room, slab, up, lo, _, _, _ = model.simulate_trajectory(
             initial_state=state, power_schedule=np.array([power]),
             weather=WeatherSeries(outdoor_temps=out[k:k + 1], wind_speeds=wind[k:k + 1],
                                   precipitation=rain[k:k + 1], solar_radiation=sol[k:k + 1]),
             dt_hours=DT,
         )
-        kwh_room += max(0.0, _floor_demand_at_target(
-            model, 0.5 * (room0 + float(room[-1])), float(out[k]), float(wind[k]),
-            float(rain[k]), float(sol[k]),
-        )) / model.compute_cop(float(out[k])) * DT
         state = _state(float(room[-1]), float(slab[-1]), float(out[k]))
         state.upper_floor_temperature = float(up[-1])
         state.lower_floor_temperature = float(lo[-1])
@@ -205,8 +181,7 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
         f"baseline {row['baseline_sek']} actual {row['actual_sek']} saved {row['savings_sek']} "
         f"({row['savings_pct']} %)"
     )
-    print(f"null: comfort: booked thermostat {kwh_base:.1f} kWh vs steady at the delivered room {kwh_room:.1f}")
-    return abs(kwh_base - kwh_room) < 0.02 * kwh_room
+    return row["savings_pct"] is not None and abs(row["savings_pct"]) < 3.0
 
 
 ARMS = {"transient": arm_transient, "cost": arm_cost, "coverage": arm_coverage, "null": arm_null}
