@@ -44,6 +44,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Every commit the PR adds over a freshly fetched `origin/main`, wherever it
   was first published (a `ci-probe/*` or `handoff/*` ref included), is
   judged by `ref_privacy.py guard --over` before anything is minted.
+- `depgraph.py` (tools/pr/) — compares GitHub's dependency graph with the
+  tree's pins: one SBOM read and one open-alerts read (`check --repo
+  OWNER/NAME`), every pip, npm and actions pin against the SBOM, and every
+  open alert the tree already pins past. When: Dependabot alerts that main's
+  locks should have closed, or `dependency-graph.yml`'s daily `check` is red.
+  Refusal: an SBOM ecosystem it does not enumerate, or an alert whose
+  versions it cannot order, exits 2 rather than reading clean; an alerts read
+  that fails prints `alerts: unread`, never OK.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -640,7 +648,10 @@ sweep's standing-seat liveness step keep them alive.
   swimlanes on the plan's time axis with the slot-occupancy strip,
   critical-path marks and planned stamps; the group ledger with status
   classes, PRs, struck closed issues and blockers; waves, stamps and the
-  ETA method, every figure plan.json's. When: after a replan at a wave
+  ETA method, every figure plan.json's. First section: open issues on
+  not-done groups projected to close at the last carrying group's finish
+  (closed ones dropped, unplanned ones flat), omitted with a note when `gh`
+  is absent. When: after a replan at a wave
   edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
   is not the roster's at its ref now; an `origin/` ref is fetched first) or
   `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
