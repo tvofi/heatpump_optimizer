@@ -10248,6 +10248,53 @@
     "branch": "handoff/r10-rca-ratelimit-recur"
    },
    "brief": "Root-cause seat on dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md for the recurrence of the installation rate-limit red after R10-RCA-INSTALL-RATELIMIT. Read dev/audit/rca/install-ratelimit.md; attribute the burst's demand from the RATE_LIMIT before/after lines the record job prints in .github/workflows/governance.yml and from the runs concurrent with it; owe a named cause, a process state, a cost test with numbers and the record's M3 decided as a countermeasure or a recorded refusal."
+  },
+  {
+   "group": "R10-ERREXIT-COUNTERMEASURES",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [
+    "R10-RCA-HOTFIX-BATCH-ERREXIT"
+   ],
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/gate-sweep.yml",
+    "tests/entities.py",
+    "tests/arch_score.py",
+    "dev/audit/harnesses/r10_errexit_capture.py"
+   ],
+   "carry": [
+    "From #2849 (R10-RCA-HOTFIX-BATCH-ERREXIT). (1) Land countermeasure A: a tree-wide check over every errexit `run:` block (default shell, `bash`, `sh`) that refuses a `$?` read whose producer is a bare simple command, including a read in an `if`/`while`/`until` test, replacing `_RAF_BARE_GREEN`; reference logic and selftest are `dev/audit/harnesses/r10_errexit_capture.py` at e1a684789. Precondition: the hotfix line is on main (#2848, e0ffb1213), met. Control: at main the harness prints `blocks=260 reads=5 hits=0`, exit 0; on `d181d014a` `hits=1`, exit 1; on an empty `.github/` `REFUSED`, exit 2; re-measure with `python3 -I dev/audit/harnesses/r10_errexit_capture.py --root <tree>`. Its own mutation proof is owed by the landing fixer. Gap: A does not see a producer read through `out=$(...)`.",
+    "(2) Fix gate-sweep.yml's sweep step: `out=$(python3 -I tools/ci/gate.py --sweep ...)` under the default `bash -e` ends the step on any program exit of 1 before `case` reads the outcome, so `RATE-LIMITED` prints no annotation and `SWEEP-DONE`, rc 1 is red. Fix the step (`|| true` or a condition form) and switch `tests/entities.py` `_gs_step_verdict` to `bash -e -c`; failing test first: that switch alone fails the U0c check on 3 cases.",
+    "(3) Countermeasure B: switch `_train_hold_status`, `_pt_trigger`, `_cov_trust`, `_cov_marker` (`tests/entities.py`) and `tests/arch_score.py` `base_runs_the_gate` to `bash -e -c`; under `BASH_ENV` unset, all of them except `_gs_step_verdict` stayed green with `-e` on `tests/entities.py` (`tests/arch_score.py`'s `base_runs_the_gate` too).",
+    "(4) Class proposal: a workflow step's meaningful nonzero exit ended by errexit before the step reads it, I1 to I4 as `non_round_instances`, the judge's or orchestrator's to mint."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": ""
+   },
+   "brief": "Fixer for the errexit countermeasures that the root cause of the Nightly record-autofix batch=$? defect (R10-RCA-HOTFIX-BATCH-ERREXIT, PR #2849, hotfix #2848 e0ffb1213) proposed and the fix review of #2849 sharpened. Four carries, each quoted from #2849 handoff-body e78cd811 with its control. Land: (1) countermeasure A, the tree-wide check over errexit run: blocks including a $? read in an if/while/until test after a bare producer, with its selftest case; (2) gate-sweep.yml sweep step fix with _gs_step_verdict switched to bash -e -c, failing test first (the switch alone fails the U0c check on 3 cases); (3) countermeasure B, bash -e -c for the executed-step harnesses in tests/entities.py and tests/arch_score.py, enumerating every bash -c over workflow text with a disposition each; (4) the class proposal for the judge or orchestrator to mint. Failing test first, mutation proof, the finder harness dev/audit/harnesses/r10_errexit_capture.py (at e1a684789) at both ends. Lands after PR #2849 merges (the harness r10_errexit_capture.py is its file).",
+   "architect_note": ""
   }
  ]
 }
