@@ -211,6 +211,20 @@ const NAV = (() => {
 }
 
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
+// The declarations of every rule in the card's stylesheet whose selector
+// list ends in `sel` (R10-CARD-VOICE), joined. A plain string search, so a
+// selector needs no escaping: the rule is found where `sel {` follows a
+// selector boundary.
+const cssRule = (sel) => {
+  const out = [];
+  for (let at = cardSrc.indexOf(`${sel} {`); at >= 0;
+    at = cardSrc.indexOf(`${sel} {`, at + 1)) {
+    if (at > 0 && !/[\s,}]/.test(cardSrc[at - 1])) continue;
+    const open = at + sel.length + 2;
+    out.push(cardSrc.slice(open, cardSrc.indexOf("}", open)));
+  }
+  return out.join(" ");
+};
 vm.runInContext(cardSrc, ctx);
 
 const names = Object.keys(ctx.customElements._d);
@@ -1432,6 +1446,70 @@ check("a wide dialog gets larger chrome than a narrow one",
 check("a phone-width dialog stays legible", dlgOf(320) >= 12 - 1e-9);
 check("a very wide dialog does not turn the legend into a headline",
   dlgOf(4000) <= 21 + 1e-9);
+// R10-CARD-VOICE (the harmony study's H1, probe/card-harmony-design): an
+// ENLARGED view never sets its chrome under the tile's own 14 px base, which
+// it did at every dialog narrower than 1333 px; and its ceiling is one the
+// dialog's 1700 px width cap can actually reach (C3), where 21 never was.
+check("the dialog's chrome never renders under the tile's 14 px base",
+  dlgOf(320) === 14 && dlgOf(737) === 14 && dlgOf(1229) === 14,
+  `320 -> ${dlgOf(320)}, 737 -> ${dlgOf(737)}, 1229 -> ${dlgOf(1229)} px`);
+check("and its ceiling is reachable inside the dialog's 1700 px cap",
+  dlgOf(4000) === vm.runInContext("DIALOG_FONT_PX_MAX", ctx) &&
+  dlgOf(1700) >= vm.runInContext("DIALOG_FONT_PX_MAX", ctx) - 0.2 &&
+  /width: min\(96vw, calc\([^)]*\), 1700px\)/.test(cardSrc),
+  `cap ${vm.runInContext("DIALOG_FONT_PX_MAX", ctx)}, 1700 px -> ${dlgOf(1700)} px`);
+
+// R10-CARD-VOICE, the harmony study's other carries (probe/card-harmony-
+// design 6aea0d10, HARMONY.md section 4), read off the card's own stylesheet:
+// the rule each names, not a restatement of it.
+{
+  const ruleOf = cssRule;
+  // H1 (b): no caption role on either surface renders under the ramp's
+  // smallest step, 12 px.
+  const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
+    ".setup-hint", ".setup-result", ".setup-dest", ".adv-basis", ".adv-note",
+    ".adv-text .adv-sub", ".health-mark", ".whatif .wi-hint", ".adv-row.unpriced .adv-value"];
+  const unfloored = captions.filter((c) =>
+    !/font-size: max\(12px, 0\.\d+em\)/.test(ruleOf(c)));
+  check("every caption role is floored at the ramp's 12 px step",
+    unfloored.length === 0, unfloored.length ? `unfloored: ${unfloored.join(", ")}` :
+      `${captions.length} roles`);
+  // H2: the dialog raises the layout bar's buttons with the chip the shared
+  // rule names beside them, and on a phone with the legend's touch row.
+  check("the layout bar's buttons take the chip's dialog size",
+    /font-size: 1em; border-radius: 1\.3em;/.test(ruleOf("dialog.expanded .layout-bar button")) &&
+    /dialog\.expanded \.layout-bar button \{ font-size: 1rem; \}/.test(cardSrc),
+    ruleOf("dialog.expanded .layout-bar button"));
+  // H3a, H3b: the rows' surface is their ink's pair, the heading the card's
+  // 600.
+  check("the health and advisor rows take the surface their ink is drawn for",
+    [".health-row", ".adv-inbox-row"].every((c) =>
+      /background: var\(--hpo-surface-2, #f7f9fb\)/.test(ruleOf(c)) &&
+      !/secondary-background-color/.test(ruleOf(c))),
+    [".health-row", ".adv-inbox-row"].map((c) => ruleOf(c).trim()).join(" | "));
+  check("the health headings are the card's 600, not the user agent's 700",
+    /font-weight: 600/.test(ruleOf(".health-h")), ruleOf(".health-h"));
+  // H4: the replay drawing scrolls on a phone instead of shrinking its
+  // labels under the chart floor.
+  check("the savings replay takes the setup map's phone treatment",
+    /overflow-x: auto/.test(ruleOf(".replay")) &&
+    /min-width: 560px/.test(ruleOf(".replay > svg")),
+    `${ruleOf(".replay")} | ${ruleOf(".replay > svg")}`);
+  // C1: the receipt's fallbacks agree with the token they stand in for.
+  const sm = vm.runInContext("CARD_SCALE_TOKENS", ctx)["--hpo-text-sm"];
+  check("the receipt's text-sm fallbacks are the token's own value",
+    !/var\(--hpo-text-sm, (?!13px)/.test(cardSrc) && String(sm).includes("13"),
+    `token ${JSON.stringify(sm)}`);
+  // H3c: the savings page with nothing settled is the card's one empty shape.
+  const empty = build(slotStates, {});
+  empty._onCardClick({});
+  empty.dialog.page = "savings";
+  empty._render();
+  const ep = collect(empty.shadowRoot).join("\n");
+  check("the savings page's empty state is the card's one empty shape",
+    /<div class="empty">No settled savings months yet\.<\/div>/.test(ep) &&
+    !/savings-empty/.test(ep), (/<[^>]*>No settled savings[^<]*/.exec(ep) || ["(none)"])[0]);
+}
 
 // D4-01: the COMPACT chart's rendered font is floored, not left to shrink
 // with the container. The audit measured a 287 px dashboard tile rendering
@@ -2864,8 +2942,12 @@ check("the hand-scheduled reason has a label",
     check("an unset input folds into its box's one muted line, not a row",
       !/setup-slot empty/.test(setupPage) &&
       (setupPage.match(/setup-slot folded/g) || []).length === 3 &&
-      (setupPage.match(/class="setup-chip"/g) || []).length === 3 &&
-      (setupPage.match(/class="setup-chip-hit"/g) || []).length === 3,
+      // R10-CARD-VOICE: the Configure button is every card's, not the
+      // folded block's, so there is one per box.
+      (setupPage.match(/class="setup-chip"/g) || []).length ===
+        (su.layoutEditor.boxes || []).length &&
+      (setupPage.match(/class="setup-chip-hit"/g) || []).length ===
+        (su.layoutEditor.boxes || []).length,
       `${(setupPage.match(/setup-slot folded/g) || []).length} folded blocks `
       + `and ${(setupPage.match(/class="setup-chip"/g) || []).length} Configure chips`);
   }
@@ -2962,16 +3044,17 @@ check("the hand-scheduled reason has a label",
       (svgOnly.match(/class="setup-flow"/g) || []).length === topo.edges.length,
       `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
       + `${topo.edges.length} edges`);
-    // A row-less box (h = 32) draws no header divider -- it would separate
-    // the title from nothing -- while a box with rows keeps it.
-    const valveBoxG = svgOnly.split("<g>")
-      .find((g) => g.includes("Mixing valve")) || "";
-    const bufBoxG = svgOnly.split("<g>")
-      .find((g) => g.includes("Buffer tank (750 L)")) || "";
-    check("a row-less box draws no header divider",
-      valveBoxG !== "" && !/setup-accent divider/.test(valveBoxG) &&
-      /setup-accent divider/.test(bufBoxG),
-      "a divider over an empty band underlines nothing");
+    // Every card has something under its title -- at the least its
+    // Configure button (R10-CARD-VOICE) -- so every card draws the rule that
+    // divides the two. The row-less 32-unit card that once drew none no
+    // longer exists; the valve here has no live reading at all.
+    const cardGs = svgOnly.split("<g>").filter((g) => /class="setup-box"/.test(g));
+    const valveBoxG = cardGs.find((g) => g.includes("Mixing valve")) || "";
+    check("every card divides its title from what is under it",
+      valveBoxG !== "" && cardGs.length > 0 &&
+      cardGs.every((g) => /setup-accent divider/.test(g)),
+      `${cardGs.filter((g) => /setup-accent divider/.test(g)).length} of `
+      + `${cardGs.length} cards draw the rule`);
   }
   {
     // A coordinator from before v4.0.0 still publishes the wood-valve hop
@@ -3148,6 +3231,143 @@ check("the hand-scheduled reason has a label",
         coilPipe.test(coPage) && !coilPipe.test(ttPage),
         "a coil drawn on a layout the model does not run is the failure this "
         + "whole diagram exists to prevent");
+    }
+    // R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design):
+    // a type disc on each card's outer corner, the wood tank's a spring
+    // while a coil is configured, and the coil's pipe the one accent pipe.
+    // The title used to be the only thing that told a tank from a valve.
+    const groupsOf = (page) => page.split("<g>").slice(1)
+      .filter((g) => /class="setup-box"/.test(g));
+    const titleOf = (g) => (/<text class="setup-title"[^>]*>([^<]*)</.exec(g) || [])[1];
+    const badgeOf = (g) => {
+      const m = /<g class="type-badge( off)?" data-type="([a-z_]+)" aria-hidden="true"><circle class="badge-disc" cx="([\d.]+)" cy="([\d.]+)"/.exec(g);
+      const box = /<rect class="setup-box"[^>]* x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"/.exec(g);
+      return m && box ? {
+        off: !!m[1], type: m[2], cx: Number(m[3]), cy: Number(m[4]),
+        x: Number(box[1]), y: Number(box[2]), w: Number(box[3]),
+      } : null;
+    };
+    const voicePage = (state) => {
+      const t = JSON.parse(JSON.stringify(state === "active" ? coil : twoTank));
+      if (state !== "none") t.dhw_wood_coil_configured = true;
+      const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+      s[DEFAULT_SPACE].attributes.setup_topology = t;
+      const c = build(s);
+      c._onCardClick({});
+      c.dialog.page = "setup";
+      c._render();
+      return collect(c.shadowRoot).join("\n");
+    };
+    const voice = { active: voicePage("active"), off: voicePage("off"),
+      none: voicePage("none") };
+    {
+      const groups = groupsOf(voice.active);
+      const types = new Map(groups.map((g) => [titleOf(g), (badgeOf(g) || {}).type]));
+      const typeList = [...types].map(([t, k]) => `${t}=${k}`).join(", ");
+      check("every card wears one type disc on its outer top corner",
+        groups.length === 8 && groups.every((g) => {
+          const b = badgeOf(g);
+          return b && b.cx === b.x + b.w - 2 && b.cy === b.y + 2 &&
+            (g.match(/class="type-badge/g) || []).length === 1;
+        }),
+        typeList);
+      check("the disc tells a store from a valve from an emitter",
+        types.get("Outside") === "outside" &&
+        types.get("Heat pump") === "heat_source" &&
+        types.get("4-way mixing valve (manual)") === "valve" &&
+        types.get("Heat pump tank (750 L)") === "store" &&
+        types.get("Hot water tank") === "hot_water" &&
+        types.get("Upper floor") === "radiator" &&
+        types.get("Lower floor (slab)") === "slab",
+        typeList);
+      const wood = (page) => badgeOf(groupsOf(page)
+        .find((g) => /Wood furnace tank/.test(titleOf(g) || "")) || "") || {};
+      const woodList = ["active", "off", "none"].map((k) =>
+        `${k}: ${wood(voice[k]).type}${wood(voice[k]).off ? " (off)" : ""}`).join("; ");
+      check("the wood tank's disc is a spring while a coil is configured",
+        wood(voice.active).type === "coil" && !wood(voice.active).off &&
+        wood(voice.off).type === "coil" && wood(voice.off).off &&
+        wood(voice.none).type === "store" && !wood(voice.none).off,
+        woodList);
+      const accents = (page) => [...page.matchAll(
+        /<path class="setup-pipe coil-pipe( off)?"( data-edge="([^"]+)")?/g)]
+        .map((m) => `${m[3] || "-"}${m[1] ? " off" : ""}`);
+      check("the coil's pipe is the one accent pipe, dashed when not modelled",
+        accents(voice.active).join() === "wood_tank>dhw_tank" &&
+        accents(voice.off).join() === "- off" &&
+        accents(voice.none).length === 0 &&
+        !edges(voice.off).includes("wood_tank>dhw_tank") &&
+        /\.setup-pipe\.coil-pipe \{[^}]*stroke: var\(--hpo-accent/.test(cardSrc),
+        ["active", "off", "none"].map((k) =>
+          `${k}: [${accents(voice[k]).join(", ")}]`).join("; "));
+      const coilWords = (page) => {
+        const g = groupsOf(page).find((x) => titleOf(x) === "Hot water tank") || "";
+        return [...g.matchAll(/<text class="setup-slot extra lead"[^>]*>([^<]*)</g)]
+          .map((m) => m[1]);
+      };
+      check("the hot water box states the coil in words, one state at a time",
+        coilWords(voice.active).join(" / ") ===
+          "refilled through a wood tank coil / preheats the mains water" &&
+        coilWords(voice.off).join(" / ") ===
+          "coil configured, not modelled / needs the two-tank layout" &&
+        coilWords(voice.none).join(" / ") ===
+          "no hot-water coil / wood heat only",
+        ["active", "off", "none"].map((k) =>
+          `${k}: ${JSON.stringify(coilWords(voice[k]))}`).join("; "));
+      // The Configure control names the page it means in its own ink, on
+      // every card, fully configured or not: Home Assistant has no route into
+      // an options step, so the name IS the destination the card can give.
+      const cfg = groups.map((g) => ({
+        title: titleOf(g),
+        hits: (g.match(/class="setup-chip-hit"/g) || []).length,
+        page: [...((/<text class="setup-chip-page"[^>]*>([\s\S]*?)<\/text>/.exec(g) || [])[1] || "")
+          .matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)].map((m) => m[1]).join(" "),
+      }));
+      check("every card carries a Configure button that names its page",
+        cfg.length === 8 && cfg.every((c) => c.hits === 1 && c.page) &&
+        (cfg.find((c) => c.title === "Upper floor") || {}).page ===
+          "Sensors and entities" &&
+        (cfg.find((c) => c.title === "Heat pump tank (750 L)") || {}).page ===
+          "Heating system and heat storage",
+        cfg.map((c) => `${c.title}: ${c.hits}x ${JSON.stringify(c.page)}`).join("; "));
+      const dest = (/<p class="setup-dest">([\s\S]*?)<\/p>/.exec(voice.active) || [])[1] || "";
+      check("and the page states once where that page is",
+        (voice.active.match(/class="setup-dest"/g) || []).length === 1 &&
+        /Advanced settings/.test(dest),
+        dest || "(no caption)");
+      // The harmony study's reconciliation of the Badge (H2): the drawing's
+      // own tiers, and the disc hidden because the box's accessible name
+      // already says what it draws.
+      const rule = cssRule;
+      check("the disc's glyph strokes on the icon tier, its page name on the 11-unit tier",
+        /stroke-width: 1\.5;/.test(rule(".type-badge ellipse")) &&
+        /font-size: 11px;/.test(rule(".setup-chip-page")) &&
+        /font-size: 11px;/.test(rule(".setup-slot.lead")) &&
+        (voice.active.match(/class="type-badge[^"]*" data-type="[a-z_]+" aria-hidden="true"/g) || []).length === 8,
+        `glyph {${rule(".type-badge ellipse").trim()}} page {${rule(".setup-chip-page").trim()}}`);
+      const names = (page) => groupsOf(page).map((g) => (/^<title>([^<]*)<\/title>/.exec(g) || [])[1]);
+      const woodName = (page) => names(page).find((n) => /^Wood furnace tank/.test(n || "")) || "";
+      check("each box's accessible name carries its type, the wood tank's its coil state",
+        names(voice.active).every(Boolean) &&
+        names(voice.active).includes("4-way mixing valve (manual), mixing valve") &&
+        names(voice.active).includes("Lower floor (slab), underfloor slab circuit") &&
+        woodName(voice.active) === "Wood furnace tank (500 L), heat store with a hot-water coil" &&
+        woodName(voice.off) ===
+          "Wood furnace tank (500 L), heat store with a hot-water coil that is not modelled" &&
+        woodName(voice.none) === "Wood furnace tank (500 L), heat store",
+        names(voice.off).join(" | "));
+      // A page name wider than the button's inside wraps inside a taller
+      // button rather than running past its border.
+      const pageW = (g) => Math.max(0, ...[...((/<text class="setup-chip-page"[^>]*>([\s\S]*?)<\/text>/.exec(g) || [])[1] || "")
+        .matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)]
+        .map((m) => vm.runInContext(`setupTextW(${JSON.stringify(m[1])}, 11, false)`, ctx)));
+      const inside = vm.runInContext("SETUP_COL_W - 2 * SETUP_PAD - 2 * SETUP_CHIP_PAD", ctx);
+      check("a page name never runs past its button",
+        groups.every((g) => pageW(g) <= inside) &&
+        // "Heating system and heat storage" is the name wider than it.
+        groups.some((g) => ((/<text class="setup-chip-page"[\s\S]*?<\/text>/
+          .exec(g) || [""])[0].match(/<tspan/g) || []).length === 2),
+        groups.map((g) => `${titleOf(g)}: ${pageW(g).toFixed(1)}/${inside}`).join("; "));
     }
   }
   {
@@ -5881,11 +6101,16 @@ const slotHit = (card, key) => {
   const stray = [];
   for (const g of page.split("<g>").slice(1)) {
     if (!/class="setup-box"/.test(g)) continue;
-    const paths = [...g.matchAll(/<path class="([^"]*)"/g)]
-      .map((m) => m[1]).filter((c) => c !== "setup-accent divider");
+    // The type disc (R10-CARD-VOICE) is the one other ink a card wears, and
+    // only inside its own group on the corner: cut it out, then any path
+    // left -- classed or not -- is a stroke on the card itself.
+    const body = g.replace(/<g class="type-badge[^"]*"[^>]*>[\s\S]*?<\/g><\/g>/, "");
+    const paths = [...body.matchAll(/<path(?: class="([^"]*)")?/g)]
+      .map((m) => m[1] || "(unclassed)")
+      .filter((c) => c !== "setup-accent divider");
     if (paths.length) stray.push(paths.join(","));
   }
-  check("a card carries its outline and its header rule, and no other ink",
+  check("a card carries its outline, its header rule and its corner disc, and no other ink",
     stray.length === 0, stray.join("; "));
   const cardR = vm.runInContext("SETUP_CARD_R", ctx);
   check("and its outline is one rounded card, at the product's radius",
@@ -5956,9 +6181,13 @@ const slotHit = (card, key) => {
     }
     return out;
   };
-  // The drawn path at t (t running along the PATH), and its tangent there by
-  // central difference -- the curve's real direction, not a restatement of
-  // the card's algebra.
+  // The drawn path at t (t running along the PATH), and its tangent there
+  // from the drawn control points -- the curve's real direction, not a
+  // restatement of the card's algebra. Differentiated exactly: a central
+  // difference at h = 1e-6 carries ~eps*|y|/h = 3e-8 of rounding on a level
+  // pipe at y = 140, which is past the 1e-9 the level case is held to and
+  // cancelled only at the coordinates the old fixtures happened to have
+  // (found by R10-CARD-VOICE, whose taller cards moved them).
   const at = (p, t) => {
     if (!p.cubic) {
       return [p.p0[0] + (p.p3[0] - p.p0[0]) * t,
@@ -5971,11 +6200,12 @@ const slotHit = (card, key) => {
   };
   // The direction the WATER moves at the pipe's midpoint.
   const flowAtMid = (p) => {
-    const h = 1e-6;
-    const a = at(p, 0.5 - h);
-    const b = at(p, 0.5 + h);
     const sign = p.flipped ? -1 : 1;
-    return [sign * (b[0] - a[0]) / (2 * h), sign * (b[1] - a[1]) / (2 * h)];
+    // B'(1/2) = 3/4 (P1 - P0) + 3/2 (P2 - P1) + 3/4 (P3 - P2); a line's is P3 - P0.
+    return [0, 1].map((i) => sign * (p.cubic
+      ? 0.75 * (p.p1[i] - p.p0[i]) + 1.5 * (p.p2[i] - p.p1[i]) +
+        0.75 * (p.p3[i] - p.p2[i])
+      : p.p3[i] - p.p0[i]));
   };
   // How well the chevron's axis agrees with the flow there: +1 is "points
   // exactly down the pipe", 0 "crosses it at a right angle", -1 "points
@@ -5999,7 +6229,7 @@ const slotHit = (card, key) => {
   const byEdge = (list, e) => list.find((p) => p.edge === e);
 
   // The five orientations, each on a real pipe of a real drawing. Downhill
-  // and uphill come from the default rig; the flat, near-horizontal and
+  // comes from the default rig; the uphill, flat, near-horizontal and
   // vertical cases are built, not found. The flat case has to be built
   // (R10-UX-SETUP): a cross-column pipe is level only when its two boxes have
   // equal heights AND equal tops, and one box's height now depends on how
@@ -6012,9 +6242,17 @@ const slotHit = (card, key) => {
     edges: [["wood_tank", "heat_pump"], ["heat_pump", "buffer_tank"]] });
   const downCard = mkSetup({
     edges: [["heat_pump", "wood_tank"], ["heat_pump", "buffer_tank"]] });
-  const tiltCard = mkSetup({
-    edges: [["heat_pump", "buffer_tank"]],
-    positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+  // Solved from the measured heights like the flat case below: hand-picked
+  // positions went steep the day the cards grew their Configure buttons
+  // (R10-CARD-VOICE). The far end sits 1 unit below the near one.
+  const tiltCard = (() => {
+    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
+    const a = setupBox(probe, "heat_pump");
+    const b = setupBox(probe, "buffer_tank");
+    const yB = 120 + a.h / 2 - b.h / 2 + 1;
+    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
+      positions: { heat_pump: [16, 120], buffer_tank: [260, yB] } });
+  })();
   const flatCard = (() => {
     const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
     const a = setupBox(probe, "heat_pump");
@@ -6023,10 +6261,22 @@ const slotHit = (card, key) => {
     return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
       positions: { heat_pump: [16, 100], buffer_tank: [260, yB] } });
   })();
+  // Uphill is built the same way (R10-CARD-VOICE): with every card ending in
+  // its Configure button the default rig's uphill pipe lands 40+ units
+  // steeper than its handles, past the band below. Solved so the far end
+  // sits 40 units above the near one.
+  const upCross = (() => {
+    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
+    const a = setupBox(probe, "heat_pump");
+    const b = setupBox(probe, "buffer_tank");
+    const yB = 200 + a.h / 2 - b.h / 2 - 40;
+    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
+      positions: { heat_pump: [16, 200], buffer_tank: [260, yB] } });
+  })();
 
   const cases = [
-    ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
-    ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+    ["downhill cross-column", byEdge(cross, "heat_pump>buffer_tank")],
+    ["uphill cross-column", byEdge(pipesOf(upCross), "heat_pump>buffer_tank")],
     ["flat cross-column", byEdge(pipesOf(flatCard), "heat_pump>buffer_tank")],
     ["near-horizontal cross-column",
       byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
@@ -6195,12 +6445,23 @@ const slotHit = (card, key) => {
     return {
       x: m && Number(m[1]), y: m && Number(m[2]),
       w: m && Number(m[3]), h: m && Number(m[4]),
-      rows: (g.match(/<tspan(?! class="setup-value")/g) || []).length +
-        (g.match(/<text class="setup-slot extra"/g) || []).length +
-        (g.match(/class="setup-chip-hit"/g) || []).length,
+      // The Configure button's own page-name lines are the button's, not
+      // the box's rows: cut its text out before counting.
+      rows: (g.replace(/<text class="setup-chip-page"[\s\S]*?<\/text>/g, "")
+        .match(/<tspan(?! class="setup-value")/g) || []).length +
+        (g.match(/<text class="setup-slot extra[" ]/g) || []).length,
+      buttons: (g.match(/class="setup-chip-hit"/g) || []).length,
+      buttonH: Number((/<rect class="setup-chip" [^>]*height="([\d.]+)"/.exec(g) || [])[1]),
     };
   });
-  const heightWrong = perBox.filter((b) => b.h !== 24 + b.rows * 17 + 8);
+  // Plus the Configure button every card ends with (R10-CARD-VOICE): its
+  // own height, which grows by a line when the page name wraps, and two
+  // units below the last row's band.
+  const chipH = vm.runInContext("SETUP_CHIP_H", ctx);
+  const chipLine = vm.runInContext("SETUP_CHIP_LINE", ctx);
+  const heightWrong = perBox.filter((b) =>
+    b.buttons !== 1 || (b.buttonH - chipH) % chipLine !== 0 ||
+    b.h !== 24 + b.rows * 17 + 8 + b.buttonH + 2);
   check("the row arithmetic that sets each box height is unchanged",
     perBox.length === boxes.length && heightWrong.length === 0,
     `${perBox.length} boxes; ` + perBox.map((b) =>
@@ -6332,7 +6593,9 @@ const slotHit = (card, key) => {
     const opened = collect(c.shadowRoot).join("\n");
     const g = opened.split("<g>")
       .find((x) => x.includes("Wood furnace tank")) || "";
-    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+    // Anchored on the carrier rect: the box's <g> opens with its <title>
+    // (R10-CARD-VOICE's accessible name), not with the rect.
+    const m = /<rect class="setup-box"[^>]*? x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
       .exec(g);
     const bottom = m ? Number(m[2]) + Number(m[4]) : 0;
     const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));

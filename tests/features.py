@@ -13871,6 +13871,34 @@ R.check(
     ).dhw_coil_active,
     "option + hot water + two-tank model, each necessary",
 )
+# R10-CARD-VOICE: the setup description publishes the option beside the
+# model's gate, so the card can say "configured, not modelled" for the
+# option without the stack -- the case it used to draw nothing for. The
+# furnace is switched on explicitly where the probe is dropped, so the case
+# is the option without the model and not a furnace inferred off.
+_coil_desc = {
+    name: (d["dhw_wood_coil"], d["dhw_wood_coil_configured"])
+    for name, d in (
+        ("full stack", _topo.describe_setup(dict(_coil_cfg))),
+        ("no wood probe", _topo.describe_setup(
+            {k: v for k, v in _coil_cfg.items() if k != "wood_tank_top_entity"}
+            | {"wood_furnace_enabled": True})),
+        ("option off", _topo.describe_setup(
+            {**_coil_cfg, "dhw_wood_coil_enabled": False})),
+        ("no wood furnace", _topo.describe_setup(
+            {**_coil_cfg, "wood_furnace_enabled": False})),
+    )
+}
+R.check(
+    "the setup description tells a configured coil from a modelled one",
+    _coil_desc == {
+        "full stack": (True, True),
+        "no wood probe": (False, True),
+        "option off": (False, False),
+        "no wood furnace": (False, False),
+    },
+    f"(modelled, configured) per case: {_coil_desc}",
+)
 
 def _coil_run(params, wood):
     m = ThermalModel(params)
