@@ -27,6 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-ORCH-DISPATCH-REG (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-IMMERSION-LATCH (stage queued): no branch pushed yet, so nothing to fetch
