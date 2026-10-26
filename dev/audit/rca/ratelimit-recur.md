@@ -168,18 +168,36 @@ exactly two steps that read with `GITHUB_TOKEN`:
   `2M` per push. This record's countermeasure M4 halves it.
 
 Programs that take the window themselves, from `git describe` in the code
-rather than the workflow: `git grep -l -E "describe.*--tags|--match.*v\*"`
-over `*.py`, `*.mjs` and `*.sh`, filtered to those that read the API. That
-returns `record_api_calls.sh` (offline harness), `tests/entities.py` (pins,
-no API) and `tools/policy/record-predicate/sweep.mjs` (no API read). None is
-a reader.
+rather than the workflow: `git grep -l -E "describe.*--tags|--match.*v\*"
+b281d0325 -- '*.py' '*.mjs' '*.sh'` returns 7 files. Each is dispositioned by
+whether CI runs it as a window-walking `GITHUB_TOKEN` reader:
+
+- `dev/audit/harnesses/record_api_calls.sh`: an offline harness; no workflow
+  runs it.
+- `tests/entities.py`: pins the workflows' text; its `gh` strings are pinned
+  text or a test stub, not a read.
+- `tests/delivery_status.py`: walks the window in git only. Its `_gh` helper
+  has no caller. The `delivery-status` job around it reads #201's body once
+  and edits it at most once (governance.yml, step "Regenerate the ledger and
+  put it in #201's region"): two calls, not a function of the window.
+- `tools/policy/agreement_py.py`: its one `gh api` string is the self-test's
+  stub dispatch; CI runs it as `--self-test` and `--restore`.
+- `tools/policy/record-predicate/sweep.mjs`: does read the API (`gh api` in
+  its fetch helper). CI runs it only as `--self-test` (governance.yml, the
+  step that names `sweep.mjs --self-test`), which made 0 `gh` calls under a
+  logging stub (fix review of #2852).
+- `dev/audit/rounds/round3/D11/conformance.py` (a `gh api graphql` read) and
+  `dev/audit/rounds/round7-fix/governance/report_step_driver.py`: round
+  harnesses; no workflow names either.
+
+None is a window-walking reader in CI.
 
 Other per-push `GITHUB_TOKEN` readers scale with something smaller:
 
 - `merge_main_bot.py` makes 1 listing plus 1–6 `mergeable` reads per open pull
   request (11 open at this writing).
 - `ci-ratchet` reads a fixed listing.
-- `delivery-status` makes no API read.
+- `delivery-status` reads and edits #201 once each.
 
 All of these are inside the measured rest.
 
