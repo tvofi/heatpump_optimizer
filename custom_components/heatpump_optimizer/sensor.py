@@ -2798,13 +2798,18 @@ def _numeric_samples(series: Any) -> list[float]:
 def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
     """The price of a consumed kWh, with the advisor's documented fallbacks.
 
-    A payload with no published spot price -- a first cycle after a restart,
-    or an install whose prices have not been read yet -- falls back to the
+    The ledger's recent kWh price first: the row is a monthly figure, and the
+    price now moved it by the hour it was read, several-fold within one day
+    (#2257 item 6; ``dev/audit/harnesses/r10_advisor_residue.py inbox``).
+    A payload with neither it nor a published spot price -- a fresh install,
+    or one whose prices have not been read yet -- falls back to the
     fixed contract price and then to a nominal spot figure, so the ranking
     survives it. Never the capacity tariff's per-kW price: a kWh priced with
     that is off by a whole month (D8-01, #1226).
     """
-    rate = _as_float(data.get("current_price"))
+    rate = _as_float(data.get("recent_kwh_price"))
+    if rate is None or rate <= 0.0:
+        rate = _as_float(data.get("current_price"))
     if rate is None or rate <= 0.0:
         rate = EntryConfig.from_mapping(config).contract_fixed_price
     if rate <= 0.0:

@@ -16490,6 +16490,7 @@ def _advisor_coord(payload_extra=None, **cfg):
             "power_cap_breach_c": 0.0,
             "projected_peak_kw": 4.0,
             "monthly_cost_delta": -35.0,
+            "monthly_settled_cost_delta": 12.0,
             "baseline_min_room_temperature": 20.6,
             "min_room_temperature": 20.6,
             **(payload_extra or {}),
@@ -16509,7 +16510,7 @@ R.check(
     _adv.get("candidate_fuse_a") == 16
     and _adv.get("current_fuse_a") == 20
     and _adv.get("feasible") is True
-    and _adv.get("cost_delta_sek_month") == -35.0,
+    and _adv.get("cost_delta_sek_month") == 12.0,
     f"got {_adv}",
 )
 R.check(
@@ -17075,6 +17076,87 @@ R.check(
     and _sweep_neg.get("covers_heaviest_window") is True,
     f"got {_sweep_neg.get('recommended_setpoint')} at -1.0/kWh vs {_rec1} at "
     "+1.0/kWh on the same 1500 L tank",
+)
+
+
+# A free-energy day, and one priced exactly at the floor's bound (1e-6/kWh):
+# both rank at the floored level (0.1), so a hotter tank still costs more. An
+# unfloored level prices every candidate at about zero and the ranking ties.
+# The bound itself is a design choice this check prejudges: a level of 1e-6
+# is floored, only one above it is kept.
+def _sweep_at(level):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": level}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+_sweep_free, _sweep_bound = _sweep_at(0.0), _sweep_at(1e-6)
+R.check(
+    "a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one",
+    _sweep_free[-1] > _sweep_free[0] and _sweep_bound == _sweep_free,
+    f"0.0/kWh {_sweep_free}; 1e-6/kWh {_sweep_bound}",
+)
+
+# #2257 item 6: the card scales a day of this sweep to a month, so the
+# published sweep is priced at the grid view's recent kWh price (the
+# ledger's), not the price feed's window. Two days whose windows price 0.5
+# and 2.0 publish one cost once the ledger has settled a level (1.0, the
+# +1.0 day above's); an empty ledger, a fresh install, prices at the window
+# (the control).
+import heatpump_optimizer.coordinator as _r6_cm  # noqa: E402
+from heatpump_optimizer.ledger import SPOT_PRICE_META as _r6_spot  # noqa: E402
+
+
+def _r6_costs(window, level=None):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": window}] * 24
+    if level is not None:
+        coord._ledger.observe_meta_mean(_r6_cm.dt_util.now(), _r6_spot, level)
+    data = coord._build_data_dict()
+    return data.get("recent_kwh_price"), [c["cost_per_day"] for c in data["dhw_advisor"]["candidates"]]
+
+
+_r6_base = [c["cost_per_day"] for c in _sweep["candidates"]]
+_r6_low, _r6_high, _r6_fresh = _r6_costs(0.5, level=1.0), _r6_costs(2.0, level=1.0), _r6_costs(2.0)
+R.check(
+    "#2257: the published setpoint sweep prices at the recent kWh price, whatever the day's window",
+    _r6_low == _r6_high == (1.0, _r6_base),
+    f"window 0.5 {_r6_low} window 2.0 {_r6_high} level 1.0 {_r6_base}",
+)
+R.check(
+    "#2257: with no settled interval the sweep prices at the feed's window (control)",
+    _r6_fresh[0] is None and _r6_fresh[1] != _r6_base
+    and all(abs(x - 2.0 * y) <= 0.011 for x, y in zip(_r6_fresh[1], _r6_base)),
+    f"{_r6_fresh} vs {_r6_base}",
+)
+R.check(
+    "#2257: the sensor-gap row prices at the recent kWh price, the price now only without one",
+    _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 1.1, "current_price": 3.0}, {}) == 1.1
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": None, "current_price": 3.0}, {}) == 3.0
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 0.0, "current_price": 3.0}, {}) == 3.0,
+)
+# The level: the time-mean spot over this month and the one before, plus the
+# grid fee their kWh paid; a month older than that is not in it, and a ledger
+# with no settled interval has none.
+from heatpump_optimizer.ledger import MonthlyLedger as _r6_ledger_cls  # noqa: E402
+
+_r6_l = _r6_ledger_cls()
+_r6_jan = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+_r6_none = _r6_l.recent_kwh_price(_r6_jan)
+for _r6_at, _r6_p in ((datetime(2025, 11, 30, tzinfo=UTC), 90.0), (datetime(2025, 12, 31, 23, 0, tzinfo=UTC), 1.0),
+                      (datetime(2025, 12, 2, tzinfo=UTC), 1.0), (datetime(2026, 1, 3, tzinfo=UTC), 4.0)):
+    _r6_l.observe_meta_mean(_r6_at, _r6_spot, _r6_p)
+_r6_spot_only = _r6_l.recent_kwh_price(_r6_jan)
+_r6_l.add(datetime(2025, 12, 5, tzinfo=UTC), "grid_fee", kwh=10.0, sek=2.0)
+_r6_l.add(datetime(2026, 1, 5, tzinfo=UTC), "grid_fee", kwh=30.0, sek=10.0)
+R.check(
+    "#2257: the recent kWh price is this month's and last month's spot mean plus their fee per kWh",
+    _r6_none is None and _r6_spot_only == 2.0
+    and abs(_r6_l.recent_kwh_price(_r6_jan) - (2.0 + 12.0 / 40.0)) < 1e-12
+    and _r6_l.recent_kwh_price(datetime(2026, 1, 1, 0, 30, tzinfo=UTC)) == _r6_l.recent_kwh_price(_r6_jan),
+    f"empty {_r6_none} spot only {_r6_spot_only} with fees {_r6_l.recent_kwh_price(_r6_jan)}",
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
@@ -34705,11 +34787,12 @@ R.check(
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
 R.check(
-    "#2257: a degree tile reads the held figure, the cap tile the plan's",
+    "#2257: a degree tile reads the held figure, the cap tile the plan's settled one",
     price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
     and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
-                           {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
+                           {"monthly_cost_delta": -40.0, "monthly_held_cost_delta": 0.0,
+                            "monthly_settled_cost_delta": 4.0}) == 4.0
     and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
@@ -34737,6 +34820,20 @@ R.check(
         {"day": "2026-02-10", "sum": 900.0, "count": 1},
         {"day": "2026-02-09", "sum": 10.0, "count": 2}]}}, _pt_today)["t"]["monthly_cost_delta"] == 5.0
     and price_tiles.published({"t": {"days": [{"day": "2025-11-01", "sum": 1.0, "count": 1}]}}, _pt_today) == {},
+)
+# Days of unequal sample counts, which production's rotation folds (a solve
+# that errors, a restart, a changed interval): a day solved once at 0 and a day
+# solved three times at 12 publish 6, each day weighing alike. Pooling every
+# sample would read 9 and let the busier day dominate; the equal-count fixture
+# above cannot tell the two apart (#2572 review, MX4).
+_pt_uneven = price_tiles.fold([], _pt_today - timedelta(days=1), 0.0)
+for _pt_i in range(3):
+    _pt_uneven = price_tiles.fold(_pt_uneven, _pt_today, 12.0)
+R.check(
+    "#2257: a day solved once and a day solved three times weigh alike in the published mean",
+    [d["count"] for d in _pt_uneven] == [1, 3]
+    and price_tiles.published({"t": {"days": _pt_uneven}}, _pt_today)["t"]["monthly_cost_delta"] == 6.0,
+    f"{_pt_uneven} -> {price_tiles.published({'t': {'days': _pt_uneven}}, _pt_today)}",
 )
 _pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
 _pt_restored = {"stale": {"days": _pt_days[:1]}}
@@ -34787,7 +34884,7 @@ async def _pt_degree_at_seam(room):
     await coord.async_run_optimization()
     record = _solve_record_now(coord)
     out = {}
-    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
+    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power):
         answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
         out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
@@ -34820,6 +34917,18 @@ R.check(
         and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
         for h in (3, 15)),
     f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
+)
+# A cap keeps the schedule, so the cap tile (and the fuse advisor) read the
+# plan's spend with the heat it left unstored bought back. Unsettled, the
+# figure moves with where the house starts; settled, a coasted and a
+# pre-heated house part it by less (r10_advisor_residue.py whatif sizes both).
+_pt_cap = {k: v["power_cap_75"] for k, v in _pt_seams.items()}
+R.check(
+    "#2257: the cap tile reads the settled figure, which the house's start moves less than the plan's",
+    all(_pt_cap[k][0] is not None for k in _pt_cap)
+    and all(abs(_pt_cap[(h, 19.0)][0] - _pt_cap[(h, 23.0)][0])
+            < abs(_pt_cap[(h, 19.0)][1] - _pt_cap[(h, 23.0)][1]) for h in (3, 15)),
+    f"(settled, plan) by (hour, room): {_pt_cap}",
 )
 
 
