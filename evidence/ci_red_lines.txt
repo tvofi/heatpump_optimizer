@@ -1,0 +1,9 @@
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:16.2647164Z gh: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID 6800:260252:478AD4A:EAA53CF:6ADF695C and timestamp 2026-10-26 14:53:16 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) (HTTP 403)
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:16.2681770Z ##[error]Process completed with exit code 1.
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:16.3206388Z FIGURES: /tmp/pr-body.md is unreadable
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:16.3240012Z ##[error]Process completed with exit code 1.
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:16.3447561Z ##[error]Process completed with exit code 2.
+pr-contract / pr-contract	UNKNOWN STEP	2026-10-26T14:53:17.1038823Z ##[error]Process completed with exit code 1.
+gate	Judge this head	2026-10-26T14:53:34.6991613Z RATE-LIMITED reset_epoch=1793026483 repos/tvofi/heatpump_optimizer/actions/runs/40340824427/jobs
+gate	Judge this head	2026-10-26T14:53:34.7009322Z ##[error]reset_epoch=1793026483
+gate	Judge this head	2026-10-26T14:53:34.7089938Z ##[error]Process completed with exit code 3.
