@@ -1,0 +1,4 @@
+  ERROR   [carry-1668.json carry 0] symbol: 'TOTAL_INCREASING': not found in the tracked tree (no tag cited either)
+TOTAL: 363 error(s) across 48 file(s)
+  ERROR   [carry-1668.json carry 0] symbol: 'TOTAL_INCREASING': not found in the tracked tree (no tag cited either)
+TOTAL: 363 error(s) across 48 file(s)
