@@ -1,0 +1,11 @@
+== roster=merged INTENDED='2506'
+  ok       closes #2506 -- intended
+  check    policy corpus -- NOT compared: no refs/remotes/origin/main in this clone, so there is nothing to compare against
+  clean    no refusal (the 'check' lines above are yours to answer)
+rc=0
+== roster=main INTENDED=''
+  REFUSE   'Closes #2506' closes #2506; not in the intended list
+  check    policy corpus -- NOT compared: no refs/remotes/origin/main in this clone, so there is nothing to compare against
+rc=1
+merged 2428 in fixes idx=38
+main 2428 in fixes idx=null

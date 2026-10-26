@@ -1,0 +1,19 @@
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  WARNING [R10-CARD-VOICE] path: NOTES.md: not in the tree; cited tag ref(s) [2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-LEDGER] path: dev/audit/design/orch-machinery/DESIGN.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-LEDGER] path: dev/programme/designs/R10-ORCH-MACHINERY.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-DISPATCH-REG] path: dev/audit/design/orch-machinery/DESIGN.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-DISPATCH-REG] path: dev/programme/designs/R10-ORCH-MACHINERY.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-BEATD] path: dev/audit/design/orch-machinery/DESIGN.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-BEATD] path: dev/programme/designs/R10-ORCH-MACHINERY.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-PLANPAGE] path: dev/audit/design/orch-machinery/DESIGN.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-PLANPAGE] path: dev/programme/designs/R10-ORCH-MACHINERY.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, fef4a1351] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-ROSTER-SCHEMA] path: dev/audit/design/orch-machinery/DESIGN.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [R10-ORCH-ROSTER-SCHEMA] path: dev/programme/designs/R10-ORCH-MACHINERY.md: not in the tree; cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61] not resolvable locally (no network attempted) -- accepting textual co-citation
+  -- 0 error(s), 11 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)
+rc=0
