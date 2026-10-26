@@ -1,18 +1,16 @@
-Roster for round 10, batch 17, at the roster tip `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`: the eight roster commits the roster seat made on `handoff/audit-r10-roster` after `7d6ff74590e3b331099fb36066e661a6d840ba32` (the head of batch 16, which is on main as #2844, merge `21b45524d8b242c9520c9413966ff7bb26b72c7d`), listed by command under Figures. They are one `append-group` op (R10-HOTFIX-BATCH-ERREXIT), two `append-carry` ops (R10-ORCH-ROSTER-SCHEMA and R10-FLY-ROW-HEAD-CARRY), two `set-resume` ops that rewrite `next_step` on R10-THERMAL-POWER-OPTION and R10-FLOW-RECORD-PITCH, two `wire-issue --field fixes` ops (R10-FLY-CARRY-DISPOSITION takes #2428, R10-CARD-VOICE takes #2506) and one `set-stage` op (R10-DIAG-REDACT to done). Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 18, at the roster tip `78d071da88f05099677c44c2ce089ea9c4fda6fe`: the nine roster commits the roster seat made on `handoff/audit-r10-roster` after `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff` (the head of batch 17, which is on main as #2850, merge `11b7a9d739db46a5a62e9f9cf01a8f527a974137`), listed by command under Figures. They are one `set-stage` op (R10-PROOF-CODEQL to done), seven `append-carry` ops (R10-TRAIN-OVERLAP-GRADE four, R10-FLOW-DESIGN-STAGES two, R10-ORCH-BEATD one) and one `append-group` op (R10-RCA-RATELIMIT-RECUR, kind rca, resume stage in-progress, its fixer already dispatched). Part of #201. It closes nothing by keyword and leaves #201 open.
 
-**Why this batch is cut early, at eight ops:** the new group R10-HOTFIX-BATCH-ERREXIT is the critical-path fix for the nightly batch gate failing under `bash -e`, and that fix's pull request has a group check which reads main's roster, so the group must reach main before or with the hotfix. The orchestrator ruled on 2026-10-26 that this batch is cut as soon as #2844 merged, ahead of the usual eight-to-ten entries.
+**Merge order: none.** Batch 17 is on main. Roster queue lines 372 to 380 are in this batch.
 
-**Correction to #2844's record text:** the title and the delivery row of #2844 read "5 ops", and nine roster ops landed there (five `append-carry`, one `edit-brief`, three `set-stage`). The delta reviewer dismissed this as record text (probe/rev-2844-35c20883, 26ef56c6a); this body states the true count so the record is not left under-counted.
-
-**Merge order: none.** Batch 16 is on main. Roster queue lines 364 to 371 are in this batch; lines 372 onward ride batch 18.
+**Ordering note:** the `append-carry` op for R10-ORCH-BEATD (35be2daa9, queue line 377) was pushed by the previous roster seat's runner just before it was stopped for the batch 17 hold, and was not reported at the time; the roster seat read it back from the handoff tree (carry index 25 of 26, text equal to the queue file's) and did not apply it twice. Queue lines 378 to 380 were applied after #2850 merged.
 
 ## Head
 
-The authored head is `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `7d6ff74590e3b331099fb36066e661a6d840ba32`, and the pull request merges origin/main (`0dfc063fa56ef7c5d2b202933792caf87a2ed154`) into it. `git merge-tree --write-tree origin/main c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff` prints the tree `3508b32b38aedc14f64664b8c79552aa6f0ccbf2` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat origin/main 3508b32b38aedc14f64664b8c79552aa6f0ccbf2` prints:
+The authored head is `78d071da88f05099677c44c2ce089ea9c4fda6fe`, the tip of `handoff/audit-r10-roster`; its merge base with origin/main is `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`, and the pull request merges origin/main (`11b7a9d739db46a5a62e9f9cf01a8f527a974137`) into it. `git merge-tree --write-tree origin/main 78d071da88f05099677c44c2ce089ea9c4fda6fe` prints the tree `ac375ff63fb32ae73847856040eb7f60dee9f637` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat origin/main ac375ff63fb32ae73847856040eb7f60dee9f637` prints:
 
 ```
- dev/programme/rosters/wave-r10-groups.json | 68 +++++++++++++++++++++++++++---
- 1 file changed, 61 insertions(+), 7 deletions(-)
+ dev/programme/rosters/wave-r10-groups.json | 57 +++++++++++++++++++++++++++---
+ 1 file changed, 53 insertions(+), 4 deletions(-)
 ```
 
 ## Mutation proof
@@ -21,34 +19,32 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `b21289a28b8139c61ce5f022c8647dd60ce2f5c5` and the merged tree prints `679a4be14bcd0908d590cbdd8fa36872c7e72c7b`. A script that loads both files as JSON and keys groups by their `group` field printed:
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `679a4be14bcd0908d590cbdd8fa36872c7e72c7b` and the merged tree prints `837833ae2a684a567dce1be473b6e5858b38befb`. A script that loads both files as JSON and keys groups by their `group` field printed:
 
 ```
-groups main 195 head 196 added ['R10-HOTFIX-BATCH-ERREXIT'] removed []
-R10-CARD-VOICE fixes changed
-R10-THERMAL-POWER-OPTION resume.next_step changed
-R10-FLOW-RECORD-PITCH resume.next_step changed
-R10-FLY-ROW-HEAD-CARRY carry 3->4
-R10-FLY-CARRY-DISPOSITION fixes changed
-R10-ORCH-ROSTER-SCHEMA carry 21->22
-R10-DIAG-REDACT resume.stage not-started->done
+groups main 196 head 197 added ['R10-RCA-RATELIMIT-RECUR'] removed []
+R10-FLOW-DESIGN-STAGES carry 17->19
+R10-TRAIN-OVERLAP-GRADE carry 11->15
+R10-ORCH-BEATD carry 25->26
+R10-PROOF-CODEQL resume.stage queued->done
 ```
 
-Exactly the eight groups the eight ops name differ (seven edited, one added), one op each, and nothing else moved. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init`: both print `TOTAL: 10 error(s) across 48 file(s)`, so the delta is zero.
+Exactly the four groups that differ are the ones the nine ops name, one added and three carry-extended and one stage-set, and nothing else moved. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init`: both print `TOTAL: 10 error(s) across 48 file(s)`, so the delta is zero.
 
 ## Figures
 
-`git log --no-merges --reverse --format='%h %s' 7d6ff74590e3b331099fb36066e661a6d840ba32..c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff -- dev/programme/rosters/` prints eight commits, oldest first, tool name dropped:
+`git log --no-merges --reverse --format='%h %s' c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff..78d071da88f05099677c44c2ce089ea9c4fda6fe -- dev/programme/rosters/` prints nine commits, oldest first, tool name dropped:
 
 ```
-ec3c75629 set-stage R10-DIAG-REDACT
-3662863d2 append-group R10-HOTFIX-BATCH-ERREXIT
-2720c93cd set-resume R10-THERMAL-POWER-OPTION
-d0a908650 set-resume R10-FLOW-RECORD-PITCH
-149b45b95 append-carry R10-ORCH-ROSTER-SCHEMA
-d1c9dc98b wire-issue R10-FLY-CARRY-DISPOSITION
-8396866d1 append-carry R10-FLY-ROW-HEAD-CARRY
-c22e7b2e1 wire-issue R10-CARD-VOICE
+466c345df set-stage R10-PROOF-CODEQL
+5d17ebe7d append-carry R10-TRAIN-OVERLAP-GRADE
+b416158d0 append-carry R10-FLOW-DESIGN-STAGES
+42cc77736 append-carry R10-FLOW-DESIGN-STAGES
+492882021 append-carry R10-TRAIN-OVERLAP-GRADE
+35be2daa9 append-carry R10-ORCH-BEATD
+82dda60af append-carry R10-TRAIN-OVERLAP-GRADE
+789feaaa7 append-carry R10-TRAIN-OVERLAP-GRADE
+78d071da8 append-group R10-RCA-RATELIMIT-RECUR
 ```
 
 The per-group counts above come from the script named under Null control.
