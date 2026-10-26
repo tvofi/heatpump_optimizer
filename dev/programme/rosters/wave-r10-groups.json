@@ -8591,9 +8591,7 @@
    "files": [
     ".github/workflows/governance.yml"
    ],
-   "carry": [
-    "From #2609's post-merge delta review (review/2609 db41f8581): env-matrix (job 119862131576) went red at 97ac438d6 on the no-remote arm only (`no-remote / policy_lint rc=0 -- rc=1`; `no-remote / the lane reports NOT MEASURED rather than failing -- rc=1`; 14 held, 2 did not). The pr, push-main and shallow arms held, and the same driver run locally at that head held 16 of 16. The two-file delta (the D6 claims files) cannot reach policy_lint, so this reads as a CI-environment arm that flakes. Owed: reproduce the no-remote arm in CI's shape, name its cause, and either fix the arm or record why it is not deterministic. Null control: the arm holds on a head whose diff cannot reach policy_lint."
-   ],
+   "carry": [],
    "model": {
     "fixer": "sonnet",
     "reviewer": "opus",
