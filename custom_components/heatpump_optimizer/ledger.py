@@ -222,27 +222,13 @@ class MonthlyLedger:
         month whose savings lines began without it never gains one, which
         would calibrate a share of its thermostat only.
         """
-        if baseline_kw is None:
-            return
-        if not (
-            np.isfinite(baseline_kw)
-            and np.isfinite(actual_kwh)
-            and np.isfinite(spot)
-            and np.isfinite(dt)
-        ):
+        if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
         lines = self._month(month_key(when))["lines"]
         calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
         base_kwh = float(baseline_kw) * float(dt)
-        self.add(
-            when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
-        )
-        self.add(
-            when,
-            "savings_actual",
-            kwh=float(actual_kwh),
-            sek=float(actual_kwh) * float(spot),
-        )
+        self.add(when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot))
+        self.add(when, "savings_actual", kwh=float(actual_kwh), sek=float(actual_kwh) * float(spot))
         if calibrated and planned_kw is not None and np.isfinite(planned_kw):
             plan_kwh = float(planned_kw) * float(dt)
             self.add(when, SAVINGS_PLAN_LINE, kwh=plan_kwh, sek=plan_kwh * float(spot))
@@ -265,12 +251,8 @@ class MonthlyLedger:
         fee = pending.get("grid_fee")
         fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
         self.add_savings_settlement(
-            when,
-            baseline_kw=pending.get("baseline_kw"),
-            actual_kwh=actual_kwh,
-            spot=spot + fee_per_kwh,
-            dt=dt,
-            planned_kw=pending.get("power"),
+            when, baseline_kw=pending.get("baseline_kw"), actual_kwh=actual_kwh,
+            spot=spot + fee_per_kwh, dt=dt, planned_kw=pending.get("power"),
         )
 
     # -- reading ------------------------------------------------------------
@@ -280,10 +262,7 @@ class MonthlyLedger:
         entry = self.months.get(month, {}).get("lines", {}).get(name)
         if not isinstance(entry, dict):
             return {"kwh": 0.0, "sek": 0.0}
-        return {
-            "kwh": float(entry.get("kwh", 0.0)),
-            "sek": float(entry.get("sek", 0.0)),
-        }
+        return {"kwh": float(entry.get("kwh", 0.0)), "sek": float(entry.get("sek", 0.0))}
 
     def meta_mean(self, month: str, name: str) -> float | None:
         entry = self.months.get(month, {}).get("meta", {}).get(name)
