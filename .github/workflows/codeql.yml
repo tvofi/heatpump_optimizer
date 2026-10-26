@@ -53,7 +53,9 @@ name: CodeQL
 # umbrella's prelude (tools/ci/prelude.py, through tools/pr/codeql_scope.py,
 # O17) says `skip` in its `legs` output, the leg's analysis steps skip, it
 # uploads main's own analysis of its category as a stand-in (below), and its context
-# reports success. Every other event analyzes. O17 is a suffix allow-list, not
+# reports success. So does a train proof's leg every entry head already
+# analyzed (r10-proof-codeql; its stand-in is main's newest analysis, as the
+# dispatch carries no base sha). Every other event analyzes. O17 is a suffix allow-list, not
 # a measured closure; owner ruling D-5 admits it under the soundness step
 # below, which fails a push run when a leg's extracted source archive holds a
 # file the list calls inert.
