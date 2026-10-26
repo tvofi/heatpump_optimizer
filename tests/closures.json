@@ -3683,6 +3683,8 @@
    "dev/audit/harnesses/r10_seat_selftests_mutants.py",
    "dev/audit/harnesses/r10_setpoint_boost.py",
    "dev/audit/harnesses/r10_setpoint_power.py",
+   "dev/audit/harnesses/r10_shape_claim_controls.sh",
+   "dev/audit/harnesses/r10_shape_grammar_mutants.py",
    "dev/audit/harnesses/r10_slot_floor_twins.py",
    "dev/audit/harnesses/r10_solver_seed_or_stop.py",
    "dev/audit/harnesses/r10_solver_winner_polish.py",
