@@ -16,6 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARCH-SHAPES (stage in-progress, branch `handoff/r10-arch-shapes`): `git fetch origin handoff/r10-arch-shapes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HEAT-METER (stage in-progress, branch `handoff/r10-heat-meter`): `git fetch origin handoff/r10-heat-meter && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage in-progress, branch `handoff/r10-sav-comfort`): `git fetch origin handoff/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CEILING-PROBE (stage design, branch `handoff/r10-ceiling-probe`): `git fetch origin handoff/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
