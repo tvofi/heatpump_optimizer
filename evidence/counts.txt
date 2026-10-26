@@ -1,0 +1,38 @@
+RESULT groups main 197 mergebase 197 head 199
+RESULT added vs main ['R10-ERREXIT-COUNTERMEASURES', 'R10-RECORD-API-O1'] removed []
+RESULT added vs mb ['R10-ERREXIT-COUNTERMEASURES', 'R10-RECORD-API-O1'] removed []
+RESULT R10-CARD-VOICE main carries 0 stage not-started
+RESULT R10-CARD-VOICE head carries 0 stage done
+RESULT R10-COP-GATE main carries 0 stage not-started
+RESULT R10-COP-GATE head carries 0 stage not-started
+RESULT R10-UX-HEALTH main carries 0 stage not-started
+RESULT R10-UX-HEALTH head carries 0 stage not-started
+RESULT R10-LEGIONELLA-COMPLETION main carries 0 stage queued
+RESULT R10-LEGIONELLA-COMPLETION head carries 0 stage done
+RESULT R10-HOTFIX-BATCH-ERREXIT main carries 0 stage done
+RESULT R10-HOTFIX-BATCH-ERREXIT head carries 0 stage done
+RESULT R10-ERREXIT-COUNTERMEASURES main absent
+RESULT R10-ERREXIT-COUNTERMEASURES head carries 0 stage not-started
+RESULT R10-RECORD-API-O1 main absent
+RESULT R10-RECORD-API-O1 head carries 0 stage not-started
+CHANGED R10-CARD-VOICE ['carry', 'resume']
+CHANGED R10-COP-GATE ['carry']
+CHANGED R10-HOTFIX-BATCH-ERREXIT ['carry']
+CHANGED R10-LEGIONELLA-COMPLETION ['resume']
+CHANGED R10-UX-HEALTH ['carry']
+top-level changed []
+['R10-RCA-RATELIMIT-RECUR', 'R10-ERREXIT-COUNTERMEASURES', 'R10-RECORD-API-O1']
+RESULT R10-CARD-VOICE main carry 6 resume {'stage': 'not-started', 'branch': None, 'commit': None, 'last_step': None, 'next_step': "dispatch a fixer at the owner's chosen design (probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40, prototype 1 Badge) and fold in whatever the harmony review (probe/card-harmony-design) proposes and the owner accepts", 'note': None}
+RESULT R10-CARD-VOICE head carry 0 resume {'stage': 'done', 'branch': None, 'commit': None, 'last_step': None, 'next_step': "dispatch a fixer at the owner's chosen design (probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40, prototype 1 Badge) and fold in whatever the harmony review (probe/card-harmony-design) proposes and the owner accepts", 'note': None}
+RESULT R10-COP-GATE main carry 10 resume {'stage': 'not-started', 'branch': 'handoff/r10-cop-gate', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': None}
+RESULT R10-COP-GATE head carry 11 resume {'stage': 'not-started', 'branch': 'handoff/r10-cop-gate', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': None}
+RESULT R10-UX-HEALTH main carry 15 resume {'stage': 'not-started', 'branch': 'handoff/r10-ux-health', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': None}
+RESULT R10-UX-HEALTH head carry 16 resume {'stage': 'not-started', 'branch': 'handoff/r10-ux-health', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': None}
+RESULT R10-LEGIONELLA-COMPLETION main carry 0 resume {'stage': 'queued', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': None}
+RESULT R10-LEGIONELLA-COMPLETION head carry 0 resume {'stage': 'done', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': None}
+RESULT R10-HOTFIX-BATCH-ERREXIT main carry 1 resume {'stage': 'done', 'branch': 'handoff/r10-hotfix-batch-errexit', 'commit': None, 'last_step': None, 'next_step': 'dispatch the hotfix fixer now (critical path)', 'note': 'main-red hotfix 2026-10-26'}
+RESULT R10-HOTFIX-BATCH-ERREXIT head carry 0 resume {'stage': 'done', 'branch': 'handoff/r10-hotfix-batch-errexit', 'commit': None, 'last_step': None, 'next_step': 'dispatch the hotfix fixer now (critical path)', 'note': 'main-red hotfix 2026-10-26'}
+RESULT R10-ERREXIT-COUNTERMEASURES main absent
+RESULT R10-ERREXIT-COUNTERMEASURES head carry 4 resume {'stage': 'not-started', 'branch': ''}
+RESULT R10-RECORD-API-O1 main absent
+RESULT R10-RECORD-API-O1 head carry 3 resume {'stage': 'not-started', 'branch': ''}

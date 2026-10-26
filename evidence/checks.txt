@@ -1,0 +1,55 @@
+CodeQL	completed	success	2026-10-26T09:45:00Z
+arch-score / arch-score	completed	success	2026-10-26T09:45:35Z
+arch-score / arch-score	completed	success	2026-10-26T10:04:57Z
+arm	completed	skipped	2026-10-26T09:41:13Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-10-26T09:45:25Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-10-26T10:04:57Z
+cancel-superseded	completed	success	2026-10-26T09:44:01Z
+cancel-superseded	completed	success	2026-10-26T09:44:16Z
+codeql	completed	skipped	2026-10-26T10:04:54Z
+codeql / Analyze (actions)	completed	success	2026-10-26T09:44:51Z
+codeql / Analyze (javascript-typescript)	completed	success	2026-10-26T09:45:36Z
+codeql / Analyze (python)	completed	success	2026-10-26T09:45:16Z
+gate	completed	success	2026-10-26T10:04:04Z
+gate	completed	success	2026-10-26T10:06:22Z
+governance	completed	skipped	2026-10-26T10:04:54Z
+governance / delivery-status	completed	success	2026-10-26T09:44:42Z
+governance / delivery-status-publish	completed	skipped	2026-10-26T09:44:39Z
+governance / env-matrix	completed	success	2026-10-26T09:44:42Z
+governance / instrument-self-tests	completed	success	2026-10-26T09:45:25Z
+governance / policy-docs	completed	success	2026-10-26T09:44:42Z
+governance / record	completed	skipped	2026-10-26T09:44:39Z
+governance / wave-script	completed	success	2026-10-26T09:44:42Z
+hassfest	completed	skipped	2026-10-26T10:04:54Z
+hassfest / hassfest	completed	success	2026-10-26T09:44:49Z
+kernel-points	completed	skipped	2026-10-26T09:44:39Z
+kernel-points	completed	skipped	2026-10-26T10:04:54Z
+pr-contract / pr-contract	completed	success	2026-10-26T10:03:22Z
+pr-contract / pr-contract	completed	success	2026-10-26T10:05:42Z
+prelude	completed	success	2026-10-26T09:44:06Z
+prelude	completed	success	2026-10-26T09:44:23Z
+refresh	completed	success	2026-10-26T09:43:56Z
+refresh	completed	success	2026-10-26T09:44:27Z
+tests	completed	skipped	2026-10-26T10:04:54Z
+tests / arch-instrument	completed	success	2026-10-26T09:45:57Z
+tests / briefs	completed	success	2026-10-26T09:45:37Z
+tests / browser	completed	success	2026-10-26T09:46:09Z
+tests / ci-ratchet	completed	skipped	2026-10-26T09:49:59Z
+tests / claims-autofix	completed	skipped	2026-10-26T09:49:59Z
+tests / closure-scope	completed	success	2026-10-26T09:45:11Z
+tests / closures	completed	success	2026-10-26T09:46:04Z
+tests / closures-autofix	completed	skipped	2026-10-26T09:49:03Z
+tests / coverage	completed	skipped	2026-10-26T09:45:34Z
+tests / coverage-ratchet	completed	skipped	2026-10-26T09:45:34Z
+tests / fast (3.14)	completed	success	2026-10-26T09:45:52Z
+tests / graders-head-copy	completed	success	2026-10-26T09:46:15Z
+tests / lane-proofs	completed	success	2026-10-26T09:50:02Z
+tests / mutation	completed	success	2026-10-26T09:44:57Z
+tests / mutation-autofix	completed	skipped	2026-10-26T09:45:36Z
+tests / mutation-pins	completed	skipped	2026-10-26T09:45:35Z
+tests / nightly-ha	completed	skipped	2026-10-26T09:45:34Z
+tests / nightly-status	completed	success	2026-10-26T09:45:12Z
+tests / replay	completed	skipped	2026-10-26T09:45:34Z
+tests / typing	completed	success	2026-10-26T09:45:58Z
+validate	completed	skipped	2026-10-26T10:04:54Z
+validate / validate-hacs	completed	success	2026-10-26T09:45:40Z
