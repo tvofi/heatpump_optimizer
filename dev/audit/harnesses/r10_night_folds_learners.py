@@ -84,7 +84,7 @@ def drive_house(c, residual, n, sun, start=T0):
         for i in range(n + 1):
             c._current_state.solar_radiation = float(sun)
             dt_util.now = lambda i=i: start + timedelta(minutes=30 * i)
-            asyncio.run(c._async_learn_house_heat_loss())
+            asyncio.run(c._async_learn_house_heat_loss(c._close_fabric_interval()))
     finally:
         dt_util.now = real_now
 
@@ -99,7 +99,7 @@ def drive_lower(c, observed_lower, sun):
     c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
     c._current_state = replace(base, lower_floor_temperature=observed_lower)
     c._current_action = {"power": 2.0}
-    asyncio.run(c._async_learn_lower_floor_loss())
+    asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
     return c._lower_floor_loss_samples
 
 
