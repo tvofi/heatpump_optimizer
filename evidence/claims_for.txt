@@ -1,4 +1,0 @@
-7.0.4
-11:#   1. The `claims-for:` line below is machine-read and MUST equal the
-35:# `claims-for:` stamp below.
-57:# claims-for: 7.0.4
