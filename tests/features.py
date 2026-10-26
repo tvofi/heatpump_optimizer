@@ -17050,6 +17050,26 @@ R.check(
     "+1.0/kWh on the same 1500 L tank",
 )
 
+
+# A free-energy day, and one priced exactly at the floor's bound (1e-6/kWh):
+# both rank at the floored level (0.1), so a hotter tank still costs more. An
+# unfloored level prices every candidate at about zero and the ranking ties.
+# The bound itself is a design choice this check prejudges: a level of 1e-6
+# is floored, only one above it is kept.
+def _sweep_at(level):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": level}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+_sweep_free, _sweep_bound = _sweep_at(0.0), _sweep_at(1e-6)
+R.check(
+    "a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one",
+    _sweep_free[-1] > _sweep_free[0] and _sweep_bound == _sweep_free,
+    f"0.0/kWh {_sweep_free}; 1e-6/kWh {_sweep_bound}",
+)
+
 # #2257 item 6: the card scales a day of this sweep to a month, so the
 # published sweep is priced at the grid view's recent kWh price (the
 # ledger's), not the price feed's window. Two days whose windows price 0.5
