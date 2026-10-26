@@ -4904,9 +4904,9 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "queued",
+    "stage": "fixing",
     "branch": null,
-    "commit": null,
+    "commit": "50ef300f72a96fe467467deec6f4877bdadb8221",
     "last_step": null,
     "next_step": "rca",
     "note": null
