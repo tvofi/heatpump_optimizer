@@ -5301,7 +5301,7 @@
    "resume": {
     "stage": "done",
     "branch": null,
-    "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_0137yKHgnrnwkvENYhwNibrQ); return handoff-body/r10-thermal-power-option",
+    "next_step": "done: merged as #2753 (a441d2e15); nothing to dispatch",
     "pr": 2753
    }
   },
