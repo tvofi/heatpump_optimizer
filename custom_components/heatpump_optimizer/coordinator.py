@@ -4403,7 +4403,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         slots: list[PlanSlot] = []
         start_idx: int | None = None
-        heating = channel_heating_steps(powers, other_powers)
+        heating = [p > 0.05 for p in powers]
         other_heating = channel_heating_steps(other_powers or [], powers)
 
         def close(end_idx: int) -> None:
