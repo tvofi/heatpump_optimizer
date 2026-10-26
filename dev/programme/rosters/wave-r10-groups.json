@@ -8204,7 +8204,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "done --at-sha bfc4a1e297fb2899be1c4643ae9d75b8a5829208",
+    "stage": "done",
     "branch": null,
     "pr": 2865,
     "commit": "bfc4a1e297fb2899be1c4643ae9d75b8a5829208"
