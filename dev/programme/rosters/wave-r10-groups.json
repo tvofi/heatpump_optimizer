@@ -764,9 +764,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "Reviewer: opus with screenshots from tests/card_browser.mjs (code-owned) in light and dark at phone and desktop widths."
-   ],
+   "carry": [],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 1 of 5; before you: none; next: R10-UX-SETUP, R10-ADVISOR). Owning seam in this group: the new link helper and its test only. Shape: one pure helper; the three call sites stay for their groups. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "done",
