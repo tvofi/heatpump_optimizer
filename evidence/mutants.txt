@@ -1,0 +1,63 @@
+RESULT mutant='M1 badge none' rc=1 fail_lines=5
+      FAIL  every card wears one type disc on its outer top corner
+      FAIL  the disc tells a store from a valve from an emitter
+      FAIL  the wood tank's disc is a spring while a coil is configured
+      FAIL  the disc's glyph strokes on the icon tier, its page name on the 11-unit tier
+RESULT mutant='M2 coil-pipe class' rc=1 fail_lines=2
+      FAIL  the coil's pipe is the one accent pipe, dashed when not modelled
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M3 coilState ignores configured' rc=1 fail_lines=5
+      FAIL  the wood tank's disc is a spring while a coil is configured
+      FAIL  the coil's pipe is the one accent pipe, dashed when not modelled
+      FAIL  the hot water box states the coil in words, one state at a time
+      FAIL  each box's accessible name carries its type, the wood tank's its coil state
+RESULT mutant='M6 dest line class' rc=1 fail_lines=2
+      FAIL  and the page states once where that page is
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M10 box title removed' rc=1 fail_lines=2
+      FAIL  each box's accessible name carries its type, the wood tank's its coil state
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M12 PX_MIN 12' rc=1 fail_lines=2
+      FAIL  the dialog's chrome never renders under the tile's 14 px base
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M13 PX_MAX 21' rc=1 fail_lines=2
+      FAIL  and its ceiling is reachable inside the dialog's 1700 px cap
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M14 adv-basis unfloored' rc=1 fail_lines=2
+      FAIL  every caption role is floored at the ramp's 12 px step
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M15 dialog layout-bar rule' rc=1 fail_lines=2
+      FAIL  the layout bar's buttons take the chip's dialog size
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M15b phone layout-bar rule' rc=1 fail_lines=2
+      FAIL  the layout bar's buttons take the chip's dialog size
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M16 health-row surface' rc=1 fail_lines=2
+      FAIL  the health and advisor rows take the surface their ink is drawn for
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M16b adv-inbox-row surface' rc=1 fail_lines=2
+      FAIL  the health and advisor rows take the surface their ink is drawn for
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M17 health-h weight' SKIPPED anchor_count=2
+RESULT mutant='M19 replay min-width' rc=1 fail_lines=2
+      FAIL  the savings replay takes the setup map's phone treatment
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M19b replay overflow' rc=1 fail_lines=2
+      FAIL  the savings replay takes the setup map's phone treatment
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M20 receipt fallback 14' rc=1 fail_lines=2
+      FAIL  the receipt's text-sm fallbacks are the token's own value
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M21 setup-tab fallback 14 (line ~4188)' rc=1 fail_lines=2
+      FAIL  the receipt's text-sm fallbacks are the token's own value
+    1 CARD CHECK(S) FAILED
+RESULT mutant='M22 badge off class' rc=1 fail_lines=2
+      FAIL  the wood tank's disc is a spring while a coil is configured
+    1 CARD CHECK(S) FAILED
+M17   FAIL  the health headings are the card's 600, not the user agent's 700
+M17 1 CARD CHECK(S) FAILED
+M8 -- R9 P2: the cycle's own outcome -- covering quarter, fenced steps, failed solves, an honest press (D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)
+M8   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
+M8 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+M8         f"solver returned a failed plan: {result.status}"
+M8 RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
