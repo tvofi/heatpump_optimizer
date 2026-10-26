@@ -1,6 +1,0 @@
-TOTAL: 0 error(s) across 50 policy file(s)
-ALL 112 HARNESS HEADER CHECKS PASSED
-3682:   "dev/audit/harnesses/r10_shape_claim_controls.sh",
-3683:   "dev/audit/harnesses/r10_shape_grammar_mutants.py",
-inert_reads/tests/harness_headers.py dev/audit/harnesses/r10_shape_claim_controls.sh
-inert_reads/tests/harness_headers.py dev/audit/harnesses/r10_shape_grammar_mutants.py

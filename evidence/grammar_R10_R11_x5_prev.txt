@@ -1,0 +1,26 @@
+a2a7b9efae9ec2b96924a6ef38bad50f79a8c4e0
+M0 RESULT pins=16 fails=0
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=0 SURVIVED
+RESULT mutants=2 killed=0
+run1 exit=1
+M0 RESULT pins=16 fails=0
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=1 KILLED
+RESULT mutants=2 killed=1
+run2 exit=0
+M0 RESULT pins=16 fails=0
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=0 SURVIVED
+RESULT mutants=2 killed=0
+run3 exit=1
+M0 RESULT pins=16 fails=0
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=0 SURVIVED
+RESULT mutants=2 killed=0
+run4 exit=1
+M0 RESULT pins=16 fails=0
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=0 SURVIVED
+RESULT mutants=2 killed=0
+run5 exit=1
