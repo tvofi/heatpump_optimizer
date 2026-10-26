@@ -10459,6 +10459,48 @@
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
    },
    "brief": "The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. (1) The Plan page's what-if panel still reads the single-solve monthly cost delta, which moves with the house's start (dev/audit/harnesses/r10_advisor_residue.py, whatif arm); no sound estimator exists in the seam, so either design one or record the owner's acceptance of the copy docs/dashboard-card.md already discloses. (2) Proposal P141 (triage: dev/programme/triage/s6-batch27.md#P141, ACCEPT): move the plan-slot summary builder out of custom_components/heatpump_optimizer/coordinator.py beside its TypedDict in custom_components/heatpump_optimizer/payload.py, behaviour byte-identical; controls as that ruling states (archscore coord_footprint before and after with a whitespace-only null, the fixture captures' slot lists byte-identical, one mutant). Closes #2257."
+  },
+  {
+   "group": "R10-DEPENDABOT-SETUPTOOLS",
+   "lane": "F",
+   "kind": "tooling",
+   "class": "tooling",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/requirements-build.txt"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+    "pr": 2678
+   },
+   "brief": "Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). Main's pin is the one open Dependabot alert, whose first patched version is 84.1.0. The head is all dependabot[bot] commits: per R10-FLY-CARRY-DISPOSITION's P100 carry its delivery row lives on origin/main, never on the head; do not add a merge commit or row to the head (the #2773 trap, tools/policy/dependabot_contract.mjs). Verify the scoped gate is green at the head, then the orchestrator merges it; afterwards the open-alert count reads zero."
   }
  ]
 }
