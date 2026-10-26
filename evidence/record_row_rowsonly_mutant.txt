@@ -1,0 +1,1 @@
+9 self-test check(s) failed: automerge refuses: another file, automerge refuses: a one-line file outside the row directory, automerge refuses: a renamed row, automerge refuses: path attack: arabic-indic digits, automerge refuses: path attack: fullwidth digits, automerge refuses: path attack: leading

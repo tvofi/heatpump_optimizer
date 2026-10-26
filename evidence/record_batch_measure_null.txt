@@ -1,6 +1,0 @@
-wait_c: n=0
-wait_s: n=0
-age: n=0
-chain: 0/0 record merges rowed the previous record merge
-conflicts: 0/0 record merges with a row file main also changed while open
-moved: 0/0 record merges the next merged non-record head did not contain
