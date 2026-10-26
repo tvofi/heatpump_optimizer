@@ -623,6 +623,11 @@ const STRINGS = {
     "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
     "setup.box_dhw_tank": "Hot water tank",
     "setup.dhw_coil_caption": "refilled through a wood tank coil",
+    "setup.dhw_coil_preheats": "preheats the mains water",
+    "setup.dhw_coil_off": "coil configured, not modelled",
+    "setup.dhw_coil_off_why": "needs the two-tank layout",
+    "setup.dhw_coil_none": "no hot-water coil",
+    "setup.dhw_coil_none_why": "wood heat only",
     "setup.box_upper_floor": "Upper floor",
     "setup.box_house": "House",
     "setup.box_lower_floor": "Lower floor (slab)",
@@ -643,6 +648,20 @@ const STRINGS = {
     "setup.fold_hide": "Hide the {n} unset inputs",
     "setup.configure": "Configure",
     "setup.configure_page": "Configure: {page}",
+    "setup.configure_dest":
+      "Configure opens this integration in Settings → Devices & services. " +
+      "Home Assistant has no link into an options page, so from there " +
+      "choose Configure → {advanced} → the page named on the button.",
+    "setup.page_advanced": "Advanced settings",
+    "setup.type_outside": "outside air",
+    "setup.type_heat_source": "heat source",
+    "setup.type_valve": "mixing valve",
+    "setup.type_store": "heat store",
+    "setup.type_hot_water": "hot water store",
+    "setup.type_coil": "heat store with a hot-water coil",
+    "setup.type_coil_off": "heat store with a hot-water coil that is not modelled",
+    "setup.type_radiator": "radiator circuit",
+    "setup.type_slab": "underfloor slab circuit",
     "setup.page_entities": "Sensors and entities",
     "setup.page_entities_pump": "Heat pump telemetry",
     "setup.page_building": "Heating system and heat storage",
@@ -1333,6 +1352,11 @@ const STRINGS = {
     "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
     "setup.box_dhw_tank": "Varmvattentank",
     "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
+    "setup.dhw_coil_preheats": "förvärmer kallvattnet",
+    "setup.dhw_coil_off": "slinga vald, inte modellerad",
+    "setup.dhw_coil_off_why": "kräver layouten med två tankar",
+    "setup.dhw_coil_none": "ingen varmvattenslinga",
+    "setup.dhw_coil_none_why": "vedvärmen går bara till uppvärmning",
     "setup.box_upper_floor": "Övervåning",
     "setup.box_house": "Hus",
     "setup.box_lower_floor": "Nedervåning (platta)",
@@ -1348,6 +1372,21 @@ const STRINGS = {
     "setup.fold_hide": "Dölj de {n} oangivna ingångarna",
     "setup.configure": "Konfigurera",
     "setup.configure_page": "Konfigurera: {page}",
+    "setup.configure_dest":
+      "Konfigurera öppnar integrationen under Inställningar → Enheter och " +
+      "tjänster. Home Assistant har ingen länk direkt till en " +
+      "alternativsida, så välj därifrån Konfigurera → {advanced} → sidan " +
+      "som knappen namnger.",
+    "setup.page_advanced": "Avancerade inställningar",
+    "setup.type_outside": "uteluft",
+    "setup.type_heat_source": "värmekälla",
+    "setup.type_valve": "shuntventil",
+    "setup.type_store": "värmelager",
+    "setup.type_hot_water": "varmvattenlager",
+    "setup.type_coil": "värmelager med varmvattenslinga",
+    "setup.type_coil_off": "värmelager med en varmvattenslinga som inte modelleras",
+    "setup.type_radiator": "radiatorkrets",
+    "setup.type_slab": "golvvärmekrets i plattan",
     "setup.page_entities": "Givare och entiteter",
     "setup.page_entities_pump": "Värmepumps telemetri",
     "setup.page_building": "Värmesystem och värmelagring",
@@ -2139,10 +2178,15 @@ const ACTION_HEATING_MODES = new Set([
 ]);
 
 // The expanded dialog's chrome is sized from one font size, set from the
-// dialog's measured width so it grows with the chart it sits beside.
+// dialog's measured width so it grows with the chart it sits beside. The
+// floor is the card's own 14 px base (R10-CARD-VOICE, the harmony study's
+// H1): an ENLARGED view that set its em chrome under the tile's was smaller
+// than the tile until the dialog reached 1333 px. The ceiling is what the
+// dialog's 1700 px width cap can reach, 1700 x 0.0105 = 17.85; the 21 it
+// used to be could never be reached (C3).
 const DIALOG_FONT_RATIO = 0.0105;
-const DIALOG_FONT_PX_MIN = 12;
-const DIALOG_FONT_PX_MAX = 21;
+const DIALOG_FONT_PX_MIN = 14;
+const DIALOG_FONT_PX_MAX = 18;
 
 // How many entities the setup page's picker will RENDER at once. A large
 // installation has thousands, and a select with thousands of options is both
@@ -2191,12 +2235,46 @@ const SETUP_CARD_R = 10;
 const SETUP_UNIT_DECIMALS = {
   "°C": 1, "°F": 1, "K": 1, "%": 1, "W/m²": 0, "W/m2": 0,
 };
-// The chip drawn inside the diagram (the Configure control), in the product's
-// chip metrics: a 15-unit pill, an 11-unit label and this much padding either
-// side of it.
-const SETUP_CHIP_H = 15;
-const SETUP_CHIP_TEXT = 11;
+// The Configure button every card ends with (R10-CARD-VOICE): "Configure"
+// over the name of the options page it means, both on the drawing's 11-unit
+// tier (the harmony study's H2), this much padding inside the button's
+// border, and the button sitting half a pad above the card's bottom edge.
+// SETUP_CHIP_H is the button with a one-line page name; a name wider than the
+// button's inside ("Heating system and heat storage" is 164 units at 11 in a
+// 152-unit inside) wraps, and each further line adds SETUP_CHIP_LINE.
+const SETUP_CHIP_H = 30;
+const SETUP_CHIP_LINE = 12;
 const SETUP_CHIP_PAD = 8;
+// The type disc on a card's outer top corner (R10-CARD-VOICE, the owner's
+// prototype 1): its radius, and the glyph each place type draws in it, on a
+// 10-unit grid centred on the disc. The wood tank's glyph is the coil's
+// spring whenever a hot-water coil is configured in it. The disc is 18 units
+// across; its glyph strokes at 1.5 (the card's icon and pipe tier, H2) and
+// its rim at 1 (the box outline tier), in `.type-badge`.
+const SETUP_BADGE_R = 9;
+const SETUP_BADGE_GLYPH = {
+  outside: `<path d="M-1.5-4.4 v5.4 a2.1 2.1 0 1 0 3 0 V-4.4 a1.5 1.5 0 0 0-3 0" /><path d="M0-2.4 v4" />`,
+  heat_source: `<rect x="-4" y="-4" width="8" height="8" rx="1.6" /><circle cx="0" cy="0" r="2.2" /><path d="M0-2.2 V0 M1.9 1.1 L0 0 M-1.9 1.1 L0 0" />`,
+  valve: `<path d="M-4-3 L4 3 L4-3 L-4 3 Z" />`,
+  store: `<path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" />`,
+  hot_water: `<path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /><path d="M0-0.6 c1.3 1.7 2.1 2.6 2.1 3.5 a2.1 2.1 0 0 1-4.2 0 C-2.1 2 -1.3 1.1 0-0.6 z" />`,
+  coil: `<path d="M-4.6 0 c1.3-2.9 2.6-2.9 3.9 0 s2.6 2.9 3.9 0" /><circle cx="-5" cy="0" r="0.9" /><circle cx="5" cy="0" r="0.9" />`,
+  radiator: `<rect x="-4.5" y="-3" width="9" height="5" rx="1" /><path d="M-3-3 v5 M-1-3 v5 M1-3 v5 M3-3 v5" />`,
+  slab: `<path d="M-5 0 h10 v2.2 h-10 z" /><path d="M-5 4.4 l1.2-1.2 M-3.2 4.4 l1.2-1.2 M-1.4 4.4 l1.2-1.2 M0.4 4.4 l1.2-1.2 M2.2 4.4 l1.2-1.2" />`,
+};
+// Each place's type, by place id. The wood tank is a store until a coil is
+// configured in it, which `setupSvgHtml` decides; a place the backend added
+// ahead of this map draws no disc rather than a wrong one.
+const SETUP_PLACE_TYPE = {
+  outdoor: "outside",
+  heat_pump: "heat_source",
+  mixing_valve: "valve",
+  buffer_tank: "store",
+  wood_tank: "store",
+  dhw_tank: "hot_water",
+  upper_zone: "radiator",
+  lower_zone: "slab",
+};
 
 // ---- Text metrics for the setup drawing -----------------------------------
 //
@@ -2425,17 +2503,15 @@ function fitSlotRow(label, values, inner, size) {
 // One pipe detail survives as a rule rather than as ink: a pipe endpoint stops
 // ON the card's border, so nothing pulls inside the box to meet a shape.
 const SETUP_INSET = 0;
-// The title/rows divider under a card's header, shared by every card. A
-// row-less card (h = 32: title only, nothing under the rule) gets none -- it
-// would separate the title from nothing. Both ends follow `SETUP_PAD`, so the
-// rule under a title starts where the title starts.
-const shapeDivider = (x, y, w, h) =>
-  h < 49
-    ? null
-    : {
-        d: `M ${x + SETUP_PAD} ${y + 21.5} L ${x + w - SETUP_PAD} ${y + 21.5}`,
-        cls: "setup-accent divider",
-      };
+// The title/rows divider under a card's header, shared by every card. Every
+// card has something under it -- at the least its Configure button
+// (R10-CARD-VOICE) -- so every card draws one; the row-less 32-unit card
+// that once drew none is gone. Both ends follow `SETUP_PAD`, so the rule
+// under a title starts where the title starts.
+const shapeDivider = (x, y, w) => ({
+  d: `M ${x + SETUP_PAD} ${y + 21.5} L ${x + w - SETUP_PAD} ${y + 21.5}`,
+  cls: "setup-accent divider",
+});
 
 // Human names for the places pipes connect. Only the layout editor's
 // rejection line uses them -- every box already carries its own title -- so a
@@ -3294,12 +3370,12 @@ function setupSvgHtml(topo, ctx) {
   // it is allowed to lean into the right padding before it wraps: what it
   // must not do is reach the card's border. Eight units clear of it.
   const captionW = SETUP_COL_W - SETUP_PAD - 8;
-  const wrapExtra = (s) => {
+  const wrapExtra = (s, size = 12) => {
     const lines = [];
     let cur = "";
     for (const w of String(s).split(/\s+/)) {
       const next = cur ? `${cur} ${w}` : w;
-      if (setupTextW(next, 12, false) > captionW && cur) {
+      if (setupTextW(next, size, false) > captionW && cur) {
         lines.push(cur);
         cur = w;
       } else cur = next;
@@ -3311,24 +3387,34 @@ function setupSvgHtml(topo, ctx) {
   // The first place is the box's identity -- the id edges and saved
   // positions name it by -- and any others are slots that live on the same
   // physical thing (the floor loop's return probe is on the slab).
-  const box = (col, title, places, extra) => {
+  // `lead` is prose that qualifies the whole box and reads before its rows
+  // (the hot water tank's coil state); `extra` is a note that follows them.
+  const box = (col, title, places, extra, lead) => {
     const rows = [];
     for (const p of places) {
       for (const s of slotsAt(p)) rows.push(s);
     }
     boxes.push({
       col, title, rows, place: places[0],
-      extra: (extra || []).flatMap(wrapExtra),
+      extra: (extra || []).flatMap((x) => wrapExtra(x)),
+      // On the drawing's 11-unit tier, the coil wording's own (H2).
+      lead: (lead || []).flatMap((x) => wrapExtra(x, 11)),
     });
   };
 
   const valve =
     topo.valve_mode && topo.valve_mode !== "none";
   // The hot water tank refills through a coil in the wood tank (v3.15.1).
-  // `describe_setup` only sets this when the coil can actually preheat
-  // anything, so the drawing follows the flag rather than re-deriving the
-  // conditions and risking a picture the model disagrees with.
+  // `describe_setup` only sets `dhw_wood_coil` when the coil can actually
+  // preheat anything, so the drawing follows the flag rather than re-deriving
+  // the conditions and risking a picture the model disagrees with. The option
+  // switched on WITHOUT that model is its own state (R10-CARD-VOICE): it used
+  // to draw exactly what no option draws, so the owner who had just switched
+  // it on was told nothing. Absent on older descriptions, read as no coil.
   const dhwCoil = !!topo.dhw_wood_coil;
+  const coilState = dhwCoil
+    ? "active"
+    : topo.dhw_wood_coil_configured ? "off" : "none";
   // With two modelled stores the names have to say which tank is which,
   // and the one valve is the physical 4-way device the wood tank, the
   // heat-pump tank and both floors all meet at.
@@ -3359,8 +3445,16 @@ function setupSvgHtml(topo, ctx) {
   }
   box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
     ["buffer_tank"], bufExtra);
-  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
-    dhwCoil ? [L("setup.dhw_coil_caption")] : []);
+  // Where a coil is possible at all -- a wood tank and a hot water tank --
+  // the hot water box says which of the three states it is in, in words, so
+  // the wood tank's disc is never the only carrier of it.
+  const coilWords = {
+    active: ["setup.dhw_coil_caption", "setup.dhw_coil_preheats"],
+    off: ["setup.dhw_coil_off", "setup.dhw_coil_off_why"],
+    none: ["setup.dhw_coil_none", "setup.dhw_coil_none_why"],
+  };
+  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"], [],
+    topo.wood && topo.wood.present ? coilWords[coilState].map((k) => L(k)) : []);
   box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
     ["upper_zone"]);
   if (topo.two_zone) {
@@ -3418,7 +3512,7 @@ function setupSvgHtml(topo, ctx) {
     // carrying it would be a namesake the census cannot tell from a link.
     b.foldOpen = unsetRows.some((r) => openKeys.has(r.slot.key));
     // The folded block is ALWAYS drawn when there are unset slots -- its own
-    // count line and its Configure chip are what opens and closes the rows --
+    // count line is what opens and closes the rows --
     // so its rows are counted once here, wrapped once, and drawn from the
     // same lines. Counting them anywhere else is how a box loses its last
     // caption off the bottom of the drawing.
@@ -3429,10 +3523,21 @@ function setupSvgHtml(topo, ctx) {
         ), inner, inner, 2, 12)
       : null;
     const lines = (rows) => rows.reduce((n, r) => n + r.fit.lines.length, 0);
+    // Every card ends with its Configure button (R10-CARD-VOICE), whether or
+    // not any of its inputs is unset: a fully configured box is still the
+    // way to the page that owns it. A place this card has no options page
+    // for (one the backend added ahead of it) names the place instead: a
+    // button that cannot say which step it opens says what it is for,
+    // rather than "undefined".
+    const page = SETUP_CONFIGURE_PAGE[b.place];
+    b.cfgPage = page ? L(page) : placeLabel(b.place);
+    const cfgW = inner - 2 * SETUP_CHIP_PAD;
+    b.cfgLines = wrapText(b.cfgPage, cfgW, cfgW, 3, 11);
+    b.cfgH = SETUP_CHIP_H + SETUP_CHIP_LINE * (b.cfgLines.length - 1);
     b.h = 24 + pad + rowH * (
-      lines(liveRows) + lines(b.foldOpen ? unsetRows : []) + b.extra.length +
-      (b.foldLines ? b.foldLines.length + 1 : 0)
-    );
+      b.lead.length + lines(liveRows) + lines(b.foldOpen ? unsetRows : []) +
+      b.extra.length + (b.foldLines ? b.foldLines.length : 0)
+    ) + b.cfgH + 2;
   }
 
   // ---- where the boxes go -------------------------------------------------
@@ -3559,24 +3664,31 @@ function setupSvgHtml(topo, ctx) {
           L("setup.pipe_remove_aria", { label: edgeLabel(edge) })
         )}"`
     : () => "";
+  // The coil's pipe carries mains water, not heating water, so it is the one
+  // pipe drawn in the accent (R10-CARD-VOICE); `wood-dhw` is its name in the
+  // stale-payload fallback below.
   const line = (a, b, edge, cls) => {
     if (!a || !b) return "";
-    const extra = cls || "";
-    const invalid = extra === " invalid";
+    const invalid = cls === " invalid";
+    const extra = (cls || "") +
+      (edge === "wood_tank>dhw_tank" || edge === "wood-dhw" ? " coil-pipe" : "");
+    // A pipe with no edge name is drawn but is not a connection of the
+    // model's: nothing reads it as topology, and the editor cannot remove it.
+    const edgeAttr = edge ? ` data-edge="${edge}"${pipeKb(edge)}` : "";
     if (a.x === b.x) {
       const upper = a.y < b.y ? a : b;
       const lower = a.y < b.y ? b : a;
       const x = a.x + 24;
       const yTop = upper.y + upper.h - SETUP_INSET;
       const yBot = lower.y + SETUP_INSET;
-      return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
+      return `<path class="setup-pipe${extra}"${edgeAttr}
         d="M ${x} ${yTop}
         L ${x} ${yBot}" />` +
         pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, invalid);
     }
     const f = anchor(a);
     const t = to(b);
-    return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
+    return `<path class="setup-pipe${extra}"${edgeAttr}
       d="M ${f.x} ${f.y}
       C ${f.x + 40} ${f.y},
         ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
@@ -3608,8 +3720,8 @@ function setupSvgHtml(topo, ctx) {
   }
 
   // The coil helix that used to mark the wood tank's wall is gone with the
-  // silhouette vocabulary; the coil is carried by its own pipe and by the
-  // caption on the tank being preheated.
+  // silhouette vocabulary; the coil is carried by its own pipe, the wood
+  // tank's disc and the words on the tank being preheated.
   const drawnEdges = editing
     ? ctx.edit.edges
     : Array.isArray(topo.edges)
@@ -3665,36 +3777,54 @@ function setupSvgHtml(topo, ctx) {
     }
   }
 
-  // The card's own controls, in the product's chip: the border, radius and
-  // padding the legend chips use, so a button drawn inside the diagram is the
-  // same object as a button drawn beside it.
+  // A coil configured but not modelled is drawn where it physically is, dashed
+  // and muted: not an edge (no `data-edge`, so the drawn topology the tests
+  // and the editor read is still exactly the model's), and not while editing,
+  // where only connections the editor can save are drawn.
+  if (coilState === "off" && !editing) {
+    pipe(findPlace("wood_tank"), findPlace("dhw_tank"), null, " coil-pipe off");
+  }
+
+  // The card's own control, drawn in the chip's border colour and on the
+  // drawing's own 11-unit type tier. It is NOT the legend chip's size: the
+  // drawing scales with its width, so its label renders 8.6 px at 375 and
+  // 18.2 px at 1280 against the chip's 12-12.9 (the harmony study's C2).
   //
-  // The chip is a control, so it owes the same pointer minimum every other
-  // target on the page does (SC 2.5.8, D4-01). Its own height is 15 units --
-  // 11.7 CSS px at a phone width -- so an invisible twin takes the pointer at
+  // R10-CARD-VOICE made it a two-line button the card's full inner width:
+  // "Configure" over the name of the options page it means, because that name
+  // is the only part of the destination the card can honestly give (Home
+  // Assistant has no route into an options step; `openHaLink` opens the
+  // entry, whose own Configure starts the flow).
+  //
+  // The button is a control, so it owes the same pointer minimum every other
+  // target on the page does (SC 2.5.8, D4-01). Its own height is 30 units --
+  // 23.3 CSS px at a phone width -- so an invisible twin takes the pointer at
   // `_targetMinPx()`, exactly as the row hit rects and the editor's ports do.
   // The paint sits OVER the twin with `pointer-events: none`, so the twin is
-  // what is clicked and `:hover` on it is what lights the pill.
+  // what is clicked and `:hover` on it is what lights the button.
   // ViewBox units per CSS pixel at the width this drawing lands in, 0 until
   // the canvas has been laid out once (the chart's #256 contract). Every
   // target in here converts its pixel floor through this one value.
   const unitsPerPx = drawnWidth > 0 ? W / drawnWidth : 0;
-  const chip = (x, yTop, key, attr, aria) => {
-    const label = L(key);
-    const w = setupTextW(label, SETUP_CHIP_TEXT, false) + 2 * SETUP_CHIP_PAD;
+  const chip = (x, yTop, h, pageLines, attr, aria) => {
+    const w = colW - 2 * SETUP_PAD;
     const hitH = unitsPerPx > 0
-      ? Math.max(SETUP_CHIP_H, _targetMinPx() * unitsPerPx)
-      : SETUP_CHIP_H;
-    const hitY = yTop - (hitH - SETUP_CHIP_H) / 2;
+      ? Math.max(h, _targetMinPx() * unitsPerPx)
+      : h;
+    const hitY = yTop - (hitH - h) / 2;
     return `<rect class="setup-chip-hit" ${attr}
       tabindex="${ctx.picking ? "-1" : "0"}" role="button"
-      aria-label="${esc(aria)}" x="${x - SETUP_CHIP_PAD / 2}" y="${r2(hitY)}"
-      width="${r2(w + SETUP_CHIP_PAD)}" height="${r2(hitH)}"
-      rx="${r2(hitH / 2)}"><title>${esc(aria)}</title></rect>
-      <rect class="setup-chip" x="${x}" y="${r2(yTop)}" width="${r2(w)}"
-        height="${SETUP_CHIP_H}" rx="${SETUP_CHIP_H / 2}" />
+      aria-label="${esc(aria)}" x="${x}" y="${r2(hitY)}"
+      width="${w}" height="${r2(hitH)}"
+      rx="${SETUP_CARD_R - 1}"><title>${esc(aria)}</title></rect>
+      <rect class="setup-chip" x="${x}" y="${r2(yTop)}" width="${w}"
+        height="${h}" rx="${SETUP_CARD_R - 1}" />
       <text class="setup-chip-label" x="${x + SETUP_CHIP_PAD}"
-        y="${r2(yTop + SETUP_CHIP_H - 4.6)}">${esc(label)}</text>`;
+        y="${r2(yTop + 13)}">${esc(L("setup.configure"))}</text>
+      <text class="setup-chip-page" x="${x + SETUP_CHIP_PAD}"
+        y="${r2(yTop + 25)}">${pageLines.map((t, i) =>
+          `<tspan x="${x + SETUP_CHIP_PAD}" y="${r2(yTop + 25 + i * SETUP_CHIP_LINE)}">${esc(t)}</tspan>`
+        ).join("")}</text>`;
   };
   const r2 = (n) => Math.round(n * 100) / 100;
 
@@ -3752,14 +3882,19 @@ function setupSvgHtml(topo, ctx) {
       y += rowH * lines.length;
       return out.join("");
     };
+    for (const ln of b.lead) {
+      rows.push(`<text class="setup-slot extra lead" x="${b.x + SETUP_PAD}"
+        y="${y}">${esc(ln)}</text>`);
+      y += rowH;
+    }
     for (const row of b.liveRows) rows.push(rowHtml(row, "setup-slot"));
     // The unset slots of this box, folded into ONE muted block
     // (R10-UX-SETUP): they used to render as "not configured" rows in the
     // same weight as the readings, which crowds the readings out of the
-    // diagram drawn around them. The block says how many there are, opens
-    // this box's rows in place so nothing the diagram could do is off the
-    // page, and carries the way to Home Assistant's own options page for
-    // them.
+    // diagram drawn around them. The block says how many there are and opens
+    // this box's rows in place, so nothing the diagram could do is off the
+    // page; the way to Home Assistant's own options page for them is the
+    // card's Configure button, below.
     if (b.unsetRows.length) {
       const n = b.unsetRows.length;
       const lines = b.foldLines;
@@ -3785,16 +3920,6 @@ function setupSvgHtml(topo, ctx) {
         ))}" x="${b.x + 4}" y="${r2(y - rowH + 5 - (foldH - foldBase) / 2)}"
         width="${colW - 8}" height="${r2(foldH)}" rx="3"></rect>`);
       y += rowH * lines.length;
-      // A place this card has no options page for (a place the backend added
-      // ahead of it) names the place instead of the page: a button that
-      // cannot say which step it opens says what it is for, rather than
-      // "undefined".
-      const page = SETUP_CONFIGURE_PAGE[b.place];
-      const aria = L("setup.configure_page",
-        { page: page ? L(page) : placeLabel(b.place) });
-      rows.push(chip(b.x + SETUP_PAD, y - rowH + 3, "setup.configure",
-        `data-configure="${esc(b.place || "")}"`, aria));
-      y += rowH;
     }
     for (const row of b.foldOpen ? b.unsetRows : []) {
       rows.push(rowHtml(row, "setup-slot empty"));
@@ -3804,6 +3929,11 @@ function setupSvgHtml(topo, ctx) {
         y="${y}">${esc(ex)}</text>`);
       y += rowH;
     }
+    // The card's foot: its Configure button, half a pad above the bottom
+    // edge, naming the page the measuring pass resolved.
+    rows.push(chip(b.x + SETUP_PAD, b.y + b.h - SETUP_PAD / 2 - b.cfgH, b.cfgH,
+      b.cfgLines, `data-configure="${esc(b.place || "")}"`,
+      L("setup.configure_page", { page: b.cfgPage })));
     // One port per edge midpoint, drawn only while editing: they are drag
     // handles for connections, and a diagram nobody is editing should not
     // sprout handles that do nothing.
@@ -3847,15 +3977,32 @@ function setupSvgHtml(topo, ctx) {
       : "";
     // The card IS the carrier rect: one outline per box, in the product's
     // own surface, border and radius (`.setup-box` in the stylesheet). The
-    // header rule under a title is the only decoration left, and a row-less
-    // card drops even that.
-    const deco = [shapeDivider(b.x, b.y, colW, b.h)];
+    // header rule under a title and the type disc on its corner are the
+    // only decoration on it.
+    const divider = shapeDivider(b.x, b.y, colW);
+    // The type disc straddles the card's outer top corner, where no pipe
+    // lands (pipes meet a card at its edge midpoints) and no text runs. It is
+    // a picture of what the title already says, so it is hidden from the
+    // accessibility tree. The wood tank's is the coil's spring while a coil
+    // is configured in it, dimmed while that coil is not modelled.
+    const type = b.place === "wood_tank" && coilState !== "none"
+      ? "coil"
+      : SETUP_PLACE_TYPE[b.place];
+    const badge = type
+      ? `<g class="type-badge${type === "coil" && coilState === "off" ? " off" : ""}" data-type="${type}" aria-hidden="true"><circle class="badge-disc" cx="${b.x + colW - 2}" cy="${b.y + 2}" r="${SETUP_BADGE_R}" /><g transform="translate(${b.x + colW - 2} ${b.y + 2}) scale(0.92)">${SETUP_BADGE_GLYPH[type]}</g></g>`
+      : "";
+    // The box's accessible name carries what the disc draws -- its type,
+    // and on the wood tank the coil's state -- so the disc can stay hidden
+    // (H2). A <title> names the <g> (SVG-AAM) and is the disc's hover
+    // explanation too.
+    const typeKey = type === "coil" && coilState === "off" ? "coil_off" : type;
+    const name = typeKey ? `${b.title}, ${L(`setup.type_${typeKey}`)}` : b.title;
     parts.push(`
-      <g>
+      <g><title>${esc(name)}</title>
         <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
           height="${b.h}" rx="${SETUP_CARD_R}" />
-        ${deco.filter(Boolean).map((acc) =>
-          `<path class="${acc.cls}" d="${acc.d}" />`).join("")}
+        <path class="${divider.cls}" d="${divider.d}" />
+        ${badge}
         <text class="setup-title" x="${b.x + SETUP_PAD}"
           y="${b.y + 17}">${esc(b.title)}</text>
         ${rows.join("")}${ports}
@@ -4200,7 +4347,7 @@ function cardStyleBlock(darkMode) {
          to live only in the hover title. Kept small and muted so it reads
          as a footnote, not a second value competing with the number. */
       .hl-caveat {
-        display: block; font-size: 0.82em; font-weight: 400;
+        display: block; font-size: max(12px, 0.82em); font-weight: 400;
         color: var(--hpo-text-2, #727272);
       }
       /* R9-UX-8: the narrative is one surface-2 panel of rows (label left,
@@ -4262,7 +4409,7 @@ function cardStyleBlock(darkMode) {
         font-weight: 400; color: var(--hpo-text-2, #727272);
         font-style: italic;
       }
-      .sb-text { font-size: 0.78em; color: var(--hpo-text-2, #727272); }
+      .sb-text { font-size: max(12px, 0.78em); color: var(--hpo-text-2, #727272); }
       .legend {
         display: flex; flex-direction: column; gap: 4px; padding: 0 2px 8px 2px;
       }
@@ -4308,7 +4455,7 @@ function cardStyleBlock(darkMode) {
          the #888 the card used to fall back to measured 3.54:1 on white. */
       .legend-note {
         margin: 0 2px 2px 2px;
-        font-size: 0.76em; line-height: 1.35;
+        font-size: max(12px, 0.76em); line-height: 1.35;
         color: var(--hpo-text-2, #727272);
       }
       .legend-note::before {
@@ -4342,7 +4489,7 @@ function cardStyleBlock(darkMode) {
       }
       .viewctl button {
         width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
-        font: inherit; font-size: 0.85em; cursor: pointer;
+        font: inherit; font-size: max(12px, 0.85em); cursor: pointer;
         border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.35em;
         background: var(--hpo-surface, #ffffff);
         color: var(--hpo-text, #212121);
@@ -4516,6 +4663,10 @@ function cardStyleBlock(darkMode) {
         font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
         gap: 0.45em; border-width: 1.5px;
       }
+      /* The shared rule names the layout bar's buttons beside the chip, so
+         the dialog raises them with it (R10-CARD-VOICE, H2): left at the
+         shared 0.82 em they rendered 9.8 px beside a 12 px chip. */
+      dialog.expanded .layout-bar button { font-size: 1em; border-radius: 1.3em; }
       dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
       dialog.expanded .tooltip {
         font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
@@ -4587,6 +4738,29 @@ function cardStyleBlock(darkMode) {
         fill: none; stroke: var(--hpo-text-2, #727272);
         stroke-width: 1.5; opacity: 0.55;
       }
+      /* The coil's pipe is the one pipe that is not heating water
+         (R10-CARD-VOICE): the accent, and dashed in the muted ink while the
+         coil is configured but not modelled. */
+      .setup-pipe.coil-pipe {
+        stroke: var(--hpo-accent, #026aa8); stroke-width: 1.8; opacity: 0.85;
+      }
+      .setup-pipe.coil-pipe.off {
+        stroke: var(--hpo-text-2, #727272); stroke-dasharray: 3 3; opacity: 0.5;
+      }
+      /* The type disc on a card's corner: the page's own surface and border,
+         the glyph in the accent the coil's pipe wears. */
+      .badge-disc {
+        fill: var(--hpo-surface, #ffffff);
+        stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
+      }
+      .type-badge path, .type-badge rect, .type-badge circle:not(.badge-disc),
+      .type-badge ellipse {
+        fill: none; stroke: var(--hpo-accent, #026aa8); stroke-width: 1.5;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      .type-badge { pointer-events: none; }
+      .type-badge.off { opacity: 0.45; }
+      .type-badge.off .badge-disc { stroke-dasharray: 2 2; }
       .setup-title {
         font-size: 13px; font-weight: 600;
         fill: var(--hpo-text, #212121);
@@ -4605,10 +4779,12 @@ function cardStyleBlock(darkMode) {
          the rows it stands for. */
       .setup-slot.folded { fill: var(--hpo-text-2, #727272); }
       .setup-slot.extra { fill: var(--hpo-text-2, #727272); }
+      /* The hot water box's coil wording, on the drawing's 11-unit tier. */
+      .setup-slot.lead { font-size: 11px; }
       .setup-value { font-weight: 600; }
-      /* The Configure control, in the product's chip: the same border,
-         radius and label size a legend chip wears, so a button drawn inside
-         the diagram is the same object as a button drawn beside it. */
+      /* The Configure control: the chip's border colour, on the drawing's
+         11-unit tier. A drawn label scales with the drawing, so it does not
+         render at a legend chip's size (C2). */
       .setup-chip {
         fill: transparent;
         stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
@@ -4622,16 +4798,26 @@ function cardStyleBlock(darkMode) {
         fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.08;
       }
       .setup-chip-label {
-        font-size: 11px; fill: var(--hpo-accent, #026aa8);
+        font-size: 11px; font-weight: 600; fill: var(--hpo-accent, #026aa8);
         pointer-events: none;
+      }
+      /* The options page the button means, under its verb. */
+      .setup-chip-page {
+        font-size: 11px; fill: var(--hpo-text-2, #727272);
+        pointer-events: none;
+      }
+      /* Where the page each button names is, said once above the drawing. */
+      .setup-dest {
+        color: var(--hpo-text-2, #727272);
+        font-size: max(12px, 0.85em); margin: 0 0.25em 0.5em 0.25em; max-width: 70ch;
       }
       .setup-hint {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.85em; padding: 0.5em 0.25em;
+        font-size: max(12px, 0.85em); padding: 0.5em 0.25em;
       }
       .setup-result {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+        font-size: max(12px, 0.85em); padding: 0 0.25em 0.5em 0.25em;
       }
       .setup-hit { fill: transparent; cursor: pointer; }
       /* fill-opacity, not opacity: element opacity would fade the focus
@@ -4774,6 +4960,10 @@ function cardStyleBlock(darkMode) {
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.4em; padding: 0.2em;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        /* Its own width wherever it lands: shrink-to-fit would narrow it to
+           the room left of its left edge, so the box openMenu measured and
+           clamped wrapped to a taller one once placed near the right edge. */
+        width: max-content; max-width: 100%; box-sizing: border-box;
       }
       .slot-menu button {
         display: block; width: 100%; text-align: left;
@@ -4853,11 +5043,18 @@ function cardStyleBlock(darkMode) {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
         gap: 4px 16px; align-items: start;
       }
-      .health-h { margin: 12px 0 4px 0; font-size: 1em; }
+      /* 600, the card's heading weight: the heading element otherwise
+         takes the user agent's 700, the one bold heading in the card
+         (H3b). */
+      .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
+      /* The row's surface is the pair its ink is drawn for (H3a): the text is
+         the card's --hpo-text, so the surface is the card's --hpo-surface-2.
+         A theme's --secondary-background-color under the card's dark ink
+         read 1.20:1 wherever the theme does not define it. */
       .health-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--secondary-background-color, #f5f5f5);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
@@ -4883,7 +5080,7 @@ function cardStyleBlock(darkMode) {
         flex: 0 0 auto; width: 1.4em; height: 1.4em; border-radius: 50%;
         border: 1.5px solid var(--hpo-divider, currentColor);
         display: inline-flex; align-items: center; justify-content: center;
-        color: var(--hpo-ok, #1c7350); font-size: 0.85em;
+        color: var(--hpo-ok, #1c7350); font-size: max(12px, 0.85em);
       }
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
@@ -4894,18 +5091,18 @@ function cardStyleBlock(darkMode) {
       .adv-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--secondary-background-color, #f5f5f5);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .adv-text { flex: 1 1 14em; min-width: 0; }
-      .adv-text .adv-sub { display: block; font-size: 0.85em; opacity: 0.8; }
+      .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
       .adv-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
       .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-basis { font-size: 0.85em; opacity: 0.75; }
-      .adv-note { font-size: 0.85em; padding: 0 0 8px 0; }
+      .adv-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
+      .adv-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
       .adv-row {
         display: flex; width: 100%; gap: 12px;
         align-items: center; justify-content: space-between;
@@ -4926,7 +5123,7 @@ function cardStyleBlock(darkMode) {
       }
       .adv-unpriced-head + .adv-row .adv-value,
       .adv-row.unpriced .adv-value {
-        font-size: 0.85em; max-width: 60%;
+        font-size: max(12px, 0.85em); max-width: 60%;
       }
 
       /* What-if simulator */
@@ -4964,7 +5161,7 @@ function cardStyleBlock(darkMode) {
         text-transform: uppercase; letter-spacing: 0.04em;
       }
       .whatif .wi-hint {
-        font-size: 0.85em; color: var(--hpo-text-2, #727272);
+        font-size: max(12px, 0.85em); color: var(--hpo-text-2, #727272);
         line-height: 1.35em;
       }
       .whatif .wi-viewlimit {
@@ -5080,6 +5277,14 @@ function cardStyleBlock(darkMode) {
       @media (max-width: 600px) {
         dialog.expanded { width: 96vw; padding: 12px; }
         dialog.expanded .legend { font-size: 1rem; }
+        /* The bar's buttons are the same touch row the legend's chips are,
+           so they take the same phone size (H2: bar equals chip). */
+        dialog.expanded .layout-bar button { font-size: 1rem; }
+        /* The dialog's 0.92 em tooltip brought it up to the tile's size from
+           the old 12 px floor; on the 14 px floor (H1) it outgrew the short
+           phone-width chart it must stay inside (R9-UX-1). Here it keeps
+           the tile's own 0.78 em. */
+        dialog.expanded .tooltip { font-size: 0.78em; }
         /* Phone-width dialogs (#40 feedback, item 1): the header must be
            allowed to wrap, or the Plan/Setup tabs are pushed out of reach
            by the title; and the setup diagram scrolls sideways at a
@@ -5088,6 +5293,11 @@ function cardStyleBlock(darkMode) {
         .dlg-head { flex-wrap: wrap; row-gap: 6px; }
         .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .setup-canvas svg { min-width: 560px; }
+        /* The savings replay is a drawing with literal 11-12 unit labels
+           and no axis floor, so a phone squeezed them to 6.2-6.8 px; it
+           takes the setup map's treatment (R10-CARD-VOICE, H4). */
+        .replay { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .replay > svg { min-width: 560px; }
         /* R9-UI-3: the card's chips one row that scrolls sideways instead
            of five wrapped rows. */
         .tile-v { font-size: var(--hpo-text-md, 15px); }
@@ -9224,12 +9434,12 @@ const RECEIPT_CSS = `
   display: grid; grid-template-columns: repeat(auto-fit, minmax(18em, 1fr));
   gap: var(--hpo-space-3, 12px) var(--hpo-space-5, 24px); margin: 0.5em 0 1em;
 }
-.receipt-sub, .replay-sub { color: var(--hpo-text-2, #727272); font-size: var(--hpo-text-sm, 14px); }
+.receipt-sub, .replay-sub { color: var(--hpo-text-2, #727272); font-size: var(--hpo-text-sm, 13px); }
 .receipt-total { font-size: 2em; font-weight: 600; font-variant-numeric: tabular-nums; }
 .receipt-h { margin: 0 0 6px; font-size: 1em; font-weight: 600; }
 .receipt-bar {
   display: grid; grid-template-columns: minmax(0, 1fr) 7em auto;
-  gap: 8px; align-items: center; font-size: var(--hpo-text-sm, 14px); padding: 3px 0;
+  gap: 8px; align-items: center; font-size: var(--hpo-text-sm, 13px); padding: 3px 0;
 }
 .receipt-bar .rb-track {
   height: 10px; border-radius: 5px; overflow: hidden;
@@ -9240,7 +9450,7 @@ const RECEIPT_CSS = `
 .replay { margin: 0.5em 0 1em; }
 .replay-leg {
   display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0;
-  font-size: var(--hpo-text-sm, 14px); color: var(--hpo-text-2, #727272);
+  font-size: var(--hpo-text-sm, 13px); color: var(--hpo-text-2, #727272);
 }
 .replay-leg span { display: inline-flex; gap: 6px; align-items: center; }
 .replay svg { width: 100%; height: auto; display: block; }
@@ -14224,7 +14434,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? st.attributes.savings_months
       : [];
     if (!rows.length) {
-      return `<p class="savings-empty" style="margin:1em 0">${esc(L("savings.empty"))}</p>`;
+      // The one empty-state shape the no-plan, setup and advisor pages
+      // use (H3c).
+      return `<div class="empty">${esc(L("savings.empty"))}</div>`;
     }
     // The rows come from the monthly savings sensor, so the unit they are
     // denominated in is that sensor's own declaration -- the rule the
@@ -14297,6 +14509,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `<div class="setup-page${editing ? " editing" : ""}">
       ${this.layoutEditor.barHtml(topo)}
       ${this.setup.tankBarHtml(topo)}
+      <p class="setup-dest">${esc(L("setup.configure_dest",
+        { advanced: L("setup.page_advanced") }))}</p>
       <div class="setup-canvas">${drawn.html}</div>
       ${this.setup.pickerHtml(topo)}
       <div class="setup-hint">${
