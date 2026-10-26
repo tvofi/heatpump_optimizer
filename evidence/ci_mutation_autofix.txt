@@ -1,8 +1,0 @@
- * [new tag]             archive/handoff/r10-prepr-unpinned-red -> archive/handoff/r10-prepr-unpinned-red
-[36;1minstall -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"[0m
-[36;1mprint(f"AUTOFIX: {status}")[0m
-AUTOFIX: skip-measure-failed
-##[group]Run python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
-[36;1mpython3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \[0m
-mutation-autofix: skip-measure-failed -- THE REPAIR DID NOT HAPPEN.
-A site no driver kills needs a killing check or a survivor_triage
