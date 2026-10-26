@@ -821,7 +821,7 @@ R.check(
 _lg = LegionellaGuard(
     FakeHass(),
     "dst",
-    ThermalParameters.from_config({}),
+    lambda _p=ThermalParameters.from_config({}): _p,
     {},
     action=lambda: {},
     disinfect=DisinfectionSwitch({}, None, None),
@@ -1942,7 +1942,7 @@ def _leg_guard(cfg=None, action=None):
     return LegionellaGuard(
         FakeHass(),
         "dst",
-        ThermalParameters.from_config({}),
+        lambda _p=ThermalParameters.from_config({}): _p,
         cfg or {},
         action=lambda: action or {},
         disinfect=_NO_SWITCH,
@@ -2125,7 +2125,8 @@ def _house_dt(prev, now, lower):
     c._thermal_model.simulate_step = _sim
     dt_util.freeze(now)
     asyncio.run(
-        c._async_learn_lower_floor_loss() if lower else c._async_learn_house_heat_loss()
+        c._async_learn_lower_floor_loss(c._close_fabric_interval()) if lower
+        else c._async_learn_house_heat_loss(c._close_fabric_interval())
     )
     dt_util.freeze(None)
     return seen

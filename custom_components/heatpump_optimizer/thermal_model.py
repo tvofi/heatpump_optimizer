@@ -556,6 +556,33 @@ class ThermalParameters:
         """
         return self.lower_floor_heat_loss * self.lower_floor_loss_ratio
 
+    @property
+    def house_heat_loss_base(self) -> float:
+        """The whole house's configured loss, kW/°C, before the learned scale.
+
+        Both zones with the learned split where there are two, so a figure
+        built on it is the loss the dynamics actually use.
+        """
+        if self.two_zone_enabled:
+            return self.upper_floor_heat_loss + self.lower_floor_heat_loss_learned
+        return self.heat_loss_coefficient
+
+    @property
+    def envelope_thermal_mass(self) -> float:
+        """Heat capacity inside the envelope as the dynamics store it, kWh/°C.
+
+        The zones -- or the single room -- and the emitter slab between them:
+        the stores the house's loss drains (R10-SCORES). The room mass alone
+        left out the slow mass ``presets.derive`` puts in the slab of a
+        floor-heated house, and on a two-zone house is a mass the two-zone
+        step never reads.
+        """
+        if self.two_zone_enabled:
+            zones = self.upper_floor_thermal_mass + self.lower_floor_thermal_mass
+        else:
+            zones = self.room_thermal_mass
+        return zones + self.slab_thermal_mass
+
     #: Memo for `buffer_tank_heat_loss_coefficient`, keyed on its own inputs.
     #: `init=False` and `compare=False` so it is neither a constructor argument
     #: nor part of equality -- it is a cache, not a parameter.
