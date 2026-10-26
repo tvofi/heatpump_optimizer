@@ -1,0 +1,53 @@
+## finder's instance: round-1 body (3a106cff3:BODY.md)
+-- old form: preflight.sh 2428
+  ok       closes #2428 -- intended
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:every
+             4:never
+             4:never
+             4:every
+             11:each
+             20:every
+             35:each
+             54:all
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             10 l
+             13 t
+             377 p
+             10 l
+             12 f
+             352 p
+             377 p
+             11 i
+  ok       policy corpus -- current with origin/main (1 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+rc=0
+-- head: preflight_body via --body-check-equivalent function
+  note     forwarded issue number(s) 2428 ignored; intended list derived as pr-contract does: none
+  REFUSE   'Closes #2428' closes #2428; not in the intended list
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:every
+             4:never
+             4:never
+             4:every
+             11:each
+             20:every
+             35:each
+             54:all
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             10 l
+             13 t
+             377 p
+             10 l
+             12 f
+             352 p
+             377 p
+             11 i
+  ok       policy corpus -- current with origin/main (1 file(s) authored here, not stale)
+rc=1
+-- head: --body-check on r1 body
+  ERROR   [pr-body] <scratch>/ev/r1-body.md: `## Head` does not name e9ac63c, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: e9ac63c is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+REFUSE pr-body: ERROR   [pr-body] <scratch>/ev/r1-body.md: `## Head` does not name e9ac63c, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: e9ac63c is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>. (1 error line(s) in all) -- no budget leaf raised over 7d2056970...e9ac63c18
+carry ok: CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 7d6ff7459
+REFUSE preflight: 'Closes #2428' closes #2428; not in the intended list
+rc=1
