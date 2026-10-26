@@ -31,8 +31,10 @@ afterwards, so this file is P3's measuring half:
   `--instrument <fork>`, so both sides are read by the base's scorer.
 
 Neither re-implements an instrument it can call: `end-to-end` runs `score.py`
-itself, and `snapshot` imports the instrument tree's own `archscore.vector`
-and runs its own `tests/structure.py`. `ARCHSCORE_ABLATE` is refused, because
+itself, and `snapshot` imports the instrument tree's own `archscore.vector` and
+runs its `tests/structure.py` over the target -- the measuring code is the
+instrument's on both sides, so a round cannot lower a number by editing the
+measurer. `ARCHSCORE_ABLATE` is refused, because
 a gain that appears only without the counters did not happen.
 
 WHAT IT DOES NOT CATCH. A PR body that predates the required block, or whose
@@ -230,7 +232,18 @@ VECTOR_CODE = ("import json,sys; sys.path.insert(0,'tools/audit'); from archscor
                "'gate_only': list(vector.GATE_ONLY)},sort_keys=True))")
 
 
-def structure_metrics(tree: Path) -> dict:
+def structure_metrics(tree: Path, instrument: Path | None = None) -> dict:
+    """`tests/structure.py`'s budget metrics for `tree`.
+
+    The measuring *code* is the `instrument` tree's, copied into the throwaway
+    worktree before it runs: a round that lowers a number by editing
+    `structure.py` would otherwise read as no regression, because the fork's
+    snapshot would use the fork's file and the stamp's the lowered one. The
+    budgets it reads stay the target's own data, so the metrics are the
+    instrument's and the tree under test is the stamp's.
+    """
+    if instrument is not None and instrument != tree:
+        shutil.copyfile(instrument / "tests" / "structure.py", tree / "tests" / "structure.py")
     return json.loads(_py(tree, STRUCTURE_CODE))
 
 
@@ -346,7 +359,7 @@ def snapshot(ref: str, instrument: str | None) -> dict:
         return {
             "ref": git("rev-parse", ref),
             "instrument": git("rev-parse", inst_ref),
-            "structure": structure_metrics(target),
+            "structure": structure_metrics(target, inst),
             "vector": vec["vector"],
             "tripwires": vec["tripwires"],
             "behaviour": behaviour_inventory(target),
@@ -484,6 +497,22 @@ def self_test() -> int:
           == ["change coupling: 10.0 -> 11.0 pair-occurrences per 100 merges"])
         t("the null control: identical snapshots regress on nothing",
           compare_snapshots(snap, {**snap}, set()) == [])
+
+    # The structure metric is the instrument's measuring code over the target's
+    # tree: the target's own `structure.py` must not be the one that answers,
+    # or a round lowers a number by editing the measurer.
+    with tempfile.TemporaryDirectory(prefix="plan-audit-structure-") as tmp:
+        tree, inst = Path(tmp) / "stamp", Path(tmp) / "fork"
+        for root, word in ((tree, "stamp"), (inst, "fork")):
+            (root / "tests").mkdir(parents=True)
+            (root / "tests" / "structure.py").write_text(
+                f"def measure():\n    return {{'metrics': {{'m': '{word}'}}}}\n")
+        # The null control first: the copy the instrument arm makes is
+        # deliberate and one-way, so the self-measure runs before it.
+        t("a target measured against itself uses its own file (the null control)",
+          structure_metrics(tree) == {"m": "stamp"})
+        t("the structure metrics are the instrument's code, not the target's",
+          structure_metrics(tree, inst) == {"m": "fork"}, repr(structure_metrics(tree, inst)))
 
     # Change coupling from a real (throwaway) history: the same two modules
     # changing together is coupling, each changing alone is none.
