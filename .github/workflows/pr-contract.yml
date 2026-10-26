@@ -362,8 +362,8 @@ jobs:
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
       # preflight.sh refuses a closing keyword whose number is not in the
-      # intended list it is given. A seat states that list (the roster group's
-      # `fixes`) on prepr.sh; CI has no seat, so it derives the list here. The
+      # intended list it is given. prepr.sh's step 7 derives it with this
+      # program byte for byte (`preflight_body`; its self-test pins that). The
       # key is the issue NUMBER, not the branch: a group's `resume.branch` is a
       # handoff path (`handoff/r10-tariff`) that the fix branch drifts from
       # (`fix/r10-tariff-pr`), and `group_for_branch`'s last-segment fallback
