@@ -10428,9 +10428,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "fixing",
     "branch": null,
-    "commit": null,
+    "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
     "last_step": null,
     "next_step": "dispatch a seat",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
