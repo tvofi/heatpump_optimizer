@@ -576,8 +576,13 @@ def describe_setup(
         # tank. Read from the model's own gate rather than re-derived, so the
         # coil is drawn only when it can actually preheat anything — the
         # option alone, without hot water and a modelled wood tank, changes
-        # no physics and must therefore change no picture.
+        # no physics and must therefore draw no modelled connection.
         "dhw_wood_coil": p.dhw_coil_active,
+        # Additive (R10-CARD-VOICE): the option itself, so the card can say
+        # "configured, not modelled" where the option is on and the model
+        # cannot run it, instead of being silent about it. False without a
+        # wood furnace (``ThermalParameters.from_config`` clears it there).
+        "dhw_wood_coil_configured": p.dhw_wood_coil_enabled,
         "buffer": {
             "volume_l": p.buffer_tank_volume,
             "is_store": p.buffer_is_store,
