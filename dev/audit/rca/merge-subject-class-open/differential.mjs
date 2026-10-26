@@ -19,11 +19,9 @@
 //          shape. Run with <base> as a head too for the null control (main_not_head=0).
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
+import { guardEval } from '../../harnesses/merge_subject_guard_block.mjs'
 const show = ref => execFileSync('git', ['show', `${ref}:tools/policy/agreement.mjs`], { encoding: 'utf8', maxBuffer: 1 << 26 })
-const load = ref => { const src = show(ref)
-  const h = src.indexOf('// WHAT A MERGE CALL IS'); const from = h < 0 ? src.indexOf('// What a merge call may not carry') : h
-  const block = src.slice(from, src.indexOf("// WHICH LINE IS MAIN'S")).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
-  return new Function(block + '\nreturn subjectWriters')() }
+const load = ref => guardEval(show(ref), 'subjectWriters', 'differential.mjs')
 // The guard's scanned kinds, as a set rather than its pattern (one grammar, one owner: agreement.mjs).
 const SCANNED = new Set(['py', 'mjs', 'js', 'cjs', 'sh', 'md'])
 const hit = (sw, f, t) => sw([f], () => t).bad.length > 0

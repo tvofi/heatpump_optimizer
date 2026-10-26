@@ -23,8 +23,12 @@ shipped as absolute numbers per archetype.
 """
 from __future__ import annotations
 
+import functools
+import itertools
 from dataclasses import dataclass
 from typing import Any
+
+from .thermal_model import ThermalParameters
 
 # --- Structure -------------------------------------------------------------
 #
@@ -273,6 +277,28 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
 
     result["heating_response_hours"] = round(response_hours(preset), 2)
     return result
+
+
+@functools.cache
+def envelope_band_hours() -> tuple[float, float]:
+    """The shortest and longest envelope time constant the presets derive, h.
+
+    Every structure, era, foundation and emitter, single- and two-zone, at
+    the configured prior (no learned scale), each ``envelope_thermal_mass``
+    over ``house_heat_loss_base``. The house grade (#65) places a house
+    between the two on a log scale -- a time constant is a ratio, and the
+    eras' losses step by ratios -- so the band moves with this table and is
+    never a second, uncalibrated pair of literals (R10-SCORES).
+    """
+    taus = []
+    for structure, era, foundation, emitter, two_zone in itertools.product(
+        STRUCTURES, ERAS, FOUNDATIONS, EMITTERS, (False, True)
+    ):
+        params = ThermalParameters.from_config(derive(BuildingPreset(
+            structure=structure, era=era, foundation=foundation,
+            lower_emitter=emitter, two_zone=two_zone)))
+        taus.append(params.envelope_thermal_mass / params.house_heat_loss_base)
+    return min(taus), max(taus)
 
 
 def _radiator_fraction(preset: BuildingPreset) -> float:
