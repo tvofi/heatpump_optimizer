@@ -1595,6 +1595,7 @@
      ],
      "dhw": true,
      "dhw_wood_coil": false,
+     "dhw_wood_coil_configured": false,
      "edges": [
       [
        "heat_pump",
@@ -2644,6 +2645,7 @@
      ],
      "dhw": true,
      "dhw_wood_coil": false,
+     "dhw_wood_coil_configured": false,
      "edges": [
       [
        "heat_pump",
