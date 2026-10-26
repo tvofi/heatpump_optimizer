@@ -419,7 +419,6 @@
    ],
    "after": [],
    "carry": [
-    "RCA `dev/audit/rca/R10-N-staleness.md` at d23205d13; its countermeasure ships here.",
     "Null control: the finder's unbounded max-age arm reads 0 and 0; a polling source must still go stale on the bound it has today.",
     "From the R10-I5-DOCS sweep (finding sweep L01, found by I5-DOCS): custom_components/heatpump_optimizer/inputs.py ~line 357-360 documents _RANGE_KEYS as \"a climate entity's min_temp/max_temp (Home Assistant's ATTR_MIN_TEMP/ATTR_MAX_TEMP)\", naming two symbols the package no longer defines or imports. Rewrite the comment in the package's own terms (the _RANGE_KEYS and _NUMBER_RANGE_KEYS names) or drop the symbol names, with the grep as the check (git grep -n ATTR_MIN_TEMP custom_components returns nothing). inputs.py is not in this group's files: add it. Re-grep at your merge base; R10-ARCH-SHAPES (later) also holds inputs.py."
    ],
