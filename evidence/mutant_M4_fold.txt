@@ -1,3 +1,0 @@
-MUTANT M4_fold: features: 2 of 4404 FEATURE CHECKS FAILED | guard_pins: ALL 50 GUARD PIN CHECKS PASSED
-  FAIL a window reopened inside the retry folds into its attempt, peak kept  [stamp datetime.datetime(2026, 10, 25, 20, 31, 19, 759936, tzinfo=datetime.timezone.utc) (was datetime.datetime(2026, 10, 25, 20, 31, 19, 759500, tzinfo=datetime.timezone.utc)), peak 55.5]
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

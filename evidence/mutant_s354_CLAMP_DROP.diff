@@ -1,0 +1,4 @@
+354c354
+<                 self.attempt_peak = max(peak, self.attempt_peak or peak)
+---
+>                 self.attempt_peak = (peak)

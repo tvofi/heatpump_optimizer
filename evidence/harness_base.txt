@@ -33,14 +33,4 @@ RESULT marginal notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_u
 RESULT marginal notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '55.4', 'target': '60'}}
 DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
 DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-RESULT blind commanded_steps 5
-RESULT blind completions 0
-RESULT blind attempt_hours [0.8, 145.8, 290.8]
-RESULT blind attempt_gaps_h [145.0, 145.0]
-RESULT blind max_hours_since_planned 1584.5
-RESULT blind completion_age_days_end 80.0
-RESULT blind due_in_hours_end 122.8
-RESULT blind notices_ever ['dhw_legionella_above_setpoint']
-RESULT blind notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}}
-exit 0
+rc=124

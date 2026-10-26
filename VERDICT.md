@@ -1,73 +1,57 @@
-Fix review: blocked d076f22c99f852a822856cc78956a7ed84ab6daa mutation-vacuous: legionella.py:655 BOOLOP, the overdue notice watched predicate, and 7 more added sites survive every driver though the body names 655 as killed by M3 and all 25 as pinned
+Fix review: merge a6c6bd8eaaae1acedcb8d25d6fdad5057573a5aa
 
-bus-nonce: 881288eda901a2ceb80b01ddd15adc1f
+bus-nonce: 8fc0fc5229de3eb19934a2eafd43f2a8
 
-Round 1 (no earlier verdict on this PR). Head measured: d076f22c99f852a822856cc78956a7ed84ab6daa (ev/HEAD.txt), which was still the branch head when this verdict was written. Merge base c9cbe6b458a7053f914649eb02d5296d6cd8c0f4. Contract current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-
-## Block
-
-- The CI `tests / mutation-pins (1..5)` shards on this head (jobs 121278917305, 121278917308, 121278917311, 121278917358, 121278917365) pin 17 of the 25 added sites. Eight live, each `UNPINNED ... -- lives` (ev/mutation_pins_log.txt):
-  - `legionella.py:345 CMP_BOUND`, the fold's retry bound;
-  - `350 CLAMP_DROP`, the fold's peak max;
-  - `60 CMP_BOUND`, the overdue threshold;
-  - `621 CMP_BOUND` and `621 GUARD_OFF`, `_pending_attempt`'s completion test;
-  - `655 BOOLOP`, the overdue notice's `watched` predicate;
-  - `658 GUARD_OFF`, the overdue memo;
-  - `701 GUARD_OFF`, the mode-block warning.
-- The lane says these need "a killing check or a survivor_triage verdict, which no tool writes". So `tests / mutation` stays red on this head after the autofix.
-- The body's `## Unpinned sites` says every one of the 25 is "pinned by `mutation-autofix`". For 345, 349, 350 and 353 it adds M4, and for 655 it adds M3. That is not true at this head for 345, 350, 655 (or 60, 621, 658, 701). M4 kills only the GUARD_OFF of the whole fold condition, not its bound. M3 drops the `_has_probe()` operand, not the `dhw_legionella_enabled` one.
-- My own mutants confirm the safety-relevant two (ev/mutant_R3_*.txt, ev/mutant_R4_*.txt). Each leaves `tests/features.py` and `tests/guard_pins.py` red only on the archive-environment `recorded_at (#363)` check, which an unmutated archive fails too (ev/mutant_null_archive.txt):
-  - **R3**: `watched=` ignores `dhw_enabled and dhw_legionella_enabled`. An install with legionella switched off but a tank probe configured would raise `dhw_legionella_overdue`. That breaks the brief's byte-identical null control for an unconfigured cycle, and no check sees it.
-  - **R4**: the threshold is doubled, `age_h > interval_days * 48.0`. The overdue notice then arrives a whole interval late, and no check sees it. The only check uses a 66+ day age (`days >= 8`).
-- To pay: add a check that kills each live site, at least the R3 and R4 cases and the fold bound, and correct the `## Unpinned sites` list.
+Round 2, a delta review of the round-1 block (PR comment 6403868037, `mutation-vacuous` at d076f22c). Head measured: a6c6bd8eaaae1acedcb8d25d6fdad5057573a5aa (ev/HEAD.txt). `git ls-remote origin refs/pull/2832/head`, re-read just before writing, still returns it (ev/head_reread.txt). Merge base 0dfc063fa56ef7c5d2b202933792caf87a2ed154. Contract check: `git diff <merge-base>...origin/main -- dev/governance/roles/` changes only fixer.md. I followed fix-review.md as it stands on origin/main.
 
 ## Findings
 
-- The unreachable notice's peak no longer goes stale under daily retries. At this head the `short` arm's standing `dhw_legionella_unreachable` reads `reached 56.9`, and my 58.5 °C arm reads `58.4` (it was 55.4 at the first window). Only `marginal`, whose later windows take the `peak >= target - 1` branch, keeps 55.4. The body's dismissal holds for `marginal` only. Carry: dismissed: the overdue notice stands beside it in every arm and names the completion's age, as the body says
-- The class_excess_loc payment partly trims `async_track_cycle`'s docstring (commit c9534b398). The trimmed rationale survives in the `credited` comment block, so I judge it a sound condensation, not `metric-gamed`. It is also a lowering, not a raise. Carry: dismissed: the budget is lowered, not raised, and no rationale is lost
-- The forward-carry of the step-0/step-1 flap names `Carry: R10-IMMERSION-LATCH` but says this seat wrote no brief. I could not open a roster carry for it at a handoff SHA, because the body names none. Carry: R10-IMMERSION-LATCH
+- The body's `## Forward-carry` sends the step-0/step-1 flap (the control-mode disinfection switch toggling with each folded window) to `R10-IMMERSION-LATCH`. That group's `brief` holds no legionella text, either in origin/main's `dev/programme/rosters/wave-r10-groups.json` or at `handoff/audit-r10-roster` 78d071da. Its subject is also immersion-energy booking, not the disinfection switch. So the carry is routed in the body (carry_audit counts it), but no stage brief holds it yet. Round 1 found the same thing, and this round leaves it unchanged. The orchestrator owes a roster op that writes it into a brief, with its control: in control mode on a pump that cannot reach the target, the disinfection switch toggles once per folded window. Carry: R10-IMMERSION-LATCH
 
 ## Evidence
 
-- Brief measurement (1), overdue is commanded:
-  - Fixer's harness `dev/audit/harnesses/r10_legionella_completion.py` (sha1 24f8ca0e6eb1f63c40f32cc9b30652e7a76768e2, matching the body), `--days 14`, re-run by me from one copy at both ends (ev/harness_base.txt, ev/harness_head.txt).
-    - Base: `short`, `marginal` and `blind` give `attempt_gaps_h [145.0, 145.0]`, `completions 0`, `due_in_hours_end 122.8`, `completion_age_days_end 80.0`, with 5 commanded steps.
-    - Head: 13 gaps of `24.0`, `due_in_hours_end 0.8`, 139 commanded steps.
-    - Every figure in the body's `## Figures` reproduces.
-  - My own closed loop (ev/reviewer_probe.py, ev/probe_*.txt; reviewer-built, not the finder's): pump ceiling 58.5 °C, setpoint 50.
-    - `overdue_short585` (66 d, 7 d interval): base gives 1 commanded step and attempts `[0.75]` over 4 days; head gives 39 steps and attempts `[0.75, 24.75, 48.75, 72.75]`.
-    - Null `null_notdue` (2 d old): 0 commanded steps at both ends.
-- Brief measurement (2), a below-target peak leaves the cycle due:
-  - Unit probe at both ends, identical: free-disinfection off, 58.9 °C gives `completed=False` and 60.0 °C gives `completed=True`.
-  - Free-disinfection on: 59.4 °C gives `completed=False`, 60.0 °C held 3 h gives `completed=True`, and 60.0 °C seen once (hold not met) gives `completed=False`.
-  - A sensor gap (None readings under a commanded boost) gives `completed=False`.
-  - `async_track` is unchanged except for the added `check_overdue()`.
-- Brief measurement (3), loud notice:
-  - Base: `overdue_7d` gives `overdue=None`.
-  - Head: `overdue_7d` gives `{'days': '66', 'interval_days': '7'}`.
-  - Null at head: `healthy_7d` (2 d) gives None, and the exact edge at 7 d gives None.
-  - Closed loop at head: `dhw_legionella_overdue {'days': '69'}` stands in `overdue_short585`. In the harness's `reach` arm it is raised, then cleared by the completion.
-  - M2 and M5 turn it red (below).
-- User interval respected:
-  - Interval 14 d: age 10 d gives no notice, and age 15 d gives `{'days': '15', 'interval_days': '14'}`.
-  - Closed loop `user14_overdue` (30 d): notice `days 32, interval_days 14`.
-  - Retry with a 0.5 d interval is `min(12, 24)`: due-in reads 12, 6, 0 at both ends.
-  - No probe: due-in 168 then 144 at 24 h, identical at both ends.
-  - Cap: a completion 2 d before a fresh attempt gives due-in 120.0 at the head, against 167.0 at base.
-- Tank ceiling: in every arm at both ends the plan's trajectory peaks at 60.0 °C, the configured disinfection temperature, and the tank never exceeds the pump ceiling.
-  - My probe's `plan_exceeds_ceiling` compared against `dhw_max_temp` (the 50 °C setpoint), which excludes the legionella top. That flag is my definition error, not a defect. The values are identical between base and head.
-- Disabled install (null control): `disabled` arm gives `notices_ever []`, 0 commanded steps, and the same `hours_since` sequence hash at both ends (5124979071255641149). Unit: `issues=[]`, `attempt=None`. With the code as written this is byte-identical. R3 shows it is unpinned.
-- Mutation proof, re-run by me on a git-archive copy of the head, running `tests/features.py` and `tests/guard_pins.py`.
-  - The archive lacks `.git`, so the `recorded_at (#363)` check fails in every copy. The unmutated null shows the same single failure, so I subtract it.
-  - M1: 2 named checks red. M2: 1. M4: 1. M5: 1. Each matches the body.
-  - My own R1 (drop the `min(since, age)` cap), R2 (`_pending_attempt` ignores completion), R3 and R4 each turn nothing red. CI separately kills 613 CLAMP_DROP and 621 BOOLOP with other mutants of those lines.
-- Unmutated head: `ALL 4404 FEATURE CHECKS PASSED`, `ALL 50 GUARD PIN CHECKS PASSED`, `STRUCTURE RATCHET PASSED` (class_excess_loc 18096 <= 18096), `ALL 12 typing-ruler source checks PASSED`.
-- Untouched at this head: `VERSION`, the manifest, `RELEASE_NOTES.md`, and both claim files (three-dot diff empty). The diff contains no host or home path.
-- Merge: `git merge-tree --write-tree origin/main d076f22c9` exits 0 against origin/main 8aee66b77289f567617e9f9f852d72d5c4097aba, tree 653b9f615a05 (ev/merge_tree.txt).
-- CI on this head, read from the check-runs API:
-  - Green: fast (3.14), coverage, coverage-ratchet, closures, typing, browser, lane-proofs, graders-head-copy, arch-score, budget-raise-gate, instrument-self-tests, policy-docs, wave-script, env-matrix, hassfest, validate-hacs, codeql, and all five mutation-pins shards.
-  - Red: `tests / mutation`, with `MUTATION TABLE REFUSED -- ... 25 of them added by this diff`. The body's `## Red checks` predicts and names it. Its survivors are the block above.
-  - Red: `governance / delivery-status`. It is OVERDUE on other PRs' rows (#2780, #2749, ...). It is not a required check and blocks no merge, and it is not this PR's.
-  - `tests / mutation-autofix` was queued when I read CI. Its bot commit will move the head; the eight survivors are outside what it writes.
-- Class census (step 6): the body's two grep rules, re-run at the head, return the seams the body lists. No undispositioned seam.
-- Instruments are mine and disclosed as such: ev/reviewer_probe.py, ev/mutants.sh. The finder's evidence is the owner-export figures (66 d, 7 d interval, a below-target last attempt); the harness's starting state reproduces them.
+- Block (1) is settled. Each of the 8 sites was re-mapped to this head and re-mutated alone, as one line in a git-archive copy of the head (ev/mutants.sh, ev/mutant_*.diff). The checks were `PYTHONPATH=tests/hastub python3 tests/features.py` and `tests/guard_pins.py` (ev/mutant_*.txt):
+  - The null control is a comment line. It fails only `recorded_at (#363)`, because the archive has no `.git` (as round 1 found). Every mutant shows that line too, so I subtract it.
+  - d076f22c:60 CMP_BOUND, now :60, `>` → `>=`: RED, `the overdue notice comes due at the interval, not before and not an interval late`.
+  - d076f22c:345 CMP_BOUND, now :349, `<` → `<=`: RED, `a window inside the retry folds into its attempt and keeps the higher peak; one at the retry's end is a fresh attempt`.
+  - d076f22c:350 CLAMP_DROP, now :354, `max(peak, self.attempt_peak or peak)` → `(peak)`: RED, same check.
+  - d076f22c:621 CMP_BOUND, now :625, `<= 0` → `< 0`: RED, `an attempt at or before the last completion is spent, and the next window stamps its own`.
+  - d076f22c:621 GUARD_OFF, now :625, `if False:`: RED, same check.
+  - d076f22c:655 BOOLOP, now :659, `and` → `or`: RED, `the overdue notice stays down with disinfection or hot water off, a tank probe notwithstanding`. This is round 1's R3.
+  - d076f22c:658 GUARD_OFF, now :662, `if False:`: RED, `the overdue notice is written once per change, not on every cycle`.
+  - d076f22c:701 GUARD_OFF, now :705, `if False:`: RED, `a mode block holding an overdue cycle is logged as a warning`.
+  - R4 (threshold `* 48.0`): RED, 2 checks, including `…and the guard raises it one day past a 7-day interval [None]`.
+  - `tests/guard_pins.py` prints `ALL 50 GUARD PIN CHECKS PASSED` under every mutant, as the body says.
+  - Every named check matches the body's `## Mutation proof`.
+- Site enumeration. CI's `tests / mutation` on this head (job 121402877739, ev/job_mutation_121402877739.log) prints `MUTATION TABLE PASSED`:
+  - It is not INCONCLUSIVE.
+  - The null `legionella.py:89 NULL_COMMENT` survived every driver.
+  - It re-evaluates the 3 ledger-invalidated mutants and kills each with `tests/features.py`: 60 CMP_BOUND, 615 CLAMP_DROP and 625 GUARD_OFF.
+  - It prints no UNPINNED and no stale pin.
+  - That matches the body's `## Unpinned sites`, which says none at this head. The 10 killed_by rows the body names are in the three-dot diff, and the two stale `c87bfc45` rows are deleted.
+  - I cite that heavy run; I did not re-run it. I did not re-run `ci_predict.py` either.
+- Harness at both ends. I ran a copy of the head's `dev/audit/harnesses/r10_legionella_completion.py`, whose sha1 cba192d1ca79c5e3c661ad5c2b52a751ec4803d5 matches the body, with `--days 14`, in detached worktrees at 7d2056970e08 and at the head (ev/harness_*.txt).
+  - `reach`, `short` and `marginal` reproduce the body exactly:
+    - base: 5 commanded steps, gaps `[145.0, 145.0]`, due-in 122.8;
+    - head: 139 steps, thirteen 24.0 gaps, due-in 0.8, `dhw_legionella_overdue {'days': '79', 'interval_days': '7'}`;
+    - `reach` at both ends: 3, 9, 146.2.
+  - I could not re-derive the `blind` arm. Both runs hit my 1200 s timeout under CPU contention from the parallel mutants, before that arm printed.
+- Red checks (2), read from the commit's check-runs API (ev/check_runs*.tsv):
+  - Reds on this head:
+    - `prelude` 121402443939 and `gate` 121404451630 at 04:52Z, both `RATE-LIMITED ... exit code 3` (installation rate limit). They died before any test body ran, so they are infra.
+    - `pr-contract` 121411902170 at 05:21Z, which refused because `prelude` was red and unnamed.
+    - `gate` 121412097008 at 05:21Z, its aggregate.
+  - After the rerun:
+    - `prelude` 121414402451 is green.
+    - `pr-contract` 121414682620 and 121415021993 are green. 121415021993 started at 05:32Z, after the last red concluded, and prints `red checks the body must answer:` (empty) and `clean no refusal`. Under fix-review.md step 11 that run is the evidence. The rerun green answers the rate-limit reds.
+    - `gate` 121414899745 and 121415225380 are green (`PASS`).
+  - Green now: arch-score, budget-raise-gate, codeql (3 analyzers), CodeQL, governance env-matrix, policy-docs, instrument-self-tests, wave-script and delivery-status, hassfest, validate-hacs, and tests closure-scope, mutation, briefs, nightly-status, typing, browser, closures, arch-instrument, coverage, coverage-ratchet, lane-proofs, graders-head-copy and fast (3.14).
+  - The rest are skipped, including mutation-pins and mutation-autofix (nothing to pin). None is red.
+  - The body's `## Red checks` answers the reds of the previous head 538af1321, with the cheaper detector `typing_ruler.py --mypy` and its cost. It does not name the head's infra reds. The green `pr-contract` above computed nothing owed.
+- (3) Three-dot diff:
+  - `VERSION`, `RELEASE_NOTES.md`, `manifest.json`, `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are untouched (empty diff), and the body claims no drift.
+  - `dev/programme/delivery/2832.md` is in the diff.
+  - `tests/structure_budgets.json` lowers `class_excess_loc` (18086 → 18080 against this base), which is round 1's payment.
+- `python3 -I tools/audit/carry_audit.py pr 2832` prints `3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)` (ev/carry_audit.txt).
+- `git merge-tree --write-tree origin/main a6c6bd8e` exits 0 against origin/main 11b7a9d739db46a5a62e9f9cf01a8f527a974137 (ev/merge_tree.txt).
+- I built my own instruments and disclose them as mine: ev/mutants.sh, a one-line sed per site on an archive copy. The finder's evidence is the owner-export figures, which the harness's starting state encodes (round 1). It is the same harness the fixer used, and no separate finder's harness exists.

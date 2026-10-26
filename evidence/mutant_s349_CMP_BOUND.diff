@@ -1,0 +1,4 @@
+349c349
+<             utc_elapsed_seconds(now, pending) < self._retry_hours() * 3600.0
+---
+>             utc_elapsed_seconds(now, pending) <= self._retry_hours() * 3600.0
