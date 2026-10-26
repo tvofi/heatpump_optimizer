@@ -49,12 +49,12 @@
   ok    C4 horizontal gridline is perceptible, not 3:1 (HA dark theme)
   ok    C4 every .series[data-key] clears 3:1 (HA dark theme)
   ok    R8 D4-01 the reading-order rule fires on a hand-built out-of-order row
-        tab stops: 375 tile=11, 375 tile_score=12, 375 plan=33, 375 plan_busy=44, 375 setup=16, 375 setup_picker=12, 375 savings=6, 375 advisor=9, 768 tile=11, 768 tile_score=12, 768 plan=33, 768 plan_busy=44, 768 setup=16, 768 setup_picker=11, 768 savings=5, 768 advisor=9, 1280 tile=11, 1280 tile_score=12, 1280 plan=33, 1280 plan_busy=44, 1280 setup=16, 1280 setup_picker=11, 1280 savings=5, 1280 advisor=9
+        tab stops: 375 tile=11, 375 tile_score=12, 375 plan=33, 375 plan_busy=44, 375 setup=21, 375 setup_picker=12, 375 savings=6, 375 advisor=9, 768 tile=11, 768 tile_score=12, 768 plan=33, 768 plan_busy=44, 768 setup=21, 768 setup_picker=11, 768 savings=5, 768 advisor=9, 1280 tile=11, 1280 tile_score=12, 1280 plan=33, 1280 plan_busy=44, 1280 setup=21, 1280 setup_picker=11, 1280 savings=5, 1280 advisor=9
   ok    R8 D4-01 no Tab step jumps back up the screen, on any view at 375, 768 or 1280
   ok    R8 D4-01 and no control reorders Tab with a positive tabindex
   ok    R8 D4-01 and the walk reached the controls of every view
   P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)
-  P9 grid: 324 cells, 19736 text runs, 660 box-intersecting pairs inked, 102 colour rules, 199.7 s
+  P9 grid: 324 cells, 20375 text runs, 850 box-intersecting pairs inked, 105 colour rules, 240.6 s
   ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
   ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
   ok    P9 grid: every visible text run clears WCAG AA against what is under it
@@ -78,4 +78,4 @@
   ok    R9-UX-8 narrative at 1280 px: 6 rows in 2 column(s), numbers whole and flush right
 
 ALL BROWSER CHECKS PASSED
-card_browser rc=0
+rc=0

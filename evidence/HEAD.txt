@@ -1,3 +1,1 @@
-head reviewed: 11e8075d7975f34ab4baa8f2eb84220223443552
-merge base: 7d2056970e08135bdc7c2cab4063427a2efa1c30
-null control: 11e8075d7975f34ab4baa8f2eb84220223443552 with 59c744f4's two card CSS hunks reverted (git show 59c744f4 -- custom_components | git apply -R)
+c32202c92dee44a30cef953fa5edf1a94b27e527
