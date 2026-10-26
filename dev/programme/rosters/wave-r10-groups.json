@@ -7239,7 +7239,9 @@
    "issues": [
     2428
    ],
-   "fixes": [],
+   "fixes": [
+    2428
+   ],
    "findings": [],
    "severity": "medium",
    "size": "S",
