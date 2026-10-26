@@ -9,7 +9,7 @@ Roster for round 10, batch 20, at the roster tip `95e478db33eb2186227a3cab8d1995
 The authored head is `95e478db33eb2186227a3cab8d1995fd31f5e76f`, the tip of `handoff/audit-r10-roster`. Its merge base with origin/main (`510787b769407ed25054177cfb0f6bd17e041e0e` at this reading) is `78d071da88f05099677c44c2ce089ea9c4fda6fe`, so the head still carries batch 19's ten ops until #2857 merges; the pull request merges origin/main into it. `git merge-tree --write-tree origin/main 95e478db33eb2186227a3cab8d1995fd31f5e76f` prints the tree `3867783b439f34ec732ee92095dc2058ebb5e086` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat 63b1cfd03d913abb3b1117a3d913506889024c74 95e478db33eb2186227a3cab8d1995fd31f5e76f` prints:
 
 ```
- dev/programme/rosters/wave-r10-groups.json | 101 +++++++++++++++++++++++++++--
+ dev/programme/rosters/wave-r10-groups.json | 107 +++++++++++++++++++++++++++--
  1 file changed, 101 insertions(+), 6 deletions(-)
 ```
 
