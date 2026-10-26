@@ -582,17 +582,23 @@ own advisor sensors, not from the card.*
 **Worth doing** reads the advisors that are on by default:
 
 - **A missing sensor.** The unconfigured slot that costs most, with its
-  monthly cost. **Assign sensor** opens the Setup page's assign picker for that
+  monthly cost, priced at what a kWh has cost over this month and the last
+  (the mean spot price plus the grid fee paid), so the hour you look does
+  not move it. **Assign sensor** opens the Setup page's assign picker for that
   exact slot.
 - **The hot-water setpoint.** The cheapest setpoint that still covers your
-  heaviest draw, priced against the setpoint you run. The advisor sweeps
+  heaviest draw, priced against the setpoint you run, at the same recent kWh
+  price as the missing-sensor row (a fresh install, with none yet, uses the
+  price list it has). The advisor sweeps
   setpoints two degrees apart, so a setpoint between two of them (the default
   55 °C) is priced by interpolating between its neighbours. **Apply** writes
   the recommended setpoint, not that interpolated price, through
   `apply_schedule`, which stores it in the configuration so a reload keeps it.
-- **The price of a degree.** What a degree cooler would save a month, and what
-  a degree warmer would cost, from the score sensor's price tiles: the whole
-  comfort schedule moved one degree and held there, averaged over the last 30
+- **The price of a degree.** What keeping the house a degree cooler would save a
+  month, and what keeping it a degree warmer would cost, from the score sensor's
+  price tiles: the whole comfort schedule moved one degree and held there, which
+  is a degree of room temperature, not of the setting (the plan may let the room
+  follow a moved setting by less than a degree), averaged over the last 30
   days, so one unusual day moves it by a thirtieth. The figures are checked
   before they are shown: a degree cooler must save and a degree warmer must
   cost. The two need not match: each is averaged over the solves that priced

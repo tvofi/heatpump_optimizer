@@ -100,11 +100,19 @@ winter_two_zone_no_dhw  # R10-SAV-COMFORT: the savings reference holds the comfo
 wood_coil  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 150.751 -> 119.828, savings % 55.54 -> 47.24; no plan key moves
 wood_two_tank  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 109.200, savings % 58.56 -> 51.08; no plan key moves
 wood_two_tank_smart_write  # R10-SAV-COMFORT: the savings reference holds the comfort the plan delivered; baseline_cost 141.475 -> 115.172, savings % 59.45 -> 53.60; no plan key moves
-coord_all_features  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
-coord_dhw  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
-coord_grid_fee  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
-coord_minimal  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
-coord_two_zone  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+coord_all_features  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_dhw  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_grid_fee  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_minimal  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
+# R10-ADVISOR-RESIDUE (#2257): the grid view gains `recent_kwh_price`, the
+# ledger's recent kWh price the advisors' monthly rows are priced at, so each
+# coord fixture's data gains that one key, null (no interval has settled in
+# a fixture's ledger); nothing else moves, the hot-water sweep included (with
+# no recent price it prices at the feed's window, as before). Measured with
+# env_drift --all against origin/main df478d40b in one environment: exactly
+# these five move, in that one key, "present on one side only". The committed
+# files were patched in that path alone; no other leaf was re-recorded.
 # R10-CARD-VOICE: describe_setup publishes the wood-coil option itself as
 # `dhw_wood_coil_configured`, beside the model's `dhw_wood_coil` gate, so the
 # card can say "configured, not modelled". Direction: ADD-ONLY, one leaf in

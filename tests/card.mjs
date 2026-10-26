@@ -3849,8 +3849,8 @@ const restartStates = (patch = {}) => {
     /≈ 55 SEK\/month/.test(page) && /Hot-water setpoint 55 → 48 °C/.test(page),
     "cost(55) = 10.85, cost(48) = 9.00, 1.85 * 30 = 55.5");
   check("price of a degree: the cooler tile is the saving, the warmer one is in the detail",
-    /≈ 90 SEK\/month/.test(page) && /degree cooler is cheaper/.test(page)
-    && /A degree warmer costs 95 SEK\/month more \(a 30-day average\)/.test(page));
+    /≈ 90 SEK\/month/.test(page) && /Keeping the house a degree cooler is cheaper/.test(page)
+    && /Keeping it a degree warmer costs 95 SEK\/month more \(a 30-day average\)/.test(page));
 
   // #2257 item 8: the price of a degree is checked before it renders. The
   // owner's screenshot pair (2026-10-14) -- a degree cooler 140 cheaper and a
