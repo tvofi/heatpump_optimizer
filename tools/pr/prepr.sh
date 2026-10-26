@@ -275,11 +275,10 @@ privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
 }
 
 # Step 4's trigger: what check-wave-script.mjs reads, as `pinned_touched` globs.
-# The briefs are `briefListing()`'s two directories; the pre-move
-# `tools/audit/briefs/` glob matched no file, so a role-contract-only diff
-# printed `skip` and went red on CI's unconditional job (#2736, P75).
+# The briefs are `briefListing()`'s two directories; the pre-move briefs glob
+# matched no file, so a role-contract-only diff printed `skip` and went red on
+# CI's unconditional job (#2736, P75).
 WAVE_INPUTS='.claude/workflows/web-fix-wave.js
-.claude/workflows/check-wave-script.mjs
 tools/policy/check-wave-script.mjs
 .claude/workflows/wave-*-groups.json
 dev/governance/roles/*.md
