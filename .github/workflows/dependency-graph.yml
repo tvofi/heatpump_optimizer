@@ -1,0 +1,82 @@
+name: Dependency graph
+
+# r10-fly-depgraph-stale (mandate 6319294694). The graph of the pip locks
+# under tests/ is a submitted snapshot, not a parse of the files: GitHub's
+# Dependabot graph job (correlator `dependabot-pip-tests`) submitted it for
+# every manifest-touching merge to main up to 2622b31c (2026-10-03) and for
+# none after, so Dependabot kept raising alerts against versions main no
+# longer pinned. That scheduler is GitHub's; this workflow is the tree's own.
+#
+# * submit -- every push to main that changes a pip lock, this file or the
+#   program it runs, and a dispatch: tools/pr/depgraph.py builds the snapshot
+#   from the locks at the pushed commit and it is POSTed to the Dependency
+#   Submission API. A user submission outranks a Dependabot graph job for the
+#   same manifest, so the stale snapshot stops counting. The merge that lands
+#   this file is itself such a push: that run is the one-time re-ingest.
+# * check -- daily: one SBOM read, compared with every pin the tree carries
+#   (pip, npm, actions); red when the graph and the tree differ. The alerts
+#   arm is a seat's (`depgraph.py check --repo`): GITHUB_TOKEN cannot read
+#   Dependabot alerts.
+#
+# A push by GITHUB_TOKEN triggers no workflow, but every merge to main is
+# pushed by an account or an App (dependabot-automerge.yml arms auto-merge
+# with the approver App's token for exactly that reason), so each reaches here.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "tests/requirements-*.txt"
+      - "tools/pr/depgraph.py"
+      - ".github/workflows/dependency-graph.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "41 5 * * *"
+
+permissions: {}
+
+concurrency:
+  group: dependency-graph-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Submit the pip locks' snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/pr/depgraph.py snapshot --sha "$GITHUB_SHA" --ref "$GITHUB_REF" \
+            --job-id "$GITHUB_RUN_ID" > "$RUNNER_TEMP/snapshot.json"
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/dependency-graph/snapshots" \
+            --input "$RUNNER_TEMP/snapshot.json"
+
+  check:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Refuse a dependency graph that differs from the tree's pins
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" > "$RUNNER_TEMP/sbom.json"
+          python3 -I tools/pr/depgraph.py check --sbom "$RUNNER_TEMP/sbom.json"

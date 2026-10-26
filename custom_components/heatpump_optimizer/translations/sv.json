@@ -1158,11 +1158,13 @@
             "data": {
               "heat_pump_energy_entity": "Energimätare för värmepumpen (valfritt)",
               "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
+              "heat_pump_thermal_power_entity": "Värmeeffektmätare för värmepumpen (valfritt)",
               "house_power_entity": "Effektmätare för hela huset (valfritt)"
             },
             "data_description": {
               "heat_pump_energy_entity": "En ackumulerande kWh-mätare, om du har en. Noggrannare än att summera effektavläsningar mellan uppdateringar, vilket missar korta kompressorkörningar.",
               "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
+              "heat_pump_thermal_power_entity": "Värmen pumpen levererar, från en värmemätare, i watt eller kilowatt. Tillsammans med effektmätaren blir verkningsgraden en mätning i stället för en slutsats, och husets värmeförlustinlärning och kapacitetskurvan läser den värme som faktiskt levererades. När den är vald används den i stället för givaren för vattenflöde.",
               "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
             }
           },
