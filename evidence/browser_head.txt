@@ -54,17 +54,12 @@
   ok    R8 D4-01 and no control reorders Tab with a positive tabindex
   ok    R8 D4-01 and the walk reached the controls of every view
   P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)
-  P9 grid: 324 cells, 20350 text runs, 850 box-intersecting pairs inked, 105 colour rules, 224.5 s
-  FAIL  P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
-        threw 29: page.screenshot: Clipped area is either empty or outside the resulting image
-Call log:
-[2m  - taking page screenshot[22m
-[2m  - waiting for fonts to load...; missed 0; cells 324/324
+  P9 grid: 324 cells, 20375 text runs, 850 box-intersecting pairs inked, 105 colour rules, 215.9 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
   ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
   ok    P9 grid: every visible text run clears WCAG AA against what is under it
   ok    P9 grid: no two text runs share ink
-  FAIL  P9 grid: no pop-up leaves the viewport or its chart
-        10: div.slot-menu 6.7px outside | div.tooltip 4.5px outside | div.slot-menu 5.3px outside
+  ok    P9 grid: no pop-up leaves the viewport or its chart
   ok    P9 grid: every listbox option reads differently from its siblings as shown
   ok    P9 grid: no text is clipped where its ancestor cannot scroll to it
   ok    P9 grid: every target clears 24 px or the 2.5.8 spacing exception
@@ -82,4 +77,5 @@ Call log:
   ok    R9-UX-8 narrative at 640 px: 6 rows in 1 column(s), numbers whole and flush right
   ok    R9-UX-8 narrative at 1280 px: 6 rows in 2 column(s), numbers whole and flush right
 
-2 BROWSER CHECK(S) FAILED
+ALL BROWSER CHECKS PASSED
+card_browser rc=0
