@@ -1,0 +1,5 @@
+head a6c4c5207757d70e3e1c594391a534ddbd87aff3
+pr-body ok: PR-BODY: 0 error(s) in <scratch>/body.md -- no budget leaf raised over 10f459f18...a6c4c5207
+carry ok: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 94d14569e
+preflight ok
+body-check rc=0
