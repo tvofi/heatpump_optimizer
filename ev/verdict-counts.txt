@@ -1,0 +1,3 @@
+      6 Verdict: ACCEPT
+      1 Verdict: DEFER
+      1 Verdict: REJECT
