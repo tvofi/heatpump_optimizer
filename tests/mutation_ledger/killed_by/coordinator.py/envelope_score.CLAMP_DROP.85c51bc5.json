@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:envelope_score CLAMP_DROP 85c51bc5",
+  "killed_by": "tests/features.py",
+  "old": "    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return float((np.log(tau_h / low_h) / np.log(high_h / low_h))) * 100.0, None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
