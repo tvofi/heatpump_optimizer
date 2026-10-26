@@ -54,6 +54,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from functools import reduce
 from typing import Any
 
 from homeassistant.components.diagnostics import REDACTED, async_redact_data
@@ -118,13 +119,15 @@ def _without_private_ids(value: Any) -> Any:
 
 def _private_values(node: Any, under: str | None = None) -> set[str]:
     """The text of every value the keyed passes remove from ``node``: each one
-    under a ``TO_REDACT`` key, and each coordinate the coarsening cuts."""
+    under a ``TO_REDACT`` key, and each coordinate the coarsening cuts.
+
+    A leaf's text is ``str(leaf)`` whatever its type, as ``_without_values``
+    reads it: the keyed pass blanks a value of any type.
+    """
     if isinstance(node, Mapping):
         return set().union(*(_private_values(item, key) for key, item in node.items()))
     if isinstance(node, list):
         return set().union(*(_private_values(item, under) for item in node))
-    if not isinstance(node, (str, int, float)):
-        return set()
     removed = under in TO_REDACT or (under in COORDINATE_KEYS and _coordinate(node) != node)
     text = str(node)
     return {text} if removed and len(text) >= replay_doc.LEAK_MIN_CHARS else set()
@@ -133,17 +136,14 @@ def _private_values(node: Any, under: str | None = None) -> set[str]:
 def _without_values(value: Any, private: frozenset[str]) -> Any:
     """``value`` with each of ``private`` redacted wherever it appears, at any depth."""
     if isinstance(value, str):
-        for text in private:
-            value = value.replace(text, REDACTED)
-        return value
+        return reduce(lambda text, secret: text.replace(secret, REDACTED), private, value)
     if isinstance(value, Mapping):
         return {_without_values(key, private): _without_values(item, private)
                 for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [_without_values(item, private) for item in value]
-    if not isinstance(value, (int, float)):
-        return value
-    # A flag's text, "True", is shorter than any value searched for.
+    # Any other leaf is matched whole, by its text. A flag's, "True", and
+    # None's are shorter than any value searched for.
     return REDACTED if str(value) in private else value
 
 

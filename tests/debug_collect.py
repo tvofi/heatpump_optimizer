@@ -1581,6 +1581,16 @@ R.check(
         {"a": ("x abcdef y", 18.06324, True, 7), "abcdef": 1}, frozenset({"abcdef", "18.06324"}))
     == {"a": ["x **REDACTED** y", "**REDACTED**", True, 7], "**REDACTED**": 1},
 )
+_stamp = T0 + timedelta(minutes=7)  # a leaf neither text nor a number
+R.check(
+    "a removed leaf of any other type is searched for and redacted by its text, as a "
+    "number is, and a None, shorter than any value searched for, is left alone",
+    diagnostics_mod._private_values({"name": _stamp, "tibber_token": None}) == {str(_stamp)}
+    and diagnostics_mod._without_values({"at": _stamp, "none": None, "n": f"{_stamp}"},
+                                        frozenset({str(_stamp)}))
+    == {"at": "**REDACTED**", "none": None, "n": "**REDACTED**"},
+    str(diagnostics_mod._private_values({"name": _stamp, "tibber_token": None})),
+)
 
 # -- #2814, P119: the download says when it was taken, and how old each part is --
 # The payload's ``plan_age_minutes`` is the plan's age when the payload was
