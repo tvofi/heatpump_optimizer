@@ -2231,9 +2231,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "policy_lint.mjs is pinned (restored from the base before each pull-request job), so the change takes effect for later pull requests; say so in the body."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
