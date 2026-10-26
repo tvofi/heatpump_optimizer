@@ -1,0 +1,30 @@
+== control
+valve_upper_direct_slab: band_steps_per_eps={0.0: 5, 1e-15: 5, 1e-12: 5, 1e-09: 5} susceptible=True
+away_setback: band_steps_per_eps={0.0: 2, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=True
+RESULT scenarios=2 susceptible=2 failures=0
+SUSCEPTIBLE valve_upper_direct_slab away_setback
+rc=0
+ dev/audit/harnesses/r10_band_census.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== band upper edge -> 0 (empty band)
+valve_upper_direct_slab: band_steps_per_eps={0.0: 0, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=False
+away_setback: band_steps_per_eps={0.0: 0, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=False
+RESULT scenarios=2 susceptible=0 failures=0
+SUSCEPTIBLE 
+rc=0
+ dev/audit/harnesses/r10_band_census.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== spy not installed (zero calls observed)
+valve_upper_direct_slab: band_steps_per_eps={0.0: 0, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=False
+away_setback: band_steps_per_eps={0.0: 0, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=False
+RESULT scenarios=2 susceptible=0 failures=0
+SUSCEPTIBLE 
+rc=0
+ dev/audit/harnesses/r10_band_census.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== dhw channel dropped
+valve_upper_direct_slab: band_steps_per_eps={0.0: 5, 1e-15: 5, 1e-12: 5, 1e-09: 5} susceptible=True
+away_setback: band_steps_per_eps={0.0: 2, 1e-15: 0, 1e-12: 0, 1e-09: 0} susceptible=True
+RESULT scenarios=2 susceptible=2 failures=0
+SUSCEPTIBLE valve_upper_direct_slab away_setback
+rc=0

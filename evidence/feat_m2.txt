@@ -1,4 +1,0 @@
-  FAIL a stored sample's numbers go through const.finite_float: a bool or a non-finite value loads as unknown (D7-s2-58 class)  [True used to load as 1.0]
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-2 of 4411 FEATURE CHECKS FAILED
-rc=1
