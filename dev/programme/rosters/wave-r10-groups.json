@@ -6742,7 +6742,7 @@
     "branch": "handoff/r10-flow-body-only",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "Re-size or split before dispatch: 12 carries, carry 7 needs owner review, V115/V64 reach outside declared files (stopped seat 2026-10-26, scratch NOTES.md)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
