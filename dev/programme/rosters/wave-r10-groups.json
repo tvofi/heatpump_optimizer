@@ -10152,6 +10152,54 @@
     "next_step": "wait for R10-996-RUNNER-CLAIMS and R10-ARCH-SHAPES, then a fixer from the parked branch",
     "note": null
    }
+  },
+  {
+   "group": "R10-HOTFIX-BATCH-ERREXIT",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [
+    ".github/workflows/nightly.yml"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-FLOW-RECORD-PITCH"
+   ],
+   "files": [
+    ".github/workflows/nightly.yml",
+    "tools/audit/seat/record_row.py"
+   ],
+   "carry": [
+    "Main-red hotfix (orchestrator, 2026-10-26, hotfix ruling: merges on a green gate, review afterwards, still a real verdict for merge_pr.sh). Defect from #2836: the record-autofix step's batch gate in .github/workflows/nightly.yml reads batch=$? after a record_row.py --batch-due call that exits 4 by design; the step runs under GitHub's default bash -e, so exit 4 kills the step before batch=$? and every push below the floor of 8 owed rows turns record-autofix red (job 121376503388 at main d181d014). Root-cause seat runs beside this fix (topic r10-rca-hotfix-batch-errexit)."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-batch-errexit",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the hotfix fixer now (critical path)",
+    "note": "main-red hotfix 2026-10-26"
+   },
+   "brief": "Hotfix: the record-autofix batch gate dies under bash -e (defect from #2836). In .github/workflows/nightly.yml the step that runs record_row.py --batch-due must not let exit 4 (batching, by design) abort the step: write batch=0 then the call followed by || batch=$?, or an if/else form, so status batching is reached and 0 and other nonzero codes still behave. Check every other X=$? after a call in nightly.yml and in the steps #2836 added for the same defect; the ones already seen (the pitch-check else branch and the guard if/else in nightly.yml, base_rc and head_rc under set +e in tests.yml) are safe. Failing test first: a control that runs the step body under bash -e with a stub returning 4 and expects status batching, and 0 and 1 still behave; add a mutation proof (revert the one line and show the control fails). Name the red check in ## Red checks and answer it there per defect-root-cause.md."
   }
  ]
 }
