@@ -2082,7 +2082,6 @@
     "R10-TARIFF"
    ],
    "carry": [
-    "D9-s1-01's honest unit is the per-gradient horizon count, not the headline that counts a batch row as 1; the null is equal total SSE on the single-zone no-hot-water case. Re-take CPU quiet.",
     "Null control for P4: the gap on a flat-price cell is solver basin, not money; report both.",
     "From R10-TARIFF (handoff/r10-tariff at 793116abd): tariff.peak_cost, peak_cost_smooth and peak_cost_batch now take one PeakBilling record, built by HeatPumpOptimizer._peak_billing; never pass the loose tariff arguments."
    ],
