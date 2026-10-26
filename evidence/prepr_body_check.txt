@@ -1,4 +1,0 @@
-pr-body ok: PR-BODY: 0 error(s) in <scratch>/ev/body.md -- no budget leaf raised over df478d40b...a2a7b9efa
-carry ok: CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 35be2daa9
-preflight ok
-exit=0
