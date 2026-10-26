@@ -36,3 +36,41 @@ Binding: the shared `GITHUB_TOKEN` bucket. Both arms spend calls on the bucket w
 What would change the answer:
 - A root-cause seat on this recurrence that attributes the 04:53Z demand. Governance's `record` job prints the bucket's `RATE_LIMIT before:` and `RATE_LIMIT after:` lines (`governance.yml:1290` and `:1399`, M0). If the record's M3 (moving the O(window) reader off the shared bucket) or a load cut does not apply, re-file arm (b) with a measured burst rate. Arm (b) would then also need a log-free rate-limit signal from pr-contract and arch-score.
 - More than about one burst a day after #2629, counted from the ledger.
+
+## P193: a train stops because another worktree holds a PR branch (S6-V113)
+Verdict: DEFER. Both instances already have owners, and neither is an instance of a missing default.
+- Instance (1) is P184(a) (`s6-batch32.md#P184`, ACCEPT, carried to R10-TRAIN-OVERLAP-GRADE).
+- Instance (2) is R10-FLY-OPENPR-ATOMIC carry 2 (triage P-D, s4, 2026-10-23, accepted; stage `not-started`). That carry makes `open_pr.sh`'s exit trap detach its PR worktree.
+- The filing's first arm, making `--free-holders` the train's default, is REJECTED.
+- Its second arm is that owned carry. Per R10-UPDATE-PR-SIGNALS carry 3, the `update_pr.sh` half is owned there.
+Source: s6 `proposals.md` `## V113` (orchestrator, 2026-10-26T05:17Z).
+Instances: two, today, and they are two different holders.
+- (1) The holder was train s43's own `wt/2745`.
+  - `seat-ledger.md` line 786 in the orchestrator's state directory (04:34:26Z) shows it held `fix/r10-sav-comfort` at origin's 8d0572dc with "the train's own unfinished merge of main ... with conflict in tests/golden/claimed_drift.txt".
+  - The merge seat ran `merge --abort` and then `worktree remove --force`.
+  - That worktree was dirty, so `--free-holders` would have refused it: `freeable` requires `status --porcelain` to be empty (`merge_train.py:996-1010`).
+  - It is the shape of P184(a): `remerge_main.sh` exits 1 on a conflict without aborting the merge.
+- (2) The holder was `open_pr.sh`'s worktree.
+  - `seat-ledger.md` lines 842-843 (05:16Z) show s47 stopped at #2848's recarry, holder clean, HEAD equal to the remote 2c7016ce. The train was relaunched as s48 with `--free-holders`.
+  - The holder path, `<state>/pr/r10-hotfix-batch-errexit/wt`, is `open_pr.sh`'s `WT=$D/wt` (`open_pr.sh:29`).
+  - `update_pr.sh` uses `<state>/pr/upd-<branch>` (`update_pr.sh:30`), so the holder is not `update_pr.sh`'s, which V113 had named.
+  - Earlier counts of the same class: P31 (`s5-batch1.md#P31`) counted four `update_pr.sh` holders (#2513, #2544, #2547, #2580).
+
+Cost of arm (a), defaulting `--free-holders`: XS in `train.sh`, but the risk is the binding cost.
+- `freeable` tests only that the holder is clean and at origin. It has no liveness test.
+- `open_pr.sh` and `update_pr.sh` both hold exactly such a worktree while they run. After `worktree add -B <br> ... origin/<br>` (`update_pr.sh:52`), the tree is clean and at origin until the run's own commit lands.
+- A default detach in that window moves the live run's commit off its branch.
+- The liveness signal exists, `pr_branch_lock` (`pr_args.sh:66`; `update_pr.sh:34`), but the train does not read it. A default would need that check, which makes arm (a) S in `merge_train.py`, a 5,560-line hot file.
+- After the source fixes it would free nothing: the instruments would no longer leave a holder.
+- The seat's hand check that V113 prices (no process has the tree open) is the check a default would skip.
+
+Cost of arm (b): owned. R10-FLY-OPENPR-ATOMIC is S, about 10-20 lines in `open_pr.sh` per its carry 2. The carry also fixes a constraint: detach, never remove, under the branch lock.
+
+Binding:
+- Arm (a): detaching a live run's clean worktree, for a default that the source fixes make redundant.
+- Arm (b): its group already owns it.
+- The recurrence is evidence for that group's dispatch, not a new carry. Closure saving: about 5-10 min of critical-path time plus one manual check per instance (V113), so two today.
+
+What would change the answer: a holder that no owned fix covers, a stale clean worktree left by a process other than `open_pr.sh`, `update_pr.sh` or a train's conflicted remerge. Then arm (a), gated on `pr_branch_lock` being free, is the candidate.
+
+For the orchestrator, not a carry: R10-FLY-OPENPR-ATOMIC is `after: [R10-UPDATE-PR-SIGNALS]`, and that group's resume has read `in-progress` since 2026-10-20.
