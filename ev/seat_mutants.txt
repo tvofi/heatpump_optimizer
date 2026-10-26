@@ -1,0 +1,12 @@
+== S19 record_row.py: KILLED rc=1 | 5 self-test check(s) failed: failed_required reads a re-run over the red it supersedes, automerge_check lists no pending context beside a refusal, and lists the contexts not yet passed once nothing refused, none when all passed (null control), failed_required ignores a red that is not required, failed_required names a red that is required
+== record_row-1 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: chain: a record-class merge's own open row owes nothing
+== record_row-2 record_row.py: KILLED rc=1 | 2 self-test check(s) failed: batch: a dispatch with 1 row flushes, cli: --batch-due exits WAIT_RC for 1 young row on a push, 0 on a dispatch
+== record_row-3 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: pitch: a record merge one pitch old proceeds
+== record_row-4 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: cli: --batch-due exits WAIT_RC for 1 young row on a push, 0 on a dispatch
+== record_row-5 record_row.py: KILLED rc=1 | 1 self-test check(s) failed: cli: --pitch-check exits WAIT_RC behind a young record merge on a push, 0 on the nightly
+== stamp-1 tools/release/stamp.py: KILLED rc=1 | LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+== stamp-2 tools/release/stamp.py: KILLED rc=1 | LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+== stamp-3 tools/release/stamp.py: KILLED rc=1 | LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+== stamp-4 tools/release/stamp.py: KILLED rc=1 | LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+RESULT survivors=0
+rc=0
