@@ -206,6 +206,39 @@ class PumpElectricHeat:
         }
 
 
+def resistive_carve_out(
+    heat: PumpElectricHeat,
+    *,
+    latched: bool,
+    immersion_element: bool,
+    actual_kw: float | None,
+    threshold_kw: float,
+    hours: float,
+) -> tuple[str, float] | None:
+    """``(ledger line, kWh)`` of an interval's resistive draw, or ``None``.
+
+    Only while the immersion latch holds. The kWh are the draw over the
+    latch threshold: the plan under-reads a pump's own compressor draw, so the
+    excess over the plan's ask is mostly compressor (#2729). The line names
+    the source: a pump heater flag that is on, else a declared immersion
+    element. Neither, or both flags on, refuses -- the excess is then a
+    compressor over nameplate, or two elements with no way to apportion them.
+    """
+    if not latched or (heat.dhw_booster is True and heat.backup_heater is True):
+        return None
+    if heat.dhw_booster is True:
+        line = "dhw_booster"
+    elif heat.backup_heater is True:
+        line = "backup_heater"
+    elif immersion_element:
+        line = "immersion"
+    else:
+        return None
+    if actual_kw is None or actual_kw <= threshold_kw:
+        return None
+    return line, (actual_kw - threshold_kw) * hours
+
+
 @dataclass(frozen=True)
 class PumpSignals:
     """What the pump's slots say this cycle, already resolved to decisions.

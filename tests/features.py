@@ -18275,8 +18275,10 @@ R.check(
 )
 
 # The ledger carve-out: the immersion line comes OUT of spot, so the
-# month's lines sum to the metered energy instead of overstating it.
-_cl2 = _t2_coord()
+# month's lines sum to the metered energy instead of overstating it. The
+# element is declared (the immersion feedback option), and the carve-out is
+# the draw over the latch threshold, 5 kW x IMMERSION_FACTOR = 5.75 kW.
+_cl2 = _t2_coord(immersion_feedback_enabled=True)
 _cl2._immersion_active = True
 _lsample = AccuracySample(when=NOW, actual_power_kw=6.9)
 _lpending = {
@@ -18295,11 +18297,77 @@ _lfee = _cl2._ledger.line(_lmonth, "grid_fee")
 R.check(
     "the immersion kWh are carved out of spot, and the lines sum to the "
     "metered energy",
-    abs(_limm["kwh"] - 2.45) < 1e-9
+    abs(_limm["kwh"] - 0.575) < 1e-9
     and abs(_lspot["kwh"] + _limm["kwh"] - 3.45) < 1e-9
     and abs(_lfee["kwh"] - 3.45) < 1e-9,
-    f"spot {_lspot['kwh']:.2f} + immersion {_limm['kwh']:.2f} must equal "
+    f"spot {_lspot['kwh']:.3f} + immersion {_limm['kwh']:.3f} must equal "
     "the 3.45 kWh metered; the fee line keeps the full energy",
+)
+
+
+# R10-IMMERSION-LATCH (#2729): the carve-out is labelled by its source and
+# measured over the latch threshold, never over the plan's ask.
+def _rl_book(actual_kw, plan_kw, *, heat=None, **opts):
+    c = _t2_coord(**opts)
+    c._immersion_active = True
+    if heat is not None:
+        c._pump_signals = PumpSignals(electric_heat=heat)
+    c._accumulate_energy(
+        AccuracySample(when=NOW, actual_power_kw=actual_kw),
+        0.5,
+        {**_lpending, "space_power": plan_kw / 2, "dhw_power": plan_kw / 2},
+    )
+    return {
+        n: c._ledger.line(_lmonth, n)["kwh"]
+        for n in ("spot", "immersion", "dhw_booster", "backup_heater")
+    }
+
+
+_rl_none = _rl_book(6.9, 3.45)
+R.check(
+    "R10-IMMERSION-LATCH: no resistive element configured, a latched draw of "
+    "twice the ask books no resistive line",
+    _rl_none["immersion"] == _rl_none["dhw_booster"] == _rl_none["backup_heater"] == 0.0
+    and abs(_rl_none["spot"] - 3.45) < 1e-9,
+    repr(_rl_none),
+)
+_rl_boost = _rl_book(
+    6.9, 3.45, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH: a booster flag on books only the draw over the "
+    "latch threshold, under the booster's own line",
+    abs(_rl_boost["dhw_booster"] - 0.575) < 1e-9
+    and _rl_boost["immersion"] == _rl_boost["backup_heater"] == 0.0
+    and abs(_rl_boost["spot"] + _rl_boost["dhw_booster"] - 3.45) < 1e-9,
+    repr(_rl_boost),
+)
+_rl_backup = _rl_book(
+    6.9, 3.45, heat=pump_signals.PumpElectricHeat(backup_heater=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH: a backup-heater flag on books under its own line",
+    abs(_rl_backup["backup_heater"] - 0.575) < 1e-9
+    and _rl_backup["immersion"] == _rl_backup["dhw_booster"] == 0.0,
+    repr(_rl_backup),
+)
+_rl_off = _rl_book(
+    6.9, 3.45, heat=pump_signals.PumpElectricHeat(dhw_booster=False, backup_heater=False)
+)
+R.check(
+    "R10-IMMERSION-LATCH: configured flags both off while latched book "
+    "nothing: the draw is the compressor's",
+    _rl_off["immersion"] == _rl_off["dhw_booster"] == _rl_off["backup_heater"] == 0.0,
+    repr(_rl_off),
+)
+_rl_flat = _rl_book(
+    5.0, 2.0, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH null: a flat draw at nameplate books zero, flag on "
+    "and latched",
+    _rl_flat["dhw_booster"] == 0.0 and abs(_rl_flat["spot"] - 2.5) < 1e-9,
+    repr(_rl_flat),
 )
 import homeassistant.util.dt as _dt_mod_led
 
@@ -40021,6 +40089,39 @@ _sp_cf = _asyncio.run(
 R.check(
     "async_create_fix_flow returns the DHW consistency flow",
     isinstance(_sp_cf, _sp_repairs.DhwSetpointRepairFlow),
+)
+
+
+# #2805: Fix writes the floor rounded UP to the entity's step, never below it.
+def _sp_step_value(floor_c, state, unit=None, step=None):
+    attrs = {"unit_of_measurement": unit} if unit else {}
+    if step is not None:
+        attrs["step"] = step
+    c = _sp_coord(
+        {"number.dhw_sp": FakeState(state, unit=unit, attributes=attrs)},
+        **{_SP_DHW_ENT: "number.dhw_sp"},
+    )
+    c._thermal_params.dhw_legionella_temp = floor_c
+    _sp_evaluate(c)
+    raised = _sp_issues(c, _SP_ISSUE_DHW)
+    return raised[0][2].get("data", {}).get("value") if raised else None
+
+
+_sp_steps = {
+    "degF step 1": (_sp_step_value(48.05, "100", "°F", 1), 119),
+    "degC step 1": (_sp_step_value(48.05, "40", "°C", 1), 49),
+    "degC step 0.5": (_sp_step_value(48.05, "40", "°C", 0.5), 48.5),
+    "null degF on-step": (_sp_step_value(60.0, "100", "°F", 1), 140),
+    "null degC on-step": (_sp_step_value(60.0, "40", "°C", 1), 60),
+}
+R.check(
+    "#2805: a fractional disinfection floor is written up to the entity's "
+    "step in its own unit; an on-step floor writes unchanged",
+    all(
+        got is not None and abs(got - want) < 1e-6
+        for got, want in _sp_steps.values()
+    ),
+    repr(_sp_steps),
 )
 
 _sp_clim_fix = _sp_coord(

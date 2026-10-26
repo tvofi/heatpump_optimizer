@@ -34,12 +34,19 @@ _LOGGER = logging.getLogger(__name__)
 #: with a margin, and keeps the store size bounded forever.
 KEEP_MONTHS = 24
 
+#: Resistive heat carved out of ``spot``, one line per source (#11, #2729):
+#: a declared immersion element, or the pump's own tank booster or backup
+#: heater (``pump_signals.resistive_carve_out``).
+RESISTIVE_LINES = ("immersion", "dhw_booster", "backup_heater")
+
 #: The lines a receipt's total adds up: what the month cost. Every other line
 #: restates one of these -- ``space`` and ``dhw`` split the spot energy by
 #: circuit, the ``reason:`` lines partition it by why, and the two
 #: ``savings_`` lines compare it with a thermostat -- so adding any of them
 #: counts the same money again (R9-UX-6).
-BILLED_LINES = ("spot", "grid_fee", "capacity", "immersion", "wear")
+BILLED_LINES = (
+    "spot", "grid_fee", "capacity", *RESISTIVE_LINES, "wear",
+)
 
 #: The month's billed peak, kW, beside the capacity line it prices.
 CAPACITY_PEAK_META = "capacity_peak_kw"
@@ -53,8 +60,8 @@ SETTLED_HOURS_META = "settled_hours"
 SPOT_PRICE_META = "spot_price"
 
 #: The lines that are metered energy at the spot price: what every contract
-#: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
-ENERGY_LINES = ("spot", "immersion")
+#: settles on. The resistive lines are spot energy carved out of ``spot``.
+ENERGY_LINES = ("spot", *RESISTIVE_LINES)
 
 
 def month_key(when: datetime) -> str:
@@ -205,7 +212,7 @@ class MonthlyLedger:
 
         ``baseline_kw is None`` means no plan covered the interval — skip.
         A finite 0.0 kW is a real thermostat-off step and must book.
-        ``actual_kwh`` is already energy (spot + immersion), not kW.
+        ``actual_kwh`` is already energy (spot + the resistive lines), not kW.
         """
         if baseline_kw is None:
             return
@@ -315,7 +322,7 @@ class MonthlyLedger:
         """The month's metered kWh and their spot cost: ``ENERGY_LINES`` summed.
 
         The one figure every contract settles on; the contract comparison
-        reads it rather than folding the immersion line back in itself.
+        reads it rather than folding the resistive lines back in itself.
         """
         parts = [self.line(month, name) for name in ENERGY_LINES]
         return {
@@ -527,7 +534,9 @@ def freeze_month_report(
         "month": month,
         "lines": billed,
         "reasons": reasons,
-        "total_kwh": round(spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3),
+        "total_kwh": round(
+            sum(lines.get(name, {}).get("kwh", 0.0) for name in ENERGY_LINES), 3
+        ),
         "total_sek": total,
         "basis": basis,
         "compressor_starts": compressor_starts,

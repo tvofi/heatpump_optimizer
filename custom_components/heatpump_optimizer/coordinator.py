@@ -244,7 +244,7 @@ from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
 from .pump_mode import ModeCapability
-from .pump_signals import PumpSignals
+from .pump_signals import PumpSignals, resistive_carve_out
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -10144,9 +10144,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         it is apportioned by what the plan asked each circuit to draw. That is
         stated in the sensor attributes rather than presented as measured.
 
-        The immersion carve-out stays METER-DRIVEN, deliberately: #1067's
+        The resistive carve-out stays METER-DRIVEN, deliberately: #1067's
         heater flags say an element is running, never how many kilowatts it
-        took, and these lines must sum to the metered energy.
+        took, and these lines must sum to the metered energy. The flags only
+        name the line (``resistive_carve_out``).
         """
         # No price covered the interval (#2229): the energy totals take its
         # kWh and no cost; NaN, which the ledger refuses line by line, keeps
@@ -10221,26 +10222,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # receipts, and the fee never contaminates the spot column the
         # contract comparison settles on.
         fee = _as_float(pending.get("grid_fee"), 0.0)
-        # T4a #11: while the immersion element runs, the draw beyond what
-        # the plan commanded is resistive heat. Its kWh are CARVED OUT of
-        # the spot line, not booked on top of it — the lines must sum to
-        # the metered energy, or every cross-line total overstates. The
-        # fee line keeps the full energy: resistive kWh pay the grid fee
-        # like any other.
-        immersion_excess = 0.0
-        if (
-            self._immersion_active
-            and sample.actual_power_kw is not None
-            and sample.actual_power_kw > planned_total
-        ):
-            immersion_excess = min(
-                energy,
-                max(
-                    0.0,
-                    (sample.actual_power_kw - planned_total) * elapsed_hours,
-                ),
-            )
-        metered = energy - immersion_excess
+        # T4a #11: resistive kWh are CARVED OUT of the spot line, not booked
+        # on top of it — the lines must sum to the metered energy, or every
+        # cross-line total overstates. The fee line keeps the full energy:
+        # resistive kWh pay the grid fee like any other.
+        ctx = getattr(self, "_ctx", self)
+        carve = resistive_carve_out(
+            self._pump_signals.electric_heat,
+            latched=self._immersion_active,
+            immersion_element=ctx._config.immersion_feedback_enabled,
+            actual_kw=sample.actual_power_kw,
+            threshold_kw=float(ctx._thermal_params.max_electrical_power)
+            * IMMERSION_FACTOR,
+            hours=elapsed_hours,
+        )
+        resistive_line, resistive_kwh = carve or ("", 0.0)
+        resistive_kwh = min(energy, resistive_kwh)
+        metered = energy - resistive_kwh
         self._ledger.add(when, "spot", kwh=metered, sek=metered * spot)
         # T6: the same metered kWh again, partitioned by WHY the plan drew
         # them — the space share under the space slot's reason, the DHW
@@ -10260,12 +10258,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
-        if immersion_excess > 1e-6:
+        if resistive_kwh > 1e-6:
             self._ledger.add(
-                when,
-                "immersion",
-                kwh=immersion_excess,
-                sek=immersion_excess * spot,
+                when, resistive_line, kwh=resistive_kwh, sek=resistive_kwh * spot
             )
         self._schedule_ledger_save()
 
