@@ -673,6 +673,7 @@ jobs:
           TOKEN: ${{ steps.mint.outputs.token }}
           REPO: ${{ github.repository }}
           OWNER: ${{ github.repository_owner }}
+          EVENT: ${{ github.event_name }}
           # The beat reads the roster from `main`: the newest
           # `dev/programme/rosters/wave-r<N>-groups.json`, resolved by
           # `roster_lib.roster_path` (the round compares as an integer).
@@ -737,6 +738,19 @@ jobs:
                 status="nothing-owed"
                 break
               fi
+              # THE BATCH (tvofi, 2026-10-24/25): a push opens or updates the
+              # record pull request only for a batch -- BATCH_FLOOR_ROWS owed,
+              # or the oldest owed merge BATCH_AGE_COMMITS first-parent
+              # commits old, a margin under delivery_status's
+              # STALE_AFTER_COMMITS -- and the nightly and a dispatch flush at
+              # any count. Waiting is green; a gate that crashed is not.
+              # The `|| batch=$?` is load-bearing: the step runs under `bash -e`,
+              # and a bare call ending 4 would end the step there.
+              batch=0
+              python3 -I tools/audit/seat/record_row.py \
+                --batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT" || batch=$?
+              if [ "$batch" = 4 ]; then status="batching"; break; fi
+              if [ "$batch" != 0 ]; then status="skip-batch-gate"; break; fi
               python3 -I tools/audit/seat/record_row.py \
                 --apply --plan-file "$RUNNER_TEMP/plan.json" || { status="skip-apply"; break; }
               git add dev/programme/delivery
@@ -904,6 +918,7 @@ jobs:
           TOKEN: ${{ steps.mint.outputs.token }}
           APPROVER: ${{ steps.mint.outputs.approver_token }}
           NUM: ${{ steps.pr.outputs.pr || steps.record.outputs.pr }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -uo pipefail
           { set +x; } 2>/dev/null
@@ -1003,6 +1018,29 @@ jobs:
                 echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
             fi
           fi
+          # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6). A record merge
+          # moves main under every open head, so a push beat leaves the pull
+          # request for the train's --bot-prs sweep while the last record
+          # merge on main is younger than record_row.py's PITCH_S -- unless
+          # the oldest owed merge is two pitches or BATCH_AGE_COMMITS commits
+          # old, the bounded staleness that keeps one row per merge true. The
+          # nightly and a dispatch never pitch. Behind the train hold, so a
+          # live train still answers first; after the guard and the approval,
+          # so a pitched head is one the guard passed and the approver App
+          # reviewed: the sweep merges it on the guard alone and posts no
+          # review, and main's ruleset wants one. A pitch check that fails is
+          # no pitch, the pre-fix behaviour.
+          if python3 -I tools/audit/seat/record_row.py --pitch-check \
+               --merges-file "$RUNNER_TEMP/merges.json" --event "$EVENT"; then
+            :
+          else
+            pitch=$?
+            if [ "$pitch" = 4 ]; then
+              echo "::notice::#$NUM waits the pitch for the train's sweep or a later beat"
+              say skip-pitch; exit 0
+            fi
+            echo "::warning::the pitch check exited $pitch; no pitch applied"
+          fi
           # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
           # runs under `bash -e` (GitHub's `run:` default), so a bare call
           # would end the STEP with the guard's own exit -- 3 while a required
@@ -1059,7 +1097,7 @@ jobs:
           echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           case "$STATUS" in
-            pushed|nothing-owed|held) exit 0 ;;
+            pushed|nothing-owed|held|batching) exit 0 ;;
             "")
               echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
               exit 1 ;;

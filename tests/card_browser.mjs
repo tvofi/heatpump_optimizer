@@ -754,7 +754,9 @@ function instrument() {
       if (a.txt === b.txt && Math.abs(a.rect.left - b.rect.left) < 0.6 && Math.abs(a.rect.top - b.rect.top) < 0.6) continue;
       const u = { x: Math.min(a.rect.left, b.rect.left) - 1, y: Math.min(a.rect.top, b.rect.top) - 1 };
       out.boxPairs.push({ a: i, b: j, at: `${desc(a.el)} "${a.txt.slice(0, 20)}"`, bt: `${desc(b.el)} "${b.txt.slice(0, 20)}"`,
-        clip: { x: u.x, y: u.y, width: Math.max(a.rect.right, b.rect.right) + 1 - u.x, height: Math.max(a.rect.bottom, b.rect.bottom) + 1 - u.y } });
+        clip: { x: u.x, y: u.y, width: Math.max(a.rect.right, b.rect.right) + 1 - u.x, height: Math.max(a.rect.bottom, b.rect.bottom) + 1 - u.y },
+        at0: { x: a.el.getBoundingClientRect().left, y: a.el.getBoundingClientRect().top },
+        bt0: { x: b.el.getBoundingClientRect().left, y: b.el.getBoundingClientRect().top } });
     }
     const ts = targets(), floor = coarse ? 44 : 24;
     for (const t of ts) {
@@ -828,14 +830,37 @@ function instrument() {
     return out;
   };
   // Pixel ink of one text run: everything else hidden, the run forced black on white.
+  // A run's own ink only. An SVG text's glyphs can sit in its tspans, which
+  // the hide-everything rule matches too, so they are shown with their text:
+  // without them a wrapped Configure page name inked as blank.
   H.inkMode = (i) => {
     let st = root().querySelector("style#p9ink");
     if (!st) { st = document.createElement("style"); st.id = "p9ink"; root().appendChild(st); }
     st.textContent = i === null ? "" :
       `*{visibility:hidden!important;background:transparent!important;border-color:transparent!important;box-shadow:none!important;outline:none!important}
        dialog::backdrop{background:transparent!important}
-       [data-p9run="${i}"]{visibility:visible!important;color:#000!important;fill:#000!important;stroke:none!important;opacity:1!important}`;
+       [data-p9run="${i}"], [data-p9run="${i}"] tspan{visibility:visible!important;color:#000!important;fill:#000!important;stroke:none!important;opacity:1!important}`;
     document.documentElement.style.background = i === null ? "" : "#fff";
+  };
+  // A screenshot clips only what the viewport shows, so a pair below the
+  // fold or past a sideways scroller's edge (the setup map and the savings
+  // replay at phone width) is scrolled to before it is inked. A pair already
+  // in view is not scrolled, and the clip follows the pair's own movement
+  // since measure() took it. Two runs that scrolled apart sit in two
+  // scrollers, and inking them at one clip would compare the wrong pixels.
+  H.reveal = ({ a, b, clip, at0, bt0 }) => {
+    const el = (k) => root().querySelector(`[data-p9run="${k}"]`);
+    const ea = el(a), eb = el(b);
+    const at = () => {
+      const ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+      const d = { x: ra.left - at0.x, y: ra.top - at0.y };
+      if (Math.abs(rb.left - bt0.x - d.x) > 0.5 || Math.abs(rb.top - bt0.y - d.y) > 0.5) return null;
+      return { ...clip, x: clip.x + d.x, y: clip.y + d.y };
+    };
+    const fits = (c) => c && c.x >= 0 && c.y >= 0 && c.x + c.width <= innerWidth && c.y + c.height <= innerHeight;
+    let c = at();
+    if (!fits(c)) { ea.scrollIntoView({ block: "center", inline: "center" }); c = at(); }
+    return fits(c) ? { clip: c } : { why: c ? "outside the viewport after scrolling to it" : "in two scrollers" };
   };
   H.inkShared = async (a, b) => {
     const load = (u) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = u; });
@@ -1059,10 +1084,12 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
         for (const k of ["contrast", "overflow", "small", "popups", "options"]) for (const x of m[k]) bad[k].push(`${tag}: ${x}`);
         for (const [k, v] of Object.entries(await page.evaluate(() => window.__p9.colourRules()))) reach[k] = reach[k] || v;
         for (const p of m.boxPairs) {
+          const { clip, why } = await page.evaluate((q) => window.__p9.reveal(q), p);
+          if (!clip) { bad.threw.push(`${tag}: ${p.at} x ${p.bt} cannot be inked: ${why}`); continue; }
           const shots = [];
           for (const i of [p.a, p.b]) {
             await page.evaluate((k) => window.__p9.inkMode(k), i);
-            shots.push("data:image/png;base64," + (await page.screenshot({ clip: p.clip })).toString("base64"));
+            shots.push("data:image/png;base64," + (await page.screenshot({ clip })).toString("base64"));
           }
           await page.evaluate(() => window.__p9.inkMode(null));
           const shared = await page.evaluate(([a, b]) => window.__p9.inkShared(a, b), shots);

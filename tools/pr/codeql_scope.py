@@ -26,9 +26,21 @@ the extractor read and the list calls inert is a pull request that would skip
 a leg that could have found something; the push run goes red instead.
 
 THE RULE, fail-closed in every arm:
-  * only `pull_request` may skip. `push`, `schedule`, `merge_group` and
-    `workflow_dispatch` always analyze, so main keeps a full analysis of
-    every merged tree;
+  * only `pull_request` and a train proof may skip. `push`, `schedule`,
+    `merge_group` and every other `workflow_dispatch` always analyze, so main
+    keeps a full analysis of every merged tree;
+  * a train proof (r10-proof-codeql, revising D-5's push arm for proof refs
+    only, mandate 6329234399) is merge_train.py's `workflow_dispatch` of
+    ci.yml on a `batch/` ref naming no PR -- ci.yml's `push` fires on main
+    alone, so the proof is that dispatch, never a push. It skips a leg only
+    when `proof_entries` verifies the proof's chain -- each link's subject is
+    merge_train.build's, its parents are the ones it names, and its tree is
+    `git merge-tree` of them -- and EVERY entry head carries a completed,
+    successful `codeql / Analyze (<leg>)` job from a `pull_request` run at
+    that head, which an analysis and a legitimate skip both conclude. An
+    unverifiable chain, an entry without that job, or a changed file under
+    `.github/` analyzes. A proof does not analyze what its entries'
+    interaction alone could add; main's push run after the merge does;
   * a leg skips only when EVERY changed file has a suffix on that leg's
     INERT list -- an allow-list of what the leg's extractor provably never
     reads, never a list of what it does, so an unknown suffix analyzes;
@@ -55,6 +67,7 @@ THE RULE, fail-closed in every arm:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -73,17 +86,33 @@ INERT = {
     "python": _PROSE | {".json"},
 }
 FORCE_PREFIXES = (".github/",)
+PROOF_REF = "refs/heads/batch/"
+#: merge_train.build's subject for proof commit P_i: entry, its head, P_(i-1).
+_PROOF_SUBJECT = re.compile(r"batch proof: #([0-9]+) at ([0-9a-f]{12}) onto ([0-9a-f]{12})")
 
 
-def decide(language: str, event: str, files: list[str]) -> tuple[str, str]:
-    """(`analyze` | `skip`, reason) for one leg over one diff."""
+def decide(language: str, event: str, files: list[str], ref: str = "",
+           proven: "dict[str, frozenset] | None" = None) -> tuple[str, str]:
+    """(`analyze` | `skip`, reason) for one leg over one diff. `ref` and
+    `proven` ({entry head: the legs it analyzed or skipped}) are a proof's."""
     if language not in INERT:
         return "analyze", f"unknown leg {language!r}"
-    if event != "pull_request":
+    proof = event == "workflow_dispatch" and ref.startswith(PROOF_REF)
+    if event != "pull_request" and not proof:
         return "analyze", f"event {event!r} always analyzes"
     files = [f.strip() for f in files if f.strip()]
     if not files:
         return "analyze", "no changed file list"
+    if proof:
+        forced = [f for f in files if f.startswith(FORCE_PREFIXES)]
+        if forced:
+            return "analyze", f"{forced[0]} changes the analysis itself"
+        if not proven:
+            return "analyze", "the proof's entry list is unreadable"
+        bare = sorted(h[:12] for h, legs in proven.items() if language not in legs)
+        if bare:
+            return "analyze", f"entry head(s) {', '.join(bare)} carry no {language} analysis"
+        return "skip", f"all {len(proven)} entry head(s) analyzed or legitimately skipped {language}"
     for f in files:
         if f.startswith(FORCE_PREFIXES):
             return "analyze", f"{f} changes the analysis itself"
@@ -91,6 +120,38 @@ def decide(language: str, event: str, files: list[str]) -> tuple[str, str]:
         if suffix not in INERT[language]:
             return "analyze", f"{f} ({suffix or 'no suffix'}) may be read by the {language} extractor"
     return "skip", f"all {len(files)} changed file(s) are inert to the {language} extractor"
+
+
+def proof_entries(tip: str, cwd: str = ".", env: dict | None = None) -> "tuple[str, list[str]] | None":
+    """(the proof's base, its entry heads) when `tip` is a merge_train proof
+    whose every link verifies; None otherwise, and the proof analyzes."""
+    def git(*a: str) -> str:
+        return subprocess.run(["git", *a], cwd=cwd, env=env, capture_output=True,
+                              text=True, check=True).stdout
+    heads: list[str] = []
+    sha = tip
+    try:
+        while True:
+            parents, _, subject = git("log", "-1", "--format=%P%x00%s", sha).strip().partition("\0")
+            m = _PROOF_SUBJECT.fullmatch(subject)
+            if not m:
+                break
+            ps = parents.split()
+            if len(ps) != 2 or not ps[1].startswith(m.group(2)) or not ps[0].startswith(m.group(3)):
+                return None
+            if git("merge-tree", "--write-tree", ps[0], ps[1]).split()[0] != git("rev-parse", f"{sha}^{{tree}}").strip():
+                return None
+            heads.append(ps[1])
+            sha = ps[0]
+    except (subprocess.CalledProcessError, IndexError):
+        return None
+    return (sha, heads[::-1]) if heads else None
+
+
+def proven_legs(jobs: dict) -> frozenset:
+    """The legs one run's jobs ({name: (status, conclusion)}) analyzed or
+    legitimately skipped: a skipped leg's job concludes success too."""
+    return frozenset(leg for leg in LEGS if jobs.get(f"codeql / Analyze ({leg})") == ("completed", "success"))
 
 
 ANALYSIS_KEY = ".github/workflows/ci.yml:analyze"
@@ -219,6 +280,43 @@ def _rename_probe() -> tuple[list[str], list[str]]:
         return changed_files(base, "HEAD", cwd=td, env=env), porcelain
 
 
+def _proof_probe() -> dict:
+    """proof_entries over a throwaway two-entry chain built as merge_train.build
+    builds one, and over a forged, a misnamed and a plain tip."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    os.pardir, os.pardir, "tests"))
+    from throwaway_git import throwaway_git_init
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q")
+
+        def git(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=td, env=env, capture_output=True,
+                                  text=True, check=True).stdout.strip()
+
+        def commit(name: str, parent: str | None) -> str:
+            if parent:
+                git("checkout", "-q", "--detach", parent)
+            with open(os.path.join(td, name), "w", encoding="utf-8") as fh:
+                fh.write(name)
+            git("add", "-A")
+            git("commit", "-qm", name)
+            return git("rev-parse", "HEAD")
+        base = commit("base.md", None)
+        h1, h2 = commit("a.py", base), commit("b.py", base)
+
+        def link(last: str, head: str, pr: int, tree: str | None = None, named: str | None = None) -> str:
+            tree = tree or git("merge-tree", "--write-tree", last, head).split()[0]
+            return git("commit-tree", tree, "-p", last, "-p", head, "-m",
+                       f"batch proof: #{pr} at {(named or head)[:12]} onto {last[:12]}")
+        p1 = link(base, h1, 1)
+        p2 = link(p1, h2, 2)
+        return {"base": base, "h1": h1, "h2": h2,
+                "ok": proof_entries(p2, td, env),
+                "forged": proof_entries(link(p1, h2, 2, tree=git("rev-parse", f"{p1}^{{tree}}")), td, env),
+                "misnamed": proof_entries(link(p1, h2, 2, named=h1), td, env),
+                "plain": proof_entries(h1, td, env)}
+
+
 def self_test() -> int:
     fails = n = 0
 
@@ -290,6 +388,42 @@ def self_test() -> int:
               got, ["from-closure"])
     finally:
         cl.changed_between = real
+
+    # A train proof (r10-proof-codeql): skips only on every entry's evidence.
+    H1, H2 = "1" * 40, "2" * 40
+    both = {H1: frozenset(LEGS), H2: frozenset(LEGS)}
+    code = ["custom_components/heatpump_optimizer/coordinator.py"]
+    pw = lambda leg, ev="workflow_dispatch", fs=code, ref=PROOF_REF + "t-1", pv=both: decide(leg, ev, fs, ref, pv)[0]  # noqa: E731
+    for leg in LEGS:
+        check(f"a proof whose entries all analyzed {leg} skips it", pw(leg), "skip")
+        check(f"push to main analyzes {leg} on the same evidence (null control)",
+              pw(leg, "push", ref="refs/heads/main"), "analyze")
+        check(f"a push to a batch/ ref analyzes {leg}: the proof is the dispatch", pw(leg, "push"), "analyze")
+        check(f"a dispatch on main analyzes {leg}", pw(leg, ref="refs/heads/main"), "analyze")
+        check(f"a proof's .github/ change analyzes {leg}",
+              pw(leg, fs=code + [".github/workflows/ci.yml"]), "analyze")
+    check("a proof with one entry lacking python analyzes python",
+          pw("python", pv={H1: frozenset(LEGS), H2: frozenset({"actions"})}), "analyze")
+    check("and still skips the leg both entries carry",
+          pw("actions", pv={H1: frozenset(LEGS), H2: frozenset({"actions"})}), "skip")
+    check("a proof with an unreadable entry list analyzes", pw("python", pv=None), "analyze")
+    check("a proof with no entry analyzes", pw("python", pv={}), "analyze")
+    check("a proof with no changed file list analyzes", pw("python", fs=[]), "analyze")
+    check("a proof's reason names the bare entry",
+          H2[:12] in decide("python", "workflow_dispatch", code, PROOF_REF + "t-1",
+                            {H1: frozenset(LEGS), H2: frozenset()})[1], True)
+    jobs = {"codeql / Analyze (python)": ("completed", "success"),
+            "codeql / Analyze (actions)": ("completed", "failure"),
+            "codeql / Analyze (javascript-typescript)": ("in_progress", None),
+            "Analyze (python)": ("completed", "success")}
+    check("proven_legs: only a completed, successful codeql job counts", proven_legs(jobs), frozenset({"python"}))
+    check("proven_legs: no job, no leg", proven_legs({}), frozenset())
+    chain = _proof_probe()
+    check("proof_entries: a merge_train chain reads its base and both heads in order",
+          chain["ok"], (chain["base"], [chain["h1"], chain["h2"]]))
+    check("proof_entries: a link whose tree is not its parents' merge is refused", chain["forged"], None)
+    check("proof_entries: a link naming another head is refused", chain["misnamed"], None)
+    check("proof_entries: a tip that is no proof is refused", chain["plain"], None)
 
     # D-5: the INERT list against the extractor's own source archive.
     import zipfile

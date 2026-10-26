@@ -36,6 +36,18 @@ from heatpump_optimizer.wood_fuel import wood_slots_to_kw
 from homeassistant.util import dt as dt_util
 
 
+def _owned_params(params):
+    """A test owner of ``params``, as the coordinator's ``_publish_params`` owns
+    its own: the learner reads through ``params`` and publishes a new snapshot."""
+    from dataclasses import replace as _replace
+    box = [params]
+
+    def publish(**fields):
+        box[0] = _replace(box[0], **fields)
+
+    return {"params": lambda: box[0], "publish": publish}
+
+
 class _Learner(DhwProfileLearner):
     """The learner, with persistence stubbed so a cooling fold is visible."""
 
@@ -43,7 +55,7 @@ class _Learner(DhwProfileLearner):
         super().__init__(
             FakeHass(),
             "guard-pins",
-            ThermalParameters(),
+            **_owned_params(ThermalParameters()),
             frozen=lambda *_: None,
             heating_active=lambda: False,
             external_heat_active=lambda: False,
@@ -189,7 +201,7 @@ def _draw_folded_only_without_external_heat() -> bool:
         learner = DhwProfileLearner(
             FakeHass(),
             "guard-pins-draws",
-            params,
+            **_owned_params(params),
             frozen=lambda *_: None,
             heating_active=lambda: False,
             external_heat_active=lambda external=external: external,
@@ -224,20 +236,21 @@ def _ceiling_notice_is_deduplicated() -> bool:
     guard = LegionellaGuard(
         FakeHass(),
         "guard-pins-ceiling",
-        params,
+        lambda: params,
         {},
         action=lambda: {},
         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
         dhw_blocked=lambda: False,
     )
     calls: list[int] = []
-    original = legionella_mod.create_issue
-    legionella_mod.create_issue = lambda *a, **k: calls.append(1)
+    ir = legionella_mod.ir  # the registry ``issues.set_issue`` writes
+    original = ir.async_create_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(1)
     try:
         guard.check_ceiling()
         guard.check_ceiling()
     finally:
-        legionella_mod.create_issue = original
+        ir.async_create_issue = original
     return len(calls) == 1
 
 
@@ -253,7 +266,7 @@ def _write_failed_notice_is_memoised() -> bool:
     guard = LegionellaGuard(
         FakeHass(),
         "guard-pins-write-failed",
-        ThermalParameters(),
+        lambda _p=ThermalParameters(): _p,
         {},
         action=lambda: {},
         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
@@ -265,9 +278,9 @@ def _write_failed_notice_is_memoised() -> bool:
 
     guard.async_save = _no_save
     calls: list[str] = []
-    ir = legionella_mod.ir
-    original = legionella_mod.create_issue, ir.async_delete_issue
-    legionella_mod.create_issue = lambda *a, **k: calls.append(f"create {a[2]}")
+    ir = legionella_mod.ir  # the registry ``issues.set_issue`` writes
+    original = ir.async_create_issue, ir.async_delete_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(f"create {a[2]}")
     ir.async_delete_issue = lambda hass, dom, iid: calls.append(f"delete {iid}")
     try:
         # Observe mode, nothing owned: release writes nothing, so the
@@ -277,7 +290,7 @@ def _write_failed_notice_is_memoised() -> bool:
             guard.disinfect.failed_entity = "switch.disinfect" if failed else None
             asyncio.run(guard._drive_switch(False))
     finally:
-        legionella_mod.create_issue, ir.async_delete_issue = original
+        ir.async_create_issue, ir.async_delete_issue = original
     return calls == [
         "create dhw_disinfection_write_failed",
         "delete dhw_disinfection_write_failed",

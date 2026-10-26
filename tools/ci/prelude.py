@@ -86,7 +86,7 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
         "queue_pr": q.group(1) if q else "",
         "input_pr": inputs.get("pr") or "", "input_base": inputs.get("base") or "",
         "head": (pr.get("head") or {}).get("sha") or mg.get("head_sha") or env.get("GITHUB_SHA", ""),
-        "sha": env.get("GITHUB_SHA", ""), "repo": env.get("GITHUB_REPOSITORY", ""),
+        "sha": env.get("GITHUB_SHA", ""), "ref": env.get("GITHUB_REF", ""), "repo": env.get("GITHUB_REPOSITORY", ""),
         "run_id": int(env.get("GITHUB_RUN_ID") or 0), "run_attempt": int(env.get("GITHUB_RUN_ATTEMPT") or 1),
     }
 
@@ -218,16 +218,49 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep) -> tuple[dict, str]:
+def _codeql_scope():
+    sys.path.insert(0, str(HERE.parent / "pr"))
+    import codeql_scope
+    return codeql_scope
+
+
+def proof_scope(ctx: dict, get, entries=None, changed=None) -> tuple[list[str], dict | None]:
+    """(the proof's changed files, {entry head: legs proven}) for a train
+    proof (codeql_scope's rule); ([], None) when its chain does not verify or
+    a read fails, and every leg analyzes. `entries`/`changed` default to
+    codeql_scope.proof_entries/changed_files over this checkout."""
+    cq = _codeql_scope()
+    chain = (entries or cq.proof_entries)(ctx["sha"])
+    if not chain:
+        return [], None
+    base, heads = chain
+    try:
+        files = (changed or cq.changed_files)(base, ctx["sha"])
+        proven = {}
+        for head in heads:
+            legs: frozenset = frozenset()
+            for r in ghapi.paginate(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                                    {"head_sha": head, "event": "pull_request"}, get=get):
+                if r.get("event") == "pull_request" and r.get("head_sha") == head:
+                    legs |= cq.proven_legs(run_jobs(get, ctx["repo"], r["id"]))
+            proven[head] = legs
+    except (ghapi.ApiError, cq.subprocess.CalledProcessError):
+        return [], None
+    return files, proven
+
+
+def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
            "scope": "full" if ev == "push" else "auto",
            "workset": " ".join(sorted(workset(kind, pr, ctx.get("labels", ()))))}
-    sys.path.insert(0, str(HERE.parent / "pr"))
-    import codeql_scope
-    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [])[0]
+    codeql_scope = _codeql_scope()
+    ref, proven = ("" if ctx.get("input_pr") else ctx.get("ref", "")), None
+    if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
+        changed, proven = proof(ctx, get)
+    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
     if not why and kind != "code":
@@ -344,6 +377,54 @@ def self_test() -> int:
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
+
+    # A train proof (r10-proof-codeql): the evidence is each entry head's own
+    # pull_request runs; a dispatch at that head carries none.
+    def proof_get(legs_at):
+        runs, jobs = {}, {}
+        for head, per_run in legs_at.items():
+            for ev, legs in per_run:
+                rid = len(jobs) + 1
+                runs.setdefault(head, []).append({"id": rid, "event": ev, "head_sha": head})
+                jobs[rid] = [{"name": f"codeql / Analyze ({leg})", "status": "completed", "conclusion": "success"}
+                             for leg in legs]
+
+        def get(path, params=None):
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": runs.get(params["head_sha"], [])}
+            return 200, {}, {"jobs": jobs[int(path.split("/runs/")[1].split("/")[0])]}
+        return get
+    all3 = ("actions", "javascript-typescript", "python")
+    two = {"h1": [("pull_request", all3)], "h2": [("pull_request", ("actions",)), ("pull_request", ("python",))]}
+    chain = lambda tip: ("B", ["h1", "h2"])  # noqa: E731
+    code = ["custom_components/heatpump_optimizer/coordinator.py"]
+    pctx = context("workflow_dispatch", {"inputs": {"recheck": "true"}}, {**env, "GITHUB_REF": "refs/heads/batch/t-1"})
+
+    def legs(c, ev_get, files=code, entries=chain):
+        out, why = outputs(c, None, ev_get, proof=lambda c2, g2: proof_scope(c2, g2, entries, lambda b, h: files))
+        return json.loads(out["legs"]), why
+    check("proof: legs every entry proved skip, the one an entry lacks analyzes",
+          legs(pctx, proof_get(two)), ({"actions": "skip", "javascript-typescript": "analyze", "python": "skip"}, ""))
+    check("proof: an entry with no pull_request run analyzes every leg (a dispatch run is no evidence)",
+          legs(pctx, proof_get({**two, "h2": [("workflow_dispatch", all3)]}))[0],
+          {leg: "analyze" for leg in all3})
+    check("proof: a .github/ change analyzes every leg",
+          legs(pctx, proof_get(two), files=code + [".github/workflows/codeql.yml"])[0], {leg: "analyze" for leg in all3})
+    check("proof: an unverifiable chain analyzes every leg",
+          legs(pctx, proof_get(two), entries=lambda tip: None)[0], {leg: "analyze" for leg in all3})
+
+    def broken(path, params=None):
+        return 502, {}, None
+    check("proof: a failed evidence read analyzes every leg", legs(pctx, broken)[0], {leg: "analyze" for leg in all3})
+    full = {"h1": [("pull_request", all3)], "h2": [("pull_request", all3)]}
+    check("proof: full evidence skips every leg", legs(pctx, proof_get(full))[0], {leg: "skip" for leg in all3})
+    for name, c in (("push to main", context("push", {}, {**env, "GITHUB_REF": "refs/heads/main"})),
+                    ("a dispatch on main", context("workflow_dispatch", {}, {**env, "GITHUB_REF": "refs/heads/main"})),
+                    ("a batch/ dispatch naming a pr", context("workflow_dispatch", {"inputs": {"pr": "7", "base": "main"}},
+                                                             {**env, "GITHUB_REF": "refs/heads/batch/t-1"}))):
+        check(f"{name} analyzes every leg on full evidence (null control)",
+              legs(c, lambda path, params=None: (200, {}, live) if "/pulls/" in path else proof_get(full)(path, params))[0],
+              {leg: "analyze" for leg in all3})
 
     def limited(path, params=None):
         raise ghapi.RateLimited(path, 99)

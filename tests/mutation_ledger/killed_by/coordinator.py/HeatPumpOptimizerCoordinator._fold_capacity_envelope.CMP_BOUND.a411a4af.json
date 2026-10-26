@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_capacity_envelope CMP_BOUND a411a4af",
+  "killed_by": "tests/features.py",
+  "old": "        nameplate = self._commanded_power() >= 0.95 * p_max",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: CMP_BOUND (`nameplate = self._commanded_power() > 0.95 * p_max`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
