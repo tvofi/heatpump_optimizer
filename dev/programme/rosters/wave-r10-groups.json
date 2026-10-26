@@ -4858,7 +4858,7 @@
    "wave": 2,
    "resume": {
     "stage": "fixing",
-    "branch": null,
+    "branch": "wip-sync/ext-mut-297fc65b",
     "commit": "eb46ec47ad6add449c46d1f0d3bfae4694355e67",
     "last_step": null,
     "next_step": "rca",
