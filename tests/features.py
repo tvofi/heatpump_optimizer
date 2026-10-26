@@ -65132,8 +65132,17 @@ R.check(
 # flat between 0 and p_min and a start descending into that band stalls
 # there. The relaxed candidate (``_relaxed_starts``) is the fix; the
 # control arm is the same solve with it removed, which is the mutant. A
-# synthetic 750 L buffered install behind a valve, space-only and with hot
-# water, so both solve paths carry it. The rounded objective is non-convex
+# synthetic 750 L tank with no valve, space-only and with hot water, so both
+# solve paths carry the tank's state without the store credit. The valve was
+# removed when R10-BUFFER-STORE made a valved tank a live store in the
+# single-zone model: the store's energy state smooths the rounded-level
+# plateau this section traps, and the relaxed start's margin on the valved
+# fixture fell to 0.0135 (measured, deterministic over three runs) against
+# 4.081 with no valve -- under the 0.5 arch-robustness margin the check
+# needs, and 0.447 even on the two-zone fixture that was already live. The
+# live store's own landscape is pinned by the R10-BUFFER-STORE checks; the
+# reduced margin on live-store installs is carried forward to that group.
+# The rounded objective is non-convex
 # and L-BFGS-B's path differs by architecture (``fixer.md`` step 15): which
 # cells the candidate wins, and whether the control arm also leaves the band,
 # moved between arm64 and CI's x86_64. So the checks pin what the mechanism
@@ -65159,7 +65168,7 @@ _SP_CHEAP = np.argsort(_SP_SPREAD, kind="stable")[:24]
 
 def _sp_solve(prices, dhw, loss, relaxed=True, out_mean=2.0):
     params = _SpTP()
-    params.mixing_valve_mode = "manual"
+    params.mixing_valve_mode = "none"
     params.buffer_tank_volume = 750.0
     params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
     params.dhw_enabled, params.house_heat_loss_scale = dhw, loss
