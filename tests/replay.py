@@ -1190,7 +1190,10 @@ def plan_draws(coord, data: dict, t: datetime) -> bool | None:
     step = _plan_step(data, t)
     if step is None:
         return None
-    return bool(coord._optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer  # the tree under replay's own
+
+    optimizer = HeatPumpOptimizer(coord._thermal_model, coord._opt_config)
+    return bool(optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
 
 
 def plan_draw_kw(data: dict, t: datetime) -> float | None:
