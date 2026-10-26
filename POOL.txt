@@ -1,3 +1,4 @@
+dispatch/fixer-r10-flow-jidoka
 dispatch/fixer-r10-proof-codeql
 dispatch/fixer-r10-update-pr-signals
 dispatch/fixer-r10-996-runner-claims
@@ -5,5 +6,4 @@ dispatch/fixer-r10-card-voice
 dispatch/fixer-r10-flow-record-pitch
 dispatch/fixer-r10-diag-redact
 dispatch/fixer-r10-legionella-completion
-dispatch/fixer-r10-flow-jidoka
 dispatch/fixer-r10-advisor-residue
