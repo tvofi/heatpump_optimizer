@@ -10141,7 +10141,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
    "files": [
     ".github/workflows/gate-sweep.yml",
     "tests/entities.py",
