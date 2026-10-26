@@ -217,7 +217,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
 def gather(a) -> dict:
     head, main = a.head, a.main
     base = git("merge-base", main, head).strip()
-    touched = set(git("diff", "--name-only", f"{base}...{head}").split())
+    touched = set(git("diff", "--name-only", "--no-renames", f"{base}...{head}").split())
     label, data = (harness_source(a.harness, a.harness_file, base, touched)
                    if (a.harness or a.harness_file) else ("none named", b""))
     body = gh(f"repos/{REPO}/pulls/{a.pr}").get("body") or ""
