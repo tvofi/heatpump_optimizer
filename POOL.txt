@@ -1,3 +1,4 @@
+dispatch/fixer-r10-heat-meter-closure
 dispatch/fixer-r10-996-runner-claims
 dispatch/fixer-r10-rca-ratelimit-recur
 dispatch/fixer-r10-arch-shapes
