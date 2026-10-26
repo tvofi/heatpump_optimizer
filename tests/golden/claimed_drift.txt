@@ -69,7 +69,7 @@ coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fi
 # coord fixture's data gains that one key, null (no interval has settled in
 # a fixture's ledger); nothing else moves, the hot-water sweep included (with
 # no recent price it prices at the feed's window, as before). Measured with
-# env_drift --all against origin/main da12aa37d in one environment: exactly
+# env_drift --all against origin/main df478d40b in one environment: exactly
 # these five move, in that one key, "present on one side only". The committed
 # files were patched in that path alone; no other leaf was re-recorded.
 # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
