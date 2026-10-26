@@ -10200,7 +10200,7 @@
     "Main-red hotfix (orchestrator, 2026-10-26, hotfix ruling: merges on a green gate, review afterwards, still a real verdict for merge_pr.sh). Defect from #2836: the record-autofix step's batch gate in .github/workflows/nightly.yml reads batch=$? after a record_row.py --batch-due call that exits 4 by design; the step runs under GitHub's default bash -e, so exit 4 kills the step before batch=$? and every push below the floor of 8 owed rows turns record-autofix red (job 121376503388 at main d181d014). Root-cause seat runs beside this fix (topic r10-rca-hotfix-batch-errexit)."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-batch-errexit",
     "commit": null,
     "last_step": null,
