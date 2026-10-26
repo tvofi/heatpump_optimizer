@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_apply_result_payload BOOLOP 09efd8da",
+  "killed_by": "tests/features.py",
+  "old": "                        if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if result.heat_pump_on_schedule or idx < len(result.heat_pump_on_schedule)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

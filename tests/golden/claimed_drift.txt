@@ -59,11 +59,22 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_dhw  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_grid_fee  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_minimal  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
-coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status sensor's learner_progress added (24 leaves each)
+coord_all_features  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+coord_dhw  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+coord_grid_fee  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+coord_minimal  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+coord_two_zone  # R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)
+# R10-CARD-VOICE: describe_setup publishes the wood-coil option itself as
+# `dhw_wood_coil_configured`, beside the model's `dhw_wood_coil` gate, so the
+# card can say "configured, not modelled". Direction: ADD-ONLY, one leaf in
+# setup_topology on sensors.space_heating_plan and sensors.dhw_heating_plan,
+# false in all five (no capture switches the option on). Measured with
+# tests/env_drift.py --all against origin/main da12aa37d in one environment:
+# exactly these five move, 2 leaves each, "present on one side only"; no plan,
+# schedule, price, cost or solver leaf moves. The committed files were patched
+# in exactly those 10 paths from golden.capture_coordinator at the head (a
+# json round-trip of each file is byte-identical before the patch); no other
+# leaf was re-recorded.
 # R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
 # coord fixture's data gains that one key and its 24 leaves (house counting at
 # zero samples toward its gate, the other three off, no
@@ -728,3 +739,4 @@ coord_two_zone  # R10-LEARNER-ETA: data.learner_progress and the model status se
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
+config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
