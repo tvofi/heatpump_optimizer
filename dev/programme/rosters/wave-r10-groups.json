@@ -6773,7 +6773,6 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Null control: each instrument reproduces the study's figure from the same input: the critical-path one on runs 39625218966 and 39619839750 (48.6 and 47.8 min; the W1 counterfactual about 27-30 and about 41 min); review strength 0.52 and 0.15 on the study's two windows; the flow metrics the FUTURE-STATE section 2 figures.",
     "Round-10 use: R10-CI-LAYOUT-P1's fixer runs the critical-path instrument for its body's figure, and each #201 state comment runs the review-strength one (R13).",
     "Classify every new file (a measured closure or tests/closure.py's INERT list) or tests/entities.py refuses the pull request.",
     "Pre-study: the Lean flow pre-study, section K18.",
