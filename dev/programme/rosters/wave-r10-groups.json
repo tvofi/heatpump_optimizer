@@ -9661,7 +9661,8 @@
    ],
    "fixes": [],
    "after": [
-    "R10-MUTATION-ANCHOR"
+    "R10-MUTATION-ANCHOR",
+    "R10-ARCH-SHAPES"
    ],
    "files": [
     "tests/mutation_table.py"
