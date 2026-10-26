@@ -3694,7 +3694,7 @@
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-sav-comfort",
+    "branch": "fix/r10-sav-comfort",
     "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
