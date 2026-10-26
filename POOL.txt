@@ -1,3 +1,4 @@
+dispatch/fixer-r10-rca-hotfix-batch-errexit
 dispatch/fixer-r10-hotfix-batch-errexit
 dispatch/fixer-r10-996-runner-claims
 dispatch/fixer-r10-sav-comfort
