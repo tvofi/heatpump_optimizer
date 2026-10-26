@@ -1,0 +1,48 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18080 + both deltas = 18076
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'negative_prices', 'peak_masked', 'price_risk', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw', 'winter_two_zone_dhw', 'winter_two_zone_no_dhw', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (895 entries)
+  re-run the gate that owns this file before pushing
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+index 071d00f44..60a83a776 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -11242,15 +11242,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
+             "cost_delta": round(delta, 2),
+             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
+-<<<<<<< d2cd24dcd (Merge remote-tracking branch 'origin/main' into fix/r10-sav-comfort)
+-            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
+-            # The same choice held from a steady start (the price tiles'
+-            # degree, price_tiles.py): no one-off coast or heat-up in it.
+-            "monthly_held_cost_delta": round(price_tiles.per_month(
+-                simulated.held_cost - result.held_cost, horizon_hours), 2),
+-=======
+             **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours),
+->>>>>>> 0137c4cb0 (Merge pull request #2834 from tvofi/fix/r10-advisor-residue)
+             # T2: present only when the what-if capped power — the worst
+             # comfort-floor shortfall that cap forced, 0.0 when feasible.
+             **(
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index a27427c00..e505a2e24 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -102,7 +102,7 @@ def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> d
+     spend = sim.predicted_cost + extra - live.predicted_cost
+     return {
+         "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
+-        "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
++        "monthly_held_cost_delta": round(per_month(sim.held_cost - live.held_cost, horizon_hours), 2),
+         "monthly_settled_cost_delta": round(per_month(
+             spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
+     }
