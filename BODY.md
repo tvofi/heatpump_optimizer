@@ -17,7 +17,7 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `6c8e6f46ebc63c8cf352392c77944628ae9e8b0e` and the merged tree prints `36ed196b49ca16f48f11e04a35a09dce898fb7e4`. A script that loads both files as JSON and keys groups by their `group` field printed, unedited:
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: main prints `6c8e6f46ebc63c8cf352392c77944628ae9e8b0e` and the merged tree prints `36ed196b49ca16f48f11e04a35a09dce898fb7e4`. A script that loads both files as JSON and keys groups by their `group` field printed (lines reformatted here for the page):
 
 ```
 groups main 195 head 195 (no group added or removed)
