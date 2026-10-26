@@ -1948,7 +1948,8 @@
    "after": [
     "R10-SCORES",
     "R10-COP-GATE",
-    "R10-HEAT-METER"
+    "R10-HEAT-METER",
+    "R10-SAV-COMFORT"
    ],
    "carry": [
     "Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact.",
