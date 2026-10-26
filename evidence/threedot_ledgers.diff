@@ -1,0 +1,39 @@
+diff --git a/dev/programme/delivery/2753.md b/dev/programme/delivery/2753.md
+new file mode 100644
+index 000000000..ca4d40018
+--- /dev/null
++++ b/dev/programme/delivery/2753.md
+@@ -0,0 +1 @@
++- [#2753](https://github.com/tvofi/heatpump_optimizer/pull/2753) — **open**, R10-THERMAL-POWER-OPTION: an optional thermal power entity (R10-THERMAL-POWER-OPTION)
+diff --git a/tests/closures.json b/tests/closures.json
+index fb8afb3fe..af5b1f2c6 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3684,6 +3684,7 @@
+    "dev/audit/harnesses/r10_structure_alias.py",
+    "dev/audit/harnesses/r10_structure_blind.py",
+    "dev/audit/harnesses/r10_sweep_driver_arm.py",
++   "dev/audit/harnesses/r10_thermal_power_option.py",
+    "dev/audit/harnesses/r10_tick_drivers.py",
+    "dev/audit/harnesses/r10_tick_owed_level.py",
+    "dev/audit/harnesses/r10_tick_train_mutants.sh",
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 014a20f27..2fab8995e 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 18093,
++ "class_excess_loc": 18086,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 143,
+  "coordinator_multiassigned_attrs": 110,
+@@ -11,7 +11,7 @@
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+- "max_class_loc": 8248,
++ "max_class_loc": 8241,
+  "max_method_loc": 373,
+  "methods_over_150": 16,
+  "methods_over_200": 9,
