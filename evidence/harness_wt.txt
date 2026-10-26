@@ -64,16 +64,4 @@ DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirme
 DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
 DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
 DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
-RESULT blind commanded_steps 139
-RESULT blind completions 0
-RESULT blind attempt_hours [0.8, 24.8, 48.8, 72.8, 96.8, 120.8, 144.8, 168.8, 192.8, 216.8, 240.8, 264.8, 288.8, 312.8]
-RESULT blind attempt_gaps_h [24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0]
-RESULT blind max_hours_since_planned 1584.5
-RESULT blind completion_age_days_end 80.0
-RESULT blind due_in_hours_end 0.8
-RESULT blind notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_overdue']
-RESULT blind notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_overdue': {'days': '79', 'interval_days': '7'}}
-exit 0
+rc=124

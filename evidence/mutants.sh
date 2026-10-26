@@ -1,26 +1,22 @@
 #!/bin/bash
-# usage: mutants.sh W ; each mutant: name|line|python-replace-from|to
-W=$1; F=custom_components/heatpump_optimizer/legionella.py
-run() { name=$1; ln=$2; from=$3; to=$4
-  d=$W/mut-$name; rm -rf $d; mkdir -p $d; (cd $W/head && git archive HEAD) | tar -x -C $d
-  python3 - "$d/$F" "$ln" "$from" "$to" <<'PY'
-import sys
-p,ln,a,b=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4]
-L=open(p).read().split("\n"); s=L[ln-1]
-assert a in s,(ln,s); L[ln-1]=s.replace(a,b,1); open(p,"w").write("\n".join(L))
-PY
-  (cd $d && f=$(PYTHONPATH=tests/hastub timeout 1500 python3 tests/features.py 2>&1); g=$(PYTHONPATH=tests/hastub python3 tests/guard_pins.py 2>&1)
-   echo "MUTANT $name: features: $(echo "$f" | tail -1) | guard_pins: $(echo "$g" | tail -1)"; echo "$f" | grep -E "^\s*(FAIL|✗|x )" | head -5; echo "$g" | grep -E "FAIL" | head -3) > $W/ev/mutant_$name.txt 2>&1
-  rm -rf $d
-}
-run M1_retry 628 "return min(interval_h, DHW_LEGIONELLA_RETRY_HOURS) if self._has_probe() else interval_h" "return interval_h" &
-run M2_overdue_observe 484 "self.check_overdue()" "pass" &
-run M4_fold 344 "if pending is not None and (" "if False and (" &
-run M5_overdue_track 247 "self.check_overdue()" "pass" &
-wait
-run R1_cap_drop 613 "min(since, age)" "age" &
-run R2_pending_ignores_completion 621 "utc_elapsed_seconds(attempt, last) <= 0" "False" &
-run R3_watched_ignores_enabled 655 "params.dhw_enabled and params.dhw_legionella_enabled" "True" &
-run R4_overdue_bound 60 "age_h > interval_days * 24.0" "age_h > interval_days * 48.0" &
-wait
-cat $W/ev/mutant_*.txt
+# reviewer-built: one-line mutants of legionella.py on a git-archive copy of the head; runs features.py + guard_pins.py
+W=$1; R=$(git rev-parse --show-toplevel); H=a6c6bd8eaaae1acedcb8d25d6fdad5057573a5aa
+F=custom_components/heatpump_optimizer/legionella.py
+declare -A M
+M[null]='1s/^/# reviewer null control\n/'
+M[s349_CMP_BOUND]='349s/< self._retry_hours() \* 3600.0/<= self._retry_hours() * 3600.0/'
+M[s354_CLAMP_DROP]='354s/max(peak, self.attempt_peak or peak)/(peak)/'
+M[s60_CMP_BOUND]='60s/if age_h > interval_days/if age_h >= interval_days/'
+M[s625_CMP_BOUND]='625s/<= 0)/< 0)/'
+M[s625_GUARD_OFF]='625s/if attempt is None or .*:$/if False:/'
+M[s659_BOOLOP]='659s/params.dhw_enabled and params.dhw_legionella_enabled/params.dhw_enabled or params.dhw_legionella_enabled/'
+M[s662_GUARD_OFF]='662s/if days == self.overdue_notice:/if False:/'
+M[s705_GUARD_OFF]='705s/if overdue_days is not None:/if False:/'
+M[R4_x48]='60s/interval_days \* 24.0/interval_days * 48.0/'
+for k in "${!M[@]}"; do (
+  D=$W/mut/$k; mkdir -p $D; git -C $R archive $H | tar -x -C $D
+  sed -i "${M[$k]}" $D/$F
+  git -C $R show $H:$F | diff - $D/$F > $W/ev/mutant_$k.diff
+  cd $D && { PYTHONPATH=tests/hastub timeout 1500 python3 tests/features.py 2>&1 | grep -E "FAIL|PASSED|FAILED" | tail -15; echo "--- guard_pins"; PYTHONPATH=tests/hastub timeout 600 python3 tests/guard_pins.py 2>&1 | tail -2; } > $W/ev/mutant_$k.txt 2>&1
+  echo "done $k"
+) & done; wait; echo ALLDONE
