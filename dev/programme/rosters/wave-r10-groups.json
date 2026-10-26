@@ -2977,9 +2977,7 @@
     "R10-TRAIN-HOLD",
     "R10-REF-PRIVACY"
    ],
-   "carry": [
-    "A blanket per-PR lane is refused permanently; do not offer it as an option."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
