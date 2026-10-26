@@ -2376,7 +2376,6 @@
    "rca": [],
    "after": [],
    "carry": [
-    "R10-ARCHSCORE-COVERAGE does not touch tests/structure.py; this group does.",
     "From the reviewer of #2285: max_class_loc rewards any extraction. Planting a plain same-size move out of the coordinator class at the base drops it (-12), with nothing improved. A fix's drop is earned only where copies were merged, as in #2285 (three per-domain writes became one). Make structure.py able to tell a move from a de-duplication, or record the refusal. Control: the planted move must not lower the metric."
    ],
    "architect_note": null,
