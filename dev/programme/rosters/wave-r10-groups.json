@@ -83,7 +83,6 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Choose the unit by climate domain, not by the target attribute: P2 still falls back to the state unit when a degF climate has no target attribute or it is None. The catch-up judge recorded this residual (CATCHUP-JUDGE.md at 33ffa7aa9); a test with the target attribute absent is owed.",
     "Null control: the same harness on a degC install reads 0 before and after (`dev/audit/rounds/round10/D12/s3/surface_units.py` at d23205d13).",
     "A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low and `setpoint_check` re-raises the issue; the UI's step-1 selector cannot produce it, so it is not blocking. Rounding a floor up would remove the class. (from #2465, fix review 6291407983)"
    ],
