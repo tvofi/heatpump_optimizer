@@ -10371,6 +10371,50 @@
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
    },
    "brief": "Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the v7.0.4..origin/main window above threshold). Read each citing body's Friction line, group the instances by the step of dev/governance/rules/gate-scoping.md they name (interpreter, lease, scoped gate, closures), and decide per group whether the rule is unclear, unfollowed, or wrong (process state b, c or d). A rule edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and is capped by dev/governance/config/policy_budgets.json. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
+  },
+  {
+   "group": "R10-DIAG-AGES",
+   "lane": "RP",
+   "kind": "fix",
+   "class": "privacy",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2814
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/debugger.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "Residue of issue #2814 that R10-DIAG-REDACT (#2824) recorded and left, per that body's Forward-carry: (1) re-base the published input ages to the export clock, which needs a publish instant in the payload to re-base from; (2) the plan-stale flag is judged at publish, not at export; (3) the stored self-test results carry no run time, which needs a field in the collection's store document. Seams: custom_components/heatpump_optimizer/diagnostics.py and custom_components/heatpump_optimizer/debugger.py. Failing test first in tests/debug_collect.py; null control: a download taken at the publish instant reads the same ages before and after. Use drift.stored_age_seconds for every age. Closes #2814."
   }
  ]
 }
