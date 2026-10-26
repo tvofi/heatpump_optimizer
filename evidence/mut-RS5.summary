@@ -1,3 +1,0 @@
-  FAIL #2257: the recent kWh price is this month's and last month's spot mean plus their fee per kWh  [empty None spot only 2.0 with fees 2.3333333333333335]
-1 of 4407 FEATURE CHECKS FAILED
-rc=1

@@ -1,3 +1,0 @@
-  FAIL #2257: a day solved once and a day solved three times weigh alike in the published mean  [[{'day': '2026-02-08', 'sum': 0.0, 'count': 1}, {'day': '2026-02-09', 'sum': 36.0, 'count': 3}] -> {'t': {'monthly_cost_delta': 9.0, 'horizon_days': 2}}]
-1 of 4407 FEATURE CHECKS FAILED
-rc=1

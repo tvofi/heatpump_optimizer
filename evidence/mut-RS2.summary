@@ -1,8 +1,0 @@
-  FAIL #2257: the recent kWh price is this month's and last month's spot mean plus their fee per kWh  [empty None spot only 4.0 with fees 4.333333333333333]
-  FAIL no production seam does wall-clock arithmetic across either transition  [spring [('ledger.py', 'recent_kwh_price')] autumn [('ledger.py', 'recent_kwh_price')]]
-  FAIL arm [tariff 15 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('ledger.py', 'recent_kwh_price')], 'autumn': [('ledger.py', 'recent_kwh_price')]}]
-  FAIL arm [tariff 60 min]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('ledger.py', 'recent_kwh_price')], 'autumn': [('ledger.py', 'recent_kwh_price')]}]
-  FAIL arm [straddle]: no production seam does wall-clock arithmetic across either transition  [{'spring': [('ledger.py', 'recent_kwh_price')], 'autumn': [('ledger.py', 'recent_kwh_price')]}]
-  FAIL the HASTUB_TZ subprocess suite passed  [
-2 of 4407 FEATURE CHECKS FAILED
-rc=1
