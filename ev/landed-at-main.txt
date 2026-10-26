@@ -1,0 +1,41 @@
+== carry6 STUCK
+origin/main:tools/audit/seat/INSTRUMENTS.md:317:  start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
+origin/main:tools/audit/seat/INSTRUMENTS.md:318:  `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is
+origin/main:tools/audit/seat/INSTRUMENTS.md:319:  `OWED <utc> push-stuck <branch> <pid> STUCK ...` in `<log>.level`; a
+origin/main:tools/audit/seat/cloud_relay.sh:468:# THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
+origin/main:tools/audit/seat/cloud_relay.sh:469:# 48 h). A branch lock (pr_args.sh's pr_branch_lock) held longer than HPO_PUSH_STUCK_SECS (default
+origin/main:tools/audit/seat/cloud_relay.sh:471:# `STUCK <branch> <pid> <age>s`, where <branch> is the lock's name (update_pr.sh's worktree name, `/`
+origin/main:tools/audit/seat/cloud_relay.sh:492:stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SECS is push-stuck on the level
+origin/main:tools/audit/seat/cloud_relay.sh:495:  python3 -I -c "$STUCK_PY" "${HPO_PUSH_STUCK_SECS:-900}" "$state/pr" > "$state/cloud-stuck.$$" \
+== carry5 setsid/pgid
+origin/main:tools/audit/seat/cloud_relay.sh:433:    # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
+origin/main:tools/audit/seat/cloud_relay.sh:434:    # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
+origin/main:tools/audit/seat/cloud_relay.sh:999:  # #2549: a signal to the loop's whole process group reaches the update only through the loop's
+origin/main:tools/audit/seat/cloud_relay.sh:1007:    HPO_RELAY_UPDATE=$1 python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp("bash", sys.argv[1:])' bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+origin/main:tools/audit/seat/cloud_relay.sh:1015:  chk "a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first" \
+origin/main:tools/audit/seat/cloud_relay.sh:1018:  chk "a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock" \
+origin/main:tools/audit/seat/pr_args.sh:84:  # signal to the run's whole process group does not end it beside the push it guards; a stopped
+origin/main:tools/audit/seat/pr_args.sh:203:pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
+== flock
+origin/main:tools/audit/seat/pr_args.sh:76:  # flock(2) held by one holder process; this shell holds no fd on it, so nothing the run starts can (a
+origin/main:tools/audit/seat/pr_args.sh:98:try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+origin/main:tools/audit/seat/pr_args.sh:104:fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
+origin/main:tools/audit/seat/pr_args.sh:124:  python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX)' || rc=$?  # mut:pushhold
+origin/main:tools/audit/seat/pr_args.sh:742:      python3 -I -c 'import fcntl, os, sys, time; f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); f.write("%d 0\n" % os.getpid()); f.flush(); open(sys.argv[2], "w").close(); time.sleep(120)' \
+== carry3 worktree detach
+origin/main:tools/audit/seat/pr_args.sh:563:    git -C "$m" worktree remove --force "$sd/pr/reap" 2>/dev/null
+origin/main:tools/audit/seat/pr_args.sh:583:    git -C "$m" worktree remove --force "$sd/fix-rhand" 2>/dev/null
+origin/main:tools/audit/seat/pr_args.sh:595:    git -C "$m" worktree add -q --detach "$w" "$reapsha" 2>/dev/null
+origin/main:tools/audit/seat/pr_args.sh:598:    git -C "$m" worktree remove --force "$w" 2>/dev/null
+origin/main:tools/audit/seat/pr_args.sh:740:    git -C "$m" worktree add -q --detach "$s/pr/upd-fix-x" && touch "$s/pr/upd-fix-x/live"
+== carry1/75
+origin/main:tools/audit/seat/pr_args.sh:31:  # 75 is BUSY to a caller (cloud_relay.sh retries it and records nothing), and only pr_lock_busy
+origin/main:tools/audit/seat/pr_args.sh:32:  # says it: a step that happens to exit 75 under errexit is a stop like any other (#2469).
+origin/main:tools/audit/seat/pr_args.sh:61:pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
+origin/main:tools/audit/seat/pr_args.sh:69:  echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
+origin/main:tools/audit/seat/pr_args.sh:71:pr_branch_lock() { # <lock-file> <branch> <worktree> [detach]: hold the branch's lock until the run and its push end, or exit 75 BUSY
+origin/main:tools/audit/seat/pr_args.sh:83:  # zombies a late-reaping PID 1 leaves, and failed 7 of 7). It ignores TERM, INT and HUP, so a
+origin/main:tools/audit/seat/pr_args.sh:94:for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(s, signal.SIG_IGN)  # mut:holdsig
+origin/main:tools/audit/seat/pr_args.sh:121:  # 1). In the foreground it is part of the push: reaped with it, and named by its BUSY line.
+origin/main:tools/audit/seat/pr_args.sh:133:# WHY IT EXISTS (R10-PUSHER-REAP, 2026-10-20). A pusher stopped with TERM left
+origin/main:tools/audit/seat/pr_args.sh:139:# The reap is the EXIT trap (pr_exit_trap): bash runs it when TERM, INT or HUP
