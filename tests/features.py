@@ -70298,13 +70298,35 @@ def _he_sig(key, source=pump_signals.MODE_SOURCE_LIVE, changed=None, owned=False
 _he_t = [NOW + timedelta(minutes=30 * i) for i in range(5)]
 
 
-def _he_dwell(*reads):
-    """A meter whose dwell saw ``reads`` = [(at, signals)], the last two its cycle."""
-    m = _he.HeatEnergyMeter()
+def _he_observe(coord, reads):
+    """The coordinator's own per-cycle read (``_observe_heat_energy``) of ``reads`` = [(at, signals)]."""
+    reader = _fmReader(FakeHass({}), {}, now=lambda: NOW)
     for at, sig in reads:
-        m.observe_mode(at, sig)
-    m.cycle = (reads[-2][0], reads[-1][0])
-    return m
+        coord._pump_signals = sig
+        _he_cm._observe_heat_energy(coord, reader, at)
+    return _he.meter_of(coord)
+
+
+def _he_dwell(*reads):
+    """A coordinator's meter whose dwell saw ``reads``, the last two its cycle."""
+    return _he_observe(_t2_coord(), reads)
+
+
+# pump_signals.read stamps a live mode with its state's last_changed, and a
+# last-good fallback with none: that state's stamp is the stale one's own.
+_he_mode_at = minutes_ago(42, NOW)
+_he_mode_live = pump_signals.read(_fmReader(FakeHass({"select.mode": FakeState(
+    "heat", last_updated=_he_mode_at, attributes={"options": ["heat", "DHW"]})}),
+    {_fb_const.CONF_HEAT_PUMP_MODE_ENTITY: "select.mode"}, now=lambda: NOW))
+_he_mode_lg = pump_signals.read(_fmReader(FakeHass({}), {_fb_const.CONF_HEAT_PUMP_MODE_ENTITY: "select.mode"},
+                                          now=lambda: NOW), last_good=pump_mode.MODES["heat"], last_good_age_minutes=5.0)
+R.check(
+    "a live mode read carries its last_changed and a last-good one carries none",
+    _he_mode_live.mode_source == pump_signals.MODE_SOURCE_LIVE and _he_mode_live.mode_changed_at == _he_mode_at
+    and _he_mode_lg.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD and _he_mode_lg.mode_changed_at is None,
+    f"live {_he_mode_live.mode_source} {_he_mode_live.mode_changed_at}; last good "
+    f"{_he_mode_lg.mode_source} {_he_mode_lg.mode_changed_at}",
+)
 
 
 _HE_HEAT, _HE_DHW = pump_mode.MODE_HEAT, pump_mode.MODE_DHW
@@ -70638,10 +70660,8 @@ R.check(
 # observed. A cycle that ran space 10 of 30 minutes books one third of its
 # energy to space, and the diagnosis takes the same third of the draw.
 _he_led = _t2_coord()
-_he_led_m = _he.meter_of(_he_led)
-_he_led_m.observe_mode(_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3)))
-_he_led_m.observe_mode(_he_t[1], _he_sig(_HE_DHW, changed=_he_t[0] + timedelta(minutes=10)))
-_he_led_m.cycle = (_he_t[0], _he_t[1])
+_he_observe(_he_led, [(_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3))),
+                      (_he_t[1], _he_sig(_HE_DHW, changed=_he_t[0] + timedelta(minutes=10)))])
 _he_pending = {"space_power": 2.0, "dhw_power": 0.0, "price": 1.0, "when": _he_t[1],
                "diag": {"state": {}, "planned": {}}}
 _he_sample = AccuracySample(when=_he_t[1], predicted_temp=21.0, actual_temp=21.0, actual_power_kw=3.0)

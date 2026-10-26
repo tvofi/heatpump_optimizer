@@ -36,7 +36,6 @@ from weakref import WeakKeyDictionary
 from .const import HEAT_LOSS_BASES
 from .drift import utc_elapsed_seconds
 from .pump_mode import MODE_DHW, MODE_HEAT
-from .pump_signals import MODE_SOURCE_LIVE
 
 SPACE = "space"
 DHW = "dhw"
@@ -202,11 +201,9 @@ class ModeDwell:
         del self.segments[:keep]
 
 
-def observed_duty(signals: Any) -> str | None:
+def observed_duty(mode_key: str | None, live: bool) -> str | None:
     """The single duty a live mode read names, else ``None`` (unobserved)."""
-    if signals.mode_source != MODE_SOURCE_LIVE:
-        return None
-    return {MODE_HEAT: SPACE, MODE_DHW: DHW}.get(signals.mode.key)
+    return {MODE_HEAT: SPACE, MODE_DHW: DHW}.get(mode_key or "") if live else None
 
 
 class Attribution(NamedTuple):
@@ -331,9 +328,11 @@ class HeatEnergyMeter:
     _clean: dict[str, bool] = field(default_factory=dict)
     _plan: tuple[float, float] = (0.0, 0.0)
 
-    def observe_mode(self, at: datetime, signals: Any) -> None:
-        """Fold this cycle's mode read into the dwell."""
-        self.dwell.observe(at, observed_duty(signals), getattr(signals, "mode_changed_at", None))
+    def observe_mode(
+        self, at: datetime, mode_key: str | None, live: bool, changed_at: datetime | None
+    ) -> None:
+        """Fold this cycle's mode read into the dwell: its key, whether it was read live, and when it changed."""
+        self.dwell.observe(at, observed_duty(mode_key, live), changed_at)
 
     def attribution(self, plan_split: tuple[float, float]) -> Attribution:
         """This cycle's interval, split by the dwell where observed, else by ``plan_split``."""

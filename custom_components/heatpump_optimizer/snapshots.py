@@ -77,6 +77,15 @@ class SnapshotRing:
     #: (D15 lead L9) rather than a bare ``healthy: false``.
     day_unhealthy: str | None = None
 
+    def observe_health(self, reason: str | None) -> bool:
+        """Fold one heartbeat's input health into the day; whether the day is still healthy."""
+        self.day_unhealthy = self.day_unhealthy or reason
+        return self.day_unhealthy is None
+
+    def start_day(self, reason: str | None) -> None:
+        """A counted day consumed the accumulator; the next starts from this tick's health."""
+        self.day_unhealthy = reason
+
     # -- taking snapshots -----------------------------------------------------
 
     def due(self, now: datetime) -> bool:

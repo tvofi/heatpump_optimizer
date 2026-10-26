@@ -1027,7 +1027,8 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
     """This cycle's mode and counter reads into the heat-energy meter (#2261)."""
     ctx = _ctx_of(coord)
     meter, heat, params = heat_energy.meter_of(coord), reader.read(CONF_HEAT_ENERGY_ENTITY), ctx._thermal_params
-    meter.observe_mode(at, coord._pump_signals)
+    signals = coord._pump_signals
+    meter.observe_mode(at, signals.mode.key, signals.mode_source == pump_signals.MODE_SOURCE_LIVE, signals.mode_changed_at)
     meter.observe_counters(
         at, heat.value if heat.ok else None, coord._measured_energy, configured=bool(heat.entity_id),
         cadence_h=ctx._config.optimization_interval / 60.0,
@@ -9479,9 +9480,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Health is accumulated worst-of-day across heartbeats, not
         # sampled at whichever tick happens to count the day: a morning
         # of garbage inputs must not green-light an evening rollback.
-        ring, reason_now = self._snapshot_ring, self._inputs_unhealthy()
-        ring.day_unhealthy = ring.day_unhealthy or reason_now
-        healthy = ring.day_unhealthy is None
+        reason_now = self._inputs_unhealthy()
+        healthy = self._snapshot_ring.observe_health(reason_now)
 
         if self._snapshot_ring.due(now):
             self._snapshot_ring.take(
@@ -9500,7 +9500,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if day_counted:
             # The counted day consumed the accumulator; the next day's
             # verdict starts from this tick's health.
-            ring.day_unhealthy = reason_now
+            self._snapshot_ring.start_day(reason_now)
         if not changed:
             if day_counted:
                 # Persist the streak daily — a restart on drift day 3
