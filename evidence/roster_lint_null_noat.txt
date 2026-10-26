@@ -1,0 +1,9 @@
+
+== ../out/roster-null-noat.json ==
+  ERROR   [R10-ERREXIT-COUNTERMEASURES] path: dev/audit/harnesses/r10_errexit_capture.py: not in the tree, and not present at its cited tag ref(s) [e0ffb1213, e78cd811]
+  ERROR   [R10-ERREXIT-COUNTERMEASURES] path: r10_errexit_capture.py: not in the tree, and not present at its cited tag ref(s) [e0ffb1213, e78cd811]
+  -- 2 error(s), 0 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 2 error(s) across 1 file(s)
