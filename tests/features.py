@@ -17743,6 +17743,34 @@ R.check(
     "a tripped detector freezes every learner with reason ventilation",
     _cv._learning_frozen() == "ventilation",
 )
+
+# #2508: with no indoor entity the room reads ThermalState's 21.0 C default,
+# so every residual is the replay against a constant. The configured twin,
+# fed the identical residuals, is the null control: it must still learn.
+def _indoor_health(entity_id):
+    from heatpump_optimizer.const import CONF_INDOOR_TEMP_ENTITY as _k
+    return inputs_mod.InputHealth(readings={_k: InputReading(
+        key=_k, entity_id=entity_id, value=None if entity_id is None else 20.0,
+        problem="not_configured" if entity_id is None else None)})
+
+
+_c2508 = {}
+for _ent in (None, "sensor.indoor"):
+    _c2508[_ent] = _vent_coord()
+    _c2508[_ent]._input_health = _indoor_health(_ent)
+    _feed_residual(_c2508[_ent], 0.2, 12, _T4)
+R.check(
+    "an install with no indoor entity never fits the heat-loss scale to the 21 C default (#2508)",
+    _c2508[None]._house_heat_loss_scale == 1.0
+    and _c2508[None]._learner_freeze_reason == "not_configured:indoor_temp_entity",
+    f"scale {_c2508[None]._house_heat_loss_scale}, reason {_c2508[None]._learner_freeze_reason}",
+)
+R.check(
+    "the same residuals with an indoor entity still move the scale (#2508 null control)",
+    _c2508["sensor.indoor"]._house_heat_loss_scale != 1.0
+    and _c2508["sensor.indoor"]._learner_freeze_reason is None,
+    f"scale {_c2508['sensor.indoor']._house_heat_loss_scale}",
+)
 _scale_frozen = _cv._house_heat_loss_scale
 _feed_residual(_cv, -0.4, 4, _T4 + timedelta(hours=8))
 R.check(
