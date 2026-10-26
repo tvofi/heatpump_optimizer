@@ -96,6 +96,11 @@ TIBBER_PRICE_KEY = "electricity_price"
 PRICE_SOURCE_ENTITY = "entity"
 
 
+#: The shortest dropped value a leak check searches the rest of a payload for:
+#: a shorter one matches ordinary words and numbers by chance.
+LEAK_MIN_CHARS = 6
+
+
 class Refused(ValueError):
     """A document that may not be written, and why."""
 
@@ -499,7 +504,7 @@ def seal(raw: Json, conf: frozenset[str]) -> Json:
     dropped: list[str] = []
     clean = sanitise(raw, conf, dropped)
     blob = json.dumps(clean, sort_keys=True)
-    leaked = sorted({s for s in dropped if len(s) >= 6 and s in blob})
+    leaked = sorted({s for s in dropped if len(s) >= LEAK_MIN_CHARS and s in blob})
     if leaked:
         raise Refused(
             f"refusing to write: {len(leaked)} dropped credential value(s) "
