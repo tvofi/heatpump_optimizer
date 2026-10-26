@@ -39,6 +39,12 @@ bitwise:
 - ``integer``: the counter arm with the heat counter floored to whole kWh; at
   this load each span expects more than one step, so it reads ``TRUE_K`` too.
 
+One more line per tree, ``CLAMP``: the #2698 carry, "clamp means reset" kept.
+The void path runs ``reanchor_heat_loss`` at zero confidence on both learners,
+so over a grid of stored values far outside their bounds it resets nothing and
+returns the configuration (every value 1); its null, the same grid at a
+converged learner's confidence, resets some. Expected identical at both trees.
+
 Expected: at the head ``counter``, ``reset`` and ``integer`` each scale within
 the step bound of ``TRUE_K`` with spread near zero, ``point`` and ``commanded``
 identical to the base's; at the base ``counter``, ``reset`` and ``integer``
@@ -175,6 +181,37 @@ def walk(arm):
 
 
 print("TREE_HAS_COUNTER", heat_energy is not None)
+
+# Carry (#2698, kept by mandate): "clamp means reset" is orthogonal to the
+# earned basis. The void path zeroes both learners' samples before it takes
+# ``house_loss_confidence``, so ``reanchor_heat_loss`` runs at (0, 0), where
+# both clamp branches (``if a and not``, ``if b and not``) are skipped. The
+# grid spans stored scales and ratios far past their bounds, both nameplate
+# moves, one zone and two.
+from heatpump_optimizer import thermal_model as tm
+conf0 = (cm.house_loss_confidence(0), cm.house_loss_confidence(0))
+bounds = dict(scale_bounds=(cm.HOUSE_HEAT_LOSS_SCALE_MIN, cm.HOUSE_HEAT_LOSS_SCALE_MAX),
+              ratio_bounds=(cm.LOWER_FLOOR_LOSS_RATIO_MIN, cm.LOWER_FLOOR_LOSS_RATIO_MAX))
+
+
+def clamp_grid(conf):
+    grid = resets = 0
+    far = 0.0
+    for scale in (0.05, 0.3, 1.0, 3.0, 20.0):
+        for ratio in (0.05, 1.0, 20.0):
+            for then, now in (((0.2, 0.1), (0.1, 0.3)), ((0.2, 0.0), (0.4, 0.0)), ((0.1, 0.1), (0.3, 0.02))):
+                got = tm.reanchor_heat_loss(then, now, scale, ratio, conf, **bounds)
+                grid += 1
+                resets += got[2] or got[3]
+                far = max(far, abs(got[0] - 1.0), abs(got[1] - 1.0) if now[1] > 0 else 0.0)
+    return grid, resets, far
+
+
+# Null control: the same grid at a converged learner's confidence does reset,
+# so the clamp branches are live and the zero above is the void's doing.
+conf_full = (cm.house_loss_confidence(10 ** 6), cm.house_loss_confidence(10 ** 6))
+print("CLAMP void confidence=%r grid=%d resets=%d max|value-1|=%r" % (conf0, *clamp_grid(conf0)))
+print("CLAMP null confidence=%r grid=%d resets=%d" % (conf_full, *clamp_grid(conf_full)[:2]))
 for arm in ("point", "counter", "commanded", "reset", "integer"):
     scales, folds = walk(arm)
     spread = max(scales.values()) - min(scales.values())
@@ -185,6 +222,7 @@ for arm in ("point", "counter", "commanded", "reset", "integer"):
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
