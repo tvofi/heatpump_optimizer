@@ -1,0 +1,1 @@
+EPS0 RESULT w40@f3ffb1c63: n=40 counted_work=40 base_wall_median=34.592 head_median=32.525 head_p90=34.267 work_range=20.083..34.65 wall_range=20.6..91.8

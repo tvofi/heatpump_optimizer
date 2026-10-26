@@ -1,0 +1,7 @@
+f3ffb1c63 run idx [5] [40230380300] ['completed']
+RESULT w40@f3ffb1c63: n=40 counted_work=40 base_wall_median=34.592 head_median=32.550 head_p90=34.267 work_range=20.083..34.65 wall_range=20.6..91.8
+RESULT w8@f3ffb1c63: n=8 counted_work=8 base_wall_median=59.642 head_median=32.500 head_p90=33.500 work_range=32.05..33.5 wall_range=40.6..69.6
+RESULT w40@now: n=40 counted_work=35 base_wall_median=33.783 head_median=32.533 head_p90=34.150 work_range=20.083..34.467 wall_range=20.6..69.6
+RESULT w8@now: n=8 counted_work=3 base_wall_median=65.750 head_median=32.367 head_p90=33.167 work_range=32.05..33.167 wall_range=59.7..69.6
+largest wall-work gaps: [(27.650000000000006, 40225415246, 'c9cbe6b45', 59.7, 32.05), (32.583, 40230141280, '8aee66b77', 65.8, 33.167), (34.817, 40214140975, 'f54f40cc1', 68.2, 33.383), (37.21633333333333, 40230380300, 'f3ffb1c63', 69.6, 32.367), (57.58299999999999, 40153878443, '12b222007', 91.8, 34.267)]
+smallest: [(0.08299999999999841, 40173552509, '880b667aa', 32.4, 32.317), (0.09999999999999432, 40163593825, '9082f2642', 32.8, 32.7), (0.11700000000000088, 40168327659, '7138516b4', 31.7, 31.583)]
