@@ -1,0 +1,4 @@
+662c662
+<         if days == self.overdue_notice:
+---
+>         if False:

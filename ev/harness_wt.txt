@@ -1,0 +1,67 @@
+RESULT reach commanded_steps 3
+RESULT reach completions 9
+RESULT reach attempt_hours []
+RESULT reach attempt_gaps_h []
+RESULT reach max_hours_since_planned 1584.5
+RESULT reach completion_age_days_end 0.9
+RESULT reach due_in_hours_end 146.2
+RESULT reach notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_overdue']
+RESULT reach notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}}
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached only 56.9 °C against a 60 °C target; the tank is not being disinfected
+RESULT short commanded_steps 139
+RESULT short completions 0
+RESULT short attempt_hours [0.8, 24.8, 48.8, 72.8, 96.8, 120.8, 144.8, 168.8, 192.8, 216.8, 240.8, 264.8, 288.8, 312.8]
+RESULT short attempt_gaps_h [24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0]
+RESULT short max_hours_since_planned 1584.5
+RESULT short completion_age_days_end 80.0
+RESULT short due_in_hours_end 0.8
+RESULT short notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_overdue', 'dhw_legionella_unreachable']
+RESULT short notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_overdue': {'days': '79', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '56.9', 'target': '60'}}
+DHW anti-legionella cycle reached only 55.4 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried within a day
+RESULT marginal commanded_steps 139
+RESULT marginal completions 0
+RESULT marginal attempt_hours [0.8, 24.8, 48.8, 72.8, 96.8, 120.8, 144.8, 168.8, 192.8, 216.8, 240.8, 264.8, 288.8, 312.8]
+RESULT marginal attempt_gaps_h [24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0, 24.0]
+RESULT marginal max_hours_since_planned 1584.5
+RESULT marginal completion_age_days_end 80.0
+RESULT marginal due_in_hours_end 0.8
+RESULT marginal notices_ever ['dhw_legionella_above_setpoint', 'dhw_legionella_overdue', 'dhw_legionella_unreachable']
+RESULT marginal notices_standing {'dhw_legionella_above_setpoint': {'legionella_temp': '60', 'setpoint': '52', 'interval_days': '7'}, 'dhw_legionella_unreachable': {'reached': '55.4', 'target': '60'}, 'dhw_legionella_overdue': {'days': '79', 'interval_days': '7'}}
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+rc=124
