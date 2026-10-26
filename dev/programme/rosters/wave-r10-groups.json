@@ -1325,7 +1325,6 @@
     "R10-LOOP-CPU"
    ],
    "carry": [
-    "P1 alone is inadmissible (footprint +3): it ships with P2.",
     "P6 moves the cursor advance BEFORE the await, so a cancelled solve now skips a spec. State it in the pull request and test it (catch-up judge carry).",
     "The orchestrator's plan suggested P3 fold into an accuracy or flow group; it rides here instead because R10-HEAT-METER (flow_meter.py) and R10-NIGHT-FOLDS (accuracy.py) are ordered around this group.",
     "No golden drift was measured on the union; re-check with tests/golden.py at your merge base.",
