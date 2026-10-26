@@ -1,0 +1,19 @@
+== forbidden paths
+       0
+== host paths in added lines
+0
+== trailers
+0
+== body host paths
+0
+== bugclasses
+dict
+fold_ledger: 46 classes, 746 instances, 121 in-tree judge survivors (rounds [8, 10]), 123 rca entries
+fold_ledger: 0 violation(s)
+== structure
+STRUCTURE RATCHET PASSED
+== harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+== select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+harness_headers: local run stopped after 5 min (cited from CI tests / fast green instead)

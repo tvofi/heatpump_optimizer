@@ -1,0 +1,6 @@
+harness_r1: selftest: 9 checks, 0 failed
+rc=0
+harness_head: selftest: 16 checks, 0 failed
+rc=0
+harness_mutant: selftest: 16 checks, 5 failed ['if test -ne', 'if test quoted', 'if test builtin', 'while test', 'same-line if']
+rc=1
