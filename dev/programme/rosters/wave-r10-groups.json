@@ -9783,7 +9783,8 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-PARAMS-OWNER"
+    "R10-PARAMS-OWNER",
+    "R10-ARCH-SHAPES"
    ],
    "carry": [
     "Owner's spec (tvofi, 2026-10-25, #2816): the house grade is normalized by building TYPE and ERA (configured), as measured envelope loss (W/K, thermal-mass corrected) relative to typical for that type and era. A house losing more than typical for its type and era scores below typical, but never 0: 0 is reserved for no data. Typical for its type and era scores mid-scale, and better than typical scores above. The owner's case (about 100 years old, new windows and added insulation in the last 20 years), with learned loss about 1.5x typical pre-1960, must land low but clearly nonzero. Acceptance: a monotone, continuous map from loss ratio to grade, with a null control at loss ratio 1.0 giving mid-scale for each era.",
