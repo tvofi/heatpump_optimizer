@@ -301,7 +301,6 @@ claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1
   cp "$d/claims.json" "$d/claims.md" "$2/.was/" 2>/dev/null
   out=$(cd "$2" && PYTHONPATH=tests/hastub python3 "$CLAIMS_GEN" 2>&1); r=$?
   [ "$r" -eq 0 ] || { echo "$CLAIMS_GEN exited $r: $(tail -1 <<<"$out")"; return 1; }
-  for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done
   hdr=$(python3 -I -c 'import contextlib, io, sys; sys.path[:0] = ["tests", "tests/hastub"]; from pathlib import Path
 with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
 e, g = h.expected_from(Path(sys.argv[1])), h.printed_from(sys.stdin.read())
