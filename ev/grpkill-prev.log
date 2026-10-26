@@ -1,0 +1,5 @@
+before kill: processes in pgid 16978: 1; bound sessions: 1
+sessions led by the supervisor's children: 16980
+16981
+session 16980: 0 live process(es) 3 s after the group KILL
+session 16981: 0 live process(es) 3 s after the group KILL

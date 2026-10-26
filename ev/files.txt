@@ -1,0 +1,20 @@
+identical-to-main tests/golden/claimed_drift.txt
+untouched-3dot tests/golden/claimed_drift.txt
+identical-to-main tests/golden/card_claimed_drift.txt
+untouched-3dot tests/golden/card_claimed_drift.txt
+identical-to-main VERSION
+untouched-3dot VERSION
+identical-to-main custom_components/heatpump_optimizer/manifest.json
+untouched-3dot custom_components/heatpump_optimizer/manifest.json
+identical-to-main RELEASE_NOTES.md
+untouched-3dot RELEASE_NOTES.md
+identical-to-main tests/structure_budgets.json
+untouched-3dot tests/structure_budgets.json
+dev/audit/harnesses/r10_seat_selftests_mutants.py
+dev/programme/delivery/2825.md
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/cloud_relay.sh
+tools/audit/seat/ledger.py
+tools/audit/seat/open_pr.sh
+tools/audit/seat/pr_args.sh
+tools/audit/seat/update_pr.sh
