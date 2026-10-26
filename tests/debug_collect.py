@@ -1677,4 +1677,111 @@ R.check(
     and drift.stored_age_seconds("garbage", T0) is None
     and drift.stored_age_seconds(T0 + timedelta(seconds=1), T0) is None,
 )
+
+# -- #2814's residue: the input ages, the stale flag and the self-tests' run time --
+# The payload's input ages are their ages when the inputs were read and its
+# ``plan_stale`` is judged then too; the stored self-test results carried no time.
+
+
+async def _published_download(after, solved_before, interval=None):
+    """The download ``after`` past a payload published at ``PUBLISHED``, for a plan
+    solved ``solved_before`` that, and inputs read at the publish instant."""
+    coord = FakeCoordinator({
+        "last_optimization": PUBLISHED - solved_before, "plan_stale": False,
+        "input_ages_minutes": {"indoor": 2.0}, "input_ages_at": PUBLISHED,
+        "input_problems": [{"input": "indoor", "age_minutes": 2.0}],
+    }, **({"_config": {"optimization_interval": interval}} if interval else {}))
+    entry = FakeEntry(entry_id="published", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+from heatpump_optimizer.inputs import InputReader  # noqa: E402
+
+R.check(
+    "an input reader stamps its health with the instant its ages are measured from",
+    InputReader(FakeHass(), {}, now=lambda: PUBLISHED).health.read_at == PUBLISHED,
+)
+_late = asyncio.run(_published_download(timedelta(minutes=14), timedelta(minutes=1)))
+_at_publish = asyncio.run(_published_download(timedelta(0), timedelta(minutes=1)))
+_overdue = asyncio.run(_published_download(timedelta(minutes=95), timedelta(minutes=1)))
+# At a 15-minute interval three missed cycles are 45 minutes, under the
+# 90-minute floor, so a plan solved 60 minutes ago is fresh: this tells the
+# floor from the cycles (the default interval's 3 cycles are exactly the floor).
+_at_floor = asyncio.run(_published_download(timedelta(0), timedelta(minutes=60), interval=15))
+R.check(
+    "the download's input ages are re-based to the export: read 2 minutes old and "
+    "exported 14 minutes later, they read 16",
+    _late["inputs"]["input_ages_minutes"] == {"indoor": 16.0}
+    and _late["inputs"]["input_problems"][0]["age_minutes"] == 16.0,
+    str(_late["inputs"]),
+)
+R.check(
+    "the null control: a download taken at the publish instant reads the published ages",
+    _at_publish["inputs"]["input_ages_minutes"] == {"indoor": 2.0}
+    and _at_publish["inputs"]["input_problems"][0]["age_minutes"] == 2.0,
+    str(_at_publish["inputs"]),
+)
+R.check(
+    "input ages with no read instant, or one ahead of the export, stay as published",
+    diagnostics_mod._inputs_at({"input_ages_minutes": {"x": 1.0}}, PUBLISHED)
+    == {"input_ages_minutes": {"x": 1.0}}
+    and diagnostics_mod._inputs_at(
+        {"input_ages_minutes": {"x": 1.0}, "input_ages_at": PUBLISHED},
+        PUBLISHED - timedelta(minutes=1))["input_ages_minutes"] == {"x": 1.0},
+)
+R.check(
+    "the download judges plan_stale at the export with the coordinator's limit: at "
+    "a 15-minute interval a plan solved 60 minutes ago is fresh, under the "
+    "90-minute floor, and stale 96 minutes after it",
+    _overdue["plan"]["plan_stale"] is True and _late["plan"]["plan_stale"] is False
+    and _at_publish["plan"]["plan_stale"] is False
+    and _at_floor["plan"]["plan_stale"] is False,
+    f'{_overdue["plan"]["plan_stale"]} {_late["plan"]["plan_stale"]} {_at_floor["plan"]["plan_stale"]}',
+)
+# An instant ahead of the export cannot be dated, so the payload's verdict is
+# the only evidence: re-judging it there would invent "fresh" from no age.
+_ahead_plan = {"last_optimization": PUBLISHED + timedelta(minutes=5)}
+R.check(
+    "a plan the export clock cannot date keeps the payload's plan_stale, and one the "
+    "payload never judged publishes none",
+    diagnostics_mod._plan_summary({**_ahead_plan, "plan_stale": True}, PUBLISHED, 90.0)
+    ["plan_stale"] is True
+    and diagnostics_mod._plan_summary(_ahead_plan, PUBLISHED, 90.0)["plan_stale"] is None
+    and diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=95), "plan_stale": False},
+        PUBLISHED, 90.0)["plan_stale"] is True,
+    str([diagnostics_mod._plan_summary({**_ahead_plan, "plan_stale": True},
+                                       PUBLISHED, 90.0)["plan_stale"],
+         diagnostics_mod._plan_summary(_ahead_plan, PUBLISHED, 90.0)["plan_stale"]]),
+)
+with tempfile.TemporaryDirectory() as tmp:
+    dt_util.freeze(T0 + timedelta(hours=5))
+    try:
+        _, _timed, _, _timed_reload, _ = asyncio.run(_finish(tmp))
+        _timed_bundle = asyncio.run(_timed.async_bundle(_coord(integration_version="0")))
+    finally:
+        dt_util.freeze(None)
+R.check(
+    "the self-tests' run time is stored with them, survives a reload, and the manifest "
+    "states it and its age at the export",
+    _timed.self_tests_at == T0 + timedelta(hours=5)
+    and _timed_reload.self_tests_at == _timed.self_tests_at
+    and admitted("debug", _timed.as_dict())
+    and _timed_bundle["manifest"]["self_tests_at"] == (T0 + timedelta(hours=5)).isoformat()
+    and _timed_bundle["manifest"]["self_tests_age_hours"] == 0.0,
+    f"{_timed.self_tests_at} {_timed_reload.self_tests_at}",
+)
+_cleared_at, _ = _collector()
+_cleared_at.started_at, _cleared_at.final = T0, True
+_cleared_at.self_tests, _cleared_at.self_tests_at = {"feeds": {"ms": 1.0}}, T0
+_cleared_at.restart()
+R.check(
+    "starting a finished collection again clears its self-tests' run time",
+    _cleared_at.self_tests_at is None and "self_tests_at" not in _cleared_at.as_dict(),
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

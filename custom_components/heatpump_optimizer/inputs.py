@@ -131,6 +131,8 @@ class InputHealth:
     """A snapshot of every guarded read from one update cycle."""
 
     readings: dict[str, InputReading] = field(default_factory=dict)
+    #: The instant the readings' ages are measured from.
+    read_at: datetime | None = None
 
     def record(self, reading: InputReading) -> InputReading:
         self.readings[reading.key] = reading
@@ -796,7 +798,7 @@ class InputReader:
         self.enabled = bool(enabled)
         self.scale = float(scale)
         self._now: Callable[[], datetime] | None = now
-        self.health = InputHealth()
+        self.health = InputHealth(read_at=self._utcnow())
 
     def _utcnow(self) -> datetime:
         if callable(self._now):

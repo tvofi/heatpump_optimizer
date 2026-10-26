@@ -49,6 +49,11 @@ summary's ``plan_age_minutes`` is measured at that instant from
 ``last_optimization``. The published value is the age when the payload was
 built, up to one optimisation interval earlier, so a 14-minute-old plan read
 0.8 in the owner's bundle.
+
+Its residue: the input ages are re-based from ``input_ages_at``, the instant
+the inputs were read, to the export; ``plan_stale`` is judged at the export by
+the coordinator's own limit; and the debug manifest states when the stored
+self-tests ran.
 """
 from __future__ import annotations
 
@@ -70,6 +75,7 @@ from .coordinator import (
     CoordinatorDiagnostics,
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
+    plan_stale_limit_minutes,
 )
 from .payload import LearningView
 
@@ -101,6 +107,7 @@ INPUT_KEYS = (
     "problem_inputs",
     "problem_messages",
     "input_ages_minutes",
+    "input_ages_at",
     "learners_frozen",
     "learner_freeze_reason",
 )
@@ -147,11 +154,43 @@ def _without_values(value: Any, private: frozenset[str]) -> Any:
     return REDACTED if str(value) in private else value
 
 
-def _plan_summary(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
+def _inputs_at(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
+    """The input watchdog's keys, each input age re-based from ``input_ages_at`` to ``now``.
+
+    With no read instant, or one ahead of ``now``, the ages stay as published.
+    """
+    inputs = {key: data[key] for key in INPUT_KEYS if key in data}
+    elapsed = stored_age_seconds(data.get("input_ages_at"), now)
+    if elapsed is None:
+        return inputs
+
+    def aged(minutes: Any) -> Any:
+        return round(minutes + elapsed / 60.0, 1) if isinstance(minutes, (int, float)) else minutes
+
+    if isinstance(ages := inputs.get("input_ages_minutes"), Mapping):
+        inputs["input_ages_minutes"] = {key: aged(age) for key, age in ages.items()}
+    if isinstance(problems := inputs.get("input_problems"), list):
+        inputs["input_problems"] = [
+            {**problem, "age_minutes": aged(problem.get("age_minutes"))}
+            if isinstance(problem, Mapping) else problem
+            for problem in problems
+        ]
+    return inputs
+
+
+def _plan_summary(
+    data: Mapping[str, Any], now: datetime, stale_limit: float | None = None
+) -> dict[str, Any]:
     """What the current plan is, in counts and totals: no per-step series.
 
-    Its age is measured at ``now``, the export, not copied from the payload.
+    Its age is measured at ``now``, the export, not copied from the payload,
+    and so is ``plan_stale`` wherever the export can date the plan and the
+    coordinator's limit is readable; a plan the export cannot date keeps the
+    verdict it was published with.
     """
+    age = stored_age_seconds(data.get("last_optimization"), now)
+    stale = (data.get("plan_stale") if stale_limit is None or age is None
+             else age / 60.0 > stale_limit)
 
     def channel(plan: Any) -> dict[str, Any]:
         plan = plan if isinstance(plan, Mapping) else {}
@@ -171,15 +210,11 @@ def _plan_summary(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
                 "optimization_status",
                 "last_optimization",
                 "next_optimization",
-                "plan_stale",
                 "current_action",
             )
         },
-        "plan_age_minutes": (
-            round(age / 60.0, 1)
-            if (age := stored_age_seconds(data.get("last_optimization"), now)) is not None
-            else None
-        ),
+        "plan_stale": stale,
+        "plan_age_minutes": round(age / 60.0, 1) if age is not None else None,
         "space": channel(data.get("space_plan")),
         "dhw": channel(data.get("dhw_plan")),
     }
@@ -194,8 +229,10 @@ def _published_sections(coord: Any, now: datetime) -> dict[str, Any]:
         "last_diagnosis": (
             insight.get("last_diagnosis") if isinstance(insight, Mapping) else None
         ),
-        "inputs": {key: data[key] for key in INPUT_KEYS if key in data},
-        "plan": _plan_summary(data, now),
+        "inputs": _inputs_at(data, now),
+        "plan": _plan_summary(
+            data, now, plan_stale_limit_minutes(getattr(coord, "effective_config", None))
+        ),
         "learning": {key: data[key] for key in LearningView.__annotations__ if key in data},
     }
 
