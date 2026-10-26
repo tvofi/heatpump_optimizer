@@ -10427,7 +10427,9 @@
     "custom_components/heatpump_optimizer/diagnostics.py",
     "custom_components/heatpump_optimizer/debugger.py"
    ],
-   "carry": [],
+   "carry": [
+    "From R10-DIAG-REDACT (#2824): issue 2814 stays open on three parts outside that pull request's carries 0-2 -- re-basing input_ages_minutes to the export clock (the payload carries no publish instant to re-base from), judging plan_stale at publish, and a run time on the stored self-test results, which needs a field in the collection's store document."
+   ],
    "resume": {
     "stage": "fixing",
     "branch": "wip-sync/ext-wt-5d3ff6c5",
