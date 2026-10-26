@@ -1,1 +1,6 @@
-64d33242659f3dd6c50be61bd395ce730f372b1e
+PR 2854 R10-HEAT-METER review evidence
+head measured: 7e9fea6acb929bf8eecd279096d99fafb208ac56
+merge base:    3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f
+measured in worktree: /Users/timmalmstrom/hpo-orch/r10s6/s7/rev-2854-r3
+head commit: ci: pin killed mutants by github-actions[bot]
+parent (body-named head): a0ffc44074711bb4fbff35d509d26ee0230ab730
