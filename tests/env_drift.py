@@ -49,13 +49,6 @@ RUNNER-CONDITIONAL CANDIDATE message and its pre-agreed decision tree
 and drift a dev box sees that the runner does not reproduce is a
 BLAS-build difference, not a property of the diff.
 
-A claim may name a move instead of a fixture: a `shape: <leaf paths>
-<from> -> <to>` line excuses exactly the leaves that move that way in
-whichever fixtures move, and nothing else in them. It exists for drift of
-one direction whose fixture SET is the host's (#996, closed by
-R10-996-RUNNER-CLAIMS); see "Shape claims" below for the grammar and its
-refusals.
-
 A claim describes exactly ONE diff, and two rules keep it that way:
 
   * The file carries a machine-read declaration line — `# claims-for:
@@ -118,7 +111,6 @@ import json
 import os
 import pathlib
 import platform
-import re
 import shutil
 import struct
 import subprocess
@@ -126,7 +118,6 @@ import sys
 import tempfile
 import textwrap
 import time
-from dataclasses import dataclass
 
 SENSITIVE = (
     "valve_storage_smart_write",
@@ -691,29 +682,21 @@ def capture_tree(root: str, out_path: str, everything: bool) -> None:
     resolved.write_text(json.dumps(payloads, indent=1, sort_keys=True))
 
 
-def _diff_leaves(a, b, path, out, moves=None) -> None:
-    """Append one line per differing leaf to ``out``.
-
-    ``moves``, when given, maps each value line to ``(path, a, b)``, the
-    move a shape claim is matched against; structural lines (a key on one
-    side only, a length change) carry no value pair and get no entry.
-    """
+def _diff_leaves(a, b, path, out) -> None:
     if isinstance(a, dict) and isinstance(b, dict):
         for k in sorted(set(a) | set(b)):
             if k not in a or k not in b:
                 out.append(f"{path}.{k}: present on one side only")
             else:
-                _diff_leaves(a[k], b[k], f"{path}.{k}", out, moves)
+                _diff_leaves(a[k], b[k], f"{path}.{k}", out)
     elif isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             out.append(f"{path}: length {len(a)} vs {len(b)}")
             return
         for i, (x, y) in enumerate(zip(a, b)):
-            _diff_leaves(x, y, f"{path}[{i}]", out, moves)
+            _diff_leaves(x, y, f"{path}[{i}]", out)
     elif a != b:
         out.append(f"{path}: {a!r} vs {b!r}")
-        if moves is not None:
-            moves[out[-1]] = (path, a, b)
 
 
 def _payload_key(fixture: str, diff_line: str) -> str | None:
@@ -734,160 +717,6 @@ def may_drift_exempt_diffs(fixture: str, diffs: list[str]) -> list[str]:
     """Plan and basin-sensitive diffs a may-drift fixture may carry."""
     judged = set(MAY_DRIFT_JUDGED_KEYS)
     return [d for d in diffs if _payload_key(fixture, d) not in judged]
-
-
-# ===========================================================================
-# Shape claims: one direction, any fixture set (#996, R10-996-RUNNER-CLAIMS)
-# ===========================================================================
-#
-# A claim names a fixture, and that is the wrong key for a change whose drift
-# has one direction everywhere but lands on a host-dependent SET of fixtures.
-# Measured on #2819 round 4 (#996 comment 6404201979): the parked classifier
-# arm turns a share the plan runs no pump at into an idle reason on every
-# host, but macOS, the cloud container and two CI runner hosts (numeric_probe
-# and numpy_build differ between runs of one PR) each moved a different set,
-# because whether a fixture has such a step is the solve's basin. Every fixed
-# name list went STALE or UNCLAIMED on some runner.
-#
-# A shape claim is a bare claim line keyed on the move instead:
-#
-#     shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # why
-#
-# leaf path patterns (`[*]` any index, `*` within one key, `|` between
-# alternatives, at least one literal key character each), the from-set (`*`:
-# any value outside the to-set) and the to-set, each a `|`-joined list of
-# quoted string literals. It excuses exactly the leaves that move that way, in
-# whichever fixtures move; any other leaf of the same fixture -- a value leaf,
-# the reverse pair, another reason pair, another path -- is unclaimed drift.
-# Fail closed: a line that does not parse refuses the run (`shape_claim_error`),
-# a from-set meeting the to-set (both directions) is refused, and a shape no
-# leaf of any captured fixture moved in on this host -- may-drift fixtures
-# included, since their move is evidence the shape occurred here -- is stale
-# like any claim nothing matched. Being a bare line, it is a claim in every
-# other respect: it expires with `claims-for:`, is judged by the inherited and
-# record-PR rules, excuses only when this branch wrote it, and is refused by
-# the merge driver when both sides rewrote the list.
-
-SHAPE_CLAIM_MARKER = "shape:"
-_SHAPE_LINE = re.compile(r"shape:\s+(\S+)\s+(\S+)\s+->\s+(\S+)")
-_SHAPE_LITERAL = re.compile(r"'[^'\s|#\\]*'")
-_SHAPE_PATH = re.compile(r"[A-Za-z0-9_.\[\]*]*[A-Za-z0-9_][A-Za-z0-9_.\[\]*]*")
-
-
-@dataclass(frozen=True)
-class ShapeClaim:
-    """One direction over named leaves, parsed from a ``shape:`` line."""
-
-    paths: re.Pattern
-    #: None for ``*``: any value outside ``tos``.
-    froms: frozenset[str] | None
-    tos: frozenset[str]
-
-    def matches(self, leaf: str, old, new) -> bool:
-        """Does moving ``leaf`` (the path below its fixture) from ``old`` to ``new`` fit?"""
-        return (
-            isinstance(old, str) and isinstance(new, str)
-            and new in self.tos and old not in self.tos
-            and (self.froms is None or old in self.froms)
-            and self.paths.fullmatch(leaf) is not None
-        )
-
-
-def _shape_values(text: str) -> frozenset[str]:
-    alternatives = text.split("|")
-    if not all(_SHAPE_LITERAL.fullmatch(alt) for alt in alternatives):
-        raise ValueError(f"{text} is not '|'-joined quoted string literals")
-    return frozenset(alt[1:-1] for alt in alternatives)
-
-
-def _shape_paths(text: str) -> re.Pattern:
-    alternatives = text.split("|")
-    if not all(_SHAPE_PATH.fullmatch(alt) for alt in alternatives):
-        raise ValueError(
-            f"{text} is not '|'-joined leaf paths, each naming a key")
-    return re.compile("|".join(
-        "(?:{})".format(
-            re.escape(alt).replace(r"\[\*\]", r"\[\d+\]")
-            .replace(r"\*", r"[^.\[\]]*"))
-        for alt in alternatives
-    ))
-
-
-def parse_shape_claim(line: str) -> ShapeClaim:
-    """The shape a ``shape:`` claim line states; ValueError saying why not."""
-    match = _SHAPE_LINE.fullmatch(line)
-    if match is None:
-        raise ValueError(
-            f"expected `{SHAPE_CLAIM_MARKER} <leaf paths> <from> -> <to>`")
-    paths, old, new = match.groups()
-    froms = None if old == "*" else _shape_values(old)
-    tos = _shape_values(new)
-    if froms is not None and froms & tos:
-        raise ValueError(
-            f"{', '.join(sorted(froms & tos))} is on both sides: a shape "
-            "states one direction")
-    return ShapeClaim(_shape_paths(paths), froms, tos)
-
-
-def shape_claims(claims: dict[str, list[str]]) -> dict[str, ShapeClaim]:
-    """The parseable shape lines among ``claims``, keyed by their line.
-
-    One that does not parse is left out and so matches nothing -- it reads
-    stale -- but `main` refuses it before any capture (`shape_claim_error`).
-    """
-    out: dict[str, ShapeClaim] = {}
-    for name in claims:
-        if name.startswith(SHAPE_CLAIM_MARKER):
-            try:
-                out[name] = parse_shape_claim(name)
-            except ValueError:
-                continue
-    return out
-
-
-def shape_claim_error(claims: dict[str, list[str]]) -> str | None:
-    """Why a ``shape:`` line in the claim list is unusable -- None when none is."""
-    bad = []
-    for name in claims:
-        if not name.startswith(SHAPE_CLAIM_MARKER):
-            continue
-        try:
-            parse_shape_claim(name)
-        except ValueError as err:
-            bad.append(f"  {name}\n    {err}")
-    if not bad:
-        return None
-    return (
-        f"SHAPE CLAIM REFUSED: {CLAIM_FILE} carries a shape line that does\n"
-        "not state one direction over named leaves:\n" + "\n".join(bad) + "\n"
-        f"The form is `{SHAPE_CLAIM_MARKER} <leaf paths> <from> -> <to>`: leaf\n"
-        "paths joined by '|' with `[*]` for any index and `*` inside one key,\n"
-        "each naming a key; from and to as '|'-joined quoted string literals,\n"
-        "from may be `*` (any value outside to), and the two sets disjoint.\n"
-        "A line the gate cannot read must not excuse anything, so the run stops."
-    )
-
-
-def shaped_leaves(
-    fixture: str, base, head, shapes: dict[str, ShapeClaim]
-) -> tuple[list[str], list[str], set[str]]:
-    """``(every diff line, the lines no shape claims, the shapes that matched)``."""
-    lines: list[str] = []
-    moves: dict[str, tuple[str, object, object]] = {}
-    _diff_leaves(base, head, fixture, lines, moves)
-    prefix = f"{fixture}."
-    loose: list[str] = []
-    matched: set[str] = set()
-    for line in lines:
-        path, old, new = moves.get(line, ("", None, None))
-        hits = {
-            key for key, shape in shapes.items()
-            if path.startswith(prefix) and shape.matches(path[len(prefix):], old, new)
-        }
-        matched |= hits
-        if not hits:
-            loose.append(line)
-    return lines, loose, matched
 
 
 # ===========================================================================
@@ -2342,40 +2171,25 @@ def runner_conditional_error(name: str, ref: str) -> str:
     burned review rounds discovering it was runner-conditional chaos. This
     message is the pre-agreed decision tree instead: name the class, name
     the decision, and forbid the retry loop -- re-adding the claim cannot
-    make the drift real on the runner, it only re-fails the gate. Step 1
-    names the shape claim, the grammar the #996 decision landed once the
-    instance count crossed ``RUNNER_CONDITIONAL_REOPEN_AT``: drift of one
-    direction whose fixture SET is the host's is claimed by its shape.
-    A stale shape claim is not a fixture the runner failed to reproduce: no
-    leaf anywhere moved in it on this host, so it gets its own message.
+    make the drift real on the runner, it only re-fails the gate. Step 2
+    sends the instance to the #996 thread, whose marker-line count
+    re-opens the grammar decision at the third instance.
     """
-    if name.startswith(SHAPE_CLAIM_MARKER):
-        return (
-            f"SHAPE CLAIM MATCHED NOTHING: no leaf of any fixture captured\n"
-            f"against {ref}, may-drift fixtures included, moved in\n  {name}\n"
-            "A shape claim must hold on every host it runs on, so its shape has\n"
-            "to be one the change produces everywhere, not one host's subset.\n"
-            "If this host's leaves moved in another shape, the claim is too\n"
-            "narrow; if nothing moved, the change no longer does what the\n"
-            "claim says -- remove it."
-        )
     return (
         f"RUNNER-CONDITIONAL CANDIDATE (#996 class): this branch's own\n"
         f"claim for {name} matched nothing the capture found against {ref}.\n"
         "If a dev box showed drift for it, that drift is BLAS-build-conditional,\n"
         "not a property of the diff (issue #996). DECISION TREE, pre-agreed:\n"
-        "  1. remove the claim -- the runner is the judge of record. If the\n"
-        "     drift has ONE direction on every host and only the SET of\n"
-        "     fixtures it lands on varies, claim its shape instead: one\n"
-        f"     `{SHAPE_CLAIM_MARKER} <leaf paths> <from> -> <to>` line\n"
-        "     (claim-files.md), which holds whichever fixtures move;\n"
+        "  1. remove the claim -- the runner is the judge of record;\n"
         "  2. post the instance on issue #996 with BOTH captures' numbers\n"
         "     (the dev box's and the runner's), one marker line per\n"
         f"     instance, at column 0: {RUNNER_CONDITIONAL_INSTANCE_MARKER}\n"
         "     <scenario> -- <numbers>;\n"
-        "  3. do NOT re-add this fixture's claim -- it cannot make the drift\n"
-        "     real where it was absent, and only re-fails the gate. Count the\n"
-        "     recorded instances with `python3 tests/issue996_count.py`."
+        "  3. do NOT edit the claim file again -- re-adding this claim\n"
+        "     cannot make the drift real where it was absent, and only\n"
+        "     re-fails the gate. Count the recorded instances with\n"
+        "     `python3 tests/issue996_count.py`; the third re-opens the\n"
+        "     claim-grammar decision."
     )
 
 
@@ -2484,8 +2298,6 @@ def judge_drift(branch: dict[str, object], baseline: dict[str, object],
     drifted = 0
     claimed_hits = []
     may_drift_hits: list[str] = []
-    shapes = shape_claims(claims)
-    shape_hits: set[str] = set()
     for name in sorted(set(branch) | set(baseline)):
         if name not in baseline:
             # Added by this branch, so there is nothing to compare --
@@ -2506,9 +2318,8 @@ def judge_drift(branch: dict[str, object], baseline: dict[str, object],
                 drifted += 1
                 print(f"  DRIFT {name}: scenario removed by this branch")
             continue
-        diffs, loose, matched = shaped_leaves(
-            name, baseline[name], branch[name], shapes)
-        shape_hits |= matched
+        diffs: list[str] = []
+        _diff_leaves(baseline[name], branch[name], name, diffs)
         if not diffs and name in may_drift:
             # Not "ok": nothing was proved. This machine's solve of a
             # non-reproducible fixture simply did not land on the part
@@ -2540,22 +2351,12 @@ def judge_drift(branch: dict[str, object], baseline: dict[str, object],
                   f"({'; '.join(claims[name])})")
             for line in diffs[:3]:
                 print(f"         {line}")
-        elif not loose:
-            print(f"  SHAPED {name}: {len(diffs)} leaves moved, every one in "
-                  f"a claimed shape")
-            for line in diffs[:3]:
-                print(f"         {line}")
         else:
             drifted += 1
-            shaped = len(diffs) - len(loose)
-            print(f"  DRIFT {name}: {len(loose)} leaves moved vs {ref}"
-                  + (f" ({shaped} more in a claimed shape)" if shaped else ""))
-            for line in loose[:5]:
+            print(f"  DRIFT {name}: {len(diffs)} leaves moved vs {ref}")
+            for line in diffs[:5]:
                 print(f"         {line}")
 
-    # A shape is live wherever a leaf moved in it, may-drift fixtures
-    # included: the claim says the move happens on this host, not where.
-    claimed_hits.extend(sorted(shape_hits))
     return drifted, claimed_hits, may_drift_hits
 
 
@@ -2679,8 +2480,7 @@ def main() -> int:
             return 1
         _declared, claims = _claimed(repo)
         may_drift = _may_drift(repo)
-        scope_problem = (may_drift_error(may_drift, claims)
-                         or shape_claim_error(claims))
+        scope_problem = may_drift_error(may_drift, claims)
         if scope_problem:
             print(scope_problem)
             return 1
@@ -2713,8 +2513,7 @@ def main() -> int:
         return 1
     _declared, claims = _claimed(repo)
     may_drift = _may_drift(repo)
-    scope_problem = (may_drift_error(may_drift, claims)
-                     or shape_claim_error(claims))
+    scope_problem = may_drift_error(may_drift, claims)
     if scope_problem:
         print(scope_problem)
         return 1

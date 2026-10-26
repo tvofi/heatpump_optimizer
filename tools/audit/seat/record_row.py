@@ -902,12 +902,10 @@ def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
 
     The window is `<since>..HEAD` over the FIRST-PARENT log -- the same window
     `record` reads -- and each first-parent merge commit is attributed through
-    `/commits/<sha>/pulls`, the commit-to-pull-request map, whose matched
-    entry already carries the title, state and head branch the rows carry: one
-    read per merge, on the GITHUB_TOKEN bucket every required check shares
-    (dev/audit/rca/ratelimit-recur.md). A commit the map cannot attribute is
-    REFUSED, not skipped: a collection that cannot read the window must fail
-    this run, never report an empty one.
+    `/commits/<sha>/pulls`, the commit-to-pull-request map, then `/pulls/<n>`
+    for the title, state and head branch the rows carry. A commit the map
+    cannot attribute is REFUSED, not skipped: a collection that cannot read
+    the window must fail this run, never report an empty one.
     """
     span = f"{since}..HEAD" if since else "HEAD"
     log = subprocess.run(
@@ -935,7 +933,7 @@ def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
                 f"merge commit {sha[:7]} attributes to no pull request via "
                 "the REST API; the window is UNCHECKED this run, not "
                 "confirmed empty")
-        pr = matched[0]
+        pr = _api(repo, f"/pulls/{matched[0]['number']}", token)
         merges.append({
             "number": int(pr["number"]),
             "title": pr.get("title") or "",
@@ -1688,54 +1686,6 @@ def self_test() -> int:
        and "(after 4 attempts)" in getattr(_results["spent"][0], "__notes__", []))
     ok("gh_read's own self-test passes (the rule record_row reads under)",
        globals().get("gh_read") is not None and gh_read.self_test() == 0)
-
-    # ------------------------------------ R10-RCA-RATELIMIT-RECUR ---------
-    # The enumeration reads the repository's GITHUB_TOKEN bucket on every push
-    # to main, over a window that grows until the next stamp
-    # (dev/audit/rca/ratelimit-recur.md): one read per merge, because the
-    # commit-to-pull-request map already carries every field a row needs. Two
-    # merges and a direct push are walked; the null control is a window of
-    # direct pushes only, which reads nothing.
-    def _enum_pull(n, sha):
-        return {"number": n, "title": f"fix: {n}", "state": "closed",
-                "head": {"ref": f"fix/r10-{n}"}, "merge_commit_sha": sha}
-
-    def _enum_api(repo, path, token):
-        _enum_calls.append(path)
-        if path.startswith("/pulls/"):
-            n = int(path.split("/")[2])
-            return next(_enum_pull(n, s) for s, m in _enum_by.items() if m == n)
-        sha = path.split("/")[2]
-        return [_enum_pull(_enum_by[sha], sha)] if sha in _enum_by else []
-    _enum_by = {"a" * 40: 2101, "c" * 40: 2102}
-    _enum_got, _real_sub = [], subprocess
-
-    class _EnumLog:
-        def __init__(self, text):
-            self.text = text
-
-        def run(self, *a, **k):
-            return type("R", (), {"stdout": self.text})()
-    try:
-        globals()["_api"] = _enum_api
-        for _text in ("a" * 40 + "\x1fp q\n" + "b" * 40 + "\x1fp\n"
-                      + "c" * 40 + "\x1fp q\n", "b" * 40 + "\x1fp\n"):
-            _enum_calls: list = []
-            globals()["subprocess"] = _EnumLog(_text)
-            _enum_got.append((enumerate_merges(DEFAULT_REPO, "v0", "t"),
-                              list(_enum_calls)))
-    finally:
-        globals()["_api"], globals()["subprocess"] = _real_api, _real_sub
-    ok("enumerate_merges reads one map per merge and nothing else",
-       _enum_got[0][1] == [f"/commits/{'a' * 40}/pulls",
-                           f"/commits/{'c' * 40}/pulls"])
-    ok("and builds each row's facts from that map",
-       _enum_got[0][0] == [
-           {"number": n, "title": f"fix: {n}", "state": "closed",
-            "head_ref": f"fix/r10-{n}", "merge_sha": s}
-           for n, s in ((2101, "a" * 40), (2102, "c" * 40))])
-    ok("a window of direct pushes reads nothing (null control)",
-       _enum_got[1] == ([], []))
 
     # ------------------------------------- R10-FLOW-RECORD-PITCH ----------
     # The record chain: a record-class merge owes no row, so the plan right
