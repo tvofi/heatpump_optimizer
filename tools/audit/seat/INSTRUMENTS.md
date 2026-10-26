@@ -174,7 +174,19 @@ sweep's standing-seat liveness step keep them alive.
   note or `--past-three <reason>` (logged in `past-three`). `confirm` writes
   the record's model as `bus-model:` on `verdict/<pr>`, which
   `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
-  a posted tree before it pushes.
+  a posted tree before it pushes. `dispatch` first renders the review packet
+  (`review_packet.py`) and names it as `review-packet:`; a refused or stale
+  packet refuses the dispatch and records nothing.
+- `review_packet.py` — the fix reviewer's packet at the frozen head: three-dot
+  diff, the head's check runs as read (pending, green or red, with run ids),
+  `carry_audit.py` and `figure_lint.mjs` at the head, the finder's harness
+  (`--harness`, at the base and untouched by the diff, or `--harness-file`
+  outside the tree) at both ends, and the mutation-ledger diff. When: through
+  `bus.sh dispatch`. Refusal: carry-audit, a `## Head` not naming the head, a
+  `tests/structure.py` refusal at the head merged with main, an unanswered
+  concluded red, a required context concluded failure, a host path, or a hot
+  file shared with an open pull request holding an unboarded merge verdict; a
+  pending check never refuses.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
