@@ -1,0 +1,107 @@
+==========================================================================
+DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
+  key       21abcb4682684e615bc6d81d7851ba1be6733b1506be93c1a0b8616c719ff29d
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/21abcb4682684e615bc6d81d7851ba1be6733b1506be93c1a0b8616c719ff29d.json
+  ref       a1d56b66fb057e093d5ba2a6deee49d58d313dfa -> a1d56b66fb057e093d5ba2a6deee49d58d313dfa
+  tree      2dec6c6932766cd1c1f4539211758b33f58fafae
+  mode      all
+  captured  3 min ago
+  key covers:
+    baseline_commit  997af32f7047
+    baseline_tree    2ccbad703aaa
+    cache_format     391552c099c1
+    driver_sha256    5af322442b85
+    environment      6c0b911d7e89
+    interpreter      2c0d5a52c59a
+    mode             5cf7504d9781
+    numeric_probe    37fadb5234b8
+    numpy_build      1d6b22fc9d3d
+    packages         3f060bd9af17
+    platform         753cfa5a9551
+    sensitive        541346c5f2b4
+  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
+==========================================================================
+  captured 56 scenarios from branch
+  reused   56 scenarios for baseline from cache key 21abcb4682684e61 (see the banner above)
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 55 fixture(s), 34614 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    building_preset is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    capacity_curve is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    capacity_tariff is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    config_flow is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    cool_rainy_summer is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    coord_all_features is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    coord_dhw is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    coord_grid_fee is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    coord_minimal is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    coord_two_zone is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    cop_scale_learned is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift cycling_cost: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    dhw_cold_tank is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    dhw_large_tank is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    dhw_learned_windows is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    dhw_schedule_off is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
+  may-drift everything_on: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    external_heat_active is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    extreme_prices is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+  may-drift fuse_guard: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    horizon_48h is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    horizon_6h is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    legionella_due is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    legionella_due_low_setpoint is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    legionella_off is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    mild_windy_rain is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    negative_prices is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    peak_masked is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    start_below_band is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    summer_dhw_only is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift tariff_plus_two_zone: did not move here (#1207 keep-gate (2e-2 -> 2e-5),)
+  may-drift valve_storage: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+  ok    valve_storage_flat_prices is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    valve_storage_low_target is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    valve_storage_small_tank is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  ok    wide_band is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    winter_single_dhw is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  ok    winter_single_no_dhw is byte-identical to a1d56b66fb057e093d5ba2a6deee49d58d313dfa here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  STALE claim for shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle': nothing drifted, remove it
+
+SHAPE CLAIM MATCHED NOTHING: no leaf of any fixture captured
+against a1d56b66fb057e093d5ba2a6deee49d58d313dfa, may-drift fixtures included, moved in
+  shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'
+A shape claim must hold on every host it runs on, so its shape has
+to be one the change produces everywhere, not one host's subset.
+If this host's leaves moved in another shape, the claim is too
+narrow; if nothing moved, the change no longer does what the
+claim says -- remove it.
+
+1 STALE CLAIM(S) vs a1d56b66fb057e093d5ba2a6deee49d58d313dfa
+Nothing drifted for these -- they are entries in
+tests/golden/claimed_drift.txt that matched no scenario:
+  shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle': the classifier arm idles a share the plan runs no pump at
+A claim nothing uses would silently excuse the next
+accidental drift, so it fails. Delete these lines; the
+behaviour they describe is already gone or never came.
