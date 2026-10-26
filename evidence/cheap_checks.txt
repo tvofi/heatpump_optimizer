@@ -1,9 +1,37 @@
-ALL 117 closure shrink pins PASSED
-ALL 112 HARNESS HEADER CHECKS PASSED
-STRUCTURE RATCHET PASSED
-TOTAL: 0 error(s) across 50 policy file(s)
-  53 2385 dev/governance/rules/claim-files.md
-claims hygiene: origin/main ok
-Architecture score: dS +0.0000 NULL
+## carry_audit
+NOTE #2843 body item 944dcf5c: R10-ARCH-SHAPES-CLASSIFIER
+NOTE #2843 body item 26e41c96: R10-ARCH-SHAPES-CLASSIFIER
+NOTE #2843 body item c1a83d6b: R10-996-RUNNER-CLAIMS
+NOTE #2843 body item e576eb59: dismissed:a seat-discipline cost of one re-run, not worth an instrument
+CARRY-AUDIT #2843: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+## rules_sync
 
 RULES-SYNC ok: every generated rule is the generated form of its source
+## policy_lint
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## entities_classification
+M	.claude/rules/claim-files.md
+M	.cursor/rules/claim-files.mdc
+A	dev/audit/harnesses/r10_shape_claim_controls.sh
+A	dev/audit/harnesses/r10_shape_grammar_mutants.py
+M	dev/governance/rules/claim-files.md
+A	dev/programme/delivery/2843.md
+M	tests/closures.json
+M	tests/entities.py
+M	tests/env_drift.py
+## merge-tree
+ada27f4d6c7768c752cbdd7a6e1aa566aab0225b
+merge-tree exit=0
+## claim/version files three-dot
+diff-quiet exit=0
+## claims-only
+claims hygiene: origin/main ok
+## structure
+STRUCTURE RATCHET PASSED
+## harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+## closure selftest
+ALL 117 closure shrink pins PASSED
+## origin/main
+df478d40be4b546a7aaad150a5d9132483534a3a
+2026-10-26T05:06:23Z
