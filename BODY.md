@@ -45,13 +45,15 @@ Alternatives considered:
 
 ## Head
 
-Code head `94a4ea9044ed3b80d60f8c362f15f1067f861535`, four commits on the round-3 PR head `d710a5af5bb2dd1263a5b72b77cdf8ecc011390b`, with no merge and no rebase:
+Code head `b5049f3fd277f15c372495d6568e0d1efb703566`, a merge-only head. It merges origin/main `5261ba84139d9459465ccd842b61b04c2b1329d8` (#2817, R10-PARAMS-OWNER) into the reviewed PR head `6f91e6d05450ba32fe1cfa102b00a9763235d412`, with no rebase, at `Mon Oct 26 00:44:52 UTC 2026`. The PR head carries the round-4 code head `94a4ea9044ed3b80d60f8c362f15f1067f861535`; its commits are unchanged:
 - `a1d56b66f` is the split;
 - `648f88d9e` adds the band census harness;
 - `ec9687414` classifies it in `tests/closures.json` (`ci_predict.py --apply-inert`);
 - `94a4ea904` gives the harness the canonical `repo_root`, for `harness_headers.py`'s depth-seam check.
 
-`git merge-tree --write-tree origin/main HEAD` against `c78df2b86` exits 0 with no conflict, so no merge was made (`fixer.md` step 6). Every figure below is from this pass, on macOS arm64.
+The one content conflict was `tests/structure_budgets.json`. It was resolved by re-measuring with `python3 tests/structure.py` on the merged tree and `--record`, not by the ledger driver's sum, and every metric is at or below origin/main's budget. Against origin/main: class_excess_loc 18093 -> 18081, duplication_copies 16 -> 15, functions_cc_over_15 29 -> 28 (the driver's sum read 29), max_class_loc 8248 -> 8234; every other row is equal. `tests/closures.json` merged by the ledger driver; `inert_reads` for `tests/harness_headers.py` is the union of both sides, 884 entries, each a file on this tree. The claim files are byte-identical to origin/main. On the merged tree (Linux): `GATE_SCOPE=auto` prints `MODE: SCOPED -- 29 script(s) run, 4 scoped out.`, every script passes but `tests/entities.py` at `2 of 2449`, both `hb:positive_control` heartbeat timing self-tests whose py-spy dump timed out on the loaded box, and origin/main `5261ba841` on the same box reads `2 of 2445`, the same two checks; `structure.py`, `harness_headers.py` and `stress.py` pass. `ci_predict.py --base origin/main` lists the same 71 unpinned sites as at `6f91e6d05`; only the 18 `coordinator.py` line numbers moved, and they are updated under Unpinned sites. Figures below that name `5261ba841` were re-taken at this head; every other figure is the round-4 pass on macOS arm64.
+
+**Delta review owed.** The round-4 merge verdict (comment 6405240420) was at `6f91e6d05`. This head changes reviewed content in the conflicted file `tests/structure_budgets.json`, so that verdict does not carry: this head needs a delta review of the merge alone, against base `6f91e6d05450ba32fe1cfa102b00a9763235d412`.
 
 ## Mutation proof
 
@@ -136,15 +138,15 @@ Every command was run with `PYTHONPATH=tests/hastub` (plus `:custom_components` 
   - `block_duty.py`, `debug_collect.py`, `validate.py`, `solar_alignment.py`, `open_meteo.py`, `boost_drift_replay.py` (46), `frontend.py` and `arch_score_head.py` (18).
 
   `harness_headers.py` reads `ALL 112 HARNESS HEADER CHECKS PASSED` at `94a4ea904`. At `ec9687414` it was `1 of 112`, the depth-seam check (Red checks). `tests/entities.py` is under Null control, and `env_drift.py --all` is under Null control. Left to CI: `card.mjs`, `card_drift.mjs`, `stress.py`, `backtest.py`, `optimality.py` and `golden.py`.
-- `python3 tools/audit/archscore/score.py --diff f3ffb1c63 HEAD`: `Architecture score: dS +1.8325 IMPROVES` (see `## Architecture score`).
-- `python3 tools/pr/ci_predict.py --base origin/main`: "no closures, fast, wave-script or instrument red predicted against f3ffb1c63532", and 71 unpinned sites, listed below. That is 74 at round 3 less the 3 sites of the parked helpers.
+- `python3 tools/audit/archscore/score.py --diff 5261ba841 HEAD`: `Architecture score: dS +1.8326 IMPROVES` (see `## Architecture score`).
+- `python3 tools/pr/ci_predict.py --base origin/main`: "no closures, fast, wave-script or instrument red predicted against 5261ba84139d", and 71 unpinned sites, listed below. That is 74 at round 3 less the 3 sites of the parked helpers.
 
 ## Architecture score
 
-Architecture score: dS +1.8325 IMPROVES against the merge base `f3ffb1c63` (`python3 tools/audit/archscore/score.py --diff f3ffb1c635327365841ad430ce8fad7488a02d61 HEAD`). No gate metric rises.
+Architecture score: dS +1.8326 IMPROVES against the merge base `5261ba841` (`python3 tools/audit/archscore/score.py --diff 5261ba84139d9459465ccd842b61b04c2b1329d8 HEAD`). No gate metric rises.
 
 - duplication_copies 38 -> 35
-- coord_footprint 2446 -> 2437
+- coord_footprint 2423 -> 2414
 - params_over_10 7 -> 6
 - layer_violations 17 -> 13
 - private_cross_module 12 -> 10
@@ -177,24 +179,24 @@ none
 - `custom_components/heatpump_optimizer/const.py:1319 RETURN_DEL: return result if math.isfinite(result) else default`: owed to the pin run.
 - `custom_components/heatpump_optimizer/const.py:1330 GUARD_OFF: if volume is None:`: owed to the pin run.
 - `custom_components/heatpump_optimizer/const.py:1332 CLAMP_DROP: volume_m3 = max(volume, 1e-6) / 1000.0`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:415 BOOLOP: return value if value is not None and value >= lo else defau`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:415 CMP_BOUND: return value if value is not None and value >= lo else defau`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:415 RETURN_DEL: return value if value is not None and value >= lo else defau`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:713 RETURN_DEL: return None if temperature is None else finite_float(tempera`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:1049 GUARD_OFF: if coord._pump_signals.freeze_reason is not None:`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:3973 CMP_BOUND: abs(finite_float(action.get("displace_value"), 0.0)) > 0.01`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:4339 BOOLOP: other_powers[i] for i in span if i < len(other_heating) and `: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:4339 CMP_BOUND: other_powers[i] for i in span if i < len(other_heating) and `: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:4357 GUARD_OFF: if on:`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:4525 BOOLOP: raw_space and channel_heating_steps(raw_space[:1], raw_dhw[:`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:4544 BOOLOP: raw_dhw and channel_heating_steps(raw_dhw[:1], raw_space[:1]`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:5082 CLAMP_DROP: max(0.0, finite_float(first.get("wind_speed"), 0.0)),`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:5083 CLAMP_DROP: max(0.0, finite_float(first.get("precipitation"), 0.0)),`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:7049 CLAMP_DROP: gust = max(0.0, finite_float(entry.get("wind_speed"), 0.0))`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:7050 CLAMP_DROP: rain = max(0.0, finite_float(entry.get("precipitation"), 0.0`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:8498 GUARD_OFF: if kw is None:`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:9561 RETURN_DEL: return state_power_kw(self.hass.states.get(entity_id), sign=`: owed to the pin run.
-- `custom_components/heatpump_optimizer/coordinator.py:10359 CLAMP_DROP: book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, `: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:416 BOOLOP: return value if value is not None and value >= lo else defau`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:416 CMP_BOUND: return value if value is not None and value >= lo else defau`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:416 RETURN_DEL: return value if value is not None and value >= lo else defau`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:714 RETURN_DEL: return None if temperature is None else finite_float(tempera`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:1066 GUARD_OFF: if coord._pump_signals.freeze_reason is not None:`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4064 CMP_BOUND: abs(finite_float(action.get("displace_value"), 0.0)) > 0.01`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4430 BOOLOP: other_powers[i] for i in span if i < len(other_heating) and `: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4430 CMP_BOUND: other_powers[i] for i in span if i < len(other_heating) and `: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4448 GUARD_OFF: if on:`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4616 BOOLOP: raw_space and channel_heating_steps(raw_space[:1], raw_dhw[:`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:4635 BOOLOP: raw_dhw and channel_heating_steps(raw_dhw[:1], raw_space[:1]`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:5173 CLAMP_DROP: max(0.0, finite_float(first.get("wind_speed"), 0.0)),`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:5174 CLAMP_DROP: max(0.0, finite_float(first.get("precipitation"), 0.0)),`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:7072 CLAMP_DROP: gust = max(0.0, finite_float(entry.get("wind_speed"), 0.0))`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:7073 CLAMP_DROP: rain = max(0.0, finite_float(entry.get("precipitation"), 0.0`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:8524 GUARD_OFF: if kw is None:`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:9590 RETURN_DEL: return state_power_kw(self.hass.states.get(entity_id), sign=`: owed to the pin run.
+- `custom_components/heatpump_optimizer/coordinator.py:10388 CLAMP_DROP: book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, `: owed to the pin run.
 - `custom_components/heatpump_optimizer/dhw_schedule.py:94 RETURN_DEL: return [first + (start - first + k) % size for k in range((e`: owed to the pin run.
 - `custom_components/heatpump_optimizer/dhw_schedule.py:125 RETURN_DEL: return sorted(cyclic_span(lo, hi, len(_DAY_TOKENS)))`: owed to the pin run.
 - `custom_components/heatpump_optimizer/dhw_schedule.py:151 BOOLOP: if run is not None and len(ordered) >= 3:`: owed to the pin run.
