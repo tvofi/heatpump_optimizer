@@ -924,7 +924,6 @@
     "R10-NIGHT-FOLDS"
    ],
    "carry": [
-    "Null control: with the deficit at 0 the count reads 0 before and after.",
     "R10-LIVESTATE edits the away override path after you; do not reshape it here."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-NIGHT-FOLDS; after you: R10-LIVESTATE). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-NIGHT-FOLDS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
