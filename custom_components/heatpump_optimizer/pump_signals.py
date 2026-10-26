@@ -261,6 +261,11 @@ class PumpSignals:
     freeze_reason: str | None = None
 
     @property
+    def mode_live(self) -> bool:
+        """Whether this cycle's mode was read live (not a last-good fallback or absent)."""
+        return self.mode_source == MODE_SOURCE_LIVE
+
+    @property
     def space_heat(self) -> bool:
         """Whether space heating may be planned."""
         return self.mode.space_heat

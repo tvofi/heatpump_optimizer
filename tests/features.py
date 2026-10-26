@@ -58973,7 +58973,7 @@ _P3_ALLOWED = {
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
     ("coordinator.py", "_async_learn_heat_span", "compute_cop",
-     "_ctx_of(coord)._current_state.outdoor_temperature"):
+     "ctx._current_state.outdoor_temperature"):
         "the plan's price a closed heat-counter span's expected heat is judged at (#2261)",
     ("coordinator.py", "_replay_step", "simulate_step",
      "state"): "the one replay both interval learners share (R9-UX-10): "
