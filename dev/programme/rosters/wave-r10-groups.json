@@ -5719,9 +5719,7 @@
    "after": [
     "R10-TICK-RELAY-DECOUPLE"
    ],
-   "carry": [
-    "Revision 12: detection for the stall R10-UPDATE-PR-SIGNALS prevents: alarm when a handoff tip has been ahead of its pull request's head for more than 20 minutes, when a lock's owner pid is dead, and when any seat self-test process is older than 1 h."
-   ],
+   "carry": [],
    "architect_note": "",
    "brief": "Make an orchestrator stop visible within 20 minutes (Lean study K8). In round 10, two stops went unnoticed for 6 h and 16 h (R10-RCA-ORCH-CONTINUITY). No loop writes a liveness signal anyone outside the host can read: tick_loop.sh writes a local board, state_docs.py's beat pushes only when main moves, and wt_sync.sh only when a tree is dirty. Each tick pass updates one ref, heartbeat/orchestrator, to a commit whose message carries the pass time and the relay and tick return codes, pushed with the seat's existing credential. A watcher outside the host (an owner-scheduled cloud task) reads the ref's committer date and alerts the owner when it is older than 20 minutes. Controls: the loop's self-test shows a pass moves the ref and a failed push is printed, never silent; a stale-ref fixture makes the watcher command alert and a fresh one does not.",
    "resume": {
