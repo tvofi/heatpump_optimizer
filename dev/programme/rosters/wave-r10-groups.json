@@ -149,7 +149,6 @@
     "R10-TARIFF"
    ],
    "carry": [
-    "RCAs are on the register: `dev/audit/rca/R10-N-no-expiry.md` and `dev/audit/rca/R10-N-log-flood.md` at d23205d13. Their countermeasure is built in THIS pull request, not a later one.",
     "Owed for the D1 dimension, not for you: the D1 brief edit (step 3 checks the published and booked value, not only the plan) lands in R10-BRIEFS-FOLD.",
     "Null control: a covered cycle (a fresh price exists) must still publish exactly as at the merge base; the finder's covered-control arm reads 2 before and after."
    ],
