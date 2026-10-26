@@ -124,6 +124,53 @@ pr_push_hold() { # inside `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`: lock 
   python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX)' || rc=$?  # mut:pushhold
   [ "$rc" = 0 ] || pr_refuse "could not lock $PR_PUSH_LOCK"
 }
+# ---- the opener's release: its last act, under the branch lock -------------
+# WHY IT EXISTS (R10-FLY-OPENPR-ATOMIC: P-D, P64, P72). open_pr.sh's worktree kept its branch
+# checked out after every run: a STOPPED one left it for the merge train, whose recarry reads a
+# branch checked out elsewhere as busy (2026-10-26 05:15:57Z, train s47); a prepr-refused open left
+# it and its local branch, so the next open of the topic STOPPED at `git worktree add -b` (P72: 7
+# of 8 instances). pr_release_wt is the run's last act, once its pushes have ended:
+#   - a worktree that is dirty is kept on its branch and named: it holds work no push carried;
+#   - one whose HEAD is the sha the run last pushed is detached, the branch free on origin;
+#   - otherwise, one whose branch origin holds is kept and named (work origin lacks, or origin
+#     could not be asked), and one origin never had is removed with its local branch.
+# Detached only at the end, never between two pushes: app_push.sh's committed-tip gate passes a
+# worktree detached at the branch tip, so a detach before a later push would go unrefused
+# (#2738 round 4). update_pr.sh's own worktree is detached by its lock holder (pr_branch_lock's
+# `detach`); handoff_push.sh, which takes no lock, calls this after its last push.
+pr_release_wt() { # <worktree> <branch> <pushed sha|''>: detach, remove or keep (naming it) the run's worktree
+  local wt=$1 br=$2 sha=$3 on c
+  [ -d "$wt" ] && [ "$(git -C "$wt" symbolic-ref -q HEAD 2>/dev/null)" = "refs/heads/$br" ] || return 0
+  if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then pr_kept "$wt" "$br" "it is dirty"; return 0; fi  # mut:reldirty
+  if [ -n "$sha" ] && [ "$(git -C "$wt" rev-parse HEAD)" = "$sha" ]; then git -C "$wt" checkout -q --detach; return 0; fi  # mut:release
+  on=$(git -C "$wt" ls-remote origin "refs/heads/$br" 2>/dev/null) || { pr_kept "$wt" "$br" "origin could not be asked whether it holds $br"; return 0; }
+  if [ -n "$on" ]; then pr_kept "$wt" "$br" "origin holds $br and HEAD $(git -C "$wt" rev-parse --short HEAD) is not this run's pushed head"; return 0; fi  # mut:relorigin
+  c=$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir) && cd "$c"  # the run's cwd may be the worktree itself
+  git worktree remove "$wt" 2>/dev/null || { pr_kept "$wt" "$br" "git worktree remove refused it"; return 0; }  # mut:reltidy
+  git branch -q -D "$br" 2>/dev/null || :
+  printf '%s: removed %s and its local branch %s, which origin never had\n' "${PR_NAME:-pr}" "$wt" "$br" >&2
+}
+pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2; }
+
+# ---- the tools' freshness (P-P) ----------------------------------------------
+# open_pr.sh and update_pr.sh run the tools of whatever checkout invokes them, and a stale main
+# checkout once wrote a Co-Authored-By delivery row (#2664). After each script's fetch of
+# origin/main, the checkout holding these files refuses when origin/main has commits it lacks
+# under the two tool directories; any other path is no refusal. No pull: the caller decides.
+# HPO_ALLOW_STALE_TOOLS=1 names the staleness and goes on.
+# Top-relative (`:/`): git runs in the tools' own directory, where a bare path would be read below it.
+PR_FRESH_PATHS=(:/tools/audit/seat :/tools/pr)  # mut:freshpaths
+pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's checkout is behind it in PR_FRESH_PATHS
+  local d n h o why
+  d=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
+    && n=$(git -C "$d" rev-list --count HEAD..origin/main -- "${PR_FRESH_PATHS[@]}" 2>/dev/null) \
+    || pr_refuse "could not count what origin/main adds over the checkout holding $d"
+  [ "$n" != 0 ] || return 0
+  why="STALE CHECKOUT $h behind origin/main $o by $n commit(s) touching tools/audit/seat tools/pr"
+  [ -n "${HPO_ALLOW_STALE_TOOLS:-}" ] || pr_refuse "$why: update the checkout holding $d, or set HPO_ALLOW_STALE_TOOLS=1"  # mut:stale
+  printf '%s: NOTICE: %s; HPO_ALLOW_STALE_TOOLS is set, so this run goes on\n' "${PR_NAME:-pr}" "$why" >&2
+}
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
   pr_refuse "the push failed; its log is $1"
@@ -196,9 +243,11 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
   return 0
 }
-pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <command>, reap the tree, then run PR_AFTER_REAP
+pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <command>, reap the tree, run PR_TIDY, then PR_AFTER_REAP
+  # PR_TIDY runs once the tree is reaped and while the branch lock is still held: open_pr.sh's
+  # pr_release_wt, which must not race an update_pr.sh that detaches the same worktree (P-D).
   local first=${1:+$1; }
-  trap "${first}"'pr_reap; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
+  trap "${first}"'pr_reap; eval "${PR_TIDY:-:}"; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
 }
 pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
   exec python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp(sys.argv[1], sys.argv[1:])' "$@"
@@ -548,7 +597,7 @@ STUB
   [ "$(cat "$t/rc")" != 0 ] && grep -qE "open_pr: REFUSE: STALE CHECKOUT [0-9a-f]{12} behind origin/main [0-9a-f]{12} by 1 commit\(s\) touching tools/audit/seat tools/pr" "$t/out" \
     && ! grep -qF "the push failed" "$t/out"
   ck "open_pr: tools behind origin/main under tools/audit/seat refuse, naming the count" $?
-  fresh stale tools/audit/seat/zz open_pr.sh x "$code" T G; ! grep -qF "STALE CHECKOUT" "$t/out"
+  fresh stale tools/audit/seat/zz open_pr.sh x "$code" T G; ! grep -qF "REFUSE: STALE CHECKOUT" "$t/out" && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
   ck "  mutant mut:stale (its line deleted): the stale tools open" $?
   fresh - docs/zz open_pr.sh x "$code" T G
   ! grep -qF "STALE CHECKOUT" "$t/out" && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
