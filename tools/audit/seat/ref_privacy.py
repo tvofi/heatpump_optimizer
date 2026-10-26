@@ -394,6 +394,9 @@ PUSHERS = {
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    "tools/policy/check-wave-script.mjs": ("fixture", "the P3 driver's assertion that the handoff "
+                                            "prompt names the constant plan/r<round> push; a literal "
+                                            "matched by a regex, never run"),
     "tools/audit/seat/gh_read.py": ("fixture", "its self-test's `gh api` ref-write argvs are strings fed to "
                                     "is_read, which must refuse them; the module runs no subprocess"),
     "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
