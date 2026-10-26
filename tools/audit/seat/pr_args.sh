@@ -799,9 +799,9 @@ try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: print("held"); sys.exit()
 print("free")' "$1"
   }
-  untilfree() { # <lock file>: wait for the lock to be free; a bound, not a window: the arm fails past it
+  untilfree() { # <lock file> [ticks]: wait for the lock to be free; a bound, not a window: the arm fails past it
     local k=0
-    while [ "$(lockstate "$1")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    while [ "$(lockstate "$1")" = held ] && [ $k -lt "${2:-600}" ]; do sleep 0.05; k=$((k + 1)); done
   }
   updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
   stoprun() { # <mutant> <signal>
@@ -857,6 +857,10 @@ print("free")' "$1"
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     if [ "$sig" = "$2" ]; then kill -"$sig" "$up"; else kill -"$sig" -- "-$up"; fi 2>/dev/null
     k=0; while [ "$(cut -d' ' -f3 "$lf" 2>/dev/null)" != drain ] && [ "$(lockstate "$lf")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    # Those two mutants' holders free the lock only after the detach that follows the mark, so their
+    # arms wait for the lock free, bounded at 10 s, a third of the stub's 30 s push: held at the bound
+    # is a holder that drains (#2825 round 3: one read at the mark was red in 4 of 6 runs under load).
+    case $1 in drain | pushhold) untilfree "$lf" 200 ;; esac
     lockstate "$lf" > "$t/state"; cut -d' ' -f3 "$lf" 2>/dev/null > "$t/mark" || :; wtstate > "$t/wt1"
     [ "$sig$1" != KILL- ] || { touch "$REAP_DIR/fast"; updt 2 "$sd"; }  # every later run's stub exits at once
     rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"; wtstate > "$t/wt2"
