@@ -45,6 +45,11 @@ so over a grid of stored values far outside their bounds it resets nothing and
 returns the configuration (every value 1); its null, the same grid at a
 converged learner's confidence, resets some. Expected identical at both trees.
 
+At the head only, ``EPS`` lines: an integer-kWh counter at 0.6, 1.5, 2.2 and
+3.0 kW on the 30 min cadence, under the shipped resolution bound and under the
+design's 0.5 (the dr3-eps-at-span re-measure): the spans it closes, the spans
+the bound keeps, their mean and spread in kW, and the span lengths.
+
 Expected: at the head ``counter``, ``reset`` and ``integer`` each scale within
 the step bound of ``TRUE_K`` with spread near zero, ``point`` and ``commanded``
 identical to the base's; at the base ``counter``, ``reset`` and ``integer``
@@ -182,6 +187,39 @@ def walk(arm):
 
 
 print("TREE_HAS_COUNTER", heat_energy is not None)
+
+
+def eps_row(kw, eps, cycles=400):
+    """An integer-kWh counter at ``kw`` on a 30 min cadence: (spans, kept, mean kW, sd)."""
+    saved, heat_energy.HEAT_RESOLUTION_EPS = heat_energy.HEAT_RESOLUTION_EPS, eps
+    try:
+        meter, heat, spans = heat_energy.HeatEnergyMeter(), 0.0, []
+        for i in range(cycles):
+            meter.observe_counters(
+                T0 + timedelta(hours=CADENCE_H * i), 1000.0 + math.floor(heat + 1e-9), None, configured=True,
+                cadence_h=CADENCE_H, bounds_h=(cm.HOUSE_LOSS_MIN_SAMPLE_HOURS, cm.HOUSE_LOSS_MAX_SAMPLE_HOURS),
+                max_heat_kw=30.0,
+            )
+            if meter.closed is not None:
+                spans.append(meter.closed)
+            heat += kw * CADENCE_H
+        kept = [sp for sp in spans if heat_energy.resolution_refusal(sp, kw * sp.hours) is None]
+        rates = [sp.heat_kwh / sp.hours for sp in kept]
+        mean = sum(sp.heat_kwh for sp in kept) / sum(sp.hours for sp in kept) if kept else float("nan")
+        sd = (sum((r - mean) ** 2 for r in rates) / len(rates)) ** 0.5 if rates else float("nan")
+        hours = sorted({round(sp.hours, 3) for sp in spans})
+        return len(spans), len(kept), round(mean, 4), round(sd, 3), hours
+    finally:
+        heat_energy.HEAT_RESOLUTION_EPS = saved
+
+
+# The dr3-eps-at-span re-measure: the resolution bound at the real span (a
+# 30 min cadence closes one-hour spans). The shipped bound and the design's
+# 0.5 side by side; 0.5 refusing 1.5 kW is the reason for the deviation.
+if heat_energy is not None:
+    for eps in (heat_energy.HEAT_RESOLUTION_EPS, 0.5):
+        for kw in (0.6, 1.5, 2.2, 3.0):
+            print("EPS %r kW %r spans=%d kept=%d mean=%r sd=%r hours=%r" % (eps, kw, *eps_row(kw, eps)))
 
 # Carry (#2698, kept by mandate): "clamp means reset" is orthogonal to the
 # earned basis. The void path zeroes both learners' samples before it takes
