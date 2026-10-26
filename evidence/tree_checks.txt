@@ -1,0 +1,115 @@
+# R10-CEILING-PROBE design review evidence at origin/main (6fe5170cd7ce01e60ffebfc93e598c216e628fa3)
+  reviewed note: design/r10-ceiling-probe 9ef3325660916ef055f8b9a39713e3f2a98d0afe
+
+## 1. The learned top's production consumer (design decision c)
+$ git grep -n "planned_range(" origin/main -- custom_components/
+origin/main:custom_components/heatpump_optimizer/draw_range.py:438:def planned_range(
+origin/main:custom_components/heatpump_optimizer/draw_range.py:469:    effective = planned_range(draw, params, cap)
+$ git grep -n "\.planned(" origin/main -- custom_components/ tests/ tools/ dev/ | head
+origin/main:custom_components/heatpump_optimizer/draw_range.py:455:    metered = draw.planned(cfg_min, cfg_max)
+origin/main:dev/audit/harnesses/r10_setpoint_boost.py:107:              f"planned {d.planned(CFG_MIN, CFG_MAX)}")
+origin/main:tests/features.py:66073:    _dr_live.engaged and _dr_live.planned(_DR_MIN, _DR_MAX) == _dr_live_seen
+origin/main:tests/features.py:66089:    not _dr_null.engaged and _dr_null.planned(_DR_MIN, _DR_MAX) is None
+origin/main:tests/features.py:66097:    not _dr_mild.engaged and _dr_mild.planned(_DR_MIN, 6.0) is None
+origin/main:tests/features.py:66105:    and _dr_short.planned(_DR_MIN, _DR_MAX) is None,
+origin/main:tests/features.py:66109:    _dr_learner("live", n=_dr.MIN_SAMPLES).planned(_DR_MIN, _DR_MAX) is not None,
+origin/main:tests/features.py:66138:    and _dr_latch.planned(_DR_MIN, _DR_MAX) is not None,
+$ git grep -n "\.engaged" origin/main -- custom_components/
+origin/main:custom_components/heatpump_optimizer/draw_range.py:205:            self.engaged = False
+origin/main:custom_components/heatpump_optimizer/draw_range.py:211:            self.engaged = True
+origin/main:custom_components/heatpump_optimizer/draw_range.py:221:        if not self.engaged or self.config != (float(cfg_min), float(cfg_max)):
+origin/main:custom_components/heatpump_optimizer/draw_range.py:236:            "engaged": self.engaged,
+origin/main:custom_components/heatpump_optimizer/draw_range.py:246:            "engaged": self.engaged,
+origin/main:custom_components/heatpump_optimizer/draw_range.py:268:        out.engaged = data.get("engaged") is True
+=> planned_range is called only by diagnostics_view (draw_range.py:469); no solve, no params write, no plan path reads DrawRange.planned or .engaged.
+
+## 2. A sysid action carries only its mode; the fit's override is the sizer's output
+
+        if self.phase == PHASE_STEP:
+            self.samples[-1].power_kw = self._step_power * thermal_cop
+            if elapsed >= cfg.step_hours:
+            )
+            sized = None if why else self._size_step_power(
+                max_power_kw,
+                cop,
+                self._baseline_temp,
+                outdoor_temp,
+                house_ua,
+                house_capacity,
+                house_gains,
+                house_slab_mass,
+                house_slab_transfer,
+            )
+            if sized is None:
+        return None
+    if (inp.action or {}).get("mode") == "system_identification":
+        return None
+            "power": float(override),
+            "power_normalized": float(
+                override / max(ctx._thermal_params.max_electrical_power, 0.1)
+            ),
+            "heat_pump_on": override > 0.05,
+            "mode": "system_identification",
+            # T6: the experiment's draw is not the plan's -- booking it under
+=> _begin_step_phase sets _step_power = sized (power-searched); step() returns _step_power; both kinds book mode system_identification (coordinator.py:10990), so the arbiter cannot tell a sized fit step from a ceiling probe step.
+
+## 3. The note's own sibling grep, run at main
+$ git grep -n "\"system_identification\"" origin/main -- custom_components/heatpump_optimizer/
+origin/main:custom_components/heatpump_optimizer/boost.py:647:    if action.get("mode") == "system_identification":
+origin/main:custom_components/heatpump_optimizer/button.py:143:            coordinator, entry, "system_identification", "learning_run_system_identification"
+origin/main:custom_components/heatpump_optimizer/const.py:1492:    "system_identification",
+origin/main:custom_components/heatpump_optimizer/coordinator.py:7769:            "system_identification": self._sysid.as_dict(),
+origin/main:custom_components/heatpump_optimizer/coordinator.py:10990:            "mode": "system_identification",
+origin/main:custom_components/heatpump_optimizer/icons.json:131:          "system_identification": "mdi:flask-outline",
+origin/main:custom_components/heatpump_optimizer/payload.py:115:REASON_SYSTEM_IDENTIFICATION = "system_identification"
+origin/main:custom_components/heatpump_optimizer/pump_arbiter.py:745:    if (inp.action or {}).get("mode") == "system_identification":
+origin/main:custom_components/heatpump_optimizer/sensor.py:1996:        {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"}
+origin/main:custom_components/heatpump_optimizer/sensor.py:2042:            "system_identification": data.get("system_identification"),
+origin/main:custom_components/heatpump_optimizer/strings.json:1863:          "system_identification": "System identification",
+origin/main:custom_components/heatpump_optimizer/translations/en.json:1863:          "system_identification": "System identification",
+origin/main:custom_components/heatpump_optimizer/translations/sv.json:1863:          "system_identification": "Systemidentifiering",
+origin/main:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:2177:  "system_identification",
+$ git grep -n "_sysid_step_off_loop\|learner_samples=" origin/main -- custom_components/heatpump_optimizer/
+origin/main:custom_components/heatpump_optimizer/coordinator.py:1772:async def _sysid_step_off_loop(
+origin/main:custom_components/heatpump_optimizer/coordinator.py:10966:        override = await _sysid_step_off_loop(self.hass, self._sysid,
+origin/main:custom_components/heatpump_optimizer/coordinator.py:10972:            learner_samples=self._house_heat_loss_samples,
+
+## 4. #2808's three surfaces
+--- sensor: the whole system_identification attribute is unrecorded ---
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(MODEL_STATUS_STATES)
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _unrecorded_attributes = frozenset(
+        {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"}
+--- button: available whenever the experiment is not active ---
+    def available(self) -> bool:
+        return bool(
+            super().available and not self.coordinator.system_identification_active
+        )
+
+    async def async_press(self) -> None:
+--- sysid: last_run in the published view only ---
+    def as_dict(self) -> SysIdView:
+        return {
+            "phase": self.phase,
+            "active": self.active,
+            "samples": len(self.samples),
+            "last_run": self.last_run.isoformat() if self.last_run else None,
+            "result": self.result.as_dict(),
+        }
+
+## 5. No sysid persistence across a reload
+        # --- Active system identification (item 18) ------------------------
+        self._sysid = SystemIdentification(
+            SysIdConfig(
+                enabled=ctx._config.system_identification_enabled,
+(no SystemIdentification.from_dict)
+
+## 6. flow_setpoint_for_level at full and part level (band 1.0..5.0, heat 55, floor 35)
+5.0 kW -> 55.0 degC
+1.5 kW -> 37.5 degC
+0.0 kW -> 55.0 degC
+
+## 7. LIVESTATE and the note's base / main
+94bec976 (LIVESTATE, PR 2675) is an ancestor of 3b4180dcc (the note's base)
+5eb2891aa (COP-PARTLOAD) is NOT on main

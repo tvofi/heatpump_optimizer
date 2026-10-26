@@ -1,0 +1,10 @@
+R10-CEILING-PROBE design review
+reviewed ref:      design/r10-ceiling-probe
+reviewed 40-hex:   9ef3325660916ef055f8b9a39713e3f2a98d0afe  ("Design r2")
+note:              dev/programme/designs/R10-CEILING-PROBE.md
+note's base:       3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f
+code read at:      origin/main 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+roster:            origin/main dev/programme/rosters/wave-r10-groups.json
+finder harnesses:  probe_duty.py sha1 0d3fbd4541c8a1b7aa0a4ed6304ba55c1828dff5
+                   probe_draw.py sha1 f4a4344c30aadf764929ec473d1ada2b11eb1e5f
+verdict:           revise, class-open
