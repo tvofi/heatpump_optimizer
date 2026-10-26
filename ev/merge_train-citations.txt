@@ -1,0 +1,46 @@
+    with queue_lock(t.state):
+        live = read_pid(t.state / QUEUE_OPEN)
+        live = live if pid_alive(live) else None
+        spooled, _bad = spool_read(t.state)
+        try:
+            pending = set(json.loads((t.state / QUEUE_PENDING).read_text())) if live else set()
+        except (OSError, ValueError):
+            pending = set()
+        if str(pr).isdigit() and int(pr) in pending | {int(e["pr"]) for e in spooled}:
+            t.log(f"ALREADY #{pr}: queued in the {'live train (pid %d)' % live if live else 'spool'}; nothing added")
+            return 0
+        why = t.admit_add(item)
+        if why:
+    def skip(self, pr: int, phase: str, why: str, cls: "str | None" = None) -> None:
+        """`--skip-bad`: record one skipped entry -- logged as
+        `SKIP #<pr> <phase>: <reason>` (the reason echoed verbatim from the Stop
+        that would otherwise have printed `TRAIN STOPPED`, its block class in
+        brackets when the shape is a known one) and collected for skipped.json.
+        A red main is never skippable: the caller re-raises it."""
+        self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))
+        row = {"pr": pr, "phase": phase, "reason": why}
+        if cls:
+            row["class"] = cls
+        self.skipped.append(row)
+
+    def _queue_pending(self, batches: "list[list[dict]]") -> None:
+        (self.state / QUEUE_PENDING).write_text(
+            json.dumps(sorted(int(e["pr"]) for b in batches for e in b)) + "\n")
+
+    def queue_take(self, batches: "list[list[dict]]", k: int, seen: "set[int]") -> bool:
+        """Between batches: drain the spool into ONE new batch after those still
+        to run (an entry this train already holds is logged ALREADY, never run
+        twice). True when batch <k> is there to run; False closes the queue in
+        the same locked step, so an add after it starts a train of its own."""
+        with queue_lock(self.state):
+            added, bad = spool_read(self.state)
+            (self.state / QUEUE_SPOOL).unlink(missing_ok=True)
+            for ln in bad:
+                self.log(f"ADD UNREADABLE (dropped): {ln[:160]}")
+            fresh = []
+            for e in added:
+                if int(e["pr"]) in seen:
+                    self.log(f"ALREADY #{e['pr']}: in this train already; not queued twice")
+                    continue
+                seen.add(int(e["pr"]))
+                fresh.append(e)
