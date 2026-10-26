@@ -1,0 +1,44 @@
+== harness mutant: hits.append deleted
+100:            hits.append((producer.split(";")[-1].strip(), line))
+selftest: 9 checks, 5 failed ['bare then capture', 'same line', 'case on $?', 'comment between', 'shell arm blocks=2 hits=0']
+exit=1
+== adversarial synthetic forms
+if [ $? -ne 0 ]; then exit 1; fi         RESULT blocks=1 RESULT reads=1 RESULT hits=0 
+test $? = 4 && echo w                    HIT .github/workflows/a.yml job=j step='step 0': `python3 tool.py --gate` then `test $? = 4 && echo w` RESULT blocks=1 RESULT reads=1 RESULT hits=1 
+[ "$?" = 4 ] && echo w                   HIT .github/workflows/a.yml job=j step='step 0': `python3 tool.py --gate` then `[ "$?" = 4 ] && echo w` RESULT blocks=1 RESULT reads=1 RESULT hits=1 
+rc="$?"                                  HIT .github/workflows/a.yml job=j step='step 0': `python3 tool.py --gate` then `rc="$?"` RESULT blocks=1 RESULT reads=1 RESULT hits=1 
+echo "rc=$?"                             HIT .github/workflows/a.yml job=j step='step 0': `python3 tool.py --gate` then `echo "rc=$?"` RESULT blocks=1 RESULT reads=1 RESULT hits=1 
+== timing
+/bin/bash: line 5: /usr/bin/time: No such file or directory
+/bin/bash: line 5: /usr/bin/time: No such file or directory
+/bin/bash: line 5: /usr/bin/time: No such file or directory
+if [ $? -ne 0 ]; then exit 1; fi         RESULT blocks=1 RESULT reads=1 RESULT hits=0 
+if [ "$?" = 4 ]; then echo w; fi         RESULT blocks=1 RESULT reads=1 RESULT hits=0 
+if test $? -eq 4; then :; fi             RESULT blocks=1 RESULT reads=1 RESULT hits=0 
+while [ $? = 4 ]; do break; done         RESULT blocks=1 RESULT reads=1 RESULT hits=0 
+13:before the read. A producer that is a condition (`if cmd`, `cmd || rc=$?`,
+51:        if "runs" in doc:  # composite action
+56:                if "run" in step:
+66:        if not cur and (not s or s.startswith("#")):
+68:        if s.endswith("\\"):
+73:    if cur:
+82:        if re.match(r"^set\s+\+e\b", line) or re.match(r"^set\s+\+o\s+errexit\b", line):
+84:        elif re.match(r"^set\s+-[a-z]*e", line) or re.match(r"^set\s+-o\s+errexit\b", line):
+89:            if not errexit:
+93:            producer = head[:cut].strip() if cut >= 0 else prev
+95:            if SAFE_PRODUCER.search(stmt) or (stmt and not re.match(
+97:                continue  # the read sits inside a condition or a command's own arguments
+98:            if not producer or SAFE_PRODUCER.search(producer.split(";")[-1].strip()):
+109:        if shell not in ERREXIT_SHELLS:
+126:        "if/else": ("if guard --require-green; then rc=0; else rc=$?; fi\n", 0),
+127:        "else line": ("if cmd; then\n  :\nelse\n  pitch=$?\nfi\n", 0),
+131:    bad = [k for k, (t, want) in cases.items() if len(hazards(t)[1]) != want]
+141:        if (blocks, len(hits)) != (2, 2):
+143:    print(f"selftest: {len(cases) + 1} checks, {len(bad)} failed{' ' + str(bad) if bad else ''}")
+144:    return 1 if bad else 0
+== timing
+0.323 s
+0.313 s
+0.3 s
+0.279 s
+0.307 s
