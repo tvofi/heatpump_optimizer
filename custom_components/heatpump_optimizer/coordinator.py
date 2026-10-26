@@ -133,6 +133,7 @@ from .const import (
     MODE_BOOST,
     SOLAR_SOURCE_OPEN_METEO,
     CONF_POWER_ENTITY,
+    CONF_THERMAL_POWER_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_HOUSE_POWER_ENTITY,
     CONF_COP_SCALE,
@@ -218,6 +219,7 @@ from . import draw_range
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
+from . import presets
 from .accuracy import (
     COP_REFUSED_BLENDED,
     COP_REFUSED_DISTORTED,
@@ -298,7 +300,7 @@ from .freq_control import (
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp
-from .flow_meter import observe_water
+from .flow_meter import cop_evidence, observe_water, replay_freeze, space_reference_cop
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from .learner_progress import LearnerInputs, learner_progress, snapshot_rates
@@ -898,17 +900,17 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
 
 
 def _interval_measured_heat_kw(coord: Any) -> float | None:
-    """#2016: the flow meter's kW for the interval a learner replays, or None.
+    """#2016, #2507: the measured heat kW for the interval a learner replays.
 
-    ``None`` leaves the model inferring Q_hp from the draw and its own COP,
-    which is what every install did before the flow key existed. Two questions
-    decide it, and both are somebody else's answer already given:
+    The thermal meter's reading or the flow meter's estimate, else ``None``,
+    which leaves the model inferring Q_hp from the draw and its own COP. Two
+    questions decide it, and both are somebody else's answer already given:
 
     * was anything measured this cycle? ``flow_meter.read_heat_output_kw``
-      owns that and every refusal in it -- no flow key, a power or a frequency
-      signal that outranks the meter, a stale, negative or unknown-unit
-      reading, and a supply no warmer than the return. Nothing here restates
-      one of them;
+      owns that and every refusal in it -- which source answers (a thermal
+      meter outranks the flow meter, which a power or frequency signal
+      outranks), a stale, negative or unknown-unit reading, and a supply no
+      warmer than the return. Nothing here restates one of them;
     * was the interval the house's? The meter reads one sum, so a hot-water
       charge is heat the rooms did not get, and these two learners persist
       what they conclude. The commanded split is the tree's own answer to what
@@ -961,6 +963,22 @@ def _replay_step(
     )
 
 
+class FabricInterval(NamedTuple):
+    """One elapsed interval, as both fabric learners replay it (#2249).
+
+    Closed once per cycle by ``_close_fabric_interval``, the one place the
+    baseline advances: the house scale and the lower floor's ratio read the
+    same opening state, start, end, length and power, so neither sees the
+    other's baseline move and their call order cannot silence one.
+    """
+
+    state: ThermalState
+    start: datetime
+    end: datetime
+    dt_h: float
+    power: float
+
+
 async def _replay_interval(
     coord: Any,
     previous_state: Any,
@@ -991,6 +1009,31 @@ async def _replay_interval(
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
         return None
+
+
+async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) -> float | None:
+    """The unsensed slab, advanced from ``prior`` by the heat the meter says was delivered.
+
+    The plan's trajectory advances it by the heat COMMANDED; a pump drawing
+    less left the difference in the slab, for the house learner to book as
+    loss (#2499). No usable reading, or past the learners' sample window:
+    the plan's prediction.
+    """
+    now = dt_util.now()
+    dt_h = 0.0 if prior_at is None else utc_elapsed_seconds(now, prior_at) / 3600.0
+    signals = coord._pump_signals
+    kw = draw_range.space_draw_kw(
+        coord._accuracy.draw,
+        coord._measured_power,
+        coord._commanded_split(),
+        shared=coord._immersion_active or signals.electric_heat.resistive_heat,
+        space_served=signals.space_heat or not signals.mode_observed,
+    )
+    if kw is not None and prior_at is not None and 0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and (state := await _replay_interval(
+        coord, prior, kw, prior.outdoor_temperature, prior_at, dt_h, "Slab estimate",
+    )) is not None:
+        return float(state.slab_temperature)
+    return _open_loop_plan_value(coord._optimization_result, "slab_temp_trajectory", now)
 
 
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
@@ -1073,10 +1116,9 @@ def _settle_interval_diag(
     if diag is None or sample.actual_temp is None:
         return
     ctx = getattr(coord, "_ctx", coord)
-    planned_space = float(pending.get("space_power") or 0.0)
-    planned_dhw = float(pending.get("dhw_power") or 0.0)
-    planned_total = planned_space + planned_dhw
-    share = planned_space / planned_total if planned_total > 1e-6 else 1.0
+    share = draw_range.space_share(
+        float(pending.get("space_power") or 0.0), float(pending.get("dhw_power") or 0.0)
+    )
     coord._last_interval_record = {
         "when": now.isoformat(timespec="seconds"),
         "state": diag["state"],
@@ -1122,6 +1164,12 @@ def _learned_zone_temperature(
 def _zone_capacity(params: ThermalParameters) -> float:
     """The thermal mass the #36 and #53 folds scale a residual by (same zone)."""
     return _house_loss_terms(params)[1]
+
+
+def _restored_stores(coord: Any) -> tuple[Any, ...]:
+    """The stores ``_async_save_restored`` writes, each read before a restore applies."""
+    return (coord._thermal_learning_store, coord._dhw_learner.profile_store,
+            coord._dhw_learner.draws_store, coord._price_model_store, coord._accuracy_store)
 
 
 async def _async_save_restored(coord: Any) -> None:
@@ -1968,6 +2016,21 @@ def _energy_totals_view(totals: dict[str, float]) -> EnergyTotals:
     }
 
 
+def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float:
+    """The price level the setpoint sweep is priced at: ``kwh_price`` (the
+    grid view's recent kWh price), else the price feed's window mean.
+
+    The sweep ranks candidates by cost, and ranking needs a positive
+    price level: a negative mean flips every ``cost_day`` negative and
+    min-cost then crowns the candidate using the MOST energy. The
+    sweep is a relative comparison, so on a worthless-energy day a
+    floored positive level keeps the ranking meaningful — better than
+    the advisor entity vanishing, which would look like a bug.
+    """
+    level = kwh_price or float(np.mean([p.get("total", 0.0) for p in prices]))
+    return level if level > 1e-6 else max(abs(level), 0.1)
+
+
 def _whatif_banded(state: Any) -> bool:
     """Whether the card's what-if plans with the away setback (R9-UX-5).
 
@@ -2086,7 +2149,11 @@ def _sim_dhw_low(plan: OptimizationResult) -> float | None:
 
 @dataclass(frozen=True)
 class CoordinatorContext:
-    """The five write-once hubs (#377 S0). ``_current_action`` stays mutable."""
+    """The five hubs (#377 S0), immutable: a change is published whole by
+    rebinding the coordinator's ``_ctx`` to a new context, never by an edit,
+    so a holder of the old one keeps a consistent view. ``_current_action``
+    stays mutable.
+    """
 
     _config: EntryConfig
     _thermal_params: ThermalParameters
@@ -2166,6 +2233,73 @@ def _ctx_of(coord: Any) -> CoordinatorContext:
     return ctx
 
 
+#: Service parameter name -> thermal parameter attribute: a plain assignment
+#: in the call's one snapshot. A consequence beyond it is the call's own.
+_THERMAL_PARAM_FIELDS = {
+    "house_heat_loss_coefficient": "heat_loss_coefficient",
+    "house_thermal_mass": "room_thermal_mass",
+    "slab_thermal_mass": "slab_thermal_mass",
+    "slab_heat_transfer": "slab_heat_transfer",
+    "heat_pump_cop_nominal": "cop_nominal",
+    "upper_floor_thermal_mass": "upper_floor_thermal_mass",
+    "lower_floor_thermal_mass": "lower_floor_thermal_mass",
+    "inter_zone_heat_transfer": "inter_zone_transfer",
+    "radiator_power_fraction": "radiator_power_fraction",
+    "window_area": "window_area",
+    "solar_heat_gain_coefficient": "solar_heat_gain_coefficient",
+    "dhw_tank_volume": "dhw_tank_volume",
+    "dhw_setpoint": "dhw_setpoint",
+    "dhw_min_temperature": "dhw_min_temp",
+    "dhw_daily_consumption": "dhw_daily_consumption",
+    "ecl110_pid_time_constant_hours": "ecl110_pid_time_constant_hours",
+    "wind_sensitivity_factor": "wind_sensitivity",
+    "rain_heat_loss_multiplier": "rain_heat_loss_multiplier",
+    "ecl110_displace_min": "ecl110_displace_min",
+    "ecl110_displace_max": "ecl110_displace_max",
+}
+#: Service keys converted on the way in: (key, attribute, conversion).
+_THERMAL_PARAM_CONVERSIONS = (
+    (CONF_DHW_SCHEDULE_ENABLED, "dhw_schedule_enabled", bool),
+    (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+    (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+    (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+    (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+)
+
+
+def _thermal_param_changes(params: Mapping[str, Any]) -> dict[str, Any]:
+    """The parameter fields a ``set_thermal_parameters`` call assigns, by attribute.
+
+    An invalid window spec is ignored rather than clearing the schedule.
+    """
+    changes = {attr: params[name] for name, attr in _THERMAL_PARAM_FIELDS.items() if name in params}
+    changes.update((attr, convert(params[key])) for key, attr, convert in _THERMAL_PARAM_CONVERSIONS
+                   if key in params)
+    if CONF_DHW_WINDOWS in params:
+        try:
+            # One parse gives both views (#3), which can never disagree.
+            changes["dhw_windows"] = parse_windows(params[CONF_DHW_WINDOWS])
+            changes["dhw_weekly_windows"] = parse_weekly_windows(params[CONF_DHW_WINDOWS])
+        except DHWWindowError as err:
+            _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
+    return changes
+
+
+def _publish_params(coord: Any, /, **fields: Any) -> None:
+    """The one writer of ``coord``'s thermal parameters: a new snapshot, never an edit.
+
+    D7-s1-82: a solve's record or a learner mid-await keeps the snapshot it
+    read, and ``replace`` re-runs the divisor floor. Published through the
+    ``_hub`` facade, which reads the context it replaces at the write --
+    never one bound before an await, which would republish that context's
+    stale hubs -- and serves a harness with no context alike. The live model
+    is the snapshot's one subscriber; every other reader reads the context.
+    """
+    params = replace(coord._thermal_params, **fields)
+    coord._thermal_params = params  # the ``_hub`` facade rebinds the context
+    coord._thermal_model.params = params
+
+
 def _with_quiet_keys(config: EntryConfig, params: Mapping[str, Any]) -> EntryConfig:
     """``config`` with a parameter write's quiet keys folded in (#1910, #1745).
 
@@ -2181,8 +2315,9 @@ def _with_quiet_keys(config: EntryConfig, params: Mapping[str, Any]) -> EntryCon
 
 
 def _hub(name: str) -> property:
-    """Facade for a write-once hub. Tests that ``object.__new__`` a
-    coordinator and duck-typed harnesses without ``_ctx`` still resolve."""
+    """Facade for a hub: a write publishes a new context, never an edit of
+    the old one. Tests that ``object.__new__`` a coordinator and duck-typed
+    harnesses without ``_ctx`` still resolve."""
 
     def get(self: Any, n: str = name) -> Any:
         ctx = self.__dict__.get("_ctx")
@@ -2705,13 +2840,7 @@ def _effective_house_heat_loss(
     params: ThermalParameters, scale: float
 ) -> float:
     """Configured heat loss coefficient after the learned correction, kW/°C."""
-    if params.two_zone_enabled:
-        # The learned split belongs in the total the diagnostic reports, or
-        # it would show a number the model does not actually use.
-        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-    else:
-        base = params.heat_loss_coefficient
-    return round(base * scale, 4)
+    return round(params.house_heat_loss_base * scale, 4)
 
 
 def _watched_cop_buckets(baseline: Mapping[Any, Any]) -> int:
@@ -2748,11 +2877,13 @@ def envelope_score(
 ) -> tuple[float | None, str | None]:
     """The house grade (#65) and, when it is None, the one code saying why.
 
-    The time constant ``room_thermal_mass / loss`` in hours, mapped from
-    20 h (a leaky house) to 100 h (a well-insulated one). ``loss`` is the
-    model's own whole-house figure, both zones with the learned split --
-    the one the Health tab publishes (#2239) -- so the grade is the house
-    as measured, not as configured. The codes, in precedence (#2258):
+    The time constant ``envelope_thermal_mass / loss`` in hours, placed on a
+    log scale between the shortest and the longest any shipped preset
+    derives (``presets.envelope_band_hours``). ``loss`` is the model's own
+    whole-house figure, both zones with the learned split -- the one the
+    Health tab publishes (#2239) -- and the mass is the one the dynamics
+    store, slab and zones included, so the grade is the house the model
+    simulates, as measured. The codes, in precedence (#2258):
     nothing to grade; the learner still walking from its prior; a refit
     of settled evidence outside its band of the learned scale.
     """
@@ -2761,14 +2892,15 @@ def envelope_score(
     scale = max(params.house_heat_loss_scale, 0.1)
     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
-    if loss <= 0.0 or params.room_thermal_mass <= 0:
+    if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
         return None, "no_house_model"
     if not house_loss_converged(samples):
         return None, "heat_loss_learning"
     if _refit_disagrees(advice, scale):
         return None, "heat_loss_refit_disagrees"
-    tau_h = params.room_thermal_mass / loss
-    return float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0, None
+    low_h, high_h = presets.envelope_band_hours()
+    tau_h = params.envelope_thermal_mass / loss
+    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None
 
 
 def machine_score(
@@ -3112,13 +3244,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     # -- construction, one concern at a time ---------------------------------
 
     def _init_model(self, config: EntryConfig) -> tuple[ThermalParameters, OptimizationConfig]:
-        """The thermal model, the optimizer, and the configuration between."""
+        """The live thermal model and the configuration; each solve builds its own optimizer."""
         thermal_params = ThermalParameters.from_config(config)
         self._thermal_model = ThermalModel(thermal_params)
-
-        opt_config = OptimizationConfig.from_mapping(config)
-        self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
-        return thermal_params, opt_config
+        return thermal_params, OptimizationConfig.from_mapping(config)
 
     def _init_runtime_state(
         self,
@@ -3196,13 +3325,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # DHW state
         self._dhw_temperature: float | None = None
         # W5-G9: the usage profile, day-type profiles, draw statistics and
-        # cooling rate live in their own subsystem. It learns into the shared
-        # ThermalParameters and observes three coordinator facts through
-        # callables; it never holds the coordinator.
+        # cooling rate live in their own subsystem. It reads the published
+        # ThermalParameters, proposes its two fields through their one
+        # publisher and observes three coordinator facts through callables;
+        # it never holds the coordinator.
         self._dhw_learner = DhwProfileLearner(
             hass,
             entry.entry_id,
-            ctx._thermal_params,
+            lambda: _ctx_of(self)._thermal_params,
+            publish=functools.partial(_publish_params, self),
             frozen=self._learning_frozen,
             heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
             # The live detector, never a solve's copy of it: no solve runs
@@ -3210,13 +3341,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             external_heat_active=lambda: bool(self._external_heat_active),
         )
         # #193's W5-G10: the disinfection cycle, its ceilings and its three
-        # repair notices are their own subsystem. It reads the shared
-        # parameters and configuration, observes the planned action through a
-        # callable, and never holds the coordinator.
+        # repair notices are their own subsystem. It reads the published
+        # parameters and the configuration, observes the planned action
+        # through a callable, and never holds the coordinator.
         self._legionella = LegionellaGuard(
             hass,
             entry.entry_id,
-            ctx._thermal_params,
+            lambda: _ctx_of(self)._thermal_params,
             ctx._config,
             action=lambda: {} if self._mode == MODE_OFF else planned(),  # off writes nothing
             disinfect=_disinfection_switch(hass, ctx._config),
@@ -3405,7 +3536,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
-        ctx._thermal_params.defrost_derate = self._defrost
+        _publish_params(self, defrost_derate=self._defrost)
 
         # Defrost on-time for the interval being measured (v5.3.0). Fed by
         # the per-cycle read AND by a state listener, because the two see
@@ -3826,7 +3957,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if flow > 0:
             out["shower_minutes"] = round(litres / flow, 1)
         return out
-    def _dhw_setpoint_sweep(self) -> DhwAdvisor:
+    def _dhw_setpoint_sweep(self, kwh_price: float | None = None) -> DhwAdvisor:
         """#9: replay candidate setpoints against everything learned.
 
         Read-only. For each candidate: a day of standby loss at that
@@ -3835,6 +3966,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         priced at the learned COP for that tank temperature and the recent
         mean price. The recommendation is the cheapest candidate that
         still covers the heaviest learned window demand.
+
+        ``kwh_price`` is the grid view's recent kWh price: the card scales a
+        day of this sweep to a month, so the price feed's own window made the
+        row swing with each day's price level (#2257 item 6). That window
+        prices a fresh install, which has none.
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
@@ -3842,15 +3978,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return {}
         c_dhw = params.dhw_tank_thermal_mass
         outdoor = float(ctx._current_state.outdoor_temperature)
-        mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
-        # The sweep ranks candidates by cost, and ranking needs a positive
-        # price level: a negative mean flips every ``cost_day`` negative and
-        # min-cost then crowns the candidate using the MOST energy. The
-        # sweep is a relative comparison, so on a worthless-energy day a
-        # floored positive level keeps the ranking meaningful — better than
-        # the advisor entity vanishing, which would look like a bug.
-        if mean_price <= 1e-6:
-            mean_price = max(abs(mean_price), 0.1)
+        mean_price = _sweep_price(kwh_price, self._prices)
         # The heaviest ready energy any window needs, learned where
         # evidence exists, profile-mean otherwise. Without the fallback a
         # fresh install has a 0 kWh "heaviest window", every candidate
@@ -4608,20 +4736,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``None`` means "skip this sample": the entity is configured but stale
         (`read_power_kw`'s ok=False contract) or contaminated. Without any
         power entity the commanded draw is the only electrical estimate; a
-        flow meter measures the interval's heat instead (#2016).
-
-        v5.3.0 fixes a silent under-report here. The subtraction removes *the
-        plan's* hot-water allocation from the measured total, on the premise
-        that the plan describes what the pump is doing. When the pump is
-        actually in ``heat`` that premise is false: no hot water was made, the
-        meter reading is all space heating, and subtracting a phantom DHW
-        share hands the house heat-loss learner a space figure that is too low
-        by exactly the allocation — every interval, in the same direction, for
-        as long as the mismatch lasts. A biased-low input to a learner that
-        persists what it concludes is the failure class this whole guard
-        exists for. ``_commanded_split`` now zeroes the channel the observed
-        mode cannot serve, so the subtraction removes only hot water that
-        could actually have been made.
+        flow meter measures the interval's heat instead (#2016). The hot
+        water subtracted is ``_commanded_split``'s, which zeroes a channel the
+        observed mode cannot serve: a phantom allocation would bias every
+        sample low, in one direction (v5.3.0).
         """
         commanded_space, dhw_share = self._commanded_split()
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
@@ -4683,7 +4801,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _apply_cop_scale(self, scale: float) -> None:
         """Clamp the learned COP correction and push it to the model."""
         self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))
-        getattr(self, "_ctx", self)._thermal_params.cop_scale = self._cop_scale
+        _publish_params(self, cop_scale=self._cop_scale)
 
     def _max_pump_rise(self, tank: str) -> float | None:
         """Fastest the heat pump alone could warm a tank, °C/h.
@@ -4892,15 +5010,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         hypothetical on the hardware this release targets — because one ratio
         cannot be attributed to two curves.
 
-        #1067: the space reference is the COP the PLAN priced, never a lift
-        measured at the supply pipe. ``_learn_measured_cop`` credits
-        ``modelled_cop * commanded / measured``, so a harder lift already
-        arrives as a larger ``measured``; lifting this reference as well
-        counts it twice (-24 to -38 % at a 55 degC supply).
+        #1067: without a thermal meter the space reference is the COP the
+        PLAN priced, never a lift measured at the supply pipe: the commanded
+        inference credits ``modelled_cop * commanded / measured``, so a harder
+        lift already arrives as a larger ``measured``, and lifting this
+        reference as well counts it twice (-24 to -38 % at a 55 degC supply).
+        A measured heat carries no such inference; it is judged at the supply
+        it ran at (``flow_meter.space_reference_cop``).
         """
         ctx = getattr(self, "_ctx", self)
         outdoor = ctx._current_state.outdoor_temperature
-        space_curve = self._thermal_model.compute_cop(outdoor)
+        bias = self._flow_bias
+        space_curve = space_reference_cop(self._thermal_model, outdoor, bias.heat_output_kw, bias.last_supply_c)
         space_ref = (space_curve, False, None)
         if not self._pump_signals.mode_observed:
             return space_ref
@@ -4934,7 +5055,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if self._measured_power is None:
             return COP_REFUSED_NO_POWER
-        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
+        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
@@ -4966,30 +5087,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if _cop_fold_blocked(self):
             return COP_REFUSED_DISTORTED
 
-        # v4.0.5: delivered heat is not measured, so this ratio can only be
-        # read as efficiency when the pump is plausibly running the plan. A
-        # large commanded-vs-measured gap is usually the pump NOT tracking
-        # (compressor limits, cycling, ramp lag) — folding it booked pure
-        # tracking error into ``cop_scale``. But a gate fixed on the
-        # commanded ratio deadlocks: a pump whose true efficiency sits more
-        # than the gate away from the current scale shows that same gap on
-        # EVERY sample, so nothing ever folds, the scale never moves, and
-        # the degradation watchdog downstream goes blind at exactly the
-        # severity it exists for (v4.0.5 review). So outliers are judged
-        # against a walking ratio EWMA instead: a one-off blip deviates
-        # from it and is dropped, while a persistent shift WALKS the EWMA
-        # (it updates from every sample) and unlocks folding within a
-        # handful of intervals. A draw that does not follow the ask at all
-        # walks it too, so a departure needs draw_range's evidence (off_ask).
+        # v4.0.5: without a thermal meter delivered heat is not measured, so
+        # this ratio reads as efficiency only while the pump plausibly runs
+        # the plan; a large gap is usually the pump NOT tracking. A gate
+        # fixed on the commanded ratio deadlocks (a true efficiency past the
+        # gate shows that gap on EVERY sample and nothing folds), so outliers
+        # are judged against a walking ratio EWMA: a blip deviates from it
+        # and is dropped, a persistent shift walks it and unlocks folding. A
+        # draw that does not follow the ask walks it too, so a departure
+        # needs draw_range's evidence (off_ask). A measured heat (fold e)
+        # makes COP an observable and the gates have nothing to judge.
+        heat_kw = self._flow_bias.heat_output_kw
         ratio = float(self._measured_power) / max(commanded, 1e-6)
-        # Seeded at 1.0 — the model's own expectation, since ``commanded``
-        # already carries the current scale — and gated against the value
-        # BEFORE this sample updates it, so a first-sample blip cannot
-        # vouch for itself. The EWMA walks on every sample, accepted or
-        # not: that is what lets a genuine persistent shift unlock.
+        # Seeded at 1.0, the model's own expectation, and gated against the
+        # value BEFORE this sample updates it, so a first-sample blip cannot
+        # vouch for itself; it walks on every sample, accepted or not.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw):
+        if heat_kw is None and (refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw)):
             _LOGGER.debug(
                 "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
                 "against the running ratio %.2f -- not an efficiency reading",
@@ -4999,30 +5114,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
         if modelled_cop is None:
-            # A genuinely blended interval: the pump ran both duties at once
-            # and neither dominates, so the one ratio this method produces
-            # cannot be attributed to either curve. Skipping is the honest
-            # answer; guessing would put a DHW-shaped error into the space
-            # multiplier every plan's cost runs through.
+            # A genuinely blended interval: one ratio cannot be attributed to
+            # either curve, and guessing puts a DHW-shaped error into the
+            # space multiplier every plan's cost runs through.
             return COP_REFUSED_BLENDED
         if modelled_cop <= 0.1:
             return COP_REFUSED_MODELLED
 
-        # The thermal output the plan intended is commanded power times the
-        # modelled COP; delivering that with a different electrical input means
-        # the real COP differs by the ratio of the two inputs.
-        observed_cop = modelled_cop * commanded / self._measured_power
+        # ``cop_scale`` multiplies the *nameplate* curve and ``modelled_cop``
+        # already carries it, so the target is the current scale times the
+        # observed correction; the correction alone makes 1.0 the only fixed
+        # point. ``cop_evidence`` owns both inferences.
+        observed_cop, target_scale = cop_evidence(
+            modelled_cop, commanded, self._measured_power, heat_kw, self._cop_scale
+        )
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
         self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
 
-        # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
-        # already has the current scale folded in. So the new absolute scale is
-        # the current one times the observed correction, not the correction on
-        # its own — using the ratio alone makes 1.0 the only fixed point, and a
-        # sample that perfectly confirms the model would still drag the learned
-        # value back towards "trust the nameplate".
-        target_scale = self._cop_scale * commanded / self._measured_power
         alpha = COP_LEARNING_ALPHA
         new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
         max_step = self._cop_scale * COP_LEARNING_MAX_STEP
@@ -5050,7 +5159,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # and low duty, so the baseline inherits every filter for free.
         self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
-        self._fold_capacity_envelope(float(observed_cop))
+        self._fold_capacity_envelope(float(observed_cop), heat_kw)
         return None
     def _input_health_view(self) -> InputHealthView:
         """Diagnostics for the input watchdog, published as entity attributes."""
@@ -5106,19 +5215,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Clamp a buffer cooling rate to a plausible range and push it out."""
         low, high = self._buffer_cooling_bounds()
         self._buffer_cooling_rate = float(np.clip(rate, low, high))
-        getattr(self, "_ctx", self)._thermal_params.buffer_cooling_rate = self._buffer_cooling_rate
+        _publish_params(self, buffer_cooling_rate=self._buffer_cooling_rate)
 
     @_refuses_non_finite
     def _apply_house_heat_loss_scale(self, scale: float) -> None:
         """Clamp the house heat loss correction and push it to the model."""
         self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))
-        getattr(self, "_ctx", self)._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
+        _publish_params(self, house_heat_loss_scale=self._house_heat_loss_scale)
 
     @_refuses_non_finite
     def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
         """Clamp the learned zone split and push it to the model."""
         self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))
-        getattr(self, "_ctx", self)._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
+        _publish_params(self, lower_floor_loss_ratio=self._lower_floor_loss_ratio)
 
     def _house_heat_loss_anchor(self) -> float:
         """The total base UA the learned scale currently multiplies.
@@ -5310,7 +5419,42 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         await self._async_save_thermal_learning()
 
-    async def _async_learn_house_heat_loss(self) -> None:
+    def _close_fabric_interval(self) -> FabricInterval | None:
+        """Close the elapsed interval for both fabric learners; advance the baseline.
+
+        The one place the baseline moves, before either learner reads it, so
+        neither compares the current state against itself whatever order they
+        run in. ``None`` -- no sample this cycle for either -- without a
+        baseline, without a trustworthy power, or outside the interval bounds.
+
+        The action that governed the elapsed interval is the one in
+        ``_current_action`` *right now*: the learners run before this cycle's
+        optimization replaces it, so it still holds what the pump was told at
+        the previous cycle -- exactly the interval being replayed. The old
+        snapshot taken a cycle earlier was one action further back, and under
+        bang-bang price scheduling that off-by-one injected a spurious residual
+        an order of magnitude above the learning signal. Measured where a meter
+        exists (v4.0.5): replaying the *commanded* power attributed every
+        delivery shortfall to the heat loss coefficient, and a configured meter
+        that is stale or contaminated leaves nothing trustworthy to replay --
+        a skipped interval loses convergence, a wrong power replayed corrupts
+        a persisted parameter.
+        """
+        now = dt_util.now()
+        previous_state, previous_time = self._last_house_sample, self._last_house_sample_time
+        power = self._interval_space_power()
+        # Snapshot for the next interval before any early return, so a rejected
+        # sample does not poison the following one with a stale baseline.
+        self._last_house_sample = replace(_ctx_of(self)._current_state)
+        self._last_house_sample_time = now
+        if previous_state is None or previous_time is None or power is None:
+            return None
+        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
+        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
+            return None
+        return FabricInterval(previous_state, previous_time, now, dt_h, power)
+
+    async def _async_learn_house_heat_loss(self, interval: FabricInterval | None) -> None:
         """Correct the house heat loss coefficient from prediction error.
 
         Rather than trying to isolate a coasting period — a heated house rarely
@@ -5331,33 +5475,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         Expressed as a correction to the configured coefficient this becomes a
         multiplicative scale, which is also the right shape for the two-zone
         model where only one indoor sensor is available and the two floors
-        cannot be identified separately.
+        cannot be identified separately. ``interval`` is the one
+        ``_close_fabric_interval`` closed for both fabric learners.
         """
         ctx = getattr(self, "_ctx", self)
-        now = dt_util.now()
         observed = ctx._current_state.room_temperature
-        previous_state = self._last_house_sample
-        previous_time = self._last_house_sample_time
-        # The action that governed the elapsed interval is the one in
-        # ``_current_action`` *right now*: the learners run before this cycle's
-        # optimization replaces it, so it still holds what the pump was told at
-        # the previous cycle — exactly the interval being replayed. The old
-        # snapshot taken a cycle earlier was one action further back, and under
-        # bang-bang price scheduling that off-by-one injected a spurious
-        # residual an order of magnitude above the learning signal.
-        # Measured where a meter exists (v4.0.5): replaying the *commanded*
-        # power attributed every delivery shortfall to the heat loss
-        # coefficient. ``None`` = no trustworthy figure this interval.
-        previous_power = self._interval_space_power()
 
-        # Snapshot for the next interval before any early return, so a rejected
-        # sample does not poison the following one with a stale baseline.
-        self._last_house_sample = replace(ctx._current_state)
-        self._last_house_sample_time = now
-
-        frozen = self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
-        )
+        frozen = replay_freeze(self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
+        ), ctx._config, _interval_measured_heat_kw(self))
         # "ventilation" is the one freeze reason this method must look
         # past: the ventilation detector below is what CLEARS it, and it
         # needs the residual to see the window close. Every other reason
@@ -5368,18 +5494,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._learner_freeze_reason = frozen
             return
 
-        if previous_state is None or previous_time is None or observed is None:
+        if interval is None or observed is None:
             return
-        # A configured meter that is stale or contaminated this interval:
-        # nothing trustworthy to replay, so no sample — a skipped interval
-        # loses convergence; a wrong power replayed corrupts a persisted
-        # parameter.
-        if previous_power is None:
-            return
-
-        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
-            return
+        previous_state, previous_time, now, dt_h, previous_power = interval
 
         outdoor = previous_state.outdoor_temperature
         # Same zone as the residual, or the Newton step is taken about a temperature
@@ -5475,7 +5592,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if self._house_heat_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
-    async def _async_learn_lower_floor_loss(self) -> None:
+    async def _async_learn_interval(self, prior: ThermalState, *, slab_unsensed: bool) -> float | None:
+        """The elapsed interval's learners; the slab seed.
+
+        The interval is closed once, by ``_close_fabric_interval``, before either
+        fabric learner (#2249): both replay the same window, so their order
+        decides only which fit sees the other's update first. Closing it advances
+        the baseline, so its time is read first. ``slab_unsensed``: the slab
+        advanced from ``prior`` (`_propagated_slab`), else ``None``.
+        """
+        prior_at = self._last_house_sample_time
+        interval = self._close_fabric_interval()
+        await self._async_learn_lower_floor_loss(interval)
+        await self._async_learn_house_heat_loss(interval)
+
+        # Observed COP (a power entity only), saved on the house learner's
+        # every-10-samples cadence: both share the thermal learning store.
+        cop_samples_before = self._cop_samples
+        self._learn_measured_cop(self._accuracy.draw)
+        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+            await self._async_save_thermal_learning()
+        return await _propagated_slab(self, prior, prior_at) if slab_unsensed else None
+
+    async def _async_learn_lower_floor_loss(self, interval: FabricInterval | None) -> None:
         """Redistribute the heat loss between the two zones (item 31).
 
         Only reachable with a real lower-floor sensor. Without one the lower zone
@@ -5491,17 +5630,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         Same Newton step as the house learner, taken about the lower zone:
         predicted lower-zone change is linear in its own U with slope
-        ``-(T_lower - T_out)·Δt / C_lower``.
+        ``-(T_lower - T_out)·Δt / C_lower``, over the house learner's ``interval``.
         """
         ctx = getattr(self, "_ctx", self)
-        now = dt_util.now()
         params = ctx._thermal_params
-        previous_state = self._last_house_sample
-        previous_time = self._last_house_sample_time
-        # See the house learner: the current action is the one that governed
-        # the elapsed interval, and the measured figure wins over the
-        # commanded one wherever a meter exists (v4.0.5).
-        previous_power = self._interval_space_power()
         observed = ctx._current_state.lower_floor_temperature
 
         if not params.two_zone_enabled:
@@ -5512,25 +5644,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not ctx._config.lower_floor_temp_entity:
             return
 
-        frozen = self._learning_frozen(
+        frozen = replay_freeze(self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY,
             CONF_OUTDOOR_TEMP_ENTITY,
             CONF_LOWER_FLOOR_TEMP_ENTITY,
-        )
+            CONF_THERMAL_POWER_ENTITY,
+        ), ctx._config, _interval_measured_heat_kw(self))
         if frozen:
             self._learner_freeze_reason = frozen
             return
 
-        if previous_state is None or previous_time is None or observed is None:
+        if interval is None or observed is None:
             return
-        # Same skip as the house learner: a stale or contaminated meter
-        # leaves nothing trustworthy to replay.
-        if previous_power is None:
-            return
-
-        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
-            return
+        previous_state, previous_time, _end, dt_h, previous_power = interval
 
         outdoor = previous_state.outdoor_temperature
         delta_t = previous_state.lower_floor_temperature - outdoor
@@ -6162,112 +6288,53 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if refresh:
             await self.async_request_refresh()
 
-    # Service parameter name -> thermal parameter attribute. Plain assignments
-    # only; anything with a side effect is handled explicitly below.
-    _THERMAL_PARAM_FIELDS = {
-        "house_thermal_mass": "room_thermal_mass",
-        "slab_thermal_mass": "slab_thermal_mass",
-        "slab_heat_transfer": "slab_heat_transfer",
-        "heat_pump_cop_nominal": "cop_nominal",
-        "upper_floor_thermal_mass": "upper_floor_thermal_mass",
-        "lower_floor_thermal_mass": "lower_floor_thermal_mass",
-        "inter_zone_heat_transfer": "inter_zone_transfer",
-        "radiator_power_fraction": "radiator_power_fraction",
-        "window_area": "window_area",
-        "solar_heat_gain_coefficient": "solar_heat_gain_coefficient",
-        "dhw_tank_volume": "dhw_tank_volume",
-        "dhw_setpoint": "dhw_setpoint",
-        "dhw_min_temperature": "dhw_min_temp",
-        "dhw_daily_consumption": "dhw_daily_consumption",
-        "ecl110_pid_time_constant_hours": "ecl110_pid_time_constant_hours",
-        "wind_sensitivity_factor": "wind_sensitivity",
-        "rain_heat_loss_multiplier": "rain_heat_loss_multiplier",
-    }
-
     async def async_update_thermal_params(self, params: dict[str, Any]) -> None:
         """Apply a runtime parameter change from the service call.
 
-        Most parameters are a plain assignment in the table above; the rest
-        carry a consequence — a correction to invalidate, a mirror, a parse.
+        The call is one snapshot (D7-s1-82), published with the learned
+        corrections it resets before anything is awaited, so no reader sees
+        half of it. A store it resets is read first (ls-r1): a write before
+        its startup read lands is overwritten by that read.
         """
-        ctx = getattr(self, "_ctx", self)
-        for name, attribute in self._THERMAL_PARAM_FIELDS.items():
-            if name in params:
-                setattr(ctx._thermal_params, attribute, params[name])
+        resets_fabric = "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params
+        if resets_fabric:
+            await self._thermal_learning_store.async_wait_for_read()
+        if CONF_DHW_COOLING_RATE in params:
+            await self._dhw_learner.async_wait_for_read()
 
+        _publish_params(self, **_thermal_param_changes(params))
+        # The displace limits are mirrored for the MQTT publisher, which
+        # clamps against them without going through the model.
+        if "ecl110_displace_min" in params:
+            self._ecl110_displace_min = params["ecl110_displace_min"]
+        if "ecl110_displace_max" in params:
+            self._ecl110_displace_max = params["ecl110_displace_max"]
         if "house_heat_loss_coefficient" in params:
-            ctx._thermal_params.heat_loss_coefficient = params[
-                "house_heat_loss_coefficient"
-            ]
             # A new nameplate invalidates the learned correction: start
             # over from "trust the configuration". The save below records
             # the anchor just applied, so the restart pairs this reset with
             # the options (#86: 0.80x wrong from an in-memory-only change).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
-
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
-
-        # One write for either reset: a call with both used to save twice.
-        if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
-            await self._async_save_thermal_learning()
-
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets its
             # sample count, so the learner starts from it again.
-            await self._dhw_learner.async_set_cooling_rate(
-                float(params[CONF_DHW_COOLING_RATE])
-            )
-
-        # The displace limits are mirrored for the MQTT publisher, which
-        # clamps against them without going through the model.
-        for name, attribute in (
-            ("ecl110_displace_min", "_ecl110_displace_min"),
-            ("ecl110_displace_max", "_ecl110_displace_max"),
-        ):
-            if name in params:
-                setattr(ctx._thermal_params, name, params[name])
-                setattr(self, attribute, params[name])
-
-        if CONF_DHW_SCHEDULE_ENABLED in params:
-            ctx._thermal_params.dhw_schedule_enabled = bool(
-                params[CONF_DHW_SCHEDULE_ENABLED]
-            )
-        self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
-        if CONF_DHW_WINDOWS in params:
-            try:
-                ctx._thermal_params.dhw_windows = parse_windows(
-                    params[CONF_DHW_WINDOWS]
-                )
-                # One parse gives both views (#3), which can never disagree.
-                ctx._thermal_params.dhw_weekly_windows = parse_weekly_windows(
-                    params[CONF_DHW_WINDOWS]
-                )
-            except DHWWindowError as err:
-                _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
-        for key, attribute, convert in (
-            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
-            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
-            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
-            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
-        ):
-            if key in params:
-                setattr(ctx._thermal_params, attribute, convert(params[key]))
-
-        # Attribute writes bypass __post_init__; the divisor floor is
-        # re-enforced here — the one chokepoint for service writes.
-        ctx._thermal_params.clamp()
+            self._dhw_learner.set_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
+        ctx = _ctx_of(self)
+        self._ctx = replace(ctx, _config=_with_quiet_keys(ctx._config, params))  # #1910
 
         # D1-s2-53: entry options persist the call; the write reloads the entry.
         self.hass.config_entries.async_update_entry(
             self.entry, options={**self.entry.options, **params})
 
-        # The model and optimizer hold the parameters by reference at
-        # construction, so both are rebuilt rather than mutated in place.
-        self._thermal_model = ThermalModel(ctx._thermal_params)
-        self._optimizer = HeatPumpOptimizer(self._thermal_model, ctx._opt_config)
+        # One write for either reset: a call with both used to save twice.
+        if resets_fabric:
+            await self._async_save_thermal_learning()
+        if CONF_DHW_COOLING_RATE in params:
+            await self._dhw_learner.async_save_profile()
 
         _LOGGER.info("Thermal parameters updated, re-running optimization")
         await self.async_request_refresh()
@@ -6329,8 +6396,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             scale=ctx._config.staleness_max_age_scale,
         )
         self.currency = _feed_currency(self.hass, ctx._config) or self.currency
-        # Read onto a copy, published whole before the first reader below.
-        state = replace(ctx._current_state)
+        # Read onto a copy, published whole before the first reader below;
+        # ``prior`` is the state the interval started from (the slab seed).
+        prior = ctx._current_state
+        state = replace(prior)
         # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
@@ -6357,20 +6426,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The slab estimate advances from the reading and records it.
             self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
 
-        # The lower zone's room temperature, best source first. A real
-        # thermometer is the only source that carries information about the
-        # lower zone at all. There used to be a second-best branch here, the
-        # floor-return reading plus 0.5 K: a *water* temperature standing in
-        # for an air temperature (typically 3-9 K too warm) whose slab-to-room
-        # difference was pinned at a constant 0.5 K — a wrong, unresponsive
-        # main heat path judged against the upper floor's comfort bounds and
-        # published as a house temperature (a 27.5 C return drew a "house"
-        # trace at 28.0 C beside a 22.1 C upper zone: the optimizer cooking
-        # the house to a temperature nothing planned). The floor return keeps
-        # the job it is a genuine proxy for, driving the slab estimate above;
-        # with no lower-floor thermometer the honest stand-in is the room
-        # temperature, the last-resort seed further down, and a repair issue
-        # says so rather than letting a wrong number pass for a measurement.
+        # The lower zone's room temperature: only a real thermometer carries
+        # information about it. The floor return is a WATER temperature,
+        # typically 3-9 K above the air, so it drives the slab estimate above
+        # and never stands in here; without a lower-floor thermometer the room
+        # temperature does (the last-resort seed below), and a repair issue
+        # says so.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             state.lower_floor_temperature = lower_floor.value
@@ -6384,7 +6445,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # — and so whether surplus heat can reach the tank at all.
         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
         if valve_target.ok and (valve_value := valve_target.value) is not None:
-            ctx._thermal_params.mixing_valve_target = float(valve_value)
+            _publish_params(self, mixing_valve_target=float(valve_value))
 
         # Measured electrical draw. Optional, and everything downstream has to
         # degrade cleanly without it, because most installs will not have one.
@@ -6439,7 +6500,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # extrapolates yesterday's fire. Staleness maps to absence, which
         # falls back to the single-tank abstraction (free heat into the HP
         # tank) rather than a stalled hot probe; logged per transition.
-        if ctx._thermal_params.two_tank_modelled:
+        if _ctx_of(self)._thermal_params.two_tank_modelled:
             wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
             wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
             wood_mean = wood_mean_temperature(
@@ -6510,7 +6571,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # The defrost derate's humidity bucket is resolved from this, so it has
         # to be current before anything calls compute_cop.
-        ctx._thermal_params.ambient_humidity = self._current_humidity()
+        _publish_params(self, ambient_humidity=self._current_humidity())
 
         # Detect external heat before the learners run: while one is active,
         # every thermal observation is contaminated, and they must know.
@@ -6520,45 +6581,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # after the pump signals its ``_learning_frozen`` consult reads (#1331).
         self._track_curve_comfort(dt_util.now())
 
-        if dhw.ok and (dhw_value := dhw.value) is not None:
-            frozen = await self._dhw_learner.async_learn_dynamics(dhw_value)
-            if frozen:
-                self._learner_freeze_reason = frozen
-            await self._legionella.async_track(dhw_value)
-
-        self._legionella.disinfect.observe(reader)
-        # Deliberately NOT gated on `dhw.ok`: the observer above is the only
-        # reset path there was, and it cannot run without a tank reading —
-        # while the countdown below advances on the clock regardless. That
-        # asymmetry is the latch. This follows the boost the plan actually
-        # commanded, so a cycle can complete even when the probe is absent
-        # or the pump cannot reach the disinfection temperature.
-        await self._legionella.async_track_cycle(
-            dhw.value if dhw.ok else None
-        )
-        self._legionella.check_ceiling()
-
-        _ctx_of(self).publish(self, dhw_hours_since_legionella=self._legionella.hours_since())
+        tank = dhw.value if dhw.ok else None
+        if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
+            self._learner_freeze_reason = frozen
+        hours = await self._legionella.async_observe(tank, reader)
+        _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
 
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
 
-        # Refine the building fabric model from how the last interval actually
-        # went. Runs last so it sees the fully populated state.
-        # Order matters, and not obviously. `_async_learn_house_heat_loss`
-        # overwrites `_last_house_sample` with the *current* state near its top,
-        # so anything reading that baseline has to run first or it silently
-        # compares the current state against itself and learns nothing.
-        await self._async_learn_lower_floor_loss()
-        await self._async_learn_house_heat_loss()
-
-        # Observed COP, which is only possible with a measured power entity.
-        # Persisted on the same every-10-samples cadence as the house learner;
-        # both share the thermal learning store.
-        cop_samples_before = self._cop_samples
-        self._learn_measured_cop(self._accuracy.draw)
-        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
-            await self._async_save_thermal_learning()
+        # The fabric model refined by how the interval went: last, on the full state.
+        seed = await self._async_learn_interval(prior, slab_unsensed=not floor_return.ok)
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
@@ -6571,17 +6604,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Last resort: seed the slab, and the lower zone if nothing better
         # has been read, from the room temperature. Both guards are on the
         # READING, not the entity being set: a stale sensor takes the same
-        # path as an absent one. The slab seed runs only until a first plan
-        # exists — its trajectory then advances the slab (open-loop
-        # propagation, R9 D12-s1-01); the room+1 K seed used to freeze forever.
+        # path as an absent one. The room+1 K seed runs only until the slab
+        # can be advanced (``_propagated_slab``); it used to freeze forever.
         if not floor_return.ok:
-            if (
-                seed := _open_loop_plan_value(
-                    self._optimization_result,
-                    "slab_temp_trajectory",
-                    dt_util.now(),
-                )
-            ) is not None:
+            if seed is not None:
                 state.slab_temperature = seed
                 self._slab_temp_initialized = True
             elif not hasattr(self, "_slab_temp_initialized"):
@@ -6599,13 +6625,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         scale they just learned. A solve takes its own copy into its record
         and writes none of them here.
         """
-        fresh = self._model_corrections(dt_util.now())
-        params = getattr(self, "_ctx", self)._thermal_params
-        params.solar_aperture_scale = fresh["solar_aperture_scale"]
-        params.internal_gains_profile = fresh["internal_gains_profile"]
-        params.dhw_inlet_current = fresh["dhw_inlet_current"]
-        params.flow_curve_bias = fresh["flow_curve_bias"]
-        params.flow_curve_indoor_target = fresh["flow_curve_indoor_target"]
+        _publish_params(self, **self._model_corrections(dt_util.now()))
 
     def _learning_frozen(self, *keys: str) -> str | None:
         """Why learning should be skipped this interval, or ``None``.
@@ -7673,11 +7693,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms
-            # (#28), the setpoint sweep (#9) and the learned heavy-day
-            # statistics (#32/#20).
+            # (#28) and the learned heavy-day statistics (#32/#20); the
+            # setpoint sweep (#9) is priced in ``_build_data_dict``.
             "dhw_inlet_temperature": round(params.dhw_inlet_reference, 1),
             "dhw_mixed": self._dhw_mixed_water(),
-            "dhw_advisor": self._dhw_setpoint_sweep(),
             "dhw_draw_stats": {
                 label: {
                     "events": self._dhw_learner.draw_stats.count(label),
@@ -7805,6 +7824,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         forecast = self._weather_forecast
         return {
             "current_price": self._get_current_price(),
+            # The level the advisors' monthly figures are priced at (#2257).
+            "recent_kwh_price": self._ledger.recent_kwh_price(dt_util.now()),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(forecast),
             # The outdoor temperature the horizon starts on, beside the
@@ -7979,6 +8000,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._energy_totals_since is None:
             self._energy_totals_since = dt_util.now().date().isoformat()
         data["energy_totals_counting_since"] = self._energy_totals_since
+        data["dhw_advisor"] = self._dhw_setpoint_sweep(data.get("recent_kwh_price"))
         # Which of the battery's stores stand on a thermometer. Labelled
         # here rather than inside the view because this is where the
         # reading map is already assembled (#282).
@@ -8107,7 +8129,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Additive keys: an older store has none; an older build ignores extras.
         self._dhw_accuracy = AccuracyTracker.from_dict(stored.get("dhw_accuracy"))
         self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
-        ctx._thermal_params.defrost_derate = self._defrost
+        _publish_params(self, defrost_derate=self._defrost)
         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
         stored_mode = stored.get("mode")
         if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
@@ -8364,6 +8386,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Fold any newly complete price days into the learned shape."""
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
             return
+        # #2674: the setup refresh folds before the startup read may have
+        # landed, and the read would replace the folded day.
+        await self._price_model_store.async_wait_for_read()
         if self._price_learner.fold(self._prices):
             await self._async_save_price_model()
 
@@ -8784,7 +8809,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "feasible": breach <= 0.05,
             "comfort_shortfall_c": round(breach, 2),
             "worst_margin_kw": round(candidate_kw - peak, 2),
-            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
         }
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
@@ -9062,7 +9087,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     # -- T4b learners (#17 #36 #53), each fully behind its flag ------------
 
-    def _fold_capacity_envelope(self, observed_cop: float) -> None:
+    def _fold_capacity_envelope(self, observed_cop: float, heat_kw: float | None = None) -> None:
         """#17: remember the most heat the unit has delivered per bucket.
 
         Fed only from ``_learn_measured_cop``'s vetted tail, so frost,
@@ -9070,11 +9095,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         is an upper bound with slow forgetting — a one-off spike decays
         instead of pinning the bucket forever.
 
-        Only near-nameplate commands are evidence: a partial-load interval
-        says nothing about what the machine COULD deliver, and folding it
-        would make the envelope self-censoring — the caps limit the plan,
-        the plan limits the samples, and every bucket would ratchet down
-        to the floor within weeks of ordinary partial-load running.
+        Only near-nameplate commands count as evidence: a partial-load
+        interval says nothing about what the machine COULD deliver, and
+        folding it would make the envelope self-censoring — the caps limit
+        the plan, the plan limits the samples, and every bucket would
+        ratchet down to the floor within weeks. A measured ``heat_kw``
+        (#1955 fold e) is sampled at every load all the same, as a floor:
+        delivered heat is a lower bound on capacity, so it may raise a
+        bucket, and never decays or counts towards capping one.
         """
         ctx = getattr(self, "_ctx", self)
         if not ctx._config.capacity_curve_enabled:
@@ -9082,20 +9110,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._measured_power is None:
             return
         p_max = float(ctx._thermal_params.max_electrical_power)
-        if p_max <= 0.1 or self._commanded_power() < 0.95 * p_max:
+        nameplate = self._commanded_power() >= 0.95 * p_max
+        if p_max <= 0.1 or not (nameplate or heat_kw is not None):
             return
-        thermal_kw = float(observed_cop) * float(self._measured_power)
+        thermal_kw = float(observed_cop) * float(self._measured_power) if heat_kw is None else heat_kw
         if not np.isfinite(thermal_kw) or thermal_kw <= 0.0:
             return
         bucket = int(
             np.floor(float(ctx._current_state.outdoor_temperature) / 3.0)
         )
-        entry = self._capacity_envelope.get(bucket)
-        if entry is None:
-            self._capacity_envelope[bucket] = [thermal_kw, 1]
-            return
-        entry[0] = max(thermal_kw, float(entry[0]) * CAPACITY_FORGET)
-        entry[1] = int(entry[1]) + 1
+        entry = self._capacity_envelope.setdefault(bucket, [thermal_kw, 0])
+        entry[0] = max(thermal_kw, float(entry[0]) * (CAPACITY_FORGET if nameplate else 1.0))
+        entry[1] = int(entry[1]) + int(nameplate)
     def _capacity_caps(
         self, outdoor_temps: np.ndarray, humidity: Any = None, model: Any = None
     ) -> np.ndarray | None:
@@ -9338,7 +9364,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
-        ctx = getattr(self, "_ctx", self)
         if not isinstance(learners, dict):  # persisted state: absent, not a raise
             return
         thermal = learners.get("thermal_learning")
@@ -9409,10 +9434,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         defrost = learners.get("defrost")
         if isinstance(defrost, dict):
             self._defrost = DefrostDerate.from_dict(defrost)
-            # Rebind, exactly as the load path does: the thermal model
+            # Publish, exactly as the load path does: the thermal model
             # consumes the derate through this reference, and without it
             # the restored object trains while an orphan keeps serving.
-            ctx._thermal_params.defrost_derate = self._defrost
+            _publish_params(self, defrost_derate=self._defrost)
         # The peak tracker is deliberately NOT restored: the month's
         # realised peaks are billed facts — the DSO already metered them —
         # not learned state. Restoring a week-old peak list lowered
@@ -9522,6 +9547,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def async_restore_learned_snapshot(self) -> bool:
         """The one-click rollback service. True when a snapshot applied."""
+        # ls-r1: every store the restore rewrites is read first, or a startup
+        # read still in flight lands on top of the restored learner.
+        for store in _restored_stores(self):
+            await store.async_wait_for_read()
         snap = self._snapshot_ring.best_restore()
         if snap is None:
             _LOGGER.warning(
@@ -11213,11 +11242,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
-            # The same choice held from a steady start (the price tiles'
-            # degree, price_tiles.py): no one-off coast or heat-up in it.
-            "monthly_held_cost_delta": round(price_tiles.per_month(
-                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
+            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(

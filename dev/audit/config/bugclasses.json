@@ -2346,7 +2346,7 @@
     ],
     "detector": "node tools/policy/policy_lint.mjs --pr-body over every handoff-body/* commit (dev/audit/rca/R10-RCA-BODY-LINT.md section 1): 36 of 519 body commits over 22 topics carry a content error",
     "detector_idea": null,
-    "barrier": "tools/audit/seat/body_push.sh runs prepr.sh --body-check (step 7's body_line, offline) for a topic whose handoff/<topic> is the checkout's HEAD and refuses the push with the lint's own ERROR lines; FRICTION_TRAILER_RE drops the cloud harness's session-link line; pinned in prepr.sh --self-test (pr-contract) and tests/entities.py",
+    "barrier": "tools/audit/seat/body_push.sh runs prepr.sh --body-check (step 7's body_line, offline, then step 7e's carry_line: carry_audit.py check --body at the round's roster branch, fetched) for a topic whose handoff/<topic> is the checkout's HEAD and refuses the push with the lint's own ERROR lines and carry_audit's UNROUTED/BAD-DEST line; FRICTION_TRAILER_RE drops the cloud harness's session-link line; pinned in prepr.sh --self-test (pr-contract) and tests/entities.py",
     "status": "barriered",
     "nearest_existing": "N-orphaned-handoff",
     "mechanism_difference": "N-orphaned-handoff is a handoff no PR ever carries; here the handoff reaches open_pr.sh and is refused there, on a body defect a check the seat could run in 2 s would have named at the push",
@@ -2358,7 +2358,8 @@
       "handoff-body/* 2026-10-15..10-22: 36 body commits over 22 topics fail the lint (upper bound on bounces)"
     ],
     "rca": [
-      "R10-RCA-BODY-LINT"
+      "R10-RCA-BODY-LINT",
+      "R10-RCA-BODY-CHECK-PARITY"
     ],
     "rca_planned": [],
     "trigger": {
@@ -4421,6 +4422,22 @@
         "dev/audit/rca/R10-RCA-BODY-LINT.md"
       ]
     },
+    "R10-RCA-BODY-CHECK-PARITY": {
+      "class": "N-body-lint-bounce",
+      "level": "class",
+      "subject": "a body check pr-contract runs has no pre-open twin: carry_audit.py check --body ran only after the open, and four bodies body_push.sh's --body-check passed went red at pr-contract's carry step (round 10, 2026-10-23)",
+      "trigger": "class (4 instances in round 10, with P-F and P-N in the same family)",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the pre-open body gate (body_push.sh running prepr.sh --body-check) existed, ran and passed every instance; its unit was prepr step 7, not every body grader CI runs",
+      "countermeasure": "prepr.sh step 7e (carry_line), also run by --body-check: carry_audit.py check --body against the round's roster branch, fetched (about 0.1 s for the checker, measured by the RCA, plus one fetch); the parity test (G1, G2) and one grammar owner for ## Forward-carry (G3) stay open on R10-FLOW-JIDOKA",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-BODY-CHECK-PARITY.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-BODY-CHECK-PARITY.md"
+      ]
+    },
     "R10-RCA-INERT-CLOSURE-RECORDING": {
       "class": "I2",
       "level": "instance-or-process",
@@ -4483,6 +4500,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md",
       "doc": [
         "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md"
+      ]
+    },
+    "R10-RCA-HOTFIX-BATCH-ERREXIT": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "nightly.yml record-autofix reads batch=$? after a bare record_row.py --batch-due; GitHub's default bash -e ends the step on the designed exit 4 before the read, so every push below the batch floor reddens record-autofix (jobs 121376331566, 121376503388)",
+      "trigger": "assigned by the orchestrator: record-autofix red on main from the #2845 merge run (2026-10-26), beside R10-HOTFIX-BATCH-ERREXIT",
+      "date": "2026-10-26",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the bash -e barrier _RAF_BARE_GREEN (bc2ad6964) ran and passed but its unit is one literal call; #2836's _raf_batch_gated pins the dead line's text; the executed-step harness runs bash -c without -e",
+      "countermeasure": "A: a tree-wide $?-after-bare-call check over every errexit run block replacing _RAF_BARE_GREEN (<=0.54 s per run, 61 runner-s/day against break-even 940 s per defect at 0.065/day measured), landed after the hotfix; B: executed step harnesses under bash -e -c; I1's pipeline shape uncovered",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md"
       ]
     }
   },

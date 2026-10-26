@@ -398,6 +398,83 @@ const STATES = [
       c._render();
       return c;
     } },
+  // R10-CARD-VOICE (the harmony study, probe/card-harmony-design): five
+  // views no state pinned -- the Savings page with and without settled
+  // months, the Health page, the setup page before a topology is published,
+  // and the advisor with nothing to rank. Each drives the page the card
+  // renders for that data, through the same tab switch a reader uses.
+  { name: "savings_page",
+    drive: (s) => {
+      const st = planStates(s.plan);
+      st["sensor.heat_pump_optimizer_monthly_savings"] = {
+        state: "100.00",
+        attributes: {
+          unit_of_measurement: "SEK",
+          savings_months: [
+            { month: "2026-01", baseline_sek: 800, actual_sek: 652, savings_sek: 148,
+              savings_pct: 18.5, estimated: false },
+            { month: "2026-02", baseline_sek: 800, actual_sek: 700, savings_sek: 100,
+              savings_pct: 12, estimated: true },
+          ],
+          receipts: [{
+            month: "2026-01",
+            lines: {
+              spot: { kwh: 1238, sek: 498 }, grid_fee: { kwh: 1238, sek: 74 },
+              capacity: { kwh: 0, sek: 40 }, space: { kwh: 900, sek: 360 },
+              savings_baseline: { kwh: 1300, sek: 646 },
+            },
+            basis: ["spot", "grid_fee", "capacity"],
+            total_sek: 612, capacity_peak_kw: 5.8, compressor_starts: 212,
+            reasons: { scheduled: { kwh: 200, sek: 96 }, cheap_price: { kwh: 900, sek: 312 } },
+          }],
+          plan_replay: {
+            day: "2026-02-14", start: "2026-02-14T00:05:00+01:00", step_minutes: 15,
+            room: Array.from({ length: 97 }, (_, i) => 21 - 0.01 * i),
+            cost: Array.from({ length: 97 }, (_, i) => 0.5 * i),
+            measured: { t: [6, 12, 24], room: [20.7, 20.4, 20.0], cost: [13, 25, 50] },
+          },
+        },
+      };
+      const c = buildCard(s.Card, st);
+      c._onCardClick({});
+      api.setPage(c, "savings");
+      c._render();
+      return c;
+    } },
+  { name: "savings_empty",
+    drive: (s) => {
+      const c = buildCard(s.Card, planStates(s.plan));
+      c._onCardClick({});
+      api.setPage(c, "savings");
+      c._render();
+      return c;
+    } },
+  { name: "health_page",
+    drive: (s) => {
+      const c = buildCard(s.Card, setupStates(s.plan, qaTopologies().base));
+      c._onCardClick({});
+      api.setPage(c, "health");
+      c._render();
+      return c;
+    } },
+  { name: "setup_not_published",
+    drive: (s) => {
+      const c = buildCard(s.Card, planStates(s.plan));
+      c._onCardClick({});
+      api.setPage(c, "setup");
+      c._render();
+      return c;
+    } },
+  { name: "advisor_empty",
+    drive: (s) => {
+      const st = setupStates(s.plan, qaTopologies().base);
+      st[DEFAULT_SPACE].attributes.sensor_advisor = { basis: "history", candidates: [] };
+      const c = buildCard(s.Card, st);
+      c._onCardClick({});
+      api.setPage(c, "advisor");
+      c._render();
+      return c;
+    } },
   { name: "layout_editing_dragged",
     drive: (s) => {
       const c = setupPage(s, layoutCatalogTopo());

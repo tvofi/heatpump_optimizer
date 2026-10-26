@@ -24,7 +24,72 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-score_open  # R10-SCORES (#2258): a sub-score with no grade renders as a dash and its reason
+no_plan  # R10-CARD-VOICE: stylesheet text only
+no_plan_expanded  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+plan_inline  # R10-CARD-VOICE: stylesheet text only
+plan_inline_sv  # R10-CARD-VOICE: stylesheet text only
+plan_short_window  # R10-CARD-VOICE: stylesheet text only
+custom_title_currency  # R10-CARD-VOICE: stylesheet text only
+hidden_series  # R10-CARD-VOICE: stylesheet text only
+score_open  # R10-CARD-VOICE: stylesheet text only
+expanded_plan  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+what_if_off  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+expanded_zoomed  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+draft_dirty_menu_open  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+draft_mid_drag  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+whatif_edited  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+whatif_weekly  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+override_active  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+shared_steps  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+shared_steps_hover  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+tooltip_hover  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+coarse_pointer  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+reduced_motion  # R10-CARD-VOICE: stylesheet text only
+setup_single_buffer  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+setup_two_tank  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+setup_coil  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+advisor_page  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+savings_page  # R10-CARD-VOICE: the receipt's text-sm fallbacks (C1); the dialog's 14 px base
+savings_empty  # R10-CARD-VOICE: the savings empty state in the card's one empty shape; the dialog's 14 px base
+health_page  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+setup_not_published  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+advisor_empty  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+layout_editing_dragged  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+layout_editing_tidy  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+picker_open_filtered  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
+wood_alert  # R10-CARD-VOICE: stylesheet text only
+wood_lane  # R10-CARD-VOICE: stylesheet text only
+wood_whatif  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+away_toggle  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+away_return  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+away_status  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+history_panned  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+history_deep_panned  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+history_no_power  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+history_unavailable  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+history_pending  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
+# R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design, and the
+# harmony study's carries, probe/card-harmony-design): 44 of the 45 states
+# move; editor_schema renders no card stylesheet and does not. Measured by
+# stripping the one stylesheet node from both sides of card_drift's diff
+# against da12aa37d and sequence-diffing what is left:
+#   - the six that render the setup page (setup_single_buffer, setup_two_tank,
+#     setup_coil, layout_editing_dragged, layout_editing_tidy,
+#     picker_open_filtered) gain a type disc on each card's corner, a <title>
+#     naming each box with its type, the coil's words and accent pipe, a
+#     Configure button on every card (cards 15 to 44 units taller, so boxes,
+#     ports and pipes move down), and the line above the drawing;
+#   - every state that opens the dialog moves its inline font-size 12.00px ->
+#     14.00px (DIALOG_FONT_PX_MIN, H1); savings_empty also swaps its
+#     <p class="savings-empty"> for the card's <div class="empty"> (H3c), and
+#     savings_page its receipt stylesheet's text-sm fallbacks 14px -> 13px (C1);
+#   - the ten card-face states move in stylesheet text only (the caption
+#     floors, the badge and button rules, H2-H4): the card injects ONE <style>
+#     block and card_drift captures the whole shadow root.
+# savings_page, savings_empty, health_page, setup_not_published and
+# advisor_empty are new in this branch (the five views the harmony study
+# found no state pinned); each renders on both sides and moves as above.
+
 # R10-SCORES (#2258): a sub-score published as null renders as "—" and the
 # reason the coordinator names in `reasons` (here none is published, so the
 # fallback "No evidence yet"), in both the hover and the breakdown panel. Only

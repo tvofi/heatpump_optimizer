@@ -698,8 +698,16 @@ class Tick:
         if lg is None:
             self.unreadable(S, "REVIEW OWED", "tools/audit/seat/ledger.py absent")
         elif dispatched is not None:
-            for text in lg.review_owed(prs, self._readback, dispatched):
+            for text in lg.review_owed(prs, self._readback, dispatched, self._carries):
                 self.line(S, text, flag=True)
+
+    def _carries(self, verdict: str, head: str) -> bool:
+        """REVIEW OWED's carry filter: `app_approve.sh --carry`, the train's predicate, over a
+        fresh main; a fetch that fails carries nothing, so the head stays owed."""
+        if self.git(["fetch", "-q", "origin", "main", verdict, head])[0]:
+            return False
+        lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+        return lg.app_approve_carries(self.checkout or ".", "origin/main")(verdict, head)
 
     def _dispatched(self, S: str) -> "set | None":
         """{(pr, head)} from bus.sh's dispatch record; a missing record is no
@@ -3912,6 +3920,17 @@ def self_test() -> int:
         t_ro._git.on(("ls-remote",), out="")
         t_ro.verdict_levels("PRS", ro_board)
         ro = [x for x in flagged(t_ro.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
+        # The carry filter: #64's newest verdict is a merge at an older head, which carries to its
+        # head (a clean main merge) under the stub; #65's does not (a branch-own commit).
+        cr_board = [pr_obj(n, h(n)) for n in (64, 65)]
+        cr_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([[vc(21, f"Fix review: merge {h(70)}")]]))
+                    for n in (64, 65)]
+        t_cr = tick(prs=cr_board, gh_extra=cr_extra, bus_state=str(tmp / "bus-ro"))
+        t_cr._git.on(("ls-remote",), out="")
+        asked = []
+        t_cr._carries = lambda v, hd: asked.append((v, hd)) or hd == h(64)
+        t_cr.verdict_levels("PRS", cr_board)
+        cr = [x for x in flagged(t_cr.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
         (tmp / "bus-dir").mkdir()
         (tmp / "bus-dir" / "dispatched").mkdir()
         t_rb = tick(prs=ro_board, gh_extra=ro_extra, bus_state=str(tmp / "bus-dir"))
@@ -3920,6 +3939,8 @@ def self_test() -> int:
         a, f = check("REVIEW OWED", [
             ("of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither",
              ro == [f"REVIEW OWED: #62 {h(62)[:12]}"]),
+            ("a head the newest merge verdict carries to owes no review; one it does not carry to does",
+             cr == [f"REVIEW OWED: #65 {h(65)[:12]}"] and asked == [(h(70), h(64)), (h(70), h(65))]),
             ("an unreadable dispatch record is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: bus dispatch record" in x for x in rb)
              and not any(x.startswith("REVIEW OWED") for x in rb)),
