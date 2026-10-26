@@ -35,7 +35,6 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-ERREXIT-COUNTERMEASURES (wave 1, 0 satisfied edge(s))
 - R10-FLOW-AUDIT-PLAN (wave 1, 2 satisfied edge(s))
 - R10-FLOW-BOARD (wave 1, 1 satisfied edge(s))
-- R10-FLOW-BODY-ONLY (wave 1, 2 satisfied edge(s))
 - R10-FLOW-DESIGN-STAGES (wave 1, 0 satisfied edge(s))
 - R10-FLOW-JIDOKA (wave 1, 1 satisfied edge(s))
 - R10-FLOW-POSTMERGE (wave 1, 1 satisfied edge(s))
