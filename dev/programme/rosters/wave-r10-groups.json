@@ -5244,7 +5244,9 @@
    "issues": [
     2506
    ],
-   "fixes": [],
+   "fixes": [
+    2506
+   ],
    "after": [
     "R10-DEEPLINK-HANDLERS"
    ],
@@ -5301,7 +5303,7 @@
    "resume": {
     "stage": "done",
     "branch": null,
-    "next_step": "cloud fixer dispatched 2026-10-24T07:47Z (routine trig_0137yKHgnrnwkvENYhwNibrQ); return handoff-body/r10-thermal-power-option",
+    "next_step": "done: merged as #2753 (a441d2e15); nothing to dispatch",
     "pr": 2753
    }
   },
@@ -6514,7 +6516,7 @@
     "branch": "handoff/r10-flow-record-pitch",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged as #2836 (28800999b); the post-merge measurement is carried by R10-ORCH-BEATD",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
@@ -7059,7 +7061,8 @@
    "carry": [
     "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, a delivery-row-only head move no longer stales a verdict and this arm is moot, so close this group as not needed rather than build it.",
     "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted.",
-    "`.github/workflows/tests.yml`, the comment above the \"Fetch the recent push runs' durations\" step, still says the critical path is \"a CI run's span to its last `tests / *` job\". It should say \"a run's work to its last `tests / *` job with runner queue removed (see tests/ci_ratchet.py run_minutes)\". Left out of the ci-ratchet hotfix #2839 on purpose, because a tests.yml edit forces MODE: FULL; it rides the next live group whose files already include tests.yml."
+    "`.github/workflows/tests.yml`, the comment above the \"Fetch the recent push runs' durations\" step, still says the critical path is \"a CI run's span to its last `tests / *` job\". It should say \"a run's work to its last `tests / *` job with runner queue removed (see tests/ci_ratchet.py run_minutes)\". Left out of the ci-ratchet hotfix #2839 on purpose, because a tests.yml edit forces MODE: FULL; it rides the next live group whose files already include tests.yml.",
+    "Carry from #2846's round-2 verdict, dismissed item fdde65ea. The PR title and delivery row read \"triage: batch 32, P191 (V111 record PR swept on a refused merge attempt)\" where the batch holds P184-P191 (V104-V111). Two gaps:\n(1) No instrument corrects a PR title without moving the head, because body_patch.sh patches the body only.\n(2) The row planner derives row titles from the PR title, so a record PR regenerates the wrong title.\nFix: give body_patch.sh, or a sibling, a title-only PATCH with read-back, or let record_row.py take a row-title override. Show it with a fixture where a corrected title round-trips into the row. Then correct #2846's row to \"triage: batch 32, P184-P191 (V104-V111)\" and #2844's to say 9 ops. Ruling: orchestrator, 2026-10-26, mandate 6329234399."
    ],
    "architect_note": "",
    "brief": "adopt one arm only, as new fly-in R10-FLY-ROW-HEAD-CARRY (S/M, lane F, code-owned .github/workflows/*: cite mandate approval 6319294694), with after-edges R10-CI-LAYOUT-P2 and R10-FLY-OPENPR-ATOMIC. The arm: carry the previous head's completed Tests, CodeQL, Hassfest and Validate results to a head whose diff from that head is exactly the PR's own dev/programme/delivery/<N>.md. Decline every path-filter skip and every policy, docs or fixture .md relaxation -- measured from one bulk Actions listing (5 calls of up to 1000 runs, 2026-10-21 00:00-21:00Z; 3 windows capped at 1000, so this is a sample) and git diffs between consecutive PR heads. \"run-min\" is a run's started-to-updated wall time, not billed job minutes. (1) Shares, over 116 consecutive PR-head pairs and 11066 PR run-min: 47 heads add only merges from main (3889 run-min), 10 carry code (1417), and 59 are .md-only (2399, 21.7%). All 59 .md-only heads are the record class: delivery rows only. Policy, docs and fixture .md heads number 0, so relaxing them buys nothing. For docs and fixtures the scoped gate already runs 0 scripts, and policy .md must always run policy_lint and the code-owner rule. (2) The record class comes in two shapes. (a) record/autofix PRs: 37 heads, 579 run-min (5.2%), whose Tests already run scoped (about 3.8 min a head). A job-level path skip of the code-only workflows would save about 290 run-min (2.6%), but it makes required contexts report a skipped success with no run behind it, which is a weaker guarantee than any run. Declined. (b) open_pr.sh's second push, the row-only head: 22 heads, 1820 run-min on the row heads (16.4%), plus 1277 on the code heads it superseded. Only 3 of 22 superseded heads finished Tests; the rest were cancelled by concurrency. The gap between the two heads has a median of about 8 min and a tail of 198 and 500 min (refused second pushes, P13's class). The PR's whole diff is code, so a path filter can skip nothing here. Only a carry keyed on the head-diff can avoid the re-run. The writer-side fix (one push) is impossible because the row's name needs the PR number. Moving the row out of the PR changes delivery-status-tracking.md (policy, moratorium 0012). (3) The carry. No cancel when the superseding head's diff is exactly delivery/<N>.md of this PR. The row head's Tests, CodeQL, Hassfest and Validate contexts post head1's completed conclusions under the same check names and app, so the ruleset is unchanged. Governance (record, delivery-status, policy-docs) and PR contract are never carried and always run. Estimated saving: about 49 run-min per opened PR (today about 3097 run-min for 22 opens; after the carry, about 2020), about 10% of PR CI, plus about 8 min of lead time per open (CI finishes at T, not gap+T). (4) Ordering. After R10-CI-LAYOUT-P2, because the same workflow files are under a design-approved consolidation into one umbrella required check, which leaves one context to mirror instead of four, and the P2 ruleset cut-over is the orchestrator's. After R10-FLY-OPENPR-ATOMIC, which removes the 198 and 500 min refused-second-push tail. No open PR overlaps beyond #2585 (CI-LAYOUT-P1, tests.yml, governance.yml). (5) Null control (fixtures in the fly-in's self-test, plus one live planted head on a throwaway PR): a row-only head-diff carries. Row plus a one-byte CLAUDE.md edit does not carry, and policy-docs (policy_lint) goes red. Row plus a new unclassified .md does not carry, and Tests' entities goes red (\"these force the FULL suite when touched\"). A row for another PR's number, or a body the contract refuses, does not carry, and PR contract and delivery-status go red. A carried head whose head1 failed carries the failure, never a success. Brief addition: \"carry, never skip: a head is row-only iff `git diff <prev-head> <head> --name-only` is exactly dev/programme/delivery/<N>.md of this PR and prev-head is its first parent; on such a head, concurrency keeps prev-head's runs and the carry posts their completed conclusions under the same context names; Governance and PR contract always run; each arm of the null control above is a named fixture and a file-scoped mutant\".",
@@ -7239,7 +7242,9 @@
    "issues": [
     2428
    ],
-   "fixes": [],
+   "fixes": [
+    2428
+   ],
    "findings": [],
    "severity": "medium",
    "size": "S",
@@ -8525,7 +8530,8 @@
     "Refuse a carry to a group that is closing, at write time. `roster_edit.py append-carry` today only checks the group exists (`_need`); a carry to a done or absorbed group is found at review by `carry_audit.py` as `carry-dest-done` (2026-10-25: #2807, P110 to R10-FLOW-AUTOTRAIN, blocked at `502e8331`; the L3 carry to R10-DEMAND-OVERBOOK, whose PR #2712 was merging, and the L5 carry to R10-PARAMS-OWNER were caught by the orchestrator before review). Make `op_append_carry` refuse a destination whose `resume.stage` is in `roster_lib.DONE_STAGES` or is `absorbed`, naming the group it was absorbed into where it has one, and print `WARN carry to <group>: PR #<n> is open on it` when `resume.pr` is set. No `gh` call and no read of untracked merge state. Controls: append-carry to a done group exits nonzero and writes nothing (null: to an open group with no PR appends); to an absorbed group the refusal names `absorbed_into`; a group with `resume.pr` set appends and prints the WARN (null: no WARN without a PR); one mutant per arm. (triage: dev/programme/triage/s6-batch25.md#P124)",
     "Carry 14's fix does not reach `tools/plan/replan.py`: its `is_done` (lines 174-175) is a second copy of the stage set, not a read of `roster_lib.DONE_STAGES`. Make `replan.py` call roster_lib's one closed-stage predicate, the one carry 14 and carry 1 extend with `absorbed` and that P133's carries-open rule reads, so the plan, the tick and carry_audit agree. Control: carry 14's null control (replan over the same roster drops exactly the absorbed groups) passes through `replan.py`'s own scheduling; one mutant that restores the local tuple fails it. (triage: dev/programme/triage/s6-batch26.md#P131)",
     "A carries-open group blocks a dependent only while its leftover carries reach the dependent's files. Add `roster_lib.blocks(after_group, dependent, roster)`. A group in an open stage other than `carries-open` blocks as today (`is_open`). A `carries-open` group P blocks a dependent D when D has `closes_round: true`, or when `touched(P) & touched(D)` is non-empty and D's `architect_note` records no seam split naming P. `touched(X)` is X's `files` plus the repository paths its carries name: tokens under custom_components/, tools/, tests/, dev/, docs/, .github/ and .claude/, and bare *.py, *.sh or *.mjs names matched by basename; `tools/audit/seat/INSTRUMENTS.md` is excluded. Set `closes_round: true` on R10-ARCH-DOCS, R10-ROUND-PLAYBOOK and R10-CLOSEOUT-CLEANUP. Read the predicate everywhere openness gates an edge: `orchestrator_tick.py` PLAN blockers (line 1154), `roster_lib.depth_of` (232), `plan_page.py:189`, `plan_table.py:81`, `handover_prompt.py:49` and `tools/plan/replan.py`'s `is_done` (175). Those files are this carry's, beside the group's own. Evidence: #2822 round 1 (comment 6400503903): R10-UPDATE-PR-SIGNALS' owed carries edit `update_pr.sh`, `pr_args.sh` and `cloud_relay.sh`, which four not-started dependents also edit. Controls: a dependent sharing a file with a carries-open predecessor's carry stays blocked (null: one sharing none is released); the same pair with a seam-split note naming the predecessor is released; a `closes_round` dependent stays blocked with no shared file; a bare `update_pr.sh` in a carry matches `tools/audit/seat/update_pr.sh`; the six readers agree on one fixture roster; one mutant per arm (drop the carries from touched(), drop the closes_round exception, drop the seam-note check). (triage: dev/programme/triage/s6-batch26.md#P133)",
-    "Add two roster ops. (1) `roster_edit.py set-size <group> <XS|S|M|L|XL> --cite <ref>@<sha>`: it refuses an unknown size, and refuses a cite whose ref does not hold that sha. It records the old size and the cite in the group's `resume.note`. (2) `roster_edit.py set-files <group> --add <path>... [--cite <ref>@<sha>]`: it refuses a path not in the tree at origin/main (or not added by the cited ref) and records the cite. First uses: R10-HEAT-METER XL -> L citing `design-verdict/R10-HEAT-METER@ad376684f` (approve 21f4fbfe9, 'Size verdict: L, conditional on #2753'), applied once #2753 merges; this group's own `files` gain the readers P133 names; R10-ORCH-DISPATCH-REG's gain `tools/audit/seat/ledger.py` and `orchestrator_tick.py` (P136). Controls: set-size with a valid cite writes the size and the note (null: an unknown size refuses and writes nothing); a cite whose ref lacks the sha refuses; set-files with a path missing from the tree refuses; one mutant per op that skips its check fails that arm. (triage: dev/programme/triage/s6-batch26.md#P139)"
+    "Add two roster ops. (1) `roster_edit.py set-size <group> <XS|S|M|L|XL> --cite <ref>@<sha>`: it refuses an unknown size, and refuses a cite whose ref does not hold that sha. It records the old size and the cite in the group's `resume.note`. (2) `roster_edit.py set-files <group> --add <path>... [--cite <ref>@<sha>]`: it refuses a path not in the tree at origin/main (or not added by the cited ref) and records the cite. First uses: R10-HEAT-METER XL -> L citing `design-verdict/R10-HEAT-METER@ad376684f` (approve 21f4fbfe9, 'Size verdict: L, conditional on #2753'), applied once #2753 merges; this group's own `files` gain the readers P133 names; R10-ORCH-DISPATCH-REG's gain `tools/audit/seat/ledger.py` and `orchestrator_tick.py` (P136). Controls: set-size with a valid cite writes the size and the note (null: an unknown size refuses and writes nothing); a cite whose ref lacks the sha refuses; set-files with a path missing from the tree refuses; one mutant per op that skips its check fails that arm. (triage: dev/programme/triage/s6-batch26.md#P139)",
+    "Carry from the #2844 delta verdict (probe/rev-2844-35c20883, 26ef56c6a): R10-FLOW-RECORD-PITCH's resume is missing `pr: 2836`. `roster_edit.py set-resume --field` offers only stage, commit, branch, last_step, next_step, note, issues and fixes, so a merged group's PR number cannot be recorded through the safe edit. Add `pr` to set-resume's fields, or derive it in the schema, with a fixture that shows a set-resume of pr round-tripping. Then set pr for every done group that lacks it, starting with R10-FLOW-RECORD-PITCH = 2836. Ruling: orchestrator, 2026-10-26, mandate 6329234399."
    ],
    "model": {
     "fixer": "opus",
@@ -9292,7 +9298,7 @@
     "D15 live-bundle lead L7 (owner install; unverified): `data.plan.plan_age_minutes` reads 0.8 while `debug.manifest.generated_at` is about 14 min after `last_optimization`, so the age may be the payload's age at publish, not at download. VERIFY: find where `plan_age_minutes` is computed and whether `diagnostics.py` recomputes it against the download time; if the value is the publish-time age, recompute it in the diagnostics export from `last_optimization` and the export clock. Controls: with a fixed clock 14 min after `last_optimization` the export reads 14 (null: a plan published a minute ago reads 1); one mutant that keeps the published value. (triage: dev/programme/triage/s6-batch24.md#P119)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-diag-redact"
    },
    "brief": "D15 production triage (2026-10-24) found that the diagnostics bundle exposes owner data that should be redacted. The full finding is the first carry. R10-DIAG-REPLAY, the group that held it, is done, so this S group owns the redaction. Controls: a test that fails on the unredacted field, and a null control that keeps every non-sensitive field byte-identical."
@@ -10152,6 +10158,54 @@
     "next_step": "wait for R10-996-RUNNER-CLAIMS and R10-ARCH-SHAPES, then a fixer from the parked branch",
     "note": null
    }
+  },
+  {
+   "group": "R10-HOTFIX-BATCH-ERREXIT",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [
+    ".github/workflows/nightly.yml"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-FLOW-RECORD-PITCH"
+   ],
+   "files": [
+    ".github/workflows/nightly.yml",
+    "tools/audit/seat/record_row.py"
+   ],
+   "carry": [
+    "Main-red hotfix (orchestrator, 2026-10-26, hotfix ruling: merges on a green gate, review afterwards, still a real verdict for merge_pr.sh). Defect from #2836: the record-autofix step's batch gate in .github/workflows/nightly.yml reads batch=$? after a record_row.py --batch-due call that exits 4 by design; the step runs under GitHub's default bash -e, so exit 4 kills the step before batch=$? and every push below the floor of 8 owed rows turns record-autofix red (job 121376503388 at main d181d014). Root-cause seat runs beside this fix (topic r10-rca-hotfix-batch-errexit)."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-batch-errexit",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the hotfix fixer now (critical path)",
+    "note": "main-red hotfix 2026-10-26"
+   },
+   "brief": "Hotfix: the record-autofix batch gate dies under bash -e (defect from #2836). In .github/workflows/nightly.yml the step that runs record_row.py --batch-due must not let exit 4 (batching, by design) abort the step: write batch=0 then the call followed by || batch=$?, or an if/else form, so status batching is reached and 0 and other nonzero codes still behave. Check every other X=$? after a call in nightly.yml and in the steps #2836 added for the same defect; the ones already seen (the pitch-check else branch and the guard if/else in nightly.yml, base_rc and head_rc under set +e in tests.yml) are safe. Failing test first: a control that runs the step body under bash -e with a stub returning 4 and expects status batching, and 0 and 1 still behave; add a mutation proof (revert the one line and show the control fails). Name the red check in ## Red checks and answer it there per defect-root-cause.md."
   }
  ]
 }
