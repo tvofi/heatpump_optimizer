@@ -70875,6 +70875,23 @@ R.check(
     f"{_he_removed._heat_loss_anchors()['house_heat_loss_basis']} {_he_removed._house_heat_loss_scale}",
 )
 
+_he_fresh, _he_spent = _he.HeatEnergyMeter(), _he.HeatEnergyMeter()
+_he_spent.earn_basis()
+_he_nohk = _t2_house(**{_TP_KEY: "sensor.heat"})
+_asyncio.run(_he_cm._async_earn_heat_basis(_he_nohk, None))
+_he_hk = _t2_house(**{_TP_KEY: "sensor.heat"})
+_asyncio.run(_he_cm._async_earn_heat_basis(_he_hk, 2.0))
+R.check(
+    "only an unearned meter on a measured-heat install earns the basis, and only "
+    "on a heat reading (null control: the same install with a reading earns it)",
+    (_he_fresh.earns_basis(True), _he_fresh.earns_basis(False), _he_spent.earns_basis(True))
+    == (True, False, False)
+    and _he_nohk._heat_loss_anchors()["house_heat_loss_basis"] == "commanded"
+    and _he_hk._heat_loss_anchors()["house_heat_loss_basis"] == "measured_heat",
+    f"{_he_nohk._heat_loss_anchors()['house_heat_loss_basis']} "
+    f"{_he_hk._heat_loss_anchors()['house_heat_loss_basis']}",
+)
+
 
 # On a counter install, once the basis is earned, the per-cycle path feeds the
 # ventilation detector and folds nothing; the span folds the scale.
@@ -71001,6 +71018,27 @@ R.check(
     _he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))
     == _he.SpanHeat(None, None, 0.0, None, _he.SPAN_REFUSED_RESET),
     f"{_he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))!r}",
+)
+
+
+def _he_close(quantum):
+    ev = _he.SpanEvidence(_he.SpanEnergy(NOW, NOW, 1.0, 3.0, 1.0, quantum), None, "s", NOW,
+                          {"house": True, "lower": True, "cop": True}, (1.0, 0.0),
+                          _he.Attribution(1.0, 0.0, True))
+    meter = SimpleNamespace(settle=lambda *_a: ev)
+    return _he_try(lambda: _he.close_span(meter, {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                                          lambda *a: "iv"))
+
+
+_he_coarse, _he_fine = (
+    (c.interval, c.house, c.lower, c.refusal) if isinstance(c, _he.SpanClose) else c
+    for c in (_he_close(None), _he_close(0.01)))
+R.check(
+    "a span whose resolution is refused replays into no fabric learner (null "
+    "control: the same span with a fine counter replays into both)",
+    _he_coarse == (None, False, False, _he.SPAN_REFUSED_RESOLUTION)
+    and _he_fine == ("iv", True, True, None),
+    f"{_he_coarse!r} {_he_fine!r}",
 )
 R.check(
     "a span run folds its own heat with no freeze; a per-cycle run reads the "
