@@ -8204,7 +8204,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "done",
+    "stage": "done --at-sha bfc4a1e297fb2899be1c4643ae9d75b8a5829208",
     "branch": null,
     "pr": 2865,
     "commit": "bfc4a1e297fb2899be1c4643ae9d75b8a5829208"
@@ -10546,6 +10546,20 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-PLAN-PRIO",
+   "lane": "IN",
+   "kind": "tooling",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
   }
  ]
 }
