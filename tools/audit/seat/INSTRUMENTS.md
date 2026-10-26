@@ -44,6 +44,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Every commit the PR adds over a freshly fetched `origin/main`, wherever it
   was first published (a `ci-probe/*` or `handoff/*` ref included), is
   judged by `ref_privacy.py guard --over` before anything is minted.
+- `depgraph.py` (tools/pr/) — compares GitHub's dependency graph with the
+  tree's pins: one SBOM read and one open-alerts read (`check --repo
+  OWNER/NAME`), every pip, npm and actions pin against the SBOM, and every
+  open alert the tree already pins past. When: Dependabot alerts that main's
+  locks should have closed, or `dependency-graph.yml`'s daily `check` is red.
+  Refusal: an SBOM ecosystem it does not enumerate, or an alert whose
+  versions it cannot order, exits 2 rather than reading clean; an alerts read
+  that fails prints `alerts: unread`, never OK.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
