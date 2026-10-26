@@ -8,9 +8,9 @@ Every `run:` block in .github/workflows/*.yml and .github/actions/*/action.yml
 runs under errexit: GitHub's default Linux shell is `bash -e {0}`, `shell:
 bash` is `bash --noprofile --norc -eo pipefail {0}`, `shell: sh` is `sh -e
 {0}`; a `set -uo pipefail` line does not clear `-e`. In such a block a `$?`
-read (`rc=$?`, `case $?`, `[ $? ...`) whose producer is a bare simple command
-is dead code for every nonzero exit: errexit ends the STEP with that exit
-before the read. A producer that is a condition (`if cmd`, `cmd || rc=$?`,
+read (`rc=$?`, `case $?`, `[ $? ...`, `if [ $? ...`) whose producer is a bare
+simple command is dead code for every nonzero exit: errexit ends the STEP with
+that exit before the read. A producer that is a condition (`if cmd`, `cmd || rc=$?`,
 `... else rc=$?`), or a read under `set +e`, is exempt.
 
 It prints one HIT line per such read and, last, RESULT lines; it refuses
@@ -38,6 +38,8 @@ READ = re.compile(r"\$\?")
 SAFE_PRODUCER = re.compile(
     r"^(if|elif|while|until)\b|^!|\|\||&&|"
     r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
+
+TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b)")
 
 
 def run_blocks(root: Path):
@@ -92,6 +94,8 @@ def hazards(text: str) -> tuple[int, list[tuple[str, str]]]:
             cut = head.rfind(";")
             producer = head[:cut].strip() if cut >= 0 else prev
             stmt = head[cut + 1:].strip()
+            # `if [ $? ...`, `while test $? ...`: the test runs first, so it reads the producer before it.
+            stmt = TEST_HEAD.sub("", stmt)
             if SAFE_PRODUCER.search(stmt) or (stmt and not re.match(
                     r"^(\w+=|case\b|\[|\[\[|test\b|echo\b|printf\b|exit\b|return\b|local\b)", stmt)):
                 continue  # the read sits inside a condition or a command's own arguments
@@ -127,6 +131,14 @@ def selftest() -> int:
         "else line": ("if cmd; then\n  :\nelse\n  pitch=$?\nfi\n", 0),
         "set +e": ("set +e\ncmd\nrc=$?\nset -e\n", 0),
         "comment between": ("cmd \\\n  --flag\n# why\nrc=$?\n", 1),
+        # A `$?` in an if/while/until test reads the bare producer before it.
+        "if test -ne": ("cmd --gate\nif [ $? -ne 0 ]; then exit 1; fi\n", 1),
+        "if test quoted": ("cmd --gate\nif [ \"$?\" = 4 ]; then :; fi\n", 1),
+        "if test builtin": ("cmd --gate\nif test $? -eq 4; then :; fi\n", 1),
+        "while test": ("cmd --gate\nwhile [ $? = 4 ]; do cmd; done\n", 1),
+        "same-line if": ("cmd --gate; if [[ $? -ne 0 ]]; then exit 1; fi\n", 1),
+        "elif test": ("if cmd; then :\nelif [ $? = 4 ]; then :\nfi\n", 0),
+        "if after or-capture": ("cmd || true\nif [ $? -ne 0 ]; then :; fi\n", 0),
     }
     bad = [k for k, (t, want) in cases.items() if len(hazards(t)[1]) != want]
     # The shell arm: a `shell: python` block is not errexit bash; a `shell: bash` one is.
