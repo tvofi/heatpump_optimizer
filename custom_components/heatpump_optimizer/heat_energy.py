@@ -411,9 +411,11 @@ class HeatEnergyMeter:
         self._opened = start is None and self.heat.start is not None
         if heat_kwh is not None and start is not None and start_at is not None:
             self._close(at, start_at, heat_kwh - start, cadence_h, bounds_h, max_heat_kw)
-        keep = self.cycle[0]
-        if self.heat.start_at is not None and (keep is None or _after(keep, self.heat.start_at)):
-            keep = self.heat.start_at
+        # A span closed this cycle is read by ``settle`` after this prune, so
+        # its own opening instant bounds the prune, not the next span's.
+        keep, opened_at = self.cycle[0], self.heat.start_at if start_at is None else start_at
+        if opened_at is not None and (keep is None or _after(keep, opened_at)):
+            keep = opened_at
         if keep is not None:
             self.dwell.prune(keep)
 

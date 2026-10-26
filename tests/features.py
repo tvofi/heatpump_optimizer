@@ -70663,11 +70663,15 @@ def _he_old_share(split):
     return split[1] / total if total > 1e-6 else 0.0
 
 
-_he_splits = [(s, d) for s in (0.0, 1e-7, 0.2, 1.0, 2.0) for d in (0.0, 1e-7, 0.2, 1.0, 9.0)]
+# 0.15 and 0.85 sit on the 0.15 curve share and its complement exactly, and a
+# total of 1e-6 on the no-weight bound.
+_he_splits = [(s, d) for s in (0.0, 1e-7, 0.15, 0.2, 0.85, 1.0, 2.0)
+              for d in (0.0, 1e-7, 1e-6, 0.15, 0.2, 0.85, 1.0, 9.0)]
 R.check(
     "on the plan's split the COP curve choice and the ledger's hot-water share are "
     "the sites' own rules, bit for bit",
-    all(_he.cop_duty(_he.attribution(None, sp), Coord._COP_CURVE_SHARE)
+    Coord._COP_CURVE_SHARE == 0.15
+    and all(_he.cop_duty(_he.attribution(None, sp), Coord._COP_CURVE_SHARE)
         == _he_old_curve(sp, Coord._COP_CURVE_SHARE) for sp in _he_splits)
     and all(_he.dhw_share(_he.attribution(None, sp)) == _he_old_share(sp) for sp in _he_splits),
 )
@@ -70925,6 +70929,250 @@ R.check(
     f"{_he_led._last_interval_record['realised']['electrical_power']}",
 )
 
+
+# The span's bounds, each at its exact edge, and the dwell's own rules. A
+# mutant that raises is a failed check here, not a crash: ``_he_try`` returns
+# the exception.
+def _he_try(fn):
+    try:
+        return fn()
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _he_span(reads, cadence_h=0.5, max_heat_kw=30.0, meter=None):
+    """``reads`` = [(hours from NOW, heat kWh)]; the closed span and refusal after the last."""
+    m = meter or _he.HeatEnergyMeter()
+    for h, kwh in reads:
+        m.observe_counters(NOW + timedelta(hours=h), kwh, None, configured=True, cadence_h=cadence_h,
+                           bounds_h=_HE_BOUNDS, max_heat_kw=max_heat_kw)
+    return m.closed, m.refusal
+
+
+_he_close_h = _he.close_after_h(0.5, _HE_BOUNDS)
+_he_at_close = _he_span([(0.0, 100.0), (0.5, 101.0), (0.95, 102.0)])
+_he_early = _he_span([(0.0, 100.0), (0.5, 101.0), (0.92, 102.0)])
+R.check(
+    "at a 30 min cadence the span closes 3 min inside the last cadence that fits "
+    "the 1.5 h bound: a read at exactly 0.95 h closes it, one at 0.92 h does not",
+    _he_close_h == 0.95 and _he_at_close[0] is not None and _he_at_close[0].hours == _he_close_h
+    and _he_early == (None, None),
+    f"close_after {_he_close_h!r}; at 0.95 h {_he_at_close}; at 0.92 h {_he_early}",
+)
+_he_at_max = _he_span([(0.0, 100.0), (1.5, 101.0)], cadence_h=1.5)
+_he_idle = _he_span([(0.0, 100.0), (0.5, 100.0), (1.0, 100.0)])
+_he_slack = _he_span([(0.0, 100.0), (0.5, 101.5), (1.0, 103.0)], max_heat_kw=2.0)
+_he_over = _he_span([(0.0, 100.0), (0.5, 101.5), (1.0, 103.5)], max_heat_kw=2.0)
+R.check(
+    "a span of exactly the learners' 1.5 h maximum is read (their bound is strict); "
+    "an idle span reads zero heat, not a reset; a delta of exactly 1.5 x the "
+    "nameplate over the span is read and 1.75 x is a rollover",
+    _he_at_max[0] is not None and _he_at_max[0].hours == _HE_BOUNDS[1] and _he_at_max[1] is None
+    and _he_idle[0] is not None and _he_idle[0].heat_kwh == 0.0 and _he_idle[1] is None
+    and _he_slack[0] is not None and _he_slack[0].heat_kwh == 3.0 and _he_slack[1] is None
+    and _he_over == (None, _he.SPAN_REFUSED_ROLLOVER),
+    f"max {_he_at_max}; idle {_he_idle}; 1.5x {_he_slack}; 1.75x {_he_over}",
+)
+
+_he_q = _he.CounterDelta()
+for _he_kwh in (10.0, 12.0, 13.0, 15.0):
+    _he_q.observe(_he_kwh, NOW)
+_he_span_q1 = _he.SpanEnergy(NOW, NOW, 1.0, 1.0, None, 1.0)
+R.check(
+    "the counter's resolution is its smallest step (2, then 1, then 2 kWh read 1); "
+    "a span expecting exactly one step is read, and one expecting no heat is "
+    "refused without dividing by it",
+    _he_q.quantum == 1.0
+    and _he.resolution_refusal(_he_span_q1, 1.0) is None
+    and _he_try(lambda: _he.resolution_refusal(_he_span_q1, 0.0)) == _he.SPAN_REFUSED_RESOLUTION,
+    f"quantum {_he_q.quantum}; one step {_he.resolution_refusal(_he_span_q1, 1.0)!r}; "
+    f"none {_he_try(lambda: _he.resolution_refusal(_he_span_q1, 0.0))!r}",
+)
+R.check(
+    "with no heat reading, or an observed split with no weight, the space share "
+    "is None, never a division",
+    _he_try(lambda: _he.space_heat_kw(None, _he.Attribution(1.0, 0.0, True), True)) is None
+    and _he_try(lambda: _he.space_heat_kw(3.0, _he.Attribution(0.0, 0.0, True), True)) is None,
+)
+_he_refused_ev = _he.SpanEvidence(None, _he.SPAN_REFUSED_RESET, "s", NOW, {}, (1.0, 0.0),
+                                  _he.Attribution(1.0, 0.0, False))
+R.check(
+    "a refused span reads its refusal, and no heat",
+    _he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))
+    == _he.SpanHeat(None, None, 0.0, None, _he.SPAN_REFUSED_RESET),
+    f"{_he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))!r}",
+)
+R.check(
+    "a span run folds its own heat with no freeze; a per-cycle run reads the "
+    "cycle's heat and folds unless the span owns the scale",
+    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, True)
+    == (2.5, False, None, True)
+    and _he.replay_gate(None, "iv", None, None, 1.0, True) == (1.0, True, None, False),
+)
+
+
+# The dwell, at its windows' edges. Hours are from NOW; durations in hours.
+def _he_at(minutes):
+    return NOW + timedelta(minutes=minutes)
+
+
+_he_dw = _he.ModeDwell()
+_he_dw.observe(_he_at(0), _he.SPACE, _he_at(-180))
+_he_dw.observe(_he_at(30), _he.SPACE, _he_at(-180))
+R.check(
+    "an empty dwell, a window of no length and one opening before the first "
+    "read are unobserved",
+    _he.ModeDwell().shares(_he_at(0), _he_at(30)) is None
+    and _he_dw.shares(_he_at(30), _he_at(30)) is None
+    and _he_dw.shares(_he_at(-240), _he_at(30)) is None
+    and _he_dw.shares(_he_at(0), _he_at(30)) == (0.5, 0.0),
+    f"{_he_dw.segments}",
+)
+_he_gap = _he.ModeDwell([_he.Segment(_he_at(0), None), _he.Segment(_he_at(30), _he.SPACE)])
+R.check(
+    "an unobserved stretch before the window leaves the window observed",
+    _he_gap.shares(_he_at(30), _he_at(60)) == (0.5, 0.0),
+    f"{_he_gap.shares(_he_at(30), _he_at(60))}",
+)
+# A mode stamped 5 min ahead of its read (a skewed clock) lands at the read:
+# the next change, 20 min after it, splits the next window 20/10.
+_he_ahead = _he.ModeDwell()
+_he_ahead.observe(_he_at(0), _he.SPACE, _he_at(-180))
+_he_ahead.observe(_he_at(30), _he.DHW, _he_at(35))
+_he_ahead.observe(_he_at(60), _he.SPACE, _he_at(50))
+# A change stamped before the previous read, which saw the old duty, lands at
+# that read: the read is the evidence, the stamp is not.
+_he_behind = _he.ModeDwell()
+for _he_m, _he_d, _he_c in ((-30, _he.SPACE, -180), (0, _he.SPACE, -180), (30, _he.DHW, -5)):
+    _he_behind.observe(_he_at(_he_m), _he_d, _he_at(_he_c))
+R.check(
+    "a change stamped ahead of its read lands at the read, and one stamped "
+    "before the previous read lands at that read",
+    _he_ahead.shares(_he_at(30), _he_at(60)) == (10 / 60, 20 / 60)
+    and _he_behind.shares(_he_at(-30), _he_at(30)) == (0.5, 0.5),
+    f"ahead {_he_ahead.shares(_he_at(30), _he_at(60))} behind {_he_behind.shares(_he_at(-30), _he_at(30))}",
+)
+
+
+# A span whose mode changed inside it splits at the change when it closes: the
+# span's own window, not the last cycle's, is read at the close. Null control:
+# the same span with no change is all space.
+def _he_span_split(second_key, changed_min):
+    m = _he.HeatEnergyMeter()
+    ev = None
+    for minutes, key, changed, kwh in ((0, _HE_HEAT, -180, 100.0), (30, second_key, changed_min, 101.5),
+                                       (60, second_key, changed_min, 103.0)):
+        m.observe_mode(_he_at(minutes), key, True, _he_at(changed))
+        m.observe_counters(_he_at(minutes), kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS,
+                           max_heat_kw=30.0)
+        ev = m.settle({"house": True}, (2.0, 0.0), ("s", _he_at(minutes)))
+    return ev
+
+
+_he_span_dhw = _he_span_split(_HE_DHW, 20)
+_he_span_heat = _he_span_split(_HE_HEAT, -180)
+R.check(
+    "a span that switched to hot water 20 min in splits 20/40 at its close, not "
+    "by the plan (null control: no change reads all space)",
+    _he_span_dhw is not None and _he_span_dhw.attribution == _he.Attribution(20 / 60, 40 / 60, True)
+    and _he_span_heat is not None and _he_span_heat.attribution == _he.Attribution(1.0, 0.0, True),
+    f"switched {_he_span_dhw and _he_span_dhw.attribution}; held {_he_span_heat and _he_span_heat.attribution}",
+)
+
+# The dwell is pruned to what the open span and the cycle still read: a mode
+# flipping every cycle for 20 h keeps a handful of segments, not one per cycle.
+_he_flip = _he.HeatEnergyMeter()
+for _he_i in range(40):
+    _he_flip.observe_mode(_he_at(30 * _he_i), (_HE_HEAT, _HE_DHW)[_he_i % 2], True, _he_at(30 * _he_i - 1))
+    _he_flip.observe_counters(_he_at(30 * _he_i), 100.0 + _he_i, None, configured=True, cadence_h=0.5,
+                              bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+    _he_flip.settle({}, (2.0, 0.0), ("s", _he_at(30 * _he_i)))
+R.check(
+    "the dwell keeps only the segments the open span and the cycle read (40 "
+    "flips leave at most 4)",
+    len(_he_flip.dwell.segments) <= 4,
+    f"{len(_he_flip.dwell.segments)} segments",
+)
+
+# A span reopened on a cycle with no learner baseline has no anchor, so its
+# close hands no evidence rather than an earlier span's opening state.
+_he_noanchor = _he.HeatEnergyMeter()
+_he_noanchor_ev = []
+for _he_i, _he_base in enumerate((NOW, None, None, NOW, None)):
+    _he_noanchor.observe_counters(_he_at(30 * _he_i), 100.0 + 1.5 * _he_i, None, configured=True,
+                                  cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+    _he_noanchor_ev.append(_he_noanchor.settle({"house": True}, (2.0, 0.0), ("s%d" % _he_i, _he_base)))
+R.check(
+    "a span reopened with no baseline closes with no evidence (null control: the "
+    "span before it, anchored, hands its opening state)",
+    _he_noanchor_ev[2] is not None and _he_noanchor_ev[2].state == "s0" and _he_noanchor_ev[4] is None,
+    f"{[(e.state if e else None) for e in _he_noanchor_ev]}",
+)
+
+
+# The coordinator: a closed span reaches each fabric learner whose gates held
+# over it, with the span's space heat, and not one whose gates did not.
+def _he_span_learners(clean):
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power", heat_pump_energy_entity="sensor.e",
+                  **{_HE_KEY: "sensor.he"})
+    c._current_state.outdoor_temperature = 8.0
+    c._current_action = {"power": 2.0}
+    calls = []
+
+    def spy(name):
+        async def learner(interval, span_heat_kw=None):
+            calls.append((name, interval is not None, span_heat_kw))
+            return True
+        return learner
+
+    c._async_learn_house_heat_loss = spy("house")
+    c._async_learn_lower_floor_loss = spy("lower")
+    m = _he.meter_of(c)
+    for i in range(3):
+        at = NOW + timedelta(hours=0.5 * i)
+        m.observe_counters(at, 100.0 + 3.0 * i, 50.0 + 1.0 * i, configured=True, cadence_h=0.5,
+                           bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        c._last_house_sample, c._last_house_sample_time = replace(c._current_state), at
+        _asyncio.run(_he_cm._async_learn_heat_span(c, clean))
+    return calls
+
+
+_he_both_calls = _he_span_learners({"house": True, "lower": True, "cop": False})
+_he_house_gated = _he_span_learners({"house": False, "lower": True, "cop": False})
+R.check(
+    "a closed span reaches the house and lower-floor learners with its 6 kW of "
+    "space heat; a span whose house gate failed reaches the lower floor alone",
+    sorted(_he_both_calls) == [("house", True, 6.0), ("lower", True, 6.0)]
+    and _he_house_gated == [("lower", True, 6.0)],
+    f"both {_he_both_calls}; house gated {_he_house_gated}",
+)
+
+
+# Each fabric learner returns its gate on every path past the gate: the house
+# learner folding and refusing a residual past the bar, the lower floor folding,
+# and the lower floor at exactly its minimum difference (6 K), which folds.
+def _he_learn(coord, method):
+    return _asyncio.run(getattr(coord, method)(coord._close_fabric_interval()))
+
+
+_he_h_ok = _t2_house()
+_he_h_far = _t2_house(observed=25.0)
+_he_l_ok = _t2_house(two_zone=True, lower=19.9)
+_he_l_edge = _t2_house(two_zone=True, lower=19.9, outdoor=20.0 - _he_cm.HOUSE_LOSS_MIN_DELTA)
+_he_learned = (_he_learn(_he_h_ok, "_async_learn_house_heat_loss"),
+               _he_learn(_he_h_far, "_async_learn_house_heat_loss"),
+               _he_learn(_he_l_ok, "_async_learn_lower_floor_loss"),
+               _he_learn(_he_l_edge, "_async_learn_lower_floor_loss"))
+R.check(
+    "each fabric learner returns its span gate (True) when it folds and when it "
+    "refuses a residual past the bar; the lower floor folds at exactly 6 K",
+    _he_learned == (True, True, True, True)
+    and (_he_h_ok._house_heat_loss_samples, _he_h_far._house_heat_loss_samples) == (1, 0)
+    and (_he_l_ok._lower_floor_loss_samples, _he_l_edge._lower_floor_loss_samples) == (1, 1),
+    f"returns {_he_learned}; samples house {_he_h_ok._house_heat_loss_samples}/"
+    f"{_he_h_far._house_heat_loss_samples} lower {_he_l_ok._lower_floor_loss_samples}/"
+    f"{_he_l_edge._lower_floor_loss_samples}",
+)
 
 # The resolution bound was re-measured at the real span (design carry
 # dr3-eps-at-span): a 30 min cadence closes at 1.0 h, where the design's 0.5

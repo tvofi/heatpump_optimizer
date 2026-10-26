@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_replay_gate RETURN_DEL 4322faaa",
-  "killed_by": "tests/solar_alignment.py",
-  "old": "    return heat_kw, clean, replay_freeze(raw, cfg, heat_kw), not heat_energy.meter_of(coord).spans_own_scale",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
-}

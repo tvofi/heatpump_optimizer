@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:meter_of RETURN_DEL c3b57b90",
-  "killed_by": "tests/manual_plan.py",
-  "old": "    return meter",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
-}
