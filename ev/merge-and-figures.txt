@@ -1,0 +1,13 @@
+git merge-tree --write-tree origin/main a22a15f1d946db9c5afb52e4f14dd81146165a00 (origin/main 5261ba84139d9459465ccd842b61b04c2b1329d8)
+b1ae4ee2fa1faaec994b54094e615099e99508f5
+exit 0
+git merge-tree --write-tree origin/main d49603ff8
+9ebb6bae9e45bbe322326bf48e1c0425651e8d8e
+exit 0
+roster blob main: bdc22109539294e43f26872fb0d8579c4f473219
+roster blob merged: 6c8e6f46ebc63c8cf352392c77944628ae9e8b0e
+three-dot name-status:
+A	dev/programme/delivery/2842.md
+M	dev/programme/rosters/wave-r10-groups.json
+roles diff vs main (empty = current):
+ops in range: 52 (no merges: 52)
