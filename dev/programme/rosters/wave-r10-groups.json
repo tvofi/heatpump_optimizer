@@ -5244,7 +5244,9 @@
    "issues": [
     2506
    ],
-   "fixes": [],
+   "fixes": [
+    2506
+   ],
    "after": [
     "R10-DEEPLINK-HANDLERS"
    ],
