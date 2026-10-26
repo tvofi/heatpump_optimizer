@@ -63,7 +63,6 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-RCA-FRICTION-RESIDUE (wave 1, 0 satisfied edge(s))
 - R10-RCA-HEADMOVED (wave 1, 1 satisfied edge(s))
 - R10-RECORD-API-O1 (wave 1, 1 satisfied edge(s))
-- R10-RECORD-HOLD-APPROVE (wave 1, 0 satisfied edge(s))
 - R10-REPLAY-REAL-DAY (wave 1, 2 satisfied edge(s))
 - R10-SAV-COMFORT (wave 1, 1 satisfied edge(s))
 - R10-TRAIN-OVERLAP-GRADE (wave 1, 0 satisfied edge(s))
