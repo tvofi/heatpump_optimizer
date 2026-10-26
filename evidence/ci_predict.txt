@@ -1,16 +1,15 @@
-== ci_predict
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:343 RETURN_DEL: return kw if kw is not None and 0.0 < kw <= p_max else None
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:401 CLAMP_DROP: return max(measured, CAPACITY_FLOOR_FRACTION * float(p_max))
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:654 RETURN_DEL: return f"{clock_h:02d}:{clock_m:02d}"
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:1203 BOOLOP: if not (isinstance(plan, dict) and isinstance(plan.get("slot
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:1203 GUARD_OFF: if not (isinstance(plan, dict) and isinstance(plan.get("slot
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:124 CMP_BOUND: return value if value is not None and value >= lo else None
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/const.py:1330 GUARD_OFF: if volume is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:416 CMP_BOUND: return value if value is not None and value >= lo else defau
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:4064 CMP_BOUND: abs(finite_float(action.get("displace_value"), 0.0)) > 0.01
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/dhw_schedule.py:151 CMP_BOUND: if run is not None and len(ordered) >= 3:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/dhw_schedule.py:151 GUARD_OFF: if run is not None and len(ordered) >= 3:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:391 GUARD_OFF: if state is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:1358 CMP_BOUND: return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zi
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:343 CMP_BOUND*2: return kw if kw is not None and 0.0 < kw <= p_max else None
 PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:1381 RETURN_DEL: return None if value is None else round(value - DHW_MIN_TEMP
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:131 GUARD_OFF: if not on:
 PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:136 CMP_BOUND: if wood_sek < finite_float(price, 0.0) / cop_f:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:136 GUARD_OFF: if wood_sek < finite_float(price, 0.0) / cop_f:
 PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:157 CMP_BOUND: cop = finite_float(cops[i] if i < len(cops) else 0.0, 0.0)
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:215 CMP_BOUND: return cheaper_hour_count(wood_sek, prices, cops, runs) > 0
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:365 CMP_BOUND: if finite_float(forecast_kw[i], 0.0) > 0.0:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/wood_fuel.py:365 GUARD_OFF: if finite_float(forecast_kw[i], 0.0) > 0.0:
-CI PREDICT: 71 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
-CI PREDICT: no closures, fast, wave-script or instrument red predicted against c78df2b86b5e (a data-file read is not seen)
+CI PREDICT: 12 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 7d2056970e08 (a data-file read is not seen)
+rc=0

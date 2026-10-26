@@ -1,6 +1,0 @@
-
-ALL 112 HARNESS HEADER CHECKS PASSED
-tests/closures.json:3582:   "dev/audit/harnesses/r10_band_census.py",
-b2b3a938866e6923748552125afda64a0d9ce599  dev/audit/harnesses/r10_band_census.py
-
-[exited with code 0]
