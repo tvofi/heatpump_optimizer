@@ -5246,7 +5246,6 @@
     "R10-DEEPLINK-HANDLERS"
    ],
    "carry": [
-    "The study's three one-line corrections, in this pull request. (1) RECEIPT_CSS carries three var(--hpo-text-sm, 14px) fallbacks against a 13 px token \u2014 make the fallback agree with the token. (2) The setup chip comment claims the drawn control wears a legend chip's label size, which is false by width (8.6-18.2 px against 12-12.9) \u2014 correct the comment, since this study does not change that drawing. (3) DIALOG_FONT_PX_MAX at 21 is unreachable because the dialog's width caps at 1700 px and the ratio yields 17.85 px \u2014 lower it to 18 or record it as aspirational. Each corrected claim is anchored to the symbol it describes, never to a line number.",
     "The study derives 23 views and finds that card_drift.mjs's 40 states pin 18 of them, leaving the Savings page and its empty state, the Health page, the setup not-published state and the advisor empty state with no drift state. Add drift states for those five views in this pull request, or record in the body why a view cannot be pinned; a re-recorded or extended state set carries its reason, and a view left unpinned is named rather than silently absent."
    ],
    "model": {
