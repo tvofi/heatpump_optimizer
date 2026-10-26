@@ -1,55 +1,62 @@
-Fix review: merge fa23170a1a2d82923087f173c5919fd275df30b7
+Fix review: merge 3c32a0a0e4df0e8f59ee0de17448b294e74ce528
 
-bus-nonce: 524fd5eca439680391ab1021b6d13e6d
+bus-nonce: f93d552e46446473d01c34af299bc3f4
 
-Round 2 (delta review of e3c97ba6..fa23170a). Head measured: fa23170a1a2d82923087f173c5919fd275df30b7, still the PR head when this verdict was written. The role contract was current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` was empty.
+## Scope
 
-## Carries
-
-- Carry 0 (D15 triage, redaction incomplete): satisfied, and the delta does not regress it. The delta does not change `_private_values`, `_without_values` or the value pass at the return of `async_get_config_entry_diagnostics` (custom_components/heatpump_optimizer/diagnostics.py:313-337). The census adds one exempt section, `.exported_at`. That section holds only the export clock's ISO text and no text the install supplies. Mutant: the value pass replaced by identity at the return. 1 of 135 failed (`Download diagnostics carries none of the values its redaction removes ...`). Killed (ev/mutant-carry0-value-pass-identity.txt).
-- Carry 1 (#2814, no export time, no label for the frozen collection): satisfied.
-  - Export time: diagnostics.py:304 reads the clock once, and diagnostics.py:318 sets `exported_at`. Check `the download carries its own export time ...`. Mutant M2 (line deleted) killed: census `exempt-gone=['.exported_at']`, then KeyError.
-  - Window: debugger.py:300-317 `collection_window`, spread into the manifest at debugger.py:619 beside the configured `days`. The checks are `the manifest labels the finished collection ...` and `a collection with no row has no window ...`. Killed: M3 (window removed), M6 (min/max to first/last; the fixture's rows are out of order), M7 (age from the first row rather than the last) and M8 (age at `started_at` rather than the export clock).
-  - `days` stays the configured 7, and the measured `span_hours` sits beside it. The body's alternative (f) gives the reason: an `hpo-debug/1` schema key keeps its meaning. I accept it.
-- Carry 2 (P119): satisfied.
-  - VERIFY, re-derived: coordinator.py:7508 `_plan_age_minutes` measures against `dt_util.now()` when the payload is built, so the published value is the publish-time age.
-  - Remedy: diagnostics.py `_plan_summary(data, now)` recomputes the age from `last_optimization` through `drift.stored_age_seconds` at the export clock.
-  - Controls, re-run by this seat against a payload stating 0.8:
-    - A fixed clock 14 min after `last_optimization` reads 14.0.
-    - Null control: 1 min reads 1.0.
-    - -5 min reads None, and no solve reads None.
-  - The carry's mutant (the published value kept, `data.get("plan_age_minutes")`): 3 of 135 failed, with the 14 and 1 checks reading [0.8]. Killed (ev/mutants.txt M1).
+Delta review of #2824 (R10-DIAG-REDACT), round 3, against the prior merge verdict at fa23170a1. Measured at head 3c32a0a0e4df0e8f59ee0de17448b294e74ce528 from a detached worktree; the head is unchanged at verdict time (refs/pull/2824/head = 3c32a0a0e4df). fix-review.md at the merge base equals origin/main's (three-dot diff over dev/governance/roles/ is empty).
 
 ## Findings
 
-- The forward-carry to R10-REPLAY-REAL-DAY is present on main's roster: `after` names R10-DIAG-REDACT, and the brief reads "the fixer commits it only after R10-DIAG-REDACT's redaction holds on the exported document". It states the precondition but not the control the body names, `export.check_file` and `seal` run on the owner's exported day. That group's fixer must run that control on the real exported document. Carry: R10-REPLAY-REAL-DAY
-- The class census leaves `input_ages_minutes` (publish-time per-entity ages) and `plan_stale` (judged at publish) open, together with the run time of the stored self-test results. All three are #2814 remainders the body dispositions there, and this PR does not close #2814. Carry: #2814
-- Class census instrument: the body's census rule ran as an inline script that is not in the tree, so this seat did not re-run it. I checked its output by reading `_plan_summary`'s copied tuple: at the head it no longer copies `plan_age_minutes`. Carry: dismissed: a one-time census whose output was confirmed by reading the code; an instrument in the tree is not worth building for it
+None. Every item in the scope is settled at this head.
 
 ## Evidence
 
-- RESULT debug_collect at head: ALL 135 DEBUG COLLECT CHECKS PASSED (ev/debug_collect-head.txt). On the `git merge-tree --write-tree origin/main HEAD` tree it also gives ALL 135 PASSED (ev/debug_collect-merged.txt).
-- RESULT mutants (this seat's own, each applied and then restored; ev/mutants.txt, ev/mutant-ge-to-gt.txt):
-  - M1 keep-published: killed, 3 failed.
-  - M2 no-exported_at: killed.
-  - M3 no-window: killed.
-  - M4 drop the ahead guard: killed, 3 failed.
-  - M5 ahead reads 0: killed, 3 failed.
-  - M6 min/max swap: killed.
-  - M7 age from the first row: killed, 2 failed.
-  - M8 window age at `started_at`: killed.
-  - ge-to-gt in `stored_age_seconds`: killed, 1 failed.
-  - The carry-0 value-pass identity mutant: killed, 1 failed.
-  - The working tree was clean after each.
-- Figures re-derived: 135 checks (body: 135); the plan age reads 14.0, 1.0 and None at +14, +1 and -5 min (body: the same); 8 of 8 round-2 mutant kinds killed (body: 8 of 8; my set overlaps theirs and adds M7 and M8). Not re-derived: the base-side figure (0.8 at e3c97ba6; my M1 mutant reproduces that behaviour), the architecture score dS +0.0000, the scoped-gate MODE line at 69a02ccd5 and the 21 unpinned sites (CI's mutation lane covers them).
-- The finder harness: the owner bundle and the triage record (dev/programme/triage/s6-batch24.md#P119, #2814) are not in the tree. As in round 1, the companion is the fixer's own synthetic `_aged_download`, which the body discloses as such. This seat applied the triage's own rule (`plan_age_minutes` against the export time minus `last_optimization`) through those checks and through mutant M1.
-- `tests/structure.py`: STRUCTURE RATCHET PASSED. `tests/closure.py no-copies`: clean.
-- `tests/entities.py` at head: 2 of 2445 failed. They are `gate-sweep.yml: on CI's completion ...` and `graders-head-copy's delivery_status step ...`, the same two the body reproduced at the merge base with the diff absent. Both read workflow files and neither reads diagnostics.py, debugger.py or drift.py (ev/entities-head.txt). The ge-to-gt mutant was applied to drift.py for a few seconds while this run was in progress. entities.py's two failures do not read drift.py, so the count is unaffected.
-- Merge: `git merge-tree --write-tree origin/main HEAD` exit 0, no conflict (ev/merge-tree.txt). The head already contains origin/main c9cbe6b45 (merge base = c9cbe6b45), and main has not touched custom_components/ or tests/debug_collect.py since then.
-- VERSION, the manifest version and the RELEASE_NOTES heading are untouched by the delta.
-- Step 7: the body's `## Head` names fa23170a1a2d82923087f173c5919fd275df30b7, the head measured.
-- CI at the head (check-runs API, at read time):
-  - `tests / mutation` is failure. The body answers it under Red checks: unpinned sites for mutation-autofix, with ci_predict.py as the cheaper detector, which ran.
-  - `governance / delivery-status` is failure. It reads main's overdue rows, the body answers it, and it is not a required check and does not block.
-  - Still in progress at read time: fast, closures, coverage, browser, mutation-pins (1, 2), instrument-self-tests and codeql python. So the step-11 answer for any later red is not judged here. That is for the merge train's head check.
-  - Concluded green: arch-score, arch-instrument, typing, closure-scope, briefs, policy-docs, env-matrix, wave-script, nightly-status, hassfest, validate-hacs, budget-raise-gate.
+### 1. The three sites (diagnostics.py:126, :138, :144 at 0fee7df71)
+
+No mutant survives at any of them at the head: the fixer removed the two type guards and rewrote the text branch, then pinned the change with a check that kills each removed site when it is restored. RESULT lines from `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` with each mutant applied in a scratch worktree at the head, then restored (ev/debug_collect_mutant_*.txt):
+
+- RESULT head: ALL 136 DEBUG COLLECT CHECKS PASSED, rc=0.
+- RESULT :126 GUARD_OFF (`if not isinstance(node, (str, int, float)): return set()` restored in `_private_values`): rc=1, 1 of 136 failed, the new check "a removed leaf of any other type is searched for and redacted by its text ...", detail `[set()]`.
+- RESULT :144 GUARD_OFF (`if not isinstance(value, (int, float)): return value` restored in `_without_values`): rc=1, 1 of 136 failed, the same check, detail `[{'2026-01-12 00:07:00+00:00'}]`.
+- RESULT :138 RETURN_DEL, the replacement line `return reduce(...)`: as a bare expression statement, rc=1, 2 of 136 failed; replaced by `pass`, rc=1, 2 of 136 failed. Both runs fail "Download diagnostics carries none of the values its redaction removes ..." and "the value pass redacts a private value inside text, as a key, and as a number, in a tuple too ...".
+- RESULT null control (a comment-only edit to diagnostics.py): rc=0, ALL 136 PASSED.
+- The seven `FAIL a16:...` lines print at the head and under every mutant alike; they are sub-detail of the A16 writer check, which passes, and not checks.
+
+The figures in the body's `## Head` section (1 of 136 `[set()]`, 1 of 136 with the datetime set, 2 of 136 for the `pass` mutant) re-derive exactly.
+
+Static ratchet at the head, computed in-process with tests/mutation_table.py's own functions (load_budgets, inventory, unpinned_sites, base_unpinned_sites, added_unpinned, diff_sides) against ratchet base 63a1c5fe8 (ev/ratchet_at_head.txt): completeness problems 0; 3943 unpinned at head, 3943 at base; 0 added unpinned. Every inventory site in `_private_values` and `_without_values` (lines 127-147) carries a `killed_by: tests/debug_collect.py` disposition. The new `return reduce(...)` line has no inventory site, as the body says: it is the sole statement of its `if`.
+
+Equivalence check on the old :138: confirmed by reading. At fa23170a1, deleting `return value` fell through to the :144 guard, which returned the already-replaced string unchanged, so that mutant was equivalent. The rewrite removes it rather than triaging it.
+
+### 2. Code delta since fa23170a1
+
+The branch's own delta over fa23170a1 is exactly two commits. `git merge-tree --write-tree fa23170a1 63a1c5fe8` diffed against the head shows only these 6 files (ev/delta_since_fa23170a.txt):
+- 0fee7df71 (bot: `ci: pin killed mutants`): four killed_by ledger files for debugger.py collection_window and drift.py stored_age_seconds. Ledger completeness is 0 problems at the head.
+- db5f00828: diagnostics.py (+import reduce, the two guards deleted, the text branch as one reduce) and one new check in tests/debug_collect.py.
+- The four merges (059f0f788, ce2520a67, bab45b1f5, 3c32a0a0e) each have an empty `--remerge-diff`, so each one is a clean automatic merge with no hand resolution (ev/merges_remerge_diff.txt).
+
+Correctness and behaviour change, read against the code:
+- `_without_values`: any leaf that is not a str, Mapping, list or tuple is now replaced by REDACTED when its whole `str()` is a private value, and is otherwise returned unchanged. Before, only int/float leaves were matched. The change can only redact more, never less. `True`/`False` (4 or 5 characters) and `None` (4) are shorter than LEAK_MIN_CHARS = 6 (replay_doc.py:101), so they can never be in `private`. For a JSON-shaped payload the output is therefore unchanged, matching the fixer's claim.
+- `_private_values`: a non-scalar leaf under a TO_REDACT key, or under a coordinate key whose `_coordinate` changes it, now adds its `str()`. `_coordinate` catches TypeError/ValueError and returns REDACTED, so a non-numeric leaf cannot raise. A `None` token gives "None", which is under 6 characters and is excluded, as the new check asserts.
+- The reduce over a frozenset applies the same sequential replaces as the old loop, so the string behaviour is unchanged.
+- This diff makes no behaviour change outside the redaction value pass and the ledger pins.
+
+### 3. Gate and CI at this head (check-runs API, ev/check_runs_at_head.tsv)
+
+- `tests / mutation` (job 121351527886): success. Its log (ev/ci_mutation_job_121351527886.log) shows the run evaluated mutants, so the green is not an INCONCLUSIVE pass. It reads "3943 unpinned site(s) of 6376 candidate sites, 3943 at the ratchet base 7d2056970e08", then "0 survivor(s) of 10 evaluated = 0.0%, cap 20.0%" and "MUTATION TABLE PASSED". Killed sites include diagnostics.py:133 RETURN_DEL, :140 GUARD_OFF and :147 RETURN_DEL. The lane is no longer refused.
+- `gate`: success (two runs, 121361557231 and 121362064175). `pr-contract / pr-contract`: success (121361411998 and 121361911259), both started after every other workflow concluded. Every `tests / *` lane is success or skipped.
+- `governance / delivery-status`: failure. Its log lists main's overdue rows (#2821, #2823, ...), not #2824. Its own log says it is not a required context and blocks no merge. The body answers it under `## Red checks`.
+- The body answers the round-2 red `tests / mutation` under `## Red checks`: it names the cause and the cheaper detector (ci_predict.py), and says why that detector cannot tell a survivor apart (step 11).
+
+### 4. Delivery row, merge, and versions
+
+- `git diff $(git merge-base origin/main HEAD)...HEAD -- dev/programme/delivery/` shows dev/programme/delivery/2824.md, +1 line: "#2824 — open, R10-DIAG-REDACT: redact owner data in the diagnostics bundle" (ev/delivery_row_3dot.txt).
+- `git merge-tree --write-tree origin/main <head>`, with origin/main at 7d2056970e08: rc=0 and no conflict (ev/merge_tree.txt).
+- VERSION, manifest.json, RELEASE_NOTES.md and both claim files are untouched in the three-dot diff.
+- The body names the head 3c32a0a0e4df as the head measured (step 7).
+
+### Notes
+
+- The body's `## Figures` section still quotes round-2 totals (135 checks) beside `## Head`'s 136. Both are labelled by round, and neither is contradicted.
+- The dispatch's snapshotted brief asks for the verdict to be posted as a PR comment. The rendered prompt says "Do not post comments", so no comment was posted. The verdict returns only on the probe ref.

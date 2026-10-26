@@ -1,1 +1,0 @@
-closure: no test file defines a symbol production also defines
