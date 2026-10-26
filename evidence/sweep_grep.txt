@@ -1,0 +1,7 @@
+.github/workflows/nightly.yml:747:              # The `|| batch=$?` is load-bearing: the step runs under `bash -e`,
+.github/workflows/nightly.yml:751:                --batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT" || batch=$?
+.github/workflows/nightly.yml:1037:            pitch=$?
+.github/workflows/nightly.yml:1044:          # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
+.github/workflows/nightly.yml:1051:          if guard --require-green; then rc=0; else rc=$?; fi
+.github/workflows/tests.yml:1539:          base_rc=$?
+.github/workflows/tests.yml:1544:          head_rc=$?

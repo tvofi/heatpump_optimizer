@@ -1,0 +1,19 @@
+[1]   Done                    ( cd $d && PYTHONPATH=$PWD/tests/hastub timeout 2400 ../v/bin/python3 tests/entities.py > ../ev/entities_$d.txt 2>&1; echo exit=$? >> ../ev/entities_$d.txt )
+[2]   Done                    ( cd $d && PYTHONPATH=$PWD/tests/hastub timeout 2400 ../v/bin/python3 tests/entities.py > ../ev/entities_$d.txt 2>&1; echo exit=$? >> ../ev/entities_$d.txt )
+[3]-  Done                    ( cd $d && PYTHONPATH=$PWD/tests/hastub timeout 2400 ../v/bin/python3 tests/entities.py > ../ev/entities_$d.txt 2>&1; echo exit=$? >> ../ev/entities_$d.txt )
+[4]+  Done                    ( cd $d && PYTHONPATH=$PWD/tests/hastub timeout 2400 ../v/bin/python3 tests/entities.py > ../ev/entities_$d.txt 2>&1; echo exit=$? >> ../ev/entities_$d.txt )
+== head: 2 of 2451 ENTITY CHECKS FAILED exit=1
+2429:  ok   nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 applies, 4 batches, any other nonzero skips, and the step finishes
+2430:  ok   and the run reads the job's own lines (null control: the bare call dies under `-e`)
+== base: 2 of 2449 ENTITY CHECKS FAILED exit=1
+== m1: 3 of 2451 ENTITY CHECKS FAILED exit=1
+2429:  FAIL nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 applies, 4 batches, any other nonzero skips, and the step finishes  [got {0: 'apply', 4: 'died:4', 1: 'died:1', 2: 'died:
+2430:  ok   and the run reads the job's own lines (null control: the bare call dies under `-e`)
+== m2: 4 of 2451 ENTITY CHECKS FAILED exit=1
+2429:  FAIL nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 applies, 4 batches, any other nonzero skips, and the step finishes  [got {0: 'apply', 4: 'batchin', 1: 'skip-batch-gate',
+2430:  ok   and the run reads the job's own lines (null control: the bare call dies under `-e`)
+== m3: 3 of 2451 ENTITY CHECKS FAILED exit=1
+2429:  FAIL nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 applies, 4 batches, any other nonzero skips, and the step finishes  [got {0: 'skip-batch-gate', 4: 'batching', 1: 'skip-b
+2430:  ok   and the run reads the job's own lines (null control: the bare call dies under `-e`)
+
+[exited with code 0]
