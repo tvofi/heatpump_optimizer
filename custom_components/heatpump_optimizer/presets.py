@@ -23,11 +23,22 @@ shipped as absolute numbers per archetype.
 """
 from __future__ import annotations
 
-import functools
-import itertools
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from .const import (
+    CONF_BUILDING_ERA,
+    CONF_BUILDING_FOUNDATION,
+    CONF_BUILDING_STRUCTURE,
+    CONF_HEATED_AREA,
+    CONF_LOWER_EMITTER,
+    CONF_UPPER_EMITTER,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    DEFAULT_HEATED_AREA,
+    DEFAULT_UPPER_FLOOR_AREA_RATIO,
+)
 from .thermal_model import ThermalParameters
 
 # --- Structure -------------------------------------------------------------
@@ -279,26 +290,71 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
     return result
 
 
-@functools.cache
-def envelope_band_hours() -> tuple[float, float]:
-    """The shortest and longest envelope time constant the presets derive, h.
+def preset_from_config(
+    answers: Mapping[str, Any], current: Mapping[str, Any]
+) -> BuildingPreset:
+    """The questionnaire's preset for ``answers`` on the configuration ``current``.
 
-    Every structure, era, foundation and emitter, single- and two-zone, at
-    the configured prior (no learned scale), each ``envelope_thermal_mass``
-    over ``house_heat_loss_base``. The house grade (#65) places a house
-    between the two on a log scale -- a time constant is a ratio, and the
-    eras' losses step by ratios -- so the band moves with this table and is
-    never a second, uncalibrated pair of literals (R10-SCORES).
+    ``two_zone`` is the canonical predicate's verdict on the configuration in
+    force (R9 D14-s2-01) -- the rule ``ThermalParameters.from_config``
+    applies -- never a proxy read of one zone key. An unanswered question
+    falls to ``BuildingPreset.validate``'s default.
     """
-    taus = []
-    for structure, era, foundation, emitter, two_zone in itertools.product(
-        STRUCTURES, ERAS, FOUNDATIONS, EMITTERS, (False, True)
-    ):
-        params = ThermalParameters.from_config(derive(BuildingPreset(
-            structure=structure, era=era, foundation=foundation,
-            lower_emitter=emitter, two_zone=two_zone)))
-        taus.append(params.envelope_thermal_mass / params.house_heat_loss_base)
-    return min(taus), max(taus)
+    return BuildingPreset(
+        structure=answers.get(CONF_BUILDING_STRUCTURE) or "",
+        era=answers.get(CONF_BUILDING_ERA) or "",
+        foundation=answers.get(CONF_BUILDING_FOUNDATION) or "",
+        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
+        upper_emitter=answers.get(CONF_UPPER_EMITTER) or "",
+        lower_emitter=answers.get(CONF_LOWER_EMITTER) or "",
+        upper_area_ratio=float(
+            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
+        ),
+        two_zone=ThermalParameters.from_config(dict(current)).two_zone_enabled,
+    ).validate()
+
+
+#: The house grade's slope in log loss ratio: the owner's ~100-year-old house
+#: at 1.5x the typical pre-1960 loss grades 35, inside #2816's asked 30-40.
+_GRADE_SLOPE = 1.5
+#: 0 is reserved for no data (#2816), so a measured house never rounds onto it.
+_GRADE_FLOOR = 1.0
+
+
+def house_grade(
+    params: ThermalParameters, scale: float, config: Mapping[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    """The house grade (#65, #2816) and the drivers that account for it.
+
+    The loss ratio is the model's envelope loss (W/K) against the loss
+    ``derive`` gives the configured type, era, foundation and area,
+    corrected for thermal mass: the learner identifies the time constant
+    ``mass / loss``, so a loss read off a mass unlike the typical one is
+    rescaled by ``typical_mass / mass``. The ratio is therefore
+    ``typical_tau / tau``, and its log is the sum of three drivers: the
+    configured loss against typical, the learned correction (``scale``),
+    and the mass correction. The grade is ``100 / (1 + ratio ** slope)``:
+    50 at typical, above for tighter, below for leakier, never 0. Each
+    driver's ``points`` is its log share of the distance from 50, so the
+    points sum to ``grade - 50``.
+    """
+    typical = ThermalParameters.from_config(derive(preset_from_config(config, config)))
+    logs = {
+        "loss_vs_typical": math.log(params.house_heat_loss_base / typical.house_heat_loss_base),
+        "learned_heat_loss": math.log(scale),
+        "thermal_mass": math.log(
+            typical.envelope_thermal_mass / params.envelope_thermal_mass
+        ),
+    }
+    total = sum(logs.values())
+    grade = max(100.0 / (1.0 + math.exp(_GRADE_SLOPE * total)), _GRADE_FLOOR)
+    drivers = [
+        {"code": code, "points": (grade - 50.0) * value / total if total else 0.0}
+        for code, value in logs.items()
+    ]
+    if not config.get(CONF_BUILDING_ERA):
+        drivers.append({"code": "era_assumed", "points": 0.0})
+    return grade, drivers
 
 
 def _radiator_fraction(preset: BuildingPreset) -> float:
