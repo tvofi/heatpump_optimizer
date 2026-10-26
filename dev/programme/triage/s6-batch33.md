@@ -74,3 +74,35 @@ Binding:
 What would change the answer: a holder that no owned fix covers, a stale clean worktree left by a process other than `open_pr.sh`, `update_pr.sh` or a train's conflicted remerge. Then arm (a), gated on `pr_branch_lock` being free, is the candidate.
 
 For the orchestrator, not a carry: R10-FLY-OPENPR-ATOMIC is `after: [R10-UPDATE-PR-SIGNALS]`, and that group's resume has read `in-progress` since 2026-10-20.
+
+## P194: a hand-rolled POOL.txt removal emptied the pool for a minute (S6-V114)
+Verdict: ACCEPT narrowed, as an amendment to an accepted arm -> R10-FLOW-DESIGN-STAGES (stage `not-started`, M).
+- Carry 11 of that group (R10-FLY-POOL-INSTRUMENT, folded in; `s6-batch4.md#P55` and `#P60`) builds `tools/audit/seat/pool.py` with a read-back `append`. Carry 12 (`s6-batch24.md#P111`) and P187 (`s6-batch32.md#P187`) amend it. This adds the one write that the arm leaves hand-rolled: `drop`.
+- The filing's guard "refuses fewer than N-1 lines or zero bytes" is narrowed to an exact set check, for two reasons:
+  - A count misses a write that drops one line and garbles another.
+  - Zero bytes is a legitimate result when the last line is dropped.
+- The filing names `pubfix.sh` as a possible home. That is REJECTED: it is not in the tree, and an instrument goes in the tree (decision 0013).
+Source: s6 `proposals.md` `## V114` (orchestrator, 2026-10-26T06:10Z).
+Instances: one of this shape, and four of its class (POOL EMPTY from a pool edit) that other arms own.
+- This shape, `seat-ledger.md` line 890 in the orchestrator's state directory.
+  - Commit `03990655f` on `dispatch/pool-s6`, "pool: drop dispatch/fixer-r10-heat-meter-closure", took POOL.txt from 16 lines to 0.
+  - The cause V114 names is a zsh `${B}:POOL.txt` expansion that read an empty blob. zsh reads `:P` after an unbraced parameter as a path modifier, and this ruling's own count hit that on `$c:POOL.txt` before it was re-run under bash.
+  - Fire cse_01AaeWzk returned POOL EMPTY and was refired as cse_01FtqZzm: about 3 min and one fire lost.
+- Base rate, measured on the ref:
+  - `git log origin/dispatch/pool-s6 -- POOL.txt` shows 132 commits since 2026-10-24T07:50Z. In 13 of them POOL.txt lost lines (`git show <c>^:POOL.txt` against `<c>:POOL.txt`, run under bash).
+  - Removal is routine, about 6 a day: done work is pruned by hand or by the relay (`seat-ledger.md` line 561, "fixer pool pruned 42->1 by relay").
+  - 1 of the 13 was the defect.
+- No code on origin/main 11b7a9d73 writes POOL.txt (`git grep -n POOL.txt origin/main -- tools/` is empty), so every removal so far was out of the tree.
+- The same class, owned elsewhere:
+  - Line 82, a silent push failure: carry 11's read-back `append`.
+  - Line 517, a reviewer line never appended: carry 12.
+  - Lines 81 and 615 (V1, V107), stale claims: carry 11 as corrected by P187.
+
+Cost: XS on top of the S arm. `drop` reuses `append`'s write and its ref read-back, plus one set check and two controls. It adds no new file, no API read and no call site beyond `cloud_dispatch.py`'s existing hook.
+
+Binding:
+- Without `drop`, the pool instrument guards every write but the one done about 6 times a day, and that write is the one that just failed.
+- This round's cost is about 3 min and one fire per failure.
+- The arm is owed regardless, so putting the write in the instrument moves a recurring hand-rolled operation into tracked code at almost no marginal cost (tvofi 2026-10-24: mechanise before policy).
+
+Carry text (for `roster_edit.py append-carry R10-FLOW-DESIGN-STAGES`, citing `triage: dev/programme/triage/s6-batch33.md#P194`): "Pool arm (carry 11), drop verb (V114). `pool.py drop <dispatch-ref>...` removes the named lines from POOL.txt on `dispatch/pool-<session>` (and from `dispatch/rpool-<session>` for a reviewer ref). It goes through the same write and ref read-back as `append`. Before the push it refuses unless the new file's line set equals the old line set minus exactly the named lines. Every named line must be present, no other line may change, and an empty result is allowed only when the named lines were the whole file. After the push it reads the ref back and refuses on any mismatch, with git's stderr. It never builds a git path from an interpolated shell string. The 2026-10-26 instance was commit `03990655f`, where a zsh `${B}:POOL.txt` modifier read an empty blob and took POOL.txt from 16 lines to 0, so a refire was lost. Controls: dropping one of 16 lines leaves exactly 15, the other 15 byte-identical, and prints the read-back line; a write whose blob is empty or missing a line that was not named refuses before any push (the 03990655f shape as a fixture); dropping the only line yields an empty pool and passes (null); dropping a line that is absent refuses and changes nothing; one mutant that removes the set check fails the fixture arm."
