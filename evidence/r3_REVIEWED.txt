@@ -1,0 +1,18 @@
+R10-CEILING-PROBE — design review, revision 3 of at most 3.
+Note:      dev/programme/designs/R10-CEILING-PROBE.md
+Ref:       refs/heads/design/r10-ceiling-probe
+Tip:       1cd93ca6e6fdcfebebb481fea370a139c8e41eb9  ("R10-CEILING-PROBE design rev 3: minimal re-cut, per-kind sized step, recorded outcome")
+History:   6e3653f2e3e689c347bd5cb393e1197d6f024116  (rev 1)
+           9ef3325660916ef055f8b9a39713e3f2a98d0afe  (rev 2, parent of rev 3)
+           1cd93ca6e6fdcfebebb481fea370a139c8e41eb9  (rev 3; appended, no rewrite)
+Base the note names: 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+Code read at:        origin/main = 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+Prior verdict:       refs/heads/design-verdict/R10-CEILING-PROBE tip de63c5b0d1f67451c3e4c205d584c6661f0a8bd9
+Worktree:            detached at 1cd93ca6e; worktree add --detach, unmodified.
+
+Drift between the note and main over the code it cites:
+  git diff --stat 1cd93ca6e origin/main -- custom_components/heatpump_optimizer/
+  (empty: the note's base and origin/main are identical for every cited module)
+
+This note was reviewed fresh. The rev-2 verdict was read for its five points and
+not adopted: each is re-measured below.

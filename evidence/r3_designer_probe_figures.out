@@ -1,0 +1,21 @@
+## flow_setpoint_for_level (thermal_model.py:1517)
+  level  5.0 kW -> 55.0 degC
+  level  1.5 kW -> 37.5 degC
+  level  0.0 kW -> 55.0 degC
+  null control: same band, no band (p_min=p_max=None) -> 55.0 degC (the fixed constant)
+
+## DrawRange: 48 full-ceiling samples, WINDOW 336 MIN_SAMPLES 48 DISAGREE_SHARE 0.25 HIGH_PERCENTILE 90.0
+  one probe run (4 ceiling samples)      n= 48 full= 4 -> observed=(1.5, None) engaged=False planned=None
+  48 ceiling samples in a 336 window     n=336 full=48 -> observed=(1.5, 3.0) engaged=False planned=None
+  48 ceiling samples, 48-sample window   n= 48 full=48 -> observed=(3.0, 3.0) engaged=False planned=None
+
+## the latch share: evidence disagreeing / window size vs DISAGREE_SHARE
+  window  48: 48/48 = 1.0000 >= 0.25 -> latches
+  window  96: 48/96 = 0.5000 >= 0.25 -> latches
+  window 192: 48/192 = 0.2500 >= 0.25 -> latches
+  window 193: 48/193 = 0.2487 <  0.25 -> no latch
+  window 336: 48/336 = 0.1429 <  0.25 -> no latch
+
+## the high percentile needs only MIN_SAMPLES full samples
+  observed high is the probe samples when full.size >= 48 -> high = 3.0
+  null control: 47 full samples -> observed = (1.5, None) (high None: the probe samples do NOT enter the top)

@@ -1,0 +1,45 @@
+sysid.py:1547-1547  [2347 lines]  sized = None if why else self._size_step_power(
+sysid.py:1564-1564  [2347 lines]  self._step_power = sized
+sysid.py:1469-1470  [2347 lines]  if fits(q_max, bound): / return max_power_kw
+const.py:1423-1423  [1682 lines]  DEFAULT_OPTIMIZATION_INTERVAL: Final = 30  # minutes
+sysid.py:1564-1566  [2347 lines]  self._step_power = sized / unadoptable = self._unadoptable(sized * max(cop, 0.1), outdoor_temp) / if unadoptable:
+coordinator.py:10989-10989  [11332 lines]  "heat_pump_on": override > 0.05,
+pump_arbiter.py:613-623  [1255 lines]  if duty in ("space", "both"): / p_min, p_max = _band_kw(inp) / heat_c = configured_flow_heat_c(inp.config, FLOW_HEAT_C) / floor_c = _or_hold(modulation_floor_flow_c(_flow_inlet_c(i
+pump_arbiter.py:325-359  [1255 lines]  def step_duty(result: Any, now: datetime) -> str | None: / """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now. / Each circuit's draw is read by the plan's o
+sysid.py:1698-1698  [2347 lines]  return self._step_power
+coordinator.py:10985-10991  [11332 lines]  "power": float(override), / "power_normalized": float( / override / max(ctx._thermal_params.max_electrical_power, 0.1) / ), / "heat_pump_on": override > 0.05, / "mode": "system_ide
+sysid.py:1365-1374  [2347 lines]  if self.last_run is not None: / days = utc_elapsed_seconds(now, self.last_run) / 86400.0 / if days < self.config.min_days_between_runs: / _LOGGER.info( / "System identification ran
+pump_arbiter.py:563-581  [1255 lines]  def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None: / """What the held flow set-point (``state``'s written ``space_setpoint`` / record) commands, or ``None``. 
+sysid.py:1340-1340  [2347 lines]  self.result = SysIdResult(completed=False, reason=why)
+sysid.py:1401-1401  [2347 lines]  if learner_samples >= cfg.converged_samples:
+coordinator.py:10956-10963  [11332 lines]  why = ( / f"heat pump mode {self._pump_signals.mode.label} cannot heat the house" / if self._pump_signals.space_blocked / else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_O
+sensor.py:1995-1997  [3030 lines]  _unrecorded_attributes = frozenset( / {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"} / )
+payload.py:530-535  [950 lines]  class SysIdView(TypedDict, total=False): / phase: str / active: bool / samples: int / last_run: str | None / result: SysIdResultView
+coordinator.py:11004-11009  [11332 lines]  result = self._sysid.result / if not result.completed: / return / params = getattr(self, "_ctx", self)._thermal_params / decision = adoption_decision(result, params, self._sysid.co
+button.py:146-152  [228 lines]  @property / def available(self) -> bool: / return bool( / super().available and not self.coordinator.system_identification_active / ) / async def async_press(self) -> None:
+payload.py:115-115  [950 lines]  REASON_SYSTEM_IDENTIFICATION = "system_identification"
+draw_range.py:162-172  [472 lines]  def _metered_range( / self, cfg_min: float, cfg_max: float / ) -> tuple[float, float] | None: / """The configured range with each contradicted end replaced.""" / seen = self.observ
+draw_range.py:138-138  [472 lines]  (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)
+draw_range.py:159-159  [472 lines]  high = float(np.percentile(full, HIGH_PERCENTILE)) if full.size >= MIN_SAMPLES else None
+draw_range.py:217-226  [472 lines]  def planned( / self, cfg_min: float, cfg_max: float / ) -> tuple[float, float] | None: / """``(min, max)`` the plan may book, or ``None``: configured stands.""" / if not self.engag
+draw_range.py:158-158  [472 lines]  low = float(np.percentile(drawn, LOW_PERCENTILE))
+draw_range.py:438-438  [472 lines]  def planned_range(
+draw_range.py:469-469  [472 lines]  effective = planned_range(draw, params, cap)
+pump_arbiter.py:462-466  [1255 lines]  def _step_kw(result: Any, now: datetime) -> float | None: / """The plan's space power for the step covering ``now``, or ``None``.""" / return ( / _finite_or_none(_planned_room(resu
+coordinator.py:11009-11009  [11332 lines]  self._sysid.result = replace(result, completed=False, reason=decision.reason)
+coordinator.py:3599-3599  [11332 lines]  self._sysid = SystemIdentification(
+coordinator.py:7769-7769  [11332 lines]  "system_identification": self._sysid.as_dict(),
+sensor.py:2042-2042  [3030 lines]  "system_identification": data.get("system_identification"),
+button.py:143-143  [228 lines]  coordinator, entry, "system_identification", "learning_run_system_identification"
+const.py:1492-1492  [1682 lines]  "system_identification",
+boost.py:647-647  [665 lines]  if action.get("mode") == "system_identification":
+sysid.py:1423-1512  [2347 lines]  def _size_step_power( / self, / max_power_kw: float, / cop: float, / baseline: float, / outdoor_temp: float, / ua: float, / capacity: float, / gains: float, / slab_thermal_mass: fl
+sysid.py:1457-1462  [2347 lines]  def fits(q: float, bound: float) -> bool: / peak, final = _predict_step_excursion_plant( / house, baseline, outdoor_temp, q, / cfg.step_hours, cfg.relax_hours, model=plant, / ) / r
+thermal_model.py:1517-1517  [4096 lines]  def flow_setpoint_for_level(
+sysid.py:1316-1378  [2347 lines]  def arm(self, now: datetime, plant: ThermalParameters | None = None) -> bool: / """Arm an experiment, to start when conditions allow. / ``plant`` is the house the experiment would 
+sysid.py:1609-1705  [2347 lines]  def step( / self, / now: datetime, / room_temp: float, / outdoor_temp: float, / price: float | None, / price_horizon: np.ndarray, / learner_samples: int, / max_power_kw: float, / c
+draw_range.py:147-160  [472 lines]  def observed(self) -> tuple[float, float | None] | None: / """``(low, high)`` metered running draw, or ``None`` while too few. / ``high`` is ``None`` while fewer than ``MIN_SAMPLES
+draw_range.py:51-51  [472 lines]  MIN_SAMPLES = 48
+draw_range.py:60-60  [472 lines]  DISAGREE_SHARE = 0.25
+sysid.py:1694-1694  [2347 lines]  self.samples[-1].power_kw = self._step_power * thermal_cop
+coordinator.py:6453-6453  [11332 lines]  self._measured_power = power_reading.value if power_reading.ok else None

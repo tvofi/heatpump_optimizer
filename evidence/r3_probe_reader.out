@@ -1,0 +1,11 @@
+## R3: the latch under incremental evaluation (sticky, after every append)
+  probe first, ordinary after: engaged=True samples=336 final share=48/336=0.1429
+  ordinary first, probe last: engaged=False samples=336 final share=48/336=0.1429
+  first 48 ceiling appends on an empty window: engaged flips at append 48
+
+## R4: the diagnostics value the note names as its consumer
+  F6 case: 48 ceiling, full window: observed=(1.5, 3.0) engaged=False planned=None
+    summary.observed_max_kw=3.0 planned_range=None effective_max_kw=None
+  twelve ceiling in the window: observed=(1.5, None) engaged=False planned=None
+    summary.observed_max_kw=None planned_range=None effective_max_kw=None
+  store-only median (12 samples, no window entries): observed=(1.5, None) engaged=False planned=None effective_max_kw=None (planned_range=None)

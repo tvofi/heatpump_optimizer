@@ -1,0 +1,75 @@
+R10-CEILING-PROBE rev 3 — tree checks at origin/main 6fe5170cd
+
+## The note's after-edges
+roster resume.stage (origin/main, dev/programme/rosters/wave-r10-groups.json):
+  R10-SETPOINT-BOOST   done            (merge 76bb45628 is an ancestor of 1cd93ca6e)
+  R10-CI-LAYOUT        done
+  R10-NIGHT-FOLDS      done            (merge d48018b80 is an ancestor of 1cd93ca6e)
+All three predecessor groups are merged before the note's base: the note's claim holds.
+
+## The note's own roster row (advisory)
+  R10-CEILING-PROBE  kind production  size M  issues [2498,2808]
+  files [sysid.py, draw_range.py]        the note changes 7 (adds pump_arbiter, coordinator,
+                                         sensor, button, payload); roster_edit.py has no files operation.
+  M groups on the roster: 57; files 0..16, median 2 — a 7-file M group is within the population.
+
+## Sibling designs in flight (seam check)
+  R10-COP-GATE    kind study, size M, not-started; files [coordinator.py, sensor.py]; issue 2262.
+                  Its roster brief names no consumption of a learned top: the routing rev 3
+                  states (learned top -> COP-GATE) is the designer's, and this group's reader
+                  must still exist here (revise point B).
+  R10-HEAT-METER  kind owner, size XL, in-progress; files include coordinator.py, flow_meter.py.
+                  Its note puts draw_range.fold and draw_range.space_share's use out of scope as
+                  "the draw evidence, which belongs to COP-GATE": no collision with the probe store
+                  on DrawRange, and the store's reader is this group's by that assignment.
+  R10-SCORES / R10-SENSOR-PAYLOAD touch different sensor.py and payload.py classes
+                  (OptimizationScoreSensor, ModelRestartAdvisorSensor, Scores, Insight) — no seam.
+  No open design ref claims the arm/advance/adopt block of coordinator.py.
+
+## The cycle order revise point A rests on (all at 6fe5170cd)
+  coordinator.py:5826  await self.async_run_optimization()
+  coordinator.py:6089  async_run_optimization; 6217 await self._run_system_identification(prices)
+  coordinator.py:10998-11009  _adopt_system_identification -> coord.adopt_action (3678) / boost.py:235
+  coordinator.py:5836  boost.apply            (adopts the plan's action)
+  coordinator.py:5845  await self._apply_action() -> pump_arbiter.apply (7558) writes the set-point
+  coordinator.py:5861  self._record_accuracy() -> 9841 draw_range.fold(
+                           self._accuracy.draw, self._measured_power,
+                           self._commanded_split(), ..., command=pump_arbiter.flow_command(self))
+  coordinator.py:4695  _commanded_split reads self._current_action (written at 3678 / boost.py:235)
+  coordinator.py:6453  self._measured_power is a spot sensor reading
+  => fold pairs the interval that just ended (its draw) with the action adopted for the
+     interval now starting (its ask) and the set-point just written (its command).
+
+## The store reader revise point B rests on (all at 6fe5170cd)
+  draw_range.py:162-172  _metered_range reads observed()  (window samples only)
+  draw_range.py:223      _metered_range's only call site: inside planned()
+  draw_range.py:221      planned() returns None unless self.engaged
+  draw_range.py:438-455  planned_range() -> draw.planned(); only call site of planned()
+  draw_range.py:469      planned_range's only call site: diagnostics_view -> effective_min/max_kw
+  draw_range.py:159      observed()'s high is None while fewer than MIN_SAMPLES(48) full samples
+  draw_range.py:175-190  _disagrees() is evaluated after every append (observe 192-212) and
+                         engaged is sticky: it is a prefix test, not the final window's share.
+
+## Ratchet (tests/structure.py at origin/main; run, exit 0)
+  STRUCTURE RATCHET PASSED; all 18 metrics at equality, including
+    class_excess_loc 18079 <= 18079      max_class_loc 8236 <= 8236
+    coordinator_attrs 143 <= 143         methods_over_150 16 <= 16
+  AST class spans (excess = span - 300):
+    SystemIdentification            1065 lines  (excess 765)
+    HeatPumpOptimizerCoordinator    8236 lines  (excess 7936)
+    DrawRange                        194 lines  (excess 0)
+    ModelStatusSensor                 65 lines  (excess 0)
+    SystemIdentificationButton        26 lines  (excess 0)
+  Every added line in SystemIdentification or HeatPumpOptimizerCoordinator raises the metric.
+
+## Citations
+  All 45 path:line citations in the note resolve at 6fe5170cd (evidence/r3_cites.out): no
+  missing file, no out-of-range line, each landing on the construct the sentence names.
+
+## Unrecorded-attribute semantics (the note's §2 sentence)
+  sensor.py:1988-1989  docstring: the bulky attributes "stay out of the recorder".
+  sensor.py:1995-1997  _unrecorded_attributes = frozenset({..., "system_identification", ...}).
+  tests/entities.py:5854-5861  pins {"internal_gains_kw", "capacity_envelope",
+      "system_identification"} <= _unrecorded_attributes ("stays out of the recorder").
+  => staying out of the recorder IS being listed in _unrecorded_attributes; the note's
+     "stays out of _unrecorded_attributes" says the opposite.

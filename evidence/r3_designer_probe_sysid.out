@@ -1,0 +1,34 @@
+## #2808 complaint 1: arm() admits a converged house, deny comes one cycle later
+  arm(now) with no learned count -> True phase armed
+  conditions_met(learner_samples=482) -> False 'house already converged'
+  null control: conditions_met(learner_samples=150) -> (True, 'ready')
+  boundary: learner_samples=199 -> True 'ready'
+
+## samples per phase at the default config, 30-minute cycle
+  phases over 16 cycles: {'settling': 2, 'step': 4, 'relax': 4, 'done': 6}
+  step-phase cycles: 4 | settle samples: 2
+  config: settle 1.0 h step 2.0 h relax 2.0 h
+  null control: step_hours=6.0 -> 12 step-phase cycles (vs 4 at 2.0 h)
+
+## the sizer returns p_max when the full step fits, and bisects below otherwise
+  a leaky large house  ua=0.35 capacity=12.0 -> _step_power = 5.0
+  a tight small house  ua=0.12 capacity=4.0 -> _step_power = 2.25830078125
+
+## the probe's duration search: the same bound at q = p_max*cop
+  step 2.0 h at q=15.0 kW -> peak 0.447 K final 0.447 K
+  step 1.5 h at q=15.0 kW -> peak 0.287 K final 0.287 K
+  step 1.0 h at q=15.0 kW -> peak 0.147 K final 0.141 K
+  step 0.5 h at q=15.0 kW -> peak 0.044 K final 0.010 K
+  (bound is cfg.max_excursion_c = 0.8 K)
+
+## the same duration search on the tight small house (ua=0.12, C=4.0)
+  step 2.0 h at q=15.0 kW -> peak 1.796 K final 1.796 K PASSES the 0.8 K bound
+  step 1.5 h at q=15.0 kW -> peak 1.266 K final 1.266 K PASSES the 0.8 K bound
+  step 1.0 h at q=15.0 kW -> peak 0.769 K final 0.769 K FITS
+  step 0.5 h at q=15.0 kW -> peak 0.315 K final 0.315 K FITS
+
+## a tiny house: no whole-cycle candidate fits, so the arm refuses
+  step 2.00 h at q=15.0 kW -> peak 4.054 K final 4.054 K PASSES the 0.8 K bound -> refuse
+  step 1.50 h at q=15.0 kW -> peak 2.982 K final 2.982 K PASSES the 0.8 K bound -> refuse
+  step 1.00 h at q=15.0 kW -> peak 1.927 K final 1.927 K PASSES the 0.8 K bound -> refuse
+  step 0.50 h at q=15.0 kW -> peak 0.903 K final 0.903 K PASSES the 0.8 K bound -> refuse

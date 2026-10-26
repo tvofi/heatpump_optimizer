@@ -1,0 +1,13 @@
+## pump_arbiter._planned_duty (pump_arbiter.py:730)
+  sysid action, 5.0 kW -> None
+  sysid action, 1.5 kW -> None
+  sysid action, 0.0 kW -> None
+  null control: no action, plan step 5.0 kW -> see step_duty below
+
+## pump_arbiter.step_duty (pump_arbiter.py:325): the same level a plan steps
+  plan power_schedule=[5.0] -> 'space'
+  plan power_schedule=[1.5] -> 'space'
+  plan power_schedule=[0.0] -> 'idle'
+
+## _planned_duty on a plan step needs the boost ledger; the control above is
+   step_duty, the function _planned_duty delegates to (pump_arbiter.py:749).

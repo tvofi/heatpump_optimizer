@@ -1,0 +1,18 @@
+## R1: what one probe run puts in the store (note's F2 arms)
+  2.0 h step (F2 leaky, 4 cycles): folded=5 stored=4 true=3 plan-draw=1 values=[1.5, 3.0, 3.0, 3.0]
+  1.0 h step (F2 tight, 2 cycles): folded=3 stored=2 true=1 plan-draw=1 values=[1.5, 3.0]
+  null control: the interval before the step is idle (drawn 0.0)
+    2.0 h: stored=3 (no plan draw enters)
+    1.0 h: stored=1 (no plan draw enters)
+
+## R1b: the top of twelve with the per-run composition above
+  2.0 h: 12 samples from 3 runs (true 9) -> median 3.0
+  1.0 h: 12 samples from 6 runs (true 6) -> median 2.25
+  control: twelve true ceiling draws -> median 3.0 | adopted: True
+  control: twelve draws 4.5 kW (90% of configured) -> adopted: False
+
+## R2: the reader. observed()/planned() with probe samples folded by observe
+  note's case: full window, probe last: engaged=False planned=None observed=(1.5, 3.0) summary.observed_max_kw=3.0
+  young window, probe first: engaged=True planned=(1.5, 3.0) observed=(1.5, 3.0) summary.observed_max_kw=3.0
+  twelve stored samples, full window: engaged=False planned=None observed=(1.5, None) summary.observed_max_kw=None
+  null control: no probe samples -> engaged=False planned=None observed=(1.5, None)
