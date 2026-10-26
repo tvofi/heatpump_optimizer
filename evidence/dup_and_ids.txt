@@ -1,0 +1,9 @@
+dup carries mb 14 head 14
+duplicate group ids at head: []
+R10-RCA-RATELIMIT-RECUR in mb: False
+rca target R10-RCA-INSTALL-RATELIMIT exists: True
+False None
+keys new: ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues', 'kind', 'lane', 'model', 'owner_gate', 'rca', 'resume', 'reviewerModel', 'severity', 'size', 'wave']
+keys sibling rca: ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues', 'kind', 'lane', 'model', 'owner_gate', 'rca', 'resume', 'reviewerModel', 'severity', 'size', 'wave']
+sibling resume {'stage': 'done', 'branch': 'handoff/r10-rca-install-ratelimit', 'commit': '9af4664c1e6317dcc9dd6ee310c9877bb0fc5125', 'last_step': None, 'next_step': 'review, then merge', 'note': None}
+codeql resume {'stage': 'done', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer (no after-groups)', 'note': None} [] []
