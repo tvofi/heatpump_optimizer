@@ -1,3 +1,4 @@
+dispatch/fixer-r10-card-voice
 dispatch/fixer-r10-996-runner-claims
 dispatch/fixer-r10-hotfix-batch-errexit
 dispatch/fixer-r10-rca-hotfix-batch-errexit
@@ -6,7 +7,6 @@ dispatch/fixer-r10-flow-jidoka
 dispatch/fixer-r10-legionella-completion
 dispatch/fixer-r10-update-pr-signals
 dispatch/fixer-r10-advisor-residue
-dispatch/fixer-r10-card-voice
 dispatch/fixer-r10-diag-redact
 dispatch/fixer-r10-arch-shapes
 dispatch/fixer-r10-proof-codeql
