@@ -56,6 +56,8 @@ The entities pin was mutated by executing its own source lines over a mutated `c
 
 ## Figures
 
+Re-taken for round 2 at origin/main 5261ba84139d9459465ccd842b61b04c2b1329d8, 2026-10-26T00:19:23Z (`date -u`), on the PR head bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d: the four self-tests, entities, structure and archscore lines below reproduce, and the hold table's rows were re-derived from each run's `list_workflow_jobs` (two values moved by rounding: 33.1 to 33.2 and 22.1 to 22.0 for the python leg, 2.5 to 2.6 for one hold). `git merge-tree --write-tree origin/main HEAD` exits 0 at that tip.
+
 - `python3 -I tools/pr/codeql_scope.py --self-test` prints its tally line with 0 failed at the head (the new proof rows are part of that tally).
 - `python3 -I tools/ci/prelude.py --self-test` prints its tally line with 0 failed at the head.
 - `python3 -I tools/ci/gate.py --self-test` and `python3 -I tools/ci/codescan_wait.py --self-test` (both import prelude) print 0 failed.
@@ -67,17 +69,31 @@ The entities pin was mutated by executing its own source lines over a mutated `c
 
   | run | branch | python leg | python end | other end | hold |
   |---|---|---|---|---|---|
-  | 40222343141 | `batch/20261025-183357-1` | 33.1 | 34.3 | 17.2 | **17.1** |
-  | 40210241293 | `batch/20261025-124825-b5-1` | 20.5 | 45.5 | 43.0 | 2.5 |
+  | 40222343141 | `batch/20261025-183357-1` | 33.2 | 34.3 | 17.2 | **17.1** |
+  | 40210241293 | `batch/20261025-124825-b5-1` | 20.5 | 45.5 | 43.0 | 2.6 |
   | 40199336598 | `batch/20261025-124825-b2-1` | 24.3 | 25.6 | 32.7 | 0 |
-  | 40147334039 | `batch/20261024-231508-m2-1` | 22.1 | 27.5 | 30.5 | 0 |
+  | 40147334039 | `batch/20261024-231508-m2-1` | 22.0 | 27.5 | 30.5 | 0 |
 
   All values are minutes; "other end" is `tests / *`. The null control is that a proof whose `tests` lane ends last shows hold 0, as two of the four do. So the change saves the hold, not the python leg's duration, and only when every entry analyzed python at its head.
 - After: **not measured**. A skip needs this decision on main, whose copy the proof restores, so no proof can take the new arm before this merges. That is owed over at least three batches after merge.
 
 ## Red checks
 
-none. The tree is predicted green: `tools/pr/ci_predict.py --base origin/main` predicts no closures, fast, wave-script or instrument red. Main's push `tests / ci-ratchet` red (the artifacts listing) is main's, and this diff does not touch `tests/ci_ratchet.py`.
+Measured at the head bff57cc0cd336b1f9c9b8a0ceec645d15c0c865d, origin/main 5261ba84139d9459465ccd842b61b04c2b1329d8, 2026-10-26T00:19:23Z.
+
+- `governance / delivery-status` (job 121300270336, failure). Its log prints `DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 8 overdue (overdue at 12 commits)`, and every overdue row is another merged pull request's: #2798, #2799, #2780, #2749, #2775, #2797, #2762, #2795. It grades `main`'s delivery record, not this tree. It reads `tests/delivery_status.py` and `tests/layout.py`, restored from `PINNED` (main's f3ffb1c63) before it runs, and this diff touches neither. It does touch `.github/workflows/ci.yml` and `.github/workflows/governance.yml`, which is why the contract asks. The `governance.yml` change is a comment of two lines over the CodeQL-scope self-test step, a different job. The `ci.yml` change is the prelude restore step (the `batch/` arm plus `tests/closure.py`) in the `prelude` job, which `delivery-status` does not run or read. The job says it "is NOT a required context and a red here blocks no merge". Cheaper detector: none is owed. The red is main's backlog of undrained rows, which is the signal the check exists to raise, and its drain belongs to the orchestrator's record step (`delivery-status-tracking.md`), not to this pull request. This PR's own row, `dev/programme/delivery/2837.md`, is in the diff.
+- `pr-contract / pr-contract` (jobs 121310250433 and 121309599080, failure). Red only because the previous body's `## Red checks` did not name `governance / delivery-status`. This body names it. No other refusal is in either log, so no cheaper detector is owed: `prepr.sh --body-check` runs the same lint before handoff, and it was run on this body.
+- `gate` (jobs 121310378279 and 121309759223, failure). Red only because it requires `pr-contract / pr-contract`. Every other required context at this head is success, skipped or neutral. It clears when pr-contract re-checks this body, so no cheaper detector is owed.
+
+The tree is predicted green: `tools/pr/ci_predict.py --base origin/main` predicts no closures, fast, wave-script or instrument red. Main's push `tests / ci-ratchet` red (the artifacts listing) is main's, and this diff does not touch `tests/ci_ratchet.py`.
+
+## Review round 1
+
+The round-1 fix review (comment 6404318957) blocked this head on the body alone and judged the code merge-worthy. The code head did not move: this round changes only this body. The points it left open are restated here, with their dispositions:
+- Mutants A1 (deleting the `onto` naming check in `proof_entries`), A2 (deleting `len(ps) != 2`) and A3 (deleting the `r.get("head_sha") == head` filter in `proof_scope`) survive both self-tests. Carry: dismissed: each mutant is equivalent under the tree check, the real parent walk and the API's own head_sha filter.
+- `proof_scope` accepts a `pull_request` run at the entry head whatever its base branch. Carry: dismissed: bounded by admission's required-context wait at each head and main's full push analysis, so no head move is warranted for it. A one-line `base.ref == "main"` filter was weighed and not landed, because it would move the code head for a gap those two bounds already close.
+- The entities pin on `ci.yml`'s restore step matches step text by substring. Carry: dismissed: the text-pin shape is the file's stated convention, and the four real mutants of the arm all fail it.
+- The "after" hold saving is not measured until three batches merge. Carry: #201.
 
 ## Forward-carry
 
