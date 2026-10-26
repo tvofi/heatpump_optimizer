@@ -1,0 +1,28 @@
+date: 2026-10-26T07:45:18Z origin/main 5fb8339304e10b2b1416d9c439587ae1806d820e head b62c1aa5d9069e025d2b2a5b5e8b0e7ee2d0a902 mb 11b7a9d739db46a5a62e9f9cf01a8f527a974137
+## merge-tree
+88a47db0cbdc347c4631bdf27129b41fc7c0704e
+exit=0
+## untouched
+CLAIMS-VERSION-UNTOUCHED
+## carry_audit
+NOTE #2843 body item ae9c5e1f: R10-ARCH-SHAPES-CLASSIFIER
+NOTE #2843 body item 31cd3da4: R10-ARCH-SHAPES-CLASSIFIER
+CARRY-AUDIT #2843: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+## ref_privacy
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 614 line(s) added since 11b7a9d739db judged, 0 refused
+exit=0
+## structure
+
+STRUCTURE RATCHET PASSED
+## policy_lint
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## rules_sync
+RULES-SYNC ok: every generated rule is the generated form of its source
+## archscore
+Architecture score: dS +0.0000 NULL
+## ci_predict
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 11b7a9d739db (a data-file read is not seen)
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 11b7a9d739db
+## claims-only
+claims hygiene: origin/main ok
