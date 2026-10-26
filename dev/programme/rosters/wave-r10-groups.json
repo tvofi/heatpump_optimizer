@@ -6773,7 +6773,6 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Round-10 use: R10-CI-LAYOUT-P1's fixer runs the critical-path instrument for its body's figure, and each #201 state comment runs the review-strength one (R13).",
     "Classify every new file (a measured closure or tests/closure.py's INERT list) or tests/entities.py refuses the pull request.",
     "Pre-study: the Lean flow pre-study, section K18.",
     "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22)."
