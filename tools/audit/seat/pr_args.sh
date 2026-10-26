@@ -106,9 +106,10 @@ if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): impo
 sys.exit(0)' "$1" ${4:+"$4" "$3"} </dev/null >/dev/null 2>&1 & LKP=$!
   PR_REAP_SPARE=$LKP
   PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
-  # A wall-clock deadline, so the 20 s pr_lock_busy names is 20 s whatever the load.
-  while kill -0 "$LKP" 2>/dev/null && [ "$(cut -d' ' -f1,2 "$1" 2>/dev/null)" != "$$ $LKP" ] && [ "$(date +%s)" -lt "$k" ]; do sleep 0.05; done
-  [ "$(cut -d' ' -f1,2 "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
+  # Taken is these two pids with no `drain` mark (fields 1, 2 and 4; the start epoch between them is
+  # the holder's). A wall-clock deadline, so the 20 s pr_lock_busy names is 20 s whatever the load.
+  while kill -0 "$LKP" 2>/dev/null && [ "$(cut -d' ' -f1,2,4 "$1" 2>/dev/null)" != "$$ $LKP" ] && [ "$(date +%s)" -lt "$k" ]; do sleep 0.05; done
+  [ "$(cut -d' ' -f1,2,4 "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
 }
 pr_push_hold() { # inside `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`: lock fd 9, which the push inherits
   # The redirection is this shell's, opened before the fork, so a SIGKILL at any point leaves the
