@@ -10488,7 +10488,9 @@
    "class": "tooling",
    "severity": "low",
    "size": "S",
-   "issues": [],
+   "issues": [
+    2722
+   ],
    "fixes": [],
    "findings": [],
    "wave": 6,
