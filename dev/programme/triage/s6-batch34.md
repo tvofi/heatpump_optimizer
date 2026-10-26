@@ -1,6 +1,6 @@
 # Proposal triage, session s6, batch 34 (P195-)
 
-Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch33.md` (P192-P194). This batch holds 8-10 entries and merges only through the train queue (tvofi, 2026-10-25). Facts read at origin/main 510787b76.
+Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch33.md` (P192-P194). This batch is cut at four entries on the orchestrator's ruling of 2026-10-26 (cut at 8 entries or 12:00Z, whichever comes first), because P196's carry is critical path and waits for this file on origin/main. It merges only through the train queue (tvofi, 2026-10-25). Facts read at origin/main 510787b76.
 
 A roster op citing an ACCEPT below resolves only once this file is on the roster branch or origin/main (`roster_edit.py` reads the ruling from there).
 
