@@ -4960,6 +4960,10 @@ function cardStyleBlock(darkMode) {
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.4em; padding: 0.2em;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        /* Its own width wherever it lands: shrink-to-fit would narrow it to
+           the room left of its left edge, so the box openMenu measured and
+           clamped wrapped to a taller one once placed near the right edge. */
+        width: max-content; max-width: 100%; box-sizing: border-box;
       }
       .slot-menu button {
         display: block; width: 100%; text-align: left;
@@ -5276,6 +5280,11 @@ function cardStyleBlock(darkMode) {
         /* The bar's buttons are the same touch row the legend's chips are,
            so they take the same phone size (H2: bar equals chip). */
         dialog.expanded .layout-bar button { font-size: 1rem; }
+        /* The dialog's 0.92 em tooltip brought it up to the tile's size from
+           the old 12 px floor; on the 14 px floor (H1) it outgrew the short
+           phone-width chart it must stay inside (R9-UX-1). Here it keeps
+           the tile's own 0.78 em. */
+        dialog.expanded .tooltip { font-size: 0.78em; }
         /* Phone-width dialogs (#40 feedback, item 1): the header must be
            allowed to wrap, or the Plan/Setup tabs are pushed out of reach
            by the title; and the setup diagram scrolls sideways at a
