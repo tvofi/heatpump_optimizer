@@ -1,0 +1,14 @@
+head: 07bc8000cd85b894ae65905eee065f0e15c21a68 (detached worktree; seat venv first on PATH; each run under env -u BASH_ENV)
+  ok   --past-three without a reason is refused
+bus self-test: 86 checks, 0 failed
+ledger self-test: 58 checks, 0 failed
+cloud_dispatch self-test: 73 checks, 0 failed
+review_strength self-test: 116 checks, 0 failed
+orchestrator_tick self-test: 215 checks, 0 failed
+r10_ledger_mutants self-test: 88 checks, 0 failed
+unknown plant(s): ['--help']
+RESULT mutant=T3_review_owed_silent rc=1 fails=3
+    FAIL verdict levels: a verdict not from the approver App is ignored: the head owes its review
+    FAIL REVIEW OWED: of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither
+    FAIL REVIEW OWED: a head the newest merge verdict carries to owes no review; one it does not carry to does
+plants: 1, without a FAIL line: none
