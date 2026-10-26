@@ -9927,7 +9927,7 @@
    "architect_note": null,
    "brief": "GROUP R10-996-RUNNER-CLAIMS (new, size M, orchestrator-sourced under mandate 6329234399, 2026-10-25; reopens the claim-grammar decision of issue #996, whose runner-conditional instance count crosses its reopen threshold with the two R10-ARCH-SHAPES instances). Problem, measured by the R10-ARCH-SHAPES round-4 fixer's band census at d710a5af5 (harness committed by #2819 under dev/audit/harnesses/, cite its sha1): a behaviour change whose golden drift has one direction everywhere but lands on a host-dependent SET of scenarios (the solve's basin moves a planned share in or out of a band) cannot be claimed by any fixed per-fixture claim list: each CI runner host (numeric_probe and numpy_build differ between runs of one PR) reports a different set, so claims go STALE or UNCLAIMED and no state is green on every runner. Design and land a claim grammar in tests/env_drift.py for this class: a claim keyed on the drift's shape (the leaf path pattern and the from/to values), valid across any fixture set, that still refuses any drift outside that shape and any claim that matches nothing on every host the census covers. Fail closed. Controls: the parked R10-ARCH-SHAPES-CLASSIFIER arm passes on the macOS, cloud and both runner readings; a mutant drift of another shape (a value leaf, another reason pair) is refused; an unchanged tree with the claim present is refused as stale (null). Policy: the claim-files.md rule changes, so this is policy under the mandate; say so in the body. Record the decision as a comment on #996 and close the decision there.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": null,
     "commit": "bb8addd89b024beefab970573a6cac0ccbe88de6",
     "last_step": null,
