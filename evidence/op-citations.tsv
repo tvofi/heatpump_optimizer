@@ -1,0 +1,53 @@
+commit	op	group	citation tokens in the added text
+e8b692b0f	append-carry	R10-FLOW-RECORD-PITCH	Owner tvofi
+23b0a4cbc	set-after	R10-FLOW-RECORD-PITCH	
+c5b71ebe8	append-carry	R10-ROUND-PLAYBOOK	owner tvofi
+63d8938eb	append-carry	R10-FLOW-RECORD-PITCH	#2796 Owner ruling tvofi
+362a47062	append-group	R10-PROOF-CODEQL	#2829 P158 mandate 6329234399 ruling
+632ce575b	append-carry	R10-FLY-CARRY-DOC-CONTEXT	#2807 #2813 #2818 P17 mandate 6329234399 owner triage: dev/programme/triage/s6-batch25.md#P123) tvofi
+283b24abd	append-carry	R10-ORCH-ROSTER-SCHEMA	#2712 #2807 P110 triage: dev/programme/triage/s6-batch25.md#P124)
+b152ce8e1	append-carry	R10-FLY-OPENPR-ATOMIC	triage: dev/programme/triage/s6-batch25.md#P125)
+3ad414423	append-carry	R10-FLOW-DESIGN-STAGES	triage: dev/programme/triage/s6-batch25.md#P125)
+e5d35f421	append-carry	R10-ORCH-DISPATCH-REG	#2753 triage: dev/programme/triage/s6-batch25.md#P126)
+a0e47a55b	append-carry	R10-FLOW-DESIGN-STAGES	#2811 triage: dev/programme/triage/s6-batch26.md#P128)
+4067e63ff	append-carry	R10-TRAIN-OVERLAP-GRADE	#2745 #2753 triage: dev/programme/triage/s6-batch26.md#P129)
+f9467b704	append-carry	R10-ORCH-ROSTER-SCHEMA	P133 triage: dev/programme/triage/s6-batch26.md#P131)
+7096e9c51	append-carry	R10-FLOW-TOOLKIT-MODEL	triage: dev/programme/triage/s6-batch26.md#P131)
+647b22f78	append-carry	R10-ORCH-LEDGER	triage: dev/programme/triage/s6-batch26.md#P132)
+64a242042	append-carry	R10-FLOW-DESIGN-STAGES	triage: dev/programme/triage/s6-batch26.md#P132)
+87685b81e	append-carry	R10-ORCH-ROSTER-SCHEMA	#2822 triage: dev/programme/triage/s6-batch26.md#P133)
+3e02edbef	append-carry	R10-ORCH-DISPATCH-REG	P123 mandate 6329234399 owner triage: dev/programme/triage/s6-batch26.md#P134)
+940245170	append-carry	R10-ORCH-REVIEW-PACKET	owner triage: dev/programme/triage/s6-batch26.md#P135)
+f5d3478aa	append-carry	R10-ORCH-DISPATCH-REG	triage: dev/programme/triage/s6-batch26.md#P136)
+6fe16e66c	append-carry	R10-ORCH-LEDGER	#2524 triage: dev/programme/triage/s6-batch26.md#P137)
+ad257341b	append-carry	R10-ORCH-DISPATCH-REG	mandate 6329234399 triage: dev/programme/triage/s6-batch26.md#P138)
+07fb78581	append-carry	R10-ORCH-ROSTER-SCHEMA	#2753 P133 P136 triage: dev/programme/triage/s6-batch26.md#P139)
+048706d6e	append-carry	R10-ORCH-DISPATCH-REG	P133 mandate 6329234399 ruling triage: dev/programme/triage/s6-batch26.md#P133)
+ea2de744e	append-carry	R10-CLOSEOUT-CLEANUP	triage: dev/programme/triage/s6-batch26.md#P130
+05a6870ac	append-carry	R10-ROUND-PLAYBOOK	#2826 ruling tvofi
+d3f9a3ade	append-carry	R10-ROUND-PLAYBOOK	#2826 ruling tvofi
+0d89a0e5d	append-carry	R10-ROUND-PLAYBOOK	#2826 owner ruling tvofi
+b4535b9ab	drop-carry	R10-FLOW-MQ-PROBE	
+1f647d21e	drop-carry	R10-FLOW-MQ-PROBE	
+60b405dbc	drop-carry	R10-FLOW-MQ-PROBE	owner tvofi
+5caa24d5b	set-stage	R10-FLOW-MQ-PROBE	owner
+ff73617e7	append-carry	R10-RCA-HEADMOVED	#2826 tvofi
+b3c12fdee	append-carry	R10-CI-LAYOUT-P2	#2826 tvofi
+5748f6e23	append-carry	R10-FLOW-RECORD-PITCH	#2826 tvofi
+e2f93d8f0	append-carry	R10-FLOW-BODY-ONLY	#2826 tvofi
+525e3260a	append-carry	R10-FLY-ROW-HEAD-CARRY	#2826 tvofi
+6e90528a4	append-carry	R10-FLY-CARRY-DOC-CONTEXT	#2826 tvofi
+32ffe43c0	append-carry	R10-TRAIN-OVERLAP-GRADE	#2826 tvofi
+12dddd429	append-carry	R10-ROUND-PLAYBOOK	Owner tvofi
+2b7fe35c6	append-carry	R10-ROUND-PLAYBOOK	#2827 #2831 Owner owner tvofi
+86da909ee	append-carry	R10-ADVISOR-RESIDUE	#2257 #2834 P141
+af7a2ee20	append-group	R10-996-RUNNER-CLAIMS	#2819 #996 mandate 6329234399
+12993ed8c	append-group	R10-ARCH-SHAPES-CLASSIFIER	#2819 mandate 6329234399 ruling
+0d81adc14	append-carry	R10-FLOW-DESIGN-STAGES	triage: dev/programme/triage/s6-batch27.md#P140
+8449d8686	append-carry	R10-ADVISOR-RESIDUE	#2819 triage: dev/programme/triage/s6-batch27.md#P141
+8e6f82c9e	append-carry	R10-FLY-OPENPR-ATOMIC	triage: dev/programme/triage/s6-batch27.md#P143 tvofi
+7ee1d5b30	append-carry	R10-FLOW-DESIGN-STAGES	P144 triage: dev/programme/triage/s6-batch27.md#P144
+7a9c6b603	append-carry	R10-UPDATE-PR-SIGNALS	P163 triage: dev/programme/triage/s6-batch29.md#P163
+f176e044b	append-carry	R10-TRAIN-OVERLAP-GRADE	triage: dev/programme/triage/s6-batch29.md#P164 tvofi
+6073f1668	append-carry	R10-FLY-ROW-HEAD-CARRY	#2839
+d49603ff8	set-stage	R10-PARAMS-OWNER	owner
