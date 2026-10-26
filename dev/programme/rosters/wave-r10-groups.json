@@ -9292,7 +9292,7 @@
     "D15 live-bundle lead L7 (owner install; unverified): `data.plan.plan_age_minutes` reads 0.8 while `debug.manifest.generated_at` is about 14 min after `last_optimization`, so the age may be the payload's age at publish, not at download. VERIFY: find where `plan_age_minutes` is computed and whether `diagnostics.py` recomputes it against the download time; if the value is the publish-time age, recompute it in the diagnostics export from `last_optimization` and the export clock. Controls: with a fixed clock 14 min after `last_optimization` the export reads 14 (null: a plan published a minute ago reads 1); one mutant that keeps the published value. (triage: dev/programme/triage/s6-batch24.md#P119)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-diag-redact"
    },
    "brief": "D15 production triage (2026-10-24) found that the diagnostics bundle exposes owner data that should be redacted. The full finding is the first carry. R10-DIAG-REPLAY, the group that held it, is done, so this S group owns the redaction. Controls: a test that fails on the unredacted field, and a null control that keeps every non-sensitive field byte-identical."
