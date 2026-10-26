@@ -9087,7 +9087,9 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
    "carry": [
     "Re-homed from R10-FAHRENHEIT (done; the carry was appended after it was done, from #2465 fix review 6291407983); issue #2805. A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low, and custom_components/heatpump_optimizer/setpoint_check.py re-raises the issue. Round the written floor UP to the entity's step, so it is never below the requested value. Failing test first across \u00b0C and \u00b0F steps, a mutation proof, and a null control: an on-step floor writes unchanged. This adds setpoint_check.py to this group's files; the seam is the disinfection-floor write path only."
    ],
