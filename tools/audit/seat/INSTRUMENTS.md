@@ -312,7 +312,12 @@ sweep's standing-seat liveness step keep them alive.
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
   (default every 120 s). A pass runs the handoff arm, then the relay arm above,
-  then with `--confirm` the confirm arm. Confirm arm: the ledger is written
+  then with `--confirm` the confirm arm, then the stuck arm. Stuck arm (a
+  report-only trial, triage P163): each branch lock held now whose recorded
+  start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
+  `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is
+  `OWED <utc> push-stuck <branch> <pid> STUCK ...` in `<log>.level`; a
+  released lock is never read. Confirm arm: the ledger is written
   before confirm runs, so a confirm that failed, or a relay by a stale script
   or a call without `--confirm`, was never confirmed later (#2659, #2632). For
   every `review/<pr>` tip the relay pushed (its `bus-nonce:` matches a
@@ -674,8 +679,8 @@ sweep's standing-seat liveness step keep them alive.
   outlives the run's push whatever stops the run: its holder ignores TERM,
   INT and HUP, and lets go only once the push's own lock (`pr_push_hold`, an
   fd every process of the push inherits) is free, so a SIGKILLed run's lock
-  is held until its push has ended; the lock file's third field reads `drain`
-  meanwhile. No `ps` and no process-group walk: on a host without `pgrep` a
+  is held until its push has ended. The lock file reads `<run pid> <holder
+  pid> <start epoch>`, and a fourth field `drain` meanwhile. No `ps` and no process-group walk: on a host without `pgrep` a
   stopped run says it could not reap, and its lock is held until its push
   ends. Inside `pr_push_hold` git's auto-maintenance runs in the foreground
   (`gc.autoDetach`, `maintenance.autoDetach` off), so a `git gc --auto` a
