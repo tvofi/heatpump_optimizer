@@ -74,7 +74,7 @@ def run(arm: str, days: int) -> dict:
     hass = FakeHass()
     action: dict = {"dhw_reason": "idle"}
     guard = LegionellaGuard(
-        hass, f"r10-leg-{arm}", params, config,
+        hass, f"r10-leg-{arm}", lambda: params, config,
         action=lambda: action,
         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
         dhw_blocked=lambda: False,

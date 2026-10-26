@@ -35099,6 +35099,152 @@ R.check(
     f"short {_lg_overdue_short!r}, silent probe {_lg_overdue_silent!r}",
 )
 
+# Round 2 of R10-LEGIONELLA-COMPLETION: each line below is one the mutation
+# table found deletable or movable with every driver green.
+import logging as _lgx_logging
+
+import heatpump_optimizer.issues as _lgx_issues_mod
+from heatpump_optimizer.legionella import days_since_confirmed as _lgx_days
+
+# The overdue threshold is the interval itself, not past it by a day, nor by
+# a whole second interval: at exactly 7 d nothing is overdue yet, an hour
+# later it is, and the notice says 7 whole days.
+_lgx_t = _LG_LAST
+R.check(
+    "the overdue notice comes due at the interval, not before and not an "
+    "interval late",
+    _lgx_days(_lgx_t, _lgx_t + timedelta(days=7), 7.0, watched=True) is None
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=7, hours=1), 7.0, watched=True)
+    == 7
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=13), 7.0, watched=True) == 13,
+    "7 d, 7 d + 1 h, 13 d on a 7-day interval",
+)
+_lgx_8d = _lg_coord()
+_lgx_8d._legionella.last_cycle = dt_util.now() - timedelta(days=8, hours=1)
+_lgx_8d_overdue = _lg_overdue(_lgx_8d)
+R.check(
+    "…and the guard raises it one day past a 7-day interval",
+    _lgx_8d_overdue is not None and _lgx_8d_overdue["days"] == "8",
+    f"{_lgx_8d_overdue!r}",
+)
+
+# A probe on the tank is not consent to disinfect it: with the cycle switched
+# off, or no hot water at all, an old completion stamp is no news. The
+# enabled twin is the null control, the same coordinator with one flag back.
+_lgx_off = _lg_coord()
+_lgx_off._thermal_params.dhw_legionella_enabled = False
+_lgx_off_overdue = _lg_overdue(_lgx_off)
+_lgx_nodhw = _lg_coord()
+_lgx_nodhw._thermal_params.dhw_enabled = False
+_lgx_nodhw_overdue = _lg_overdue(_lgx_nodhw)
+_lgx_off._thermal_params.dhw_legionella_enabled = True
+_lgx_on_overdue = _lg_overdue(_lgx_off)
+R.check(
+    "the overdue notice stays down with disinfection or hot water off, a "
+    "tank probe notwithstanding",
+    _lgx_off_overdue is None
+    and _lgx_nodhw_overdue is None
+    and _lgx_on_overdue is not None,
+    f"legionella off {_lgx_off_overdue!r}, no hot water "
+    f"{_lgx_nodhw_overdue!r}, enabled twin {_lgx_on_overdue!r}",
+)
+
+# Raised once while its day count stands, as the other notices are: the
+# memo is what stops a registry write on every cycle.
+_lgx_writes: list[str] = []
+_lgx_ir = _lgx_issues_mod.ir
+_lgx_orig = _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue
+_lgx_ir.async_create_issue = lambda *a, **k: _lgx_writes.append(f"create {a[2]}")
+_lgx_ir.async_delete_issue = lambda h, d, iid: _lgx_writes.append(f"delete {iid}")
+try:
+    _lgx_memo = _lg_coord()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.last_cycle = dt_util.now()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+finally:
+    _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue = _lgx_orig
+_lgx_overdue_writes = [w for w in _lgx_writes if w.endswith("dhw_legionella_overdue")]
+R.check(
+    "the overdue notice is written once per change, not on every cycle",
+    _lgx_overdue_writes
+    == ["create dhw_legionella_overdue", "delete dhw_legionella_overdue"],
+    f"{_lgx_overdue_writes}",
+)
+
+
+# The retry window, at its edge: a window reopened a second inside the day
+# folds into the attempt and keeps its higher peak; one reopened at the day
+# itself is a fresh attempt.
+def _lgx_at(when, coord, temps):
+    _fi_dt.freeze(when)
+    try:
+        _lg_cycle(coord, temps)
+    finally:
+        _fi_dt.freeze(None)
+
+
+_lgx_t0 = dt_util.now().replace(microsecond=0)
+_lgx_edge = _lg_coord()
+_lgx_at(_lgx_t0, _lgx_edge, [50.0, 54.0])
+_lgx_first = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24, seconds=-1), _lgx_edge, [52.0])
+_lgx_folded = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24), _lgx_edge, [53.0])
+_lgx_fresh = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+R.check(
+    "a window inside the retry folds into its attempt and keeps the higher "
+    "peak; one at the retry's end is a fresh attempt",
+    _lgx_first == (_lgx_t0, 54.0)
+    and _lgx_folded == (_lgx_t0, 54.0)
+    and _lgx_fresh == (_lgx_t0 + timedelta(hours=24), 53.0),
+    f"first {_lgx_first!r}, folded {_lgx_folded!r}, fresh {_lgx_fresh!r}",
+)
+
+# An attempt no newer than the last completion is spent: the window after it
+# is a fresh attempt, never folded into one the completion already answered.
+_lgx_spent = []
+for _lgx_lag in (timedelta(0), timedelta(hours=1)):
+    _lgx_c = _lg_coord()
+    _lgx_c._legionella.last_cycle = _lgx_t0
+    _lgx_c._legionella.attempt = _lgx_t0 - _lgx_lag
+    _lgx_c._legionella.attempt_peak = 54.0
+    _lgx_at(_lgx_t0 + timedelta(hours=1), _lgx_c, [53.0])
+    _lgx_spent.append(_lgx_c._legionella.attempt)
+R.check(
+    "an attempt at or before the last completion is spent, and the next "
+    "window stamps its own",
+    _lgx_spent == [_lgx_t0 + timedelta(hours=1)] * 2,
+    f"{_lgx_spent!r}",
+)
+
+# A mode block holding an overdue cycle is logged as well as raised: the
+# log is where a diagnostics bundle carries it.
+_lgx_log: list[str] = []
+
+
+class _LgxHandler(_lgx_logging.Handler):
+    def emit(self, record):
+        _lgx_log.append(f"{record.levelname} {record.getMessage()}")
+
+
+_lgx_logger = _lgx_logging.getLogger(_lgx_days.__module__)
+_lgx_handler = _LgxHandler(_lgx_logging.WARNING)
+_lgx_logger.addHandler(_lgx_handler)
+try:
+    _lgx_blocked = _lg_coord()
+    _lgx_blocked._legionella.check_mode_block(True)
+finally:
+    _lgx_logger.removeHandler(_lgx_handler)
+R.check(
+    "a mode block holding an overdue cycle is logged as a warning",
+    any(
+        m.startswith("WARNING") and "cannot be planned" in m for m in _lgx_log
+    ),
+    f"{_lgx_log}",
+)
+
 # A cycle that does reach temperature clears both the attempt and the notice.
 _lg_short._current_action = {"dhw_reason": "idle"}
 _asyncio.run(_lg_short._legionella.async_track(59.5))
