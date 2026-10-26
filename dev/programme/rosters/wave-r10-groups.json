@@ -2488,9 +2488,7 @@
    "after": [
     "R10-REF-PRIVACY"
    ],
-   "carry": [
-    "Every fix carries a self-test case that fails at the merge base."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
