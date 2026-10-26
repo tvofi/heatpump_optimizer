@@ -1,4 +1,0 @@
-run 40222343141 branch batch/20261025-183357-1
-python leg dur 33.2 end 34.3
-latest other success: tests / lane-proofs end 17.2 -> hold 17.1
-latest tests/*: tests / lane-proofs end 17.2 -> hold 17.1
