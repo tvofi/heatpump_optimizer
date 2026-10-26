@@ -1703,7 +1703,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS; after you: R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-LIVESTATE, R10-FREQ-DEFROST, R10-INPUT-STALENESS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "handoff",
+    "stage": "in-progress",
     "branch": "handoff/r10-arch-shapes",
     "commit": "04669d82fd8e079172024702b23750ebe889690c",
     "last_step": null,
@@ -1832,7 +1832,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (seam-ordered; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION; after you: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "handoff",
+    "stage": "in-progress",
     "branch": "fix/r10-heat-meter-pr",
     "commit": "7e9fea6acb929bf8eecd279096d99fafb208ac56",
     "last_step": null,
@@ -3693,7 +3693,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "handoff",
+    "stage": "in-progress",
     "branch": "handoff/r10-sav-comfort",
     "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
     "last_step": null,
