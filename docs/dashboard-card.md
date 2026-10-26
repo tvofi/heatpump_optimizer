@@ -712,16 +712,30 @@ figure of its own.*
 ## The setup page
 
 The enlarged view's **Setup** tab draws your heating system as a schematic:
-each component is a thin line-art contour — the house with its gable roof
-and chimney, a heated slab as a flat plate with ground hatching under it,
-tanks as domed cylinders, the heat pump as a rounded cabinet with its fan,
-the mixing valve as a chamfered block with a valve symbol on its own pipe,
-and outside air as an open tray under a cloud, because outside air has no
-walls. When the wood tank pre-heats hot water through an immersed coil, the
-coil is drawn as a visible spring on the tank's upper-right wall with its
-own connector stubs, and the hot-water pipe departs from it. Pipes carry
-small connection dots at their endpoints and a chevron showing flow
-direction.
+each component is a flat card in the dashboard's own surface, border and
+radius, titled with what it is and listing its sensors. A small disc on each
+card's top-right corner says what kind of thing it is — a thermometer for
+outside air, a cabinet with a fan for the heat pump, a bowtie for the mixing
+valve, a domed cylinder for a tank (with a drop for the hot water tank), a
+radiator for the upper floor or house, and a slatted slab for the lower
+floor. Pipes carry small connection dots at their endpoints and a chevron
+showing flow direction.
+
+When a hot-water coil is configured in the wood furnace tank, the wood
+tank's disc is a spring, and the hot water tank says in words which of three
+states the coil is in: *refilled through a wood tank coil* when the model
+runs it; *coil configured, not modelled* when the option is on but the
+two-tank layout is not (the spring is dimmed and the coil's pipe dashed);
+and *no hot-water coil* otherwise. The coil's pipe — mains water on its way
+into the hot water tank, not heating water — is the one pipe drawn in the
+accent colour.
+
+Every card ends with a **Configure** button naming the options page that
+owns its inputs, for example *Heating system and heat storage*. Home
+Assistant has no link into a single options page, so the button opens this
+integration in **Settings → Devices & services**, where **Configure →
+Advanced settings** leads to the page the button names; the line above the
+drawing says so once.
 
 These are three real layouts, drawn by the card's own renderer rather than by
 hand — `HPO_QA_OUTDIR=docs/img/model HPO_QA_PREFIX=hydronic- node tests/setup_qa_render.mjs`,
@@ -738,13 +752,13 @@ and outlet-temperature slots.
 
 ![The same house with the wood furnace tank feeding the four-way mixing valve directly rather than the buffer, and the valve carrying target and outlet temperature slots](img/model/hydronic-two-tank.svg)
 
-**…and the wood tank pre-heating hot water through a coil.** The coil is drawn
-as a spring on the tank's upper-right wall with its own connector stubs, and
-the hot-water pipe departs from it.
+**…and the wood tank pre-heating hot water through a coil.** The wood tank's
+disc is a spring, the coil's pipe to the hot water tank is the accent pipe,
+and the hot water tank says it is refilled through the coil.
 
-![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank, drawn as a spring on the tank wall](img/model/hydronic-coil.svg)
+![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank: the wood tank's corner disc is a spring and the coil's pipe is drawn in the accent colour](img/model/hydronic-coil.svg)
 
-Each shape stretches with the sensor rows inside it, and every row is the
+Each card stretches with the sensor rows inside it, and every row is the
 same assignment slot it always was: click a row — or tab to it and press
 Enter or Space — to pick the entity that feeds it. Each row is a
 `role="button"` target with a spoken label, and a picker opened from the
