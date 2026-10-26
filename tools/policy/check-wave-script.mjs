@@ -1558,6 +1558,80 @@ await block('group 15 -- the readers the agreement lane imports are exported by 
   t('and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some)', want.length > 0 && JSON.stringify(got) === JSON.stringify(want), `declared ${JSON.stringify(want)}, read ${JSON.stringify(got)}`)
 })
 
+console.log('-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)')
+await block('the P3 plan workflow', async () => {
+  // audit-plan.js imports nothing, so drive its real body with the agent
+  // stubbed per label, the way the wave and verification scripts are driven.
+  const psrc = fs.readFileSync(path.join(STAY, 'audit-plan.js'), 'utf8')
+  const pi = psrc.indexOf('export const meta')
+  if (pi < 0) throw new Error('audit-plan.js has no `export const meta`')
+  const pbody = psrc.slice(0, pi) + psrc.slice(psrc.indexOf('\n}\n', pi) + 3)
+  const FIND = (id) => ({ id, dimension: 'D7', severity: 'medium', title: id, class: 'P3', seam: 'coordinator' })
+  const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
+  const drive = async (over = {}) => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      const label = o.label
+      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json' }
+      if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
+      if (label === 'plan/moves') return over.moves ?? { groups: [{ group: 'A', findings: ['D7-s1-01'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [] }
+      if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
+      if (label === 'plan/handoff') return over.handoff ?? { ref: 'plan/r11', sha: 'a'.repeat(40), pushed: true }
+      return over.agentImpl ? over.agentImpl(o) : null
+    }
+    const fn = new Function('agent', 'log', 'phase', 'parallel', 'args',
+      `return (async () => { ${pbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (thunks) => Promise.all(thunks.map((t) => t().catch(() => null))),
+      { round: 11, repo: '/repo', fork: 'deadbeefcafe', branch: 'claude/audit-r11-register' })
+    return { out, calls }
+  }
+  const pthrows = async (name, re, over) => {
+    try { await drive(over); t(name, false, 'did not throw') }
+    catch (e) { t(name, re.test(e.message), e.message.slice(0, 120)) }
+  }
+
+  await pthrows('an empty or absent draft roster stops P3', /draft roster .*empty or absent/, { read: { groups: [], findings: [] } })
+  const two = [FIND('D7-s1-01'), FIND('D7-s1-02')]
+  await pthrows('a triage that drops a verified finding stops P3', /dropped 1 verified finding/,
+    { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
+  await pthrows('a group with no move entry stops P3', /no move entry/,
+    { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
+  await pthrows('a handoff that is not a 40-hex commit stops P3', /not a 40-hex commit/,
+    { handoff: { ref: 'plan/r11', sha: 'abc', pushed: true },
+      agentImpl: (o) => o.label.startsWith('plan/review') ? { verdict: 'approve', points: [] } : null })
+
+  const ok = await drive({ agentImpl: (o) => o.label.startsWith('plan/review') ? { verdict: 'approve', points: [] } : null })
+  t('an approved plan hands off once, with no owner decision',
+    ok.out?.revisions === 0 && ok.out?.owner_decision === false && ok.out?.plan?.sha === 'a'.repeat(40)
+    && ok.calls.filter((c) => c.label === 'plan/handoff').length === 1, J(ok.out?.plan))
+
+  const once = await drive({
+    agentImpl: (o) => o.label === 'plan/review-1' ? { verdict: 'revise', points: ['the seam is a file'] }
+      : o.label === 'plan/revise-1' ? { addressed: ['re-cut the group'] }
+        : o.label === 'plan/review-2' ? { verdict: 'approve', points: [] } : null,
+  })
+  t('one revise round re-plans and approves, and the owner is not troubled',
+    once.out?.revisions === 1 && once.out?.owner_decision === false
+    && once.calls.some((c) => c.label === 'plan/revise-1') && once.calls.some((c) => c.label === 'plan/review-2'), J(once.out?.review))
+
+  const twice = await drive({
+    agentImpl: (o) => /^plan\/review-/.test(o.label) ? { verdict: 'revise', points: [`open-${o.label}`] }
+      : /^plan\/revise-/.test(o.label) ? { addressed: ['x'] } : null,
+  })
+  t('two revise rounds at most, then the owner gets the open points (no third review)',
+    twice.out?.revisions === 2 && twice.out?.owner_decision === true
+    && !twice.calls.some((c) => c.label === 'plan/review-4'), J(twice.calls.map((c) => c.label)))
+  const hand = twice.calls.find((c) => c.label === 'plan/handoff')?.prompt ?? ''
+  t('and the handoff records that the plan is not approved', /NOT an approval/.test(hand), hand.slice(0, 200))
+
+  const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
+  t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
+    read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
+  t('the handoff pushes the constant plan/r11 ref and opens no pull request',
+    hand.includes('plan/r11') && /Do not open a pull request/.test(hand) && /git push origin HEAD:refs\/heads\/plan\/r11/.test(hand))
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail

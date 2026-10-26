@@ -402,6 +402,9 @@ PUSHERS = {
                                            "and 8 hex digits, under a constant seat identity"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
+    ".claude/workflows/audit-plan.js": ("prompt", "an agent prompt naming the constant plan/r<round> "
+                                         "ref from the round number, and telling it to run ref_privacy's "
+                                         "guard first"),
 }
 
 _GH_WRITE = (r"(?:(?<![\w-])-[fF](?![\w-])|--(?:raw-)?field\b|--input\b"
