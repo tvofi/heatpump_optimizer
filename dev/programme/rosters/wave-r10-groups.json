@@ -10027,7 +10027,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-hotfix-batch-errexit",
-    "commit": null,
+    "commit": "fe47636fbd03d5384880badca8691f9bb4add715",
     "last_step": null,
     "next_step": "dispatch the hotfix fixer now (critical path)",
     "note": "main-red hotfix 2026-10-26"
