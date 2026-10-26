@@ -1,5 +1,0 @@
-harness blob: 893c39573714a99fb151ec76cbdf0ec40b878675 (dev/audit/harnesses/r10_band_census.py)
-added by: 648f88d9e67bc756ed3f647f5b1ffd042b14a883 2026-10-25T23:21:20+01:00 harness: the D8-s1-01 band census, per last-ulp price nudge (evidence for R10-996-RUNNER-CLAIMS)
-git grep -l band_census origin/fix/r10-arch-shapes-pr -> origin/fix/r10-arch-shapes-pr:dev/audit/harnesses/r10_band_census.py origin/fix/r10-arch-shapes-pr:tests/closures.json 
-git grep -l band_census origin/handoff/r10-arch-shapes -> origin/handoff/r10-arch-shapes:dev/audit/harnesses/r10_band_census.py origin/handoff/r10-arch-shapes:tests/closures.json 
-sha1sum of blob: b2b3a938866e6923748552125afda64a0d9ce599  -
