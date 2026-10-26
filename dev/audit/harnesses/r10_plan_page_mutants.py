@@ -77,6 +77,12 @@ MUTANTS = [
 ]
 
 
+def fail_name(line: str) -> str:
+    """A self-test FAIL line without its `(got: ...)` evidence tail; the one
+    grammar of that line, shared with r10_plan_issues_chart_mutants.py."""
+    return re.sub(r"\(got: .*", "", line)
+
+
 def main(argv: list[str]) -> int:
     want = set(argv)
     for rel in (PAGE, PLAN):
@@ -114,7 +120,7 @@ def main(argv: list[str]) -> int:
         survived += verdict in ("SURVIVED", "CRASHED")
         print(f"RESULT mutant={name} rc={rc} fails={len(fails)} verdict={verdict}")
         for ln in fails:
-            print("   ", re.sub(r"\(got: .*", "", ln))
+            print("   ", fail_name(ln))
     print(f"RESULT survived={survived}")
     return 1 if survived else 0
 
