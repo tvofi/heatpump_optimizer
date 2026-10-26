@@ -1,4 +1,0 @@
-2026-10-26T03:03:19.0844917Z RATE_LIMIT before: {"limit":5000,"remaining":1185,"reset":1792984021,"used":3815}
-2026-10-26T03:06:49.6482051Z RATE_LIMIT after: {"limit":5000,"remaining":0,"reset":1792984021,"used":5000}
-2026-10-26T03:06:48.8671678Z   INFO    [stats] (github api): could not fetch pull-request bodies and comments: HTTP 403 from /repos/tvofi/heatpump_optimizer/pulls/2751. Printing no histogram rather th
-2026-10-26T03:06:49.2928098Z SUNSET: 50 policy file(s) over v7.0.4..origin/main; no friction data (HTTP 403 from /repos/tvofi/heatpump_optimizer/pulls/2845), so honour rules are not evaluated

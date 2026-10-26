@@ -1,4 +1,3 @@
-== MUTANT (fix line reverted to the second /pulls/<n> read; = base production line + new test)
 gh_read self-test: 122 checks, 0 failed
 1 self-test check(s) failed: enumerate_merges reads one map per merge and nothing else
 rc=1

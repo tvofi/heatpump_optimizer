@@ -1,0 +1,4 @@
+head 6353b624ff2f3c049bc0762df0fba889f60cac95, check-runs API (get_check_runs) read 2026-10-26 after 09:19Z
+total_count 68: every run completed, conclusion success or skipped; no failure, cancelled or timed_out.
+runs 40289740161 / 40289739262 (push of 08:04Z) and 40297722375 (09:13Z re-run after the body edit): gate success (09:19:17Z, 09:19:33Z, 09:19:35Z); pr-contract success at 08:43Z, 08:51Z and 09:18:02-09:18:43Z (the last starts after every other run concluded).
+tests / mutation success 08:04:39-08:05:17Z (log not read; the delta writes no production code line).

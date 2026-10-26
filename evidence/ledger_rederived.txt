@@ -1,9 +1,0 @@
-04:07:04-04:23:52.873 delta=225 record=731 enum=50 rest=-556 rest/min=-33.1
-04:23:52.873-04:28:30.538 delta=1493 record=0 enum=680 rest=813 rest/min=175.8
-04:28:30.538-04:28:49.624 delta=4 record=735 enum=0 rest=-731 rest/min=-2298.0
-04:28:49.624-04:33:47.606 delta=945 record=0 enum=0 rest=945 rest/min=190.3
-04:33:47.606-04:41:37.579 delta=301 record=739 enum=108 rest=-546 rest/min=-69.7
-04:41:37.579-04:47:32.445 delta=1475 record=0 enum=630 rest=845 rest/min=142.9
-04:47:32.445-04:49:40.782 delta=35 record=0 enum=0 rest=35 rest/min=16.4
-TOTAL delta=4478 record=2205 (49.2%) enum=1468 (32.8%) rest=805 (18.0%) mins=42.6 rest/min=18.9
-hour demand ~6662 = 133% ; with M4: 5743 (115%); O-1 w/o M4: 6662; O-1+M4: 0
