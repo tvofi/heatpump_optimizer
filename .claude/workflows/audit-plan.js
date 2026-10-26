@@ -10,13 +10,15 @@
 //            (keep/merge/defer/refuse), groups by owning seam, ADRs, the moves
 //            to the programme target with a predicted dS per metric, each
 //            move's fitness functions, the roster and the risks.
-//   Review   `plan-review.md` attacks the plan at its handoff SHA; only
-//            `Plan review: approve` sends it to the owner. Two revise rounds at
-//            most, then the owner receives the open points, never a third.
-//   Hand off dev/audit/rounds/round<N>/PLAN/ (PLAN.md, PLAN.json, ADRs) and the
-//            roster `.claude/workflows/wave-r<N>-groups.json` on ref `plan/r<N>`.
-//            P4 executes that plan and records deviations against it
-//            (`orchestrator.md` section 2b).
+//   Publish  dev/audit/rounds/round<N>/PLAN/ (PLAN.md, PLAN.json, ADRs) and the
+//            roster `.claude/workflows/wave-r<N>-groups.json` on the constant
+//            ref `plan/r<N>`.
+//   Review   `plan-review.md` attacks the plan at that published SHA and names
+//            the SHA it answered for; only `Plan review: approve` sends it to
+//            the owner. Two revise rounds at most (each re-published, each
+//            re-reviewed at its own SHA), then the owner receives the open
+//            points, never a third. P4 executes that plan and records
+//            deviations against it (`orchestrator.md` section 2b).
 //
 //   /audit-plan with args {round: 11, repo: "<abs path>", fork: "<sha>", branch: "<register branch>"}
 //
@@ -40,7 +42,7 @@ const draft = args?.draft ?? `.claude/workflows/wave-r${round}-groups.json`
 const targetDs = Number(args?.target_ds ?? 22.7)
 const planDir = `dev/audit/rounds/round${round}/PLAN`
 const planRef = `plan/r${round}`
-const worktree = `../audit-r${round}-plan`
+const worktree = `${repo}/../audit-r${round}-plan`
 if (!repo) throw new Error('args.repo is required')
 if (!fork || !/^[0-9a-f]{7,40}$/.test(String(fork))) throw new Error('args.fork is required: the round\'s fork SHA')
 
@@ -87,6 +89,8 @@ const triage = replyField(architecture.triage, 'array', 'plan/architect: triage'
 const triaged = new Set(triage.map((t) => t.id))
 const dropped = findings.map((f) => f.id).filter((id) => !triaged.has(id))
 if (dropped.length) throw new Error(`the triage dropped ${dropped.length} verified finding(s) (${dropped.slice(0, 8).join(', ')}); every finding appears once, as keep, merge, defer or refuse`)
+const dupes = [...new Set(triage.map((t) => t.id).filter((id, i, all) => all.indexOf(id) !== i))]
+if (dupes.length) throw new Error(`the triage names ${dupes.length} finding(s) more than once (${dupes.slice(0, 8).join(', ')}); each is kept, merged, deferred or refused exactly once`)
 
 const moves = await agent(
   `You are the architect/planner of audit round ${round}, continuing in ${worktree} after your triage ${JSON.stringify(triage)}: architect-planner.md steps 5-9 (ADRs, the moves to the programme target, fitness functions, the roster, the risks).
@@ -137,7 +141,7 @@ const reviewed = (v, sha, n) => {
   return v
 }
 const review = (n, sha) => agent(
-  `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
+  `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ${repo}/../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
 1. recount the triage (every verified finding once, with a reason);
 2. attack the three largest groups and the three on the critical chain (is the owning seam real in the code? is any edge a file order edge?);
 3. re-derive each move's predicted dS from its prototype or prediction (a prediction resting on a renamed or split count, a deleted feature or a scorer change is metric-gamed);

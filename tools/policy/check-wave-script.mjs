@@ -1608,6 +1608,9 @@ await block('the P3 plan workflow', async () => {
   const two = [FIND('D7-s1-01'), FIND('D7-s1-02')]
   await pthrows('a triage that drops a verified finding stops P3', /dropped 1 verified finding/,
     { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
+  await pthrows('a triage that keeps one finding twice stops P3', /more than once/,
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')] },
+      architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }, { id: 'D7-s1-01', verdict: 'defer' }] } })
   await pthrows('a group with no move entry stops P3', /no move entry/,
     { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
   await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
