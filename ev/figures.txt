@@ -1,0 +1,12 @@
+merge-tree 0dfc063fa c22e7b2e: 3508b32b38aedc14f64664b8c79552aa6f0ccbf2
+ dev/programme/rosters/wave-r10-groups.json | 68 +++++++++++++++++++++++++++---
+ 1 file changed, 61 insertions(+), 7 deletions(-)
+blob main(now) b21289a28b8139c61ce5f022c8647dd60ce2f5c5 merged(now) 679a4be14bcd0908d590cbdd8fa36872c7e72c7b
+groups main 195 merged 196 added ['R10-HOTFIX-BATCH-ERREXIT'] removed []
+R10-CARD-VOICE ['fixes']
+R10-THERMAL-POWER-OPTION ['resume'] resume:['next_step']
+R10-FLOW-RECORD-PITCH ['resume'] resume:['next_step']
+R10-FLY-ROW-HEAD-CARRY ['carry'] carry 3->4 prefix-kept=True
+R10-FLY-CARRY-DISPOSITION ['fixes']
+R10-ORCH-ROSTER-SCHEMA ['carry'] carry 21->22 prefix-kept=True
+R10-DIAG-REDACT ['resume'] resume:['stage']

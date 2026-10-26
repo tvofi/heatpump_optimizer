@@ -1,0 +1,8 @@
+ec3c75629 roster_edit set-stage R10-DIAG-REDACT (tools/audit/seat/roster_edit.py)
+3662863d2 roster_edit append-group R10-HOTFIX-BATCH-ERREXIT (tools/audit/seat/roster_edit.py)
+2720c93cd roster_edit set-resume R10-THERMAL-POWER-OPTION (tools/audit/seat/roster_edit.py)
+d0a908650 roster_edit set-resume R10-FLOW-RECORD-PITCH (tools/audit/seat/roster_edit.py)
+149b45b95 roster_edit append-carry R10-ORCH-ROSTER-SCHEMA (tools/audit/seat/roster_edit.py)
+d1c9dc98b roster_edit wire-issue R10-FLY-CARRY-DISPOSITION (tools/audit/seat/roster_edit.py)
+8396866d1 roster_edit append-carry R10-FLY-ROW-HEAD-CARRY (tools/audit/seat/roster_edit.py)
+c22e7b2e1 roster_edit wire-issue R10-CARD-VOICE (tools/audit/seat/roster_edit.py)
