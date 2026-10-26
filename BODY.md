@@ -6,6 +6,12 @@ Hotfix ruling (orchestrator): this merges on a green gate with the review afterw
 
 ## Head
 
+`b68601e06b6cf8bc50c1611127a4546b8d45beba` merges main `b281d03` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`2c7016ce6745d19336bb2f90a7f6fb04a37ceac6` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2848.md`. The authored code head is `44e3668427d4932abfaee7f4e83d61bb7babf98f`.
+
+`9c9c749655d59b564eaada5720171b263960fb59` merges origin/main `f6784210c` into the authored code head `44e3668427d4932abfaee7f4e83d61bb7babf98f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 44e3668427d4932abfaee7f4e83d61bb7babf98f, on origin/main d181d014a0d9681b4f4ca217a540f7bd1bf932a2 (main tip when measured, taken with `date -u` at 2026-10-26T03:31:00Z).
 
 ## Mutation proof
@@ -48,6 +54,8 @@ Two other `tests/entities.py` checks fail locally at both base and head: `gate-s
 
 `Nightly / record-autofix` (check-run `record-autofix`, workflow `Nightly`, job 121376503388 at main d181d014, step "Write the rows and push the record branch", exit code 4). This diff fixes it. Cause, named rather than analysed: the batch tests pinned `record_row.py`'s exit codes (its `--self-test`) and the wiring as strings (`_raf_batch_gated`). Neither ran the YAML's lines under `-e`, which is where the defect lived. The cheaper detector is this PR's behavioural control, standing cost four `bash` subprocesses in `tests/entities.py`. A root-cause seat runs beside this fix (topic `r10-rca-hotfix-batch-errexit`) and owes the analysis, process state and countermeasure. None of that is done here.
 
+- `prelude` (gate prelude, exit 3, `RATE-LIMITED reset_epoch=1792991224`, 04:52-05:07Z on 2026-10-26) was the installation rate limit, not this PR's code, and was rerun green. The cheaper detector is gate-sweep's RATE-LIMITED classification, standing cost zero extra calls. The countermeasure belongs to the root-cause seat R10-RCA-RATELIMIT-RECUR, which halves the record job's per-push API reads.
+
 ## Forward-carry
 
 none
@@ -55,3 +63,4 @@ none
 ## Friction
 
 none
+
