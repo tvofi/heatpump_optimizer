@@ -1,4 +1,4 @@
-Fix review: blocked: 1a13f2b3b97a2164d32308f12c5f6816e6a67bf2 metric-gamed: tests/structure.py class_excess_loc: 14 of 8005c528's 21 lines are line-joins that improve nothing
+Fix review: blocked 1a13f2b3b97a2164d32308f12c5f6816e6a67bf2 metric-gamed: tests/structure.py class_excess_loc: 14 of 8005c528's 21 lines are line-joins that improve nothing
 
 Round: delta review (round 2 on #2745) of d2cd24dcdfee19518416e299b8ac3207b92bc8b3..1a13f2b3b97a2164d32308f12c5f6816e6a67bf2. Measured head 1a13f2b3b97a2164d32308f12c5f6816e6a67bf2, which was still the head (ls-remote refs/pull/2745/head) when I posted.
 
@@ -29,3 +29,5 @@ Owed: pay the remaining 14 lines with a change that improves the code (a simplif
 - **The fixer's 4 local gate reds.** I did not reproduce them on main: stress shoulder, entities heartbeat, the card.mjs OOM, and optimality winter_narrow|shoulder. This needs re-checking at the re-cut head.
 - **Mutation pins.** I did not re-run `82e51032`'s pins (ledger.py:225 GUARD_OFF, :265 RETURN_DEL). Re-cutting 8005c528 re-keys these sites, so they are owed again anyway.
 - **CI and the body's root-cause answers.** I did not read the CI check-runs or the PR body's red-check answers at this head.
+
+bus-nonce: 8cd35a44bf2eb1e4bb4de7b5758e53c6
