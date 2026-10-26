@@ -8718,9 +8718,7 @@
     "tools/release/stamp.py",
     "tools/audit/seat/ref_privacy.py"
    ],
-   "carry": [
-    "Follow-up of R10-FLY-NO-FOOTERS (#2636, merged at 7deeef1b6b). Found by the roster seat on #2651: after #2636 every open_pr.sh and update_pr.sh row commit was refused at app_push with `ref_privacy: REFUSE: co-author-trailer in the message of <row commit>`, because delivery_row.sh commit_row hardcodes a Co-Authored-By trailer, and tools/release/stamp.py hardcodes one on the stamp commit. #2636's controls did not exercise either producer. Control: a self-test row per producer that fails while its trailer is present and passes without it (the null control), reusing ref_privacy's co-author-trailer pattern rather than a second copy of the regex."
-   ],
+   "carry": [],
    "model": {
     "fixer": "sonnet",
     "reviewer": "opus",
