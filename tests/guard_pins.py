@@ -703,7 +703,7 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
         buffer_tank_surface_area,
     )
     from heatpump_optimizer.coordinator import _at_least
-    from heatpump_optimizer.dhw_schedule import _format_day_selector
+    from heatpump_optimizer.dhw_schedule import _format_day_selector, format_clock
     from heatpump_optimizer.optimizer import CHANNEL_ACTIVE_KW, channel_heating_steps
     from heatpump_optimizer.quiet_windows import _within_nameplate
     from heatpump_optimizer.wood_fuel import _scan_wood_night, cheaper_hour_count
@@ -739,6 +739,8 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
         "three contiguous days render as a range, two as a list":
             _format_day_selector([0, 1, 2]) == "Mo-We"
             and _format_day_selector([0, 1]) == "Mo,Tu",
+        "a window ending at midnight keeps 24:00, a later hour folds":
+            format_clock(24.0) == "24:00" and format_clock(25.0) == "01:00",
         "a channel drawing exactly the active line is not heating":
             channel_heating_steps([CHANNEL_ACTIVE_KW], [1.0]) == [False]
             and channel_heating_steps([CHANNEL_ACTIVE_KW + 0.01], [1.0]) == [True],
