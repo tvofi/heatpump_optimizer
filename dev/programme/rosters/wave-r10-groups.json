@@ -8946,9 +8946,9 @@
     "**R10-ORCH-REVIEW-PACKET: carry [11], dispatch at the handoff ref,** with its controls as stated above; `dispatch --nonce` and the REVIEW OWED carry filter are already in place. Carry: R10-ORCH-REVIEW-PACKET"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fixing",
     "branch": "handoff/r10-orch-review-packet",
-    "commit": null,
+    "commit": "9c35ddd23bca6d7281d74ff7c6b6d854f8953bbf",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "owner card 8, 2026-10-24"
