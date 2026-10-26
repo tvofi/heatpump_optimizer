@@ -3697,7 +3697,7 @@
     "branch": "fix/r10-sav-comfort",
     "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
     "last_step": null,
-    "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
+    "next_step": "PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land.",
     "note": null,
     "pr": 2745
    },
