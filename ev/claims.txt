@@ -1,0 +1,1 @@
+tests/golden/card_claimed_drift.txt identical
