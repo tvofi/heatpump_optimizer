@@ -2819,9 +2819,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "If the spread does not narrow, report back BEFORE any raise; a raise needs tvofi."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
