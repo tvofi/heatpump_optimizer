@@ -10429,7 +10429,7 @@
    "carry": [],
    "resume": {
     "stage": "fixing",
-    "branch": null,
+    "branch": "wip-sync/ext-wt-5d3ff6c5",
     "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
     "last_step": null,
     "next_step": "dispatch a seat",
