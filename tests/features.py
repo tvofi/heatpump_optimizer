@@ -10962,6 +10962,75 @@ R.check(
     f"+{_cold_cop.buffer_tank_temperature - 40.0:.3f} K",
 )
 
+# --- Zoned-store census: #2500's class --------------------------------------
+# The class: a store capability implemented at one zoning's seam and silently
+# missing at its sibling. Two instances in two rounds (D12-01's flow write
+# target, refused at the config page; #2500's buffer, inert in the
+# single-zone step), so the class is held by a census rather than by one
+# instance's check. The zoning domain is two_zone_enabled's two values --
+# complete by construction -- and the capability tuple below is the class's
+# seam list: a new store capability is added here, and every capability must
+# be live in EVERY value of the domain. Each arm reads production's own
+# outputs; none re-derives a formula, so a formula that improves moves both
+# sides together.
+def _zoned_store_capabilities(two_zone):
+    """One zoning's three live store capabilities: the tank's response to a
+    configured valve (K), the heat the cap refuses (kW), and the terminal
+    cost's credit for a tank left hot rather than cold (negative = cheaper)."""
+    _zp = ThermalParameters(
+        two_zone_enabled=two_zone, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=23.0,
+        buffer_max_temp=70.0, cop_flow_carnot=True,
+    )
+    _zq = ThermalParameters(
+        two_zone_enabled=two_zone, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_NONE, buffer_max_temp=70.0,
+        cop_flow_carnot=True,
+    )
+
+    def _zs(slab, tank):
+        return ThermalState(
+            room_temperature=21.0, slab_temperature=slab,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=tank, outdoor_temperature=-5.0,
+        )
+
+    _on, _off = ThermalModel(_zp), ThermalModel(_zq)
+    _valved = _on.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
+    _bare = _off.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
+    _on.simulate_step(_zs(25.0, 69.5), 5.0, -5.0, dt_hours=0.25)
+    _zopt = _StoreOpt(ThermalModel(_zp), _StoreCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    _zterm, _ = _zopt._terminal_cost(np.full(96, 1.0), np.full(96, -5.0))
+    _zends = (np.full(97, 21.0), np.full(97, 25.0), np.full(97, 21.0), np.full(97, 21.0))
+    return (
+        _valved.buffer_tank_temperature - _bare.buffer_tank_temperature,
+        _on._step_buffer_refused,
+        float(_zterm(*_zends, np.full(97, 60.0)) - _zterm(*_zends, np.full(97, 30.0))),
+    )
+
+
+_zoned_caps = {_tz: _zoned_store_capabilities(_tz) for _tz in (False, True)}
+R.check(
+    "zoned store census: the valve moves the tank in every zoning (#2500)",
+    all(abs(_cap[0]) > 1e-6 for _cap in _zoned_caps.values()),
+    f"single-zone {_zoned_caps[False][0]:+.4f} K, "
+    f"two-zone {_zoned_caps[True][0]:+.4f} K",
+)
+R.check(
+    "zoned store census: the cap books what it refuses in every zoning (#2500)",
+    all(_cap[1] > 1e-6 for _cap in _zoned_caps.values()),
+    f"single-zone {_zoned_caps[False][1]:.4f} kW, "
+    f"two-zone {_zoned_caps[True][1]:.4f} kW",
+)
+R.check(
+    "zoned store census: the terminal cost credits the tank in every zoning (#2500)",
+    all(_cap[2] < -1e-6 for _cap in _zoned_caps.values()),
+    f"single-zone {_zoned_caps[False][2]:.4f}, two-zone {_zoned_caps[True][2]:.4f}",
+)
+
 
 R.section("The valve hold schedule (item 29)")
 

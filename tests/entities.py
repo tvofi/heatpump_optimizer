@@ -4057,6 +4057,18 @@ _P2_CENSUSES = {
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
         "tests/finite_boundary.py", "a package mixin with runtime base object"),
+    # R10-BUFFER-STORE (#2500): a store capability implemented at one
+    # zoning's seam and silently missing at its sibling -- three arms, so
+    # three entries; the census drives every value of the zoning domain.
+    "zoned_store_valve_live": (
+        "tests/features.py",
+        "zoned store census: the valve moves the tank in every zoning (#2500)"),
+    "zoned_store_cap_live": (
+        "tests/features.py",
+        "zoned store census: the cap books what it refuses in every zoning (#2500)"),
+    "zoned_store_credit_live": (
+        "tests/features.py",
+        "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
 }
 
 
