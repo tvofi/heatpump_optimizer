@@ -1,0 +1,10 @@
+.github/workflows/governance.yml:1295:          # --match 'v*': `git describe --tags --abbrev=0` on this repository
+.github/workflows/governance.yml:1298:          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+.github/workflows/governance.yml:1325:            --since "${{ steps.window.outputs.since }}" \
+.github/workflows/governance.yml:1342:        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
+.github/workflows/governance.yml:1385:        run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; else node tools/policy/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; fi
+.github/workflows/governance.yml:1392:        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
+.github/workflows/governance.yml:1422:      # `refuse since-ref` arm is the sibling marker for a `--since` that names
+.github/workflows/governance.yml:1516:  # `--since` is deliberately not passed: the window is the last release tag,
+.github/workflows/nightly.yml:582:          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+.github/workflows/nightly.yml:586:            --enumerate --repo "$REPO" --since "$SINCE" \
