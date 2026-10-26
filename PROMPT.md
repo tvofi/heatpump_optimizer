@@ -1,0 +1,18 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-heat-meter-closure, at head 11b7a9d739db46a5a62e9f9cf01a8f527a974137. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 11b7a9d739db46a5a62e9f9cf01a8f527a974137 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-heat-meter-closure, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-heat-meter-closure <body.md>`, which pushes refs/heads/handoff-body/r10-heat-meter-closure; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+SMALL MECHANICAL FIXER, topic r10-heat-meter-closure, round 10 part of #201. Work on LINUX (the closure recording must come from a Linux environment). Do not open a pull request, write no handoff ref, touch nothing but tests/closures.json. Do not follow fixer.md's PR flow: this is a recording step on someone else's branch.
+
+The HEAT-METER fixer pushes refs/heads/wip/r10-heat-meter-closure and the orchestrator passes you its SHA, 34a61c0ddd337ed09ed37cd82384d5429a16c37a. If the ref does not exist yet when you start, wait and re-check with git ls-remote origin refs/heads/wip/r10-heat-meter-closure every 2 minutes for up to 20 minutes, then report CODE=none and stop.
+
+STEPS:
+1. git fetch origin wip/r10-heat-meter-closure && git checkout --detach FETCH_HEAD. EXPECTED BASE: FETCH_HEAD must be 34a61c0ddd337ed09ed37cd82384d5429a16c37a (ls-remote read back by the orchestrator). If it differs, stop and report the SHA you see; do not proceed.
+2. Install the merge drivers: python3 tests/env_drift.py --install-merge-driver and python3 tools/merge/ledger_merge.py --install
+3. Run: tests/derive_closures.sh --single tests/harness_headers.py
+4. Set git config user.name hpo-fixer and user.email 70032254+tvofi@users.noreply.github.com. Commit ONLY tests/closures.json with the message "ci: record harness_headers closure (Linux)". Check git status shows no other change first; if another file changed, stop and report.
+5. Push to the same wip ref, fast-forward only (git push origin HEAD:refs/heads/wip/r10-heat-meter-closure, no force). If it is refused as non-fast-forward, fetch, re-run steps 1-4 once, and report if it still refuses.
+Report: the new SHA, and a summary of the tests/closures.json diff (it should show harness_headers gaining heat_energy.py; say so if it does not). End your final message with the line CODE=<sha>. No Claude footers or session trailers in the commit, no host paths.
