@@ -48,7 +48,7 @@ handoff_push_self_test() (
     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
     && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
-    && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
+    && printf '#!/bin/bash\n[ "$(git -C "$2" rev-parse HEAD)" = "$(git -C "$2" rev-parse --verify "refs/heads/$3")" ] || { echo "app_push: REFUSE: HEAD is not the committed tip of $3"; exit 1; }\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
     && chmod +x "$m/tools/pr/app_push.sh" \
     && printf '#!/bin/bash\ncase "$*" in\n  "pr view "*"--json number --jq .number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr view "*"--json number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr edit "*|"pr ready "*) exit 0 ;;\n  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;\nesac\n' > "$t/bin/gh" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
@@ -77,10 +77,23 @@ handoff_push_self_test() (
   [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 2 ] \
     && grep -q 'RESULT pr=42 head=' "$t/out"
   ck "null control: the open path pushes the pull request, then its row" $?
+  ! git -C "$t/wt$i/fix-g" symbolic-ref -q HEAD >/dev/null 2>&1 && [ -d "$t/wt$i/fix-g" ]
+  ck "the open path leaves its worktree detached at the row's pushed head (P64)" $?
   run update
   [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
     && grep -q 'RESULT pr=42' "$t/out"
   ck "null control: the update path pushes its head once" $?
+  ! git -C "$t/wt$i/fix-h" symbolic-ref -q HEAD >/dev/null 2>&1
+  ck "the update path leaves its worktree detached too" $?
+  # A second update reuses the detached worktree the first left: it re-attaches the branch (checkout -B),
+  # so the stub's committed-tip check (app_push.sh's) passes; origin's fix/h moves first, so a reset
+  # on the detached HEAD would leave the local branch behind it.
+  git -C "$o" update-ref refs/heads/fix/h "$(git -C "$o" commit-tree "$base^{tree}" -p "$base" -m "fix/h moves")"
+  : > "$t/push"
+  HPO_STATE_DIR=$t/st$i HPO_WT_ROOT=$t/wt$i PATH="$t/bin:$PATH" PUSH_LOG=$t/push PR_EXISTS=$t/pr-exists \
+    bash "$m/tools/audit/seat/handoff_push.sh" h "$code" "a title" > "$t/out" 2>&1
+  [ "$?" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] && grep -q 'RESULT pr=42' "$t/out"
+  ck "an update on the detached worktree a previous run left still pushes once" $?
   # R10-FLY-NO-FOOTERS-PUSH-PATHS: a code head whose commit carries a co-author
   # trailer (built above) is refused before any push; the two runs above are its null.
   run trailer "$(git -C "$o" rev-parse handoff/t)"
@@ -165,7 +178,7 @@ E
 echo "intended closes: ${ISSUES:-none}"
 if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # update an open PR to a new code head
   N=$(gh pr view "$BR" --json number --jq .number)
-  ( cd "$WT" && git fetch -q origin "$BR" && git reset -q --hard "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
+  ( cd "$WT" && git fetch -q origin "$BR" && git checkout -q --force -B "$BR" "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
   # A previous head with no row (a refused second push below) gains it here, or it never would.
   _added=$(ensure_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")") || { echo "ROW commit for #$N failed"; exit 1; }
   H=$(git -C "$WT" rev-parse HEAD)
@@ -177,6 +190,7 @@ s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head
 open(p,'w').write(s)
 E3
   push_app 2  # mut:push-update
+  case $PUSH_OUT in *PUSHED*) pr_release_wt "$WT" "$BR" "$H" ;; esac  # the last push: release the branch (pr_args.sh, P64)
   gh pr edit $N --title "$TITLE" >/dev/null
   echo "RESULT pr=$N head=$H (update)"; exit 0
 fi
@@ -210,4 +224,5 @@ s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's
 open(p,'w').write(s)
 E
 push_app 1  # mut:push-row
+case $PUSH_OUT in *PUSHED*) pr_release_wt "$WT" "$BR" "$H" ;; esac  # mut:hprelease
 echo "RESULT pr=$N head=$H"
