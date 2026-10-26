@@ -2133,9 +2133,7 @@
    "owner_gate": "code-owned: tests/stress.py",
    "rca": [],
    "after": [],
-   "carry": [
-    "Every new kill is proven by a mutant that survives without the test (fixer.md)."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
