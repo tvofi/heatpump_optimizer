@@ -291,6 +291,16 @@ MUTANTS = [
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
+    # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
+    ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
+    # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
+    ("cloud_relay-30", "cloud_relay.sh", '    run, start = int(w[0]), int(w[2])\n',
+     '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
+    ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
+    ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
+    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
+    ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
+    ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
