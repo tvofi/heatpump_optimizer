@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(subprocess.run(
@@ -80,10 +81,15 @@ print(f"RESULT pins={R.n} fails={len(R.fails)}")
 
 
 def pins() -> str:
-    proc = subprocess.run(
-        [sys.executable, "-c", CHILD], cwd=ROOT, capture_output=True, text=True,
-        env={"PYTHONPATH": "tests/hastub", "PATH": "/usr/bin:/bin"},
-    )
+    # Bytecode-free: a mutant can share the clean file's size and mtime
+    # second, so a cached env_drift .pyc would stand in for the mutant. -B
+    # writes none, and an empty cache prefix leaves none to read.
+    with tempfile.TemporaryDirectory() as cache:
+        proc = subprocess.run(
+            [sys.executable, "-B", "-c", CHILD], cwd=ROOT, capture_output=True,
+            text=True, env={"PYTHONPATH": "tests/hastub", "PATH": "/usr/bin:/bin",
+                            "PYTHONPYCACHEPREFIX": cache},
+        )
     out = (proc.stdout + proc.stderr).strip().splitlines()
     result = [line for line in out if line.startswith("RESULT pins=")]
     return result[0] if result else "CRASH " + (out[-1] if out else "no output")
