@@ -64,7 +64,7 @@ pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the 
   wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$1" 2>/dev/null || :)
   [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $1 (its holder exited $rc)"
   if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"
-  elif [ "$(cut -d' ' -f3 "$1" 2>/dev/null || :)" = drain ]; then o="the push of run $o (the run has ended, the push has not)"
+  elif [ "$(cut -d' ' -f4 "$1" 2>/dev/null || :)" = drain ]; then o="the push of run $o (the run has ended, the push has not)"
   else o="the lock holder of run ${o:-unknown}, which has ended,"; fi
   echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
 }
@@ -82,10 +82,12 @@ pr_branch_lock() { # <lock-file> <branch> <worktree> [detach]: hold the branch's
   # no `ps` and no process-group walk (R10-UPDATE-PR-SIGNALS: #2469's round-4 drain counted the
   # zombies a late-reaping PID 1 leaves, and failed 7 of 7). It ignores TERM, INT and HUP, so a
   # signal to the run's whole process group does not end it beside the push it guards; a stopped
-  # run's own reap ends that push. Its third field reads `drain` once the run has ended. With
+  # run's own reap ends that push. The file reads `<run pid> <holder pid> <start epoch>`, the epoch
+  # the holder's own clock when it took the lock (cloud_relay.sh's STUCK andon ages it), and a fourth
+  # field `drain` once the run has ended. With
   # `detach` it then leaves <worktree> detached, still holding the lock: never under a push and never
   # under the next run, and a SIGKILLed run's too, whose own trap never runs (#2513, #2544, #2547).
-  local k=0
+  local k=$(($(date +%s) + 20))
   PR_PUSH_LOCK=$1.push
   python3 -I -c 'import fcntl, os, signal, sys, time
 os.closerange(3, 1024)
@@ -95,17 +97,19 @@ signal.signal(signal.SIGUSR1, lambda *a: end.append(1))
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: sys.exit(75)
-p = os.getppid()
-f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+p = os.getppid(); start = int(time.time())
+f.truncate(0); f.write("%d %d %d\n" % (p, os.getpid(), start)); f.flush()
 while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch
-f.truncate(0); f.write("%d %d drain\n" % (p, os.getpid())); f.flush()
+f.truncate(0); f.write("%d %d %d drain\n" % (p, os.getpid(), start)); f.flush()
 fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
 if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): import subprocess; subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach
 sys.exit(0)' "$1" ${4:+"$4" "$3"} </dev/null >/dev/null 2>&1 & LKP=$!
   PR_REAP_SPARE=$LKP
   PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
-  while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
-  [ "$(cat "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
+  # Taken is these two pids with no `drain` mark (fields 1, 2 and 4; the start epoch between them is
+  # the holder's). A wall-clock deadline, so the 20 s pr_lock_busy names is 20 s whatever the load.
+  while kill -0 "$LKP" 2>/dev/null && [ "$(cut -d' ' -f1,2,4 "$1" 2>/dev/null)" != "$$ $LKP" ] && [ "$(date +%s)" -lt "$k" ]; do sleep 0.05; done
+  [ "$(cut -d' ' -f1,2,4 "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
 }
 pr_push_hold() { # inside `{ pr_push_hold; <push> & } 9>>"$PR_PUSH_LOCK"`: lock fd 9, which the push inherits
   # The redirection is this shell's, opened before the fork, so a SIGKILL at any point leaves the
@@ -799,23 +803,27 @@ try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: print("held"); sys.exit()
 print("free")' "$1"
   }
-  untilfree() { # <lock file> [ticks]: wait for the lock to be free; a bound, not a window: the arm fails past it
-    local k=0
-    while [ "$(lockstate "$1")" = held ] && [ $k -lt "${2:-600}" ]; do sleep 0.05; k=$((k + 1)); done
+  untilfree() { # <lock file> [seconds]: wait for the lock to be free; a bound, not a window: the arm fails past it
+    # A wall-clock deadline (date +%s), not a count of ticks: each tick forks lockstate's Python, so
+    # a count's length grows with the load (#2825 round 4: 200 ticks took 15.4 s under 6-way load).
+    local end=$(($(date +%s) + ${2:-30}))
+    while [ "$(lockstate "$1")" = held ] && [ "$(date +%s)" -lt "$end" ]; do sleep 0.05; done
   }
   updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
   stoprun() { # <mutant> <signal>
-    local sd=$t/st-$1-$2 up k=0 hp
+    local sd=$t/st-$1-$2 up k=0 hp t0
     rm -rf "$t/s$i"; git -C "$m" worktree prune
     rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
     copyin "$1"
     cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
+    t0=$(date +%s)
     # The exec resets the INT a background job starts with ignored (stopreap's why).
     HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
       bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
     while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     [ "$(lockstate "$sd/pr/upd-fix-t.lock")" = held ] && echo 1 > "$t/held" || echo 0 > "$t/held"
+    echo "$t0 $(cut -d' ' -f3 "$sd/pr/upd-fix-t.lock" 2>/dev/null) $(date +%s)" > "$t/start"  # the epoch between launch and now
     kill -"$2" "$up" 2>/dev/null
     k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
     kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
@@ -830,6 +838,8 @@ print("free")' "$1"
   ck "update_pr: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
   ck "update_pr: the lock is held while the push runs" \
      "$( [ "$(cat "$t/held")" = 1 ] && echo 0 || echo 1 )"
+  ck "update_pr: the held lock records its holder's start epoch beside the pids (cloud_relay.sh's STUCK andon ages it)" \
+     "$(read -r a e z < "$t/start"; [ -n "$e" ] && [ "$a" -le "$e" ] && [ "$e" -le "$z" ] && echo 0 || echo 1)"
   ck "update_pr: after the stop the lock is free, so the next run takes it" \
      "$( ! grep -qF "update_pr: BUSY" "$t/out2" && took_lock && echo 0 || echo 1 )"
   stoprun - INT
@@ -845,7 +855,7 @@ print("free")' "$1"
   # The wait is for the condition the run must reach: the holder's `drain` mark, or the lock free.
   # The mark is written before the drain, so one read after that wait tells which came first.
   sigrun() {
-    local sd=$t/sg-$1-$2 lf up k=0 sig=${2#grp}
+    local sd=$t/sg-$1-$2 lf up k=0 sig=${2#grp} w0
     rm -rf "$t/s$i" "$sd"; git -C "$m" worktree prune; lf=$sd/pr/upd-fix-t.lock
     rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$REAP_DIR/stubborn" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
     [ "$sig" = "$2" ] || : > "$REAP_DIR/stubborn"
@@ -856,12 +866,15 @@ print("free")' "$1"
     while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     if [ "$sig" = "$2" ]; then kill -"$sig" "$up"; else kill -"$sig" -- "-$up"; fi 2>/dev/null
-    k=0; while [ "$(cut -d' ' -f3 "$lf" 2>/dev/null)" != drain ] && [ "$(lockstate "$lf")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    k=0; while [ "$(cut -d' ' -f4 "$lf" 2>/dev/null)" != drain ] && [ "$(lockstate "$lf")" = held ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     # Those two mutants' holders free the lock only after the detach that follows the mark, so their
-    # arms wait for the lock free, bounded at 10 s, a third of the stub's 30 s push: held at the bound
-    # is a holder that drains (#2825 round 3: one read at the mark was red in 4 of 6 runs under load).
-    case $1 in drain | pushhold) untilfree "$lf" 200 ;; esac
-    lockstate "$lf" > "$t/state"; cut -d' ' -f3 "$lf" 2>/dev/null > "$t/mark" || :; wtstate > "$t/wt1"
+    # arms wait for the lock free, bounded at 10 s of wall clock, a third of the stub's 30 s push: held
+    # at the bound is a holder that drains (#2825 round 3: one read at the mark was red in 4 of 6 runs
+    # under load). BOUNDED=1 takes the same wait for an unmutated run, the bound's null control.
+    w0=$(date +%s)
+    case ${BOUNDED:-}$1 in 1* | drain | pushhold) untilfree "$lf" 10 ;; esac
+    echo $(($(date +%s) - w0)) > "$t/waited"
+    lockstate "$lf" > "$t/state"; cut -d' ' -f4 "$lf" 2>/dev/null > "$t/mark" || :; wtstate > "$t/wt1"
     [ "$sig$1" != KILL- ] || { touch "$REAP_DIR/fast"; updt 2 "$sd"; }  # every later run's stub exits at once
     rclean; untilfree "$lf"; lockstate "$lf" > "$t/after"; wtstate > "$t/wt2"
     k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
@@ -880,6 +893,9 @@ print("free")' "$1"
   ck "update_pr: once that push ends the lock is free, and a later run takes it" "$(sigfreed)"
   ck "update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended" \
      "$( [ "$(cat "$t/wt1") $(cat "$t/wt2")" = "branch detached" ] && echo 0 || echo 1 )"
+  BOUNDED=1 sigrun - KILL 2>/dev/null
+  ck "null control: an unmutated SIGKILLed run's lock still reads held after the mutants' 10 s wall-clock wait" \
+     "$( [ "$(cat "$t/waited")" -ge 10 ] && [ "$(sigheld)" = 0 ] && echo 0 || echo 1 )"
   sigrun detach KILL 2>/dev/null
   ck "  mutant mut:detach (its line deleted): the SIGKILLed run's worktree still holds fix/t" \
      "$( [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/wt2")" = branch ] && echo 0 || echo 1 )"
@@ -1122,8 +1138,9 @@ BCHILD
     while [ ! -s "$t/bm" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
     [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"  # the child ran, so a free lock is an ending, not an absence
     kill -KILL "$up"; wait "$up" 2>/dev/null
-    # A bound below the child's 20 s sleep, so a session nothing ends still reads held.
-    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    # A bound below the child's 20 s sleep, so a session nothing ends still reads held: 5 s of wall
+    # clock (untilfree), not a count of ticks whose length grows with the load.
+    untilfree "$t/bl" 5
     lockstate "$t/bl" > "$t/bstate"; bndend
   }
   bndkill - 2>/dev/null  # the killed supervisor's job notice
@@ -1153,7 +1170,7 @@ print(n)' "$1"
     [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"
     csid=$(python3 -I -c 'import os, sys; print(os.getsid(int(sys.argv[1])))' "$(cat "$t/bm")" 2>/dev/null)
     kill -KILL -- "-$up"; wait "$up" 2>/dev/null
-    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    untilfree "$t/bl" 5  # below the child's 20 s sleep, as bndkill's
     lockstate "$t/bl" > "$t/bstate"; echo "$(sidlive "${csid:-0}") $(sidlive "$up")" > "$t/bgrp"; bndend
   }
   if [ -d /proc ]; then
