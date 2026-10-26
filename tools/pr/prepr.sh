@@ -15,7 +15,7 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/audit/prepr.sh [body.md] [intended-issue-numbers...]
+#   tools/audit/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
 #   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
@@ -844,6 +844,22 @@ carry_line() { # body file -> one line; rc 0 every finding item routed, 1 refuse
   return 1
 }
 
+# Step 7's preflight, with the intended list pr-contract derives, never the
+# caller's. #2838 round 1: `prepr.sh <body> 2428` forwarded 2428 by hand, so
+# the local preflight accepted `Closes #2428` while pr-contract, deriving the
+# list from the rosters (closes minus never: a roster `issues` number no group
+# names in `fixes`), refused it. INTENDED_JQ is pr-contract.yml's program,
+# byte for byte; the self-test refuses the day the two differ. Forwarded
+# numbers are ignored and named, so a seat sees its list was not used.
+INTENDED_JQ='. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")'
+preflight_body() { # body file, roster dir, [forwarded numbers...] -> preflight's output; its rc
+  local body=$1 dir=$2 intended
+  shift 2
+  intended=$(jq -rs --rawfile body "$body" "$INTENDED_JQ" "$dir"/wave-r*-groups.json) || { echo "  REFUSE   the intended list did not derive from $dir"; return 1; }
+  [ "$#" -eq 0 ] || echo "  note     forwarded issue number(s) $* ignored; intended list derived as pr-contract does: ${intended:-none}"
+  if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh $intended < "$body"; else bash tools/pr/preflight.sh $intended < "$body"; fi
+}
+
 # THE COPY CLAIM IS CI'S OWN COMMAND. `tests.yml`'s closures job runs
 # `tests/closure.py no-copies` on both arms and nothing local ran it: a diff
 # that can introduce a copy -- a `.py` under tests/ (a new definition) or under
@@ -1379,6 +1395,8 @@ fi
 # Step 7e's carry check runs too (`carry_line`, which fetches the round's
 # roster branch): pr-contract's carry step had no twin before the open, and
 # four bodies this gate passed went red there (R10-RCA-BODY-CHECK-PARITY).
+# Step 7's preflight runs too, with pr-contract's roster-derived intended list
+# (`preflight_body`): #2838's `Closes #2428` passed this gate and went red there.
 if [ "${1:-}" = "--body-check" ]; then
   [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
   BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
@@ -1392,6 +1410,9 @@ if [ "${1:-}" = "--body-check" ]; then
   cline=$(carry_line "$2"); cr=$?
   if [ "$cr" -eq 0 ]; then echo "carry ok: $cline"; else echo "REFUSE carry: $cline"; fi
   [ "$r" -ne 0 ] || r=$cr
+  pout=$(preflight_body "$2" dev/programme/rosters); pr=$?
+  if [ "$pr" -eq 0 ]; then echo "preflight ok"; else echo "REFUSE preflight: $(grep -m1 'REFUSE' <<<"$pout" | sed 's/^ *REFUSE *//')"; fi
+  [ "$r" -ne 0 ] || r=$pr
   exit "$r"
 fi
 
@@ -2746,6 +2767,21 @@ PY
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh 999 >/dev/null 2>&1; else bash tools/pr/preflight.sh 999 >/dev/null 2>&1; fi
   st $? 0 "preflight accepts an intended one (null control)"
+  # Step 7's list is pr-contract's, derived from a fixture roster: #100 is in
+  # two groups' issues and no fixes (never), #101 is fixed, #555 is unrostered.
+  PF=$(mktemp -d)
+  printf '{"groups": [{"group": "A", "issues": [100, 101], "fixes": [101]}, {"group": "B", "issues": [100]}]}\n' > "$PF/wave-r10-groups.json"
+  printf 'Closes #100\n' > "$PF/never.md"; printf 'Closes #101\n' > "$PF/fixed.md"; printf 'Closes #555\n' > "$PF/adhoc.md"
+  got=$(preflight_body "$PF/never.md" "$PF" 100); r=$?
+  st "$r" 1 "step 7 refuses Closes on a roster never-issue though the caller forwards it (#2838's Closes #2428)"
+  case "$got" in *'forwarded issue number(s) 100 ignored'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the forwarded number it ignored"
+  preflight_body "$PF/fixed.md" "$PF" >/dev/null 2>&1
+  st $? 0 "and passes Closes on an issue a group fixes (null control)"
+  preflight_body "$PF/adhoc.md" "$PF" >/dev/null 2>&1
+  st $? 0 "and on an unrostered issue, as pr-contract treats it (null control)"
+  rm -rf "${PF:?}"
+  st "$(grep -cF -- "'$INTENDED_JQ'" .github/workflows/pr-contract.yml)" 1 "INTENDED_JQ is pr-contract's own derivation, byte for byte"
 
   # transport_in_ancestry, on a throwaway repository: one null control per arm
   # that must pass, and each refused shape built the way a seat produced it.
@@ -2997,8 +3033,17 @@ EOF
   st "$r" 1 "a round branch that cannot be fetched refuses, never reads the stale mirror"
   case "$got" in *'could not be fetched'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and the refusal says why"
-  case "$flow" in *'CARRY_LINE=$(carry_line "$BODY")'*'step "carry" $? "$CARRY_LINE"'*) r=0 ;; *) r=1 ;; esac
+  # One string with its newline: a line between the two (#2838's mutant X2)
+  # breaks the adjacency, which a `*` glob between them admitted.
+  case "$flow" in *'CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
+  step "carry" "$CARRY_RC" "$CARRY_LINE"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the body step runs carry_line on the body and refuses on its rc"
+  case "$flow" in *'preflight_body "$BODY" dev/programme/rosters "$@"
+  step "preflight" $?'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 7's preflight derives the intended list and refuses on its rc"
+  case "$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")" in
+    *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
 
   # (11) Step 7c reads the pull request's head ref fetched now (`reds_head_sha`),
   # not 7b's unfetched mirror. The clone has no mirror of `fix`, which the
@@ -3397,9 +3442,11 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # body, made the pre-PR gate exit non-zero with nothing wrong. CI does not
   # catch that in either direction: `pr-contract` runs the same script as
   # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
-  # body in twenty merges to carry a closing keyword.
+  # body in twenty merges to carry a closing keyword. The list is now derived
+  # as pr-contract derives it (`preflight_body`), so a hand-passed number can
+  # no longer pass here a keyword CI refuses.
   shift
-  if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" < "$BODY"; else bash tools/pr/preflight.sh "$@" < "$BODY"; fi
+  preflight_body "$BODY" dev/programme/rosters "$@"
   step "preflight" $?
   # THE PATHS ARE THE SECOND INPUT, and until #1053 this step had only the
   # first. `diff_paths` above carries why they are derived three-dot and with
@@ -3430,8 +3477,8 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
 
   # --- 7e. every finding the body records names a destination on the round's
   # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.
-  CARRY_LINE=$(carry_line "$BODY")
-  step "carry" $? "$CARRY_LINE"
+  CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
+  step "carry" "$CARRY_RC" "$CARRY_LINE"
 
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")

@@ -14,8 +14,8 @@
 # retroactively (dev/governance/decisions/0011). Authorship moves to the `hpo-author`
 # App and MINTING IS ORCHESTRATOR-CENTRAL: seats never hold the App's key,
 # hand their branch off locally, and the orchestrator runs this script. The
-# trailing issue numbers are the ones the body INTENDS to close; they go to
-# `prepr.sh`, which hands them to `preflight.sh`.
+# trailing issue numbers go to `prepr.sh`, whose step 7 ignores them and
+# derives the intended list from the rosters as pr-contract does (#2838).
 #
 # IT REFUSES, AND TOUCHES NOTHING REMOTE, UNLESS ALL OF THESE HOLD:
 #   - the App id file holds digits only and the private key file exists
