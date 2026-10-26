@@ -1836,7 +1836,7 @@
     "branch": "fix/r10-heat-meter-pr",
     "commit": "7e9fea6acb929bf8eecd279096d99fafb208ac56",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "PR #2854 is open at 7e9fea6ac (pin killed mutants); handoff/r10-heat-meter db4493c3e is its ancestor. Review owed, then land.",
     "note": null,
     "pr": 2854
    },
