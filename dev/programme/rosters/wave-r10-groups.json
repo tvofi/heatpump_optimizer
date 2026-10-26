@@ -2871,9 +2871,7 @@
     "R10-REPLAY-LOOPNORM",
     "R10-LEAF-IMPORTS"
    ],
-   "carry": [
-    "This runs before the D15 finder box."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
