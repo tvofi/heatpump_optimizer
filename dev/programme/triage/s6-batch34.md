@@ -38,3 +38,62 @@ Binding: one measured instance of about 20 min against a cross-file change to th
 - As a standalone build the trade is marginal, so none is ruled.
 - As a carry of the group already editing the same contract arm, its marginal cost is the 10-20 lines and one fixture, and it removes the class of false refusals. That clears the bar only riding that dispatch.
 - A recurrence before the dispatch is evidence for dispatching the group, not a second ruling. A third instance is a root-cause trigger under `defect-root-cause.md`.
+
+## P196: a claimed_drift.txt conflict parks verdicted PRs on merge-main (S6-V116)
+Verdict: ACCEPT narrowed -> R10-996-RUNNER-CLAIMS (stage `queued`, M), as a carry. The `claimnotes` driver merges the bare claim list per scenario, three-way.
+- A scenario whose claim lines changed on one side only takes that side's lines.
+- A scenario neither side changed keeps its lines.
+- A scenario deleted on one side and untouched on the other stays deleted.
+- A scenario whose lines BOTH sides changed still refuses. This is the case the driver's design names: no rule says which claim describes which diff.
+- The filing's two options are ruled below: "union disjoint fixture claims" is this arm, made exact. The train-side resolver was re-ruled at tvofi's request (2026-10-26). The train is the consumer: it runs this arm through the driver its recarry already calls. A separate resolver in `merge_train.py` or `remerge_main.sh` is REJECTED on placement.
+Source: s6 `proposals.md` `## V116` (orchestrator, 2026-10-26T09:37:02Z).
+Instances: seven refusals by the driver of `tests/golden/claimed_drift.txt` since 2026-10-17. Each was re-run with origin/main 2563e2922's `merge_claim_file` over the merge's base, branch and main texts, and each changed scenario was counted per side.
+- Today, four on three PRs, each of which parked a verdicted or queued PR:
+  - #2841 at 11e8075d against main f6784210c: the branch changed 5 scenarios, main 1, overlap 0. `seat-ledger.md` lines 760-761 in the orchestrator's state directory, 03:51Z; it went to a fixer round.
+  - #2745 at 8d0572dc against 28800999: 41 and 1, overlap 0. Train s43's unfinished merge, line 786, 04:34Z.
+  - #2745 at cc679118 against 2563e2922: 41 and 5, overlap 0. Line 1018, 09:33Z; a local opus fixer plus a delta reviewer.
+  - #2834 at c38903518 against 2563e2922: 5 and 5, overlap 5 (the five `coord_*` scenarios). Lines 1023-1024, 09:36Z; train s52 stopped and the PR parked.
+- Earlier, three hand-resolved merges in main's history, classified the same way:
+  - 3a07c2eaa (10-17): 3 and 1, overlap 0.
+  - e438816e3 (10-18): 4 and 41, overlap 0.
+  - 5bf232eac (10-19): 45 and 50, overlap 42.
+- `card_claimed_drift.txt` resolved in every one of them. Its changes were one-sided.
+- So 5 of the 7 are disjoint and this arm resolves them; 2 overlap and still refuse.
+- `claims-for:` was equal on all three sides in all seven (7.0.0 for the earlier merges, 7.0.4 today).
+
+Why disjoint per-scenario is safe where the driver now refuses:
+- The driver's refusal guards against a claim one side deleted coming back (`merge_claim_file`'s docstring; `claim-files.md`). That is a two-way-union hazard.
+- A three-way per-scenario merge keeps every deletion: a scenario one side deleted and the other left alone stays deleted, so nothing is reinstated.
+- Each kept line is still written by exactly one side, so "a line excuses only the diff that wrote it" holds line by line.
+- Where both sides wrote the same scenario (#2834, 5bf232eac), the reasons compete, and the refusal stays.
+
+Rejected:
+- (a) A separate resolver in the train, re-ruled on tvofi's premise that every PR reaches main only through the train (orchestrator relay, 2026-10-26: "Merges should not happen outside the train so the constraint is vacuous"). The premise is accepted, and the first ruling's reason, that a train-only resolver "misses the other two paths", is withdrawn as a reason about landing. The arm still goes in the driver, for the two reasons below.
+  - (1) Earlier merges meet the conflict first.
+    - The merge-main bot (`.github/workflows/merge-main.yml`, `tools/pr/merge_main_bot.py`) runs after every push to main. It merges main into each DIRTY PR whose conflicts the drivers resolve, with `git merge-tree` and the driver installed (merge-main.yml line 74).
+    - A seat absorbing main before a review or a handoff does the same.
+    - Today, 2 of the 4 instances surfaced there, not in the train: #2841 at review (ledger line 760) and #2745 at cc679118 as DIRTY after #2841 merged (line 1018).
+    - With a train-only resolver those PRs stay DIRTY until their train turn, and a DIRTY PR runs no CI at all (`claim-files.md`). The tick also keeps reporting them for a claimnotes repair (`merge_train.dirty_repair`), which is where today's #2745 fixer came from.
+    - The train's recarry would resolve each one eventually, so nothing is lost. But the pre-train CI signal is lost, and the tick misroutes the PR to a fixer. Put in the driver, the bot resolves the same conflict on main's push and the PR keeps running CI. The premise makes this a cost of time, not of correctness.
+  - (2) Placement.
+    - The train already calls the driver. `merge_train.py` recarries through `remerge_main.sh`, whose `git merge --no-edit origin/main` runs in the train's worktree with `merge.claimnotes.driver` installed (read in train/s52/wt/2834's config, which the worktree shares with its clone). So the rule in the driver is a resolver in the train, with no train code added.
+    - A resolver inside the recarry would need the same rule as a pure function of base, ours and theirs (it must read the claim list with `env_drift.parse_claim_map` either way), plus parts the driver gets free from git: catching `remerge_main.sh`'s `MERGE CONFLICT` exit, reading the three index stages, writing and staging the file, aborting cleanly on refusal, and a throwaway-git fixture for each. All of that would land in `merge_train.py` (about 5,600 lines, a hot file) or the shell script.
+    - Pinning, in the driver: a mutant per rule in `merge_claim_file` (one-side-takes, deletion-wins, both-sides-refuses, claims-for equality), each failing a three-text fixture, with no git needed. The existing `K15 (c)` self-test in `merge_train.py` (lines 4330-4396), which installs the driver and merges, already pins that the train's merge reaches the driver at all.
+    - Pinning, in the train: the same rule mutants, plus a mutant for each plumbing step that needs a real repository.
+    - Fewer moving parts and cheaper pins: the driver.
+- (b) A line union for scenarios both sides changed. That covers 2 of 7, and it is the value-bearing case the design reserves for a human. If the overlap instances keep recurring, the countermeasure is a claim grammar that does not rewrite shared `coord_*` lines on every coordinator change, which is the claim-grammar seam R10-996-RUNNER-CLAIMS already owns. Re-rule it with that group's design. Re-checked under tvofi's premise, the both-sides case is not shown safe. The candidate is that the branch's lines win for a scenario both sides wrote, since main's line is inert once merged and #2841's hand resolution kept the branch's lines. That candidate is unmeasured against the env_drift gate, and it decides a value-bearing claim, so it still refuses. The group's design measures it.
+
+Cost:
+- About 20-40 lines in `tests/env_drift.py`: `merge_claim_file`'s both-sides branch, plus `merge_claim_defect` checking the merged map against the per-scenario decision rather than one side's list.
+- Fixtures: the three disjoint instance shapes resolve; the #2834 shape refuses; a scenario one side deleted and the other kept stays deleted (the reinstatement control); a `claims-for:` mismatch refuses (null); one mutant per rule.
+- A sentence of `dev/governance/rules/claim-files.md` changes from "both sides rewrote the bare claim list" to "both sides rewrote the same scenario's claims". That is policy under the mandate, and the group's brief already says its claim-files.md change is.
+- One fixer round and one review round.
+- It does not change GitHub's `DIRTY` flag: GitHub cannot run the driver (`claim-files.md`, #570). It changes what the merge-main bot and the train's recarry do with that state: they resolve and carry on instead of parking.
+
+Benefit: 5 of 7 measured refusals resolved mechanically. Today that is 3 of 4, each priced by V116 at one opus fixer, a verdict that no longer carries and a delta re-review, about 1-2 h on the critical path (#2745 gates the v7.0.5 stamp). That is about 3-6 h saved today alone against one S-sized round.
+
+Binding: the value-bearing claim list. The arm is accepted only in the shape that keeps every deletion and still refuses every scenario both sides wrote.
+
+For the orchestrator, not a carry:
+- R10-996-RUNNER-CLAIMS is `queued` and sized M for its grammar work. This arm is S and independent of that design.
+- It can land as the group's first PR, ahead of the grammar, and it pays off on the critical path today. The group owns `tests/env_drift.py` and the claim-files.md change, so a second group would collide on both.
