@@ -6514,7 +6514,7 @@
     "branch": "handoff/r10-flow-record-pitch",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged as #2836 (28800999b); the post-merge measurement is carried by R10-ORCH-BEATD",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
