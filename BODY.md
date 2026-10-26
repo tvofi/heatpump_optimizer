@@ -1,16 +1,16 @@
-Roster for round 10, batch 19, at the roster tip `63b1cfd03d913abb3b1117a3d913506889024c74`: the ten roster commits the roster seat made on `handoff/audit-r10-roster` after `78d071da88f05099677c44c2ce089ea9c4fda6fe` (the head of batch 18, #2851), listed by command under Figures. They are two `set-stage` ops (R10-UPDATE-PR-SIGNALS and R10-HOTFIX-BATCH-ERREXIT to done), six `drop-carry` ops (all six carries of R10-UPDATE-PR-SIGNALS) and two `append-carry` ops (R10-REPLAY-REAL-DAY one, R10-FLOW-JIDOKA one). Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, batch 20, at the roster tip `62b01c7a96203df31282eefed66dae94304f6333`: the eight roster commits the roster seat made on `handoff/audit-r10-roster` after `63b1cfd03d913abb3b1117a3d913506889024c74` (the head of batch 19, #2857), listed by command under Figures. They are three `drop-carry` ops (R10-HOTFIX-BATCH-ERREXIT carry 1, landed by #2848 `e0ffb12130436f1cef00e770aed436ac8b4f067e`; R10-RECORD-API-O1 carry 3, twice), two `append-carry` ops (that carry, scrubbed, twice), one `set-stage` op (R10-LEGIONELLA-COMPLETION to done, #2832 `510787b769407ed25054177cfb0f6bd17e041e0e`, a group holding zero carries) and two `append-group` ops (R10-ERREXIT-COUNTERMEASURES, four carries from #2849; R10-RECORD-API-O1, three carries from #2852). Part of #201. It closes nothing by keyword and leaves #201 open.
 
-**Merge order: after #2851 (batch 18).** Its head `78d071da88f05099677c44c2ce089ea9c4fda6fe` is an ancestor of this batch's head and is not yet on main, so this pull request opens on main only after #2851 merges. Queue lines 382 and the orchestrator's rulings of 2026-10-26 (#2825 review 6407989264, #2848) are in this batch; line 381 (R10-FLOW-DESIGN-STAGES) is held for triage batch 33.
+**Merge order: after #2857 (batch 19).** Its head `63b1cfd03d913abb3b1117a3d913506889024c74` is an ancestor of this batch's head and is not yet on main, so this pull request opens on main only after #2857 merges, or carries batch 19's ten ops until it does. The two new groups must reach main for the carry audit of #2849 and #2852 to read them. Line 381 (R10-FLOW-DESIGN-STAGES) is still held for triage batch 33.
 
-**Ordering note:** `set-stage ... done` was applied only after the group's carries were re-routed or dropped (done-before-reroute): carry 4 of R10-UPDATE-PR-SIGNALS went to R10-FLOW-JIDOKA verbatim (fad659b01); carries 1, 2, 3, 5 and 6 were dropped as landed by #2825 or superseded by the flock design, each reason in its commit message. R10-HOTFIX-BATCH-ERREXIT was set to done with its one carry still held; the drop of that carry (landed by #2848 `e0ffb12130436f1cef00e770aed436ac8b4f067e`) is the first op of batch 20.
+**Ordering note:** the R10-ERREXIT-COUNTERMEASURES brief was changed in one place against the dispatch seat's file: the harness path `dev/audit/harnesses/r10_errexit_capture.py` is followed by "(at e1a684789)", the commit carrying the file, because the brief linter reads cited tag refs only from the brief and refused the path without one. No other field changed. The R10-RECORD-API-O1 carry on the ref_privacy home-match finding was dropped and re-appended with four strings put in prose over two rounds, as the REF PRIVACY predictor refused them (orchestrator ruling (a)): the passwd-home path of the root account, the root-cause role contract's file path, the `/root/...` control phrase, and the CI runner's home in the control phrase (the predictor judges by that home); meaning unchanged.
 
 ## Head
 
-The authored head is `63b1cfd03d913abb3b1117a3d913506889024c74`, the tip of `handoff/audit-r10-roster`. Its merge base with origin/main (`ed1c9045e140b14e6a98fdb642942b6fa39aca71` at this reading) is `c22e7b2e13fa0d04549f12431fc34a7bd83cc7ff`, so the head still carries batch 18's nine ops until #2851 merges; the pull request merges origin/main into it. `git merge-tree --write-tree origin/main 63b1cfd03d913abb3b1117a3d913506889024c74` prints the tree `5305e9488289861345b7ebd62c5a2f57509094c6` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat 78d071da88f05099677c44c2ce089ea9c4fda6fe 63b1cfd03d913abb3b1117a3d913506889024c74` prints:
+The authored head is `62b01c7a96203df31282eefed66dae94304f6333`, the tip of `handoff/audit-r10-roster`. Its merge base with origin/main (`510787b769407ed25054177cfb0f6bd17e041e0e` at this reading) is `78d071da88f05099677c44c2ce089ea9c4fda6fe`, so the head still carries batch 19's ten ops until #2857 merges; the pull request merges origin/main into it. `git merge-tree --write-tree origin/main 62b01c7a96203df31282eefed66dae94304f6333` prints the tree `5b1fa3e54cf747a3251b5f46daeee6d38baaaacc` and no conflict. The only file these ops touch is `dev/programme/rosters/wave-r10-groups.json`, the pull request's own delivery row apart. `git diff --stat 63b1cfd03d913abb3b1117a3d913506889024c74 62b01c7a96203df31282eefed66dae94304f6333` prints:
 
 ```
- dev/programme/rosters/wave-r10-groups.json | 19 +++++++------------
- 1 file changed, 7 insertions(+), 12 deletions(-)
+ dev/programme/rosters/wave-r10-groups.json | 101 +++++++++++++++++++++++++++--
+ 1 file changed, 97 insertions(+), 4 deletions(-)
 ```
 
 ## Mutation proof
@@ -19,33 +19,31 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: batch 18's head prints `837833ae2a684a567dce1be473b6e5858b38befb` and this head prints `54e5b4f02dba11e20dac603001a2c37c3df9c97b`. A script that loads both files as JSON and keys groups by their `group` field printed:
+The blob hashes come from `git show <ref>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`: origin/main prints `837833ae2a684a567dce1be473b6e5858b38befb`, batch 19's head prints `54e5b4f02dba11e20dac603001a2c37c3df9c97b` and this head prints `5519299bc75a4bd68e32604d600f02fcb3489df7`. A script that loads batch 19's file and this head's as JSON and keys groups by their `group` field printed:
 
 ```
-groups 197 197 added [] removed []
-R10-UPDATE-PR-SIGNALS carry 6->0 stage in-progress->done
-R10-FLOW-JIDOKA carry 22->23 stage in-progress->in-progress
-R10-REPLAY-REAL-DAY carry 3->4 stage not-started->not-started
-R10-HOTFIX-BATCH-ERREXIT carry 1->1 stage not-started->done
+groups 197 199 added ['R10-ERREXIT-COUNTERMEASURES', 'R10-RECORD-API-O1'] removed []
+R10-LEGIONELLA-COMPLETION carry 0 -> 0 stage queued -> done
+R10-HOTFIX-BATCH-ERREXIT carry 1 -> 0 stage done -> done
+R10-RECORD-API-O1 carry 3 not-started
+R10-ERREXIT-COUNTERMEASURES carry 4 not-started
 ```
 
-Exactly the four groups the ten ops name differ, and nothing else moved. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init`, `git add -A` and one commit: both print `TOTAL: 10 error(s) across 48 file(s)`, so the delta is zero.
+Exactly the four groups the eight ops name differ, and nothing else moved. `node tools/policy/brief_lint.mjs` was run on `git archive` extracts of origin/main and of the merged tree, each given a fresh `git init`, `git add -A` and one commit: both print `TOTAL: 10 error(s) across 48 file(s)`, so the delta is zero.
 
 ## Figures
 
-`git log --no-merges --reverse --format='%h %s' 78d071da88f05099677c44c2ce089ea9c4fda6fe..63b1cfd03d913abb3b1117a3d913506889024c74 -- dev/programme/rosters/` prints ten commits, oldest first, tool name dropped:
+`git log --no-merges --reverse --format='%h %s' 63b1cfd03d913abb3b1117a3d913506889024c74..62b01c7a96203df31282eefed66dae94304f6333 -- dev/programme/rosters/` prints eight commits, oldest first, tool name dropped:
 
 ```
-8c918fd2b append-carry R10-REPLAY-REAL-DAY
-fad659b01 append-carry R10-FLOW-JIDOKA
-b8ea207f7 drop-carry R10-UPDATE-PR-SIGNALS (carry 1)
-4a86cc07b drop-carry R10-UPDATE-PR-SIGNALS (carry 2)
-b982ff6ee drop-carry R10-UPDATE-PR-SIGNALS (carry 3)
-17df9bf02 drop-carry R10-UPDATE-PR-SIGNALS (carry 4)
-2dfbbe603 drop-carry R10-UPDATE-PR-SIGNALS (carry 5)
-fb259f02e drop-carry R10-UPDATE-PR-SIGNALS (carry 6)
-c6f5863fd set-stage R10-UPDATE-PR-SIGNALS
-63b1cfd03 set-stage R10-HOTFIX-BATCH-ERREXIT
+a391746ee drop-carry R10-HOTFIX-BATCH-ERREXIT (carry 1)
+24d768cce set-stage R10-LEGIONELLA-COMPLETION
+5651cab9a append-group R10-ERREXIT-COUNTERMEASURES
+9573269b1 append-group R10-RECORD-API-O1
+7b56726d1 drop-carry R10-RECORD-API-O1 (carry 3)
+20648ba3a append-carry R10-RECORD-API-O1
+776cb858a drop-carry R10-RECORD-API-O1 (carry 3, again)
+62b01c7a9 append-carry R10-RECORD-API-O1
 ```
 
 The per-group counts above come from the script named under Null control.
