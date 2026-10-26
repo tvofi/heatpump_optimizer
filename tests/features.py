@@ -13837,6 +13837,34 @@ R.check(
     ).dhw_coil_active,
     "option + hot water + two-tank model, each necessary",
 )
+# R10-CARD-VOICE: the setup description publishes the option beside the
+# model's gate, so the card can say "configured, not modelled" for the
+# option without the stack -- the case it used to draw nothing for. The
+# furnace is switched on explicitly where the probe is dropped, so the case
+# is the option without the model and not a furnace inferred off.
+_coil_desc = {
+    name: (d["dhw_wood_coil"], d["dhw_wood_coil_configured"])
+    for name, d in (
+        ("full stack", _topo.describe_setup(dict(_coil_cfg))),
+        ("no wood probe", _topo.describe_setup(
+            {k: v for k, v in _coil_cfg.items() if k != "wood_tank_top_entity"}
+            | {"wood_furnace_enabled": True})),
+        ("option off", _topo.describe_setup(
+            {**_coil_cfg, "dhw_wood_coil_enabled": False})),
+        ("no wood furnace", _topo.describe_setup(
+            {**_coil_cfg, "wood_furnace_enabled": False})),
+    )
+}
+R.check(
+    "the setup description tells a configured coil from a modelled one",
+    _coil_desc == {
+        "full stack": (True, True),
+        "no wood probe": (False, True),
+        "option off": (False, False),
+        "no wood furnace": (False, False),
+    },
+    f"(modelled, configured) per case: {_coil_desc}",
+)
 
 def _coil_run(params, wood):
     m = ThermalModel(params)
@@ -16462,6 +16490,7 @@ def _advisor_coord(payload_extra=None, **cfg):
             "power_cap_breach_c": 0.0,
             "projected_peak_kw": 4.0,
             "monthly_cost_delta": -35.0,
+            "monthly_settled_cost_delta": 12.0,
             "baseline_min_room_temperature": 20.6,
             "min_room_temperature": 20.6,
             **(payload_extra or {}),
@@ -16481,7 +16510,7 @@ R.check(
     _adv.get("candidate_fuse_a") == 16
     and _adv.get("current_fuse_a") == 20
     and _adv.get("feasible") is True
-    and _adv.get("cost_delta_sek_month") == -35.0,
+    and _adv.get("cost_delta_sek_month") == 12.0,
     f"got {_adv}",
 )
 R.check(
@@ -17047,6 +17076,87 @@ R.check(
     and _sweep_neg.get("covers_heaviest_window") is True,
     f"got {_sweep_neg.get('recommended_setpoint')} at -1.0/kWh vs {_rec1} at "
     "+1.0/kWh on the same 1500 L tank",
+)
+
+
+# A free-energy day, and one priced exactly at the floor's bound (1e-6/kWh):
+# both rank at the floored level (0.1), so a hotter tank still costs more. An
+# unfloored level prices every candidate at about zero and the ranking ties.
+# The bound itself is a design choice this check prejudges: a level of 1e-6
+# is floored, only one above it is kept.
+def _sweep_at(level):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": level}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+_sweep_free, _sweep_bound = _sweep_at(0.0), _sweep_at(1e-6)
+R.check(
+    "a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one",
+    _sweep_free[-1] > _sweep_free[0] and _sweep_bound == _sweep_free,
+    f"0.0/kWh {_sweep_free}; 1e-6/kWh {_sweep_bound}",
+)
+
+# #2257 item 6: the card scales a day of this sweep to a month, so the
+# published sweep is priced at the grid view's recent kWh price (the
+# ledger's), not the price feed's window. Two days whose windows price 0.5
+# and 2.0 publish one cost once the ledger has settled a level (1.0, the
+# +1.0 day above's); an empty ledger, a fresh install, prices at the window
+# (the control).
+import heatpump_optimizer.coordinator as _r6_cm  # noqa: E402
+from heatpump_optimizer.ledger import SPOT_PRICE_META as _r6_spot  # noqa: E402
+
+
+def _r6_costs(window, level=None):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": window}] * 24
+    if level is not None:
+        coord._ledger.observe_meta_mean(_r6_cm.dt_util.now(), _r6_spot, level)
+    data = coord._build_data_dict()
+    return data.get("recent_kwh_price"), [c["cost_per_day"] for c in data["dhw_advisor"]["candidates"]]
+
+
+_r6_base = [c["cost_per_day"] for c in _sweep["candidates"]]
+_r6_low, _r6_high, _r6_fresh = _r6_costs(0.5, level=1.0), _r6_costs(2.0, level=1.0), _r6_costs(2.0)
+R.check(
+    "#2257: the published setpoint sweep prices at the recent kWh price, whatever the day's window",
+    _r6_low == _r6_high == (1.0, _r6_base),
+    f"window 0.5 {_r6_low} window 2.0 {_r6_high} level 1.0 {_r6_base}",
+)
+R.check(
+    "#2257: with no settled interval the sweep prices at the feed's window (control)",
+    _r6_fresh[0] is None and _r6_fresh[1] != _r6_base
+    and all(abs(x - 2.0 * y) <= 0.011 for x, y in zip(_r6_fresh[1], _r6_base)),
+    f"{_r6_fresh} vs {_r6_base}",
+)
+R.check(
+    "#2257: the sensor-gap row prices at the recent kWh price, the price now only without one",
+    _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 1.1, "current_price": 3.0}, {}) == 1.1
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": None, "current_price": 3.0}, {}) == 3.0
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 0.0, "current_price": 3.0}, {}) == 3.0,
+)
+# The level: the time-mean spot over this month and the one before, plus the
+# grid fee their kWh paid; a month older than that is not in it, and a ledger
+# with no settled interval has none.
+from heatpump_optimizer.ledger import MonthlyLedger as _r6_ledger_cls  # noqa: E402
+
+_r6_l = _r6_ledger_cls()
+_r6_jan = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+_r6_none = _r6_l.recent_kwh_price(_r6_jan)
+for _r6_at, _r6_p in ((datetime(2025, 11, 30, tzinfo=UTC), 90.0), (datetime(2025, 12, 31, 23, 0, tzinfo=UTC), 1.0),
+                      (datetime(2025, 12, 2, tzinfo=UTC), 1.0), (datetime(2026, 1, 3, tzinfo=UTC), 4.0)):
+    _r6_l.observe_meta_mean(_r6_at, _r6_spot, _r6_p)
+_r6_spot_only = _r6_l.recent_kwh_price(_r6_jan)
+_r6_l.add(datetime(2025, 12, 5, tzinfo=UTC), "grid_fee", kwh=10.0, sek=2.0)
+_r6_l.add(datetime(2026, 1, 5, tzinfo=UTC), "grid_fee", kwh=30.0, sek=10.0)
+R.check(
+    "#2257: the recent kWh price is this month's and last month's spot mean plus their fee per kWh",
+    _r6_none is None and _r6_spot_only == 2.0
+    and abs(_r6_l.recent_kwh_price(_r6_jan) - (2.0 + 12.0 / 40.0)) < 1e-12
+    and _r6_l.recent_kwh_price(datetime(2026, 1, 1, 0, 30, tzinfo=UTC)) == _r6_l.recent_kwh_price(_r6_jan),
+    f"empty {_r6_none} spot only {_r6_spot_only} with fees {_r6_l.recent_kwh_price(_r6_jan)}",
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
@@ -34677,11 +34787,12 @@ R.check(
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
 R.check(
-    "#2257: a degree tile reads the held figure, the cap tile the plan's",
+    "#2257: a degree tile reads the held figure, the cap tile the plan's settled one",
     price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
     and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
-                           {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
+                           {"monthly_cost_delta": -40.0, "monthly_held_cost_delta": 0.0,
+                            "monthly_settled_cost_delta": 4.0}) == 4.0
     and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
@@ -34709,6 +34820,20 @@ R.check(
         {"day": "2026-02-10", "sum": 900.0, "count": 1},
         {"day": "2026-02-09", "sum": 10.0, "count": 2}]}}, _pt_today)["t"]["monthly_cost_delta"] == 5.0
     and price_tiles.published({"t": {"days": [{"day": "2025-11-01", "sum": 1.0, "count": 1}]}}, _pt_today) == {},
+)
+# Days of unequal sample counts, which production's rotation folds (a solve
+# that errors, a restart, a changed interval): a day solved once at 0 and a day
+# solved three times at 12 publish 6, each day weighing alike. Pooling every
+# sample would read 9 and let the busier day dominate; the equal-count fixture
+# above cannot tell the two apart (#2572 review, MX4).
+_pt_uneven = price_tiles.fold([], _pt_today - timedelta(days=1), 0.0)
+for _pt_i in range(3):
+    _pt_uneven = price_tiles.fold(_pt_uneven, _pt_today, 12.0)
+R.check(
+    "#2257: a day solved once and a day solved three times weigh alike in the published mean",
+    [d["count"] for d in _pt_uneven] == [1, 3]
+    and price_tiles.published({"t": {"days": _pt_uneven}}, _pt_today)["t"]["monthly_cost_delta"] == 6.0,
+    f"{_pt_uneven} -> {price_tiles.published({'t': {'days': _pt_uneven}}, _pt_today)}",
 )
 _pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
 _pt_restored = {"stale": {"days": _pt_days[:1]}}
@@ -34759,7 +34884,7 @@ async def _pt_degree_at_seam(room):
     await coord.async_run_optimization()
     record = _solve_record_now(coord)
     out = {}
-    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
+    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power):
         answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
         out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
@@ -34792,6 +34917,18 @@ R.check(
         and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
         for h in (3, 15)),
     f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
+)
+# A cap keeps the schedule, so the cap tile (and the fuse advisor) read the
+# plan's spend with the heat it left unstored bought back. Unsettled, the
+# figure moves with where the house starts; settled, a coasted and a
+# pre-heated house part it by less (r10_advisor_residue.py whatif sizes both).
+_pt_cap = {k: v["power_cap_75"] for k, v in _pt_seams.items()}
+R.check(
+    "#2257: the cap tile reads the settled figure, which the house's start moves less than the plan's",
+    all(_pt_cap[k][0] is not None for k in _pt_cap)
+    and all(abs(_pt_cap[(h, 19.0)][0] - _pt_cap[(h, 23.0)][0])
+            < abs(_pt_cap[(h, 19.0)][1] - _pt_cap[(h, 23.0)][1]) for h in (3, 15)),
+    f"(settled, plan) by (hour, room): {_pt_cap}",
 )
 
 
@@ -35022,11 +35159,20 @@ _lg_short = _lg_coord()
 _lg_before = _lg_short._legionella.hours_since()
 _lg_cycle(_lg_short, [50.0, 52.0, 53.5, 54.0])
 _lg_after = _lg_short._legionella.hours_since()
+_lg_due_after = _lg_short._legionella.due_in_hours()
+# R10-LEGIONELLA-COMPLETION (D15 lead L8): the shortfall leaves the cycle due
+# again a day later, not a whole interval later. Spaced by the interval, one
+# cut-off boost a week was all an install that never finished ever got.
 R.check(
-    "a tank that never gets hot still completes its cycle rather than "
-    "latching overdue",
-    _lg_before > 168.0 and _lg_after < 1.0,
-    f"{_lg_before:.0f} h before, {_lg_after:.2f} h after",
+    "a tank that never gets hot is retried a day later, neither latching "
+    "overdue nor waiting out the interval",
+    _lg_before > 168.0
+    and _lg_after is not None
+    and 143.0 < _lg_after < 145.0
+    and _lg_due_after is not None
+    and 23.0 < _lg_due_after <= 24.0
+    and _lg_due_after == _lg_short._legionella.due_in_hours(),
+    f"{_lg_before:.0f} h before, {_lg_after} h after, due in {_lg_due_after} h",
 )
 R.check(
     "…and it is recorded as an attempt, not as a successful cycle",
@@ -35045,16 +35191,210 @@ R.check(
     f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
+# A window the plan reopens inside that retry is the same attempt: the cycle
+# step flaps between step 0 and step 1, and a re-stamp per solve would keep
+# the retry a day away for ever.
+_lg_fold_stamp = _lg_short._legionella.attempt
+_lg_cycle(_lg_short, [54.0, 55.5])
+R.check(
+    "a window reopened inside the retry folds into its attempt, peak kept",
+    _lg_short._legionella.attempt == _lg_fold_stamp
+    and _lg_short._legionella.attempt_peak == 55.5
+    and _lg_short._legionella.last_cycle == _LG_LAST,
+    f"stamp {_lg_short._legionella.attempt!r} (was {_lg_fold_stamp!r}), "
+    f"peak {_lg_short._legionella.attempt_peak!r}",
+)
+
+
+def _lg_overdue(coord):
+    """The overdue notice's placeholders as the guard's own cycle leaves them."""
+    _asyncio.run(coord._legionella.async_observe(None, None))
+    for i in getattr(coord.hass, "issues", []):
+        if i[1] == "dhw_legionella_overdue":
+            return i[2].get("translation_placeholders")
+    return None
+
+
+# The last completion is what is overdue, whatever the attempts did: a cycle
+# with a silent probe, or one cut off before it got hot, raises none of the
+# attempt notices, and that is how 66 days went by without a word.
+_lg_overdue_short = _lg_overdue(_lg_short)
+_lg_silent = _lg_coord()
+_lg_cycle(_lg_silent, [None, None])
+_lg_overdue_silent = _lg_overdue(_lg_silent)
+R.check(
+    "a cycle overdue since its last confirmed completion is loud, with a "
+    "silent probe too",
+    _lg_overdue_short is not None
+    and int(_lg_overdue_short["days"]) >= 8
+    and _lg_overdue_short["interval_days"] == "7"
+    and _lg_overdue_silent is not None
+    and not any(
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_unverified")
+        for i in getattr(_lg_silent.hass, "issues", [])
+    ),
+    f"short {_lg_overdue_short!r}, silent probe {_lg_overdue_silent!r}",
+)
+
+# Round 2 of R10-LEGIONELLA-COMPLETION: each line below is one the mutation
+# table found deletable or movable with every driver green.
+import logging as _lgx_logging
+
+import heatpump_optimizer.issues as _lgx_issues_mod
+from heatpump_optimizer.legionella import days_since_confirmed as _lgx_days
+
+# The overdue threshold is the interval itself, not past it by a day, nor by
+# a whole second interval: at exactly 7 d nothing is overdue yet, an hour
+# later it is, and the notice says 7 whole days.
+_lgx_t = _LG_LAST
+R.check(
+    "the overdue notice comes due at the interval, not before and not an "
+    "interval late",
+    _lgx_days(_lgx_t, _lgx_t + timedelta(days=7), 7.0, watched=True) is None
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=7, hours=1), 7.0, watched=True)
+    == 7
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=13), 7.0, watched=True) == 13,
+    "7 d, 7 d + 1 h, 13 d on a 7-day interval",
+)
+_lgx_8d = _lg_coord()
+_lgx_8d._legionella.last_cycle = dt_util.now() - timedelta(days=8, hours=1)
+_lgx_8d_overdue = _lg_overdue(_lgx_8d)
+R.check(
+    "…and the guard raises it one day past a 7-day interval",
+    _lgx_8d_overdue is not None and _lgx_8d_overdue["days"] == "8",
+    f"{_lgx_8d_overdue!r}",
+)
+
+# A probe on the tank is not consent to disinfect it: with the cycle switched
+# off, or no hot water at all, an old completion stamp is no news. The
+# enabled twin is the null control, the same coordinator with one flag back.
+_lgx_off = _lg_coord()
+_lgx_off._thermal_params.dhw_legionella_enabled = False
+_lgx_off_overdue = _lg_overdue(_lgx_off)
+_lgx_nodhw = _lg_coord()
+_lgx_nodhw._thermal_params.dhw_enabled = False
+_lgx_nodhw_overdue = _lg_overdue(_lgx_nodhw)
+_lgx_off._thermal_params.dhw_legionella_enabled = True
+_lgx_on_overdue = _lg_overdue(_lgx_off)
+R.check(
+    "the overdue notice stays down with disinfection or hot water off, a "
+    "tank probe notwithstanding",
+    _lgx_off_overdue is None
+    and _lgx_nodhw_overdue is None
+    and _lgx_on_overdue is not None,
+    f"legionella off {_lgx_off_overdue!r}, no hot water "
+    f"{_lgx_nodhw_overdue!r}, enabled twin {_lgx_on_overdue!r}",
+)
+
+# Raised once while its day count stands, as the other notices are: the
+# memo is what stops a registry write on every cycle.
+_lgx_writes: list[str] = []
+_lgx_ir = _lgx_issues_mod.ir
+_lgx_orig = _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue
+_lgx_ir.async_create_issue = lambda *a, **k: _lgx_writes.append(f"create {a[2]}")
+_lgx_ir.async_delete_issue = lambda h, d, iid: _lgx_writes.append(f"delete {iid}")
+try:
+    _lgx_memo = _lg_coord()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.last_cycle = dt_util.now()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+finally:
+    _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue = _lgx_orig
+_lgx_overdue_writes = [w for w in _lgx_writes if w.endswith("dhw_legionella_overdue")]
+R.check(
+    "the overdue notice is written once per change, not on every cycle",
+    _lgx_overdue_writes
+    == ["create dhw_legionella_overdue", "delete dhw_legionella_overdue"],
+    f"{_lgx_overdue_writes}",
+)
+
+
+# The retry window, at its edge: a window reopened a second inside the day
+# folds into the attempt and keeps its higher peak; one reopened at the day
+# itself is a fresh attempt.
+def _lgx_at(when, coord, temps):
+    _fi_dt.freeze(when)
+    try:
+        _lg_cycle(coord, temps)
+    finally:
+        _fi_dt.freeze(None)
+
+
+_lgx_t0 = dt_util.now().replace(microsecond=0)
+_lgx_edge = _lg_coord()
+_lgx_at(_lgx_t0, _lgx_edge, [50.0, 54.0])
+_lgx_first = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24, seconds=-1), _lgx_edge, [52.0])
+_lgx_folded = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24), _lgx_edge, [53.0])
+_lgx_fresh = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+R.check(
+    "a window inside the retry folds into its attempt and keeps the higher "
+    "peak; one at the retry's end is a fresh attempt",
+    _lgx_first == (_lgx_t0, 54.0)
+    and _lgx_folded == (_lgx_t0, 54.0)
+    and _lgx_fresh == (_lgx_t0 + timedelta(hours=24), 53.0),
+    f"first {_lgx_first!r}, folded {_lgx_folded!r}, fresh {_lgx_fresh!r}",
+)
+
+# An attempt no newer than the last completion is spent: the window after it
+# is a fresh attempt, never folded into one the completion already answered.
+_lgx_spent = []
+for _lgx_lag in (timedelta(0), timedelta(hours=1)):
+    _lgx_c = _lg_coord()
+    _lgx_c._legionella.last_cycle = _lgx_t0
+    _lgx_c._legionella.attempt = _lgx_t0 - _lgx_lag
+    _lgx_c._legionella.attempt_peak = 54.0
+    _lgx_at(_lgx_t0 + timedelta(hours=1), _lgx_c, [53.0])
+    _lgx_spent.append(_lgx_c._legionella.attempt)
+R.check(
+    "an attempt at or before the last completion is spent, and the next "
+    "window stamps its own",
+    _lgx_spent == [_lgx_t0 + timedelta(hours=1)] * 2,
+    f"{_lgx_spent!r}",
+)
+
+# A mode block holding an overdue cycle is logged as well as raised: the
+# log is where a diagnostics bundle carries it.
+_lgx_log: list[str] = []
+
+
+class _LgxHandler(_lgx_logging.Handler):
+    def emit(self, record):
+        _lgx_log.append(f"{record.levelname} {record.getMessage()}")
+
+
+_lgx_logger = _lgx_logging.getLogger(_lgx_days.__module__)
+_lgx_handler = _LgxHandler(_lgx_logging.WARNING)
+_lgx_logger.addHandler(_lgx_handler)
+try:
+    _lgx_blocked = _lg_coord()
+    _lgx_blocked._legionella.check_mode_block(True)
+finally:
+    _lgx_logger.removeHandler(_lgx_handler)
+R.check(
+    "a mode block holding an overdue cycle is logged as a warning",
+    any(
+        m.startswith("WARNING") and "cannot be planned" in m for m in _lgx_log
+    ),
+    f"{_lgx_log}",
+)
+
 # A cycle that does reach temperature clears both the attempt and the notice.
 _lg_short._current_action = {"dhw_reason": "idle"}
 _asyncio.run(_lg_short._legionella.async_track(59.5))
 R.check(
-    "a cycle that reaches temperature clears the notice and the attempt",
+    "a cycle that reaches temperature clears the notices and the attempt, "
+    "and restarts the countdown",
     _lg_short._legionella.attempt is None
+    and (_lg_short._legionella.hours_since() or 99.0) < 1.0
     and not any(
-        i[1] == "dhw_legionella_unreachable"
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_overdue")
         for i in getattr(_lg_short.hass, "issues", [])
     ),
+    f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
 # No tank probe at all: the observer cannot run, so the countdown had no
@@ -35078,6 +35418,16 @@ R.check(
     and _lg_blind._legionella.attempt is not None,
     f"{_lg_blind_since} h since, attempt "
     f"{_lg_blind._legionella.attempt!r}",
+)
+R.check(
+    "…a whole interval later, since a retry without a probe learns nothing, "
+    "and the unverified notice speaks for it rather than the overdue one",
+    _lg_overdue(_lg_blind) is None
+    and any(
+        i[1] == "dhw_legionella_unverified"
+        for i in getattr(_lg_blind.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_blind.hass, 'issues', [])]}",
 )
 
 # A boost nobody commanded must not credit anything.
@@ -35708,9 +36058,16 @@ R.check(
     _lg_gap._legionella.last_cycle == _LG_LAST,
     f"completion {_lg_gap._legionella.last_cycle!r}",
 )
+from heatpump_optimizer.legionella import DHW_LEGIONELLA_RETRY_HOURS as _LG_RETRY_H
+
+# The timer moves to "due again a retry later" (R10-LEGIONELLA-COMPLETION):
+# off the overdue latch, short of a whole fresh interval.
+_LG_RETRY_AGE = 168.0 - _LG_RETRY_H
 R.check(
     "…and the timer moves anyway, instead of latching at 192 h",
-    _lg_gap_before > 168.0 and _lg_gap_after is not None and _lg_gap_after < 1.0,
+    _lg_gap_before > 168.0
+    and _lg_gap_after is not None
+    and _LG_RETRY_AGE <= _lg_gap_after < _LG_RETRY_AGE + 1.0,
     f"{_lg_gap_before:.0f} h before, {_lg_gap_after} h after",
 )
 R.check(
@@ -35758,7 +36115,7 @@ R.check(
     "a boost still commanded after the bound is judged rather than waited on",
     _lg_stuck_before > 168.0
     and _lg_stuck_after is not None
-    and _lg_stuck_after < 1.0
+    and _lg_stuck_after <= _LG_RETRY_AGE + 1e-6
     and _lg_stuck._legionella.attempt_peak == 54.0,
     f"{_lg_stuck_before:.0f} h before, {_lg_stuck_after} h after, peak "
     f"{_lg_stuck._legionella.attempt_peak!r}",
