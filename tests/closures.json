@@ -3636,6 +3636,7 @@
    "dev/audit/harnesses/r10_gate_defer_race.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
    "dev/audit/harnesses/r10_gh_read_retry_mutants.py",
+   "dev/audit/harnesses/r10_house_grade.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
