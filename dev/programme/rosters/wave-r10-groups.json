@@ -6194,7 +6194,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "rca: topic r10-rca-body-check-parity",
+    "note": "Decision 0012 (moratorium) was revoked by decision 0014 on 2026-10-21; the brief's 0012 reference binds nothing.",
     "pr": 2853
    }
   },
