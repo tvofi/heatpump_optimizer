@@ -21905,6 +21905,43 @@ R.check(
         if not _env_drift.shape_claim_error({ln: ["r"]})
     ),
 )
+
+# The path-wildcard grammar claim-files.md documents: `[*]` is one index and
+# `*` stays inside one key. Either compiled to `.*` would excuse leaves the
+# line never named (fail open), and the readings above use no `*` in a key.
+_SC_KEY_STAR = _env_drift.parse_shape_claim("shape: *_reasons[*] * -> 'idle'")
+R.check(
+    "a `*` inside a key path matches within that key and never crosses a '.'",
+    _SC_KEY_STAR.matches("dhw_reasons[3]", "scheduled", "idle")
+    and not _SC_KEY_STAR.matches("plan.space_reasons[3]", "scheduled", "idle")
+    and not _SC_KEY_STAR.matches("space_reasons[3].x_reasons[0]", "scheduled", "idle"),
+    "matched: " + ", ".join(
+        p for p in ("dhw_reasons[3]", "plan.space_reasons[3]",
+                    "space_reasons[3].x_reasons[0]")
+        if _SC_KEY_STAR.matches(p, "scheduled", "idle")
+    ),
+)
+_SC_INDEX = _env_drift.parse_shape_claim("shape: space_reasons[*] * -> 'idle'")
+R.check(
+    "`[*]` is one index: space_reasons[*] matches space_reasons[12] and "
+    "neither space_reasons_x[0] nor space_reasons[0].k",
+    _SC_INDEX.matches("space_reasons[12]", "scheduled", "idle")
+    and not _SC_INDEX.matches("space_reasons_x[0]", "scheduled", "idle")
+    and not _SC_INDEX.matches("space_reasons[0].k", "scheduled", "idle"),
+    "matched: " + ", ".join(
+        p for p in ("space_reasons[12]", "space_reasons_x[0]", "space_reasons[0].k")
+        if _SC_INDEX.matches(p, "scheduled", "idle")
+    ),
+)
+R.check(
+    "a shape line with a token after its to-set is refused, not read up to "
+    "the to-set",
+    _env_drift.shape_claim_error(
+        {"shape: space_reasons[*] * -> 'idle' 'cheap_price'": ["r"]}) is not None
+    and _env_drift.shape_claim_error(
+        {"shape: space_reasons[*] * -> 'idle'": ["r"]}) is None,
+    "a trailing token silently dropped is a direction the line did not state",
+)
 R.check(
     "main() refuses a malformed shape line before any capture, in both the "
     "--claims-only and the capture paths",
