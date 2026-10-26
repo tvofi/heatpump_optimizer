@@ -10874,6 +10874,93 @@ R.check(
     abs(_slab_gain_sz + _slab_out_sz - _q_sz * 0.25) < 1e-6,
     f"slab gained {_slab_gain_sz + _slab_out_sz:.4f} kWh vs {_q_sz * 0.25:.4f}",
 )
+# The energy bound, driven on one undivided step (the stability count keeps
+# `simulate_step` inside it): a 10 L tank at 60 C must not hand the slab
+# more than it holds above the slab.
+_p_sz10 = ThermalParameters(buffer_tank_volume=10.0, mixing_valve_mode=_mv.MODE_MANUAL)
+_after_sz10 = ThermalModel(_p_sz10)._simulate_step_single(
+    ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                 buffer_tank_temperature=60.0, outdoor_temperature=-5.0),
+    0.0, -5.0, dt_hours=0.25,
+)
+R.check(
+    "single-zone valve: a small tank coasting one step never falls below the slab",
+    _after_sz10.buffer_tank_temperature >= 22.0 - 1e-9,
+    f"tank ended at {_after_sz10.buffer_tank_temperature:.2f} C against a 22 C slab",
+)
+# The stability count must carry the tank's own row: the shipped 35 L
+# valved tank, one 15-minute step against 400 sub-steps of the same law.
+_m_sz35 = ThermalModel(
+    ThermalParameters(buffer_tank_volume=35.0, mixing_valve_mode=_mv.MODE_MANUAL)
+)
+_st_sz35 = ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                        buffer_tank_temperature=60.0, outdoor_temperature=-5.0)
+_one_sz35 = _m_sz35.simulate_step(_st_sz35, 0.0, -5.0, dt_hours=0.25)
+_ref_sz35 = _st_sz35
+for _ in range(400):
+    _ref_sz35 = _m_sz35.simulate_step(_ref_sz35, 0.0, -5.0, dt_hours=0.25 / 400)
+R.check(
+    "single-zone valve: the stability count subdivides for the tank's own row",
+    abs(_one_sz35.buffer_tank_temperature - _ref_sz35.buffer_tank_temperature) < 0.3,
+    f"one step {_one_sz35.buffer_tank_temperature:.3f} C vs "
+    f"400 sub-steps {_ref_sz35.buffer_tank_temperature:.3f} C",
+)
+_m_cap = ThermalModel(_p_sz)
+_hot = _m_cap.simulate_step(
+    ThermalState(room_temperature=21.0, slab_temperature=25.0,
+                 buffer_tank_temperature=69.5, outdoor_temperature=-5.0),
+    5.0, -5.0, dt_hours=0.25,
+)
+R.check(
+    "single-zone valve: charging stops at buffer_max_temp and books the refusal",
+    _hot.buffer_tank_temperature <= _p_sz.buffer_max_temp + 1e-9
+    and _m_cap._step_buffer_refused > 0.0,
+    f"tank {_hot.buffer_tank_temperature:.2f} C, "
+    f"refused {_m_cap._step_buffer_refused:.3f} kW",
+)
+_opt_sz = _StoreOpt(_m_sz, _StoreCfg(
+    horizon_hours=24, time_step_minutes=15,
+    target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_term_sz, _ = _opt_sz._terminal_cost(np.full(96, 1.0), np.full(96, -5.0))
+_ends_sz = (np.full(97, 21.0), np.full(97, 25.0), np.full(97, 21.0), np.full(97, 21.0))
+R.check(
+    "single-zone: the terminal cost credits a valved store tank",
+    _term_sz(*_ends_sz, np.full(97, 30.0)) > _term_sz(*_ends_sz, np.full(97, 60.0)),
+    "a tank left cold is heat bought back, in either zoning",
+)
+# The COP is priced at the tank's own temperature behind a valve, so a step
+# that delivers nothing and loses a known figure raises the tank by exactly
+# cop(tank)*P*dt/C less that loss. Same power at a 40 C tank raises it more:
+# the lift, and nothing else, is what the row under test changes.
+_p_cop = ThermalParameters(
+    buffer_tank_volume=750.0, mixing_valve_mode=_mv.MODE_MANUAL,
+    mixing_valve_target=23.0, cop_flow_carnot=True,
+)
+_m_cop = ThermalModel(_p_cop)
+_cop_state = ThermalState(
+    room_temperature=21.0, slab_temperature=90.0,
+    buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
+)
+_after_cop = _m_cop.simulate_step(_cop_state, 3.0, -5.0, dt_hours=0.25)
+_cop_expect = 60.0 + (
+    _m_cop.compute_cop(-5.0, flow_temp=60.0) * 3.0
+    - _p_cop.buffer_tank_heat_loss_coefficient * (60.0 - 20.0)
+) / _p_cop.buffer_tank_thermal_mass * 0.25
+_cold_cop = _m_cop.simulate_step(
+    ThermalState(room_temperature=21.0, slab_temperature=90.0,
+                 buffer_tank_temperature=40.0, outdoor_temperature=-5.0),
+    3.0, -5.0, dt_hours=0.25,
+)
+R.check(
+    "single-zone valve: the step prices the COP at the tank's own temperature",
+    abs(_after_cop.buffer_tank_temperature - _cop_expect) < 1e-9
+    and _cold_cop.buffer_tank_temperature - 40.0
+    > _after_cop.buffer_tank_temperature - 60.0 + 0.2,
+    f"60 C tank +{_after_cop.buffer_tank_temperature - 60.0:.3f} K against "
+    f"the priced {_cop_expect - 60.0:.3f} K; 40 C tank "
+    f"+{_cold_cop.buffer_tank_temperature - 40.0:.3f} K",
+)
 
 
 R.section("The valve hold schedule (item 29)")
