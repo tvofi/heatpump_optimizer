@@ -1832,9 +1832,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (seam-ordered; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION; after you: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "handoff",
     "branch": "handoff/r10-heat-meter",
-    "commit": null,
+    "commit": "7e9fea6acb929bf8eecd279096d99fafb208ac56",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
