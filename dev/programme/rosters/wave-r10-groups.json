@@ -4727,7 +4727,7 @@
     "stage": "in-progress",
     "branch": "design/r10-ceiling-probe",
     "commit": "9ef3325660916ef055f8b9a39713e3f2a98d0afe",
-    "last_step": null,
+    "last_step": "design rev 2 at 9ef332566 (comfort bound, cadence state, sibling sites, adoption refusal dropped); design review returned revise, verdict at design-verdict/R10-CEILING-PROBE de63c5b0d.",
     "next_step": "Design r2 at design/r10-ceiling-probe 9ef33256 in design review; on approve set architect_note, add pump_arbiter.py and coordinator.py to files, order vs R10-LIVESTATE",
     "note": null
    }
