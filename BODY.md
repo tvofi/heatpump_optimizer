@@ -1,6 +1,6 @@
 R10-DIAG-REDACT: Download diagnostics now redacts each value its keyed passes remove wherever else that value reaches. It also states when it was exported, measures the plan's age at that instant, and labels the frozen debug collection's window. Part of #2271 and part of #2814; whether either can close is the orchestrator's call (see Forward-carry).
 
-This is round 2. Round 1 was blocked because carries 1 and 2 were missing (issue comment 6401817546). The round-1 prompt was rendered without them. This round satisfies all three carries, item by item, under `## Carries`. The carry-0 code is unchanged from round 1.
+This is round 3. Round 2 was posted MERGE at `fa23170a1` (comment 6403022386); its head then went red on `tests / mutation` with three survivors this branch added, and this round's delta over `fa23170a1` is their disposition plus main merges (`## Head`). Round 1 was blocked because carries 1 and 2 were missing (issue comment 6401817546). The round-1 prompt was rendered without them. This round satisfies all three carries, item by item, under `## Carries`. The carry-0 code is unchanged from round 1.
 
 **Carry 0, the redaction.** The download's redaction (`diagnostics.async_get_config_entry_diagnostics`) is keyed. `async_redact_data(..., TO_REDACT)` blanks `tibber_token` and `name`, and `_coarsen` cuts `latitude`/`longitude`, but only under those keys. A copy of the token, the entry name or the exact coordinate under any other key, inside a message, as a key, or as a number under `lat`/`lon` went out unredacted. The fix is one value pass, owned by `diagnostics.py`:
 - `_private_values` collects the text of every value the keyed passes remove from the entry's own `data` and `options`.
@@ -43,13 +43,29 @@ Alternatives for carries 1 and 2, and why each lost:
 
 ## Head
 
-The code head is `70b57a370322` (`handoff/r10-diag-redact`), a fast-forward of round 1's `c11ecdff359b`. It merges the PR head `e3c97ba6a694` (the delivery row and a main merge). On top it adds one commit of code and tests (`69a02ccd5`) and two test-only commits: one rewords a check's name (`d5bad3ea5cda`) and one renames a test-local `_window` that `closure.py no-copies` refused (`70b57a370322`). The merge base with `origin/main` is `dfcd8d9be1da`. At 2026-10-25T19:42Z `origin/main` was at `c9cbe6b458a7`, 10 commits ahead in 8 files, all roster, triage and audit-tooling merges. `git merge-tree --write-tree origin/main HEAD` exited 0 with no conflict, so main was not merged in (fixer.md step 6). The gate, the census and the base run were measured at `69a02ccd5`. The head differs from it only in `tests/debug_collect.py`: one check's name and one local name. At the head:
-- `tests/debug_collect.py` passes 135 of 135.
-- The 8 round-2 mutants were re-run and all 8 were killed.
-- `tests/structure.py` passes.
-- `python3 tests/closure.py no-copies` printed `closure: no test file defines a symbol production also defines`.
+The code head is `db5f00828866` (`handoff/r10-diag-redact`), a fast-forward of the PR head `0fee7df71` (the bot's `ci: pin killed mutants` on round 2's `fa23170a1`). On top it adds a merge of `origin/main` at `5261ba84139d` (`059f0f788e21`, no conflict) and one commit, `db5f00828866`, which is the disposition of the three survivors. The delta a reviewer judges over `fa23170a1` (fix-review.md step 12) is that commit plus the main merges and the bot pin commit.
 
-`tools/pr/prepr.sh` at `d5bad3ea5cda` refused twice. The first was that `no-copies` collision, fixed in `70b57a370322`. The second is `closures failed while being recorded: tests/entities.py (exit 1)`, caused by the same two main-side entity checks named under `## Figures`. They fail at the merge base with this diff absent. This seat writes only its return refs and does not touch workflow tests, so that refusal is left to the orchestrator.
+What the commit changes, all in the value pass this branch built:
+- `diagnostics.py:126` GUARD_OFF, `if not isinstance(node, (str, int, float)): return set()` in `_private_values`. Deleted. A leaf of another type under a redacted key was blanked by the keyed pass but never searched for elsewhere. Now every leaf is read by its text, `str(leaf)`, in both walks. `None` (4 characters) and a flag (at most 5) stay under `LEAK_MIN_CHARS` (6), so a JSON-shaped payload is unchanged.
+- `diagnostics.py:144` GUARD_OFF, `if not isinstance(value, (int, float)): return value` in `_without_values`. Deleted, for the same reason. The final line, `return REDACTED if str(value) in private else value`, keeps its text and its existing pin (`_without_values.RETURN_DEL.82d851d2`).
+- `diagnostics.py:138` RETURN_DEL, the text branch's `return value`. This was an equivalent mutant: with it deleted, the already-replaced text fell through to the line-144 guard, which returned it unchanged. The branch is now one `return reduce(lambda text, secret: text.replace(secret, REDACTED), private, value)`. Deleting that line leaves the text unreplaced.
+- `tests/debug_collect.py` adds one check, `a removed leaf of any other type is searched for and redacted by its text, as a number is, and a None ... is left alone`. It plants a `datetime` under `name` and a `None` under `tibber_token`.
+
+All three are disposition (a): a killing check, no survivor triage. Mutation proof, `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` with each mutant applied in a scratch worktree of the head and then discarded:
+- the line-126 guard restored: 1 of 136 failed, the new check, `[set()]`.
+- the line-144 guard restored: 1 of 136 failed, the new check, `[{'2026-01-12 00:07:00+00:00'}]`.
+- `return reduce(...)` replaced by `pass` (a hand mutant: the inventory skips an `if`'s sole statement): 2 of 136 failed, including `the value pass redacts a private value inside text, as a key, and as a number, in a tuple too ...`.
+
+Failing test first: the new check run against the PR head's `diagnostics.py` (the commit's production change stashed) printed `1 of 136 DEBUG COLLECT CHECKS FAILED`, the new check, `[set()]`.
+
+At the head, stamped 2026-10-26T00:55Z with `origin/main` at `5261ba84139d`:
+- `tests/debug_collect.py`: `ALL 136 DEBUG COLLECT CHECKS PASSED`.
+- `python3 tests/mutation_table.py --scope changed --base origin/main`, its static ratchet (the part `tests / mutation` refused on): `3943 unpinned site(s) of 6376 candidate sites, 3943 at the ratchet base 5261ba84139d...; the ledger agrees with the deterministic inventory`, and no `ADDED UNPINNED` line. Its mutant drive was stopped after that line: the drive is CI's.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, wave-script or instrument red predicted against 5261ba84139d`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff 059f0f788e21 db5f00828866`: `Architecture score: dS +0.0000 NULL`.
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=5261ba84139d PYTHONPATH=tests/hastub ./tests/run.sh` printed `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` and `1 TEST SCRIPT(S) FAILED`, `tests/entities.py` with `2 of 2445 ENTITY CHECKS FAILED`: `gate-sweep.yml: on CI's completion, ...` and `graders-head-copy's delivery_status step is red only when ...`, the same two round 2 named. Re-run at the merge base `5261ba84139d` with this diff absent (`PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached worktree there): `2 of 2445 ENTITY CHECKS FAILED`, the same two names, so neither is this branch's. Neither reads `diagnostics.py`; both read workflow files.
+- The claim files and `VERSION` are byte-identical to the merge base (`git diff --quiet` over them exited 0).
 
 ## Mutation proof
 
@@ -124,12 +140,12 @@ Round 1 (carry 0; 9 mutants, killed then, production lines unchanged since): val
 - `custom_components/heatpump_optimizer/replay_doc.py:507 BOOLOP`
 - `custom_components/heatpump_optimizer/replay_doc.py:507 CMP_BOUND`
 
-Each one: pinned by mutation-autofix. The round-2 sites (`debugger.py:308`, `drift.py:123`, `drift.py:126`) are killed by the mutants above (`no-window`, `ahead-reads-0`, `ge-to-gt`). The `debugger.py:308` guard `if not stamps:` is driven by the `fresh` download, which has no row.
+Each one but three: pinned by mutation-autofix. `diagnostics.py:126` GUARD_OFF, `:138` RETURN_DEL and `:144` GUARD_OFF survived its drive at `0fee7df71`; round 3 removes all three sites and pins the change with a killing check (`## Head`). The round-2 sites (`debugger.py:308`, `drift.py:123`, `drift.py:126`) are killed by the mutants above (`no-window`, `ahead-reads-0`, `ge-to-gt`). The `debugger.py:308` guard `if not stamps:` is driven by the `fresh` download, which has no row.
 
 ## Red checks
 
-- `tests / mutation`: predicted red. The cause is the 21 sites under `## Unpinned sites`, which no ledger pin covers until `mutation-autofix` pins them after the push (`ci-autofix.md`). The cheaper detector exists and ran here: `tools/pr/ci_predict.py`, which `body_push.sh` runs too. Its standing cost is seconds per handoff. No further detector is owed.
-- `governance / delivery-status`: red at round 1 on main's own overdue rows, not this diff's. It is not a required context. The only row in the diff is #2824's own, written by the orchestrator. That check is its own detector, at one CI step, and no cheaper one is owed.
+- `gate` and `tests / mutation`: red at the PR head `0fee7df71`. `mutation_table.py --scope changed` refused 3 sites this diff added that no driver killed: `diagnostics.py:126` GUARD_OFF, `:138` RETURN_DEL, `:144` GUARD_OFF. Disposition (a) for all three, under `## Head`: the two type guards are deleted, the text branch is one return whose deletion a check fails, and one new check fails with either guard restored. At the head the static ratchet reads no added unpinned site. The new `return reduce(...)` line is its `if`'s only statement, so the inventory lists no RETURN_DEL for it (`mutation_table.py` skips a sole body); its hand mutant still fails 2 checks of `tests/debug_collect.py`. Cause: survivor triage is never automated (`ci-autofix.md`), so these three waited for a seat. The cheaper detector is `tools/pr/ci_predict.py`, which `body_push.sh` runs; it lists added unpinned sites but cannot tell a survivor from a site a driver will kill, which only the drive measures. No further detector is owed.
+- `governance / delivery-status`: red at round 1 on main's own overdue rows, not this diff's. It is not a required context. The only row in the diff is #2824's own, written by the orchestrator.
 
 ## Forward-carry
 
