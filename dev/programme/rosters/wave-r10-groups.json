@@ -10455,7 +10455,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-SAV-COMFORT"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/payload.py"
