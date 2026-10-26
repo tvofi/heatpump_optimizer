@@ -2,7 +2,9 @@ Fix review: merge ae74761359af1a7864eb4795e13ddb4694337a12
 
 bus-nonce: 7794e967bda4ad809fa111fb42085224
 
-Round 2 (delta review after `blocked 908237a8c` carry-missing). Measured head `ae74761359af1a7864eb4795e13ddb4694337a12`; `git ls-remote origin refs/pull/2849/head` re-read before writing still printed it, so the head did not move. Evidence dir: `refs/heads/probe/rev-2849-7794e967:evidence/` (the seat's scratch `out/`, committed whole minus the extracted `.github/` trees; no host path is written here, per the seat hygiene rule). `dev/governance/roles/` at the merge base equals `origin/main` (empty three-dot diff), so the contract read is current.
+Round 2 (delta review after `blocked 908237a8c` carry-missing). Measured head `ae74761359af1a7864eb4795e13ddb4694337a12`; `git ls-remote origin refs/pull/2849/head` re-read before writing still printed it, so the head did not move. Evidence dir: `evidence/` on `review/2849` (this probe ref's `ev/`) (the seat's scratch `out/`, committed whole minus the extracted `.github/` trees; no host path is written here, per the seat hygiene rule). `dev/governance/roles/` at the merge base equals `origin/main` (empty three-dot diff), so the contract read is current.
+
+Republished: the first push of this verdict, `probe/rev-2849-7794e967` at `c02f027348c6f65b4794fc771514e19caf2ceacc`, was refused by the relay for its commit subject and layout. Its content is this verdict. The residual `(( $? ))` carry below is now in the tree: `handoff/audit-r10-roster` `94d14569ea32889e228c54fc082c62d968f254e0`, R10-ERREXIT-COUNTERMEASURES carry 5 (`roster_edit append-carry`), which names this head and `c02f0273`.
 
 ## Round-1 block points
 
