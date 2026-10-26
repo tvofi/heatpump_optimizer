@@ -1,0 +1,20 @@
+DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 18 overdue (overdue at 12 commits)
+  overdue  #2821 c9cbe6b 12 commit(s) since — Policy: the proposal-triage seat runs on opus (P127)
+  overdue  #2823 30d54f8 13 commit(s) since — roster: round-10 batch 14 (roster ops on handoff/audit-r
+  overdue  #2822 16c6b9e 14 commit(s) since — Merge remote-tracking branch 'origin/main' into triage/s
+  overdue  #2818 b760e44 15 commit(s) since — triage: batch 25 header
+  overdue  #2773 dfcd8d9 16 commit(s) since — Bump mermaid from 12.1.0 to 12.2.0 in /tools/site in the
+  overdue  #2812 f54f40c 17 commit(s) since — roster: round-10 batch 13 (roster ops on handoff/audit-r
+  overdue  #2813 4126505 18 commit(s) since — Merge remote-tracking branch 'origin/main' into triage/s
+  overdue  #2712 da12aa3 19 commit(s) since — Demand overbook: the planner books heat the house does n
+  overdue  #2807 bc52ad2 20 commit(s) since — Merge remote-tracking branch 'origin/main' into triage/s
+  overdue  #2804 9d20341 21 commit(s) since — triage: s6 batch 22 (P101-P104)
+  overdue  #2798 c29f308 22 commit(s) since — R10-RCA-MERGE-SUBJECT-CLASS-OPEN: root cause of eight bl
+  overdue  #2799 022d4aa 23 commit(s) since — roster: round-10 batch 12 (roster ops through 54d78f9bb)
+  overdue  #2780 0825aee 24 commit(s) since — R10-FLOW-AUTOTRAIN
+  overdue  #2749 6b5d2a8 25 commit(s) since — R10-MUTANT-SKIP: mutation skip handling
+  overdue  #2775 60cd447 26 commit(s) since — R10-LEARNER-ETA: learner progress payload instead of day
+  overdue  #2797 b89fea1 27 commit(s) since — roster: round-10 batch 11 (roster ops on handoff/audit-r
+  overdue  #2762 de794b5 28 commit(s) since — R10-CONFIG-NOTICES: one owner for the four standing conf
+  overdue  #2795 102f749 29 commit(s) since — record: delivery rows for #2792, #2793, #2794 (autofix)
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
