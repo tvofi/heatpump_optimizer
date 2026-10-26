@@ -6714,7 +6714,8 @@
    "rca": [],
    "after": [
     "R10-UPDATE-PR-SIGNALS",
-    "R10-FLOW-BODY-PATCH"
+    "R10-FLOW-BODY-PATCH",
+    "R10-FLY-OPENPR-ATOMIC"
    ],
    "carry": [
     "Pre-study: the Lean flow pre-study, section K12.",
