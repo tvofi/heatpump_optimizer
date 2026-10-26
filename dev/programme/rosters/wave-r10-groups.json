@@ -10432,7 +10432,7 @@
     "branch": "wip-sync/ext-wt-5d3ff6c5",
     "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
     "last_step": null,
-    "next_step": "dispatch a seat",
+    "next_step": "fixer live; 6ebc8aac re-bases input ages, judges plan_stale at export and stamps the self-test run time, the three parts #2824 left open on issue 2814 (which this group already lists). No handoff branch and no PR yet: reachable at wip-sync/ext-wt-5d3ff6c5 (snapshot). Push handoff/r10-diag-ages, then open the PR.",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
    },
    "brief": "Residue of issue #2814 that R10-DIAG-REDACT (#2824) recorded and left, per that body's Forward-carry: (1) re-base the published input ages to the export clock, which needs a publish instant in the payload to re-base from; (2) the plan-stale flag is judged at publish, not at export; (3) the stored self-test results carry no run time, which needs a field in the collection's store document. Seams: custom_components/heatpump_optimizer/diagnostics.py and custom_components/heatpump_optimizer/debugger.py. Failing test first in tests/debug_collect.py; null control: a download taken at the publish instant reads the same ages before and after. Use drift.stored_age_seconds for every age. Closes #2814."
