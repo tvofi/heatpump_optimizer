@@ -2278,9 +2278,7 @@
    "owner_gate": "code-owned: .claude/workflows/web-fix-wave.js",
    "rca": [],
    "after": [],
-   "carry": [
-    "A fix that lowers the count by relaxing the requirement is refused; the count moves only by answering root causes earlier."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
