@@ -3267,6 +3267,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3354,6 +3355,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -4469,7 +4471,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 33.0
+   "seconds": 85.9
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -4489,7 +4491,7 @@
   },
   "tests/card_drift.mjs": {
    "rc": 0,
-   "seconds": 29.5
+   "seconds": 6.0
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
@@ -4516,7 +4518,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
@@ -4573,7 +4575,7 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 0.7
+   "seconds": 1.9
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -4585,11 +4587,11 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 13.5
+   "seconds": 29.3
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 34.3
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
@@ -4597,7 +4599,7 @@
   },
   "tests/wood_advisor.py": {
    "rc": 0,
-   "seconds": 0.7
+   "seconds": 1.6
   }
  }
 }
