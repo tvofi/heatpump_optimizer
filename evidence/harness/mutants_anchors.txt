@@ -1,0 +1,21 @@
+# Each anchor of dev/audit/harnesses/r10_sav_baseline_mutants.py (the #2255 committed mutation proof),
+# counted in the production file it patches at the merge base 3b4180dcc and at the head 3b55da2c.
+# The harness asserts count == 1 before each mutant; count 0 means that mutant cannot be applied.
+mutant  file           occurrences-at-base  occurrences-at-head
+M1      optimizer.py   1                    0
+M2      optimizer.py   1                    1
+M3      ledger.py      1                    0
+M4      ledger.py      1                    0
+M5      ledger.py      1                    1
+M6      ledger.py      1                    0
+M7      ledger.py      1                    1
+M9      optimizer.py   1                    0
+M10     optimizer.py   1                    0
+M11     optimizer.py   1                    0
+M12     optimizer.py   1                    1
+M13     ledger.py      1                    0
+M14     optimizer.py   1                    0
+M15     optimizer.py   1                    0
+M16     optimizer.py   1                    1
+M8      ledger.py      1                    1
+# 10 of 16 anchors are gone at the head.

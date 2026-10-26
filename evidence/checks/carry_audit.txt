@@ -1,0 +1,6 @@
+NOTE #2745 body item 4799bca8: R10-SAV-ACTUATION
+NOTE #2745 body item d6657c6b: dismissed:census result with no seam open; card line 8587 is divergence (a), already out of scope by carry 3, per the census evidence review 6387209379 cites (item e4b56a35)
+NOTE #2745 body item 5d6700f8: dismissed:the orchestrator's brief was snapshotted before the bot commit, and the dispatch carries no re-check step
+NOTE #2745 body item 74f1970a: dismissed:environment-only, CI's entities.py baseline is green
+NOTE #2745 review 6387209379 item e4b56a35: dismissed:census result with no seam open; card line 8587 is divergence (a), already out of scope by carry 3, per the census evidence review 6387209379 cites (item e4b56a35)
+CARRY-AUDIT #2745: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

@@ -1,0 +1,7 @@
+M1 baseline starts from the plan's state: rc=1 failing=6
+    FAIL the booked thermostat step is independent of the plan's start state (single-zone)  [[0.0, 6.0, 6.0, 0.0]]
+    FAIL the predicted saving moves less with the start state than the plan's cost (single-zone)  [savings [16.54, 26.81, 36.72, 4.42] cost [68.99, 75.65,
+    FAIL the booked thermostat step is the steady holding power at target  [0.0 vs 2.0586518746048545]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 19.5 -> 19.5, slab 24.678796122052837 -> 24.471644277170725]
+    FAIL the booked thermostat step is independent of the plan's start state (two-zone, DHW)  [[0.44380598481092176, 6.259608948604249, 6.423384617974065,
+    FAIL the predicted saving moves less with the start state than the plan's cost (two-zone, DHW)  [savings [14.85, 22.51, 29.92, 5.51] cost [97.87, 106.

@@ -1,0 +1,23 @@
+# CI heavy runs at head 3b55da2c65ca24780fa2b6da5137d64332279b36 (cited, not re-run)
+## mutation (log: ci_mutation_head.log)
+  3900 unpinned site(s) of 6420 candidate sites, 3904 at the ratchet base 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+  null control custom_components/heatpump_optimizer/ledger.py:34 NULL_COMMENT survived every driver
+  null control custom_components/heatpump_optimizer/ledger.py:34 NULL_COMMENT survived tests/features.py
+  0 survivor(s) of 7 evaluated = 0.0%, cap 20.0%
+MUTATION TABLE PASSED
+
+## fast 3.14 (log: ci_fast_head.log)
+  MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+  [20:22:16] ok     python3 tests/env_drift.py --claims-only 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f (1s)
+  [20:24:55] ok     python3 tests/env_drift.py --all 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f (160s)
+ALL 2463 ENTITY CHECKS PASSED
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f
+
+## gate (log: ci_gate_head.log)
+
+## check-runs at head: 55 runs, 0 non-success/skipped (evidence/checkruns/3b55da2c*.json)
+## gate (log: ci_gate_head.log)
+gate	Restore the programs from the base	2026-10-26T21:25:13.4261340Z ^[[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }^[[0m
+PASS
