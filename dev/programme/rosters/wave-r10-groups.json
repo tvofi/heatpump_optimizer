@@ -2872,7 +2872,6 @@
     "R10-LEAF-IMPORTS"
    ],
    "carry": [
-    "The new shared module is a new tracked file: classify it (a measured closure or INERT).",
     "This runs before the D15 finder box."
    ],
    "architect_note": null,
