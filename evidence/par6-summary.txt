@@ -1,0 +1,26 @@
+/tmp/claude-0/rv-out/ev/par6-1.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-1.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-1.txt:real	3m13.935s
+/tmp/claude-0/rv-out/ev/par6-1.txt:rc=0
+/tmp/claude-0/rv-out/ev/par6-2.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-2.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-2.txt:real	3m15.912s
+/tmp/claude-0/rv-out/ev/par6-2.txt:rc=0
+/tmp/claude-0/rv-out/ev/par6-3.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-3.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-3.txt:real	3m15.444s
+/tmp/claude-0/rv-out/ev/par6-3.txt:rc=0
+/tmp/claude-0/rv-out/ev/par6-4.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-4.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-4.txt:real	3m16.285s
+/tmp/claude-0/rv-out/ev/par6-4.txt:rc=0
+/tmp/claude-0/rv-out/ev/par6-5.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-5.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-5.txt:real	3m14.330s
+/tmp/claude-0/rv-out/ev/par6-5.txt:rc=0
+/tmp/claude-0/rv-out/ev/par6-6.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+/tmp/claude-0/rv-out/ev/par6-6.txt:pr_args self-test: 123 checks, 0 failed
+/tmp/claude-0/rv-out/ev/par6-6.txt:real	3m12.621s
+/tmp/claude-0/rv-out/ev/par6-6.txt:rc=0
+
+[exited with code 0]

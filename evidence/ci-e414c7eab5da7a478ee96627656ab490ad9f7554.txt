@@ -1,6 +1,0 @@
-check-runs on e414c7eab5da7a478ee96627656ab490ad9f7554, read 2026-10-25 ~22:00Z (41 runs)
-in_progress: tests / closures, governance / instrument-self-tests, codeql / Analyze (python), prelude (run 40236002600)
-failure: governance / delivery-status (main's own overdue rows; the diff adds only dev/programme/delivery/2825.md)
-success: tests/lane-proofs, graders-head-copy, coverage-ratchet, coverage, arch-instrument, fast (3.14), typing, browser, nightly-status, mutation, briefs, closure-scope; budget-raise-gate; governance/env-matrix, policy-docs, wave-script; validate-hacs; arch-score; codeql actions + js-ts; hassfest; cancel-superseded; prelude (run 40236003730); refresh x2
-skipped: claims-autofix, mutation-autofix, mutation-pins, replay, nightly-ha, governance/record, delivery-status-publish, kernel-points, arm
-neutral: CodeQL
