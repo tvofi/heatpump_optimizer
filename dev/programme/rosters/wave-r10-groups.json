@@ -5255,7 +5255,7 @@
    },
    "owner_gate": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": null,
     "commit": null,
     "last_step": null,
