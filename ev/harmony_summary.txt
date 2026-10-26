@@ -1,0 +1,171 @@
+keys sample: ['base', 'below12', 'htmlNodes', 'roles', 'face', 'setup']
+RESULT 375/light/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 375/light/plan base 12->14 below12 21->0 {'base': (12, 14), 'below12': (21, 0)}
+   role .hl-caveat: ['9.84'] -> ['12.00']
+   role .viewctl button: ['10.20'] -> ['12.00']
+   role .whatif .wi-hint: ['10.20'] -> ['12.00']
+   role .whatif .wi-group-title: ['10.80'] -> ['12.60']
+RESULT 375/light/setup base 12->14 below12 3->0 {'base': (12, 14), 'below12': (3, 0), 'setup': ({'scale': 0.7778, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 8.56}, {'scale': 0.7778, 'disc_px': 14, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 8.56})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['9.84'] -> ['16.00']
+RESULT 375/light/savings base 12->14 below12 0->0 {'base': (12, 14), 'below12': (0, 0), 'replay_label_px': ([5.89, 6.42], [10.27, 11.2])}
+RESULT 375/light/advisor base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 375/light/health base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 375/dark/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 375/dark/plan base 12->14 below12 21->0 {'base': (12, 14), 'below12': (21, 0)}
+   role .hl-caveat: ['9.84'] -> ['12.00']
+   role .viewctl button: ['10.20'] -> ['12.00']
+   role .whatif .wi-hint: ['10.20'] -> ['12.00']
+   role .whatif .wi-group-title: ['10.80'] -> ['12.60']
+RESULT 375/dark/setup base 12->14 below12 3->0 {'base': (12, 14), 'below12': (3, 0), 'setup': ({'scale': 0.7778, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 8.56}, {'scale': 0.7778, 'disc_px': 14, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 8.56})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['9.84'] -> ['16.00']
+RESULT 375/dark/savings base 12->14 below12 0->0 {'base': (12, 14), 'below12': (0, 0), 'replay_label_px': ([5.89, 6.42], [10.27, 11.2])}
+RESULT 375/dark/advisor base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 375/dark/advisor/themed base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 375/dark/health base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 375/dark/health/themed base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 768/light/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 768/light/plan base 12->14 below12 22->0 {'base': (12, 14), 'below12': (22, 0)}
+   role .legend-note: ['9.12'] -> ['12.00']
+   role .hl-caveat: ['9.84'] -> ['12.00']
+   role .viewctl button: ['10.20'] -> ['12.00']
+   role .whatif .wi-hint: ['10.20'] -> ['12.00']
+   role .whatif .wi-group-title: ['10.80'] -> ['12.60']
+   role .chip: ['12.00'] -> ['14.00']
+RESULT 768/light/setup base 12->14 below12 3->0 {'base': (12, 14), 'below12': (3, 0), 'setup': ({'scale': 0.9504, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 10.45}, {'scale': 0.949, 'disc_px': 17.1, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 10.44})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['9.84'] -> ['14.00']
+RESULT 768/light/savings base 12->14 below12 0->0 {'base': (12, 14), 'below12': (0, 0), 'replay_label_px': ([12.65, 13.81], [12.65, 13.81])}
+RESULT 768/light/advisor base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 768/light/health base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 768/dark/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 768/dark/plan base 12->14 below12 22->0 {'base': (12, 14), 'below12': (22, 0)}
+   role .legend-note: ['9.12'] -> ['12.00']
+   role .hl-caveat: ['9.84'] -> ['12.00']
+   role .viewctl button: ['10.20'] -> ['12.00']
+   role .whatif .wi-hint: ['10.20'] -> ['12.00']
+   role .whatif .wi-group-title: ['10.80'] -> ['12.60']
+   role .chip: ['12.00'] -> ['14.00']
+RESULT 768/dark/setup base 12->14 below12 3->0 {'base': (12, 14), 'below12': (3, 0), 'setup': ({'scale': 0.9504, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 10.45}, {'scale': 0.949, 'disc_px': 17.1, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 10.44})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['9.84'] -> ['14.00']
+RESULT 768/dark/savings base 12->14 below12 0->0 {'base': (12, 14), 'below12': (0, 0), 'replay_label_px': ([12.65, 13.81], [12.65, 13.81])}
+RESULT 768/dark/advisor base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 768/dark/advisor/themed base 12->14 below12 8->0 {'base': (12, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.20'] -> ['12.00']
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .adv-note: ['10.20'] -> ['12.00']
+   role .adv-basis: ['10.20'] -> ['12.00']
+RESULT 768/dark/health base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 768/dark/health/themed base 12->14 below12 13->0 {'base': (12, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.20'] -> ['12.00']
+   role .health-mark: ['10.20'] -> ['12.00']
+RESULT 1280/light/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 1280/light/plan base 12.9->14 below12 22->0 {'base': (12.9, 14), 'below12': (22, 0)}
+   role .legend-note: ['9.80'] -> ['12.00']
+   role .hl-caveat: ['10.58'] -> ['12.00']
+   role .viewctl button: ['10.96'] -> ['12.00']
+   role .whatif .wi-hint: ['10.96'] -> ['12.00']
+   role .whatif .wi-group-title: ['11.61'] -> ['12.60']
+   role .chip: ['12.90'] -> ['14.00']
+RESULT 1280/light/setup base 12.9->14 below12 3->0 {'base': (12.9, 14), 'below12': (3, 0), 'setup': ({'scale': 1.6324, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 17.96}, {'scale': 1.6317, 'disc_px': 29.4, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 17.95})}
+   role .setup-hint: ['10.96'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['10.58'] -> ['14.00']
+RESULT 1280/light/savings base 12.9->14 below12 0->0 {'base': (12.9, 14), 'below12': (0, 0), 'replay_label_px': ([21.67, 23.64], [21.67, 23.64])}
+RESULT 1280/light/advisor base 12.9->14 below12 8->0 {'base': (12.9, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26})}
+   role .setup-hint: ['10.96'] -> ['12.00']
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .adv-note: ['10.96'] -> ['12.00']
+   role .adv-basis: ['10.96'] -> ['12.00']
+RESULT 1280/light/health base 12.9->14 below12 13->0 {'base': (12.9, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(33, 33, 33)', 'contrast': 14.77}, {'bg': 'rgb(247, 249, 251)', 'ink': 'rgb(33, 33, 33)', 'contrast': 15.26}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .health-mark: ['10.96'] -> ['12.00']
+RESULT 1280/dark/tile base 14->14 below12 5->0 {'base': (14, 14), 'below12': (5, 0)}
+   role .legend-note: ['10.64'] -> ['12.00']
+   role .hl-caveat: ['11.48'] -> ['12.00']
+   role .viewctl button: ['11.90'] -> ['12.00']
+   face nodes 32->32 moved=5 [('span.hl-caveat=11.48', 'span.hl-caveat=12.00'), ('p.legend-note=10.64', 'p.legend-note=12.00'), ('button.vc-out=11.90', 'button.vc-out=12.00'), ('button.vc-in=11.90', 'button.vc-in=12.00'), ('button.vc-reset=11.90', 'button.vc-reset=12.00')]
+RESULT 1280/dark/plan base 12.9->14 below12 22->0 {'base': (12.9, 14), 'below12': (22, 0)}
+   role .legend-note: ['9.80'] -> ['12.00']
+   role .hl-caveat: ['10.58'] -> ['12.00']
+   role .viewctl button: ['10.96'] -> ['12.00']
+   role .whatif .wi-hint: ['10.96'] -> ['12.00']
+   role .whatif .wi-group-title: ['11.61'] -> ['12.60']
+   role .chip: ['12.90'] -> ['14.00']
+RESULT 1280/dark/setup base 12.9->14 below12 3->0 {'base': (12.9, 14), 'below12': (3, 0), 'setup': ({'scale': 1.6324, 'disc_px': None, 'glyph_stroke': None, 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 17.96}, {'scale': 1.6317, 'disc_px': 29.4, 'glyph_stroke': '1.5px', 'box_stroke': '1px', 'pipe_stroke': '1.5px', 'chip_label_px': 17.95})}
+   role .setup-hint: ['10.96'] -> ['12.00']
+   role .setup-dest: None -> ['12.00']
+   role .layout-bar button: ['10.58'] -> ['14.00']
+RESULT 1280/dark/savings base 12.9->14 below12 0->0 {'base': (12.9, 14), 'below12': (0, 0), 'replay_label_px': ([21.67, 23.64], [21.67, 23.64])}
+RESULT 1280/dark/advisor base 12.9->14 below12 8->0 {'base': (12.9, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.96'] -> ['12.00']
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .adv-note: ['10.96'] -> ['12.00']
+   role .adv-basis: ['10.96'] -> ['12.00']
+RESULT 1280/dark/advisor/themed base 12.9->14 below12 8->0 {'base': (12.9, 14), 'below12': (8, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08})}
+   role .setup-hint: ['10.96'] -> ['12.00']
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .adv-note: ['10.96'] -> ['12.00']
+   role .adv-basis: ['10.96'] -> ['12.00']
+RESULT 1280/dark/health base 12.9->14 below12 13->0 {'base': (12.9, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(245, 245, 245)', 'ink': 'rgb(225, 225, 225)', 'contrast': 1.2}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .health-mark: ['10.96'] -> ['12.00']
+RESULT 1280/dark/health/themed base 12.9->14 below12 13->0 {'base': (12.9, 14), 'below12': (13, 0), 'row': ({'bg': 'rgb(17, 17, 17)', 'ink': 'rgb(225, 225, 225)', 'contrast': 14.44}, {'bg': 'rgb(36, 42, 48)', 'ink': 'rgb(225, 225, 225)', 'contrast': 11.08}), 'health_h_weight': ('700', '600')}
+   role .adv-sub: ['10.96'] -> ['12.00']
+   role .health-mark: ['10.96'] -> ['12.00']
