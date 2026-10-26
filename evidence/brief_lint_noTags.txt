@@ -1,4 +1,0 @@
-TOTAL: 363 error(s) across 48 file(s)
-0
-TOTAL: 363 error(s) across 48 file(s)
-0
