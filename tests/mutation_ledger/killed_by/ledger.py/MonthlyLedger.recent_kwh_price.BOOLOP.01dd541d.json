@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.recent_kwh_price BOOLOP 01dd541d",
+  "killed_by": "tests/features.py",
+  "old": "            if isinstance(entry, dict) and entry.get(\"count\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if isinstance(entry, dict) or entry.get(\"count\"):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

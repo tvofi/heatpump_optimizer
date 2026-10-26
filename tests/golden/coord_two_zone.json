@@ -474,6 +474,7 @@
    "upper_floor_temperature": false
   },
   "receipts": [],
+  "recent_kwh_price": null,
   "savings_months": [],
   "savings_percentage": null,
   "schedule": [],

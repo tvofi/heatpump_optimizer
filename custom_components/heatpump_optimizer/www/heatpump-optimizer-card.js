@@ -207,8 +207,8 @@ const STRINGS = {
     "advisor.valve_detail": "Now {from} °C. {reason}",
     "advisor.act_apply": "Apply",
     "advisor.act_settings": "Open settings",
-    "advisor.degree_title": "A degree cooler is cheaper",
-    "advisor.degree_detail": "A degree warmer costs {up} {currency}/month more (a {days}-day average).",
+    "advisor.degree_title": "Keeping the house a degree cooler is cheaper",
+    "advisor.degree_detail": "Keeping it a degree warmer costs {up} {currency}/month more (a {days}-day average).",
     "advisor.degree_unsettled":
       "Not shown yet: over the last {days} days a degree cooler and a degree warmer did not price in the order heating does.",
     "advisor.act_degree": "Try in what-if",
@@ -963,8 +963,8 @@ const STRINGS = {
     "advisor.valve_detail": "Nu {from} °C. {reason}",
     "advisor.act_apply": "Verkställ",
     "advisor.act_settings": "Öppna inställningar",
-    "advisor.degree_title": "En grad svalare är billigare",
-    "advisor.degree_detail": "En grad varmare kostar {up} {currency}/månad mer (ett {days}-dagarsmedel).",
+    "advisor.degree_title": "Att hålla huset en grad svalare är billigare",
+    "advisor.degree_detail": "Att hålla det en grad varmare kostar {up} {currency}/månad mer (ett {days}-dagarsmedel).",
     "advisor.degree_unsettled":
       "Visas inte än: de senaste {days} dagarna prissattes en grad svalare och en grad varmare inte i den ordning uppvärmning gör.",
     "advisor.act_degree": "Prova i what-if",
