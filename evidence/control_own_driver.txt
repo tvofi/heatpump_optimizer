@@ -1,0 +1,10 @@
+== HEAD 2c7016ce
+rc=4 step_exit=0 output=[RECORD AUTOFIX: batching ]
+rc=0 step_exit=0 output=[RECORD AUTOFIX: reached-apply ]
+rc=1 step_exit=0 output=[RECORD AUTOFIX: skip-batch-gate ]
+rc=2 step_exit=0 output=[RECORD AUTOFIX: skip-batch-gate ]
+== BASE f6784210
+rc=4 step_exit=4 output=[]
+rc=0 step_exit=0 output=[RECORD AUTOFIX: reached-apply ]
+rc=1 step_exit=1 output=[]
+rc=2 step_exit=2 output=[]
