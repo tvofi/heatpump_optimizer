@@ -260,6 +260,61 @@ figures_check() { # body file
   if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body "$1"; else node tools/policy/figure_lint.mjs --pr-body "$1"; fi
 }
 
+# Step 3f7's whole body, and --body-check's: `instrument-self-tests` runs
+# `ref_privacy.py --check`, which judges every line the diff adds for a host
+# path and every push site for its registry entry. prepr never called it, and
+# #2625 (an unregistered push site) and #2735, #2738 and #2741 (home paths in
+# docs-only batch files) each went red in CI on it (triage s6-batch9 P78).
+# Under a second; it reads the diff from the merge base, never the whole tree.
+privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
+  local out r
+  out=$(python3 -I tools/audit/seat/ref_privacy.py --check 2>&1); r=$?
+  [ "$r" -eq 0 ] && { tail -1 <<<"$out"; return 0; }
+  printf '%s-- %s' "$(grep -m3 '^ref_privacy: REFUSE' <<<"$out" | sed 's/^ref_privacy: REFUSE //' | tr '\n' ';')" "$(tail -1 <<<"$out")"
+  return 1
+}
+
+# Step 4's trigger: what check-wave-script.mjs reads, as `pinned_touched` globs.
+# The briefs are `briefListing()`'s two directories; the pre-move
+# `tools/audit/briefs/` glob matched no file, so a role-contract-only diff
+# printed `skip` and went red on CI's unconditional job (#2736, P75).
+WAVE_INPUTS='.claude/workflows/web-fix-wave.js
+.claude/workflows/check-wave-script.mjs
+tools/policy/check-wave-script.mjs
+.claude/workflows/wave-*-groups.json
+dev/governance/roles/*.md
+dev/governance/dimensions/*.md'
+
+# Step 6g's whole body: the D6 claims register `tests/harness_headers.py`
+# executes in `fast`, rerun on a copy of the tree when the diff touches the
+# documents it reads. #2609 (ff83a3d7) moved README.md's link count, ran prepr
+# with PREPR_SKIP_CLOSURES=1, and reached CI with claims.json and claims.md
+# stale. The generator writes into the tree it runs in, so it runs on a copy
+# and the committed files are compared, never rewritten. A few seconds.
+CLAIMS_DOCS='README.md
+docs/*.md'
+CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
+claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1 stale, 3 skipped
+  local d out r f stale="" hdr
+  pinned_touched "$1" "$CLAIMS_DOCS" || { echo "no change to README.md or docs/*.md"; return 3; }
+  [ -f "$2/$CLAIMS_GEN" ] || { echo "no $CLAIMS_GEN in the tree"; return 3; }
+  d=$(dirname "$2/$CLAIMS_GEN"); mkdir -p "$2/.was"
+  cp "$d/claims.json" "$d/claims.md" "$2/.was/" 2>/dev/null
+  out=$(cd "$2" && PYTHONPATH=tests/hastub python3 "$CLAIMS_GEN" 2>&1); r=$?
+  [ "$r" -eq 0 ] || { echo "$CLAIMS_GEN exited $r: $(tail -1 <<<"$out")"; return 1; }
+  for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done
+  hdr=$(python3 -I -c 'import contextlib, io, sys; sys.path[:0] = ["tests", "tests/hastub"]; from pathlib import Path
+with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
+e, g = h.expected_from(Path(sys.argv[1])), h.printed_from(sys.stdin.read())
+print(" ".join(f"{k}={g.get(k)} (header {v})" for k, v in e.items() if g.get(k) != v))' "$2/$CLAIMS_GEN" <<<"$out") \
+    || { echo "the header comparison did not run"; return 1; }
+  if [ -n "$stale$hdr" ]; then
+    echo "${stale:+committed${stale} not what $CLAIMS_GEN writes; }${hdr:+header RESULT moved: $hdr; }re-run it and commit"
+    return 1
+  fi
+  echo "$CLAIMS_GEN rewrites claims.json and claims.md byte-identical, its header RESULTs hold"
+}
+
 # Steps 6a and 6b: the two failures CI already repairs, refused before the push.
 # `claims-autofix` and `closures-autofix` fire only after `fast` or `closures`
 # has gone red, so every repair they make costs a gate run, a held-run approval
@@ -490,6 +545,37 @@ unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
     echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
   fi
   echo "\`## Unpinned sites\` disposes of all $n site(s) step 6d listed"
+}
+
+# `--fill-red`'s whole body (triage s6-batch8 P67). An unpinned site is a red
+# `mutation` by construction (`body_line` feeds it), and 5 of 28 opens bounced
+# on "check `mutation` is red and `## Red checks` does not name it", a median
+# 49 min each. The red is derived exactly, so it is written, not asked for:
+# one line, only when a site is listed and the section lacks the name
+# (policy_lint's own test, a substring). Nothing else is ever written.
+fill_red() { # body file, site-key file, head sha; rc 0 wrote the line, 3 nothing written, 1 failed
+  local n sec t
+  n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
+  [ "$n" -gt 0 ] || { echo "the diff adds no unpinned mutation site; nothing written"; return 3; }
+  grep -q '^## Red checks[[:space:]]*$' "$1" || { echo "no \`## Red checks\` section; nothing written"; return 3; }
+  sec=$(awk '/^## /{on=($0 ~ /^## Red checks[[:space:]]*$/); next} on' "$1")
+  case "$sec" in *mutation*) echo "\`## Red checks\` already names mutation; nothing written"; return 3 ;; esac
+  t=$(mktemp)
+  awk -v L="- \`mutation\` at ${3:0:12}: red by construction on the $n site(s) under \`## Unpinned sites\`; mutation-autofix pins killed sites after the push." '
+    function out(  i, last, w) {
+      for (i = 1; i <= k; i++) if (b[i] ~ /[^[:space:]]/) { last = i; w = w b[i] }
+      gsub(/[`.[:space:]]/, "", w)
+      if (tolower(w) == "none") last = 0
+      for (i = 1; i <= last; i++) print b[i]
+      if (!last) print ""
+      print L; print ""; k = 0
+    }
+    /^## / { if (on) out(); on = ($0 ~ /^## Red checks[[:space:]]*$/); print; next }
+    on { b[++k] = $0; next }
+    { print }
+    END { if (on) out() }' "$1" > "$t" && mv -f "$t" "$1" \
+    || { rm -f "$t"; echo "the body could not be rewritten; nothing written"; return 1; }
+  echo "wrote \`mutation\` under \`## Red checks\` for $n unpinned site(s)"
 }
 
 # Steps 6a and 6b whole, as the lines the step prints: the step is `step
@@ -1397,6 +1483,9 @@ fi
 # four bodies this gate passed went red there (R10-RCA-BODY-CHECK-PARITY).
 # Step 7's preflight runs too, with pr-contract's roster-derived intended list
 # (`preflight_body`): #2838's `Closes #2428` passed this gate and went red there.
+# Step 7a's figure lint runs too (`figures_check`, a function of the body: 6 of
+# 152 handoff-body tips failed it first at the open), and step 3f7's
+# `privacy_line` over the code head being handed off.
 if [ "${1:-}" = "--body-check" ]; then
   [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
   BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
@@ -1413,7 +1502,24 @@ if [ "${1:-}" = "--body-check" ]; then
   pout=$(preflight_body "$2" dev/programme/rosters); pr=$?
   if [ "$pr" -eq 0 ]; then echo "preflight ok"; else echo "REFUSE preflight: $(grep -m1 'REFUSE' <<<"$pout" | sed 's/^ *REFUSE *//')"; fi
   [ "$r" -ne 0 ] || r=$pr
+  fout=$(figures_check "$2" 2>&1); fr=$?
+  if [ "$fr" -eq 0 ]; then echo "figures ok: $(tail -1 <<<"$fout")"; else echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi
+  [ "$r" -ne 0 ] || r=$fr
+  vline=$(privacy_line); vr=$?
+  if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
+  [ "$r" -ne 0 ] || r=$vr
   exit "$r"
+fi
+
+# `body_push.sh`'s second entry point: `prepr.sh --fill-red <body.md>` runs
+# step 6d's predictor over HEAD and `fill_red` on the body. It never refuses:
+# a predictor that did not run lists no site, so nothing is written.
+if [ "${1:-}" = "--fill-red" ]; then
+  [ -f "${2:-}" ] || { echo "fill-red: no body at ${2:-}"; exit 2; }
+  S=$(mktemp)
+  predict_line origin/main "$S" >/dev/null 2>&1
+  echo "fill-red: $(fill_red "$2" "$S" "$(git rev-parse HEAD)")"
+  rm -f "$S"; exit 0
 fi
 
 # --- the class: an early-exit grep reading a pipe under pipefail ---------------
@@ -2668,6 +2774,38 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   unpinned_line "$PDX/b7.md" "$PDX/k12" >/dev/null; st $? 0 "and passes the same key named whole (null control)"
   : > "$PDX/none"
   unpinned_line "$PDX/b0.md" "$PDX/none" >/dev/null; st $? 3 "7d owes nothing when the diff adds no site"
+  # --fill-red (P67): the `mutation` red step 6d's sites make, written into
+  # `## Red checks`, judged by policy_lint's own red arm before and after.
+  plred() { if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; fi; }
+  cp "$D/good-none.md" "$PDX/gn.md"; cp "$D/good-none.md" "$PDX/gn0.md"
+  fill_red "$PDX/gn.md" "$PDX/none" "$ZERO" >/dev/null; st $? 3 "fill_red writes nothing when step 6d listed no site (null control)"
+  cmp -s "$PDX/gn.md" "$PDX/gn0.md"; st $? 0 "and leaves the body byte-identical"
+  plred "$PDX/gn.md"; st $? 1 "and a body not naming the mutation red stays refused (null control)"
+  fill_red "$PDX/gn.md" "$PDX/sites" "$ZERO" >/dev/null; st $? 0 "fill_red writes the mutation line when step 6d listed sites"
+  plred "$PDX/gn.md"; st $? 0 "and policy_lint's red arm then passes the body"
+  awk '/^## /{on=($0 ~ /^## Red checks/); next} on && /^none$/' "$PDX/gn.md" | grep -c . >"$PDX/n" ; st "$(cat "$PDX/n")" 0 "and the line replaces the section's \`none\`"
+  cp "$PDX/gn.md" "$PDX/gn1.md"; fill_red "$PDX/gn.md" "$PDX/sites" "$ZERO" >/dev/null
+  st $? 3 "a body already naming mutation is left alone"; cmp -s "$PDX/gn.md" "$PDX/gn1.md"; st $? 0 "byte-identical"
+  printf '## Red checks\n\n- `fast (3.14)`: answered.\n\n## Friction\n\nnone\n' > "$PDX/fr.md"
+  fill_red "$PDX/fr.md" "$PDX/sites" "$ZERO" >/dev/null
+  awk '/^## Red checks/{f=1} f' "$PDX/fr.md" | head -5 | grep -c -e 'fast (3.14)' -e '^- `mutation` at 000000000000: red by construction on the 3 site' >"$PDX/n"
+  st "$(cat "$PDX/n")" 2 "a section with an answer keeps it and gains the line below it"
+  printf '## Red checks\n\nnone\n' > "$PDX/fr0.md"
+  got=$(cd "$PDX/r" && git checkout -q -f pmut && bash "$OLDPWD/tools/pr/prepr.sh" --fill-red "$PDX/fr0.md"; grep -c 'mutation' "$PDX/fr0.md")
+  st "$(tail -1 <<<"$got")" 1 "--fill-red at the pmut head predicts its sites and writes the line"
+  case "$(cat tools/audit/seat/body_push.sh)" in *'--fill-red "$ABS"'*'--body-check "$ABS"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "body_push runs --fill-red on the body before the --body-check lint"
+  # Step 3f7 (P78): a host path in a line the diff adds is refused, named by
+  # file and line; the same line made home-relative passes. Built, never spelled.
+  hp=$(printf '%s/%s/%s/proj' '' Users alice)
+  (cd "$PDX/r" && $G checkout -q -f -b pleak origin/main && mkdir -p docs && printf 'x\nsee %s\n' "$hp" > docs/zz_leak.md \
+    && $G add -A && $G commit -qm pleak && $G checkout -q -b phome origin/main && printf 'x\nsee ~/proj\n' > docs/zz_leak.md \
+    && $G add -A && $G commit -qm phome) >/dev/null 2>&1
+  got=$(cd "$PDX/r" && git checkout -q pleak && privacy_line); r=$?
+  st "$r" 1 "privacy_line refuses a host path in an added line"
+  case "$got" in *'docs/zz_leak.md:2: host-path'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the file and line"
+  (cd "$PDX/r" && git checkout -q phome && privacy_line >/dev/null); st $? 0 "the same line made home-relative passes (null control)"
   rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
@@ -2761,6 +2899,30 @@ PY
   printf '%s\n' README.md docs/HANDOVER.md > "$WF/changed"
   pinned_touched "$WF/changed" "$(pinned_paths .github/workflows/*.yml)"
   st $? 1 "a change to no pinned path touches none (null control)"
+  printf '%s\n' dev/governance/roles/fixer.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 0 "a diff touching one role contract runs step 4's wave-script (P75)"
+  printf '%s\n' dev/governance/dimensions/D3.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 0 "and one touching a dimension brief"
+  printf '%s\n' README.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 1 "a diff touching only README.md still skips it (null control)"
+  # Step 6g, over a stub generator in the real one's place: the comparison is
+  # what is under test, and the real register needs the whole tree.
+  CG=$(mktemp -d); mkdir -p "$CG/$(dirname "$CLAIMS_GEN")"; cg=$CG/$(dirname "$CLAIMS_GEN")
+  printf '"""\n    RESULT links=1\n"""\nimport pathlib\nn = pathlib.Path("README.md").read_text().count("](")\nd = pathlib.Path("%s")\n(d / "claims.json").write_text(f"{n}\\n")\n(d / "claims.md").write_text(f"| C108 | {n} |\\n")\nprint(f"RESULT links={n} links")\n' \
+    "$(dirname "$CLAIMS_GEN")" > "$CG/$CLAIMS_GEN"
+  printf '[a](b)\n' > "$CG/README.md"; printf '1\n' > "$cg/claims.json"; printf '| C108 | 1 |\n' > "$cg/claims.md"
+  printf '%s\n' tools/x.py > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 3 "6g skips a diff touching neither README.md nor docs/*.md"
+  printf '%s\n' docs/x.md > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 0 "6g passes a docs diff whose register the generator rewrites byte-identical (null control)"
+  printf '[a](b) [c](d)\n' > "$CG/README.md"; printf '%s\n' README.md > "$WF/changed"
+  got=$(claims_reg_line "$WF/changed" "$CG"); r=$?
+  st "$r" 1 "6g refuses a README link added without re-recording (#2609)"
+  case "$got" in *'claims.json claims.md'*'links=2 (header 1)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the stale files and the moved header RESULT"
+  printf 'raise SystemExit(4)\n' > "$CG/$CLAIMS_GEN"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 1 "6g refuses when the generator fails, never passes it"
+  rm -rf "$CG"
   rm -rf "${WF:?}"
 
   printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh >/dev/null 2>&1; else bash tools/pr/preflight.sh >/dev/null 2>&1; fi
@@ -3041,9 +3203,21 @@ EOF
   case "$flow" in *'preflight_body "$BODY" dev/programme/rosters "$@"
   step "preflight" $?'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "step 7's preflight derives the intended list and refuses on its rc"
-  case "$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")" in
+  bc=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")
+  case "$bc" in
     *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
+  case "$bc" in *'fout=$(figures_check "$2" 2>&1); fr=$?'*'[ "$r" -ne 0 ] || r=$fr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
+  case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
+  case "$flow" in *'PRIVACY_LINE=$(privacy_line)
+step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f7 runs privacy_line and refuses on its rc"
+  case "$flow" in *'|| pinned_touched /tmp/prepr-wv.$$ "$WAVE_INPUTS"; then'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 4 keys its wave-script run on WAVE_INPUTS"
+  case "$flow" in *'CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")'*'*) step "claims register" 1 "$CLAIMS_REG" ;;'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 6g runs claims_reg_line and refuses on its rc"
 
   # (11) Step 7c reads the pull request's head ref fetched now (`reds_head_sha`),
   # not 7b's unfetched mirror. The clone has no mirror of `fix`, which the
@@ -3289,6 +3463,11 @@ heavy_run /tmp/prepr-tp.$$ python3 -I tools/audit/seat/tmp_paths.py --self-test 
 step "temp paths" $? "$(tail -1 /tmp/prepr-tp.$$)"
 rm -f /tmp/prepr-tp.$$
 
+# --- 3f7. no host path in an added line, no unregistered push site: the
+# `ref_privacy --check` `instrument-self-tests` runs (`privacy_line` above).
+PRIVACY_LINE=$(privacy_line)
+step "ref privacy" $? "$PRIVACY_LINE"
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict "$PREPR_PATH" .github/workflows/*.yml)
@@ -3322,21 +3501,19 @@ rm -f /tmp/prepr-st.$$
 # unmeasured -- but a local gate that skips exactly when the change is in scope
 # teaches a seat that the check is covered when it is not.
 # THE BRIEFS ARE A FOURTH INPUT, and the same shape repeated once more (#1062):
-# the checker parses every backticked verdict example out of tools/audit/briefs/
+# the checker parses every backticked verdict example out of the briefs
 # against VERDICT_RE, so a briefs-only branch that shortened one example was
-# printed `skip` here and went red on CI's unconditional job.
-if [ "$PIN_TOUCHED" -eq 0 ] || ! git diff --quiet "$BASE"...HEAD -- \
-     .claude/workflows/web-fix-wave.js \
-     .claude/workflows/check-wave-script.mjs \
-     tools/policy/check-wave-script.mjs \
-     '.claude/workflows/wave-*-groups.json' \
-     'tools/audit/briefs/*.md'; then
+# printed `skip` here and went red on CI's unconditional job (`WAVE_INPUTS`).
+# A list that does not derive runs the step.
+if [ "$PIN_TOUCHED" -eq 0 ] || ! diff_paths "$BASE" /tmp/prepr-wv.$$ \
+     || pinned_touched /tmp/prepr-wv.$$ "$WAVE_INPUTS"; then
   if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; else node tools/policy/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; fi
   step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
   rm -f /tmp/prepr-wave.$$
 else
   say skip "wave-script" "no change to the script, the checker, the rosters, the briefs or a pinned path"
 fi
+rm -f /tmp/prepr-wv.$$
 
 # --- 5. VERSION, the manifest and the notes heading are untouched.
 # Versions are assigned after the merge by tools/release/stamp.py. A branch that
@@ -3431,6 +3608,24 @@ case $? in
   0) step "throwaway git" 0 "$THROWAWAY_LINE" ;;
   *) step "throwaway git" 1 "$THROWAWAY_LINE" ;;
 esac
+
+# --- 6g. the D6 claims register `fast` byte-compares, when the diff touches
+# what it reads (`claims_reg_line` above), closures skipped or not. It grades
+# the committed tree, on a copy.
+CR=$(mktemp -d)
+if ! diff_paths "$BASE" "$CR.paths"; then
+  step "claims register" 1 "the changed-path list did not derive from $BASE...HEAD, so the register was not compared"
+elif pinned_touched "$CR.paths" "$CLAIMS_DOCS" && ! { git archive HEAD | tar -x -C "$CR"; }; then
+  step "claims register" 1 "HEAD could not be copied to run $CLAIMS_GEN on, so nothing was compared"
+else
+  CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")
+  case $? in
+    3) say skip "claims register" "$CLAIMS_REG" ;;
+    0) step "claims register" 0 "$CLAIMS_REG" ;;
+    *) step "claims register" 1 "$CLAIMS_REG" ;;
+  esac
+fi
+rm -rf "$CR" "$CR.paths"
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
