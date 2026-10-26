@@ -53,6 +53,8 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
     DEFAULT_HEAT_PUMP_MAX_POWER,
     DEFAULT_HEAT_PUMP_MIN_POWER,
+    DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE,
+    MAX_HEAT_PUMP_COP_PARTLOAD_DERATE,
     DEFAULT_COP_SCALE,
     DEFAULT_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
@@ -512,6 +514,7 @@ class ThermalParameters:
     cop_reference_temp: float = 7.0  # °C
     max_electrical_power: float = DEFAULT_HEAT_PUMP_MAX_POWER  # kW
     min_electrical_power: float = DEFAULT_HEAT_PUMP_MIN_POWER  # kW
+    cop_partload_derate: float = DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
     # Learned multiplicative correction to the modelled COP curve. 1.0 leaves
     # the nameplate-derived curve untouched; the coordinator moves it only when
     # a measured power entity makes real efficiency observable.
@@ -1008,6 +1011,7 @@ class ThermalParameters:
             "min_electrical_power": (
                 "HEAT_PUMP_MIN_POWER", "HEAT_PUMP_MIN_POWER"
             ),
+            "cop_partload_derate": ("HEAT_PUMP_COP_PARTLOAD_DERATE",) * 2,
         }
 
         values = {
@@ -1060,6 +1064,7 @@ class ThermalParameters:
         # entry that stored it explicitly keeps working.
         if const.CONF_BUFFER_COOLING_RATE not in config:
             values["buffer_cooling_rate"] = 0.0
+        values["cop_partload_derate"] = _partload_derate(values["cop_partload_derate"])
 
         # Mixing valve. The mode is validated here rather than trusted, because
         # an unknown string would silently fall through to the unthrottled
@@ -1721,6 +1726,45 @@ def _two_tank_rates(
         (thermal_power - q_rad - q_floor - q_buf_loss + wood_draw) / C_buf,
         (ext - wood_draw - q_wood_loss) / C_w,
     )
+
+
+def _partload_derate(value: Any) -> float:
+    """A configured part-load derate, or the 0 default when it is not a
+    number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``]."""
+    try:
+        derate = float(value)
+    except (TypeError, ValueError):
+        return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+    if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
+        return derate
+    return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+
+
+def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
+    """COP multiplier at ``electrical_power`` kW: 1 at or below the modulation
+    floor (a lower draw duty-cycles at the floor), falling linearly to
+    ``1 - cop_partload_derate`` at max power, as heat-exchanger approach grows
+    with the heat rate. Hot water is priced at its tank's own lift instead
+    (``compute_cop_dhw``). Elementwise, so the batch twin's rows and the
+    scalar step share it."""
+    band = params.max_electrical_power - params.min_electrical_power
+    if band <= 0.0:
+        return 1.0
+    x = (electrical_power - params.min_electrical_power) / band
+    # min/max keep a scalar a float; np.clip is the same IEEE op per row.
+    x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)
+    return 1.0 - params.cop_partload_derate * x
+
+
+def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
+    """Space heat the pump delivers at ``cop`` and ``electrical_power``.
+
+    Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
+    no part-load term is byte-identical to one priced before it."""
+    heat = cop * electrical_power
+    if params.cop_partload_derate:
+        heat = heat * partload_factor(params, electrical_power)
+    return heat
 
 
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
@@ -2806,7 +2850,7 @@ class ThermalModel:
         # where a flow meter read it (#2016) and inferred from the draw and
         # this step's COP everywhere else.
         pump_heat_kw = (
-            cop * electrical_power
+            delivered_heat_kw(self.params, cop, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -2921,7 +2965,7 @@ class ThermalModel:
         # flow meter read it (#2016) and inferred from the draw and this
         # step's COP everywhere else.
         pump_heat_kw = (
-            cop * electrical_power
+            delivered_heat_kw(self.params, cop, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -3180,7 +3224,7 @@ class ThermalModel:
 
         ``measured_heat_kw`` is the pump's thermal output for this step as a
         meter read it (#2016), and it stands in for the
-        ``cop * electrical_power`` both zone steps would otherwise infer; free
+        ``delivered_heat_kw`` both zone steps would otherwise infer; free
         external heat joins it exactly as before. ``None`` -- the default, and
         what every planning call passes, a horizon holding no measurement --
         leaves Q_hp inferred, byte-for-byte the previous behaviour. Trusted
@@ -3711,7 +3755,7 @@ class ThermalModel:
                     # size stays paid for.
                     cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
-                        cop * power_i + (0.0 if two_tank else ext)
+                        delivered_heat_kw(p, cop, power_i) + (0.0 if two_tank else ext)
                     )
                     if throttled:
                         target = (
@@ -3847,7 +3891,7 @@ class ThermalModel:
                     # ineligible exactly as the scalar single-zone step
                     # passes no flow temperature.
                     cop = self._batch_cop(out_i, hum_i, T_buf, False)
-                    thermal_power = cop * power_i + ext
+                    thermal_power = delivered_heat_kw(p, cop, power_i) + ext
                     q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
                     q_loss = u_first * (T_room - out_i)
                     q_internal = (
