@@ -305,6 +305,35 @@ def span_heat(ev: SpanEvidence, modelled_cop: float) -> SpanHeat:
     return SpanHeat(heat_kw, space_heat_kw(heat_kw, ev.attribution, integrated=True), asked_kwh / e.hours, elec_kw, refusal)
 
 
+class SpanClose(NamedTuple):
+    """What a cycle's span close hands the learners (:meth:`HeatEnergyMeter.close_span`).
+
+    ``lower``, ``house`` and ``cop`` name the learners it reaches.
+    """
+
+    #: The fabric interval the span replays, as ``interval_of`` built it from
+    #: its opening state and time, its end, its hours and the plan's asked
+    #: kW; ``None`` when it replays none.
+    interval: Any
+    space_kw: float | None
+    asked_kw: float
+    heat_kw: float | None
+    #: The span's mean draw. Read only when ``refusal`` is ``None``, which a
+    #: span without an electric delta at both instants never is; 0.0 there.
+    elec_kw: float
+    #: The COP learner's refusal, or ``None`` when the span's draw folds.
+    refusal: str | None
+    #: The ``(heat kW, attribution)`` the COP reference curve is chosen on.
+    reference: tuple[float | None, Attribution]
+    lower: bool
+    house: bool
+    cop: bool
+
+
+#: No span closed or was refused this cycle: no learner is reached.
+NO_SPAN = SpanClose(None, None, 0.0, None, 0.0, None, (None, Attribution(0.0, 0.0, False)), False, False, False)
+
+
 @dataclass
 class HeatEnergyMeter:
     """One coordinator's heat and electric counters, its mode dwell and the open span."""
@@ -334,6 +363,26 @@ class HeatEnergyMeter:
         """Fold this cycle's mode read into the dwell: its key, whether it was read live, and when it changed."""
         self.dwell.observe(at, observed_duty(mode_key, live), changed_at)
 
+    def observe_cycle(
+        self, at: datetime, signals: Any, heat: Any, elec_kwh: float | None, cadence_min: float,
+        bounds_h: tuple[float, float], params: Any,
+    ) -> None:
+        """This cycle's mode and counter reads (#2261), as the coordinator holds them.
+
+        ``signals`` is the pump's ``PumpSignals`` (a mode read live,
+        ``mode_live``, is observed), ``heat`` the heat counter's reading (its
+        value only when it read, configured when it names an entity),
+        ``cadence_min`` the optimization interval in minutes, ``bounds_h`` the
+        interval learners' sample bounds and ``params`` the thermal parameters
+        whose nameplate heat bounds a rollover.
+        """
+        self.observe_mode(at, signals.mode.key, signals.mode_live, signals.mode_changed_at)
+        self.observe_counters(
+            at, heat.value if heat.ok else None, elec_kwh, configured=bool(heat.entity_id),
+            cadence_h=cadence_min / 60.0, bounds_h=bounds_h,
+            max_heat_kw=params.max_electrical_power * params.cop_nominal_floored,
+        )
+
     def attribution(self, plan_split: tuple[float, float]) -> Attribution:
         """This cycle's interval, split by the dwell where observed, else by ``plan_split``."""
         return attribution(self.dwell.shares(*self.cycle), plan_split)
@@ -362,9 +411,11 @@ class HeatEnergyMeter:
         self._opened = start is None and self.heat.start is not None
         if heat_kwh is not None and start is not None and start_at is not None:
             self._close(at, start_at, heat_kwh - start, cadence_h, bounds_h, max_heat_kw)
-        keep = self.cycle[0]
-        if self.heat.start_at is not None and (keep is None or _after(keep, self.heat.start_at)):
-            keep = self.heat.start_at
+        # A span closed this cycle is read by ``settle`` after this prune, so
+        # its own opening instant bounds the prune, not the next span's.
+        keep, opened_at = self.cycle[0], self.heat.start_at if start_at is None else start_at
+        if opened_at is not None and (keep is None or _after(keep, opened_at)):
+            keep = opened_at
         if keep is not None:
             self.dwell.prune(keep)
 
@@ -416,6 +467,15 @@ class HeatEnergyMeter:
             self._anchor = None
         return out
 
+    def earns_basis(self, measured_heat: bool) -> bool:
+        """Whether a replay of a measured heat earns the ``measured_heat`` basis now:
+        the first, on an install whose heat figure is measured."""
+        return not self.earned and measured_heat
+
+    def earn_basis(self) -> None:
+        """The ``measured_heat`` basis is earned (after the void path took its prior anchors)."""
+        self.earned = True
+
     def restore_basis(self, stored: Any) -> None:
         """A stored ``measured_heat`` basis restores the earned flag; nothing here clears it."""
         self.earned |= stored == HEAT_LOSS_BASES[-1]
@@ -426,12 +486,56 @@ class HeatEnergyMeter:
         return self.counter and self.earned
 
 
+def close_span(
+    meter: HeatEnergyMeter, clean: dict[str, bool], plan_kw: tuple[float, float], anchor_state: Any,
+    anchor_at: datetime | None, modelled_cop: float, unaligned: str, interval_of: Any,
+) -> SpanClose:
+    """Settle this cycle (:meth:`HeatEnergyMeter.settle`) and read a closed span for its learners.
+
+    A span whose space share was read replays, as ``interval_of(state,
+    state_at, end, hours, asked_kw)``, into each fabric learner whose gates
+    held over it; the COP learner takes the span when its gates held, or the
+    refusal of a span that closed on none. It folds the two counters'
+    deltas, or refuses with ``unaligned`` (the COP evidence's own code)
+    without an electric delta at both instants.
+    """
+    ev = meter.settle(clean, plan_kw, (anchor_state, anchor_at))
+    if ev is None:
+        return NO_SPAN
+    got, e = span_heat(ev, modelled_cop), ev.energy
+    interval = None
+    if got.space_kw is not None and e is not None:
+        interval = interval_of(ev.state, ev.state_at, e.end, e.hours, got.asked_kw)
+    return SpanClose(
+        interval, got.space_kw, got.asked_kw, got.heat_kw, 0.0 if got.elec_kw is None else got.elec_kw,
+        got.refusal or (unaligned if got.elec_kw is None else None), (got.heat_kw, ev.attribution),
+        interval is not None and bool(ev.clean.get("lower")), interval is not None and bool(ev.clean.get("house")),
+        bool(ev.clean.get("cop")) or e is None,
+    )
+
+
+def replay_gate(
+    span_heat_kw: float | None, interval: Any, unmeasured: str | None, frozen: str | None,
+    heat_kw: float | None, spans_own_scale: bool,
+) -> tuple[float | None, bool, str | None, bool]:
+    """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
+
+    A span run (``span_heat_kw``) passed its gates on every cycle already
+    and folds. Otherwise the run reads ``heat_kw``; it leaves the span clean
+    when it had an interval and no freeze with no heat measured
+    (``unmeasured``: the unmetered-power freeze is lifted, since the span
+    replays measured heat); its freeze is ``frozen``, the one with
+    ``heat_kw``; and it folds unless the span folds the scale alone
+    (``spans_own_scale``).
+    """
+    if span_heat_kw is not None:
+        return span_heat_kw, False, None, True
+    return heat_kw, interval is not None and unmeasured is None, frozen, not spans_own_scale
+
+
 _METERS: WeakKeyDictionary[Any, HeatEnergyMeter] = WeakKeyDictionary()
 
 
 def meter_of(owner: Any) -> HeatEnergyMeter:
-    """``owner``'s meter, made on first use."""
-    meter = _METERS.get(owner)
-    if meter is None:
-        meter = _METERS[owner] = HeatEnergyMeter()
-    return meter
+    """``owner``'s meter, made on first use (a meter is always truthy)."""
+    return _METERS.get(owner) or _METERS.setdefault(owner, HeatEnergyMeter())

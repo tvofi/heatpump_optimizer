@@ -1961,7 +1961,8 @@
     "The hover also explains the metric in plain words: seasonal COP by outdoor band, the samples required, and what 'no grade yet' means (owner, 2026-10-25).",
     "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): \"has a heat meter\" becomes probe_install(...).measured_heat, covering both heat keys (heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity). COP-GATE renders the new refusal codes (unaligned_meters and the counter refusals) and never overrides them. Control: a counter install with no electric counter shows unaligned_meters, not a COP gate pass.",
     "D15 live-bundle lead L1 (owner install, 2026-10-25; unverified, from REPORT.md): the vent detector still trips after #2391, 3 trips in about 30 h on 24-25 October (2 at night) and 4 of 7 daily snapshots 9-12 October frozen on `ventilation`, and `_learning_frozen` (`coordinator.py:6610-6690`) returns `ventilation` for every caller's keys, so the COP (`:4937`), DHW (`:9992`), buffer (`:5249`) and sysid (`:10930`) learners freeze with the house heat-loss learner the detector was built for (#26). VERIFY FIRST, at main: (1) replay the detector's CUSUM over a synthetic residual series with and without an open window and report the trip rate on each (the owner's residual series is not in the bundle; a fresh debug collection via `debug_collect start` would capture it, ask the owner for it only if the synthetic arms cannot separate window from bias). (2) Per learner, call `_learning_frozen` with the vent latch set and report which of the four stops learning and what each loses. (3) Test the model-bias reading: the learned heat-loss scale was 2.09, and a detector that trips on bias, not on windows, is the shape #2241 described. THEN a design note (designer.md; whether COP, DHW, buffer and sysid should freeze on a suspected open window is a design call, not a fix), reviewed before any code. Controls: a series with a real window trips and freezes only the house learner; a flat-price, no-window series trips nothing (null); one mutant per learner gate. The owner install also shows the COP side: REPORT.md Follow-up C counts 15 accepted COP folds in its lifetime across 6 buckets, the largest holding 5, against `COP_BASELINE_MIN_SAMPLES` of 20, and says a freeze, the vent latch included, refuses a fold; that is #2262 / this group. Coordinate with R10-CEILING-PROBE, whose F1 (#2808) is the sysid freeze-aborts-the-experiment half of the same latch. (triage: dev/programme/triage/s6-batch24.md#P113)",
-    "D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the snapshot shows `learner_freeze_reason: ventilation` while `ventilation_active: false`, so the freeze reason may be sticky. Writers per the report: `coordinator.py:5251,5368,5430,5521,6509,6526`. VERIFY beside the L1 carry: drive the latch on then off and read the reason at each learner's next tick. Fix only if a reason outlives its cause. Controls: latch on then off clears the reason by the next tick (the expected arm); a reason set by a different cause survives the vent latch clearing (null); one mutant that stops clearing. (triage: dev/programme/triage/s6-batch24.md#P114)"
+    "D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the snapshot shows `learner_freeze_reason: ventilation` while `ventilation_active: false`, so the freeze reason may be sticky. Writers per the report: `coordinator.py:5251,5368,5430,5521,6509,6526`. VERIFY beside the L1 carry: drive the latch on then off and read the reason at each learner's next tick. Fix only if a reason outlives its cause. Controls: latch on then off clears the reason by the next tick (the expected arm); a reason set by a different cause survives the vent latch clearing (null); one mutant that stops clearing. (triage: dev/programme/triage/s6-batch24.md#P114)",
+    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). On a counter install (`heat_pump_heat_energy_entity` configured) the per-cycle COP fold returns `COP_REFUSED_SPAN_OPEN` (`span_open`) on every cycle that passed its gates: the COP folds at the span's close in `_async_learn_heat_span`, through `_fold_cop_evidence`. Render `span_open` as a span still open, never as a refusal or a not-measurable state, and the span refusals `counter_reset`, `counter_rollover`, `counter_resolution` and `span_too_long` (`heat_energy.SPAN_REFUSED_*`) and `unaligned_meters` as their own codes. Control: a counter install whose span folds shows its COP as measured while every cycle in between reads `span_open`."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -2033,7 +2034,8 @@
     "#2809 [D15]: Finalize Debug Collection publishes the wrong unavailable reason, and HA hides it while greyed out; surface the right state.",
     "#2815 [D15]: no UI control starts a new debug collection; only the debug_collect action with start does, and toggling the option off deletes the collection.",
     "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building.",
-    "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): two new input rows, heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity, labelled from strings.json's entities_metering section, and a Health string for the refusal code unaligned_meters. Control: the Health panel on an install with the code renders the string, never the raw code."
+    "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): two new input rows, heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity, labelled from strings.json's entities_metering section, and a Health string for the refusal code unaligned_meters. Control: the Health panel on an install with the code renders the string, never the raw code.",
+    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). Beyond `unaligned_meters`, the COP refusal on a counter install is `span_open` on each cycle between span closes, and a closed span can be refused as `counter_reset`, `counter_rollover`, `counter_resolution` or `span_too_long` (`heat_energy.SPAN_REFUSED_*`). Give each a Health string, `span_open` reading as waiting for the span, not a fault. Control: the Health panel on a counter install mid-span renders the string, never the raw code."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -5102,19 +5104,12 @@
    "fixture": true,
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
-   "carry": [
-    "Carried from #2469 (R10-UPDATE-PR-LOCK) at 931e9a0f, round-4 split under the three-round rule:\n- A SIGKILLed run's holder frees the lock within 2 s while the push that run started may still be running in the worktree. Holding it until that push ends needs a drain of the run's process group, and in a container whose PID 1 reaps orphans late that drain's arm failed 7 of 7 runs (#2469 round 4).\n- A signal to the run's whole process group, such as `kill -TERM -- -<pgid>` or SIGHUP when its terminal closes, also reaches the holder. The holder has no handler, so it exits before the push it covers. This is reasoned from the code, not measured here. (SIGINT does not reach it: bash starts the holder in the background, with SIGINT ignored.)\n- Under `set -e`, any command inside `update_pr.sh` that exits 75 reads to the relay as BUSY and is retried rather than recorded. Today only the lock path exits 75.",
-    "Revision 12 (orchestrator, 2026-10-21): a stale upd-fix-r10-ci-layout-g.lock held dead pids and stalled the relay's handoff arm on PR G for over 30 minutes, and an orphaned update_pr.sh self-test spun 8.6 h at about 67% CPU. This group owns prevention: a lock records its owner's pid and start time and is broken, with a logged line, when that pid is dead or was reused; every self-test runs under a timeout in its own process group, reaped on exit. R10-FLOW-ANDON owns detection.",
-    "update_pr.sh leaves its upd-fix-<branch> worktree checked out on the branch after it exits; the merge train's recarry then parks the PR (3 instances: #2513, #2544, #2547). train --free-holders now cures clean holders; the source fix is that update_pr.sh detaches or removes its own worktree on exit.",
-    "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant.",
-    "From #2549 (review 6319952656, item 01ce8b81), routed by routing audit 1 (2026-10-24): it carried no Carry: marker and is not implemented (real residual; `git grep -iE 'setsid|pgid|process group' origin/main -- tools/audit/seat/cloud_relay.sh tools/audit/seat/update_pr.sh` is empty). Residual, not blocking: the detached holder is a child of the loop's process group, so a group-wide signal to a stopped loop (e.g. `timeout`, or a daemonizer killing the pgid) still takes an in-flight relay with it. That is the same exposure the serial base had, not a regression.",
-    "Trial (triage P163): lock-age andon (V84, narrowed to the push run). Report-only; remove it if it reports no STUCK line in its first 48 h. `pr_branch_lock` (`pr_args.sh:66`) writes its start epoch beside the pid. `cloud_relay.sh` reports any lock older than `HPO_PUSH_STUCK_SECS` (default 900) as `STUCK <branch> <pid> <age>s` on its level, where the tick reads it. It reports only, and the reap stays this group's. Seat and beat SLOs are R10-ORCH-BEATD's carries 8, 15, 17 and 21. Controls: a fixture lock aged 901 s is reported and one aged 899 s is not; a released lock is never reported; a mutant that reads the lock file's mtime instead of the recorded start fails a fixture whose file was touched later. triage: dev/programme/triage/s6-batch29.md#P163"
-   ],
+   "carry": [],
    "architect_note": null,
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "commit": "fd9914851",
     "last_step": null,
@@ -5250,14 +5245,7 @@
    "after": [
     "R10-DEEPLINK-HANDLERS"
    ],
-   "carry": [
-    "H1, the dialog type floor, from the harmony study (probe/card-harmony-design at 6aea0d10b8f2e618d64c684755db9aaa0c624588; its HARMONY.md and four before/after pages live under docs/design/harmony in that ref; read them from the ref, never from memory). Measured: the enlarged dialog's base is 12.0 / 12.0 / 12.9 px at 375 / 768 / 1280 against the card's own 14 px, so its chrome and captions render smaller than the tile's \u2014 what-if hints 10.2, group titles 10.8, the wide legend note 9.1-9.8. The fix: DIALOG_FONT_PX_MIN from 12 to 14, and font-size max(12px, <em>) on the caption roles. Control: measure with the study's harness in the ref (its harness/states.js, page and theme query parameters) at all three widths; the card face is the null arm and must move only in the caption roles. Re-measure at the merge base; the px figures here describe the study's tree, not the fix's.",
-    "H2, the setup page's controls and the Badge. Measured: the dialog's shared rule raises .chip to 1 em but not the layout bar button it also names, so the bar renders 9.8 px beside a 12 px chip. Carry the chip's two dialog lines to the bar button, and land the owner's chosen Badge (probe/card-symbols-design at 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40) with the reconciliation the harmony study owes: glyph stroke 1.5 units (the card's icon and pipe tier, not 1.6), the Configure page-name line 11 units, the disc 18 units rendered at 14.0 / 17.5 / 29.8 px across the three widths, and aria-hidden on the disc because the box's accessible name already carries its type and coil state. Control: the bar's rendered font-size equals the chip's at all three widths, and the disc's px is measured rather than assumed; the box outline and pipe tiers are the null arm that must not change.",
-    "H3, all three arms; the owner took the unthemed dark arm as in scope (tvofi, 2026-10-20). (a) The health and advisor rows take the pair's own surface variable with the card's literal as its fallback: measured 1.20:1 in the arm where the theme does not define the variable, against 11.08:1 on the card's surface-2 token. (b) The health headings drop from 700, the card's only bold weight, to 600. (c) The savings empty state becomes the same empty shape the other three empty states use. Control: the unthemed dark arm is the measurement and a stock dark theme is the null arm, where the row already reads correctly and the change is a no-op; state both in the body.",
-    "H4. The savings replay panel is the one drawing with neither the 8 px axis floor nor a phone min-width, so its labels render 6.2-6.8 px at 375. Give it the setup map's already-shipped treatment inside the <=600 px media query: overflow-x auto on the panel and a 560 px min-width on its svg. Measured effect: labels 10.3-11.2 px at 375, with 768 and 1280 unchanged. Control: the label px at 375 before and after, and the setup map as the shipped precedent for the same tradeoff (a sideways scroll at phone width).",
-    "The study's three one-line corrections, in this pull request. (1) RECEIPT_CSS carries three var(--hpo-text-sm, 14px) fallbacks against a 13 px token \u2014 make the fallback agree with the token. (2) The setup chip comment claims the drawn control wears a legend chip's label size, which is false by width (8.6-18.2 px against 12-12.9) \u2014 correct the comment, since this study does not change that drawing. (3) DIALOG_FONT_PX_MAX at 21 is unreachable because the dialog's width caps at 1700 px and the ratio yields 17.85 px \u2014 lower it to 18 or record it as aspirational. Each corrected claim is anchored to the symbol it describes, never to a line number.",
-    "The study derives 23 views and finds that card_drift.mjs's 40 states pin 18 of them, leaving the Savings page and its empty state, the Health page, the setup not-published state and the advisor empty state with no drift state. Add drift states for those five views in this pull request, or record in the body why a view cannot be pinned; a re-recorded or extended state set carries its reason, and a view left unpinned is named rather than silently absent."
-   ],
+   "carry": [],
    "model": {
     "fixer": "opus",
     "reviewer": "opus",
@@ -5267,7 +5255,7 @@
    },
    "owner_gate": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": null,
     "commit": null,
     "last_step": null,
@@ -6197,7 +6185,8 @@
     "(triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tests ref_privacy --check'): three CI reds on 2026-10-24 (#2735, #2738, #2741) were home paths in added lines of docs-only batch files, and `prepr.sh` has no call to it. Add `python3 -I tools/audit/seat/ref_privacy.py --check` as a prepr step (and to `--body-check`), 0.56 s measured, refusing on any line the diff adds that it judges. Controls: a diff adding a home path to a tracked file refuses and names file and line; the same diff with the path made `~/`-relative or removed passes (null); one self-test row, one mutant that deletes the call. Do not widen to a full-tree scan.",
     "From #2609's red at ff83a3d7 (fast (3.14), check-run 119826108493): a docs PR whose README.md or docs/*.md change moved the round-4 D6 claims counts (dev/audit/rounds/round4/D6/claims.py, rows C108 links and C110 images) reached CI with the committed claims.json and claims.md stale, because its seats ran prepr with PREPR_SKIP_CLOSURES=1 and nothing else runs tests/harness_headers.py' byte-identical check before the push. Owed: prepr runs the executed-harness byte-identity check (or claims.py alone, a few seconds) whenever the diff touches README.md or docs/*.md, even with closures skipped. Null control: a README link added without re-recording goes red in prepr. (moved from R10-PREPR-UNPINNED-RED, appended after done; seam: prepr error-proofing before handoff. Re-measured at origin/main: tools/pr/prepr.sh has no claims.py or harness_headers byte-identity step for README.md/docs diffs.)",
     "Re-homed from #2772 body item 0a016c98 (R10-TRAIN-UPGRADE is done; orchestrator ruling 2026-10-25). The cheaper detector for the `tests / fast (3.14)` red: prepr should predict that red before handoff, so it no longer reaches CI first. Answer it as a jidoka stop at prepr, or record why no cheaper detector exists (defect-root-cause.md cost test).",
-    "Measure first (#2835, main ruling under mandate 6329234399, 2026-10-26): recurring friction on .claude/rules/gate-scoping.md across 6 distinct PRs over v7.0.4..main. Name the 6 PRs and the rule hit each made (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, with a token), then decide whether the keying rule or the gate changes. Fix the cause in this group or record a decision not to, with the numbers. Part of #2835."
+    "Measure first (#2835, main ruling under mandate 6329234399, 2026-10-26): recurring friction on .claude/rules/gate-scoping.md across 6 distinct PRs over v7.0.4..main. Name the 6 PRs and the rule hit each made (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, with a token), then decide whether the keying rule or the gate changes. Fix the cause in this group or record a decision not to, with the numbers. Part of #2835.",
+    "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant."
    ],
    "architect_note": "",
    "brief": "Error-proofing before handoff (Lean study K2). Of 133 blocked fix reviews in round 10, 25 were carry-missing: a finding with no destination, a fact tools/audit/carry_audit.py checks offline with its check subcommand and --body, and which pr-contract.yml already runs after the push. Add one prepr step that runs that same check on the body the fixer hands off, so the refusal lands before review instead of after it. Run the existing checker; add no new rule (decision 0012). Also report why the red-check answer arm of prepr (reds_line, gated before its call site) did not fire on the round's root-cause-unanswered and ci-red blocks, and fix the gate if it is a defect. Revision 8: pass carry_audit.py --roster-ref with the freshly fetched round roster branch (roster_lib.round_ref); the worktree's roster is not where fix-review step 10 looks, so an offline check passes a carry that is not on the roster branch. Controls: a fixture body whose carry exists only in the worktree roster is refused; a fixture body with an unrouted Forward-carry item is refused at the new step and passes once routed; the prepr self-test count rises by exactly the new arms; the step's mutant (step deleted) fails the self-test. Carry from #2528 (R10-PREPR-CAP): tools/pr/prepr.sh steps 3 to 3h run heavy work in the foreground, so a KILL or TERM to prepr during step 3h leaves the self-test or mutants drive running or deferred; the fix shape is closures-step-style background-and-trap for each heavy step.",
@@ -9452,7 +9441,8 @@
    "carry": [
     "From #2514 (R10-REPLAY-LANE, merged 0280e6e), body: the group's headline item, a real recorded day, is not in the tree; tests/replay/ holds only synthetic-dhw-only.json (git ls-tree origin/main tests/replay/). It must be produced on the owner's Home Assistant box with `python3 tools/replay/export.py --config-dir /config --days 1 --out /config/hpo-replay-<day>.json`, checked with `export.py --check`, then committed as tests/replay/<day>.json.",
     "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it.",
-    "#2810 [D15]: a non-credential string collision refuses the whole replay half, and the refusal names nothing."
+    "#2810 [D15]: a non-credential string collision refuses the whole replay half, and the refusal names nothing.",
+    "From R10-HEAT-METER (#2261; D15 lead L9, finding-propagation.md). Each weekly learner snapshot now records `unhealthy_input`. It holds the first reason `_inputs_unhealthy` gave on that day: the rule over the indoor, outdoor and power inputs that marks a snapshot unhealthy. The house meter is not one of its inputs. On a healthy day it holds None. Read it in the next live bundle. Name which input marked each unhealthy weekly snapshot, and say whether that input was genuinely silent or whether outdoor's 180 min on-change limit flagged a quiet, healthy sensor. Change that limit only on that evidence. Controls: a week with every input reporting marks the snapshot healthy and names none (null); a week with one input silent all day names that input."
    ],
    "resume": {
     "stage": "not-started",
@@ -9990,7 +9980,7 @@
    "architect_note": null,
    "brief": "GROUP R10-LEGIONELLA-COMPLETION (new, size S, triage: dev/programme/triage/s6-batch24.md#P120). D15 live-bundle lead L8, owner install, 2026-10-25, unverified: the last completed anti-legionella cycle was about 66 days before the diagnostics export, against a 7-day interval, and the last attempt, 4 days before the export, peaked below the configured legionella temperature. MEASURE FIRST, at main, before any fix: (1) drive `legionella.py` through a synthetic install whose last completion is 66 days old with a 7-day interval, a pump whose reachable DHW ceiling is below the configured legionella temperature, and the same install with a reachable target; report for each whether the plan commands the cycle, which of the guard's outcomes fire (`raise_unreachable_issue`, `check_ceiling`, `raise_unverified_issue`, `check_mode_block`, the boost cap `DHW_LEGIONELLA_BOOST_MAX_HOURS` and the hold `DHW_LEGIONELLA_HOLD_MINUTES`) and what the person is told. (2) State what a cycle that peaks below target does to `hours_since` and the due time: the next attempt must come sooner than the interval, not later. (3) Establish whether the person sees a repair notice for an overdue cycle (the safety question: an overdue cycle must be loud). Fix what the measurement shows. Controls: the reachable-target install completes a cycle and resets `hours_since` (null); an unreachable target never marks a cycle complete and raises a notice within the interval; an attempt that peaks below target leaves the cycle due; one mutant per arm. Do not weaken the completion test to make the cycle pass; do not change the configured temperature.",
    "resume": {
-    "stage": "queued",
+    "stage": "done",
     "branch": null,
     "commit": null,
     "last_step": null,
@@ -10201,11 +10191,9 @@
     ".github/workflows/nightly.yml",
     "tools/audit/seat/record_row.py"
    ],
-   "carry": [
-    "Main-red hotfix (orchestrator, 2026-10-26, hotfix ruling: merges on a green gate, review afterwards, still a real verdict for merge_pr.sh). Defect from #2836: the record-autofix step's batch gate in .github/workflows/nightly.yml reads batch=$? after a record_row.py --batch-due call that exits 4 by design; the step runs under GitHub's default bash -e, so exit 4 kills the step before batch=$? and every push below the floor of 8 owed rows turns record-autofix red (job 121376503388 at main d181d014). Root-cause seat runs beside this fix (topic r10-rca-hotfix-batch-errexit)."
-   ],
+   "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-batch-errexit",
     "commit": null,
     "last_step": null,
@@ -10255,6 +10243,101 @@
     "branch": "handoff/r10-rca-ratelimit-recur"
    },
    "brief": "Root-cause seat on dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md for the recurrence of the installation rate-limit red after R10-RCA-INSTALL-RATELIMIT. Read dev/audit/rca/install-ratelimit.md; attribute the burst's demand from the RATE_LIMIT before/after lines the record job prints in .github/workflows/governance.yml and from the runs concurrent with it; owe a named cause, a process state, a cost test with numbers and the record's M3 decided as a countermeasure or a recorded refusal."
+  },
+  {
+   "group": "R10-ERREXIT-COUNTERMEASURES",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [
+    "R10-RCA-HOTFIX-BATCH-ERREXIT"
+   ],
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/gate-sweep.yml",
+    "tests/entities.py",
+    "tests/arch_score.py",
+    "dev/audit/harnesses/r10_errexit_capture.py"
+   ],
+   "carry": [
+    "From #2849 (R10-RCA-HOTFIX-BATCH-ERREXIT). (1) Land countermeasure A: a tree-wide check over every errexit `run:` block (default shell, `bash`, `sh`) that refuses a `$?` read whose producer is a bare simple command, including a read in an `if`/`while`/`until` test, replacing `_RAF_BARE_GREEN`; reference logic and selftest are `dev/audit/harnesses/r10_errexit_capture.py` at e1a684789. Precondition: the hotfix line is on main (#2848, e0ffb1213), met. Control: at main the harness prints `blocks=260 reads=5 hits=0`, exit 0; on `d181d014a` `hits=1`, exit 1; on an empty `.github/` `REFUSED`, exit 2; re-measure with `python3 -I dev/audit/harnesses/r10_errexit_capture.py --root <tree>`. Its own mutation proof is owed by the landing fixer. Gap: A does not see a producer read through `out=$(...)`.",
+    "(2) Fix gate-sweep.yml's sweep step: `out=$(python3 -I tools/ci/gate.py --sweep ...)` under the default `bash -e` ends the step on any program exit of 1 before `case` reads the outcome, so `RATE-LIMITED` prints no annotation and `SWEEP-DONE`, rc 1 is red. Fix the step (`|| true` or a condition form) and switch `tests/entities.py` `_gs_step_verdict` to `bash -e -c`; failing test first: that switch alone fails the U0c check on 3 cases.",
+    "(3) Countermeasure B: switch `_train_hold_status`, `_pt_trigger`, `_cov_trust`, `_cov_marker` (`tests/entities.py`) and `tests/arch_score.py` `base_runs_the_gate` to `bash -e -c`; under `BASH_ENV` unset, all of them except `_gs_step_verdict` stayed green with `-e` on `tests/entities.py` (`tests/arch_score.py`'s `base_runs_the_gate` too).",
+    "(4) Class proposal: a workflow step's meaningful nonzero exit ended by errexit before the step reads it, I1 to I4 as `non_round_instances`, the judge's or orchestrator's to mint."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": ""
+   },
+   "brief": "Fixer for the errexit countermeasures that the root cause of the Nightly record-autofix batch=$? defect (R10-RCA-HOTFIX-BATCH-ERREXIT, PR #2849, hotfix #2848 e0ffb1213) proposed and the fix review of #2849 sharpened. Four carries, each quoted from #2849 handoff-body e78cd811 with its control. Land: (1) countermeasure A, the tree-wide check over errexit run: blocks including a $? read in an if/while/until test after a bare producer, with its selftest case; (2) gate-sweep.yml sweep step fix with _gs_step_verdict switched to bash -e -c, failing test first (the switch alone fails the U0c check on 3 cases); (3) countermeasure B, bash -e -c for the executed-step harnesses in tests/entities.py and tests/arch_score.py, enumerating every bash -c over workflow text with a disposition each; (4) the class proposal for the judge or orchestrator to mint. Failing test first, mutation proof, the finder harness dev/audit/harnesses/r10_errexit_capture.py (at e1a684789) at both ends. Lands after PR #2849 merges (the harness r10_errexit_capture.py is its file).",
+   "architect_note": ""
+  },
+  {
+   "group": "R10-RECORD-API-O1",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [
+    "R10-RCA-RATELIMIT-RECUR"
+   ],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-RCA-RATELIMIT-RECUR"
+   ],
+   "files": [
+    ".github/workflows/governance.yml",
+    ".github/workflows/nightly.yml",
+    "dev/audit/harnesses/record_burst_replay.py",
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "carry": [
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). Decision O-1 (M3), for the seat that dispatches it. **Precondition, met by measurement:** demand after M1+M2 exceeds the 5,000-call `GITHUB_TOKEN` bucket. In the 04:07Z bucket-hour of 2026-10-26 (`dev/audit/rca/ratelimit-recur.md` sections 1.2 and 4) the 4,478 calls spent by 04:49:40Z split record 2,205 (49.2 %), enumerate 1,468 (32.8 %), rest 805 (18.0 %, 18.9/min); unconstrained hour demand about 6,660 (133 %), about 5,740 with M4 (this PR), about 3,910 with O-1 alone and about 2,990 with both. **What O-1 does:** `--stats` and `--sunset` off the record job's push arm to the weekly schedule and the stamp (\u2212555 calls a push; standing cost negative); the friction-cadence change (#959 option B) goes to the owner unless a mandate in force covers it. **The control the dispatch must carry:** demand is record + enumerate + rest, never the record job alone. `record_burst_replay.py` replays the record job only and underreads by the enumerate's share (32.8 % of the hour above); take `bash dev/audit/harnesses/record_api_calls.sh <last v* tag>` (record, expected TOTAL 731 to 743 at the four pushes 21b45524d, 0dfc063fa, bdf69a5c3, df478d40b) plus `python3 dev/audit/harnesses/enumerate_api_calls.py <last v* tag>` (enumerate, expected 364 to 370 with b281d0325's `record_row.py` and 182 to 185 with M4's), with the rest from the M0 `RATE_LIMIT before:`/`after:` lines of the `governance / record` log. Null control: both harnesses at `SINCE=HEAD` (empty window) print 0 calls for 0 merges; `record_api_calls.sh` refuses a zero on a non-empty window. **Re-measure** at the dispatching seat's own merge base: the window `<last v* tag>..origin/main` and so every per-push figure moves with each merge (about 6 calls a merge across the two walkers) and resets at a stamp; re-derive the ledger from the M0 lines of a current bucket-hour, never carry these numbers.",
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). A second M0 pair around Nightly `record-autofix`'s \"Enumerate the window's merges\" step (nightly.yml): `gh api rate_limit` before and after it, printing `used`/`limit`/`reset` as the record job's `RATE_LIMIT before:`/`after:` lines do (`rate_limit` reads are not counted against the limit). Today the enumerate's spend is inferred by splitting interval deltas by step time (record section 1.2). **Control:** after it lands, the enumerate's printed delta on a quiet push equals `enumerate_api_calls.py <last v* tag>` at that push (185 for 185 merges at b281d0325 with M4) within the concurrent rest of that interval; a delta of 0 on a non-empty window means the pair brackets the wrong step. **Re-measure** the expected count at the landing seat's merge base. Workflow file, code-owned: the owner reviews.",
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). Instrument finding, not this PR's defect (fix review of #2852): on a seat whose passwd home is the root account's (`PUBLIC_ACCOUNTS` includes `root`), `python3 tools/audit/seat/ref_privacy.py --check` refuses any added line citing the root-cause role contract as `home-directory`, because the home match has no path-segment boundary; here it refuses `dev/audit/rca/ratelimit-recur.md:7` and nothing else (`1 refused`). Setting `HOME` to a non-root path does not change it on this seat: the instrument also reads the passwd home of the running uid. **Control:** the reviewer's run with the home patched to the CI runner account's home prints `0 refused`; a fix keeps a real host path under the root account's home refused."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": ""
+   },
+   "brief": "Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, decision O-1 (M3): count the record path demand as record + enumerate + rest and fix record_burst_replay.py, which underreads by the enumerate share; carry 2, a second M0 pair (gh api rate_limit before and after) around Nightly record-autofix's enumerate step; carry 3, the ref_privacy.py home-directory match has no path-segment boundary (an instrument finding from the #2852 review). Workflow files are code-owned: the owner reviews. Failing test first, each carry's control re-measured at the landing merge base, never carry the quoted figures.",
+   "hot_files": []
   }
  ]
 }

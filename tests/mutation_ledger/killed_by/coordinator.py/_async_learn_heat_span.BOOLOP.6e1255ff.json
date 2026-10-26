@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_learn_heat_span BOOLOP 6e1255ff",
-  "killed_by": "tests/features.py",
-  "old": "    if got.space_kw is not None and (e := ev.energy) is not None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if got.space_kw is not None or (e := ev.energy) is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

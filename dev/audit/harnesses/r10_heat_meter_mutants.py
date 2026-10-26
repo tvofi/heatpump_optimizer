@@ -35,7 +35,7 @@ import tempfile
 from pathlib import Path
 
 PKG = "custom_components/heatpump_optimizer/"
-HE, CO, FM = PKG + "heat_energy.py", PKG + "coordinator.py", PKG + "flow_meter.py"
+HE, FM = PKG + "heat_energy.py", PKG + "flow_meter.py"
 
 MUTANTS = {
     "N0 null control (a comment)": (HE, "def _after(newer: datetime, older: datetime) -> bool:\n",
@@ -55,7 +55,7 @@ MUTANTS = {
                                  "    if shares is None and False:\n        return Attribution(shares[0], shares[1], True)"),
     "L split at the read, not at last_changed": (
         HE, "Segment(changed_at if changed_at is not None and moved else seen, duty)", "Segment(seen, duty)"),
-    "E earned basis never set": (CO, "    meter.earned = True\n", "    pass\n"),
+    "E earned basis never set": (HE, "        self.earned = True\n", "        pass\n"),
     "A span_clean AND dropped (last cycle wins)": (
         HE, "self._clean = {k: self._clean.get(k, True) and v for k, v in clean.items()}",
         "self._clean = {k: v for k, v in clean.items()}"),

@@ -915,7 +915,9 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     The one place the substitution is decided, so the two interval learners
     and the slab estimate cannot diverge about what the interval delivered.
     """
-    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+    meter = heat_energy.meter_of(coord)
+    split = coord._commanded_split()
+    a = meter.attribution(split)
     return heat_energy.space_heat_kw(coord._flow_bias.heat_output_kw, a, integrated=False)
 
 
@@ -1024,16 +1026,16 @@ async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) ->
 
 
 def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
-    """This cycle's mode and counter reads into the heat-energy meter (#2261)."""
+    """This cycle's mode and counter reads into the heat-energy meter (#2261).
+
+    How the meter reads them is :meth:`heat_energy.HeatEnergyMeter.observe_cycle`'s.
+    """
     ctx = _ctx_of(coord)
-    meter, heat, params = heat_energy.meter_of(coord), reader.read(CONF_HEAT_ENERGY_ENTITY), ctx._thermal_params
-    signals = coord._pump_signals
-    meter.observe_mode(at, signals.mode.key, signals.mode_source == pump_signals.MODE_SOURCE_LIVE, signals.mode_changed_at)
-    meter.observe_counters(
-        at, heat.value if heat.ok else None, coord._measured_energy, configured=bool(heat.entity_id),
-        cadence_h=ctx._config.optimization_interval / 60.0,
-        bounds_h=(HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS),
-        max_heat_kw=params.max_electrical_power * params.cop_nominal_floored,
+    meter = heat_energy.meter_of(coord)
+    heat = reader.read(CONF_HEAT_ENERGY_ENTITY)
+    meter.observe_cycle(
+        at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
+        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
     )
 
 
@@ -1042,17 +1044,14 @@ def _replay_gate(
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
-    ``raw`` is the learner's ``_learning_frozen`` answer. Per cycle: its heat
-    and freeze; whether it leaves a heat counter's span clean, the
-    unmetered-power freeze lifted since the span replays measured heat; and
-    whether it folds, which the span takes over once the basis is earned. A
-    span run (``span_heat_kw``) passed its gates on every cycle already.
+    ``raw`` is the learner's ``_learning_frozen`` answer. The rule is
+    :func:`heat_energy.replay_gate`'s, on the freeze without and with this
+    run's measured heat and on whether the span folds the scale alone.
     """
-    if span_heat_kw is not None:
-        return span_heat_kw, False, None, True
     cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
-    clean = interval is not None and replay_freeze(raw, cfg, 0.0) is None
-    return heat_kw, clean, replay_freeze(raw, cfg, heat_kw), not heat_energy.meter_of(coord).spans_own_scale
+    return heat_energy.replay_gate(
+        span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
+        heat_energy.meter_of(coord).spans_own_scale)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
@@ -1062,12 +1061,11 @@ async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
     the void path runs first, before the replay, and the earned basis is saved.
     """
     meter = heat_energy.meter_of(coord)
-    if heat_kw is None or meter.earned or not probe_install(_ctx_of(coord)._config).measured_heat:
-        return
-    prior = coord._heat_loss_anchors()
-    meter.earned = True
-    coord._reanchor_house_heat_loss_scale(prior)
-    await coord._async_save_thermal_learning()
+    if heat_kw is not None and meter.earns_basis(probe_install(_ctx_of(coord)._config).measured_heat):
+        prior = coord._heat_loss_anchors()
+        meter.earn_basis()
+        coord._reanchor_house_heat_loss_scale(prior)
+        await coord._async_save_thermal_learning()
 
 
 async def _replay_fabric(coord: Any, interval: FabricInterval, heat_kw: float | None, label: str) -> Any:
@@ -1077,31 +1075,30 @@ async def _replay_fabric(coord: Any, interval: FabricInterval, heat_kw: float | 
     basis before it runs (:func:`_async_earn_heat_basis`).
     """
     await _async_earn_heat_basis(coord, heat_kw)
-    state, start, _end, dt_h, power = interval
-    return await _replay_interval(coord, state, power, state.outdoor_temperature, start, dt_h, label, heat_kw)
+    return await _replay_interval(coord, interval.state, interval.power, interval.state.outdoor_temperature,
+                                  interval.start, interval.dt_h, label, heat_kw)
 
 
 async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
     """A heat counter's span, folded at its close on every learner's ANDed gates (#2261).
 
-    ``heat_energy.span_heat`` reads it; the space share replays from the
-    span's opening state, and the COP folds on the two counters' deltas,
-    judged on the span's duty.
+    Which learners it reaches, and on what, is :func:`heat_energy.close_span`'s:
+    the space share replays from the span's opening state, and the COP folds
+    on the two counters' deltas, judged on the span's duty.
     """
-    anchor = (coord._last_house_sample, coord._last_house_sample_time)
-    if (ev := heat_energy.meter_of(coord).settle(clean, coord._commanded_split(), anchor)) is None:
-        return
-    got = heat_energy.span_heat(ev, coord._thermal_model.compute_cop(_ctx_of(coord)._current_state.outdoor_temperature))
-    if got.space_kw is not None and (e := ev.energy) is not None:
-        interval = FabricInterval(ev.state, ev.state_at, e.end, e.hours, got.asked_kw)
-        if ev.clean.get("lower"):
-            await coord._async_learn_lower_floor_loss(interval, got.space_kw)
-        if ev.clean.get("house"):
-            await coord._async_learn_house_heat_loss(interval, got.space_kw)
-    if ev.clean.get("cop") or ev.energy is None:
-        coord._measured_cop.refusal = got.refusal or (COP_REFUSED_UNALIGNED if got.elec_kw is None else (
-            coord._fold_cop_evidence(got.asked_kw, got.elec_kw, got.heat_kw,
-                                     coord._cop_reference_curve((got.heat_kw, ev.attribution)))))
+    ctx = _ctx_of(coord)
+    meter = heat_energy.meter_of(coord)
+    split = coord._commanded_split()
+    modelled_cop = coord._thermal_model.compute_cop(ctx._current_state.outdoor_temperature)
+    close = heat_energy.close_span(meter, clean, split, coord._last_house_sample, coord._last_house_sample_time,
+                                   modelled_cop, COP_REFUSED_UNALIGNED, FabricInterval)
+    if close.lower:
+        await coord._async_learn_lower_floor_loss(close.interval, close.space_kw)
+    if close.house:
+        await coord._async_learn_house_heat_loss(close.interval, close.space_kw)
+    if close.cop:
+        coord._measured_cop.refusal = close.refusal or coord._fold_cop_evidence(
+            close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
 
 
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
@@ -1453,6 +1450,8 @@ HOUSE_LOSS_ALPHA = 0.02
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
+#: The interval learners' ``(min, max)`` sample length, which a heat counter's span lands inside.
+HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS)
 # The re-anchor threshold gate: a nameplate edit within this fraction keeps
 # the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
 # per-interval limit: one sample moves the estimate by at most
@@ -2084,6 +2083,21 @@ def _energy_totals_view(totals: dict[str, float]) -> EnergyTotals:
         "dhw_cost": round(totals["dhw_cost"], 4),
         "total_cost": round(totals["total_cost"], 4),
     }
+
+
+def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float:
+    """The price level the setpoint sweep is priced at: ``kwh_price`` (the
+    grid view's recent kWh price), else the price feed's window mean.
+
+    The sweep ranks candidates by cost, and ranking needs a positive
+    price level: a negative mean flips every ``cost_day`` negative and
+    min-cost then crowns the candidate using the MOST energy. The
+    sweep is a relative comparison, so on a worthless-energy day a
+    floored positive level keeps the ranking meaningful — better than
+    the advisor entity vanishing, which would look like a bug.
+    """
+    level = kwh_price or float(np.mean([p.get("total", 0.0) for p in prices]))
+    return level if level > 1e-6 else max(abs(level), 0.1)
 
 
 def _whatif_banded(state: Any) -> bool:
@@ -4008,7 +4022,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if flow > 0:
             out["shower_minutes"] = round(litres / flow, 1)
         return out
-    def _dhw_setpoint_sweep(self) -> DhwAdvisor:
+    def _dhw_setpoint_sweep(self, kwh_price: float | None = None) -> DhwAdvisor:
         """#9: replay candidate setpoints against everything learned.
 
         Read-only. For each candidate: a day of standby loss at that
@@ -4017,6 +4031,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         priced at the learned COP for that tank temperature and the recent
         mean price. The recommendation is the cheapest candidate that
         still covers the heaviest learned window demand.
+
+        ``kwh_price`` is the grid view's recent kWh price: the card scales a
+        day of this sweep to a month, so the price feed's own window made the
+        row swing with each day's price level (#2257 item 6). That window
+        prices a fresh install, which has none.
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
@@ -4024,15 +4043,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return {}
         c_dhw = params.dhw_tank_thermal_mass
         outdoor = float(ctx._current_state.outdoor_temperature)
-        mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
-        # The sweep ranks candidates by cost, and ranking needs a positive
-        # price level: a negative mean flips every ``cost_day`` negative and
-        # min-cost then crowns the candidate using the MOST energy. The
-        # sweep is a relative comparison, so on a worthless-energy day a
-        # floored positive level keeps the ranking meaningful — better than
-        # the advisor entity vanishing, which would look like a bug.
-        if mean_price <= 1e-6:
-            mean_price = max(abs(mean_price), 0.1)
+        mean_price = _sweep_price(kwh_price, self._prices)
         # The heaviest ready energy any window needs, learned where
         # evidence exists, profile-mean otherwise. Without the fallback a
         # fresh install has a 0 kWh "heaviest window", every candidate
@@ -7703,11 +7714,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms
-            # (#28), the setpoint sweep (#9) and the learned heavy-day
-            # statistics (#32/#20).
+            # (#28) and the learned heavy-day statistics (#32/#20); the
+            # setpoint sweep (#9) is priced in ``_build_data_dict``.
             "dhw_inlet_temperature": round(params.dhw_inlet_reference, 1),
             "dhw_mixed": self._dhw_mixed_water(),
-            "dhw_advisor": self._dhw_setpoint_sweep(),
             "dhw_draw_stats": {
                 label: {
                     "events": self._dhw_learner.draw_stats.count(label),
@@ -7835,6 +7845,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         forecast = self._weather_forecast
         return {
             "current_price": self._get_current_price(),
+            # The level the advisors' monthly figures are priced at (#2257).
+            "recent_kwh_price": self._ledger.recent_kwh_price(dt_util.now()),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(forecast),
             # The outdoor temperature the horizon starts on, beside the
@@ -8009,6 +8021,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._energy_totals_since is None:
             self._energy_totals_since = dt_util.now().date().isoformat()
         data["energy_totals_counting_since"] = self._energy_totals_since
+        data["dhw_advisor"] = self._dhw_setpoint_sweep(data.get("recent_kwh_price"))
         # Which of the battery's stores stand on a thermometer. Labelled
         # here rather than inside the view because this is where the
         # reading map is already assembled (#282).
@@ -8817,7 +8830,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "feasible": breach <= 0.05,
             "comfort_shortfall_c": round(breach, 2),
             "worst_margin_kw": round(candidate_kw - peak, 2),
-            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
         }
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
@@ -11243,11 +11256,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
-            # The same choice held from a steady start (the price tiles'
-            # degree, price_tiles.py): no one-off coast or heat-up in it.
-            "monthly_held_cost_delta": round(price_tiles.per_month(
-                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
+            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(

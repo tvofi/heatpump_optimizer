@@ -529,6 +529,7 @@
    "upper_floor_temperature": false
   },
   "receipts": [],
+  "recent_kwh_price": null,
   "savings_months": [],
   "savings_percentage": null,
   "schedule": [],
@@ -1569,6 +1570,7 @@
      ],
      "dhw": true,
      "dhw_wood_coil": false,
+     "dhw_wood_coil_configured": false,
      "edges": [
       [
        "heat_pump",
@@ -2543,6 +2545,7 @@
      ],
      "dhw": true,
      "dhw_wood_coil": false,
+     "dhw_wood_coil_configured": false,
      "edges": [
       [
        "heat_pump",

@@ -13838,6 +13838,34 @@ R.check(
     ).dhw_coil_active,
     "option + hot water + two-tank model, each necessary",
 )
+# R10-CARD-VOICE: the setup description publishes the option beside the
+# model's gate, so the card can say "configured, not modelled" for the
+# option without the stack -- the case it used to draw nothing for. The
+# furnace is switched on explicitly where the probe is dropped, so the case
+# is the option without the model and not a furnace inferred off.
+_coil_desc = {
+    name: (d["dhw_wood_coil"], d["dhw_wood_coil_configured"])
+    for name, d in (
+        ("full stack", _topo.describe_setup(dict(_coil_cfg))),
+        ("no wood probe", _topo.describe_setup(
+            {k: v for k, v in _coil_cfg.items() if k != "wood_tank_top_entity"}
+            | {"wood_furnace_enabled": True})),
+        ("option off", _topo.describe_setup(
+            {**_coil_cfg, "dhw_wood_coil_enabled": False})),
+        ("no wood furnace", _topo.describe_setup(
+            {**_coil_cfg, "wood_furnace_enabled": False})),
+    )
+}
+R.check(
+    "the setup description tells a configured coil from a modelled one",
+    _coil_desc == {
+        "full stack": (True, True),
+        "no wood probe": (False, True),
+        "option off": (False, False),
+        "no wood furnace": (False, False),
+    },
+    f"(modelled, configured) per case: {_coil_desc}",
+)
 
 def _coil_run(params, wood):
     m = ThermalModel(params)
@@ -16463,6 +16491,7 @@ def _advisor_coord(payload_extra=None, **cfg):
             "power_cap_breach_c": 0.0,
             "projected_peak_kw": 4.0,
             "monthly_cost_delta": -35.0,
+            "monthly_settled_cost_delta": 12.0,
             "baseline_min_room_temperature": 20.6,
             "min_room_temperature": 20.6,
             **(payload_extra or {}),
@@ -16482,7 +16511,7 @@ R.check(
     _adv.get("candidate_fuse_a") == 16
     and _adv.get("current_fuse_a") == 20
     and _adv.get("feasible") is True
-    and _adv.get("cost_delta_sek_month") == -35.0,
+    and _adv.get("cost_delta_sek_month") == 12.0,
     f"got {_adv}",
 )
 R.check(
@@ -17048,6 +17077,87 @@ R.check(
     and _sweep_neg.get("covers_heaviest_window") is True,
     f"got {_sweep_neg.get('recommended_setpoint')} at -1.0/kWh vs {_rec1} at "
     "+1.0/kWh on the same 1500 L tank",
+)
+
+
+# A free-energy day, and one priced exactly at the floor's bound (1e-6/kWh):
+# both rank at the floored level (0.1), so a hotter tank still costs more. An
+# unfloored level prices every candidate at about zero and the ranking ties.
+# The bound itself is a design choice this check prejudges: a level of 1e-6
+# is floored, only one above it is kept.
+def _sweep_at(level):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": level}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+_sweep_free, _sweep_bound = _sweep_at(0.0), _sweep_at(1e-6)
+R.check(
+    "a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one",
+    _sweep_free[-1] > _sweep_free[0] and _sweep_bound == _sweep_free,
+    f"0.0/kWh {_sweep_free}; 1e-6/kWh {_sweep_bound}",
+)
+
+# #2257 item 6: the card scales a day of this sweep to a month, so the
+# published sweep is priced at the grid view's recent kWh price (the
+# ledger's), not the price feed's window. Two days whose windows price 0.5
+# and 2.0 publish one cost once the ledger has settled a level (1.0, the
+# +1.0 day above's); an empty ledger, a fresh install, prices at the window
+# (the control).
+import heatpump_optimizer.coordinator as _r6_cm  # noqa: E402
+from heatpump_optimizer.ledger import SPOT_PRICE_META as _r6_spot  # noqa: E402
+
+
+def _r6_costs(window, level=None):
+    coord = _t2_coord(dhw_tank_volume=1500.0)
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": window}] * 24
+    if level is not None:
+        coord._ledger.observe_meta_mean(_r6_cm.dt_util.now(), _r6_spot, level)
+    data = coord._build_data_dict()
+    return data.get("recent_kwh_price"), [c["cost_per_day"] for c in data["dhw_advisor"]["candidates"]]
+
+
+_r6_base = [c["cost_per_day"] for c in _sweep["candidates"]]
+_r6_low, _r6_high, _r6_fresh = _r6_costs(0.5, level=1.0), _r6_costs(2.0, level=1.0), _r6_costs(2.0)
+R.check(
+    "#2257: the published setpoint sweep prices at the recent kWh price, whatever the day's window",
+    _r6_low == _r6_high == (1.0, _r6_base),
+    f"window 0.5 {_r6_low} window 2.0 {_r6_high} level 1.0 {_r6_base}",
+)
+R.check(
+    "#2257: with no settled interval the sweep prices at the feed's window (control)",
+    _r6_fresh[0] is None and _r6_fresh[1] != _r6_base
+    and all(abs(x - 2.0 * y) <= 0.011 for x, y in zip(_r6_fresh[1], _r6_base)),
+    f"{_r6_fresh} vs {_r6_base}",
+)
+R.check(
+    "#2257: the sensor-gap row prices at the recent kWh price, the price now only without one",
+    _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 1.1, "current_price": 3.0}, {}) == 1.1
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": None, "current_price": 3.0}, {}) == 3.0
+    and _r9p8_sensor._gap_energy_rate({"recent_kwh_price": 0.0, "current_price": 3.0}, {}) == 3.0,
+)
+# The level: the time-mean spot over this month and the one before, plus the
+# grid fee their kWh paid; a month older than that is not in it, and a ledger
+# with no settled interval has none.
+from heatpump_optimizer.ledger import MonthlyLedger as _r6_ledger_cls  # noqa: E402
+
+_r6_l = _r6_ledger_cls()
+_r6_jan = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+_r6_none = _r6_l.recent_kwh_price(_r6_jan)
+for _r6_at, _r6_p in ((datetime(2025, 11, 30, tzinfo=UTC), 90.0), (datetime(2025, 12, 31, 23, 0, tzinfo=UTC), 1.0),
+                      (datetime(2025, 12, 2, tzinfo=UTC), 1.0), (datetime(2026, 1, 3, tzinfo=UTC), 4.0)):
+    _r6_l.observe_meta_mean(_r6_at, _r6_spot, _r6_p)
+_r6_spot_only = _r6_l.recent_kwh_price(_r6_jan)
+_r6_l.add(datetime(2025, 12, 5, tzinfo=UTC), "grid_fee", kwh=10.0, sek=2.0)
+_r6_l.add(datetime(2026, 1, 5, tzinfo=UTC), "grid_fee", kwh=30.0, sek=10.0)
+R.check(
+    "#2257: the recent kWh price is this month's and last month's spot mean plus their fee per kWh",
+    _r6_none is None and _r6_spot_only == 2.0
+    and abs(_r6_l.recent_kwh_price(_r6_jan) - (2.0 + 12.0 / 40.0)) < 1e-12
+    and _r6_l.recent_kwh_price(datetime(2026, 1, 1, 0, 30, tzinfo=UTC)) == _r6_l.recent_kwh_price(_r6_jan),
+    f"empty {_r6_none} spot only {_r6_spot_only} with fees {_r6_l.recent_kwh_price(_r6_jan)}",
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
@@ -34681,11 +34791,12 @@ R.check(
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
 R.check(
-    "#2257: a degree tile reads the held figure, the cap tile the plan's",
+    "#2257: a degree tile reads the held figure, the cap tile the plan's settled one",
     price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
     and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
-                           {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
+                           {"monthly_cost_delta": -40.0, "monthly_held_cost_delta": 0.0,
+                            "monthly_settled_cost_delta": 4.0}) == 4.0
     and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
@@ -34713,6 +34824,20 @@ R.check(
         {"day": "2026-02-10", "sum": 900.0, "count": 1},
         {"day": "2026-02-09", "sum": 10.0, "count": 2}]}}, _pt_today)["t"]["monthly_cost_delta"] == 5.0
     and price_tiles.published({"t": {"days": [{"day": "2025-11-01", "sum": 1.0, "count": 1}]}}, _pt_today) == {},
+)
+# Days of unequal sample counts, which production's rotation folds (a solve
+# that errors, a restart, a changed interval): a day solved once at 0 and a day
+# solved three times at 12 publish 6, each day weighing alike. Pooling every
+# sample would read 9 and let the busier day dominate; the equal-count fixture
+# above cannot tell the two apart (#2572 review, MX4).
+_pt_uneven = price_tiles.fold([], _pt_today - timedelta(days=1), 0.0)
+for _pt_i in range(3):
+    _pt_uneven = price_tiles.fold(_pt_uneven, _pt_today, 12.0)
+R.check(
+    "#2257: a day solved once and a day solved three times weigh alike in the published mean",
+    [d["count"] for d in _pt_uneven] == [1, 3]
+    and price_tiles.published({"t": {"days": _pt_uneven}}, _pt_today)["t"]["monthly_cost_delta"] == 6.0,
+    f"{_pt_uneven} -> {price_tiles.published({'t': {'days': _pt_uneven}}, _pt_today)}",
 )
 _pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
 _pt_restored = {"stale": {"days": _pt_days[:1]}}
@@ -34763,7 +34888,7 @@ async def _pt_degree_at_seam(room):
     await coord.async_run_optimization()
     record = _solve_record_now(coord)
     out = {}
-    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
+    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power):
         answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
         out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
@@ -34796,6 +34921,18 @@ R.check(
         and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
         for h in (3, 15)),
     f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
+)
+# A cap keeps the schedule, so the cap tile (and the fuse advisor) read the
+# plan's spend with the heat it left unstored bought back. Unsettled, the
+# figure moves with where the house starts; settled, a coasted and a
+# pre-heated house part it by less (r10_advisor_residue.py whatif sizes both).
+_pt_cap = {k: v["power_cap_75"] for k, v in _pt_seams.items()}
+R.check(
+    "#2257: the cap tile reads the settled figure, which the house's start moves less than the plan's",
+    all(_pt_cap[k][0] is not None for k in _pt_cap)
+    and all(abs(_pt_cap[(h, 19.0)][0] - _pt_cap[(h, 23.0)][0])
+            < abs(_pt_cap[(h, 19.0)][1] - _pt_cap[(h, 23.0)][1]) for h in (3, 15)),
+    f"(settled, plan) by (hour, room): {_pt_cap}",
 )
 
 
@@ -35026,11 +35163,20 @@ _lg_short = _lg_coord()
 _lg_before = _lg_short._legionella.hours_since()
 _lg_cycle(_lg_short, [50.0, 52.0, 53.5, 54.0])
 _lg_after = _lg_short._legionella.hours_since()
+_lg_due_after = _lg_short._legionella.due_in_hours()
+# R10-LEGIONELLA-COMPLETION (D15 lead L8): the shortfall leaves the cycle due
+# again a day later, not a whole interval later. Spaced by the interval, one
+# cut-off boost a week was all an install that never finished ever got.
 R.check(
-    "a tank that never gets hot still completes its cycle rather than "
-    "latching overdue",
-    _lg_before > 168.0 and _lg_after < 1.0,
-    f"{_lg_before:.0f} h before, {_lg_after:.2f} h after",
+    "a tank that never gets hot is retried a day later, neither latching "
+    "overdue nor waiting out the interval",
+    _lg_before > 168.0
+    and _lg_after is not None
+    and 143.0 < _lg_after < 145.0
+    and _lg_due_after is not None
+    and 23.0 < _lg_due_after <= 24.0
+    and _lg_due_after == _lg_short._legionella.due_in_hours(),
+    f"{_lg_before:.0f} h before, {_lg_after} h after, due in {_lg_due_after} h",
 )
 R.check(
     "…and it is recorded as an attempt, not as a successful cycle",
@@ -35049,16 +35195,210 @@ R.check(
     f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
+# A window the plan reopens inside that retry is the same attempt: the cycle
+# step flaps between step 0 and step 1, and a re-stamp per solve would keep
+# the retry a day away for ever.
+_lg_fold_stamp = _lg_short._legionella.attempt
+_lg_cycle(_lg_short, [54.0, 55.5])
+R.check(
+    "a window reopened inside the retry folds into its attempt, peak kept",
+    _lg_short._legionella.attempt == _lg_fold_stamp
+    and _lg_short._legionella.attempt_peak == 55.5
+    and _lg_short._legionella.last_cycle == _LG_LAST,
+    f"stamp {_lg_short._legionella.attempt!r} (was {_lg_fold_stamp!r}), "
+    f"peak {_lg_short._legionella.attempt_peak!r}",
+)
+
+
+def _lg_overdue(coord):
+    """The overdue notice's placeholders as the guard's own cycle leaves them."""
+    _asyncio.run(coord._legionella.async_observe(None, None))
+    for i in getattr(coord.hass, "issues", []):
+        if i[1] == "dhw_legionella_overdue":
+            return i[2].get("translation_placeholders")
+    return None
+
+
+# The last completion is what is overdue, whatever the attempts did: a cycle
+# with a silent probe, or one cut off before it got hot, raises none of the
+# attempt notices, and that is how 66 days went by without a word.
+_lg_overdue_short = _lg_overdue(_lg_short)
+_lg_silent = _lg_coord()
+_lg_cycle(_lg_silent, [None, None])
+_lg_overdue_silent = _lg_overdue(_lg_silent)
+R.check(
+    "a cycle overdue since its last confirmed completion is loud, with a "
+    "silent probe too",
+    _lg_overdue_short is not None
+    and int(_lg_overdue_short["days"]) >= 8
+    and _lg_overdue_short["interval_days"] == "7"
+    and _lg_overdue_silent is not None
+    and not any(
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_unverified")
+        for i in getattr(_lg_silent.hass, "issues", [])
+    ),
+    f"short {_lg_overdue_short!r}, silent probe {_lg_overdue_silent!r}",
+)
+
+# Round 2 of R10-LEGIONELLA-COMPLETION: each line below is one the mutation
+# table found deletable or movable with every driver green.
+import logging as _lgx_logging
+
+import heatpump_optimizer.issues as _lgx_issues_mod
+from heatpump_optimizer.legionella import days_since_confirmed as _lgx_days
+
+# The overdue threshold is the interval itself, not past it by a day, nor by
+# a whole second interval: at exactly 7 d nothing is overdue yet, an hour
+# later it is, and the notice says 7 whole days.
+_lgx_t = _LG_LAST
+R.check(
+    "the overdue notice comes due at the interval, not before and not an "
+    "interval late",
+    _lgx_days(_lgx_t, _lgx_t + timedelta(days=7), 7.0, watched=True) is None
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=7, hours=1), 7.0, watched=True)
+    == 7
+    and _lgx_days(_lgx_t, _lgx_t + timedelta(days=13), 7.0, watched=True) == 13,
+    "7 d, 7 d + 1 h, 13 d on a 7-day interval",
+)
+_lgx_8d = _lg_coord()
+_lgx_8d._legionella.last_cycle = dt_util.now() - timedelta(days=8, hours=1)
+_lgx_8d_overdue = _lg_overdue(_lgx_8d)
+R.check(
+    "…and the guard raises it one day past a 7-day interval",
+    _lgx_8d_overdue is not None and _lgx_8d_overdue["days"] == "8",
+    f"{_lgx_8d_overdue!r}",
+)
+
+# A probe on the tank is not consent to disinfect it: with the cycle switched
+# off, or no hot water at all, an old completion stamp is no news. The
+# enabled twin is the null control, the same coordinator with one flag back.
+_lgx_off = _lg_coord()
+_lgx_off._thermal_params.dhw_legionella_enabled = False
+_lgx_off_overdue = _lg_overdue(_lgx_off)
+_lgx_nodhw = _lg_coord()
+_lgx_nodhw._thermal_params.dhw_enabled = False
+_lgx_nodhw_overdue = _lg_overdue(_lgx_nodhw)
+_lgx_off._thermal_params.dhw_legionella_enabled = True
+_lgx_on_overdue = _lg_overdue(_lgx_off)
+R.check(
+    "the overdue notice stays down with disinfection or hot water off, a "
+    "tank probe notwithstanding",
+    _lgx_off_overdue is None
+    and _lgx_nodhw_overdue is None
+    and _lgx_on_overdue is not None,
+    f"legionella off {_lgx_off_overdue!r}, no hot water "
+    f"{_lgx_nodhw_overdue!r}, enabled twin {_lgx_on_overdue!r}",
+)
+
+# Raised once while its day count stands, as the other notices are: the
+# memo is what stops a registry write on every cycle.
+_lgx_writes: list[str] = []
+_lgx_ir = _lgx_issues_mod.ir
+_lgx_orig = _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue
+_lgx_ir.async_create_issue = lambda *a, **k: _lgx_writes.append(f"create {a[2]}")
+_lgx_ir.async_delete_issue = lambda h, d, iid: _lgx_writes.append(f"delete {iid}")
+try:
+    _lgx_memo = _lg_coord()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.last_cycle = dt_util.now()
+    _lgx_memo._legionella.check_overdue()
+    _lgx_memo._legionella.check_overdue()
+finally:
+    _lgx_ir.async_create_issue, _lgx_ir.async_delete_issue = _lgx_orig
+_lgx_overdue_writes = [w for w in _lgx_writes if w.endswith("dhw_legionella_overdue")]
+R.check(
+    "the overdue notice is written once per change, not on every cycle",
+    _lgx_overdue_writes
+    == ["create dhw_legionella_overdue", "delete dhw_legionella_overdue"],
+    f"{_lgx_overdue_writes}",
+)
+
+
+# The retry window, at its edge: a window reopened a second inside the day
+# folds into the attempt and keeps its higher peak; one reopened at the day
+# itself is a fresh attempt.
+def _lgx_at(when, coord, temps):
+    _fi_dt.freeze(when)
+    try:
+        _lg_cycle(coord, temps)
+    finally:
+        _fi_dt.freeze(None)
+
+
+_lgx_t0 = dt_util.now().replace(microsecond=0)
+_lgx_edge = _lg_coord()
+_lgx_at(_lgx_t0, _lgx_edge, [50.0, 54.0])
+_lgx_first = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24, seconds=-1), _lgx_edge, [52.0])
+_lgx_folded = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+_lgx_at(_lgx_t0 + timedelta(hours=24), _lgx_edge, [53.0])
+_lgx_fresh = (_lgx_edge._legionella.attempt, _lgx_edge._legionella.attempt_peak)
+R.check(
+    "a window inside the retry folds into its attempt and keeps the higher "
+    "peak; one at the retry's end is a fresh attempt",
+    _lgx_first == (_lgx_t0, 54.0)
+    and _lgx_folded == (_lgx_t0, 54.0)
+    and _lgx_fresh == (_lgx_t0 + timedelta(hours=24), 53.0),
+    f"first {_lgx_first!r}, folded {_lgx_folded!r}, fresh {_lgx_fresh!r}",
+)
+
+# An attempt no newer than the last completion is spent: the window after it
+# is a fresh attempt, never folded into one the completion already answered.
+_lgx_spent = []
+for _lgx_lag in (timedelta(0), timedelta(hours=1)):
+    _lgx_c = _lg_coord()
+    _lgx_c._legionella.last_cycle = _lgx_t0
+    _lgx_c._legionella.attempt = _lgx_t0 - _lgx_lag
+    _lgx_c._legionella.attempt_peak = 54.0
+    _lgx_at(_lgx_t0 + timedelta(hours=1), _lgx_c, [53.0])
+    _lgx_spent.append(_lgx_c._legionella.attempt)
+R.check(
+    "an attempt at or before the last completion is spent, and the next "
+    "window stamps its own",
+    _lgx_spent == [_lgx_t0 + timedelta(hours=1)] * 2,
+    f"{_lgx_spent!r}",
+)
+
+# A mode block holding an overdue cycle is logged as well as raised: the
+# log is where a diagnostics bundle carries it.
+_lgx_log: list[str] = []
+
+
+class _LgxHandler(_lgx_logging.Handler):
+    def emit(self, record):
+        _lgx_log.append(f"{record.levelname} {record.getMessage()}")
+
+
+_lgx_logger = _lgx_logging.getLogger(_lgx_days.__module__)
+_lgx_handler = _LgxHandler(_lgx_logging.WARNING)
+_lgx_logger.addHandler(_lgx_handler)
+try:
+    _lgx_blocked = _lg_coord()
+    _lgx_blocked._legionella.check_mode_block(True)
+finally:
+    _lgx_logger.removeHandler(_lgx_handler)
+R.check(
+    "a mode block holding an overdue cycle is logged as a warning",
+    any(
+        m.startswith("WARNING") and "cannot be planned" in m for m in _lgx_log
+    ),
+    f"{_lgx_log}",
+)
+
 # A cycle that does reach temperature clears both the attempt and the notice.
 _lg_short._current_action = {"dhw_reason": "idle"}
 _asyncio.run(_lg_short._legionella.async_track(59.5))
 R.check(
-    "a cycle that reaches temperature clears the notice and the attempt",
+    "a cycle that reaches temperature clears the notices and the attempt, "
+    "and restarts the countdown",
     _lg_short._legionella.attempt is None
+    and (_lg_short._legionella.hours_since() or 99.0) < 1.0
     and not any(
-        i[1] == "dhw_legionella_unreachable"
+        i[1] in ("dhw_legionella_unreachable", "dhw_legionella_overdue")
         for i in getattr(_lg_short.hass, "issues", [])
     ),
+    f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
 )
 
 # No tank probe at all: the observer cannot run, so the countdown had no
@@ -35082,6 +35422,16 @@ R.check(
     and _lg_blind._legionella.attempt is not None,
     f"{_lg_blind_since} h since, attempt "
     f"{_lg_blind._legionella.attempt!r}",
+)
+R.check(
+    "…a whole interval later, since a retry without a probe learns nothing, "
+    "and the unverified notice speaks for it rather than the overdue one",
+    _lg_overdue(_lg_blind) is None
+    and any(
+        i[1] == "dhw_legionella_unverified"
+        for i in getattr(_lg_blind.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_blind.hass, 'issues', [])]}",
 )
 
 # A boost nobody commanded must not credit anything.
@@ -35712,9 +36062,16 @@ R.check(
     _lg_gap._legionella.last_cycle == _LG_LAST,
     f"completion {_lg_gap._legionella.last_cycle!r}",
 )
+from heatpump_optimizer.legionella import DHW_LEGIONELLA_RETRY_HOURS as _LG_RETRY_H
+
+# The timer moves to "due again a retry later" (R10-LEGIONELLA-COMPLETION):
+# off the overdue latch, short of a whole fresh interval.
+_LG_RETRY_AGE = 168.0 - _LG_RETRY_H
 R.check(
     "…and the timer moves anyway, instead of latching at 192 h",
-    _lg_gap_before > 168.0 and _lg_gap_after is not None and _lg_gap_after < 1.0,
+    _lg_gap_before > 168.0
+    and _lg_gap_after is not None
+    and _LG_RETRY_AGE <= _lg_gap_after < _LG_RETRY_AGE + 1.0,
     f"{_lg_gap_before:.0f} h before, {_lg_gap_after} h after",
 )
 R.check(
@@ -35762,7 +36119,7 @@ R.check(
     "a boost still commanded after the bound is judged rather than waited on",
     _lg_stuck_before > 168.0
     and _lg_stuck_after is not None
-    and _lg_stuck_after < 1.0
+    and _lg_stuck_after <= _LG_RETRY_AGE + 1e-6
     and _lg_stuck._legionella.attempt_peak == 54.0,
     f"{_lg_stuck_before:.0f} h before, {_lg_stuck_after} h after, peak "
     f"{_lg_stuck._legionella.attempt_peak!r}",
@@ -58753,7 +59110,7 @@ _P3_ALLOWED = {
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
     ("coordinator.py", "_async_learn_heat_span", "compute_cop",
-     "_ctx_of(coord)._current_state.outdoor_temperature"):
+     "ctx._current_state.outdoor_temperature"):
         "the plan's price a closed heat-counter span's expected heat is judged at (#2261)",
     ("coordinator.py", "_replay_step", "simulate_step",
      "state"): "the one replay both interval learners share (R9-UX-10): "
@@ -70415,11 +70772,15 @@ def _he_old_share(split):
     return split[1] / total if total > 1e-6 else 0.0
 
 
-_he_splits = [(s, d) for s in (0.0, 1e-7, 0.2, 1.0, 2.0) for d in (0.0, 1e-7, 0.2, 1.0, 9.0)]
+# 0.15 and 0.85 sit on the 0.15 curve share and its complement exactly, and a
+# total of 1e-6 on the no-weight bound.
+_he_splits = [(s, d) for s in (0.0, 1e-7, 0.15, 0.2, 0.85, 1.0, 2.0)
+              for d in (0.0, 1e-7, 1e-6, 0.15, 0.2, 0.85, 1.0, 9.0)]
 R.check(
     "on the plan's split the COP curve choice and the ledger's hot-water share are "
     "the sites' own rules, bit for bit",
-    all(_he.cop_duty(_he.attribution(None, sp), Coord._COP_CURVE_SHARE)
+    Coord._COP_CURVE_SHARE == 0.15
+    and all(_he.cop_duty(_he.attribution(None, sp), Coord._COP_CURVE_SHARE)
         == _he_old_curve(sp, Coord._COP_CURVE_SHARE) for sp in _he_splits)
     and all(_he.dhw_share(_he.attribution(None, sp)) == _he_old_share(sp) for sp in _he_splits),
 )
@@ -70623,6 +70984,23 @@ R.check(
     f"{_he_removed._heat_loss_anchors()['house_heat_loss_basis']} {_he_removed._house_heat_loss_scale}",
 )
 
+_he_fresh, _he_spent = _he.HeatEnergyMeter(), _he.HeatEnergyMeter()
+_he_spent.earn_basis()
+_he_nohk = _t2_house(**{_TP_KEY: "sensor.heat"})
+_asyncio.run(_he_cm._async_earn_heat_basis(_he_nohk, None))
+_he_hk = _t2_house(**{_TP_KEY: "sensor.heat"})
+_asyncio.run(_he_cm._async_earn_heat_basis(_he_hk, 2.0))
+R.check(
+    "only an unearned meter on a measured-heat install earns the basis, and only "
+    "on a heat reading (null control: the same install with a reading earns it)",
+    (_he_fresh.earns_basis(True), _he_fresh.earns_basis(False), _he_spent.earns_basis(True))
+    == (True, False, False)
+    and _he_nohk._heat_loss_anchors()["house_heat_loss_basis"] == "commanded"
+    and _he_hk._heat_loss_anchors()["house_heat_loss_basis"] == "measured_heat",
+    f"{_he_nohk._heat_loss_anchors()['house_heat_loss_basis']} "
+    f"{_he_hk._heat_loss_anchors()['house_heat_loss_basis']}",
+)
+
 
 # On a counter install, once the basis is earned, the per-cycle path feeds the
 # ventilation detector and folds nothing; the span folds the scale.
@@ -70677,6 +71055,271 @@ R.check(
     f"{_he_led._last_interval_record['realised']['electrical_power']}",
 )
 
+
+# The span's bounds, each at its exact edge, and the dwell's own rules. A
+# mutant that raises is a failed check here, not a crash: ``_he_try`` returns
+# the exception.
+def _he_try(fn):
+    try:
+        return fn()
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _he_span(reads, cadence_h=0.5, max_heat_kw=30.0, meter=None):
+    """``reads`` = [(hours from NOW, heat kWh)]; the closed span and refusal after the last."""
+    m = meter or _he.HeatEnergyMeter()
+    for h, kwh in reads:
+        m.observe_counters(NOW + timedelta(hours=h), kwh, None, configured=True, cadence_h=cadence_h,
+                           bounds_h=_HE_BOUNDS, max_heat_kw=max_heat_kw)
+    return m.closed, m.refusal
+
+
+_he_close_h = _he.close_after_h(0.5, _HE_BOUNDS)
+_he_at_close = _he_span([(0.0, 100.0), (0.5, 101.0), (0.95, 102.0)])
+_he_early = _he_span([(0.0, 100.0), (0.5, 101.0), (0.92, 102.0)])
+R.check(
+    "at a 30 min cadence the span closes 3 min inside the last cadence that fits "
+    "the 1.5 h bound: a read at exactly 0.95 h closes it, one at 0.92 h does not",
+    _he_close_h == 0.95 and _he_at_close[0] is not None and _he_at_close[0].hours == _he_close_h
+    and _he_early == (None, None),
+    f"close_after {_he_close_h!r}; at 0.95 h {_he_at_close}; at 0.92 h {_he_early}",
+)
+_he_at_max = _he_span([(0.0, 100.0), (1.5, 101.0)], cadence_h=1.5)
+_he_idle = _he_span([(0.0, 100.0), (0.5, 100.0), (1.0, 100.0)])
+_he_slack = _he_span([(0.0, 100.0), (0.5, 101.5), (1.0, 103.0)], max_heat_kw=2.0)
+_he_over = _he_span([(0.0, 100.0), (0.5, 101.5), (1.0, 103.5)], max_heat_kw=2.0)
+R.check(
+    "a span of exactly the learners' 1.5 h maximum is read (their bound is strict); "
+    "an idle span reads zero heat, not a reset; a delta of exactly 1.5 x the "
+    "nameplate over the span is read and 1.75 x is a rollover",
+    _he_at_max[0] is not None and _he_at_max[0].hours == _HE_BOUNDS[1] and _he_at_max[1] is None
+    and _he_idle[0] is not None and _he_idle[0].heat_kwh == 0.0 and _he_idle[1] is None
+    and _he_slack[0] is not None and _he_slack[0].heat_kwh == 3.0 and _he_slack[1] is None
+    and _he_over == (None, _he.SPAN_REFUSED_ROLLOVER),
+    f"max {_he_at_max}; idle {_he_idle}; 1.5x {_he_slack}; 1.75x {_he_over}",
+)
+
+_he_q = _he.CounterDelta()
+for _he_kwh in (10.0, 12.0, 13.0, 15.0):
+    _he_q.observe(_he_kwh, NOW)
+_he_span_q1 = _he.SpanEnergy(NOW, NOW, 1.0, 1.0, None, 1.0)
+R.check(
+    "the counter's resolution is its smallest step (2, then 1, then 2 kWh read 1); "
+    "a span expecting exactly one step is read, and one expecting no heat is "
+    "refused without dividing by it",
+    _he_q.quantum == 1.0
+    and _he.resolution_refusal(_he_span_q1, 1.0) is None
+    and _he_try(lambda: _he.resolution_refusal(_he_span_q1, 0.0)) == _he.SPAN_REFUSED_RESOLUTION,
+    f"quantum {_he_q.quantum}; one step {_he.resolution_refusal(_he_span_q1, 1.0)!r}; "
+    f"none {_he_try(lambda: _he.resolution_refusal(_he_span_q1, 0.0))!r}",
+)
+R.check(
+    "with no heat reading, or an observed split with no weight, the space share "
+    "is None, never a division",
+    _he_try(lambda: _he.space_heat_kw(None, _he.Attribution(1.0, 0.0, True), True)) is None
+    and _he_try(lambda: _he.space_heat_kw(3.0, _he.Attribution(0.0, 0.0, True), True)) is None,
+)
+_he_refused_ev = _he.SpanEvidence(None, _he.SPAN_REFUSED_RESET, "s", NOW, {}, (1.0, 0.0),
+                                  _he.Attribution(1.0, 0.0, False))
+R.check(
+    "a refused span reads its refusal, and no heat",
+    _he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))
+    == _he.SpanHeat(None, None, 0.0, None, _he.SPAN_REFUSED_RESET),
+    f"{_he_try(lambda: _he.span_heat(_he_refused_ev, 3.0))!r}",
+)
+
+
+def _he_close(quantum):
+    ev = _he.SpanEvidence(_he.SpanEnergy(NOW, NOW, 1.0, 3.0, 1.0, quantum), None, "s", NOW,
+                          {"house": True, "lower": True, "cop": True}, (1.0, 0.0),
+                          _he.Attribution(1.0, 0.0, True))
+    meter = SimpleNamespace(settle=lambda *_a: ev)
+    return _he_try(lambda: _he.close_span(meter, {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                                          lambda *a: "iv"))
+
+
+_he_coarse, _he_fine = (
+    (c.interval, c.house, c.lower, c.refusal) if isinstance(c, _he.SpanClose) else c
+    for c in (_he_close(None), _he_close(0.01)))
+R.check(
+    "a span whose resolution is refused replays into no fabric learner (null "
+    "control: the same span with a fine counter replays into both)",
+    _he_coarse == (None, False, False, _he.SPAN_REFUSED_RESOLUTION)
+    and _he_fine == ("iv", True, True, None),
+    f"{_he_coarse!r} {_he_fine!r}",
+)
+R.check(
+    "a span run folds its own heat with no freeze; a per-cycle run reads the "
+    "cycle's heat and folds unless the span owns the scale",
+    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, True)
+    == (2.5, False, None, True)
+    and _he.replay_gate(None, "iv", None, None, 1.0, True) == (1.0, True, None, False),
+)
+
+
+# The dwell, at its windows' edges. Hours are from NOW; durations in hours.
+def _he_at(minutes):
+    return NOW + timedelta(minutes=minutes)
+
+
+_he_dw = _he.ModeDwell()
+_he_dw.observe(_he_at(0), _he.SPACE, _he_at(-180))
+_he_dw.observe(_he_at(30), _he.SPACE, _he_at(-180))
+R.check(
+    "an empty dwell, a window of no length and one opening before the first "
+    "read are unobserved",
+    _he.ModeDwell().shares(_he_at(0), _he_at(30)) is None
+    and _he_dw.shares(_he_at(30), _he_at(30)) is None
+    and _he_dw.shares(_he_at(-240), _he_at(30)) is None
+    and _he_dw.shares(_he_at(0), _he_at(30)) == (0.5, 0.0),
+    f"{_he_dw.segments}",
+)
+_he_gap = _he.ModeDwell([_he.Segment(_he_at(0), None), _he.Segment(_he_at(30), _he.SPACE)])
+R.check(
+    "an unobserved stretch before the window leaves the window observed",
+    _he_gap.shares(_he_at(30), _he_at(60)) == (0.5, 0.0),
+    f"{_he_gap.shares(_he_at(30), _he_at(60))}",
+)
+# A mode stamped 5 min ahead of its read (a skewed clock) lands at the read:
+# the next change, 20 min after it, splits the next window 20/10.
+_he_ahead = _he.ModeDwell()
+_he_ahead.observe(_he_at(0), _he.SPACE, _he_at(-180))
+_he_ahead.observe(_he_at(30), _he.DHW, _he_at(35))
+_he_ahead.observe(_he_at(60), _he.SPACE, _he_at(50))
+# A change stamped before the previous read, which saw the old duty, lands at
+# that read: the read is the evidence, the stamp is not.
+_he_behind = _he.ModeDwell()
+for _he_m, _he_d, _he_c in ((-30, _he.SPACE, -180), (0, _he.SPACE, -180), (30, _he.DHW, -5)):
+    _he_behind.observe(_he_at(_he_m), _he_d, _he_at(_he_c))
+R.check(
+    "a change stamped ahead of its read lands at the read, and one stamped "
+    "before the previous read lands at that read",
+    _he_ahead.shares(_he_at(30), _he_at(60)) == (10 / 60, 20 / 60)
+    and _he_behind.shares(_he_at(-30), _he_at(30)) == (0.5, 0.5),
+    f"ahead {_he_ahead.shares(_he_at(30), _he_at(60))} behind {_he_behind.shares(_he_at(-30), _he_at(30))}",
+)
+
+
+# A span whose mode changed inside it splits at the change when it closes: the
+# span's own window, not the last cycle's, is read at the close. Null control:
+# the same span with no change is all space.
+def _he_span_split(second_key, changed_min):
+    m = _he.HeatEnergyMeter()
+    ev = None
+    for minutes, key, changed, kwh in ((0, _HE_HEAT, -180, 100.0), (30, second_key, changed_min, 101.5),
+                                       (60, second_key, changed_min, 103.0)):
+        m.observe_mode(_he_at(minutes), key, True, _he_at(changed))
+        m.observe_counters(_he_at(minutes), kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS,
+                           max_heat_kw=30.0)
+        ev = m.settle({"house": True}, (2.0, 0.0), ("s", _he_at(minutes)))
+    return ev
+
+
+_he_span_dhw = _he_span_split(_HE_DHW, 20)
+_he_span_heat = _he_span_split(_HE_HEAT, -180)
+R.check(
+    "a span that switched to hot water 20 min in splits 20/40 at its close, not "
+    "by the plan (null control: no change reads all space)",
+    _he_span_dhw is not None and _he_span_dhw.attribution == _he.Attribution(20 / 60, 40 / 60, True)
+    and _he_span_heat is not None and _he_span_heat.attribution == _he.Attribution(1.0, 0.0, True),
+    f"switched {_he_span_dhw and _he_span_dhw.attribution}; held {_he_span_heat and _he_span_heat.attribution}",
+)
+
+# The dwell is pruned to what the open span and the cycle still read: a mode
+# flipping every cycle for 20 h keeps a handful of segments, not one per cycle.
+_he_flip = _he.HeatEnergyMeter()
+for _he_i in range(40):
+    _he_flip.observe_mode(_he_at(30 * _he_i), (_HE_HEAT, _HE_DHW)[_he_i % 2], True, _he_at(30 * _he_i - 1))
+    _he_flip.observe_counters(_he_at(30 * _he_i), 100.0 + _he_i, None, configured=True, cadence_h=0.5,
+                              bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+    _he_flip.settle({}, (2.0, 0.0), ("s", _he_at(30 * _he_i)))
+R.check(
+    "the dwell keeps only the segments the open span and the cycle read (40 "
+    "flips leave at most 4)",
+    len(_he_flip.dwell.segments) <= 4,
+    f"{len(_he_flip.dwell.segments)} segments",
+)
+
+# A span reopened on a cycle with no learner baseline has no anchor, so its
+# close hands no evidence rather than an earlier span's opening state.
+_he_noanchor = _he.HeatEnergyMeter()
+_he_noanchor_ev = []
+for _he_i, _he_base in enumerate((NOW, None, None, NOW, None)):
+    _he_noanchor.observe_counters(_he_at(30 * _he_i), 100.0 + 1.5 * _he_i, None, configured=True,
+                                  cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+    _he_noanchor_ev.append(_he_noanchor.settle({"house": True}, (2.0, 0.0), ("s%d" % _he_i, _he_base)))
+R.check(
+    "a span reopened with no baseline closes with no evidence (null control: the "
+    "span before it, anchored, hands its opening state)",
+    _he_noanchor_ev[2] is not None and _he_noanchor_ev[2].state == "s0" and _he_noanchor_ev[4] is None,
+    f"{[(e.state if e else None) for e in _he_noanchor_ev]}",
+)
+
+
+# The coordinator: a closed span reaches each fabric learner whose gates held
+# over it, with the span's space heat, and not one whose gates did not.
+def _he_span_learners(clean):
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power", heat_pump_energy_entity="sensor.e",
+                  **{_HE_KEY: "sensor.he"})
+    c._current_state.outdoor_temperature = 8.0
+    c._current_action = {"power": 2.0}
+    calls = []
+
+    def spy(name):
+        async def learner(interval, span_heat_kw=None):
+            calls.append((name, interval is not None, span_heat_kw))
+            return True
+        return learner
+
+    c._async_learn_house_heat_loss = spy("house")
+    c._async_learn_lower_floor_loss = spy("lower")
+    m = _he.meter_of(c)
+    for i in range(3):
+        at = NOW + timedelta(hours=0.5 * i)
+        m.observe_counters(at, 100.0 + 3.0 * i, 50.0 + 1.0 * i, configured=True, cadence_h=0.5,
+                           bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        c._last_house_sample, c._last_house_sample_time = replace(c._current_state), at
+        _asyncio.run(_he_cm._async_learn_heat_span(c, clean))
+    return calls
+
+
+_he_both_calls = _he_span_learners({"house": True, "lower": True, "cop": False})
+_he_house_gated = _he_span_learners({"house": False, "lower": True, "cop": False})
+R.check(
+    "a closed span reaches the house and lower-floor learners with its 6 kW of "
+    "space heat; a span whose house gate failed reaches the lower floor alone",
+    sorted(_he_both_calls) == [("house", True, 6.0), ("lower", True, 6.0)]
+    and _he_house_gated == [("lower", True, 6.0)],
+    f"both {_he_both_calls}; house gated {_he_house_gated}",
+)
+
+
+# Each fabric learner returns its gate on every path past the gate: the house
+# learner folding and refusing a residual past the bar, the lower floor folding,
+# and the lower floor at exactly its minimum difference (6 K), which folds.
+def _he_learn(coord, method):
+    return _asyncio.run(getattr(coord, method)(coord._close_fabric_interval()))
+
+
+_he_h_ok = _t2_house()
+_he_h_far = _t2_house(observed=25.0)
+_he_l_ok = _t2_house(two_zone=True, lower=19.9)
+_he_l_edge = _t2_house(two_zone=True, lower=19.9, outdoor=20.0 - _he_cm.HOUSE_LOSS_MIN_DELTA)
+_he_learned = (_he_learn(_he_h_ok, "_async_learn_house_heat_loss"),
+               _he_learn(_he_h_far, "_async_learn_house_heat_loss"),
+               _he_learn(_he_l_ok, "_async_learn_lower_floor_loss"),
+               _he_learn(_he_l_edge, "_async_learn_lower_floor_loss"))
+R.check(
+    "each fabric learner returns its span gate (True) when it folds and when it "
+    "refuses a residual past the bar; the lower floor folds at exactly 6 K",
+    _he_learned == (True, True, True, True)
+    and (_he_h_ok._house_heat_loss_samples, _he_h_far._house_heat_loss_samples) == (1, 0)
+    and (_he_l_ok._lower_floor_loss_samples, _he_l_edge._lower_floor_loss_samples) == (1, 1),
+    f"returns {_he_learned}; samples house {_he_h_ok._house_heat_loss_samples}/"
+    f"{_he_h_far._house_heat_loss_samples} lower {_he_l_ok._lower_floor_loss_samples}/"
+    f"{_he_l_edge._lower_floor_loss_samples}",
+)
 
 # The resolution bound was re-measured at the real span (design carry
 # dr3-eps-at-span): a 30 min cadence closes at 1.0 h, where the design's 0.5
