@@ -2915,12 +2915,29 @@ PY
   printf '%s\n' docs/x.md > "$WF/changed"
   claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 0 "6g passes a docs diff whose register the generator rewrites byte-identical (null control)"
   printf '[a](b) [c](d)\n' > "$CG/README.md"; printf '%s\n' README.md > "$WF/changed"
+  # Every refusal arm keys on the refusal's own text as well as its rc: the
+  # header comparison failing to import also returns 1, and on the governance
+  # job's python3 (no voluptuous) it once passed this arm for that reason.
   got=$(claims_reg_line "$WF/changed" "$CG"); r=$?
+  case "$got" in *'re-run it and commit') ;; *) r="$r ($got)" ;; esac
   st "$r" 1 "6g refuses a README link added without re-recording (#2609)"
   case "$got" in *'claims.json claims.md'*'links=2 (header 1)'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and names the stale files and the moved header RESULT"
   printf 'raise SystemExit(4)\n' > "$CG/$CLAIMS_GEN"
-  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 1 "6g refuses when the generator fails, never passes it"
+  got=$(claims_reg_line "$WF/changed" "$CG"); r=$?
+  case "$got" in *"exited 4"*) ;; *) r="$r ($got)" ;; esac
+  st "$r" 1 "6g refuses when the generator fails, never passes it"
+  # The comparison imports tests/harness_headers.py's parsers on whatever
+  # python3 runs prepr. Pinned with the Home Assistant stack blocked, so a
+  # seat whose venv has voluptuous still sees an import that needs it.
+  python3 -I -c 'import contextlib, io, sys
+class Block:
+    def find_spec(self, name, path=None, target=None):
+        if name.split(".")[0] in ("voluptuous", "homeassistant"): raise ModuleNotFoundError(name)
+sys.meta_path.insert(0, Block()); sys.path[:0] = ["tests", "tests/hastub"]
+with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
+h.expected_from, h.printed_from' >/dev/null 2>&1
+  st $? 0 "6g's header parsers import without voluptuous or homeassistant (the governance job's python3)"
   rm -rf "$CG"
   rm -rf "${WF:?}"
 

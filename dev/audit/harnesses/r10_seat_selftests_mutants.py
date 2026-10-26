@@ -12,7 +12,7 @@ does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
 HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38,
 and each per-file id (<file>-<n>), plant one production-line mutant in one
 file -- outside that file's self-test function -- and run only the step
-that names the file: a killed mutant reddens the step, and the same step on
+that names the file (or the one STEP_OF names): a killed mutant reddens the step, and the same step on
 the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
@@ -184,6 +184,35 @@ MUTANTS = [
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
+    # R10-FLOW-JIDOKA (p2): prepr.sh's ref_privacy step, wave-script trigger, D6
+    # claims register (6g), body-push figure lint and --fill-red. prepr-9 and
+    # prepr-10 plant in another file; STEP_OF names the step that grades them.
+    # prepr-10 is the import 6g's comparison must not need: on a python3 with
+    # no voluptuous (CI's) it also reddens the text-keyed refusal arms.
+    ("prepr-1", "tools/pr/prepr.sh",
+     'PRIVACY_LINE=$(privacy_line)\nstep "ref privacy" $? "$PRIVACY_LINE"\n',
+     'PRIVACY_LINE=""\nstep "ref privacy" 0 "$PRIVACY_LINE"\n'),
+    ("prepr-2", "tools/pr/prepr.sh",
+     'echo "REFUSE ref_privacy: $vline"; fi\n  [ "$r" -ne 0 ] || r=$vr\n',
+     'echo "REFUSE ref_privacy: $vline"; fi\n'),
+    ("prepr-3", "tools/pr/prepr.sh",
+     "groups.json\ndev/governance/roles/*.md\ndev/governance/dimensions/*.md'\n", "groups.json'\n"),
+    ("prepr-4", "tools/pr/prepr.sh",
+     '  CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")\n  case $? in\n',
+     '  CLAIMS_REG=""; (exit 3)\n  case $? in\n'),
+    ("prepr-5", "tools/pr/prepr.sh",
+     '  for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done\n', ''),
+    ("prepr-6", "tools/pr/prepr.sh",
+     'echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi\n  [ "$r" -ne 0 ] || r=$fr\n',
+     'echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi\n'),
+    ("prepr-7", "tools/pr/prepr.sh",
+     '  case "$sec" in *mutation*) echo "\\`## Red checks\\` already names mutation; nothing written"; return 3 ;; esac\n', ''),
+    ("prepr-8", "tools/pr/prepr.sh",
+     '  [ "$n" -gt 0 ] || { echo "the diff adds no unpinned mutation site; nothing written"; return 3; }\n', ''),
+    ("prepr-9", "tools/audit/seat/body_push.sh",
+     '  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")\n', ''),
+    ("prepr-10", "tests/harness_headers.py",
+     'sys.path.insert(0, "tests")\n', 'sys.path.insert(0, "tests")\nfrom harness import Results\n'),
     # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
     ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
     ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
@@ -291,6 +320,16 @@ MUTANTS = [
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
+    # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
+    ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
+    # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
+    ("cloud_relay-30", "cloud_relay.sh", '    run, start = int(w[0]), int(w[2])\n',
+     '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
+    ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
+    ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
+    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
+    ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
+    ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
@@ -334,6 +373,9 @@ MUTANTS = [
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
+
+# A mutant planted in a file whose self-test is another instrument's step.
+STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
@@ -442,7 +484,7 @@ def main(want: list[str]) -> int:
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2
-        _, run = step_for(file)
+        _, run = step_for(STEP_OF.get(name, file))
         # The null control per mutant: the same step on the unmutated file
         # must pass, or a red below says nothing about the mutant.
         key = (run, tuple(sorted(extra.items())))
