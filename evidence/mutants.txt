@@ -1,0 +1,11 @@
+Mutants on tests/ci_ratchet.py at c287bc54d210d267228ad36f9cea9f08a9eb5753, each run with `python3 -I tests/ci_ratchet.py --self-test`, restored after (baseline 38 checks, 0 failed)
+M1 work from created_at (queue counted)          5 failed
+M2 base = 0.0 (needs ignored)                     5 failed
+M3 cancelled counted job kept                     1 failed
+M4 --record derive at median                      1 failed
+M5 p90 -> max                                     2 failed
+M6 QUEUE_EPS 2.0 -> 0.0                           0 failed  (SURVIVES; live w40@f3ffb1c63: median 32.550 -> 32.525, p90 34.267 unchanged)
+M7 metric reverted to wall (created -> last tests job) 5 failed
+M8 earliest need instead of latest                5 failed
+M9 every CI job counted, not only tests / *       4 failed
+M10 missing created_at/started_at tolerated       1 failed (incidentally: KeyError in the no-completed-tests-job check; no dedicated check of this refusal)
