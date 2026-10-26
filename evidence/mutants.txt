@@ -1,0 +1,43 @@
+NULL      N0 null control (a comment): 1 of 4460 FEATURE CHECKS FAILED; 0 beyond the null
+KILLED    C1 span closes at the minimum, not past close_after_h: 8 of 4460 FEATURE CHECKS FAILED; 7 beyond the null
+      FAIL a counter span closes on elapsed time, inside the learners' sample bounds, under a drifting cadence and one event-driven cycle (null control: no drift
+      FAIL a counter span folds COP as heat over electricity, exactly the plant's on a known-COP plant; inside the span a cycle folds nothing
+      FAIL an electric counter not read at the close leaves the span unaligned (None), never a delta over other instants
+      FAIL an integer-kWh counter is refused at 0.6 kW, reads 1.5 kW unbiased over its spans (null control: 3.0 kW reads 3.0)
+KILLED    C2 a span past the maximum is not refused: 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL a counter span closes on elapsed time, inside the learners' sample bounds, under a drifting cadence and one event-driven cycle (null control: no drift
+KILLED    Q resolution bound dropped: 3 of 4460 FEATURE CHECKS FAILED; 2 beyond the null
+      FAIL an integer-kWh counter is refused at 0.6 kW, reads 1.5 kW unbiased over its spans (null control: 3.0 kW reads 3.0)
+      FAIL null control for the resolution bound: at the design's 0.5 the one-hour span refuses every integer-kWh span at 1.5 kW, which 1.0 reads
+KILLED    R reset branch dropped: 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL a counter reset and a rollover are refused, and the next span reads true (null control: the same plant without either)
+KILLED    P counter-first precedence dropped: 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL a configured heat counter outranks the thermal power entity and the flow meter, and a cycle reads no heat from it (null control: the thermal entity al
+KILLED    O observed test inverted: 5 of 4460 FEATURE CHECKS FAILED; 4 beyond the null
+      FAIL a single-duty step the arbiter wrote (owned) counts as observed
+      FAIL heat then hot water inside one interval splits at the mode's last_changed (10 of 30 minutes space), and an integrated heat takes that share
+      FAIL the ledger and the diagnosis triple split by the same observed dwell (one third space) where the plan said all space
+      FAIL the same interval on a point reading (thermal power) gives no space figure, not a half (null control: a space-only interval gives the reading)
+KILLED    L split at the read, not at last_changed: 4 of 4460 FEATURE CHECKS FAILED; 3 beyond the null
+      FAIL a mode that left and came back between two reads is an unseen excursion: the interval is unobserved and splits by the plan
+      FAIL heat then hot water inside one interval splits at the mode's last_changed (10 of 30 minutes space), and an integrated heat takes that share
+      FAIL the ledger and the diagnosis triple split by the same observed dwell (one third space) where the plan said all space
+KILLED    E earned basis never set: 3 of 4460 FEATURE CHECKS FAILED; 2 beyond the null
+      FAIL the earned basis is saved and restored with the meter still configured; with it removed the basis is the configured one and the fit is kept, not voide
+      FAIL the first fold that replays a measured heat earns the measured_heat basis, voiding the earlier fit first; the next fold keeps it (null controls: no he
+KILLED    A span_clean AND dropped (last cycle wins): 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL one gated middle cycle refuses that learner's span and only its own; the span replays from its opening state over its plan
+KILLED    I integrated branch ignored: 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL the same interval on a point reading (thermal power) gives no space figure, not a half (null control: a space-only interval gives the reading)
+KILLED    D the heat counter's on-change decision dropped: 4 of 4460 FEATURE CHECKS FAILED; 3 beyond the null
+      FAIL a quiet heat counter holding its value reads fresh; one that re-reported and then fell silent past 180 min is stale; MWh reads as kWh
+      FAIL all 28 age-limited keys: a quiet on-change source is stale only on a key named equal; a silent polling source is stale on every key, remembered past a
+      FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason
+KILLED    L6 the house meter's on-change limit back to 30 min: 4 of 4460 FEATURE CHECKS FAILED; 3 beyond the null
+      FAIL a house meter holding 0 W for 4 h on change only reads 0 kW (PV covering the house); one that re-reported and then fell silent 40 min is stale
+      FAIL all 28 age-limited keys: a quiet on-change source is stale only on a key named equal; a silent polling source is stale on every key, remembered past a
+      FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason
+KILLED    L9 the snapshot ignores the named input: 2 of 4460 FEATURE CHECKS FAILED; 1 beyond the null
+      FAIL a snapshot on an unhealthy day names the input that made it so, and a healthy day names none (D15 L9)
+0 survivor(s) of 13 mutant(s); the null fails ['and the path that proceeds still stamps a resolvable recorded_at (#363)']
+EXIT 0
