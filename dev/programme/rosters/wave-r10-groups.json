@@ -1206,9 +1206,7 @@
    "after": [
     "R10-FAHRENHEIT"
    ],
-   "carry": [
-    "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
