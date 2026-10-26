@@ -818,7 +818,6 @@
     "R10-DEEPLINK"
    ],
    "carry": [
-    "D4 lead, not owed: \"19%\" against \"19 %\".",
     "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so copy that points at a step must name it or link the option's entity. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.",
     "From R10-ARCHSCORE-COVERAGE part 4 (finding-propagation.md): tests/ci_budgets.json gains archscore.card_dead_definitions, which reads 1 for the card's unused textWidth helper (D7-s3-02), and archscore.card_clone_copies, the card's 20-token clone census. This group's ARCH2-s5 C1 and C4 folds delete or use textWidth, taking card_dead_definitions 1 -> 0, and the group re-measures card_clone_copies after those folds and lowers that row by what they remove, in the same pull request. Re-record each row and recorded_at, with the reason in the commit message."
    ],
