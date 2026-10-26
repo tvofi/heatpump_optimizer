@@ -1,0 +1,4 @@
+NOTE #2838 body item 7144c201: R10-FLOW-JIDOKA
+NOTE #2838 body item 15c80cea: R10-FLOW-JIDOKA
+CARRY-AUDIT #2838: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
