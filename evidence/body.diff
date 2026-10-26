@@ -1,0 +1,10 @@
+103c103
+< 11. V64, auto-open on handoff in `cloud_relay.sh`: **not built here.** The carry says it is built on this group's atomic open, so it can only be built once that is merged. It also edits the handoff arm of `cloud_relay.sh`, whose update arm is R10-FLOW-BODY-ONLY's. Its controls (one PR per topic, the second concurrent pass exits 75, handoff-to-open latency before and after) need this head as their "before". Carry: R10-FLOW-BODY-ONLY
+---
+> 11. V64, auto-open on handoff in `cloud_relay.sh`: **not built here.** The carry says it is built on this group's atomic open, so it can only be built once that is merged. It also edits the handoff arm of `cloud_relay.sh`, whose update arm is R10-FLOW-BODY-ONLY's. Its controls (one PR per topic, the second concurrent pass exits 75, handoff-to-open latency before and after) need this head as their "before". Carried into `dev/programme/rosters/wave-r10-groups.json`, stage R10-FLOW-BODY-ONLY (carry index 11), on handoff/audit-r10-roster at 2adcc52871409939e3c9adcc880966845b6f6332. Carry: R10-FLOW-BODY-ONLY
+111c111
+< - Auto-open on handoff (carry 11, V64), built on `open_pr.sh` at this head: `cloud_relay.sh`'s handoff arm runs `open_pr.sh` for a `handoff-no-pr` topic with a body ref, under `pr_branch_lock`. Carry: R10-FLOW-BODY-ONLY
+---
+> - Auto-open on handoff (carry 11, V64), built on `open_pr.sh` at this head: `cloud_relay.sh`'s handoff arm runs `open_pr.sh` for a `handoff-no-pr` topic with a body ref, under `pr_branch_lock`. Carried into `dev/programme/rosters/wave-r10-groups.json`, stage R10-FLOW-BODY-ONLY (carry index 11), on handoff/audit-r10-roster at 2adcc52871409939e3c9adcc880966845b6f6332. Carry: R10-FLOW-BODY-ONLY
+115a116
+> 
