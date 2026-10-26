@@ -665,7 +665,6 @@
     "R10-TARIFF"
    ],
    "carry": [
-    "Null control: the runtime-closure harness reads the optimizer OUT of every leaf after, and the revert arm reads it back IN.",
     "From R10-TARIFF (handoff/r10-tariff at 793116abd): tariff.peak_cost, peak_cost_smooth and peak_cost_batch now take one PeakBilling record, built by HeatPumpOptimizer._peak_billing; never pass the loose tariff arguments."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 11 of 25; before you: R10-CURRENCY, R10-STORE; next: R10-TRUST-RELATIVE, R10-FREQ-DEFROST); optimizer.py (position 2 of 4; before you: R10-TARIFF; next: R10-SAV-REASONS, R10-SOLVER). Owning seam in this group: import edges only (no behaviour). Shape: move symbols to their leaf owners; re-export nothing. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
