@@ -1,0 +1,8 @@
+ custom_components/heatpump_optimizer/diagnostics.py    | 18 +++++++++---------
+ tests/debug_collect.py                                 | 10 ++++++++++
+ .../collection_window.GUARD_OFF.a8c8a109.json          |  6 ++++++
+ .../stored_age_seconds.CMP_BOUND.35961e3b.json         |  6 ++++++
+ .../stored_age_seconds.GUARD_OFF.57cb661b.json         |  6 ++++++
+ .../stored_age_seconds.RETURN_DEL.35961e3b.json        |  6 ++++++
+ 6 files changed, 43 insertions(+), 9 deletions(-)
+(tree = merge-tree fa23170a1 + 63a1c5fe8, vs head)
