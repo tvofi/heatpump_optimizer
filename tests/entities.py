@@ -27831,6 +27831,62 @@ R.check(
     "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
+# The batch gate must survive the step's shell, the `--require-green` trap
+# again: GitHub runs a `run:` block under `bash -e`, so a BARE `record_row.py
+# --batch-due` followed by `batch=$?` ended the STEP with the gate's own exit 4
+# ("batching", by design below the floor) before `batch=$?` ran, and every push
+# below BATCH_FLOOR_ROWS turned record-autofix red with no `RECORD AUTOFIX:`
+# line (job 121376503388, exit 4). The string pin above read the wiring and
+# record_row.py's self-test its exit codes; neither ran the YAML's lines under
+# `-e`. This runs them: the gate's lines cut from the real job, inside a one-try
+# loop, under the runner's `-eo pipefail` and the step's own `-u`, with
+# `python3` stubbed to exit 0, 4, 1 and 2. 0 must reach the apply, 4 must end
+# `batching`, any other nonzero `skip-batch-gate`, and the step must finish.
+def _raf_batch_outcomes(job: str) -> dict[int, str]:
+    lines = job.split("\n")
+    at = next((i for i, l in enumerate(lines) if _RAF_BATCH in l), -1)
+    end = next((i for i in range(max(at, 0), len(lines))
+                if "skip-batch-gate" in lines[i]), -1)
+    # From the `fi` closing the step before it, so the gate's own setup runs.
+    start = next((i for i in range(at, -1, -1) if lines[i].strip() == "fi"), -1)
+    if at < 1 or end < 0 or start < 0:
+        return {}
+    gate = "\n".join(lines[start + 1:end + 1])
+    script = ('set -uo pipefail\npython3() { return "$STUB_RC"; }\n'
+              'status=none\nfor try in 1; do\n' + gate +
+              '\nstatus="apply"; break\ndone\necho "RECORD AUTOFIX: $status"\n')
+    out = {}
+    for rc in (0, 4, 1, 2):
+        run = subprocess.run(
+            ["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+            capture_output=True, text=True, timeout=30,
+            env={"PATH": os.environ.get("PATH", ""), "STUB_RC": str(rc),
+                 "RUNNER_TEMP": "/nonexistent", "EVENT": "push"})
+        m = re.search(r"RECORD AUTOFIX: (\S+)", run.stdout)
+        out[rc] = (m.group(1) if run.returncode == 0 and m
+                   else f"died:{run.returncode}")
+    return out
+
+
+_RAF_BATCH_WANT = {0: "apply", 4: "batching", 1: "skip-batch-gate",
+                   2: "skip-batch-gate"}
+_RAF_BATCH_GOT = _raf_batch_outcomes(_RAF_JOB_RAW)
+R.check(
+    "nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 "
+    "applies, 4 batches, any other nonzero skips, and the step finishes",
+    _RAF_BATCH_GOT == _RAF_BATCH_WANT,
+    f"got {_RAF_BATCH_GOT}, want {_RAF_BATCH_WANT}; a bare call before "
+    "`batch=$?` lets `-e` end the step with the gate's own exit",
+)
+R.check(
+    "and the run reads the job's own lines (null control: the bare call "
+    "dies under `-e`)",
+    _raf_batch_outcomes(re.sub(
+        r" \|\| batch=\$\?", "\n              batch=$?", _RAF_JOB_RAW)
+    ).get(4) == "died:4",
+    "re-baring the gate call must kill the step with exit 4 -- or the check "
+    "ran a shell that is not the runner's",
+)
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
 # API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open
 # record pull request and the create POST was refused 422 "A pull request

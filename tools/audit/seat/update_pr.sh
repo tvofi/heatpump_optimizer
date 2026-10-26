@@ -10,15 +10,19 @@
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
-# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
-# reaps its push's whole tree and ends (pr_args.sh's pr_exit_trap), and frees the lock only once that push has ended.
+# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass); no
+# other stop exits 75. A stopped (TERM/INT/HUP, to the run or its whole group) run reaps its push's whole tree and ends
+# (pr_args.sh's pr_exit_trap); the lock is freed only once that push has ended, a SIGKILLed run's too (pr_push_hold).
+# The lock's holder leaves $WT detached once that push has ended, not holding the branch, a SIGKILLed
+# run's too.
 # With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
 # own verdict replaces the full prepr with the body contract when the push is exactly this PR's
 # row added onto its live head under the body plus this run's note, and runs prepr otherwise; its
 # `app_push: ROW-ONLY:` line, naming which and why, is printed here. A code sha never asks.
-# --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
+# --self-test runs delivery_row.sh's self-test, then pr_args.sh's, under pr_args.sh's self-test bound.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
-[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
+[ "${1:-}" = --self-test ] && { [ -n "${PR_BOUND:-}" ] || pr_bounded update_pr bash "$0" --self-test  # pr_args.sh's bound
+  bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=update_pr; pr_trap; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
@@ -32,7 +36,9 @@ WT=$P/upd-${BR//\//-}
 # when TERM/INT/HUP end the shell too, so a stopped run ends its push rather than leaving it to burn
 # on after the shell (R10-PUSHER-REAP), and only then frees the branch.
 pr_exit_trap
-pr_branch_lock "$WT.lock" "$BR" "$WT"  # one run per branch, with open_pr.sh (pr_args.sh)
+# Held now, so the worktree is this run's: the lock's holder leaves it detached, never holding the
+# branch, which the merge train's recarry would read as checked out elsewhere (#2513, #2544, #2547).
+pr_branch_lock "$WT.lock" "$BR" "$WT" detach  # one run per branch, with open_pr.sh (pr_args.sh)
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -74,7 +80,7 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 RO=""; [ "$C" != - ] || RO=--row-only  # mut:rowonly
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
+{ pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 & } 9>>"$PR_PUSH_LOCK"
 pr_wait $! $WT.log
 grep -h '^app_push: ROW-ONLY:' $WT.log || :
 echo "HEAD=$H"

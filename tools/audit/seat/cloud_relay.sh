@@ -430,9 +430,12 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
     # The update is the reap's lead (pr_args.sh's PR_REAP_LEAD): a stopped relay TERMs it alone,
     # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+    # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
+    # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
+    # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
     # One launch for both routes, so the self-test's stub runs the production launch line.
     urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
-    "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
@@ -462,13 +465,49 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$"
 }
 
+# THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
+# 48 h). A branch lock (pr_args.sh's pr_branch_lock) held longer than HPO_PUSH_STUCK_SECS (default
+# 900) is a run or its push that has not ended: `push-stuck <branch> <pid>` on the level, its why
+# `STUCK <branch> <pid> <age>s`, where <branch> is the lock's name (update_pr.sh's worktree name, `/`
+# as `-`), <pid> the run's and <age> from the start epoch its holder recorded -- never the file's
+# mtime, which the drain mark rewrites. A released lock keeps its text, so only a lock held now is
+# read, by trying it (LOCK_NB) once its age is past the bound: a run that starts in that moment
+# reads BUSY, exit 75, and is retried as any BUSY is. A lock with no start recorded has no age and
+# is not reported. Reaping is update_pr.sh's; this reports only. Unreadable: the level stays.
+STUCK_PY='import fcntl, os, sys, time
+lim, d = int(sys.argv[1]), sys.argv[2]; now = int(time.time())
+def held(f):
+  try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+  except BlockingIOError: return True
+  fcntl.flock(f, fcntl.LOCK_UN); return False
+for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+  if not (n.startswith("upd-") and n.endswith(".lock")): continue
+  try:
+    f = open(os.path.join(d, n)); w = f.read().split()
+    run, start = int(w[0]), int(w[2])
+  except (OSError, IndexError, ValueError): continue
+  if now - start <= lim: continue
+  if not held(f): continue
+  print(n[4:-5], run, now - start)'
+stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SECS is push-stuck on the level
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} b p a
+  mkdir -p "$state" || return 0
+  python3 -I -c "$STUCK_PY" "${HPO_PUSH_STUCK_SECS:-900}" "$state/pr" > "$state/cloud-stuck.$$" \
+    || { echo "cloud_relay: the branch locks could not be read (HPO_PUSH_STUCK_SECS='${HPO_PUSH_STUCK_SECS:-900}'); the level stays" >&2; rm -f "$state/cloud-stuck.$$"; return 0; }
+  : > "$state/cloud-level-stuck.$$"
+  while read -r b p a; do
+    level_line push-stuck "$b" "$p" "STUCK $b $p ${a}s" >> "$state/cloud-level-stuck.$$"; echo "cloud_relay: STUCK $b $p ${a}s"
+  done < "$state/cloud-stuck.$$"
+  rm -f "$state/cloud-stuck.$$"; level_set push-stuck "$state/cloud-level-stuck.$$"
+}
+
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   local every=120 loop=""
   while [ $# -gt 0 ]; do case $1 in
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -957,12 +996,68 @@ EOF
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
   chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  # #2549: a signal to the loop's whole process group reaches the update only through the loop's
+  # reap: the update runs in a group of its own (pr_own_group). grprelay <stub> <pids wanted>
+  # <signal>: one pass in a group of its own, and the signal to that whole group once the update's
+  # tree is up; then $t/go lets a surviving update finish, and its tree's survivors are counted.
+  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nk=0; while [ ! -e "%s/go" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done\necho done >> "%s/marks"\n' \
+    "$t" "$t" "$t" > "$t/finish.sh"; chmod +x "$t/finish.sh"
+  grprelay() {
+    rm -f "$t/state/cloud-handoff-failed" "$t/go"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+    HPO_RELAY_UPDATE=$1 python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp("bash", sys.argv[1:])' bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+    k=0; while [ "$(wc -l < "$t/tpids")" -lt "$2" ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -"$3" -- "-$rp"; wait "$rp" 2>/dev/null; touch "$t/go"
+    k=0; while [ "$3" = KILL ] && ! grep -q done "$t/marks" && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
+      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+    for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done; }
+  grprelay "$t/lead.sh" 2 TERM
+  chk "a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first" \
+    0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  grprelay "$t/finish.sh" 1 KILL 2>/dev/null
+  chk "a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock" \
+    0 test "$tn $(tr '\n' ' ' < "$t/marks")" = "1 done "
+  # THE STUCK ANDON (P163): branch locks as pr_branch_lock writes them, under $HPO_STATE_DIR/pr.
+  # Two held by a fixture holder, aged 901 s and 899 s by their recorded start epoch; one aged
+  # 5000 s and released. All three are written now, so the file's mtime reads age 0 on each. A pass
+  # whose clock moved more than one second from the write to the read could age 899 to 901, so it
+  # is taken again (a condition, not a window). Each is a whole `pass`, its other arms stubbed out.
+  stuckrun() { handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1; }
+  stuckpass() {
+    local k=0 t0 t1 hp; LOG=$t/stuck.log; mkdir -p "$t/state/pr"; rm -f "$t/state/pr"/upd-*.lock "$t/stuck.held"
+    while :; do
+      t0=$(date +%s)
+      printf '111 222 %s\n' $((t0 - 901)) > "$t/state/pr/upd-fix-old.lock"
+      printf '333 444 %s\n' $((t0 - 899)) > "$t/state/pr/upd-fix-young.lock"
+      printf '555 666 %s drain\n' $((t0 - 5000)) > "$t/state/pr/upd-fix-gone.lock"
+      python3 -I -c 'import fcntl, sys, time
+fs = [open(p, "a") for p in sys.argv[2:]]
+for f in fs: fcntl.flock(f, fcntl.LOCK_EX)
+open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd-fix-old.lock" "$t/state/pr/upd-fix-young.lock" & hp=$!
+      while [ ! -e "$t/stuck.held" ] && kill -0 "$hp" 2>/dev/null; do sleep 0.05; done
+      t0=$(date +%s); out=$(stuckrun); t1=$(date +%s)
+      kill -KILL "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; rm -f "$t/stuck.held"
+      { [ $((t1 - t0)) -le 1 ] || [ $k -ge 5 ]; } && break; k=$((k + 1))
+    done
+    cp "$LOG.level" "$t/stuck.level"
+    # one more pass with every lock released: a released lock is never reported
+    stuck_free=$(stuckrun)
+  }
+  stuckpass
+  chk "a held branch lock aged 901 s by its recorded start is STUCK, naming branch, run pid and age" \
+    0 grep -qE '^cloud_relay: STUCK fix-old 111 90[12]s$' <<< "$out"
+  chk "and it is push-stuck on the level, where the tick reads it" \
+    0 grep -qE '^OWED [^ ]+ push-stuck fix-old 111 STUCK fix-old 111 90[12]s$' "$t/stuck.level"
+  chk "a held lock aged 899 s is not reported" 1 grep -qF 'fix-young' <<< "$out"
+  chk "a released lock aged 5000 s is not reported, whatever its text" 1 grep -qF 'fix-gone' <<< "$out"
+  chk "once every lock is released nothing is reported, and the level holds no push-stuck line" \
+    0 test "$(printf '%s' "$stuck_free")$(grep -c push-stuck "$LOG.level")" = 0
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
 
 case ${1:-} in
-  --self-test) self_test; exit $?;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || pr_bounded cloud_relay bash "$0" --self-test; self_test; exit $?;;  # pr_args.sh's bound
   held) shift; held "$@"; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
   pass) shift; pass "$@"; exit $?;;
