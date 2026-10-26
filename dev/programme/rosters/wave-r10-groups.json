@@ -4726,7 +4726,7 @@
     "branch": "handoff/r10-ceiling-probe",
     "commit": null,
     "last_step": null,
-    "next_step": "fixer",
+    "next_step": "Design r2 at design/r10-ceiling-probe 9ef33256 in design review; on approve set architect_note, add pump_arbiter.py and coordinator.py to files, order vs R10-LIVESTATE",
     "note": null
    }
   },
