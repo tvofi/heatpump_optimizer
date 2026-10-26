@@ -10295,6 +10295,54 @@
    },
    "brief": "Fixer for the errexit countermeasures that the root cause of the Nightly record-autofix batch=$? defect (R10-RCA-HOTFIX-BATCH-ERREXIT, PR #2849, hotfix #2848 e0ffb1213) proposed and the fix review of #2849 sharpened. Four carries, each quoted from #2849 handoff-body e78cd811 with its control. Land: (1) countermeasure A, the tree-wide check over errexit run: blocks including a $? read in an if/while/until test after a bare producer, with its selftest case; (2) gate-sweep.yml sweep step fix with _gs_step_verdict switched to bash -e -c, failing test first (the switch alone fails the U0c check on 3 cases); (3) countermeasure B, bash -e -c for the executed-step harnesses in tests/entities.py and tests/arch_score.py, enumerating every bash -c over workflow text with a disposition each; (4) the class proposal for the judge or orchestrator to mint. Failing test first, mutation proof, the finder harness dev/audit/harnesses/r10_errexit_capture.py (at e1a684789) at both ends. Lands after PR #2849 merges (the harness r10_errexit_capture.py is its file).",
    "architect_note": ""
+  },
+  {
+   "group": "R10-RECORD-API-O1",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [
+    "R10-RCA-RATELIMIT-RECUR"
+   ],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-RCA-RATELIMIT-RECUR"
+   ],
+   "files": [
+    ".github/workflows/governance.yml",
+    ".github/workflows/nightly.yml",
+    "dev/audit/harnesses/record_burst_replay.py",
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "carry": [
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). Decision O-1 (M3), for the seat that dispatches it. **Precondition, met by measurement:** demand after M1+M2 exceeds the 5,000-call `GITHUB_TOKEN` bucket. In the 04:07Z bucket-hour of 2026-10-26 (`dev/audit/rca/ratelimit-recur.md` sections 1.2 and 4) the 4,478 calls spent by 04:49:40Z split record 2,205 (49.2 %), enumerate 1,468 (32.8 %), rest 805 (18.0 %, 18.9/min); unconstrained hour demand about 6,660 (133 %), about 5,740 with M4 (this PR), about 3,910 with O-1 alone and about 2,990 with both. **What O-1 does:** `--stats` and `--sunset` off the record job's push arm to the weekly schedule and the stamp (\u2212555 calls a push; standing cost negative); the friction-cadence change (#959 option B) goes to the owner unless a mandate in force covers it. **The control the dispatch must carry:** demand is record + enumerate + rest, never the record job alone. `record_burst_replay.py` replays the record job only and underreads by the enumerate's share (32.8 % of the hour above); take `bash dev/audit/harnesses/record_api_calls.sh <last v* tag>` (record, expected TOTAL 731 to 743 at the four pushes 21b45524d, 0dfc063fa, bdf69a5c3, df478d40b) plus `python3 dev/audit/harnesses/enumerate_api_calls.py <last v* tag>` (enumerate, expected 364 to 370 with b281d0325's `record_row.py` and 182 to 185 with M4's), with the rest from the M0 `RATE_LIMIT before:`/`after:` lines of the `governance / record` log. Null control: both harnesses at `SINCE=HEAD` (empty window) print 0 calls for 0 merges; `record_api_calls.sh` refuses a zero on a non-empty window. **Re-measure** at the dispatching seat's own merge base: the window `<last v* tag>..origin/main` and so every per-push figure moves with each merge (about 6 calls a merge across the two walkers) and resets at a stamp; re-derive the ledger from the M0 lines of a current bucket-hour, never carry these numbers.",
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). A second M0 pair around Nightly `record-autofix`'s \"Enumerate the window's merges\" step (nightly.yml): `gh api rate_limit` before and after it, printing `used`/`limit`/`reset` as the record job's `RATE_LIMIT before:`/`after:` lines do (`rate_limit` reads are not counted against the limit). Today the enumerate's spend is inferred by splitting interval deltas by step time (record section 1.2). **Control:** after it lands, the enumerate's printed delta on a quiet push equals `enumerate_api_calls.py <last v* tag>` at that push (185 for 185 merges at b281d0325 with M4) within the concurrent rest of that interval; a delta of 0 on a non-empty window means the pair brackets the wrong step. **Re-measure** the expected count at the landing seat's merge base. Workflow file, code-owned: the owner reviews.",
+    "From #2852 (R10-RCA-RATELIMIT-RECUR, fix review round 1 of 23e6f713 and the fixer's rewrite). Instrument finding, not this PR's defect (fix review of #2852): on a seat whose passwd home is `/root` (`PUBLIC_ACCOUNTS` includes `root`), `python3 tools/audit/seat/ref_privacy.py --check` refuses any added line citing `dev/governance/roles/root-cause.md` as `home-directory`, because the home match has no path-segment boundary; here it refuses `dev/audit/rca/ratelimit-recur.md:7` and nothing else (`1 refused`). Setting `HOME` to a non-root path does not change it on this seat: the instrument also reads the passwd home of the running uid. **Control:** the reviewer's run with the home patched to `/home/runner` prints `0 refused`; a fix keeps a real `/root/...` host path refused."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": ""
+   },
+   "brief": "Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, decision O-1 (M3): count the record path demand as record + enumerate + rest and fix record_burst_replay.py, which underreads by the enumerate share; carry 2, a second M0 pair (gh api rate_limit before and after) around Nightly record-autofix's enumerate step; carry 3, the ref_privacy.py home-directory match has no path-segment boundary (an instrument finding from the #2852 review). Workflow files are code-owned: the owner reviews. Failing test first, each carry's control re-measured at the landing merge base, never carry the quoted figures.",
+   "hot_files": []
   }
  ]
 }
