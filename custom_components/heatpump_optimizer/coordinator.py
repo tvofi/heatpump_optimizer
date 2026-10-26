@@ -324,6 +324,7 @@ from .thermal_model import (
     heat_loss_basis_voids,
     learner_newton_step,
     mold_safe_room_floor,
+    learner_room_unread,
     learner_unmetered,
     on_threshold_kw,
     planned_draw_runs,
@@ -5481,7 +5482,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         observed = ctx._current_state.room_temperature
 
-        frozen = replay_freeze(self._learning_frozen(
+        frozen = learner_room_unread(self._input_health) or replay_freeze(self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
         ), ctx._config, _interval_measured_heat_kw(self))
         # "ventilation" is the one freeze reason this method must look

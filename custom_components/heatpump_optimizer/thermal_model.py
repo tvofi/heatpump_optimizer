@@ -1418,6 +1418,22 @@ def levels_clamped(config: Any) -> bool:
 #: kilowatts a switch-plus-setpoint install cannot deliver (#1955).
 UNMETERED_POWER_FREEZE = "unmetered_power"
 
+#: #2508: ``_learning_frozen`` passes an unconfigured slot on purpose, but with
+#: no indoor entity the room reads ``ThermalState.room_temperature``'s 21.0 C
+#: default, and a house replay against it fits the heat-loss scale to a constant.
+INDOOR_UNCONFIGURED_FREEZE = f"not_configured:{const.CONF_INDOOR_TEMP_ENTITY}"
+
+
+def learner_room_unread(health: Any) -> str | None:
+    """The house-learner freeze when no indoor entity is configured, else ``None``.
+
+    Keyed on the health snapshot's ``not_configured`` reading, so a configured
+    install (and a cycle with no snapshot yet) is left to the shared freeze.
+    """
+    reading = health.readings.get(const.CONF_INDOOR_TEMP_ENTITY) if health else None
+    unread = reading is not None and reading.problem == "not_configured"
+    return INDOOR_UNCONFIGURED_FREEZE if unread else None
+
 
 def learner_unmetered(config: Any) -> str | None:
     """The house-learner freeze, or ``None`` when learning stands.
