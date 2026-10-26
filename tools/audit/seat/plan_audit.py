@@ -28,7 +28,10 @@ afterwards, so this file is P3's measuring half:
   (entities, services, options and the card's pages), the mutation ledger's
   kill rate, and change coupling over the last `--window` first-parent PR
   merges. `compare` fails on any regression. The fork is snapshotted with
-  `--instrument <fork>`, so both sides are read by the base's scorer.
+  `--instrument <fork>`, so both sides are read by the base's scorer and the
+  base's `tests/structure.py`; `--allow structure:<metric>` (or tripwire:) is
+  the plan's declared exception for a number the stamp's own ratchet reads
+  differently, printed as ALLOWED and never silently dropped.
 
 Neither re-implements an instrument it can call: `end-to-end` runs `score.py`
 itself, and `snapshot` imports the instrument tree's own `archscore.vector` and
@@ -350,6 +353,25 @@ def compare_snapshots(fork: dict, stamp: dict, allow: set[str]) -> list[str]:
     return bad
 
 
+def unallowed(bad: list[str], allow: set[str]) -> list[str]:
+    """Structure and tripwire regressions the plan did not declare.
+
+    `--allow structure:<metric>` / `--allow tripwire:<metric>` is the declared
+    exception: the base's measuring code can flag a number the stamp's own
+    ratchet does not (a detector that changed between them), and a round must
+    be able to say so with its ADR rather than be stopped by the base's drift.
+    It never hides a rise silently -- `compare` prints every allowed line.
+    """
+    keep = []
+    for line in bad:
+        kind, _, rest = line.partition(" ")
+        metric = rest.split(":", 1)[0]
+        if kind in ("structure", "tripwire") and f"{kind}:{metric}" in allow:
+            continue
+        keep.append(line)
+    return keep
+
+
 def snapshot(ref: str, instrument: str | None) -> dict:
     inst_ref = instrument or ref
     target = _worktree(ref)
@@ -489,6 +511,11 @@ def self_test() -> int:
         t("a raised gate-only tripwire is a regression",
           compare_snapshots(snap, {**snap, "tripwires": {"shape_copies": 2}}, set())
           == ["tripwire shape_copies: 1 -> 2"])
+        t("the plan's declared structure exception allows that one rise",
+          unallowed(["structure dup: 1 -> 2", "tripwire shape_copies: 1 -> 2"],
+                    {"structure:dup"}) == ["tripwire shape_copies: 1 -> 2"])
+        t("and an unrelated declaration leaves the rise (the null control)",
+          unallowed(["structure dup: 1 -> 2"], {"structure:other"}) == ["structure dup: 1 -> 2"])
         t("a falling mutation kill rate is a regression",
           compare_snapshots(snap, {**snap, "mutation": {"rate": 0.8}}, set())
           == ["mutation kill rate: 0.9 -> 0.8"])
@@ -616,8 +643,13 @@ def main(argv: list[str]) -> int:
                   f"the stamp by {stamp['instrument'][:12]}; one scorer must read both")
             return 1
         bad = compare_snapshots(fork, stamp, set(args.allow))
+        allow = set(args.allow)
         for line in bad:
-            print(f"  REGRESSED {line}")
+            if line not in unallowed([line], allow):
+                print(f"  ALLOWED  {line}")
+            else:
+                print(f"  REGRESSED {line}")
+        bad = unallowed(bad, allow)
         print("HOLDOUT " + ("FAIL" if bad else "PASS"))
         return 1 if bad else 0
     ap.print_help()
