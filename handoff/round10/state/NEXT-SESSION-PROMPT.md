@@ -18,7 +18,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-COMFORT (stage in-progress, branch `handoff/r10-sav-comfort`): `git fetch origin handoff/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `handoff/r10-ceiling-probe`): `git fetch origin handoff/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BUFFER-STORE (stage fixing, branch `wip-sync/ext-mut-297fc65b`): `git fetch origin wip-sync/ext-mut-297fc65b && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
+- R10-COP-PARTLOAD (stage fixing, branch `wip-sync/ext-wt-a58e58ff`): `git fetch origin wip-sync/ext-wt-a58e58ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLOW-JIDOKA (stage in-progress, branch `handoff/r10-flow-jidoka`): `git fetch origin handoff/r10-flow-jidoka && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-ROSTER-FREEZE (stage carries-open, branch `handoff/r10-flow-roster-freeze`): `git fetch origin handoff/r10-flow-roster-freeze && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -30,6 +30,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ORCH-REVIEW-PACKET (stage fixing, branch `wip-sync/ext-wt-2b362865`): `git fetch origin wip-sync/ext-wt-2b362865 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-IMMERSION-LATCH (stage queued): no branch pushed yet, so nothing to fetch
 - R10-ROUTING-INVARIANTS (stage absorbed, branch `handoff/r10-routing-invariants`): `git fetch origin handoff/r10-routing-invariants && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-POOL-INSTRUMENT (stage absorbed, branch `handoff/r10-fly-pool-instrument`): `git fetch origin handoff/r10-fly-pool-instrument && git worktree add --detach $SEAT/wt FETCH_HEAD`
