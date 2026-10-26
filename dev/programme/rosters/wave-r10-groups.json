@@ -1427,9 +1427,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "Null control: a valid entry still applies (1 to 0 under the perturbation)."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
