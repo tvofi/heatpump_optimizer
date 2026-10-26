@@ -10213,6 +10213,48 @@
     "note": "main-red hotfix 2026-10-26"
    },
    "brief": "Hotfix: the record-autofix batch gate dies under bash -e (defect from #2836). In .github/workflows/nightly.yml the step that runs record_row.py --batch-due must not let exit 4 (batching, by design) abort the step: write batch=0 then the call followed by || batch=$?, or an if/else form, so status batching is reached and 0 and other nonzero codes still behave. Check every other X=$? after a call in nightly.yml and in the steps #2836 added for the same defect; the ones already seen (the pitch-check else branch and the guard if/else in nightly.yml, base_rc and head_rc under set +e in tests.yml) are safe. Failing test first: a control that runs the step body under bash -e with a stub returning 4 and expects status batching, and 0 and 1 still behave; add a mutation proof (revert the one line and show the control fails). Name the red check in ## Red checks and answer it there per defect-root-cause.md."
+  },
+  {
+   "group": "R10-RCA-RATELIMIT-RECUR",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [
+    "R10-RCA-INSTALL-RATELIMIT"
+   ],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/rca/install-ratelimit.md",
+    ".github/workflows/governance.yml"
+   ],
+   "carry": [
+    "Root-cause recurrence (orchestrator, 2026-10-26, triage ruling P192 REJECT routed to RCA). The installation rate limit reddened required checks gate, pr-contract and arch-score on #2850 (run 40269660944) and #2843 (runs 40271998592, 40271999135) in one burst, 04:53Z to 05:07Z, reset_epoch 1792991224, after the R10-RCA-INSTALL-RATELIMIT countermeasure (PRs 2606, 2629, 2608). Attribute the demand from the record job's RATE_LIMIT before/after lines in .github/workflows/governance.yml and the concurrent runs; name cause, process state (a)-(d) and a cost test with numbers; decide the record's M3 as a countermeasure (failing test first, mutation proof) or a recorded refusal. Irreducible load reopens P192 arm (b)."
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-ratelimit-recur"
+   },
+   "brief": "Root-cause seat on dev/governance/roles/root-cause.md and dev/governance/rules/defect-root-cause.md for the recurrence of the installation rate-limit red after R10-RCA-INSTALL-RATELIMIT. Read dev/audit/rca/install-ratelimit.md; attribute the burst's demand from the RATE_LIMIT before/after lines the record job prints in .github/workflows/governance.yml and from the runs concurrent with it; owe a named cause, a process state, a cost test with numbers and the record's M3 decided as a countermeasure or a recorded refusal."
   }
  ]
 }
