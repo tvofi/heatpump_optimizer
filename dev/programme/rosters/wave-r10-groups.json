@@ -10179,6 +10179,50 @@
    },
    "brief": "Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, decision O-1 (M3): count the record path demand as record + enumerate + rest and fix record_burst_replay.py, which underreads by the enumerate share; carry 2, a second M0 pair (gh api rate_limit before and after) around Nightly record-autofix's enumerate step; carry 3, the ref_privacy.py home-directory match has no path-segment boundary (an instrument finding from the #2852 review). Workflow files are code-owned: the owner reviews. Failing test first, each carry's control re-measured at the landing merge base, never carry the quoted figures.",
    "hot_files": []
+  },
+  {
+   "group": "R10-RECORD-HOLD-APPROVE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [
+    ".github/workflows/nightly.yml"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/nightly.yml",
+    "tests/entities.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once this group is on the roster (critical path)",
+    "note": "triage P198, 2026-10-26"
+   },
+   "brief": "Record PRs deadlock under back-to-back trains (V118). In .github/workflows/nightly.yml's step \"Approve and merge a row-only record pull request\", the train-hold block (HOLD_REF=train-hold through its esac/fi) sits before `guard` and the approver App's review. merge_train.py's --bot-prs sweep merges on record_row.py's guard alone and leaves the review to the beat, so while trains run back to back no beat posts the review and the record PR waits. Instance: #2856 at b6de9fad, about 3 h at REVIEW_REQUIRED, nightly run 40300518367 skip-train-hold; it was worked around by a hand approval (review 5650544835). Change: move the hold block to after the approver App's review and before THE PITCH. A held beat runs the guard, dismisses on refusal, posts the one approving review per head, and exits skip-train-hold without merging. No change to merge_train.py. Update the nightly.yml comments that state the order. Controls, over tests/entities.py's executed _train_hold_status harness: a live hold with the guard passing returns skip-train-hold, records the approver POST and no merge (the existing 'skips while a live merge train holds' check moves to guard_rc=0 and gains these assertions); a live hold with the guard refusing returns refused, dismisses and posts no review; the pitch check's live-hold arm keeps skip-train-hold; no hold reaches the pitch and merge as today (null); one mutant moving the hold back ahead of the approval fails the 'reviewed under a live hold' assertion. The filed alternative, the train posting the approver review itself, is REJECTED: a second approval site, the approver key in the train, and a hot file. Critical-path relevant: until this lands, every record PR during a drain needs a hand approval. triage: dev/programme/triage/s6-batch34.md#P198"
   }
  ]
 }
