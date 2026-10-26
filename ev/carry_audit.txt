@@ -1,0 +1,7 @@
+NOTE #2841 body item 8863fdbe: #201
+NOTE #2841 body item 4451c7fc: R10-UX-HEALTH
+NOTE #2841 body item edf454c1: #201
+NOTE #2841 body item 7e894ae6: dismissed:a reviewer's measurement bullet with no later stage to inform (item 4f705cf3)
+NOTE #2841 review 6405898036 item 577a813c: dismissed:outside H3's named classes; a hover state on the advisor page, for the D4 brief if the owner wants the pair rule applied to every surface
+NOTE #2841 review 6405898036 item 4f705cf3: dismissed:a reviewer's measurement bullet with no later stage to inform (item 4f705cf3)
+CARRY-AUDIT #2841: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)

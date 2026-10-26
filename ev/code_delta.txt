@@ -1,0 +1,8 @@
+code patch-id, round-2 head three-dot vs this head three-dot, over custom_components tests/card_browser.mjs tests/card* dev/audit/harnesses:
+839e4a8774fb90d5f776d1218324f6079088950e 0000000000000000000000000000000000000000
+839e4a8774fb90d5f776d1218324f6079088950e 0000000000000000000000000000000000000000
+$ git log --oneline --first-parent 11e8075d7975f34ab4baa8f2eb84220223443552..c32202c92dee44a30cef953fa5edf1a94b27e527
+c32202c92 Merge remote-tracking branch 'origin/main' into fix/r10-card-voice
+33ca9a2f7 Merge commit '0fec20feb00e4b4becc74dab1c4636863db5f505' into fix/r10-card-voice
+$ git ls-remote origin refs/pull/2841/head
+c32202c92dee44a30cef953fa5edf1a94b27e527	refs/pull/2841/head
