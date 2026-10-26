@@ -6,9 +6,11 @@
 Each mutant is one exact string replacement in a production file, applied to
 its own copy of the committed tree (``git archive HEAD``), never the working
 tree; ``tests/features.py`` runs in that copy and the row prints its summary
-line and the first failing checks. A mutant is killed when the summary names
-more failing checks than the unmutated null control row, which is a
-comment-only edit run the same way. A ``NOT APPLIED`` row means the mutated
+line and the first checks it fails beyond the null control's. The null
+control row is a comment-only edit run the same way; a ``git archive`` copy
+fails #363's ``recorded_at`` check on every run, the null included (fixer.md
+step 2), so a mutant is killed when it fails a check the null does not, and
+the null dies when it fails any other. A ``NOT APPLIED`` row means the mutated
 text moved: the table is stale and says so instead of reading as a survivor.
 Rows, by the design's target list: C1 the span-close condition, C2 the
 time-close (span too long) comparison, Q the ``q / expected`` bound, R the
@@ -25,6 +27,7 @@ import argparse
 import concurrent.futures
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -67,6 +70,7 @@ MUTANTS = {
         '"unhealthy_input": None,'),
 }
 
+ARCHIVE_FAIL = "and the path that proceeds still stamps a resolvable recorded_at (#363)"
 SUMMARY = re.compile(r"^(ALL \d+ FEATURE CHECKS PASSED|\d+ of \d+ FEATURE CHECKS FAILED)", re.M)
 
 
@@ -84,21 +88,23 @@ def _tree(root: Path) -> Path:
 def _run(root: Path, name: str) -> tuple[str, int | None, str]:
     path, old, new = MUTANTS[name]
     tree = _tree(root)
-    target = tree / path
-    text = target.read_text()
-    if text.count(old) != 1:
-        return name, None, f"NOT APPLIED ({text.count(old)} matches in {path})"
-    target.write_text(text.replace(old, new))
-    run = subprocess.run(
-        [sys.executable, "tests/features.py"], cwd=tree, capture_output=True, text=True,
-        env={**os.environ, "PYTHONPATH": "tests/hastub", "PYTHONHASHSEED": "0"}, timeout=3600,
-    )
+    try:
+        target = tree / path
+        text = target.read_text()
+        if text.count(old) != 1:
+            return name, None, f"NOT APPLIED ({text.count(old)} matches in {path})"
+        target.write_text(text.replace(old, new))
+        run = subprocess.run(
+            [sys.executable, "tests/features.py"], cwd=tree, capture_output=True, text=True,
+            env={**os.environ, "PYTHONPATH": "tests/hastub", "PYTHONHASHSEED": "0"}, timeout=3600,
+        )
+    finally:
+        shutil.rmtree(tree, ignore_errors=True)
     out = run.stdout + run.stderr
     m = SUMMARY.search(out)
-    failed = 0 if m and m.group(1).startswith("ALL") else (int(m.group(1).split()[0]) if m else -1)
-    fails = [ln.strip()[:160] for ln in out.splitlines() if ln.startswith("  FAIL")][:3]
+    fails = {ln[len("  FAIL "):].split("  [")[0].strip() for ln in out.splitlines() if ln.startswith("  FAIL ")}
     summary = m.group(1) if m else f"no summary (rc={run.returncode}) {out[-300:]!r}"
-    return name, failed, summary + "".join("\n      " + f for f in fails)
+    return name, (fails if m else None), summary
 
 
 def main() -> int:
@@ -116,16 +122,19 @@ def main() -> int:
     null = rows[next(iter(MUTANTS))][0]
     survivors = 0
     for name in names:
-        failed, text = rows[name]
+        fails, text = rows[name]
         if name.startswith("N0"):
-            verdict = "NULL" if failed == 0 else "NULL DIED"
-        elif failed is None or failed < 0:
-            verdict = "STALE"
+            extra = (fails or set()) - {ARCHIVE_FAIL}
+            verdict, new = ("NULL" if fails is not None and not extra else "NULL DIED"), sorted(extra)
+        elif fails is None or null is None:
+            verdict, new = "STALE", []
         else:
-            verdict = "KILLED" if null is not None and failed > null else "SURVIVED"
+            new = sorted(fails - null)
+            verdict = "KILLED" if new else "SURVIVED"
         survivors += verdict in ("SURVIVED", "STALE", "NULL DIED")
-        print(f"{verdict:9} {name}: {text}")
-    print(f"{survivors} survivor(s) of {len(names) - 1} mutant(s), null failed={null}")
+        print(f"{verdict:9} {name}: {text}; {len(new)} beyond the null" + "".join(
+            "\n      FAIL " + f[:150] for f in new[:4]))
+    print(f"{survivors} survivor(s) of {len(names) - 1} mutant(s); the null fails {sorted(null or [])}")
     return 1 if survivors else 0
 
 

@@ -55,6 +55,7 @@ origin/main.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -260,7 +261,8 @@ def main() -> int:
     ).stdout.strip()
     args = [str(TRUE_K), str(CYCLES), str(DUTY), str(RUN_KW), str(RESET_EVERY), repr(OUTDOORS)]
     rc = 0
-    for label, tree in (("head " + head[:12], root), ("base " + base[:12], _tree_from(base, root))):
+    base_tree = _tree_from(base, root)
+    for label, tree in (("head " + head[:12], root), ("base " + base[:12], base_tree)):
         run = subprocess.run(
             [sys.executable, "-I", "-c", PROBE, str(tree), *args],
             capture_output=True, text=True, env={**os.environ, "PYTHONHASHSEED": "0"},
@@ -270,6 +272,7 @@ def main() -> int:
         if run.returncode:
             sys.stdout.write(run.stderr[-2000:])
             rc = 1
+    shutil.rmtree(base_tree, ignore_errors=True)
     return rc
 
 
