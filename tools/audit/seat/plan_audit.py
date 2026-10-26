@@ -422,10 +422,20 @@ def self_test() -> int:
     t("a planned move with no merged body is OWED",
       any("OWED body G2" in f for f in owed["failures"]), repr(owed["failures"]))
 
+    # A body with no planned move is a group the plan never named, refused even
+    # though every planned move explains itself.
+    unplanned = reconcile(plan, {**bodies, "G3": bodies["G2"]}, {**end, "dS": 2.5}, 0.1)
+    t("a merged group the plan never names is refused",
+      any("UNPLANNED group G3" in f for f in unplanned["failures"]), repr(unplanned["failures"]))
+
     # End-to-end inadmissible fails even when every body is explained.
     inad = reconcile(plan, bodies, {**end, "admissible": False, "rises": ["private_cross_module 9 -> 12"]}, 0.1)
     t("an inadmissible end-to-end reading fails the round",
       any("INADMISSIBLE end to end" in f for f in inad["failures"]), repr(inad["failures"]))
+
+    worse = reconcile(plan, bodies, {**end, "dS": 1.5, "verdict": "WORSENS"}, 0.1)
+    t("a WORSENS end-to-end reading fails even with no named regression",
+      any("WORSENS end to end" in f for f in worse["failures"]), repr(worse["failures"]))
 
     # A residual larger than the tolerance is a dS no move explains.
     resid = reconcile(plan, bodies, {**end, "dS": 5.0}, 0.1)
