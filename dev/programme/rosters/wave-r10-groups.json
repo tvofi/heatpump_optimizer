@@ -665,7 +665,6 @@
     "R10-TARIFF"
    ],
    "carry": [
-    "Measured gain is import time for tests and tools (store import 447 to 213 ms); Home Assistant loads the coordinator anyway, so claim no runtime gain. Re-take any timing quiet.",
     "Null control: the runtime-closure harness reads the optimizer OUT of every leaf after, and the revert arm reads it back IN.",
     "From R10-TARIFF (handoff/r10-tariff at 793116abd): tariff.peak_cost, peak_cost_smooth and peak_cost_batch now take one PeakBilling record, built by HeatPumpOptimizer._peak_billing; never pass the loose tariff arguments."
    ],
