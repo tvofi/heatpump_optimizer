@@ -21,7 +21,7 @@ import calendar
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping
 
 import numpy as np
@@ -290,6 +290,30 @@ class MonthlyLedger:
         if not isinstance(entry, dict) or not entry.get("count"):
             return None
         return float(entry["sum"]) / int(entry["count"])
+
+    def recent_kwh_price(self, now: datetime) -> float | None:
+        """What a consumed kWh has cost lately: the time-mean spot price over
+        this month and the one before, plus the grid fee their kWh paid.
+
+        A monthly figure priced at it moves with the month's price level, not
+        with the hour it is read (#2257 item 6). Once a whole month has
+        settled the level never holds less than one month: the previous
+        month carries it the day a new one opens. None before any priced
+        interval has settled.
+        """
+        keys = (month_key(now), month_key(now.replace(day=1) - timedelta(days=1)))
+        total, count = 0.0, 0
+        for key in keys:
+            entry = self.months.get(key, {}).get("meta", {}).get(SPOT_PRICE_META)
+            if isinstance(entry, dict) and entry.get("count"):
+                total += float(entry["sum"])
+                count += int(entry["count"])
+        if not count:
+            return None
+        fees = [self.line(key, "grid_fee") for key in keys]
+        fee_kwh = sum(f["kwh"] for f in fees)
+        fee = sum(f["sek"] for f in fees) / fee_kwh if fee_kwh > 0 else 0.0
+        return total / count + fee
 
     def month_summary(self, month: str) -> dict[str, dict[str, float]]:
         """Every line of one month, rounded for publication."""

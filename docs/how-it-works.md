@@ -1254,8 +1254,11 @@ lower, one higher, and power capped at 75%. One tile is refreshed per scheduled
 solve, in rotation, so the whole set costs at most one extra solve per interval.
 A degree tile prices the degree held from a steady start (the thermostat
 baseline's difference), not the plan's spend from the house as it stands, which
-includes a one-off coast or heat-up; each tile is published as the mean of its
-daily means over the last 30 days.
+includes a one-off coast or heat-up. The cap tile, and the fuse advisor's bill
+figure, price the plan under the cap with the heat each plan left unstored at
+the horizon's end bought back, so a cap that merely ends the day colder does
+not read as a saving. Each tile is published as the mean of its daily means
+over the last 30 days.
 
 ---
 
