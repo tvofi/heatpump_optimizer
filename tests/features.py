@@ -6608,6 +6608,7 @@ _d901_gil_yield_inside_run()
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
+_grad_parity(False, valve="manual", label="single-zone with valve")
 _grad_parity(True, wood=True, valve="manual", label="two-tank")
 # D2-01: the Euler sub-step regime, in both zonings, asserted rather than
 # named. `_substeps_and_loss` subdivides a step whose worst u*dt/C exceeds
@@ -10742,9 +10743,9 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
 )
 
 
-def _storage_plan(price_profile):
+def _storage_plan(price_profile, two_zone=True):
     p = ThermalParameters(
-        two_zone_enabled=True, buffer_tank_volume=750.0,
+        two_zone_enabled=two_zone, buffer_tank_volume=750.0,
         mixing_valve_mode=_mv.MODE_MANUAL, buffer_max_temp=70.0,
         cop_flow_carnot=True,
         upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
@@ -10814,6 +10815,64 @@ R.check(
     _night_f < _night_s - 5.0 and _peak_f > 10.0,
     f"flat: night {_night_f:.1f} kWh, peak-hours {_peak_f:.1f} kWh -- "
     "storage must not appear where it cannot pay",
+)
+
+# R10-BUFFER-STORE (#2500): the single-zone step had no valve branch, so a
+# valved 750 L tank sat at its start temperature, the plan matched the
+# no-buffer plan bit for bit, and the terminal credit never listed the tank.
+_night_s1, _peak_s1, _buf_s1 = _storage_plan("spread", two_zone=False)
+_night_f1, _peak_f1, _buf_f1 = _storage_plan("flat", two_zone=False)
+R.check(
+    "single-zone: the valved tank is charged for the cheap night",
+    float(_buf_s1.max()) > 25.0 + 8.0,
+    f"tank peaked at {float(_buf_s1.max()):.1f} C from a 25 C start",
+)
+R.check(
+    "single-zone: the plan buys less across the price peaks than at flat prices",
+    _peak_s1 < _peak_f1 - 5.0,
+    f"peak-hours kWh: spread {_peak_s1:.1f}, flat {_peak_f1:.1f}",
+)
+R.check(
+    "single-zone null control: flat prices concentrate nothing at night",
+    _night_f1 < _night_s1 - 5.0,
+    f"flat night {_night_f1:.1f} kWh vs spread {_night_s1:.1f}",
+)
+
+_p_sz = ThermalParameters(
+    buffer_tank_volume=750.0, mixing_valve_mode=_mv.MODE_MANUAL,
+    mixing_valve_target=23.0,
+)
+_m_sz = ThermalModel(_p_sz)
+_st_sz = ThermalState(
+    room_temperature=21.0, slab_temperature=25.0,
+    buffer_tank_temperature=50.0, outdoor_temperature=-5.0,
+)
+_after_sz = _m_sz.simulate_step(_st_sz, 0.0, -5.0, dt_hours=0.25)
+_ua_sz = (
+    _p_sz.max_electrical_power * _p_sz.cop_nominal_floored
+    / _p_sz.emitter_design_delta_t_floored
+)
+_fs_sz = _mv.flow_setpoint(
+    target_temp=23.0, outdoor_temp=-5.0,
+    heat_loss_coefficient=_m_sz.effective_heat_loss_coefficient(
+        _p_sz.heat_loss_coefficient, 0.0, 0.0
+    ),
+    emitter_ua=_ua_sz,
+)
+_q_sz = _mv.emitter_delivery(mix_temp=min(50.0, _fs_sz), zone_temp=25.0, ua=_ua_sz)
+_stand_sz = _p_sz.buffer_tank_heat_loss_coefficient * (50.0 - 20.0)
+_lost_sz = (50.0 - _after_sz.buffer_tank_temperature) * _p_sz.buffer_tank_thermal_mass
+R.check(
+    "single-zone valve: the tank's loss is the slab's delivery plus standing loss",
+    abs(_lost_sz - (_q_sz + _stand_sz) * 0.25) < 1e-6,
+    f"tank lost {_lost_sz:.4f} kWh vs {(_q_sz + _stand_sz) * 0.25:.4f}",
+)
+_slab_gain_sz = (_after_sz.slab_temperature - 25.0) * _p_sz.slab_thermal_mass
+_slab_out_sz = _p_sz.slab_heat_transfer * (25.0 - 21.0) * 0.25
+R.check(
+    "single-zone valve: the slab receives exactly what the tank delivered",
+    abs(_slab_gain_sz + _slab_out_sz - _q_sz * 0.25) < 1e-6,
+    f"slab gained {_slab_gain_sz + _slab_out_sz:.4f} kWh vs {_q_sz * 0.25:.4f}",
 )
 
 

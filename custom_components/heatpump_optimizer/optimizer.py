@@ -2596,26 +2596,26 @@ class HeatPumpOptimizer:
                 (params.lower_floor_thermal_mass, "lower", caps["room"], 1.0),
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
-            if params.buffer_is_store:
-                # Only with a valve, and only a tank big enough to matter.
-                # Without a valve the tank cannot be charged, so adding it
-                # here would put a constant in the objective -- it would not
-                # change which plan wins, but it would move every reported
-                # number for no reason. A tiny tank (item 27) holds less than
-                # one step of heat, and crediting it has the solver planning
-                # around noise.
-                stores = stores + (
-                    (
-                        params.buffer_tank_thermal_mass,
-                        "buffer",
-                        caps["buffer"],
-                        buffer_survival,
-                    ),
-                )
         else:
             stores = (
                 (params.room_thermal_mass, "room", caps["room"], 1.0),
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
+            )
+        if params.buffer_is_store:
+            # Only with a valve, and only a tank big enough to matter.
+            # Without a valve the tank cannot be charged, so adding it
+            # here would put a constant in the objective -- it would not
+            # change which plan wins, but it would move every reported
+            # number for no reason. A tiny tank (item 27) holds less than
+            # one step of heat, and crediting it has the solver planning
+            # around noise.
+            stores = stores + (
+                (
+                    params.buffer_tank_thermal_mass,
+                    "buffer",
+                    caps["buffer"],
+                    buffer_survival,
+                ),
             )
 
         row_cost, term_spec = _terminal_row_cost(
