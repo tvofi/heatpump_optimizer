@@ -1622,7 +1622,6 @@
     "R10-SCORES"
    ],
    "carry": [
-    "Bool policy (mandate decision, recommended option): True is not a number; every coercion owner refuses bools.",
     "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
    ],
    "architect_note": null,
