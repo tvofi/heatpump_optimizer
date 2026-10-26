@@ -187,7 +187,7 @@ async def learner(admitted: bool, *, observed: float) -> float:
         return replace(coord._last_house_sample, room_temperature=21.0)
 
     coord._thermal_model.simulate_step = simulate  # type: ignore[method-assign]
-    await coord._async_learn_house_heat_loss()
+    await coord._async_learn_house_heat_loss(coord._close_fabric_interval())
     return float(coord._house_heat_loss_scale)
 
 

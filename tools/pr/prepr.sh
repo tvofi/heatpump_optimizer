@@ -15,7 +15,7 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/audit/prepr.sh [body.md] [intended-issue-numbers...]
+#   tools/pr/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
 #   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
@@ -557,23 +557,11 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         rp=$(recorder_python) || { echo "$rp"; r=1; }
       fi
       if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
-        # THE RECORDER DIES WITH THE PREPR. A stopped prepr used to leave
-        # derive_closures.sh reparented to launchd and running to completion
-        # -- two such orphans ran 20 and 38 minutes on 2026-10-20, and they
-        # fed the box's load. `set -m` gives the recorder its own process
-        # group, and the watchdog reaps that group once the prepr is gone:
-        # `$$` stays the top-level prepr inside this function's job, and
-        # `closures_step` keeps the prepr's own signal traps prompt, so a KILL,
-        # a TERM to the prepr alone and a signal to its group all end it.
-        set -m
-        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
-          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1 &
-        rpid=$!
-        ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
-          kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
-        wait "$rpid"
-        kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
-        set +m
+        # THE RECORDER DIES WITH THE PREPR (`heavy_run` below): `$$` stays
+        # the top-level prepr inside this function's job, and `closures_step`
+        # keeps the prepr's own signal traps prompt.
+        heavy_run "$cw/derive.out" env GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec"
       fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
       elif [ ! -d "$cw/rec" ]; then
@@ -601,6 +589,31 @@ closures_step() { # merge base; sets CLOSURES_LINE, returns closures_line's rc
   out=$(mktemp)
   closures_line "$1" > "$out" & wait "$!"; r=$?
   CLOSURES_LINE=$(cat "$out"); rm -f "$out"; return "$r"
+}
+
+# THE HEAVY STEP DIES WITH THE PREPR. A stopped prepr used to leave
+# derive_closures.sh reparented to launchd and running to completion -- two
+# such orphans ran 20 and 38 minutes on 2026-10-20, and they fed the box's
+# load -- and steps 3 to 3h ran in the foreground, where bash defers a TERM
+# trap until the command exits and a KILL leaves it running: the 3h
+# self-test and the 3a mutants drive run minutes (R10-PREPR-CAP, carried from
+# #2528). So every heavy command runs here: in its own process group
+# (`set -m`), `wait`ed on, so a trapped signal ends the wait at once, and a
+# watchdog reaps that group once the prepr (`$$`) is gone -- a KILL, a TERM
+# to the prepr alone and a signal to its group all end it. The log is
+# appended, so a chain of two commands shares one.
+heavy_run() { # log file, command... -> the command's rc
+  local log=$1 hpid wpid r m=""
+  shift
+  case $- in *m*) m=1 ;; esac
+  set -m
+  "$@" >>"$log" 2>&1 & hpid=$!
+  ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+    kill -TERM -- -"$hpid" 2>/dev/null ) & wpid=$!
+  wait "$hpid"; r=$?
+  kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
+  [ -n "$m" ] || set +m
+  return "$r"
 }
 
 # The signals bash does not already turn into an exit do so, so the EXIT trap
@@ -791,6 +804,60 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
   [ -z "${BODY_LOG:-}" ] || cp -f "$out" "$BODY_LOG"   # --body-check prints every ERROR
   rm -f "$out"; return "$r"
+}
+
+# Step 7e's whole body, so `--self-test` drives the code the step runs.
+# WHY THIS EXISTS (R10-FLOW-JIDOKA). Of round 10's blocked fix reviews, 25 were
+# `carry-missing`: a finding with no destination, which `pr-contract` decides
+# only after the push, with `carry_audit.py check --body`. This is that same
+# checker on the body this run is handed, so the refusal lands before review.
+# It adds no rule (decision 0012); carry_audit.py decides, unmodified.
+#
+# THE ROSTER IS THE ROUND'S BRANCH, FETCHED NOW. fix-review.md step 10 opens a
+# carry at the round's `handoff/audit-r<N>-roster`, never in this worktree, so
+# a group added only to the worktree's roster passed an offline check and was
+# still `carry-missing` at review. `--roster-ref` makes carry_audit read the
+# groups and carry files at that ref alone; the ref is `roster_lib.round_ref`'s
+# and is fetched first, because a stale mirror reads like a current one. The
+# design choice: a group on main and not yet on the round branch is refused
+# here though pr-contract, which reads the tree too, passes it -- the reviewer
+# reads the branch. A ref that cannot be named or fetched refuses: an unread
+# roster is not an empty one.
+carry_line() { # body file -> one line; rc 0 every finding item routed, 1 refused
+  local ref out r
+  ref=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")' 2>/dev/null)
+  if [ -z "$ref" ]; then
+    printf 'REFUSE: roster_lib.round_ref names no round roster branch at origin/main, so no destination was read where fix-review step 10 reads it'
+    return 1
+  fi
+  if ! git fetch -q --no-tags origin "+refs/heads/${ref#origin/}:refs/remotes/$ref" >/dev/null 2>&1; then
+    printf 'REFUSE: %s could not be fetched, so no destination was read where fix-review step 10 reads it (a stale mirror reads like a current one)' "${ref#origin/}"
+    return 1
+  fi
+  out=$(python3 -I tools/audit/carry_audit.py --roster-ref "$ref" check --body "$1" 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then
+    printf '%s, at %s %s' "$(tail -1 <<<"$out")" "$ref" "$(git rev-parse --short "$ref")"
+    return 0
+  fi
+  printf '%s -- %s, at %s %s' "$(grep -m1 -E '^(UNROUTED|BAD-DEST|carry_audit: REFUSED)' <<<"$out")" \
+    "$(tail -1 <<<"$out")" "$ref" "$(git rev-parse --short "$ref" 2>/dev/null)"
+  return 1
+}
+
+# Step 7's preflight, with the intended list pr-contract derives, never the
+# caller's. #2838 round 1: `prepr.sh <body> 2428` forwarded 2428 by hand, so
+# the local preflight accepted `Closes #2428` while pr-contract, deriving the
+# list from the rosters (closes minus never: a roster `issues` number no group
+# names in `fixes`), refused it. INTENDED_JQ is pr-contract.yml's program,
+# byte for byte; the self-test refuses the day the two differ. Forwarded
+# numbers are ignored and named, so a seat sees its list was not used.
+INTENDED_JQ='. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")'
+preflight_body() { # body file, roster dir, [forwarded numbers...] -> preflight's output; its rc
+  local body=$1 dir=$2 intended
+  shift 2
+  intended=$(jq -rs --rawfile body "$body" "$INTENDED_JQ" "$dir"/wave-r*-groups.json) || { echo "  REFUSE   the intended list did not derive from $dir"; return 1; }
+  [ "$#" -eq 0 ] || echo "  note     forwarded issue number(s) $* ignored; intended list derived as pr-contract does: ${intended:-none}"
+  if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh $intended < "$body"; else bash tools/pr/preflight.sh $intended < "$body"; fi
 }
 
 # THE COPY CLAIM IS CI'S OWN COMMAND. `tests.yml`'s closures job runs
@@ -1123,6 +1190,20 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   rm -f "$out"; return "$r"
 }
 
+# Step 7c's own read of the pull request's head ref. 7b compares the local
+# mirror and never the network, by design; 7c gated on that same mirror, and a
+# mirror nobody fetched read as "no branch yet" -- a fixer pushes
+# `handoff/<topic>` and never fetches the `fix/<topic>` head `handoff_push.sh`
+# opens, so the arm skipped on the revision rounds whose earlier heads already
+# carried reds (R10-FLOW-JIDOKA: 6 of the 24 reds round 10's
+# root-cause-unanswered and ci-red verdicts cite stood on a commit pushed
+# before the blocked head). 7c reads check runs over the network anyway, so it
+# fetches the ref first. An unfetchable ref is a skip, as every unread 7c input is.
+reds_head_sha() { # remote head ref <remote>/<branch> -> its sha, fetched now; rc 3 none on the remote
+  git fetch -q --no-tags "${1%%/*}" "+refs/heads/${1#*/}:refs/remotes/$1" >/dev/null 2>&1 || return 3
+  git rev-parse --verify --quiet "refs/remotes/$1" || return 3
+}
+
 # A BODY IN A SHARED ROOT IS ANOTHER SEAT'S BODY WAITING TO HAPPEN. Seats of one
 # session are all told the same scratchpad, and a machine has one `/tmp`, so a
 # `body.md` written directly in either is overwritten by the next seat that picks
@@ -1311,6 +1392,11 @@ fi
 # `open_pr.sh` unlinted and bounced there, one orchestrator round per refusal
 # (dev/audit/rca/R10-RCA-BODY-LINT.md). Offline: the red history is read at the
 # open, never here. Step 6d's unpinned sites are not fed: the open still is.
+# Step 7e's carry check runs too (`carry_line`, which fetches the round's
+# roster branch): pr-contract's carry step had no twin before the open, and
+# four bodies this gate passed went red there (R10-RCA-BODY-CHECK-PARITY).
+# Step 7's preflight runs too, with pr-contract's roster-derived intended list
+# (`preflight_body`): #2838's `Closes #2428` passed this gate and went red there.
 if [ "${1:-}" = "--body-check" ]; then
   [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
   BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
@@ -1321,6 +1407,12 @@ if [ "${1:-}" = "--body-check" ]; then
   else line="the changed-path list did not derive from $BASE...HEAD"; r=1; fi
   rm -f "$P" "$BODY_LOG"
   if [ "$r" -eq 0 ]; then echo "pr-body ok: $line"; else echo "REFUSE pr-body: $line"; fi
+  cline=$(carry_line "$2"); cr=$?
+  if [ "$cr" -eq 0 ]; then echo "carry ok: $cline"; else echo "REFUSE carry: $cline"; fi
+  [ "$r" -ne 0 ] || r=$cr
+  pout=$(preflight_body "$2" dev/programme/rosters); pr=$?
+  if [ "$pr" -eq 0 ]; then echo "preflight ok"; else echo "REFUSE preflight: $(grep -m1 'REFUSE' <<<"$pout" | sed 's/^ *REFUSE *//')"; fi
+  [ "$r" -ne 0 ] || r=$pr
   exit "$r"
 fi
 
@@ -2461,6 +2553,10 @@ EOF
   # Pushed to a throwaway bare repository, never to the clone's origin.
   BPO=$(cd "$PDX/r" && git remote get-url origin); throwaway_git_init "$PDX/bodies.git" -q --bare
   (cd "$PDX/r" && git remote set-url origin "$PDX/bodies.git")
+  # --body-check's carry step fetches the round's roster branch from this
+  # origin, so it carries one: main's own roster, as the branch is cut from it.
+  (cd "$PDX/r" && rb=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")') \
+    && git push -q origin "refs/remotes/origin/main:refs/heads/${rb#origin/}") >/dev/null 2>&1
   printf 'body\n' > "$PDX/BODY.md"
   bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
   got=$(bpush pinert)
@@ -2495,6 +2591,13 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q "ERROR .*carries a tool's attribution (session-link)" <<<"$got" && ! grep -q 'does not parse' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
   st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+  # Step 7e at body_push (R10-RCA-BODY-CHECK-PARITY's instance shape, #2658):
+  # `none` and then prose under Forward-carry passes policy_lint and is an
+  # unrouted item to carry_audit, which pr-contract runs after the open.
+  bbody '`none`. The re-run is owed by the next pass.' none; got=$(lpush)
+  grep -q '^REFUSE carry: UNROUTED' <<<"$got" && grep -q '^pr-body ok' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "and refuses a body whose Forward-carry the lint passes and carry_audit reads as unrouted, pushing nothing"
   bbody none none; got=$(lpush)
   grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
   st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
@@ -2598,10 +2701,10 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   touch "$WF/empty/none.yml"
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
-  grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' "$PREPR_PATH" > "$WF/deleted.sh"
+  grep -v 'prepr-owners.\$\$ python3 -I ' "$PREPR_PATH" > "$WF/deleted.sh"
   [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^if test -f .*codeowners_gap\.py --check >.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
+  sed 's|^if test -f .*prepr-owners.*codeowners_gap\.py --check.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
   [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
@@ -2664,6 +2767,21 @@ PY
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh 999 >/dev/null 2>&1; else bash tools/pr/preflight.sh 999 >/dev/null 2>&1; fi
   st $? 0 "preflight accepts an intended one (null control)"
+  # Step 7's list is pr-contract's, derived from a fixture roster: #100 is in
+  # two groups' issues and no fixes (never), #101 is fixed, #555 is unrostered.
+  PF=$(mktemp -d)
+  printf '{"groups": [{"group": "A", "issues": [100, 101], "fixes": [101]}, {"group": "B", "issues": [100]}]}\n' > "$PF/wave-r10-groups.json"
+  printf 'Closes #100\n' > "$PF/never.md"; printf 'Closes #101\n' > "$PF/fixed.md"; printf 'Closes #555\n' > "$PF/adhoc.md"
+  got=$(preflight_body "$PF/never.md" "$PF" 100); r=$?
+  st "$r" 1 "step 7 refuses Closes on a roster never-issue though the caller forwards it (#2838's Closes #2428)"
+  case "$got" in *'forwarded issue number(s) 100 ignored'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the forwarded number it ignored"
+  preflight_body "$PF/fixed.md" "$PF" >/dev/null 2>&1
+  st $? 0 "and passes Closes on an issue a group fixes (null control)"
+  preflight_body "$PF/adhoc.md" "$PF" >/dev/null 2>&1
+  st $? 0 "and on an unrostered issue, as pr-contract treats it (null control)"
+  rm -rf "${PF:?}"
+  st "$(grep -cF -- "'$INTENDED_JQ'" .github/workflows/pr-contract.yml)" 1 "INTENDED_JQ is pr-contract's own derivation, byte for byte"
 
   # transport_in_ancestry, on a throwaway repository: one null control per arm
   # that must pass, and each refused shape built the way a seat produced it.
@@ -2810,6 +2928,138 @@ PY
   case "$entry" in *'tmp_floor_check '*'selftest_tmp_root'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the self-test checks the floor, then takes its temp root, before any fixture"
 
+  # (9) A heavy step dies with the prepr (`heavy_run`; R10-PREPR-CAP, carried
+  # from #2528). The driver is a bash of its own with the prepr's functions and
+  # signal traps, running one heavy command through heavy_run; the sleeper
+  # stands for the 3h self-test and forks one lane, as a nested prepr does.
+  # The `fg` driver runs the same command in the foreground, as steps 3 to 3h
+  # did: its KILL and TERM arms are the null controls, reading the orphan and
+  # the deferred trap the helper closes. `alive` is the 6b reap arms' own.
+  HR=$(mktemp -d)
+  cat > "$HR/sleeper.sh" <<EOF
+#!/bin/bash
+( sleep 300 ) & echo "\$!" > "$HR/pid.lane"
+echo "\$\$" > "$HR/pid"
+wait
+EOF
+  for v in heavy fg; do
+    printf '#!/bin/bash\neval "$(awk '"'"'/^rc=0$/{exit} {print}'"'"' '"'"'%s'"'"')"\nexit_on_signals\n' "$PREPR_ABS" > "$HR/$v.sh"
+  done
+  printf 'heavy_run "%s/log" bash "%s/sleeper.sh"\n' "$HR" "$HR" >> "$HR/heavy.sh"
+  printf 'bash "%s/sleeper.sh" >>"%s/log" 2>&1\n' "$HR" "$HR" >> "$HR/fg.sh"
+  hr_arm() { # driver, signal, prepr|group; sets HRA to "<prepr>:<step>:<lane>" alive 5 s after the signal
+    local dpid spid lpid i
+    : > "$HR/pid"; : > "$HR/pid.lane"
+    ( set -m; bash "$HR/$1.sh" </dev/null >/dev/null 2>&1 & echo "$!" > "$HR/drv.pid" )
+    dpid=$(cat "$HR/drv.pid")
+    for i in $(seq 1 1200); do [ -s "$HR/pid" ] && [ -s "$HR/pid.lane" ] && break; sleep 0.1; done
+    spid=$(cat "$HR/pid" 2>/dev/null); lpid=$(cat "$HR/pid.lane" 2>/dev/null)
+    if [ -z "$spid" ] || [ -z "$lpid" ]; then HRA=unstarted; kill -KILL -- -"$dpid" 2>/dev/null; return; fi
+    if [ "$3" = group ]; then kill -"$2" -- -"$dpid"; else kill -"$2" "$dpid"; fi
+    for i in $(seq 1 50); do alive "$dpid" || alive "$spid" || alive "$lpid" || break; sleep 0.1; done
+    HRA=""
+    for i in "$dpid" "$spid" "$lpid"; do HRA="$HRA$(alive "$i" && echo alive || echo gone):"; done
+    HRA=${HRA%:}
+    kill -KILL -- -"$spid" "$spid" "$lpid" -"$dpid" "$dpid" 2>/dev/null
+  }
+  hr_arm heavy KILL prepr
+  st "$HRA" gone:gone:gone "a KILL to the prepr during a heavy step leaves no step or step lane running behind it"
+  hr_arm heavy TERM prepr
+  st "$HRA" gone:gone:gone "a TERM to the prepr alone during a heavy step ends it, the step and the step's lane at once"
+  hr_arm heavy TERM group
+  st "$HRA" gone:gone:gone "a TERM to the prepr's process group during a heavy step ends all three"
+  hr_arm fg KILL prepr
+  case "$HRA" in gone:alive:alive) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the same step in the foreground outlives a KILL to the prepr (null control: the orphan)"
+  hr_arm fg TERM prepr
+  case "$HRA" in alive:alive:alive) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a TERM to the prepr waits behind it (null control: the deferred trap)"
+  rm -rf "${HR:?}"
+  # The call sites: no step from 3 to 3h runs a program in the foreground. The
+  # section is the main flow's text between the two step markers.
+  s3=$(awk '/^# --- 3\. /{f=1} /^# --- 4\. /{exit} f' <<<"$flow")
+  st "$(grep -cE '^[^#]*(node|python3|bash) [^|]*>>? *[^ |]*prepr-[a-z]+\.[$][$]' <<<"$s3")" 0 "no step from 3 to 3h runs a program in the foreground"
+  case "$s3" in *'heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and 3h's self-test, the heaviest, runs through heavy_run"
+  case "$(declare -f closures_line)" in *'heavy_run "$cw/derive.out"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and 6b's recorder runs through the same helper"
+
+  # (10) Step 7e, `carry_line`, over a throwaway origin and a clone of it
+  # carrying THIS tree's carry_audit.py and roster_lib.py (carry_audit reads
+  # the checkout it sits in). The origin's round branch holds R10-ROUND; the
+  # clone's mirror of it is rewound to before that group, and its worktree
+  # roster alone holds R10-LOCAL. Each refusal's null control is beside it.
+  CA=$(mktemp -d)
+  RP=dev/programme/rosters/wave-r10-groups.json
+  TOP=$PWD
+  (
+    set -e; throwaway_git_env; throwaway_git_init "$CA/o" -q -b main; cd "$CA/o"
+    mkdir -p dev/programme/rosters
+    printf '{"groups": [{"group": "R10-MAINLINE", "resume": {"stage": "in-progress"}}]}\n' > "$RP"
+    git add -A; git -c commit.gpgsign=false commit -qm roster
+    git checkout -q -b handoff/audit-r10-roster
+    printf '{"groups": [{"group": "R10-MAINLINE", "resume": {"stage": "in-progress"}}, {"group": "R10-ROUND", "resume": {"stage": "in-progress"}}]}\n' > "$RP"
+    git -c commit.gpgsign=false commit -qam round
+    git checkout -q main
+    throwaway_git_clone -q --no-local "$CA/o" "$CA/c"
+    cd "$CA/c"; git update-ref refs/remotes/origin/handoff/audit-r10-roster main
+    mkdir -p tools/audit/seat
+    cp "$TOP/tools/audit/carry_audit.py" tools/audit/; cp "$TOP/tools/audit/seat/roster_lib.py" tools/audit/seat/
+    printf '{"groups": [{"group": "R10-MAINLINE", "resume": {"stage": "in-progress"}}, {"group": "R10-LOCAL", "resume": {"stage": "in-progress"}}]}\n' > "$RP"
+  ) >/dev/null 2>&1
+  printf '## Forward-carry\n\n- The widget leaks on restart. Carry: %s\n' R10-ROUND > "$CA/routed.md"
+  printf '## Forward-carry\n\n- The widget leaks on restart. Carry: %s\n' R10-LOCAL > "$CA/local.md"
+  printf '## Forward-carry\n\n- The widget leaks on restart.\n' > "$CA/unrouted.md"
+  ca() { ( cd "$CA/c" && throwaway_git_env && carry_line "$1" ); }
+  cad() { ( cd "$CA/c" && throwaway_git_env && python3 -I tools/audit/carry_audit.py "$@" >/dev/null 2>&1 ); }
+  cad --roster-ref origin/handoff/audit-r10-roster check --body "$CA/routed.md"
+  st $? 1 "a carry to a group the stale round-branch mirror lacks is refused there (the fetch's null control)"
+  got=$(ca "$CA/routed.md"); r=$?
+  st "$r" 0 "the same carry passes once carry_line fetches the round branch"
+  case "$got" in *'1 routed'*'origin/handoff/audit-r10-roster'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the ok line names the count and the ref it read"
+  cad check --body "$CA/local.md"
+  st $? 0 "a carry to a group only the worktree's roster holds passes the offline read (the defect's null control)"
+  got=$(ca "$CA/local.md"); r=$?
+  st "$r" 1 "and carry_line refuses it: the round branch, where fix-review step 10 looks, lacks the group"
+  case "$got" in 'BAD-DEST'*'R10-LOCAL'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal is carry_audit's own BAD-DEST line, naming the group"
+  got=$(ca "$CA/unrouted.md"); r=$?
+  st "$r" 1 "an unrouted ## Forward-carry item is refused"
+  case "$got" in 'UNROUTED'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal is carry_audit's own UNROUTED line"
+  ( cd "$CA/c" && throwaway_git_env && git remote set-url origin "$CA/no-such-origin" ) >/dev/null 2>&1
+  got=$(ca "$CA/routed.md"); r=$?
+  st "$r" 1 "a round branch that cannot be fetched refuses, never reads the stale mirror"
+  case "$got" in *'could not be fetched'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal says why"
+  # One string with its newline: a line between the two (#2838's mutant X2)
+  # breaks the adjacency, which a `*` glob between them admitted.
+  case "$flow" in *'CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
+  step "carry" "$CARRY_RC" "$CARRY_LINE"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the body step runs carry_line on the body and refuses on its rc"
+  case "$flow" in *'preflight_body "$BODY" dev/programme/rosters "$@"
+  step "preflight" $?'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 7's preflight derives the intended list and refuses on its rc"
+  case "$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")" in
+    *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
+
+  # (11) Step 7c reads the pull request's head ref fetched now (`reds_head_sha`),
+  # not 7b's unfetched mirror. The clone has no mirror of `fix`, which the
+  # origin carries: the fetch finds it; a branch the origin lacks is rc 3.
+  ( throwaway_git_env && git -C "$CA/c" remote set-url origin "$CA/o" && git -C "$CA/o" branch -q fix main ) >/dev/null 2>&1
+  (cd "$CA/c" && throwaway_git_env && git rev-parse --verify --quiet refs/remotes/origin/fix >/dev/null)
+  st $? 1 "the clone's mirror lacks the pushed head (the gate's null control: 7b's read)"
+  got=$(cd "$CA/c" && throwaway_git_env && reds_head_sha origin/fix); r=$?
+  st "$r" 0 "reds_head_sha finds a pushed head the mirror lacked"
+  st "$got" "$(throwaway_git_env; git -C "$CA/o" rev-parse fix)" "and returns the origin's sha for it"
+  (cd "$CA/c" && throwaway_git_env && reds_head_sha origin/never-pushed >/dev/null)
+  st $? 3 "a head the origin does not carry is a skip"
+  case "$flow" in *'elif ! reds_head_sha "$UPREF" >/dev/null; then'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and step 7c gates on it, not on 7b's UPSHA"
+  rm -rf "${CA:?}"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
@@ -2918,7 +3168,7 @@ MODE=$(python3 tests/closure.py select --diff "$BASE" 2>/dev/null | grep -oE 'MO
 step "gate mode" 0 "${MODE:-(no mode line)}"
 
 # --- 3. the policy corpus.
-if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1; else node tools/policy/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1; fi
+if test -f .claude/workflows/policy_lint.mjs; then heavy_run /tmp/prepr-policy.$$ node .claude/workflows/policy_lint.mjs; else heavy_run /tmp/prepr-policy.$$ node tools/policy/policy_lint.mjs; fi
 step "policy_lint" $? "$(tail -2 /tmp/prepr-policy.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-policy.$$
 
@@ -2940,29 +3190,29 @@ HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "mutants" "$HV"
 else
-if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; else node tools/policy/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; fi
+if test -f .claude/workflows/policy_lint_mutants.mjs; then heavy_run /tmp/prepr-mutants.$$ node .claude/workflows/policy_lint_mutants.mjs; else heavy_run /tmp/prepr-mutants.$$ node tools/policy/policy_lint_mutants.mjs; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
 rm -f /tmp/prepr-mutants.$$
 fi
 
 # --- 3b. the generated Cursor rules match their source.
-if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; else node tools/policy/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; fi
+if test -f .claude/workflows/rules_sync.mjs; then heavy_run /tmp/prepr-rules.$$ node .claude/workflows/rules_sync.mjs --check; else heavy_run /tmp/prepr-rules.$$ node tools/policy/rules_sync.mjs --check; fi
 step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
 rm -f /tmp/prepr-rules.$$
 
 # --- 3c. the five copies of the shared prompt block are the canonical text.
-if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1; else node tools/policy/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1; fi
+if test -f .claude/workflows/fragments_sync.mjs; then heavy_run /tmp/prepr-frag.$$ node .claude/workflows/fragments_sync.mjs; else heavy_run /tmp/prepr-frag.$$ node tools/policy/fragments_sync.mjs; fi
 step "fragments" $? "$(tail -1 /tmp/prepr-frag.$$)"
 rm -f /tmp/prepr-frag.$$
 
 # --- 3d. the hooks this repository wires are present and self-testing.
-if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; else node tools/policy/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; fi
+if test -f .claude/workflows/policy_lint.mjs; then heavy_run /tmp/prepr-hooks.$$ node .claude/workflows/policy_lint.mjs --hooks; else heavy_run /tmp/prepr-hooks.$$ node tools/policy/policy_lint.mjs --hooks; fi
 step "hooks" $? "$(grep -E '^  (SELF-TEST FAILED|MISSING|NOT WIRED|UNREADABLE) ' /tmp/prepr-hooks.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
 
 # --- 3e. no file a workflow executes lacks an owner, on this head's copy of
 # what the walk reads (`pinned_graders` above: #1633 R1a). 0.6 s, so always.
-if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; fi
+if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then heavy_run /tmp/prepr-owners.$$ python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else heavy_run /tmp/prepr-owners.$$ python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi
 step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-owners.$$
 
@@ -2975,7 +3225,7 @@ PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
 if [ "$PIN_TOUCHED" -eq 0 ]; then
-  if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1; else node tools/policy/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1; fi
+  if test -f .claude/workflows/brief_lint.mjs; then heavy_run /tmp/prepr-briefs.$$ node .claude/workflows/brief_lint.mjs; else heavy_run /tmp/prepr-briefs.$$ node tools/policy/brief_lint.mjs; fi
   step "brief_lint" $? "$(tail -1 /tmp/prepr-briefs.$$)"
   rm -f /tmp/prepr-briefs.$$
 else
@@ -2993,7 +3243,7 @@ HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "field coverage" "$HV"
 else
-if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; else node tools/policy/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; fi
+if test -f .claude/workflows/field_coverage.mjs; then heavy_run /tmp/prepr-fc.$$ node .claude/workflows/field_coverage.mjs; else heavy_run /tmp/prepr-fc.$$ node tools/policy/field_coverage.mjs; fi
 # the refusal cause lines sit above the summary this prints, and the file is
 # removed below, so they are carried beside it or not at all (#2118, #2134).
 step "field coverage" $? "$(grep -E '^  (BLIND|DEAD|REFUSED) ' /tmp/prepr-fc.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-fc.$$)"
@@ -3008,12 +3258,8 @@ fi
 # merge-subject history (`git log --first-parent` since the tag through HEAD),
 # so every branch that adds a commit provably reaches it and no file table can
 # call that read inert (`heavy_skip`'s block above). It runs unconditionally.
-if test -f .claude/workflows/agreement_py.py; then
-  python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
-else
-  python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
-fi \
-  && if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; else node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; fi
+if test -f .claude/workflows/agreement_py.py; then heavy_run /tmp/prepr-ag.$$ python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json; else heavy_run /tmp/prepr-ag.$$ python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json; fi \
+  && if test -f .claude/workflows/agreement.mjs; then heavy_run /tmp/prepr-ag.$$ node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json; else heavy_run /tmp/prepr-ag.$$ node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json; fi
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 
@@ -3029,8 +3275,8 @@ HV=$(heavy_skip "register check" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "register check" "$HV"
 else
-python3 -I tools/audit/fold_ledger.py --self-test >/tmp/prepr-fl.$$ 2>&1 \
-  && python3 -I tools/audit/fold_ledger.py check >>/tmp/prepr-fl.$$ 2>&1
+heavy_run /tmp/prepr-fl.$$ python3 -I tools/audit/fold_ledger.py --self-test \
+  && heavy_run /tmp/prepr-fl.$$ python3 -I tools/audit/fold_ledger.py check
 step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
 rm -f /tmp/prepr-fl.$$
 fi
@@ -3038,8 +3284,8 @@ rm -f "${HEAVY_PLAN:-}"
 
 # --- 3f6. no tracked script, workflow or decision record tied to a temp or
 # machine path, which `instrument-self-tests` runs on the branch's own copy.
-python3 -I tools/audit/seat/tmp_paths.py --self-test >/tmp/prepr-tp.$$ 2>&1 \
-  && python3 -I tools/audit/seat/tmp_paths.py --check >>/tmp/prepr-tp.$$ 2>&1
+heavy_run /tmp/prepr-tp.$$ python3 -I tools/audit/seat/tmp_paths.py --self-test \
+  && heavy_run /tmp/prepr-tp.$$ python3 -I tools/audit/seat/tmp_paths.py --check
 step "temp paths" $? "$(tail -1 /tmp/prepr-tp.$$)"
 rm -f /tmp/prepr-tp.$$
 
@@ -3053,7 +3299,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # detector. A diff that cannot be listed is treated as owing it.
 if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
-  if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
+  if test -f tools/audit/prepr.sh; then heavy_run /tmp/prepr-stlog.$$ bash tools/audit/prepr.sh --self-test; else heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
   rm -f /tmp/prepr-stlog.$$
 else
@@ -3196,9 +3442,11 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # body, made the pre-PR gate exit non-zero with nothing wrong. CI does not
   # catch that in either direction: `pr-contract` runs the same script as
   # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
-  # body in twenty merges to carry a closing keyword.
+  # body in twenty merges to carry a closing keyword. The list is now derived
+  # as pr-contract derives it (`preflight_body`), so a hand-passed number can
+  # no longer pass here a keyword CI refuses.
   shift
-  if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" < "$BODY"; else bash tools/pr/preflight.sh "$@" < "$BODY"; fi
+  preflight_body "$BODY" dev/programme/rosters "$@"
   step "preflight" $?
   # THE PATHS ARE THE SECOND INPUT, and until #1053 this step had only the
   # first. `diff_paths` above carries why they are derived three-dot and with
@@ -3226,6 +3474,11 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   figures_check "$BODY" >/tmp/prepr-fig.$$ 2>&1
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
+
+  # --- 7e. every finding the body records names a destination on the round's
+  # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.
+  CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
+  step "carry" "$CARRY_RC" "$CARRY_LINE"
 
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")
@@ -3268,15 +3521,16 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # pr-body, fed every red a PUSHED commit of this branch carries -- the fix
   # reviewer's root-cause trigger (defect-root-cause.md), moved to push time,
   # where repairing it is one body edit instead of a review round (#1860). It
-  # runs after 7b because it reads the same remote head ref 7b derives, and
-  # needs the path list pr-body derived: without one the body check it feeds
-  # was not run, and the arm says so rather than feeding it nothing.
+  # runs after 7b because it reads the remote head ref 7b derives -- fetched
+  # now (`reds_head_sha` above), never 7b's unfetched mirror -- and needs the
+  # path list pr-body derived: without one the body check it feeds was not
+  # run, and the arm says so rather than feeding it nothing.
   if [ ! -f "$PATHS" ]; then
     say skip "ancestry reds" "no changed-path list, so the body check this arm feeds was not run"
   elif [ -z "$UPREF" ]; then
     say skip "ancestry reds" "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"
-  elif [ -z "$UPSHA" ]; then
-    say skip "ancestry reds" "no $UPREF yet; the push creates it, so no commit of this branch has check runs to read"
+  elif ! reds_head_sha "$UPREF" >/dev/null; then
+    say skip "ancestry reds" "no $UPREF on the remote, fetched now; the push creates it, so no commit of this branch has check runs to read"
   else
     REDS_LINE=$(reds_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$UPREF")
     case $? in
