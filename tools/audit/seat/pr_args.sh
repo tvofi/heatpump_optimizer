@@ -1138,8 +1138,9 @@ BCHILD
     while [ ! -s "$t/bm" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
     [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"  # the child ran, so a free lock is an ending, not an absence
     kill -KILL "$up"; wait "$up" 2>/dev/null
-    # A bound below the child's 20 s sleep, so a session nothing ends still reads held.
-    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    # A bound below the child's 20 s sleep, so a session nothing ends still reads held: 5 s of wall
+    # clock (untilfree), not a count of ticks whose length grows with the load.
+    untilfree "$t/bl" 5
     lockstate "$t/bl" > "$t/bstate"; bndend
   }
   bndkill - 2>/dev/null  # the killed supervisor's job notice
@@ -1169,7 +1170,7 @@ print(n)' "$1"
     [ -s "$t/bm" ] && echo up > "$t/bup" || echo none > "$t/bup"
     csid=$(python3 -I -c 'import os, sys; print(os.getsid(int(sys.argv[1])))' "$(cat "$t/bm")" 2>/dev/null)
     kill -KILL -- "-$up"; wait "$up" 2>/dev/null
-    k=0; while [ "$(lockstate "$t/bl")" = held ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    untilfree "$t/bl" 5  # below the child's 20 s sleep, as bndkill's
     lockstate "$t/bl" > "$t/bstate"; echo "$(sidlive "${csid:-0}") $(sidlive "$up")" > "$t/bgrp"; bndend
   }
   if [ -d /proc ]; then
