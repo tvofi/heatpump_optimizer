@@ -7981,6 +7981,7 @@ from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
 class _CopGate:
     _learn_measured_cop = Coord._learn_measured_cop
     _fold_measured_cop = Coord._fold_measured_cop
+    _fold_cop_evidence = Coord._fold_cop_evidence
     _commanded_power = Coord._commanded_power
     _commanded_split = Coord._commanded_split
     _cop_reference_curve = Coord._cop_reference_curve
@@ -20239,6 +20240,9 @@ _lf_src = inspect.getsource(_Coord._async_learn_lower_floor_loss)
 # learners to calling it, or a re-inlined replay would drop the profile with
 # nothing left to notice.
 _replay_src = inspect.getsource(inspect.getmodule(_Coord)._replay_interval)
+# #2261: both learners replay through ``_replay_fabric``, which earns the
+# measured-heat basis and then calls the one replay.
+_fabric_src = inspect.getsource(inspect.getmodule(_Coord)._replay_fabric)
 # R10-LOOP-CPU: the step itself is the worker's job, handed the interval's hour.
 _replay_step_src = inspect.getsource(inspect.getmodule(_Coord)._replay_step)
 R.check(
@@ -20246,8 +20250,9 @@ R.check(
     "previous_time.hour + previous_time.minute / 60.0" in _replay_src
     and "_replay_step," in _replay_src
     and "hour_of_day=hour_of_day" in _replay_step_src
-    and "_replay_interval(" in _hl_src
-    and "_replay_interval(" in _lf_src,
+    and "_replay_interval(" in _fabric_src
+    and "_replay_fabric(" in _hl_src
+    and "_replay_fabric(" in _lf_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
 )
 # Behavioural: the corrections the refresh computes are the ones the live
@@ -20661,7 +20666,6 @@ _r10st_same = {
     "buffer_tank_temp_entity": "quiet store",
     # Outdoor air moves within its 3 h bound.
     "outdoor_temp_entity": "moves within the bound",
-    "house_power_entity": "moves within the bound",
     # Stale is the safe direction: a pump signal demotes to silence, a wood-side
     # probe or flue reads as no free heat, solar falls back to Open-Meteo.
     "heat_pump_fault_entity": "fails safe",
@@ -57790,6 +57794,12 @@ _P5_DISPOSED = {
     "_async_load_thermal_learning": "restore from the store",
     "_load_t4b_learners": "restore from the store",
     "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
+    # #2261: the COP fold's tail. _fold_measured_cop consults the freeze, and
+    # a heat counter's span folds only when that consult passed on every cycle
+    # of the span (_async_learn_heat_span); the two below it are fed only here.
+    "_fold_cop_evidence": "the COP fold's tail; both callers gate it on the freeze",
+    "_fold_capacity_envelope": "fed only from _fold_cop_evidence's gated tail",
+    "_observe_cop_health": "fed only from _fold_cop_evidence's gated tail",
     "_init_frequency": "construction",
     "_init_insurance": "construction",
     "_init_measurements": "construction",
@@ -58742,6 +58752,9 @@ _P3_ALLOWED = {
      "state.outdoor_temperature"): "the experiment step running now",
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
+    ("coordinator.py", "_async_learn_heat_span", "compute_cop",
+     "_ctx_of(coord)._current_state.outdoor_temperature"):
+        "the plan's price a closed heat-counter span's expected heat is judged at (#2261)",
     ("coordinator.py", "_replay_step", "simulate_step",
      "state"): "the one replay both interval learners share (R9-UX-10): "
     "the interval that just ended, in today's weather",
@@ -70114,6 +70127,534 @@ R.check(
     "than falling back to the commanded inference (null control: a fresh one folds)",
     _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
+
+# --- #2261: a delivered-heat counter, the mode dwell and one attribution --------
+# R10-HEAT-METER. A ``total_increasing`` kWh counter of the heat the pump
+# delivered is read per span (``heat_energy.HeatEnergyMeter``), the span closing
+# on elapsed time inside the interval learners' sample bounds; the mode
+# entity's dwell splits an interval between space heating and hot water
+# (``heat_energy.attribution``), and every site that split by the plan asks it.
+# The production symbols throughout, never a re-implemented formula.
+R.section("R10-HEAT-METER: a delivered-heat counter, split by the mode dwell (#2261)")
+import math as _he_math  # noqa: E402
+from heatpump_optimizer import heat_energy as _he  # noqa: E402
+from heatpump_optimizer import coordinator as _he_cm  # noqa: E402
+from heatpump_optimizer import store as _he_store  # noqa: E402
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_SPAN_OPEN as _HE_OPEN,
+    COP_REFUSED_UNALIGNED as _HE_UNALIGNED,
+)
+
+_HE_KEY = _fb_const.CONF_HEAT_ENERGY_ENTITY
+_HE_BOUNDS = (_he_cm.HOUSE_LOSS_MIN_SAMPLE_HOURS, _he_cm.HOUSE_LOSS_MAX_SAMPLE_HOURS)
+
+
+def _he_counter(meter, heat_kw, *, elec_kw=None, cadence_h=0.5, cycles=12, quantum=None,
+                jitter_h=(), events=(), start=NOW, max_heat_kw=30.0, plant=None):
+    """Drive a meter's counters through ``cycles`` reads of a constant plant.
+
+    ``quantum``: the counter reads its true value floored to this step (an
+    integer-kWh counter is 1.0). ``jitter_h``: per-cycle additions to the
+    cadence; ``events``: cycle indices that land at half a cadence (an
+    event-driven refresh). ``plant``: ``(i, heat, elec)`` -> override reads.
+    Returns ``(closed spans, refusals)``.
+    """
+    t, heat, elec, closed, refused = start, 0.0, 0.0, [], []
+    for i in range(cycles):
+        h, e = heat, elec
+        if plant is not None:
+            h, e = plant(i, h, e)
+        read = h if quantum is None else _he_math.floor(h / quantum + 1e-9) * quantum
+        meter.observe_counters(
+            t, 1000.0 + read, None if elec_kw is None else 500.0 + e, configured=True,
+            cadence_h=cadence_h, bounds_h=_HE_BOUNDS, max_heat_kw=max_heat_kw,
+        )
+        if meter.closed is not None:
+            closed.append(meter.closed)
+        if meter.refusal is not None:
+            refused.append(meter.refusal)
+        step = (cadence_h / 2.0 if i in events else cadence_h) + (jitter_h[i] if i < len(jitter_h) else 0.0)
+        heat += heat_kw * step
+        elec += (elec_kw or 0.0) * step
+        t += timedelta(hours=step)
+    return closed, refused
+
+
+# The span closes on elapsed time, inside the learners' strict bounds, under a
+# drifting cadence and an event-driven refresh (point A). Null control: without
+# the drift allowance the same reads overrun the bound and are refused.
+_he_jit = [0.0007 * (i % 5) for i in range(40)]
+_he_jit_closed, _he_jit_refused = _he_counter(
+    _he.HeatEnergyMeter(), 3.0, cycles=40, jitter_h=_he_jit, events=(7,))
+# A 45 min cadence whose first refresh lands 18 s early, then runs 36 s late:
+# the early read falls short of the close, and the next overruns 1.5 h.
+_he_drift = [-0.005] + [0.01] * 39
+_he_saved = _he.SPAN_CLOSE_ALLOWANCE_H
+_he.SPAN_CLOSE_ALLOWANCE_H = 0.0
+try:
+    _he_noallow = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=40, cadence_h=0.75, jitter_h=_he_drift)
+finally:
+    _he.SPAN_CLOSE_ALLOWANCE_H = _he_saved
+_he_allow = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=40, cadence_h=0.75, jitter_h=_he_drift)
+R.check(
+    "a counter span closes on elapsed time, inside the learners' sample bounds, "
+    "under a drifting cadence and one event-driven cycle (null control: no drift "
+    "allowance overruns the bound at a 45 min cadence)",
+    len(_he_jit_closed) >= 15 and not _he_jit_refused
+    and all(_HE_BOUNDS[0] <= s.hours <= _HE_BOUNDS[1] for s in _he_jit_closed)
+    and _he_allow[0] and not _he_allow[1]
+    and _he_noallow[1][:1] == [_he.SPAN_REFUSED_LONG],
+    f"closed {len(_he_jit_closed)} hours "
+    f"{sorted({round(s.hours, 3) for s in _he_jit_closed})} refused {_he_jit_refused}; "
+    f"45 min: allowance {len(_he_allow[0])}/{_he_allow[1]} none {len(_he_noallow[0])}/{_he_noallow[1]}",
+)
+
+# A planted reset (the counter falls) and a planted rollover (it jumps past
+# the thermal nameplate) are refused, and the span re-baselines on the read:
+# the next span reads true again. Null control: the same plant unplanted.
+_he_reset = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=10,
+                        plant=lambda i, h, e: (h - 900.0, e) if i >= 4 else (h, e))
+_he_roll = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=10,
+                       plant=lambda i, h, e: (h + 500.0, e) if i >= 4 else (h, e))
+_he_plain = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=10)
+R.check(
+    "a counter reset and a rollover are refused, and the next span reads true "
+    "(null control: the same plant without either)",
+    _he_reset[1] == [_he.SPAN_REFUSED_RESET]
+    and _he_roll[1] == [_he.SPAN_REFUSED_ROLLOVER]
+    and not _he_plain[1]
+    and all(abs(s.heat_kwh / s.hours - 3.0) < 1e-9 for s in _he_reset[0] + _he_roll[0] + _he_plain[0])
+    and len(_he_reset[0]) == len(_he_plain[0]) - 1 == len(_he_roll[0]),
+    f"reset {_he_reset[1]} {len(_he_reset[0])} spans; rollover {_he_roll[1]} "
+    f"{len(_he_roll[0])}; plain {len(_he_plain[0])}",
+)
+
+# An integer-kWh counter: the span is fixed in time, so its delta is the true
+# heat quantised, unbiased over spans; the resolution bound refuses a span that
+# expects less than one step (0.6 kW over the one-hour span a 30 min cadence
+# closes) and reads 1.5 kW. Null control: 3.0 kW, every span exact.
+
+
+def _he_int(kw, cycles=400):
+    meter = _he.HeatEnergyMeter()
+    spans, _ = _he_counter(meter, kw, cycles=cycles, quantum=1.0)
+    kept = [s for s in spans if _he.resolution_refusal(s, kw * s.hours) is None]
+    mean = sum(s.heat_kwh for s in kept) / max(1e-9, sum(s.hours for s in kept))
+    return len(spans), len(kept), mean
+
+
+_he_i06, _he_i15, _he_i30 = _he_int(0.6), _he_int(1.5), _he_int(3.0)
+R.check(
+    "an integer-kWh counter is refused at 0.6 kW, reads 1.5 kW unbiased over its "
+    "spans (null control: 3.0 kW reads 3.0)",
+    _he_i06[0] > 100 and _he_i06[1] == 0
+    and _he_i15[1] == _he_i15[0] > 100 and abs(_he_i15[2] - 1.5) < 0.01
+    and _he_i30[1] == _he_i30[0] and abs(_he_i30[2] - 3.0) < 1e-9,
+    f"0.6 kW {_he_i06}; 1.5 kW {_he_i15}; 3.0 kW {_he_i30}",
+)
+R.check(
+    "a counter that never stepped is refused, and so is a span that expects no heat",
+    _he.resolution_refusal(_he.SpanEnergy(NOW, NOW, 1.0, 0.0, 0.0, None), 3.0) == _he.SPAN_REFUSED_RESOLUTION
+    and _he.resolution_refusal(_he.SpanEnergy(NOW, NOW, 1.0, 0.0, 0.0, 0.01), 0.0) == _he.SPAN_REFUSED_RESOLUTION
+    and _he.resolution_refusal(_he.SpanEnergy(NOW, NOW, 1.0, 3.0, 1.0, 0.01), 3.0) is None,
+)
+
+# The electric counter pairs only when read at both of the span's instants.
+_he_pair = _he.HeatEnergyMeter()
+_he_paired, _ = _he_counter(_he_pair, 6.0, elec_kw=2.0, cycles=6)
+R.check(
+    "the electric delta shares the heat span's instants: heat over electricity is "
+    "the plant's COP exactly",
+    _he_paired and all(s.elec_kwh is not None and abs(s.heat_kwh / s.elec_kwh - 3.0) < 1e-12
+                       for s in _he_paired),
+    f"{[(s.heat_kwh, s.elec_kwh) for s in _he_paired]}",
+)
+_he_unread = _he.HeatEnergyMeter()
+_he_unread.observe_counters(NOW, 100.0, 50.0, configured=True, cadence_h=0.5,
+                            bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+_he_unread.observe_counters(NOW + timedelta(hours=0.5), 103.0, 51.0, configured=True,
+                            cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+_he_unread.observe_counters(NOW + timedelta(hours=1.0), 106.0, None, configured=True,
+                            cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+R.check(
+    "an electric counter not read at the close leaves the span unaligned (None), "
+    "never a delta over other instants",
+    _he_unread.closed is not None and _he_unread.closed.elec_kwh is None
+    and abs(_he_unread.closed.heat_kwh - 6.0) < 1e-12,
+    f"{_he_unread.closed}",
+)
+
+
+# The mode dwell. A live single-duty mode is observed, at its last_changed;
+# combination, unrecognised and last-good readings are not.
+def _he_sig(key, source=pump_signals.MODE_SOURCE_LIVE, changed=None, owned=False):
+    return PumpSignals(mode=pump_mode.MODES[key] if key else pump_mode.FULL_CAPABILITY,
+                       mode_observed=key is not None, mode_source=source,
+                       mode_owned=owned, mode_changed_at=changed)
+
+
+_he_t = [NOW + timedelta(minutes=30 * i) for i in range(5)]
+
+
+def _he_dwell(*reads):
+    """A meter whose dwell saw ``reads`` = [(at, signals)], the last two its cycle."""
+    m = _he.HeatEnergyMeter()
+    for at, sig in reads:
+        m.observe_mode(at, sig)
+    m.cycle = (reads[-2][0], reads[-1][0])
+    return m
+
+
+_HE_HEAT, _HE_DHW = pump_mode.MODE_HEAT, pump_mode.MODE_DHW
+# heat from before the window, DHW from 10 minutes into the 30 min cycle
+_he_split = _he_dwell((_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3))),
+                      (_he_t[1], _he_sig(_HE_DHW, changed=_he_t[0] + timedelta(minutes=10))))
+_he_split_shares = _he_split.dwell.shares(*_he_split.cycle)
+_he_split_a = _he_split.attribution((2.0, 0.0))
+R.check(
+    "heat then hot water inside one interval splits at the mode's last_changed "
+    "(10 of 30 minutes space), and an integrated heat takes that share",
+    _he_split_shares is not None
+    and abs(_he_split_shares[0] - 10 / 60) < 1e-9 and abs(_he_split_shares[1] - 20 / 60) < 1e-9
+    and _he_split_a.observed
+    and abs(_he.space_heat_kw(6.0, _he_split_a, integrated=True) - 2.0) < 1e-9,
+    f"{_he_split_shares} {_he_split_a}",
+)
+R.check(
+    "the same interval on a point reading (thermal power) gives no space figure, "
+    "not a half (null control: a space-only interval gives the reading)",
+    _he.space_heat_kw(6.0, _he_split_a, integrated=False) is None
+    and _he.space_heat_kw(6.0, _he_dwell(
+        (_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3))),
+        (_he_t[1], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3))),
+    ).attribution((0.0, 2.0)), integrated=False) == 6.0,
+)
+_he_owned = _he_dwell((_he_t[0], _he_sig(_HE_DHW, changed=_he_t[0] - timedelta(hours=1), owned=True)),
+                      (_he_t[1], _he_sig(_HE_DHW, changed=_he_t[0] - timedelta(hours=1), owned=True)))
+R.check(
+    "a single-duty step the arbiter wrote (owned) counts as observed",
+    _he_owned.attribution((2.0, 0.0)) == _he.Attribution(0.0, 0.5, True),
+    f"{_he_owned.attribution((2.0, 0.0))}",
+)
+_he_excursion = _he_dwell((_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3))),
+                          (_he_t[1], _he_sig(_HE_HEAT, changed=_he_t[0] + timedelta(minutes=20))))
+R.check(
+    "a mode that left and came back between two reads is an unseen excursion: "
+    "the interval is unobserved and splits by the plan",
+    _he_excursion.attribution((2.0, 0.5)) == _he.Attribution(2.0, 0.5, False),
+    f"{_he_excursion.dwell.segments}",
+)
+
+# Combination and last-good modes reproduce #2753's whole-unit rule exactly:
+# the attribution is the plan's split, and space_heat_kw on it is the rule
+# ``_interval_measured_heat_kw`` applied before the dwell existed.
+_he_combo = _he_dwell((_he_t[0], _he_sig(pump_mode.MODE_HEAT_DHW, changed=_he_t[0] - timedelta(hours=3))),
+                      (_he_t[1], _he_sig(pump_mode.MODE_HEAT_DHW, changed=_he_t[0] - timedelta(hours=3))))
+_he_lastgood = _he_dwell(
+    (_he_t[0], _he_sig(_HE_HEAT, source=pump_signals.MODE_SOURCE_LAST_GOOD, changed=None)),
+    (_he_t[1], _he_sig(_HE_HEAT, source=pump_signals.MODE_SOURCE_LAST_GOOD, changed=None)))
+
+
+def _he_2753_rule(heat_kw, split):
+    """#2753's predicate at a441d2e1, its own text: ``None`` for a split or empty plan."""
+    space_kw, dhw_kw = split
+    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:
+        return None
+    return heat_kw
+
+
+_he_grid = [(h, (s, d)) for h in (None, 0.0, 4.2) for s in (0.0, 1e-7, 2.0) for d in (0.0, 1e-7, 1.5)]
+R.check(
+    "a combination mode and a last-good mode split by the plan, reproducing the "
+    "whole-unit rule on every (heat, space, hot water) of a grid",
+    all(_he.space_heat_kw(h, m.attribution(sp), integrated=i) == _he_2753_rule(h, sp)
+        for m in (_he_combo, _he_lastgood, _he.HeatEnergyMeter()) for h, sp in _he_grid
+        for i in (False, True)),
+)
+
+
+# The two other consumers on the plan's split are the sites' own formulas,
+# bit for bit (the COP curve choice and the ledger's hot-water share).
+def _he_old_curve(split, limit):
+    space, dhw = split
+    total = space + dhw
+    if total <= 1e-6:
+        return "space"
+    share = dhw / total
+    if share <= limit:
+        return "space"
+    return "dhw" if share >= 1.0 - limit else None
+
+
+def _he_old_share(split):
+    total = split[0] + split[1]
+    return split[1] / total if total > 1e-6 else 0.0
+
+
+_he_splits = [(s, d) for s in (0.0, 1e-7, 0.2, 1.0, 2.0) for d in (0.0, 1e-7, 0.2, 1.0, 9.0)]
+R.check(
+    "on the plan's split the COP curve choice and the ledger's hot-water share are "
+    "the sites' own rules, bit for bit",
+    all(_he.cop_duty(_he.attribution(None, sp), Coord._COP_CURVE_SHARE)
+        == _he_old_curve(sp, Coord._COP_CURVE_SHARE) for sp in _he_splits)
+    and all(_he.dhw_share(_he.attribution(None, sp)) == _he_old_share(sp) for sp in _he_splits),
+)
+
+# Precedence: the counter, then the thermal power entity, then the flow meter,
+# and a configured source never falls back (#2753's M1, mirrored). A counter
+# answers per span, so a cycle reads None from it, the thermal entity unread.
+_he_both = _fm.read_heat_output_kw(*_tp_reader({_HE_KEY: "sensor.heat_kwh"}, "4200"))
+_he_thermal = _fm.read_heat_output_kw(*_tp_reader({}, "4200"))
+R.check(
+    "a configured heat counter outranks the thermal power entity and the flow "
+    "meter, and a cycle reads no heat from it (null control: the thermal entity "
+    "alone reads 4.2 kW)",
+    _he_both is None and _he_thermal is not None and abs(_he_thermal - 4.2) < 1e-9,
+    f"counter+thermal {_he_both!r} thermal {_he_thermal!r}",
+)
+R.check(
+    "the install probe reports a heat counter as measured heat, alone or beside "
+    "the thermal entity; the options step asks for it beside the energy meter",
+    _pp_probe({_HE_KEY: "sensor.heat_kwh"}).measured_heat is True
+    and _pp_probe({_HE_KEY: "sensor.heat_kwh", _TP_KEY: "sensor.heat"}).measured_heat is True
+    and any(f.key == _HE_KEY and f.group == "meters" for f in _fm_fields),
+)
+
+# A dead counter must re-report before it falls silent (R10-INPUT-STALENESS's
+# carry): its on-change limit is unbounded, so an old last_updated alone reads
+# fresh; one seen re-reporting is a polling source and stale past 180 min.
+_he_fresh_reader = _fmReader(FakeHass({"sensor.heat_kwh": FakeState(
+    "1234.5", last_updated=minutes_ago(600, NOW), unit="kWh")}), {_HE_KEY: "sensor.heat_kwh"}, now=lambda: NOW)
+_he_dead_reader = _fmReader(FakeHass({"sensor.heat_kwh": FakeState(
+    "1234.5", last_updated=minutes_ago(600, NOW), last_reported=minutes_ago(200, NOW), unit="kWh")}),
+    {_HE_KEY: "sensor.heat_kwh"}, now=lambda: NOW)
+_he_live_reader = _fmReader(FakeHass({"sensor.heat_kwh": FakeState(
+    "1.2345", last_updated=minutes_ago(600, NOW), last_reported=minutes_ago(5, NOW), unit="MWh")}),
+    {_HE_KEY: "sensor.heat_kwh"}, now=lambda: NOW)
+_he_fresh_r = _he_fresh_reader.read(_HE_KEY)
+_he_dead_r = _he_dead_reader.read(_HE_KEY)
+_he_live_r = _he_live_reader.read(_HE_KEY)
+R.check(
+    "a quiet heat counter holding its value reads fresh; one that re-reported and "
+    "then fell silent past 180 min is stale; MWh reads as kWh",
+    _he_fresh_r.ok and _he_fresh_r.value == 1234.5
+    and _he_dead_r.problem == "stale"
+    and _he_live_r.ok and abs(_he_live_r.value - 1234.5) < 1e-9,
+    f"quiet {_he_fresh_r.problem} dead {_he_dead_r.problem} live {_he_live_r.value!r}",
+)
+
+
+# The coordinator. Per cycle the COP fold on a counter install stops at the
+# span (its gates still run); at the close the paired deltas fold, on the
+# known-COP plant exactly, and with heat equal to the model's COP times the
+# electricity (the null) the scale holds.
+def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3):
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power",
+                  **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"})
+    c._current_state.outdoor_temperature = 8.0
+    c._current_action = {"power": elec_kw}
+    c._measured_power = elec_kw
+    modelled = c._thermal_model.compute_cop(8.0)
+    ratio = modelled if heat_per_elec is None else heat_per_elec
+    m = _he.meter_of(c)
+    refusals = []
+    for i in range(cycles):
+        at = NOW + timedelta(hours=0.5 * i)
+        m.observe_counters(at, 100.0 + ratio * elec_kw * 0.5 * i, 50.0 + elec_kw * 0.5 * i if energy else None,
+                           configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        # The learners' baseline, as ``_close_fabric_interval`` leaves it.
+        c._last_house_sample, c._last_house_sample_time = replace(c._current_state), at
+        c._learn_measured_cop()
+        clean = {"cop": c._measured_cop.refusal == _HE_OPEN}
+        _asyncio.run(_he_cm._async_learn_heat_span(c, clean))
+        refusals.append(c._measured_cop.refusal)
+    return c, refusals, modelled
+
+
+_he_known, _he_known_ref, _he_mod = _he_cop_span(3.7)
+_he_null, _he_null_ref, _ = _he_cop_span(None)
+_he_noelec, _he_noelec_ref, _ = _he_cop_span(3.7, energy=False)
+R.check(
+    "a counter span folds COP as heat over electricity, exactly the plant's on a "
+    "known-COP plant; inside the span a cycle folds nothing",
+    _he_known._cop_samples == 1
+    and _he_known_ref[:2] == [_HE_OPEN, _HE_OPEN] and _he_known_ref[2] is None
+    and abs(_he_known._measured_cop.cop - round(3.7, 2)) < 1e-9
+    and (_he_known._cop_scale > 1.0) == (3.7 > _he_mod) and _he_known._cop_scale != 1.0,
+    f"samples {_he_known._cop_samples} refusals {_he_known_ref} cop {_he_known._measured_cop.cop} "
+    f"scale {_he_known._cop_scale}",
+)
+R.check(
+    "null control: heat equal to the model's COP times the electricity reproduces "
+    "the model, and the scale holds at 1.0",
+    _he_null._cop_samples == 1 and abs(_he_null._cop_scale - 1.0) < 1e-9,
+    f"scale {_he_null._cop_scale} modelled {_he_mod}",
+)
+R.check(
+    "with no electric counter the span's COP is refused as unaligned meters",
+    _he_noelec._cop_samples == 0 and _he_noelec_ref[-1] == _HE_UNALIGNED
+    and _he_noelec._measured_cop.refusal == _HE_UNALIGNED,
+    f"{_he_noelec_ref} {_he_noelec._measured_cop.refusal}",
+)
+
+# Point B: one gated cycle refuses that learner's span, and only that one's.
+_he_sp = _he.HeatEnergyMeter()
+_he_sp.observe_counters(NOW, 1.0, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+_he_sp.settle({"house": True, "lower": True}, (2.0, 0.0), ("s0", NOW))
+_he_sp.observe_counters(NOW + timedelta(hours=0.5), 2.5, None, configured=True, cadence_h=0.5,
+                        bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+_he_sp.settle({"house": False, "lower": True}, (2.0, 0.0), ("s1", NOW + timedelta(hours=0.5)))
+_he_sp.observe_counters(NOW + timedelta(hours=1.0), 4.0, None, configured=True, cadence_h=0.5,
+                        bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+_he_ev = _he_sp.settle({"house": True, "lower": True}, (2.0, 0.0), ("s2", NOW + timedelta(hours=1.0)))
+R.check(
+    "one gated middle cycle refuses that learner's span and only its own; the "
+    "span replays from its opening state over its plan",
+    _he_ev is not None and _he_ev.clean == {"house": False, "lower": True}
+    and _he_ev.state == "s0" and _he_ev.state_at == NOW
+    and abs(_he_ev.plan_kwh[0] - 2.0) < 1e-12 and _he_ev.plan_kwh[1] == 0.0
+    and abs(_he_ev.energy.heat_kwh - 3.0) < 1e-12,
+    f"{_he_ev}",
+)
+# The per-cycle gate a learner ANDs: a freeze, the boost freeze and ventilation
+# all gate; the unmetered-power freeze does not, since the span replays the
+# heat the counter measured; and no interval (a None space power, or a dt_h
+# out of bounds) gates.
+_he_gate_c = _t2_house(**{_HE_KEY: "sensor.he"})
+_he_gate_iv = _he_cm.FabricInterval(_T2_HOUSE_STATE, NOW, NOW, 0.5, 2.0)
+_he_gates = {r: _he_cm._replay_gate(_he_gate_c, _he_gate_iv, None, r)[1]
+             for r in (None, "stale:indoor_temp_entity", boost_mod.FREEZE_REASON, "ventilation", _PP_FREEZE)}
+R.check(
+    "the per-cycle span gate: a stale input, the boost freeze and ventilation gate "
+    "it, the unmetered-power freeze lifts, and a cycle with no interval gates",
+    _he_gates == {None: True, "stale:indoor_temp_entity": False, boost_mod.FREEZE_REASON: False,
+                  "ventilation": False, _PP_FREEZE: True}
+    and _he_cm._replay_gate(_he_gate_c, None, None, None)[1] is False,
+    f"{_he_gates}",
+)
+
+
+# The earned basis. A thermal-power install's first replay of a measured heat
+# earns ``measured_heat``: the void path resets the scale before that fold, the
+# basis is saved, and a later fold does not void again. Null controls: the
+# same interval with no heat reading, and a flow-meter install, keep theirs.
+def _he_earn(config, heat_state="4200", scale=1.4, runs=2, flow=False):
+    out = []
+    dt_util.freeze(NOW)
+    try:
+        coord = _t2_house(**config)
+        if flow:
+            _fm_plant(coord)
+        coord.hass.states.set("sensor.heat", FakeState(
+            heat_state, last_updated=minutes_ago(4, NOW), last_reported=minutes_ago(1, NOW), unit="W"))
+        coord._apply_house_heat_loss_scale(scale)
+        coord._house_heat_loss_samples = 25
+        for _ in range(runs):
+            reader = _fmReader(coord.hass, coord.effective_config, now=lambda: NOW)
+            _fm.observe_water(coord._flow_bias, reader, coord.effective_config)
+            coord._input_health = reader.health
+            before = coord._house_heat_loss_scale
+            _asyncio.run(coord._async_learn_house_heat_loss(
+                _he_cm.FabricInterval(_T2_HOUSE_STATE, NOW - timedelta(hours=0.5), NOW, 0.5, 2.0)))
+            out.append((before, coord._house_heat_loss_scale, coord._house_heat_loss_samples,
+                        coord._heat_loss_anchors()["house_heat_loss_basis"]))
+    finally:
+        dt_util.freeze(None)
+    return out, coord
+
+
+_he_earned, _he_earned_c = _he_earn({_TP_KEY: "sensor.heat"})
+_he_unread_e, _ = _he_earn({_TP_KEY: "sensor.heat"}, heat_state="unavailable")
+_he_flow_e, _ = _he_earn(dict(_FM_FLOW_CFG), flow=True)
+R.check(
+    "the first fold that replays a measured heat earns the measured_heat basis, "
+    "voiding the earlier fit first; the next fold keeps it (null controls: no "
+    "heat reading and a flow-meter estimate keep their basis and scale)",
+    _he_earned[0][3] == "measured_heat" and _he_earned[1][3] == "measured_heat"
+    and _he_earned[0][2] == 1 and _he_earned[1][2] == 2
+    and abs(_he_earned[0][1] - 1.0) < 0.2 and abs(_he_earned[1][1] - _he_earned[0][1]) < 0.2
+    and all(row[:3] == (1.4, 1.4, 25) and row[3] == "commanded" for row in _he_unread_e)
+    and _he_flow_e[0][2] == 26 and abs(_he_flow_e[0][1] - 1.4) < 0.2
+    and all(row[3] == "commanded" for row in _he_flow_e),
+    f"earned {_he_earned}; unreadable {_he_unread_e}; flow {_he_flow_e}",
+)
+_he_saved_payload = _he_earned_c._thermal_learning_payload()
+_he_restored = _t2_house(**{_TP_KEY: "sensor.heat"})
+_he_restored._reanchor_house_heat_loss_scale(_he_saved_payload)
+_he_removed = _t2_house()
+_he_removed._apply_house_heat_loss_scale(1.3)
+_he_removed_changed = _he_removed._reanchor_house_heat_loss_scale(_he_saved_payload)
+R.check(
+    "the earned basis is saved and restored with the meter still configured; with "
+    "it removed the basis is the configured one and the fit is kept, not voided; "
+    "the store schema admits the third basis",
+    _he_saved_payload["house_heat_loss_basis"] == "measured_heat"
+    and _he_restored._heat_loss_anchors()["house_heat_loss_basis"] == "measured_heat"
+    and _he_removed._heat_loss_anchors()["house_heat_loss_basis"] == "commanded"
+    and _he_removed._house_heat_loss_scale == 1.3 and _he_removed_changed is False
+    and _he_store.admitted("thermal_learning", {"house_heat_loss_basis": "measured_heat"})
+    and not _he_store.admitted("thermal_learning", {"house_heat_loss_basis": "measured"}),
+    f"saved {_he_saved_payload['house_heat_loss_basis']} restored "
+    f"{_he_restored._heat_loss_anchors()['house_heat_loss_basis']} removed "
+    f"{_he_removed._heat_loss_anchors()['house_heat_loss_basis']} {_he_removed._house_heat_loss_scale}",
+)
+
+
+# On a counter install, once the basis is earned, the per-cycle path feeds the
+# ventilation detector and folds nothing; the span folds the scale.
+def _he_counter_cycle(earned):
+    dt_util.freeze(NOW)
+    try:
+        coord = _t2_house(**{_HE_KEY: "sensor.he"})
+        m = _he.meter_of(coord)
+        m.counter, m.earned = True, earned
+        steps = []
+        real = coord._vent_cusum.update
+
+        def spy(*a, **k):
+            steps.append(a)
+            return real(*a, **k)
+
+        coord._vent_cusum.update = spy
+        _asyncio.run(coord._async_learn_house_heat_loss(
+            _he_cm.FabricInterval(_T2_HOUSE_STATE, NOW - timedelta(hours=0.5), NOW, 0.5, 2.0)))
+    finally:
+        dt_util.freeze(None)
+    return len(steps), coord._house_heat_loss_samples
+
+
+_he_det_earned, _he_det_open = _he_counter_cycle(True), _he_counter_cycle(False)
+R.check(
+    "on a counter install with the basis earned the detector still steps every "
+    "cycle and the per-cycle path folds nothing (null control: before it is "
+    "earned the cycle folds, as without a counter)",
+    _he_det_earned == (1, 0) and _he_det_open == (1, 1),
+    f"earned {_he_det_earned} open {_he_det_open}",
+)
+
+# The ledger and the diagnosis triple share one split: the dwell's where
+# observed. A cycle that ran space 10 of 30 minutes books one third of its
+# energy to space, and the diagnosis takes the same third of the draw.
+_he_led = _t2_coord()
+_he_led_m = _he.meter_of(_he_led)
+_he_led_m.observe_mode(_he_t[0], _he_sig(_HE_HEAT, changed=_he_t[0] - timedelta(hours=3)))
+_he_led_m.observe_mode(_he_t[1], _he_sig(_HE_DHW, changed=_he_t[0] + timedelta(minutes=10)))
+_he_led_m.cycle = (_he_t[0], _he_t[1])
+_he_pending = {"space_power": 2.0, "dhw_power": 0.0, "price": 1.0, "when": _he_t[1],
+               "diag": {"state": {}, "planned": {}}}
+_he_sample = AccuracySample(when=_he_t[1], predicted_temp=21.0, actual_temp=21.0, actual_power_kw=3.0)
+_he_led._accumulate_energy(_he_sample, 0.5, _he_pending)
+_he_cm._settle_interval_diag(_he_led, _he_sample, _he_pending, 0.5, _he_t[1])
+_he_tot = _he_led._energy_totals
+R.check(
+    "the ledger and the diagnosis triple split by the same observed dwell (one "
+    "third space) where the plan said all space",
+    abs(_he_tot["space_energy_kwh"] - 0.5) < 1e-9 and abs(_he_tot["dhw_energy_kwh"] - 1.0) < 1e-9
+    and abs(_he_led._last_interval_record["realised"]["electrical_power"] - 1.0) < 1e-9,
+    f"space {_he_tot['space_energy_kwh']} dhw {_he_tot['dhw_energy_kwh']} diag "
+    f"{_he_led._last_interval_record['realised']['electrical_power']}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

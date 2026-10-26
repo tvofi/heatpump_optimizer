@@ -324,8 +324,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
             "re-derived from the configured lower loss on save, null for one zone; "
             "the load reads it to re-anchor the ratio")),
         "house_heat_loss_basis": Domain("choice", choices=c.HEAT_LOSS_BASES, unread=(
-            "re-derived from the configured meters on save; the load reads it to void "
-            "evidence on an earlier basis")),
+            "earned at the first measured-heat fold, else re-derived from the configured "
+            "meters on save; the load reads it to void evidence on an earlier basis")),
         c.CONF_COP_SCALE: Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
         **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
         # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.

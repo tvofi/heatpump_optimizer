@@ -802,6 +802,13 @@ COP_REFUSED_OFF_ASK = "draw_off_ask"
 COP_REFUSED_BLENDED = "blended_duty"
 COP_REFUSED_MODELLED = "modelled_cop"
 COP_REFUSED_OBSERVED = "observed_cop"
+#: A heat counter (#2261): the COP folds at its span close on the two
+#: counters' deltas, so a cycle inside the span folds nothing, and a span
+#: whose electric counter was not read at both of its instants has no
+#: electrical figure to divide by. A span's own refusals are
+#: ``heat_energy``'s ``SPAN_REFUSED_*`` codes.
+COP_REFUSED_SPAN_OPEN = "span_open"
+COP_REFUSED_UNALIGNED = "unaligned_meters"
 
 #: How far the metered draw may depart from the plan's ask, as a share of the
 #: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
