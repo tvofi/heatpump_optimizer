@@ -331,6 +331,7 @@ def collect(commits: list[dict], allow: dict[str, str] | None = None,
             "title": subject_title(commit["subject"], commit.get("body", "")),
             "merge_sha": commit["sha"],
             "commits_after": depth,
+            "record_class": bool(commit.get("record_class")),
         })
     return merges, unattributed
 
@@ -384,7 +385,11 @@ def classify(merges: list[dict], texts: list[str],
         stale_open = bool(str(m.get("merge_sha") or "")) \
             and open_anchored(n, texts)
         after = int(m.get("commits_after", 0))
-        state = "rowed" if has_row and not stale_open else (
+        # A record-class merge disposes itself (`self_disposing`): its own
+        # row is the `**open**` self-row written before its merge sha existed,
+        # and reading that as stale owed the next record pull request a row,
+        # whose merge owed the next -- the chain R10-FLOW-RECORD-PITCH cut.
+        state = "rowed" if (has_row and not stale_open) or m.get("record_class") else (
             "overdue" if after >= stale_after else "pending")
         rows.append({**m, "state": state})
     overdue = [r for r in rows if r["state"] == "overdue"]
@@ -555,12 +560,31 @@ def gather(repo: str,
         cwd=ROOT, capture_output=True, text=True).stdout
     commits = parse_log(log)
     for c in commits:
+        if merge_parents(c["parents"]) and subject_number(c["subject"], c.get("body", "")) is not None:
+            c["record_class"] = self_disposing(c["sha"])
         if merge_parents(c["parents"]) and subject_number(c["subject"], c.get("body", "")) is None:
             got = subprocess.run(["git", "diff", "--name-only", "--no-renames", f"{c['sha']}^1", c["sha"]],
                                  cwd=ROOT, capture_output=True, text=True)
             c["files"] = got.stdout.split() if got.returncode == 0 else None
     path = ROOT / DIRECT_PUSHES
     return collect(commits, direct_pushes(path.read_text() if path.is_file() else ""))
+
+
+def self_disposing(sha: str) -> bool:
+    """Whether merge `sha` is record-class -- its own diff is record paths
+    only -- and so disposes itself without a row of its own merge.
+
+    The predicate is the release stamp's `merge_is_record_class`, called
+    rather than copied: `policy_lint.mjs`'s `mergeRecordClass` and the stamp
+    already exempt such a merge, and its acceptance pins the two copies
+    together, so a third copy here would be a reader nothing compares. A
+    diff git cannot read is not record-class (the stamp's fail-closed
+    direction): the merge keeps owing its row."""
+    release = str(ROOT / "tools" / "release")
+    if release not in sys.path:
+        sys.path.insert(0, release)
+    from stamp import merge_is_record_class  # noqa: PLC0415  one predicate, three callers
+    return merge_is_record_class(sha)
 
 
 #: One file per pull request, `dev/programme/delivery/<N>.md`: a row there is read only
