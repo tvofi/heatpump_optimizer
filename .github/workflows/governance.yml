@@ -361,6 +361,12 @@ jobs:
       - name: Show the Dependabot merge decision refusing its own fixtures
         run: python3 -I tools/pr/dependabot_merge.py --self-test
 
+      # The dependency-graph census (dependency-graph.yml): a stale version, a
+      # missing pin, a dropped package and an open alert the tree already fixes
+      # each read STALE, an SBOM equal to the pins reads OK (the null control).
+      - name: Show the dependency-graph census refusing its own fixtures
+        run: python3 -I tools/pr/depgraph.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
