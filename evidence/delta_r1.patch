@@ -1,0 +1,105 @@
+diff --git a/dev/audit/harnesses/r10_errexit_capture.py b/dev/audit/harnesses/r10_errexit_capture.py
+index 1a2db7ab2..9db384a08 100644
+--- a/dev/audit/harnesses/r10_errexit_capture.py
++++ b/dev/audit/harnesses/r10_errexit_capture.py
+@@ -8,9 +8,9 @@ Every `run:` block in .github/workflows/*.yml and .github/actions/*/action.yml
+ runs under errexit: GitHub's default Linux shell is `bash -e {0}`, `shell:
+ bash` is `bash --noprofile --norc -eo pipefail {0}`, `shell: sh` is `sh -e
+ {0}`; a `set -uo pipefail` line does not clear `-e`. In such a block a `$?`
+-read (`rc=$?`, `case $?`, `[ $? ...`) whose producer is a bare simple command
+-is dead code for every nonzero exit: errexit ends the STEP with that exit
+-before the read. A producer that is a condition (`if cmd`, `cmd || rc=$?`,
++read (`rc=$?`, `case $?`, `[ $? ...`, `if [ $? ...`) whose producer is a bare
++simple command is dead code for every nonzero exit: errexit ends the STEP with
++that exit before the read. A producer that is a condition (`if cmd`, `cmd || rc=$?`,
+ `... else rc=$?`), or a read under `set +e`, is exempt.
+ 
+ It prints one HIT line per such read and, last, RESULT lines; it refuses
+@@ -39,6 +39,8 @@ SAFE_PRODUCER = re.compile(
+     r"^(if|elif|while|until)\b|^!|\|\||&&|"
+     r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
+ 
++TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b)")
++
+ 
+ def run_blocks(root: Path):
+     """(file, job, step name, shell, run text) for every run block."""
+@@ -92,6 +94,8 @@ def hazards(text: str) -> tuple[int, list[tuple[str, str]]]:
+             cut = head.rfind(";")
+             producer = head[:cut].strip() if cut >= 0 else prev
+             stmt = head[cut + 1:].strip()
++            # `if [ $? ...`, `while test $? ...`: the test runs first, so it reads the producer before it.
++            stmt = TEST_HEAD.sub("", stmt)
+             if SAFE_PRODUCER.search(stmt) or (stmt and not re.match(
+                     r"^(\w+=|case\b|\[|\[\[|test\b|echo\b|printf\b|exit\b|return\b|local\b)", stmt)):
+                 continue  # the read sits inside a condition or a command's own arguments
+@@ -127,6 +131,14 @@ def selftest() -> int:
+         "else line": ("if cmd; then\n  :\nelse\n  pitch=$?\nfi\n", 0),
+         "set +e": ("set +e\ncmd\nrc=$?\nset -e\n", 0),
+         "comment between": ("cmd \\\n  --flag\n# why\nrc=$?\n", 1),
++        # A `$?` in an if/while/until test reads the bare producer before it.
++        "if test -ne": ("cmd --gate\nif [ $? -ne 0 ]; then exit 1; fi\n", 1),
++        "if test quoted": ("cmd --gate\nif [ \"$?\" = 4 ]; then :; fi\n", 1),
++        "if test builtin": ("cmd --gate\nif test $? -eq 4; then :; fi\n", 1),
++        "while test": ("cmd --gate\nwhile [ $? = 4 ]; do cmd; done\n", 1),
++        "same-line if": ("cmd --gate; if [[ $? -ne 0 ]]; then exit 1; fi\n", 1),
++        "elif test": ("if cmd; then :\nelif [ $? = 4 ]; then :\nfi\n", 0),
++        "if after or-capture": ("cmd || true\nif [ $? -ne 0 ]; then :; fi\n", 0),
+     }
+     bad = [k for k, (t, want) in cases.items() if len(hazards(t)[1]) != want]
+     # The shell arm: a `shell: python` block is not errexit bash; a `shell: bash` one is.
+diff --git a/dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md b/dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md
+index 166f6e9c4..e650a4609 100644
+--- a/dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md
++++ b/dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md
+@@ -84,22 +84,42 @@ There is no `if ! cmd; then ... $?` form and no `case $?` form. Shells: 5 workfl
+ 
+ ## 5. Countermeasure (proposed; maps to state (c): widen the unit)
+ 
+-**A. Replace `_RAF_BARE_GREEN`'s one-call unit with a tree-wide check.** It covers every `run:` block whose shell is errexit (default, `bash`, `sh`). A `$?` read whose producer is a bare simple command is refused. It lands as a `tests/entities.py` check (the home of the barrier it generalises), importing the logic of `dev/audit/harnesses/r10_errexit_capture.py`, or as that file promoted under `tools/ci/`. It must land **after** the hotfix, or main reddens on I3 itself. Demonstrated with the harness, all runs at `d181d014a`:
++**A. Replace `_RAF_BARE_GREEN`'s one-call unit with a tree-wide check.** It covers every `run:` block whose shell is errexit (default, `bash`, `sh`). A `$?` read whose producer is a bare simple command is refused. It lands as a `tests/entities.py` check (the home of the barrier it generalises), importing the logic of `dev/audit/harnesses/r10_errexit_capture.py`, or as that file promoted under `tools/ci/`. It must land **after** the hotfix, or main reddens on I3 itself. That precondition now holds: the hotfix (#2848) is on main as `e0ffb1213` (2026-10-26 06:52Z). Demonstrated with the harness, re-taken 2026-10-26T07:15Z after the round-1 review widened its test form (below):
+ 
+ | run | result |
+ |---|---|
+-| main `d181d014a` (the defect) | **FAILS**: `HIT nightly.yml job=record-autofix step='Write the rows and push the record branch'`, `hits=1`, exit 1 |
+-| scratch copy with the hotfix line (`batch=0` + `... \|\| batch=$?`) | **PASSES**: `blocks=260 reads=5 hits=0`, exit 0 |
+-| null control, healthy tree: the hotfixed copy | still reads all 5 `$?` sites (`reads=5`), so a green result is not a skip |
++| main `d181d014a` (the defect), and this record's head `908237a8c` | **FAILS**: `HIT nightly.yml job=record-autofix step='Write the rows and push the record branch'`, `hits=1`, exit 1 |
++| main `ed1c9045e`, which carries the hotfix line (`batch=0` + `... \|\| batch=$?`) | **PASSES**: `blocks=260 reads=5 hits=0`, exit 0 |
++| null control, healthy tree: main `ed1c9045e` | still reads all 5 `$?` sites (`reads=5`), so a green result is not a skip |
+ | null control, empty `.github/` | **REFUSES**, exit 2, `blocks=0 reads=0` |
+-| mutant: `nightly.yml:1049` back to bare `guard --require-green; rc=$?` | FAILS, `hits=1` (the old barrier's case is inside the new unit) |
++| mutant of `ed1c9045e`: the guard's `if/else` back to a bare `guard --require-green; rc=$?` | FAILS, `hits=1` (the old barrier's case is inside the new unit) |
++| mutant of `ed1c9045e`: the hotfixed gate rewritten as the bare call, then `if [ $? = 4 ]; then batch=4; fi` | FAILS, `hits=1`; the round-1 harness (`908237a8c`'s copy) printed `hits=0` on it |
+ | backtest at `bc2ad6964^` (I2 live) | FAILS, `hits=1` on `tests.yml`'s `guard --require-green; rc=$?` |
+ | backtest at `718c94c84^` (I1 live) | passes, `hits=0`: **I1's pipeline shape is outside this unit** (see 6) |
+-| `--selftest` | 9 checks, 0 failed (bare, same-line, `case $?`, `\|\|`-capture, `if/else`, `else` line, `set +e`, continuation, and the shell arm: `shell: python` is skipped) |
++| `--selftest` | 16 checks, 0 failed: bare, same-line, `case $?`, `\|\|`-capture, `if/else`, `else` line, `set +e`, continuation, five `$?` reads in an `if`/`while` test after a bare producer (`if [ $? -ne 0 ]`, `if [ "$?" = 4 ]`, `if test $? -eq 4`, `while [ $? = 4 ]`, `cmd; if [[ $? -ne 0 ]]`), two exempt test forms (`elif [ $? ...` after an `if` condition, `if [ $? ...` after `cmd \|\| true`), and the shell arm (`shell: python` is skipped) |
+ 
+-**B. Execute step bodies under the shell GitHub uses.** `_train_hold_status` runs `bash -c`. Make it `bash -e -c` (`tests/entities.py:27925`), and give any new executed-step harness the same rule. Its standing cost is 0. It closes item 3 of section 2. Not demonstrated here: it changes an existing check, which is the countermeasure fixer's to mutation-prove.
++**The test-form gap (fix review, round 1).** The round-1 harness took a `$?` read inside an `if`/`while`/`until` test as a read inside a condition, so a bare producer followed by `if [ $? -ne 0 ]` printed `hits=0`. The test runs before any command of the condition, so `$?` there is the bare producer's exit, which errexit has already turned into the step's. `TEST_HEAD` now strips a leading `if`/`while`/`until` (and `!`) before a `[`/`test` head, so the read is judged on its producer. An `elif` test stays exempt: its `$?` is the preceding `if` condition's. Failing run first: with the five test-form cases added and the fix absent, `--selftest` printed `16 checks, 5 failed` and named exactly those five. Mutation proof: deleting the `stmt = TEST_HEAD.sub("", stmt)` line prints the same five failures. The tree has no such form today (`ed1c9045e`: `hits=0`), so the table's verdicts at `d181d014a` stand.
+ 
+-Both A and B are code, not policy. Neither changes what a seat must do, so neither needs the owner's approval as policy. Placing them is the orchestrator's call, as a carry to the fixer that lands A and B after R10-HOTFIX-BATCH-ERREXIT merges. **Class registration** (proposal, the judge's or orchestrator's to make): mint a class for "a workflow step's meaningful nonzero exit ended by errexit before the step reads it", with I1 to I3 as `non_round_instances`. Three instances in 31 days would meet the cross-round count if counted. Whether process incidents count toward the audit-class barrier rule is the owner's question, and this record does not answer it.
++**B. Execute step bodies under the shell GitHub uses.** `_train_hold_status` runs `bash -c`, and it is not the only one (fix review, round 1). The rule that enumerates the class: every list literal `["bash"|"sh", ..., "-c", ...]` in a tracked `.py` under `tests/` and `tools/` (an `ast` walk; a `git grep -n -E '"(ba)?sh",\s*("-[a-z]+",\s*)*"-c"'` plus `git grep -n '\["bash", "--noprofile"'` over the same paths returns the same 14 sites, its control). At `908237a8c`, each site and its disposition:
++
++| site | what it executes | errexit | disposition |
++|---|---|---|---|
++| `tests/entities.py` `_gs_step_verdict` | gate-sweep.yml's sweep step (default shell, `bash -e`) | no | **hides a live defect**: see the finding below. Owed `-e`, landed with the step's fix |
++| `tests/entities.py` `_train_hold_status` | nightly.yml record-autofix `automerge` step (default shell) | no | owed `-e` (the original B) |
++| `tests/entities.py` `_pt_trigger` | the policy-trigger job's `changed` step, from `_PT_JOB_CANON` (default shell) | no | owed `-e` |
++| `tests/entities.py` `_cov_trust`, `_cov_marker` | tests.yml coverage `covtrust` and staging steps (default shell) | no | owed `-e` |
++| `tests/arch_score.py` `base_runs_the_gate` | arch-score.yml's score step (default shell) | no | owed `-e` |
++| `tests/entities.py` `_pt_ds_rc` | tests.yml graders-head-copy's delivery_status step | `-e` | safe: already GitHub's shell |
++| `tests/entities.py` `_pg_run`, `_pg_probe_defects` | pages.yml's staging, guard and probe steps (default shell) | `-eo pipefail` | safe in the direction that matters: `pipefail` is stricter than the default `bash -e`, so it can show a healthy step red, never a defect green |
++| `tests/entities.py` `_cir_once_count` | two lines of `tools/coverage/coverage_tree.sh`, not workflow text | n/a | outside the class |
++| `tests/throwaway_git.py` (3 sites) | sources `tests/throwaway_git.sh`, not workflow text | n/a | outside the class |
++| `tools/audit/judge_batch.py` | a judge's own command line, not workflow text | n/a | outside the class |
++
++Executed, not read: a copy of `908237a8c` with the five "owed" sites switched to `bash -e -c` ran `tests/entities.py` and `tests/arch_score.py` beside the unmodified head (figures in the pull-request body; `BASH_ENV` unset in both, because the seat profile's `BASH_ENV` re-puts the venv `python3` ahead of a stub's `PATH`). The unmodified head passed every entity check; the `-e` copy failed exactly one, gate-sweep.yml's U0c check, on the 3 of `_GS_CASES`' 7 cases whose program exits 1. Frozen finder harnesses under `dev/audit/` are outside the rule: they are evidence, not checks (`dev/audit/harnesses/follower_debounce.py` runs a step's text as `bash step.sh` without `-e`, recorded and left).
++
++**Finding, from B's enumeration: gate-sweep.yml's step is a 4th instance, and A does not see it.** The sweep step runs `out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1)` under the default `bash -e`. An assignment whose command substitution exits nonzero ends the step under errexit, so every program exit of 1 ends it before `case "${last%% *}"` reads the outcome. Executed with a stub `python3` (BASH_ENV unset): `RATE-LIMITED ...`, rc 1 gives step rc 1 with **no** `::error title=RATE-LIMITED::` under `bash -e`, and with it under plain `bash`; `SWEEP-DONE run=2 reruns=0`, rc 1 gives step rc 1 (red) under `bash -e` and rc 0 under plain `bash`. `_GS_CASES` wants success and the annotation, and `_gs_step_verdict` passes them only because it runs `bash -c`. The step is `85d13b859`'s (R10-CI-LAYOUT P2b, 2026-10-23). A's unit (a `$?` read) does not cover it: the producer's exit is read through `$(...)` and the output, not through `$?`. The fix is the step's (`out=$(...) || true`, or the capture as a condition) plus `-e` in `_gs_step_verdict`; the check widened to "an assignment from a command substitution, in an errexit block, whose next statements read the output" is the countermeasure fixer's to cost.
++
++Both A and B are code, not policy. Neither changes what a seat must do, so neither needs the owner's approval as policy. Placing them is the orchestrator's call: R10-HOTFIX-BATCH-ERREXIT is done (#2848, `e0ffb1213`), so the carry needs a group that is not, which this seat does not mint. **Class registration** (proposal, the judge's or orchestrator's to make): mint a class for "a workflow step's meaningful nonzero exit ended by errexit before the step reads it", with I1 to I3, and the gate-sweep step above as I4, as `non_round_instances`. Four instances in 31 days, the 4th still on main, would meet the cross-round count if counted. Whether process incidents count toward the audit-class barrier rule is the owner's question, and this record does not answer it.
+ 
+ ## 6. What I did not establish
+ 
