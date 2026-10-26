@@ -612,7 +612,7 @@ class LegionellaGuard:
         now = dt_util.now()
         since = None if last is None else utc_elapsed_seconds(now, last) / 3600.0
         if attempt is not None:
-            interval_h = max(0.0, float(self._params.dhw_legionella_interval_days) * 24.0)
+            interval_h = max(0.0, float(self._params().dhw_legionella_interval_days) * 24.0)
             age = interval_h - self._retry_hours() + utc_elapsed_seconds(now, attempt) / 3600.0
             since = age if since is None else min(since, age)
         if since is None:
@@ -628,7 +628,7 @@ class LegionellaGuard:
 
     def _retry_hours(self) -> float:
         """How long after an attempt the cycle is due again (``hours_since``)."""
-        interval_h = max(0.0, float(self._params.dhw_legionella_interval_days) * 24.0)
+        interval_h = max(0.0, float(self._params().dhw_legionella_interval_days) * 24.0)
         return min(interval_h, DHW_LEGIONELLA_RETRY_HOURS) if self._has_probe() else interval_h
 
     def due_in_hours(self) -> float | None:
@@ -651,7 +651,7 @@ class LegionellaGuard:
         reads the last confirmed completion alone, whatever the attempts did.
         With no tank probe ``dhw_legionella_unverified`` is that notice.
         """
-        params = self._params
+        params = self._params()
         days = days_since_confirmed(
             self.last_cycle,
             dt_util.now(),
