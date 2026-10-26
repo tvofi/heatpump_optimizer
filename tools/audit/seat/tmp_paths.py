@@ -108,8 +108,6 @@ ALLOW = (
     ("tools/pr/app_approve.sh", "`/tmp/../`", "a comment on the dot-segment refusal"),
     ("tools/pr/app_approve.sh", "REFUSE: /tmp/../", "a self-test arm's name"),
     ("tools/pr/prepr.sh", "shared_root /tmp/body.md", "the self-test arm refusing a body directly in /tmp"),
-    ("tools/pr/prepr.sh", "grep -v 'codeowners_gap.py --check >/tmp/prepr-owners'",
-     "a self-test deleting the owners step by its text, whose temp name carries $$ on the step's own line"),
     ("tools/audit/worktree_gc.sh", "/tmp/hpo-orch", "the seats' scratch root: worktrees that are meant to die, which this tool collects"),
     ("tests/card.mjs", "/tmp/plandata.json", "the legacy payload path the card accepts only as a loud last resort"),
     ("tests/entities.py", "> /tmp/pr-reds.txt", "pins pr-contract.yml's runner-side derivation by its text"),

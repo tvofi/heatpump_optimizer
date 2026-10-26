@@ -243,13 +243,14 @@ def _ceiling_notice_is_deduplicated() -> bool:
         dhw_blocked=lambda: False,
     )
     calls: list[int] = []
-    original = legionella_mod.create_issue
-    legionella_mod.create_issue = lambda *a, **k: calls.append(1)
+    ir = legionella_mod.ir  # the registry ``issues.set_issue`` writes
+    original = ir.async_create_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(1)
     try:
         guard.check_ceiling()
         guard.check_ceiling()
     finally:
-        legionella_mod.create_issue = original
+        ir.async_create_issue = original
     return len(calls) == 1
 
 
@@ -277,9 +278,9 @@ def _write_failed_notice_is_memoised() -> bool:
 
     guard.async_save = _no_save
     calls: list[str] = []
-    ir = legionella_mod.ir
-    original = legionella_mod.create_issue, ir.async_delete_issue
-    legionella_mod.create_issue = lambda *a, **k: calls.append(f"create {a[2]}")
+    ir = legionella_mod.ir  # the registry ``issues.set_issue`` writes
+    original = ir.async_create_issue, ir.async_delete_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(f"create {a[2]}")
     ir.async_delete_issue = lambda hass, dom, iid: calls.append(f"delete {iid}")
     try:
         # Observe mode, nothing owned: release writes nothing, so the
@@ -289,7 +290,7 @@ def _write_failed_notice_is_memoised() -> bool:
             guard.disinfect.failed_entity = "switch.disinfect" if failed else None
             asyncio.run(guard._drive_switch(False))
     finally:
-        legionella_mod.create_issue, ir.async_delete_issue = original
+        ir.async_create_issue, ir.async_delete_issue = original
     return calls == [
         "create dhw_disinfection_write_failed",
         "delete dhw_disinfection_write_failed",

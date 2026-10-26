@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:days_since_confirmed CMP_BOUND 0aeaaec0",
+  "killed_by": "tests/features.py",
+  "old": "    return int(age_h // 24.0) if age_h > interval_days * 24.0 else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return int(age_h // 24.0) if age_h >= interval_days * 24.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
