@@ -1,0 +1,4 @@
+The 8 newest completed push runs of tests.yml on main created before 71626afbe (2026-10-12T21:46:49Z; ids in oct12 listing), jobs from the jobs API:
+walls (base run_minutes) [77.9, 78.98, 54.9, 54.42, 55.48, 52.98, 54.75, 55.65]
+work  (head run_minutes) [77.75, 78.8, 54.717, 54.3, 55.367, 52.9, 54.667, 55.433]
+RESULT oct12-w8: base_wall_median=55.192 head_work_median=55.042
