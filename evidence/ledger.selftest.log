@@ -1,0 +1,61 @@
+ledger: import refused: 'refs/heads/wip-sync/x' matches no ledger arm (refs/heads/probe/, refs/heads/handoff-body/, refs/heads/handoff/, refs/heads/design-verdict/, refs/heads/review/)
+ledger: import refused: 'refs/heads/wip-sync/x' matches no ledger arm (refs/heads/probe/, refs/heads/handoff-body/, refs/heads/handoff/, refs/heads/design-verdict/, refs/heads/review/)
+ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape
+ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape
+  ok   each of the five arms classifies
+  ok   a ref of no arm is refused, not guessed
+  ok   the import takes the last disposition per ref (t1 at its re-disposal)
+  ok   a reader imports in memory and writes nothing
+  ok   the first act persists the import, then itself
+  ok   a ref matching no arm in the import was refused (wip-sync)
+  ok   dispose refuses a ref of no arm
+  ok   a missing store with no legacy file is first run: empty
+  ok   a store row with no sha is UNREADABLE, never empty
+  ok   an unreadable store (a directory) is UNREADABLE
+  ok   the import keeps b38c6431a's rule: a POSTED clears its PR, a level copy is skipped
+  ok   an imported event prints its journal line unchanged
+  ok   an OWED of no relay shape is refused at import, not imported
+  ok   a reader of the events writes nothing
+  ok   the first event persists the import
+  ok   a moved subject closes the old entry and opens one
+  ok   a close at another sha closes nothing
+  ok   a close at its sha is the producer's disposal
+  ok   an obligation of no kind is refused
+  ok   a derived kind is never opened
+  ok   postmerge-owed is an event kind (K17 2)
+  ok   null control: with nothing read, every event stays open
+  ok   verdict-unposted closes on a read-back of its first line (4b)
+  ok   reviewer-fire closes on any verdict naming its head
+  ok   a PR head moved off the sha supersedes
+  ok   train-stop closes only on its close row
+  ok   a relayed claim is no close: a read-back of another verdict leaves it open
+  ok   a PR no longer open closes its PR-keyed events (subject-absent)
+  ok   an events row of no ledger kind is UNREADABLE
+  ok   the default switch is the owner's 4 h / 12 h
+  ok   DISPATCH oldest first, one per topic, naming group, repair and the attempt
+  ok   an OWNER FLAG past the second threshold only
+  ok   null control: a young tip and a tip ahead of the clock escalate nothing
+  ok   the switch off escalates nothing
+  ok   a malformed switch is refused
+  ok   a moved threshold moves the queue
+  ok   an approved design with its group not dispatched owes a build; dispatched, revised and moved do not
+  ok   disposing the verdict ref at its sha closes it
+  ok   REVIEW OWED: of reviewed, dispatched and neither, exactly the one with neither
+  ok   a PR whose comments were not read owes nothing it cannot know
+  ok   covered: a hunk main carries beside a later change (the ecaf178c shape)
+  ok   null control: a hunk adding a line main lacks is not covered
+  ok   the level owes exactly the uncovered topic's two refs and the body-only ref
+  ok   and names each close: state ref, open PR, disposed, carried (ancestry and content)
+  ok   every owed line, an orphan body ref's included, carries its tip's commit time
+  ok   the code ref's topic carries the opener attempt at that tip
+  ok   board: obligations exist is rc 1 with its summary line (a finding, not a failure)
+  ok   board: nothing owed is rc 0 with its summary line
+  ok   board: an unreadable store is rc 2 and UNREADABLE, never a summary
+  ok   level CLI: owed lines on stdout, rc 1, the counts on stderr
+  ok   level CLI: a failed fetch is rc 2 and prints no level (unknown is not 'nothing owed')
+  ok   open_pr.sh carries both attempt lines
+  ok   a TERMed opener records started then unopened on its handoff ref
+  ok   null control: an opener that ends records opened,PR=<n>
+  ok   the census reads both sinks of the relay (ledger_open events, level_line levels)
+  ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
+ledger self-test: 56 checks, 0 failed

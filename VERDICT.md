@@ -1,77 +1,49 @@
-Fix review: blocked 5e83e3d8897aeb3661aa20278c2fd872284f04fb carry-missing: carry 6 (triage P163, the lock-age STUCK andon) is neither implemented at the head nor dispositioned in the body, which answers only carries 1-5
+Fix review: merge 3e936f0c2f4eb4dc8e07abc735b14fa6cac59edc
 
-bus-nonce: 70ea12a8be0ecb401a4acb820ee0b975
+bus-nonce: 98427e905bee3d16322d52e0a802809b
 
-Round 4, a full review at head `5e83e3d8897aeb3661aa20278c2fd872284f04fb`. The fixer's delta since round 3 (`e414c7eab`) is `37bd04858`, one file, `tools/audit/seat/pr_args.sh`, 6 lines added and 2 removed. The rest of the delta is main merges, and inside this PR's files the head-vs-round-3 diff is exactly `37bd04858` (`ev/`). I measured from a detached worktree at the head. `refs/pull/2825/head` and `fix/r10-update-pr-signals` still named it when I wrote this. The roles diff (`merge-base...origin/main -- dev/governance/roles/`) is empty, so the contract is current.
-
-This is the fourth review round. Under the three-round rule `fixer.md` owes a re-cut, not a repair. The code is sound: round 3's block is closed, and so are every block before it. What remains is one unanswered roster carry. It can be closed by routing it, without new code.
-
-## Block
-
-1. **carry-missing: carry 6 of 6 (triage P163, the lock-age andon, V84).**
-   - What the carry asks for:
-     - `pr_branch_lock` writes its start epoch next to the pid.
-     - `cloud_relay.sh` reports any lock older than `HPO_PUSH_STUCK_SECS` (default 900) as `STUCK <branch> <pid> <age>s`.
-     - Its controls: a lock aged 901 s is reported and one aged 899 s is not; a released lock is never reported; a mutant that reads the file's mtime fails.
-   - What the head has: `git grep -nE 'STUCK|HPO_PUSH_STUCK' 5e83e3d8 -- tools/audit/seat` is empty (`ev/carry6-grep.txt`). There is no fixture and no mutant.
-   - What the body has: its "Carries, item by item" lists `[0]`–`[4]`, which are carries 1–5. P163 appears nowhere: not as met, not as dismissed, not as forward-carried.
-   - Timing: the ruling (`dev/programme/triage/s6-batch29.md#P163`, commit `9ddadc766`, 2026-10-25 20:02Z) is older than this round's code commit (2026-10-26 00:35Z). The fixer's dispatch rendered no carries (a known `--group` defect, per my brief), so the omission may not be the fixer's fault. The verdict still has to block on it.
-   - How to resolve. Either:
-     - implement it, with its three controls;
-     - or put a disposition in the body with a destination. P163 itself names the follow-on fixer `dispatch/fixer-r10-pusher-reap` as the owner of stuck push runs, so a `roster_edit.py` re-route of the carry to that group, plus one body line `Carry: <that group>`, would answer it without code in this PR.
-   - That choice belongs to the orchestrator: a re-cut on round 4, or a re-route.
+Round 5 (delta review) of #2825, R10-UPDATE-PR-SIGNALS. Measured at head `3e936f0c2f4eb4dc8e07abc735b14fa6cac59edc`, which `git ls-remote origin refs/pull/2825/head` still returns at 2026-10-26T04:04:19Z. Baseline `5e83e3d8897aeb3661aa20278c2fd872284f04fb`. Reviewed from detached worktrees at both SHAs. `dev/governance/roles/` matches origin/main (the three-dot diff is empty).
 
 ## Findings
 
-- Carry 6 (P163) is not implemented and not dispositioned. This is Block 1. Carry: R10-UPDATE-PR-SIGNALS
-- The body is stale on round 4. It describes rounds 1–3 only, and its figures are "at the head `cfc707961`". It names neither `37bd04858`'s change (the `mut:drain` and `mut:pushhold` arms now wait for the lock free, bounded at 200 ticks) nor any measurement of that change. Its `## Red checks` says "This head has no CI run yet". `fixer.md` owes the round's own figures. Carry: R10-UPDATE-PR-SIGNALS
-- Round 4's bound counts ticks, not seconds. Its comment says "bounded at 10 s, a third of the stub's 30 s push". Under 6-way load on 4 CPUs, my timing probe measured the 200-tick wait at 15.4 s and 15.5 s of wall time (`ev/nullctl-wait-7.txt`, `ev/nullctl-wait-8.txt`). That is still under the push, so the arm is not vacuous today. But each tick spawns a Python process, so under heavier load the bound grows with load. If it ever passed the push's remaining time, the two mutant arms would read `free` against a correct holder and pass without testing anything. A deadline on wall time (`date +%s`) would make the comment true. Carry: R10-UPDATE-PR-SIGNALS
-- Carry 4 (quiet output) stays deferred to R10-FLOW-JIDOKA, which owns `prepr.sh`'s convention; `prepr.sh` has no quiet flag on origin/main. The deferral is sound. I did not open the roster to confirm the carry landed there. Carry: R10-FLOW-JIDOKA
-- The 12 seat self-tests outside this group's files that do not yet enter through `pr_bounded` are routed by the body, which also states that the bound must survive a group KILL. Carry: R10-FLOW-JIDOKA
-- Carried over from round 3: the millisecond startup window in `PR_BOUND_PY` before the watchdog's `setsid`. Carry: dismissed: a group KILL would have to land in the self-test's first millisecond; no realistic caller does that, and the fix costs a handshake pipe (round 3's disposition, unchanged)
+- The body has no closing keyword. #2502 (open, `[R10-UPDATE-PR-SIGNALS] Signal-safe update_pr.sh ...`) is this group's only issue, and this PR does the work that issue states. The roster entry's `fixes` is `[]`, so no keyword is mandated and the body did not break a rule. The cost is that a merge leaves #2502 open: whoever merges must close it by hand, or the body must add `Closes #2502` before the merge. Carry: #2502
+- `stuck_arm` takes no position on a lock aged exactly 900 s. The mutant `if now - start <= lim` -> `if now - start < lim` survives the self-test and my own fixture alike, because the controls the carry prescribes are 901 and 899. Carry: dismissed: the carry's own controls are 901/899 and "older than 900" is met by `<=`; a 1 s boundary on an hourly-scale report-only trial is not worth a third fixture
+- `carry_audit.py pr 2825` prints 3 unrouted items. All three sit in the `## Evidence` sections of earlier reviewers' verdicts (reviews 6402890433, 6404048457 and 6406256342, each the line "Quiet output: deferred to R10-FLOW-JIDOKA"). Each one repeats a Findings bullet that is already routed to R10-FLOW-JIDOKA. The PR body contributes 0 unrouted items. Carry: dismissed: these are the wording of past verdicts the fixer cannot edit, and each restates a finding already carried to R10-FLOW-JIDOKA
 
 ## Evidence
 
-The round-3 block (a nondeterministic `mut:drain`/`mut:pushhold` arm) is closed. I measured it under round 3's own perturbation: six head runs of `pr_args.sh --self-test` in parallel on 4 CPUs.
-- RESULT par6: 6 of 6 green, each `pr_args self-test: 123 checks, 0 failed`, rc 0, real 3m12s–3m16s (`ev/par6-1..6.txt`, `ev/par6-summary.txt`).
-- Round 3 measured 4 of 6 red under the same load at `e414c7eab`.
-- 2 more head runs under a second 6-way load were green, 123/0 (`ev/load-5.txt`, `ev/load-6.txt`).
-- In total, 8 of 8 head runs were green under load.
+Check 1, carry 6 (the STUCK andon), against the real files:
+- `pr_branch_lock` writes `<run pid> <holder pid> <start epoch>`, and adds `drain` as a fourth field. The run's taken-test now compares fields 1, 2 and 4. `pr_lock_busy` reads `drain` from field 4. The self-test arm `the held lock records its holder's start epoch beside the pids` passes 6 of 6 under par6 load.
+- `stuck_arm` is wired into every `pass` after the confirm arm. It is report-only: it prints `cloud_relay: STUCK <b> <pid> <age>s` and sets `push-stuck` on the level, and it removes nothing. `ledger.py` adds `push-stuck` as a derived kind. Locks of both open_pr.sh and update_pr.sh live under `$HPO_STATE_DIR/pr/upd-*.lock`, the directory the arm scans.
+- My own harness is `ev/stuck_fixture.sh`. I built it and it is not the finder's. It extracts `STUCK_PY`, `relay_log`, `level_line`, `level_set` and `stuck_arm` from the file under test and runs them against fixtures held by a real flock holder. At the head (`ev/stuck_fixture.head.out`):
+  `RESULT head held901 reported` (`STUCK fix-old 111 901s`), `held899 not-reported`, `released5000 not-reported`, `oldmtime-freshstart not-reported` (mtime 5000 s old, recorded start 10 s ago), `level push-stuck-line`, `all-released nothing-reported`.
+- Mutants on copies, run through the same harness (`ev/stuck_fixture.mutants.out`):
+  - mtime-for-start (`cloud_relay-30`'s text): `held901 NOT-reported`, `oldmtime-freshstart reported`, `level NO-line`. This is the touched-later fixture, killed both ways.
+  - age bound deleted: `held899 reported`. Killed.
+  - held test deleted: `released5000 reported`, and `all-released REPORTED: STUCK fix-gone 555 5001s`. Killed.
+- The fixer's mutation harness, `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py M0 cloud_relay-29 cloud_relay-30 cloud_relay-31 cloud_relay-32 cloud_relay-33 ledger-1 pr_args-1`, gives `RESULT survivors=0`, and every M0 step passes (`ev/mutants.log`). `cloud_relay-30`, `-29` and `-32` each fail 2 checks, `-31` fails 1, `-33` fails on the missing level file, and `ledger-1` and `pr_args-1` are KILLED. The worktree was clean afterwards.
+- `git grep -nE 'STUCK|HPO_PUSH_STUCK' HEAD -- tools/audit/seat` returns 17 lines, and the fixture is among them.
 
-Null control for round 4's new wait. My own probe, not the finder's (`ev/nullctl-probe.diff`):
-- It adds a `ctl` arm that deletes no line but goes through the same `untilfree "$lf" 200` path, and requires `held`.
-- RESULT nullctl: 2 of 2 runs under load gave `124 checks, 0 failed`, with `NULLCTL ... reads held at the drain/pushhold bound` ok.
-- So a correct holder still reads `held` at the bound, and the mutant arms can tell the two apart.
+Check 2, the wait is wall clock:
+- `untilfree` waits on `end=$(($(date +%s) + N))`, and `pr_branch_lock` on `k=$(($(date +%s) + 20))`. The drain/pushhold wait is 10 s against the stub's `sleep 30` push. `bndkill`/`bndgrp` wait 5 s against the child's 20 s sleep.
+- Finder's par6 load (round 3: six parallel `pr_args.sh --self-test` runs, `nproc` 4, red counted by exit status; driver at `par6.sh` beside this verdict's evidence, logs `ev/par6-*.log`):
+  `RESULT par6 head 3e936f0c2f4eb4dc8e07abc735b14fa6cac59edc red=0 runs=6` (each run `125 checks, 0 failed`)
+  `RESULT par6 prev 5e83e3d8897aeb3661aa20278c2fd872284f04fb red=0 runs=6` (each run `123 checks, 0 failed`)
+- Null control: `null control: an unmutated SIGKILLed run's lock still reads held after the mutants' 10 s wall-clock wait` passes in 6 of 6 head runs. My own mutant shortened `untilfree`'s deadline to 1 s (`local end=$(($(date +%s) + 1))`). It is killed by exactly that check, `FAIL null control: ...`, `125 checks, 1 failed` (`ev/nullctl-mutant-untilfree1s.log`).
+- Round-2 finder's grpkill harness (`ev/grpkill.sh`, sha1 `4f547e9ed3995f81f7ade7ad3ff880b07c534bc0`, taken from `probe/rev-2825-4ba59ff1`), run as `grpkill.sh tools/audit/seat/pr_args.sh 15`: `RESULT grpkill head 2 zero-sessions, 0 nonzero` and `RESULT grpkill prev 2 zero-sessions, 0 nonzero`. Each session had 0 live processes 3 s after the group KILL.
 
-Real-file mutation proof. I deleted one line from the head's real `pr_args.sh` and ran the whole self-test, under load:
-- `# mut:drain` (`ev/mutant-drain-real.diff`): `123 checks, 4 failed`, rc 1. The failures were the SIGKILL lock-held, BUSY and worktree arms, plus the `mut:stop` BUSY arm (`ev/mutant-drain-real.txt`).
-- `# mut:pushhold` (`ev/mutant-pushhold-real.diff`): `123 checks, 4 failed`, rc 1, the same four arms (`ev/mutant-pushhold-real.txt`).
-- Both mutants are killed by the positive arms, not only by their own mutant arms.
+Check 3, the body:
+- The headings are exactly the template's seven (Head, Mutation proof, Null control, Figures, Red checks, Forward-carry, Friction), with a short preamble above them.
+- The figures are stamped `2026-10-26T02:00Z–02:53Z`, origin/main `7d2056970`. I re-took two of them:
+  - par6 gives 0/6 red at both ends with 125 and 123 checks, as above. Matches the body.
+  - The self-tests at the head give `cloud_relay self-test: 275 checks, 0 failed` and `ledger self-test: 56 checks, 0 failed`, plus pr_args 125/0. All match the body.
+- The body names `governance / delivery-status` as red on main, not a required context, and not this diff's. At this head the check is green.
+- CI on the head: all 55 check runs had completed by 04:04Z. None concluded failure. Every one is success, skipped or neutral (CodeQL, later success). Among them are `gate` (runs 40263374123 and 40263374760), `pr-contract / pr-contract` (both runs, the later starting 03:56:08Z), `governance / instrument-self-tests`, `tests / closures`, `tests / mutation`, `tests / coverage`, `codeql / Analyze (python)` and `budget-raise-gate`, all success. No red check is owed an answer.
+- `python3 -I tools/audit/carry_audit.py pr 2825`: the body has 0 unrouted items (5 NOTE lines, all routed). The 3 unrouted items are from earlier verdicts; see Findings (`ev/carry_audit.txt`).
 
-Carry check, item by item:
-- [1] the #2469 split:
-  - SIGKILL frees the lock early: met. `mut:drain` and `mut:pushhold` are killed, as above.
-  - A group signal reaches the holder: met. The grpTERM and grpHUP arms and `mut:holdsig` pass in every head run.
-  - 75 under `set -e`: met. The `mut:busy75` arm passes.
-  - Determinism across containers: met now, by the par6 RESULT above.
-- [2] Revision 12:
-  - Lock half: shown not to apply, as accepted since round 1.
-  - Self-test half: met by `pr_bounded`, including a group KILL (round 3's measurement). Unchanged in round 4.
-- [3] The worktree left on the branch: met, for SIGKILL too. `mut:detach` passes in every head run.
-- [4] Quiet output: deferred to R10-FLOW-JIDOKA; see Findings.
-- [5] #2549's relay half: met in round 2. `cloud_relay.sh` is unchanged since then, so I did not re-run it this round.
-- [6] P163: not met; see Block 1.
+Check 4, the merge:
+- `git merge-tree --write-tree origin/main 3e936f0c` exits 0 against `d181d014a` and against the newer main `f6784210c9c2c89cfe82ec8bf6acb8b412629055` (`ev/merge-tree.txt`). Main's newer commits do not touch `tools/audit/seat`, the harness or the claim files.
+- `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are byte-identical to origin/main (cmp). `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched in the three-dot diff. `tests/structure_budgets.json` is identical to main, so there is no budget raise. `dev/programme/delivery/2825.md` is in the three-dot diff (`ev/files.txt`).
+- The three-dot diff covers 8 files, all of them this group's (seat scripts, INSTRUMENTS.md, harness, delivery row). The 111-file two-dot delta 5e83e3d8..head is main's own merges.
 
-Merge and record:
-- `git merge-tree --write-tree origin/main 5e83e3d8` (origin/main `63a1c5fe8`) gives tree `c8e8e18ea`, exit 0, no conflict (`ev/merge-tree.txt`).
-- `dev/programme/delivery/2825.md` is in the three-dot diff.
-- No `*_budgets.json`, `VERSION`, manifest or notes heading is touched.
-
-CI on this head, read from the check-runs API:
-- Every completed gate check is green, including `governance / instrument-self-tests` (which runs this self-test), `tests / closures`, `tests / mutation`, `tests / fast (3.14)`, `budget-raise-gate` and `policy-docs`.
-- `governance / delivery-status` is red on main's own overdue rows, as in rounds 2 and 3. The diff adds only its own delivery row, so the red is not this PR's. It is not a required check and does not block.
-- `tests / coverage` and `codeql / Analyze (python)` were still in progress when I read them.
-
-Figures I did not re-derive: the body's round-1 to round-3 failing-test-first runs, the class greps, the structure, archscore, closure and `ci_predict` rows (CI's own runs are green), and the `cloud_relay-29` harness mutant (unchanged since round 2, which reproduced it).
-
-Instruments: `ev/nullctl-probe.diff` and its timing lines are my own, built for this review. The par6 load is round 3's perturbation, re-run.
+Check 5: the delta leaves the answers to carries 1-5 unchanged. Field 3 is now the start epoch and `drain` moves to field 4, and every reader was updated with it (`pr_lock_busy`, `sigrun`, the taken-test). The rest of carries 1-5 and the accepted dispositions (R10-FLOW-JIDOKA for quiet output and the 12 outside self-tests, the PR_BOUND_PY startup window and the /proc skip as dismissed) stay settled as the prior round recorded them.
