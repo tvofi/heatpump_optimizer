@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_learn_heat_span GUARD_OFF eea36cec",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "    if (ev := heat_energy.meter_of(coord).settle(clean, coord._commanded_split(), anchor)) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}
