@@ -4726,7 +4726,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-ceiling-probe",
-    "commit": null,
+    "commit": "9ef3325660916ef055f8b9a39713e3f2a98d0afe",
     "last_step": null,
     "next_step": "Design r2 at design/r10-ceiling-probe 9ef33256 in design review; on approve set architect_note, add pump_arbiter.py and coordinator.py to files, order vs R10-LIVESTATE",
     "note": null
