@@ -2180,9 +2180,7 @@
    "owner_gate": "code-owned: .claude/hooks/",
    "rca": [],
    "after": [],
-   "carry": [
-    "Null control: the clean arm reads 0 escapes and the perturbed arm 2."
-   ],
+   "carry": [],
    "architect_note": null,
    "resume": {
     "stage": "done",
