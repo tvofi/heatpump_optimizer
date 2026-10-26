@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 7df0b7106..1c630045b 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -99,7 +99,6 @@ p = os.getppid()
+ f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+ while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch
+ f.truncate(0); f.write("%d %d drain\n" % (p, os.getpid())); f.flush()
+-fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
+ if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): import subprocess; subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach
+ sys.exit(0)' "$1" ${4:+"$4" "$3"} </dev/null >/dev/null 2>&1 & LKP=$!
+   PR_REAP_SPARE=$LKP

@@ -43,28 +43,25 @@
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 324: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 342: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 324: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 324: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 334: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -93,13 +90,12 @@ tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok   update_pr: after the stop the lock is free, so the next run takes it
   ok   update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
   ok     mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives
-  ok     mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)
-  ok   update_pr: a SIGKILLed run's lock stays held while its push runs
-  ok   update_pr: and a run meanwhile is BUSY, naming that push
+  FAIL   mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)
+  FAIL update_pr: a SIGKILLed run's lock stays held while its push runs
+  FAIL update_pr: and a run meanwhile is BUSY, naming that push
   ok   update_pr: once that push ends the lock is free, and a later run takes it
-  ok   update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
+  FAIL update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
   ok     mutant mut:detach (its line deleted): the SIGKILLed run's worktree still holds fix/t
-DIAG drain treen=4 state=free mark=drain after=free
   ok     mutant mut:drain (its line deleted): the holder lets go once the run is gone, while the push runs
   ok     mutant mut:pushhold (its line deleted): the push holds no lock, so the holder lets go while it runs
   ok   update_pr: TERM to the run's whole group: the holder outlives it and drains, letting go once nothing of the push holds its lock
@@ -121,7 +117,7 @@ DIAG drain treen=4 state=free mark=drain after=free
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha '3a2ee24' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '5a1c331' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -138,4 +134,5 @@ DIAG drain treen=4 state=free mark=drain after=free
   ok   every # mut: line is a whole statement, never one continued from the line above
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 123 checks, 0 failed
+pr_args self-test: 123 checks, 4 failed
+rc=1

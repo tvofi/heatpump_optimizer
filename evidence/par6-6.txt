@@ -43,12 +43,25 @@
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
+tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -81,6 +94,8 @@
   ok   update_pr: a SIGKILLed run's lock stays held while its push runs
   ok   update_pr: and a run meanwhile is BUSY, naming that push
   ok   update_pr: once that push ends the lock is free, and a later run takes it
+  ok   update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
+  ok     mutant mut:detach (its line deleted): the SIGKILLed run's worktree still holds fix/t
   ok     mutant mut:drain (its line deleted): the holder lets go once the run is gone, while the push runs
   ok     mutant mut:pushhold (its line deleted): the push holds no lock, so the holder lets go while it runs
   ok   update_pr: TERM to the run's whole group: the holder outlives it and drains, letting go once nothing of the push holds its lock
@@ -102,9 +117,26 @@
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha '22d1b43' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '8077f3e' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
+  ok   update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock
+  ok     mutant mut:fggc (its line deleted): git detaches that gc, which keeps the push's fd 9 once the push has ended
+  ok   pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so
+  ok     mutant mut:dogend (its line deleted): the bound passes and nothing ends the self-test, which runs on
+  ok   pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status
+  ok     mutant mut:boundreap (its line deleted): the child outlives the self-test
+  ok   pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog
+  ok     mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on
+  ok   pr_bounded: a SIGKILL to its caller's whole group still ends the self-test, 0 survivors in either session
+  ok     mutant mut:dogsid (its line deleted): the group kill takes the watchdog too and the self-test runs on
+  ok   every # mut: line is a whole statement, never one continued from the line above
+  ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 109 checks, 0 failed
+pr_args self-test: 123 checks, 0 failed
+
+real	3m12.621s
+user	0m41.066s
+sys	0m23.182s
+rc=0

@@ -1,7 +1,0 @@
-before kill: processes in pgid 809: 1; bound sessions: 1
-sessions led by the supervisor's children: 811
-812
-session 811: 0 live process(es) 3 s after the group KILL
-session 812: 0 live process(es) 3 s after the group KILL
---- 53 s after the kill:
-(end of list)
