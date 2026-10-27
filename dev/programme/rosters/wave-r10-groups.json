@@ -4918,9 +4918,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-cop-partload",
-    "commit": "775ae0340b1735db77bafe3d6a5d79e992706171",
+    "commit": "f4415303e012a4851585ff366441b0c4f88ac661",
     "last_step": "Handoff pushed at 775ae0340: the term at the seven priced forward sites and the two hot-water sites, the structure re-record (class_excess_loc 18082; the naive shape measures 18111, so the shape pays 29 lines and the rise over the base is 3), the golden config_flow re-record and its claim, the buffer-ceiling triage re-anchor, the harness INERT read, the RCA at dev/audit/rca/R10-RCA-COP-PARTLOAD.md, and the two audit header blocks. Scoped gate MODE: SCOPED -- 30 script(s) run, 3 scoped out; its reds are classified against 3b4180dcc in the body's ## Red checks -- golden 55/56, the stress shoulder economics and the card.mjs V8 OOM reproduce at the base, harness_headers was fixed in dc67636b2 and re-runs green, and the stress production-call channel is this branch's, named there for the owner's pass.",
-    "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder's harness). Body on handoff-body/r10-cop-partload; open the PR after the verdict. The RCA the group's rca step owed is in the diff (dev/audit/rca/R10-RCA-COP-PARTLOAD.md), and the two carries are on this group's carry list.",
+    "next_step": "PR #2872 open at the merge-forwarded head f4415303e (main 524c1896b merged, no hand resolution; structure.py and entities.py re-run green: 18070<=18070, ALL 2467). Body on handoff-body/r10-cop-partload (fa3905d28); update_pr advanced the branch and the ## Head note. Review owed at f4415303e from a detached worktree with the finder's harness. Two checks are owner-gated rather than fixer-gated: tests / fast (3.14) (13 stress production-call scenarios 1.050x-1.063x past the 1.05 allowance, work counts vouching 1.000x) and budget-raise-gate (class_excess_loc 18067->18070; ## Raise justification carries dS +0.0000 NULL and the rejected naive shape at 18099). Under mandate 6329234399 the budget-raise arm is mine to rule once the reviewer confirms no payment improves the architecture; the stress allowance is not, and it waits for tvofi.",
     "note": null,
     "pr": 2872
    },
@@ -6766,7 +6766,7 @@
     "branch": "handoff/r10-flow-body-only",
     "commit": null,
     "last_step": null,
-    "next_step": "Re-size or split before dispatch: 12 carries, carry 7 needs owner review, V115/V64 reach outside declared files (stopped seat 2026-10-26, scratch NOTES.md)",
+    "next_step": "DISPATCH NOW: every `after` group is done (R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH, R10-FLY-OPENPR-ATOMIC all `done`), so the only thing that held this group was its own note. CARRY 7 IS RULED, under mandate 6329234399, by the orchestrator acting as tvofi on 2026-10-27T11:15Z: adopt P22 -- update_pr.sh exits 75 (BUSY, not 1) for \"branch checked out elsewhere\" and worktree-in-use, exactly as it already does for its own lock, so a live train's worktree is never read as a permanent refusal. The evidence is fresh and it is ours: at 11:02Z update_pr.sh refused #2872 with `branch fix/r10-cop-partload checked out elsewhere` and exited non-zero, the orchestrator read it as a permanent stop, and the true cause was a finished fixer's worktree still holding the branch -- released by one detach and the same command then ran clean. Carry 7's remaining asks stand unchanged: keep the body-only path callable by the beat's handoff job, and register any new push site in ref_privacy's PUSHERS. Size S, files tools/audit/seat/{update_pr.sh,cloud_relay.sh,pr_args.sh,INSTRUMENTS.md}. Blocked on nothing but a free lane seat, which the orchestrator dispatches into.",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
@@ -8288,7 +8288,8 @@
     "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **K17 alignment.** Part (4) is this group's: the dispatch record is now the registry the seats job reads, with time and model, which is the backing state the round-3 review's N11-R found missing for the folded dispatch reason. Part (4b), the read-back close of `verdict-unposted`, is already on main (R10-ORCH-LEDGER) and unchanged here. Parts (0)-(3) and (5)-(7) are other groups' (the brief copies the carry whole): carried to R10-ORCH-BEATD below; part (3)'s live reviewer in the workers JSON file reads as the live record in `$S/dispatched` (Decision above).",
     "**R10-ORCH-BEATD: the seats job reads this registry.** The worker registry is `$HPO_BUS_STATE/dispatched`, one line per reviewer dispatch, `<pr> <head> <reviewer> <nonce> <utc> <model|->` (older 4-field lines stay readable); the design's workers JSON file is not built, by decision. The seats job and the WORKERS section read it, and fixer seats (not dispatched through the bus) need their own record or none. Control: a reviewer dispatched through `cloud_dispatch.dispatch_group` appears as a live seat with its dispatch time; a line at a head the PR has moved past reads `DONE?`, not live. Carry: R10-ORCH-BEATD",
     "**R10-ORCH-BEATD: carry [5], the dispatch beat job.** It calls `bus.sh dispatch` (or `dispatch_group`), never a second writer of the registry or of the `reviewer-fire` close; the standing dispatch seat stays until the job has run beside it for one full cycle. Control: one beat pass over a handoff with no live dispatch leaves one registry line and one `close reviewer-fire` in `events.tsv`, and a second pass adds neither. Carry: R10-ORCH-BEATD",
-    "**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD"
+    "**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD",
+    "Triage writer arrival order is unresolved, and the 2026-10-27T09:30:39Z stand-down rests on a windowed read. Read the WHOLE seat ledger, not the window: the plain `HOLD (no v7.0.5 tag)` writer is one continuous cadence across the series with no inter-line gap over 302 s, and its first line predates the annotated seat's first line at 08:12:52Z -- so the annotated seat is the later arrival, not the \"second writer\" the batch file calls it. The windowed figures remain exact and reproducible (18 plain lines in 08:13:15-09:38:27; 4 inside the 08:54:25-09:15:38 stall) but they establish the overlap, not the order. The DEFER is unaffected either way: a fixed-line loop implements no convention, whichever seat wrote it."
    ],
    "model": {
     "fixer": "opus",
@@ -10596,6 +10597,92 @@
     "commit": "524c1896b6943b3da03d6cad61420ced31e14c9c"
    },
    "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
+  },
+  {
+   "group": "R10-TRIAGE-B36",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27 under the owner's ruling that a delivery gap with no owning group gets folded into the roster rather than left as an orphan handoff. This group exists because the triage s6 batch 36 pull request carried a handoff ref that no group named, so the drain, the plan count and the board's OWED handoffs line all saw it as uncovered work with no seat."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "fix/triage-s6-batch36",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "advance the head over the gap repair, then review it",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+   },
+   "brief": "Own the triage s6 batch 36 pull request to a merge-ready head. The batch file and the pull request's own Figures section must agree on every deferred item: the repair that reopened this group was one place saying a proposal was already carried while the enumerator printed zero for it. Re-derive the enumerator's output at your merge base rather than quoting the body's, and when the two disagree, the enumerator wins and the prose is the defect. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Do not add a survivor-triage record; a survivor list is repaired by killing the mutant or by an equivalent assertion, not by recording it."
+  },
+  {
+   "group": "R10-ROSTER-BATCH24",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/rosters/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27: the round-10 roster batch 24 pull request was advancing a handoff ref that no roster group named, so the board read it as an orphan handoff with no pull request even while the pull request was open. A record-only change still needs an owning group, or the drain cannot see it finish."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "fix/audit-r10-roster-pr",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "bring the pull request head up to the roster handoff, then review it",
+    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered"
+   },
+   "brief": "Own the round-10 roster batch 24 pull request to a merge-ready head. It is a record change, so the review is about whether the recorded state is true, not about code: re-derive each row from the tree and from the open pull requests rather than trusting the previous batch's claim, and correct any row that has gone stale since it was written. Keep the roster's own formatting byte-identical where no row changes -- the round-trip rule in tools/audit/seat/roster_edit.py is the constraint that stops a one-row edit rewriting the whole file. Read dev/governance/rules/delivery-status-tracking.md before touching a status row: the record outranks any wave body."
   }
  ]
 }
