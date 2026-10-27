@@ -1,0 +1,23 @@
+head: adf5ef473a74e4c25f654f01c4201244b771c147
+=== findings 1-4 prior verdict, re-measured ===
+-- F1: merge_claim_refusal --
+1844:def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
+            "CONFLICTING CLAIMS: both sides rewrote the claim list -- this\n"
+            f"branch claims {sorted(our_claims) or '(nothing)'} and the merge\n"
+            f"brings in {sorted(their_claims) or '(nothing)'}. A claim excuses\n"
+            "one release's golden diff and is written for that diff alone, so\n"
+            "merging two lists would reinstate a claim one side deleted and\n"
+            "excuse a drift by accident. Resolve it by hand: keep the claims\n"
+            "that describe THIS branch's diff and delete the rest."
+conflicting_claims_message in tree:
+dev/programme/triage/s6-batch41.md:10:not `conflicting_claims_message`); the roster churn was quoted as 45 minutes, which no window over
+dev/programme/triage/s6-batch41.md:123:entry named that function `conflicting_claims_message`, which does not exist: `git grep` finds the
+git log --all -S conflicting_claims_message -- tests/env_drift.py:
+-- F2: churn window (see churn.txt) --
+-- F3: P214 ownership (see roster.txt) --
+-- F4: append-group / set-stage --
+105:Load the roster through `tools/audit/seat/roster_lib.py` at the ref `tools/audit/seat/state_docs.py` defaults. Dispatch by pull: a flow 
+89:Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr
+63:(4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` f
+set-resume in roles/template:
+NONE
