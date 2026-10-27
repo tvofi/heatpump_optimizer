@@ -1,0 +1,6 @@
+=== plant: INERT_EXCEPT is not a silent exemption ===
+null control at head: orphan_files() = []
+planted .claude/settings.json (real tracked, unread) into INERT_EXCEPT:
+  is_inert(.claude/settings.json): False
+  orphan_files now: ['.claude/settings.json']   -> tests/entities.py fails "these force the FULL suite when touched"
+restored: 0 dirty

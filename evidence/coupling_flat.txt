@@ -1,0 +1,10 @@
+=== coupling() re-derived (my own call; finder wrote no harness for this) ===
+REF 399098f63
+  name-status -M : {'window': 200, 'merges': 184, 'pairs': 403, 'occurrences': 586, 'cochange_per_100': 318.4783}
+  name-only      : {'window': 200, 'merges': 184, 'pairs': 403, 'occurrences': 586, 'cochange_per_100': 318.4783}
+  FLAT           : True
+REF 57f0c9c77
+  name-status -M : {'window': 200, 'merges': 189, 'pairs': 114, 'occurrences': 145, 'cochange_per_100': 76.7196}
+  name-only      : {'window': 200, 'merges': 189, 'pairs': 114, 'occurrences': 145, 'cochange_per_100': 76.7196}
+  FLAT           : True
+Matches the body's four numbers at both refs.

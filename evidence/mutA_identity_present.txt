@@ -1,0 +1,28 @@
+  ok   a score block parses its dS, verdict and two moving metrics
+  ok   a body with no score block is refused
+  ok   a plan the merged bodies account for reconciles with no failure
+  ok   a merged metric no planned move names is refused
+  ok   and its flagged run exits non-zero on the same input the passing run exits 0
+  ok   a planned move with no merged body is OWED
+  ok   a merged group the plan never names is refused
+  ok   an inadmissible end-to-end reading fails the round
+  ok   a WORSENS end-to-end reading fails even with no named regression
+  ok   a dS the moves do not account for is refused
+  ok   and a residual inside the tolerance is not
+  ok   the inventory reads entities, services, options and the card's pages
+  ok   a removed card page is a holdout regression
+  ok   and the plan's approved removal (--allow) suppresses it
+  ok   a raised structure metric is a regression
+  ok   a raised gate-only tripwire is a regression
+  ok   the plan's declared structure exception allows that one rise
+  ok   and an unrelated declaration leaves the rise (the null control)
+  ok   a falling mutation kill rate is a regression
+  ok   a rising change coupling is a regression
+  ok   the null control: identical snapshots regress on nothing
+  ok   a target measured against itself uses its own file (the null control)
+  ok   the structure metrics are the instrument's code, not the target's
+  FAIL the fixture commits under the harness's own identity, not the box's tvofi <70032254+tvofi@users.noreply.github.com> 1793081537 +0100
+  ok   two modules changed in one merge read as one coupled pair
+  ok   the null control: a later merge of one module alone lowers the rate
+  ok   a rename alone is one module, so it adds no co-change pair
+plan_audit self-test: 27 checks, 1 failed

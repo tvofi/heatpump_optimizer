@@ -1,0 +1,18 @@
+=== affected both ends ===
+--- BASE ---
+########## closures check ##########
+  CASE: SKIP -- no recorded closure contains any changed file, no script's recorded inert_reads reach them, and every one of them is INERT
+  changed files (1):
+      .claude/workflows/audit-plan.js
+  Nothing to re-derive: this check does not run for this change.
+--- HEAD ---
+########## closures check ##########
+  CASE: SCOPED -- 1 closure(s) intersect the diff
+  changed files (1):
+      .claude/workflows/audit-plan.js
+
+      REDERIVE  tests/entities.py  <- .claude/workflows/audit-plan.js
+
+  Every other closure is left alone: no changed file is in it, so a
+  fresh recording could not disagree with the committed one. The FULL
+  unscoped re-derivation on every push to main re-checks that claim.

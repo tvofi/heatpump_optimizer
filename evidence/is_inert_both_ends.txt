@@ -1,0 +1,6 @@
+=== BASE is_inert ===
+audit-plan.js inert = True
+web-fix-wave.js inert = False
+=== HEAD is_inert ===
+audit-plan.js inert = False
+web-fix-wave.js inert = False

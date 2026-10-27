@@ -1,5 +1,0 @@
-$ python3 tests/closure.py selftest
-  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/audit/seat/plan_audit.py:314: changed = [p for p in git("diff", "--name-only", parent, sha, "--", PKG, cwd=repo).splitlines()]
-1 of 117 closure shrink pins FAILED
-
-# RENAME_SITES includes tools/audit/seat/*.py (tests/closure.py:2765)

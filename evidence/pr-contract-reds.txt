@@ -1,7 +1,0 @@
-# pr-contract / pr-contract (job 121993616354, run 40441516499) at head
-# started 2026-10-27T03:33:58Z, after tests/closures-autofix concluded red
-2026-10-27T03:34:29.5072644Z   ERROR   [pr-body] /tmp/pr-body.md: check `governance / instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-27T03:34:29.5074738Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-27T03:34:29.5076872Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / closures-autofix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-27T03:34:29.5078945Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-27T03:34:29.5157783Z ##[error]Process completed with exit code 1.

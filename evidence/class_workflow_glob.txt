@@ -1,0 +1,13 @@
+=== enumeration: every .claude/workflows/*.js matched by codeql.yml paths-ignore ===
+glob .claude/workflows/*.js -> 9 files
+  .claude/workflows/audit-find.js               inert=False  INERT_EXCEPT=True
+  .claude/workflows/audit-fix.js                inert=False  INERT_EXCEPT=True
+  .claude/workflows/audit-plan.js               inert=False  INERT_EXCEPT=True
+  .claude/workflows/audit-verify.js             inert=False  INERT_EXCEPT=True
+  .claude/workflows/audit-wave.js               inert=False  INERT_EXCEPT=True
+  .claude/workflows/web-decomp-stage.js         inert=False  INERT_EXCEPT=True
+  .claude/workflows/web-fix-wave.js             inert=False  INERT_EXCEPT=True
+  .claude/workflows/web-stamp.js                inert=False  INERT_EXCEPT=True
+  .claude/workflows/web-triage.js               inert=False  INERT_EXCEPT=True
+INERT-and-matched-by-the-glob: []
+inert_closure_violations(committed closures) at head: []
