@@ -22,7 +22,7 @@ metered 1.0 kW), then one six-minute settlement through the production
 """
 from datetime import datetime
 
-from heatpump_optimizer.ledger import MonthlyLedger
+from heatpump_optimizer.ledger import MonthlyLedger, coverage_factor, month_key
 
 NOW = datetime(2026, 2, 10, 15, 0)
 
@@ -63,8 +63,14 @@ def main() -> int:
     for name, build in (("upgrade", upgrade), ("null", null), ("fresh", fresh)):
         ledger = build()
         row = ledger.savings_months(NOW)[0]
+        # ``MonthlyLedger._coverage_factor`` is the module-level
+        # ``coverage_factor(meta, now)`` since v7.0.5; the row's month meta is
+        # what it read from ``self.months``.
+        factor = coverage_factor(
+            ledger.months.get(month_key(NOW), {}).get("meta") or {}, NOW
+        )
         print(
-            f"{name:8s} factor={ledger._coverage_factor(NOW):10.3f} "
+            f"{name:8s} factor={factor:10.3f} "
             f"savings_sek={row['savings_sek']:12.2f} actual_sek={row['actual_sek']:12.2f} "
             f"savings_pct={row['savings_pct']}"
         )
