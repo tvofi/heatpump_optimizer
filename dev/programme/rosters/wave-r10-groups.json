@@ -9819,7 +9819,7 @@
    "resume": {
     "stage": "in-review",
     "branch": "handoff/r10-house-grade",
-    "commit": "516d47fd7517da801802c2e73db97f17251ef090",
+    "commit": "c89e5b5db1a8c2bfddbb9a9259f8dc319187eee9",
     "last_step": null,
     "next_step": "dispatch the fix reviewer at the PR head; the R10-COP-GATE carry landed at a4a348a6",
     "note": null
