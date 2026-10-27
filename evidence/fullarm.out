@@ -1,0 +1,8 @@
+full-copy KB: 135540
+== the same commit eb7e1dee2, full-tree copy (what step 6g did before this PR):
+dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+rc=0
+== and the narrow copy at the same commit, for the contrast:
+narrow-copy KB: 14048
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+rc=1

@@ -1,9 +1,0 @@
-NOTE #2853 body item aee51010: R10-FLOW-JIDOKA
-NOTE #2853 body item 9afca49c: R10-FLOW-JIDOKA
-NOTE #2853 body item e40369ec: R10-FLOW-JIDOKA
-NOTE #2853 body item aa46f335: R10-FLOW-JIDOKA
-NOTE #2853 body item 48148692: R10-FLOW-JIDOKA
-NOTE #2853 body item fb2b0676: R10-FLOW-JIDOKA
-NOTE #2853 body item fe04bf19: R10-FLOW-JIDOKA
-CARRY-AUDIT #2853: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
-rc=0

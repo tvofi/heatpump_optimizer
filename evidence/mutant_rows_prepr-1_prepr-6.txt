@@ -1,5 +1,0 @@
-row 'step 3f7 runs privacy_line and refuses on its rc' over wt (head): got 0 wanted 0 -> ok
-row 'step 3f7 runs privacy_line and refuses on its rc' over wt-m1 (prepr-1 planted): got 1 wanted 0 -> FAIL
-row '--body-check runs step 7a's figure lint and refuses on its rc (carry 8)' over wt (head): got 0 wanted 0 -> ok
-row '--body-check runs step 7a's figure lint and refuses on its rc (carry 8)' over wt-m4 (prepr-6 planted): got 1 wanted 0 -> FAIL
-(the full self-tests for prepr-1 and prepr-6 were stopped by this seat at ~255 of ~424 lines, host load average ~300; these two rows are text assertions, evaluated here exactly as the self-test evaluates them)

@@ -1,0 +1,14 @@
+== fixture: head + docs/architecture.md gains a relative link to ../tools/audit/seat/INSTRUMENTS.md
+== claims.py re-recorded at the repo root (full tree), committed: eb7e1dee2 fixture: doc link to a real file outside CLAIMS_INPUTS, register re-recorded on the full tree
+== committed C108:
+true | 85 links, broken=[], of which removed-by-the-export=[]
+== narrow copy built exactly as step 6g builds it: 14048 KB
+== claims_reg_line on the committed tree:
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+rc=1
+== C108 in the narrow run:
+false | 85 links, broken=[('docs/architecture.md', '../tools/audit/seat/INSTRUMENTS.md')], of which removed-by-the-export=[]
+== the full-tree re-run the message tells the seat to do reproduces the committed register:
+== the same commit eb7e1dee2, full-tree copy (what step 6g did before this PR):
+no change to README.md or docs/*.md
+rc=3

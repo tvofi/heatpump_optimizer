@@ -1,9 +1,0 @@
-instance #2736 fbbd3e61, merge base with main's pre-merge tip: e97f5749b441b282e43bd99dbcbb762e9d10a369; changed paths:
-dev/governance/dimensions/D11.md
-dev/programme/delivery/2736.md
--- OLD trigger (base prepr list, dead tools/audit/briefs/*.md glob):
-git diff --quiet rc=0 (0 = skip: the defect)
--- files matching old briefs glob at origin/main: 0; role+dimension md at HEAD: 33
-NEW WAVE_INPUTS pinned_touched rc=0 (0 = run)
-null README-only rc=1 (1 = skip)
-MUTANT old glob restored rc=1 (1 = skip, defect back)

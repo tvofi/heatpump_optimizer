@@ -1,0 +1,10 @@
+== my step 6g at head 2724c87bb, /usr/bin/time -p, this 8-core host
+run1 copy_wall_cpu=0.28 0.25 fn_wall_cpu=4.01 3.46 total_wall=4.29 total_cpu=3.71 load=27.92
+run2 copy_wall_cpu=0.28 0.24 fn_wall_cpu=3.76 3.56 total_wall=4.04 total_cpu=3.80 load=27.92
+run3 copy_wall_cpu=0.32 0.25 fn_wall_cpu=5.08 3.39 total_wall=5.40 total_cpu=3.64 load=30.59
+
+== old step 6g at reviewed head fa18c13d2 (whole-tree copy), same host
+run1 copy_wall_cpu=3.91 2.83 fn_wall_cpu=9.25 3.92 total_wall=13.16 total_cpu=6.75 load=39.28
+run2 copy_wall_cpu=6.02 2.97 fn_wall_cpu=10.04 3.80 total_wall=16.06 total_cpu=6.77 load=40.35
+
+== step line printed at head: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold

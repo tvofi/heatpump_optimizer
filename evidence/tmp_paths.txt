@@ -1,2 +1,0 @@
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 2563e29228a9
-rc=0
