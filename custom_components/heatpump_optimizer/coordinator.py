@@ -1097,8 +1097,8 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
     if close.house:
         await coord._async_learn_house_heat_loss(close.interval, close.space_kw)
     if close.cop:
-        coord._measured_cop.refusal = close.refusal or coord._fold_cop_evidence(
-            close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
+        refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params))
+        coord._measured_cop.refusal = refusal or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
 
 
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
@@ -5077,10 +5077,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
-        Without a power entity the COP is a curve fitted to a nameplate figure,
-        and since every plan is priced through it, an error there is an error
-        in every cost the integration reports. With one, COP becomes an
-        observable and can join the other learners.
+        Without a power entity or a heat counter the COP is a curve fitted to
+        a nameplate figure, and since every plan is priced through it, an
+        error there is an error in every cost the integration reports. With
+        either, COP becomes an observable and can join the other learners.
 
         Only intervals where the pump is genuinely running carry information;
         at low duty the measured average is dominated by standby draw.
@@ -5088,14 +5088,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         when it folded.
         """
         ctx = getattr(self, "_ctx", self)
-        if self._measured_power is None:
+        # #2261: a heat counter folds its COP at the span close, on the two
+        # counters' deltas, so a counter is exempt here; its floor is judged there.
+        if self._measured_power is None and not heat_energy.meter_of(self).counter:
             return COP_REFUSED_NO_POWER
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
         params = ctx._thermal_params
-        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):
+        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params)):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5113,8 +5115,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # (``_cop_fold_blocked``), inherited by everything on this tail.
         if _cop_fold_blocked(self):
             return COP_REFUSED_DISTORTED
-        # #2261: a heat counter's COP is its span's (``_async_learn_heat_span``),
-        # so a cycle that passed every gate above leaves the span clean.
         if heat_energy.meter_of(self).counter:
             return COP_REFUSED_SPAN_OPEN
 

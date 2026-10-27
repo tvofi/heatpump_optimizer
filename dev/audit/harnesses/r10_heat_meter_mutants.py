@@ -19,7 +19,9 @@ reset branch, P the counter-first precedence (#2753's M1 mirror), O the
 earned-basis upgrade, A the ``span_clean`` AND, I the ``integrated`` branch
 in ``space_heat_kw``; and the carries' own: D the counter's on-change decision
 (R10-INPUT-STALENESS), L6 the house meter's on-change limit, L9 the snapshot's
-named input (the D15 leads).
+named input (the D15 leads). Round 4 adds the two halves of the counter-only
+fold: S the no-power refusal's counter exemption (the round-3 defect, restored)
+and T the span close's duty floor on a counter install.
 """
 from __future__ import annotations
 
@@ -35,7 +37,7 @@ import tempfile
 from pathlib import Path
 
 PKG = "custom_components/heatpump_optimizer/"
-HE, FM = PKG + "heat_energy.py", PKG + "flow_meter.py"
+HE, FM, CO = PKG + "heat_energy.py", PKG + "flow_meter.py", PKG + "coordinator.py"
 
 MUTANTS = {
     "N0 null control (a comment)": (HE, "def _after(newer: datetime, older: datetime) -> bool:\n",
@@ -68,6 +70,13 @@ MUTANTS = {
     "L9 the snapshot ignores the named input": (
         PKG + "snapshots.py", '"unhealthy_input": None if healthy else self.day_unhealthy,',
         '"unhealthy_input": None,'),
+    "S the no-power refusal drops the counter exemption": (
+        CO, "if self._measured_power is None and not heat_energy.meter_of(self).counter:",
+        "if self._measured_power is None:"),
+    "T the span close's duty floor dropped on a counter install": (
+        CO, "        refusal = close.refusal or (None if coord._measured_power is not None "
+            "else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params))",
+        "        refusal = close.refusal"),
 }
 
 ARCHIVE_FAIL = "and the path that proceeds still stamps a resolvable recorded_at (#363)"

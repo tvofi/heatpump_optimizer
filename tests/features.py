@@ -70500,6 +70500,7 @@ from heatpump_optimizer import heat_energy as _he  # noqa: E402
 from heatpump_optimizer import coordinator as _he_cm  # noqa: E402
 from heatpump_optimizer import store as _he_store  # noqa: E402
 from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_DUTY_FLOOR as _HE_FLOOR,
     COP_REFUSED_SPAN_OPEN as _HE_OPEN,
     COP_REFUSED_UNALIGNED as _HE_UNALIGNED,
 )
@@ -70832,13 +70833,14 @@ R.check(
 # The coordinator. Per cycle the COP fold on a counter install stops at the
 # span (its gates still run); at the close the paired deltas fold, on the
 # known-COP plant exactly, and with heat equal to the model's COP times the
-# electricity (the null) the scale holds.
-def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3):
-    c = _t2_coord(heat_pump_power_entity="sensor.hp_power",
+# electricity (the null) the scale holds. ``power``: the install maps a power
+# entity, or only the two counters (#2854 round 4).
+def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3, power=True):
+    c = _t2_coord(**({"heat_pump_power_entity": "sensor.hp_power"} if power else {}),
                   **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"})
     c._current_state.outdoor_temperature = 8.0
     c._current_action = {"power": elec_kw}
-    c._measured_power = elec_kw
+    c._measured_power = elec_kw if power else None
     modelled = c._thermal_model.compute_cop(8.0)
     ratio = modelled if heat_per_elec is None else heat_per_elec
     m = _he.meter_of(c)
@@ -70880,6 +70882,37 @@ R.check(
     _he_noelec._cop_samples == 0 and _he_noelec_ref[-1] == _HE_UNALIGNED
     and _he_noelec._measured_cop.refusal == _HE_UNALIGNED,
     f"{_he_noelec_ref} {_he_noelec._measured_cop.refusal}",
+)
+
+# #2854 round 4: the install the brief promises -- the heat counter and the
+# electric energy counter, no power entity -- folds its span's COP too. The
+# per-cycle fold can read no draw there, so it leaves the span clean and the
+# duty floor is judged at the close on the span's mean draw.
+_he_nop, _he_nop_ref, _he_nop_mod = _he_cop_span(3.7, power=False)
+_he_nop_null, _he_nop_null_ref, _ = _he_cop_span(None, power=False)
+R.check(
+    "a heat counter with the electric counter and no power entity folds its span's "
+    "COP as heat over electricity; a cycle inside the span reads span_open, not "
+    "no_measured_power",
+    _he_nop._cop_samples == 1 and _he_nop_ref == [_HE_OPEN, _HE_OPEN, None]
+    and abs(_he_nop._measured_cop.cop - 3.7) < 1e-9,
+    f"samples {_he_nop._cop_samples} refusals {_he_nop_ref} cop {_he_nop._measured_cop.cop}",
+)
+R.check(
+    "null control on that install: heat equal to the model's COP times the "
+    "electricity reproduces the model and the scale holds at 1.0",
+    _he_nop_null._cop_samples == 1 and _he_nop_null_ref[-1] is None
+    and abs(_he_nop_null._cop_scale - 1.0) < 1e-9,
+    f"samples {_he_nop_null._cop_samples} scale {_he_nop_null._cop_scale} modelled {_he_nop_mod}",
+)
+_he_nop_low, _he_nop_low_ref, _ = _he_cop_span(3.7, elec_kw=0.5, power=False)
+R.check(
+    "on that install the duty floor is judged at the span close on its mean draw "
+    "and ask: 0.5 kW refuses, the 2.0 kW span folds (null control)",
+    _he_nop_low._cop_samples == 0 and _he_nop_low._measured_cop.refusal == _HE_FLOOR
+    and _he_nop._cop_samples == 1,
+    f"low samples {_he_nop_low._cop_samples} refusal {_he_nop_low._measured_cop.refusal} "
+    f"refusals {_he_nop_low_ref}",
 )
 
 # Point B: one gated cycle refuses that learner's span, and only that one's.
