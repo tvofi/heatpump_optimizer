@@ -18,17 +18,30 @@ Replaced at the fourth round. The review's findings, and what answers each:
 
 ## Head
 
+`3507d345b8684e962ef4751d1593363e696cdd30` merges the authored code head `36c5c78e91c0d1c2517e3f368826bc8352cdd3e6` and then merges origin/main `4f3c73020` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `36c5c78e91c0d1c2517e3f368826bc8352cdd3e6`: the delivery row on `a0e741cf2`, which merges `origin/main` `d620369fad72e18081b2efa1b66ee0058296f12c` into `fa39e955cddb896dc47d5afa652956a6a047a592` (`R10-FLOW-JIDOKA: pay 6g's budget and prove --fill-red detects`). Earlier heads on this branch: `fa18c13d2` (reviewed, blocked), `1fc98acdc` and `819b82fb`.
 
-Merge base `d620369fad72`; origin/main read at `4f3c7302046eccd1f869724a6de2cbf6f8183418`, 2026-10-27T06:18:35Z. `git merge-tree --write-tree origin/main HEAD` exits 0 against both, so no second merge was made (fixer.md step 6). `python3 tests/env_drift.py --claims-only origin/main` prints `claims hygiene: origin/main ok` at this head, against the newer tip.
+Merge base `d620369fad72`; origin/main read at `4f3c7302046eccd1f869724a6de2cbf6f8183418`, 2026-10-27T06:18:35Z, and `git merge-tree --write-tree origin/main HEAD` exited 0 against it, so the figures were taken with no second merge (fixer.md step 6). A later merge of `main` is the note above this section, and moves no figure here. `python3 tests/env_drift.py --claims-only origin/main` prints `claims hygiene: origin/main ok` at this head, against the newer tip.
 
 ## Mutation proof
 
 Run by the in-tree harness: `python3 -I dev/audit/harnesses/r10_seat_selftests_mutants.py <ids>`, from a clean clone of this head (a clone, so the in-place mutation and its restore cannot touch this worktree). The harness edits the committed file, runs `bash tools/pr/prepr.sh --self-test` as CI's `instrument-self-tests` step runs it, and restores the bytes; the same step on the unmutated file must pass first (cached once per step) or the mutant reads `NOT RUN`. A pattern that does not match exactly once is `NOT RUN`. The kill rule is the step's nonzero exit. One measurement-side change: the harness bounds a step run at 900 s, and on this host under load a self-test run takes longer than that, so the runs were driven through a wrapper that raises only that bound to 5400 s; the baseline, match-once and kill rules are the harness's own.
 
-- prepr-11, `CLAIMS_INPUTS` naming `NOTICE_MOVED` instead of `NOTICE` (the narrowed copy's path list): KILLED rc=2, at `a0e741cf`.
-- prepr-12, `ci_predict.ARMS` without `"mutation"` (the arm `--fill-red` asks for): KILLED rc=2, at `a0e741cf`.
-- prepr-1 .. prepr-10, the earlier pass at `1fc98acd`: KILLED, `RESULT survivors=0`. Three self-test arms were added after that pass (the copy pathspec against HEAD, the `--fill-red` wiring, and the arm's presence in `ci_predict.ARMS`), and this head's self-test is green unmutated, the harness's precondition; the arms those ten mutants redden are unchanged between the two heads.
+- prepr-1, step 3f7's call replaced by `PRIVACY_LINE=""` and rc 0: KILLED rc=2.
+- prepr-2, `--body-check` not propagating `privacy_line`'s rc: KILLED rc=2.
+- prepr-3, `WAVE_INPUTS` without the two governance globs: KILLED rc=2.
+- prepr-4, step 6g's `claims_reg_line` call replaced by a skip: KILLED rc=2.
+- prepr-5, the register comparison deleted from `claims_reg_line`: KILLED rc=2.
+- prepr-6, `--body-check` not propagating the figure lint's rc: KILLED rc=2.
+- prepr-7, `fill_red`'s already-named guard deleted: KILLED rc=2.
+- prepr-8, `fill_red`'s no-site guard deleted: KILLED rc=2.
+- prepr-9, `body_push.sh`'s `--fill-red` call deleted: KILLED rc=2.
+- prepr-10, `from harness import Results` put back at the top of `tests/harness_headers.py`: KILLED rc=2, the step's last line `ModuleNotFoundError: No module named 'voluptuous'`.
+- prepr-11, `CLAIMS_INPUTS` naming `NOTICE_MOVED` instead of `NOTICE` (the narrowed copy's path list): KILLED rc=2.
+- prepr-12, `ci_predict.ARMS` without `"mutation"` (the arm `--fill-red` asks for): KILLED rc=2.
+
+Result: `RESULT survivors=0` — 12 planted at `36c5c78e9`, 12 killed.
 
 ## Null control
 
@@ -42,13 +55,13 @@ Run by the in-tree harness: `python3 -I dev/audit/harnesses/r10_seat_selftests_m
 Taken at `36c5c78e9` (timings at `a0e741cf`, whose tree differs only in the delivery row) against merge base `d620369fad72`, 2026-10-27 between 05:31Z and 06:40Z on this 4-core box. origin/main read at `4f3c7302`, 06:18:35Z. **CPU** is `user+sys` from `/usr/bin/time -p`, the load-independent measure the review itself used for 6g. Wall on this host tracks the other seats' load, not the check: the same 6g code measured 4.77–5.66 s wall at load 48–64 and 7.2–10.2 s wall at load 25–40 an hour later, so every wall figure below carries the load it was taken at.
 
 - **Step 6g, whole-tree copy (what the reviewed head did).** `bash <report>/time-6g3.sh <wt> <report>/fx2.sh 3 full` at load 53–70: archive 4.37–6.14 s wall / 2.77–2.86 s CPU, `claims_reg_line` 6.25–7.78 s wall / 3.48–3.61 s CPU, total 10.76–13.92 s wall / **6.25–6.47 s CPU**.
-- **Step 6g, the input list (this head).** Same command with `5 inputs`: copy 0.23–0.30 s wall / 0.21–0.24 s CPU, `claims_reg_line` 4.54–5.39 s wall / 3.65–3.86 s CPU, total 4.77–5.66 s wall / **3.89–4.10 s CPU** (five runs, load 48–64); five further runs at load 25–40: 6.95–9.91 s wall / **3.41–3.76 s CPU**. Ten runs, CPU 3.41–4.10 s, under the 5 s budget.
+- **Step 6g, the input list (this head).** Same command with `5 inputs`: copy 0.23–0.30 s wall / 0.21–0.24 s CPU, `claims_reg_line` 4.54–5.39 s wall / 3.65–3.86 s CPU, total 4.77–5.66 s wall / **3.89–4.10 s CPU** (five runs, load 48–64); five further runs at load 25–40: 7.20–10.25 s wall / **3.48–3.76 s CPU**. Ten runs, CPU 3.48–4.10 s, under the 5 s budget.
 - **`--fill-red`, the whole predictor (what the reviewed head ran).** `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at load 48–70: 8.49–9.21 s wall / **5.66–5.80 s CPU**.
 - **`--fill-red`, this head.** `bash tools/pr/prepr.sh --fill-red <body>`: at load 75–101, 5.12–6.09 s wall / **2.86–3.16 s CPU**; at load 25–40, 10.33–14.73 s wall / **2.89–3.12 s CPU**. Six runs, CPU 2.86–3.16 s, under the 5 s budget. The arm alone (`--only mutation`) measures 3.57–5.00 s wall / 2.91–3.05 s CPU.
 - **The small checks**, at `36c5c78e9`, load 26–51, three runs each: `python3 -I tools/audit/seat/ref_privacy.py --check` 1.72–1.90 s wall / 1.19–1.26 s CPU; `node tools/policy/figure_lint.mjs --pr-body <body>` 0.26–0.38 s wall / 0.11 s CPU; `node tools/policy/check-wave-script.mjs` 0.44–0.68 s wall / 0.23–0.25 s CPU.
 - **Added per run.** A prepr on a `README.md` plus role-contract diff: 1.26 + 4.10 + 0.25 = 5.61 s CPU, under 10 s. A `body_push`: 3.16 + 0.11 + 1.26 = 4.53 s CPU, under 10 s.
 - **Self-test.** `bash tools/pr/prepr.sh --self-test` at `a0e741cf`: `415 passed, 0 failed` under the venv `python3`, and `415 passed, 0 failed` under a no-`voluptuous` CPython 3.13.5 put first on `PATH` (the governance job's shape). The slice's rows: 11 for `fill_red`/`--fill-red`, 3 for `privacy_line`, 3 for `WAVE_INPUTS`, 6 for `claims_reg_line`, 5 call-site rows, 3 for this round's copy/wiring/arm rows.
-- **Mutants.** `RESULT survivors=0` for prepr-11 and prepr-12 at `a0e741cf` (both KILLED rc=2); the earlier pass at `1fc98acd` printed `RESULT survivors=0` for prepr-1 .. prepr-10.
+- **Mutants.** `python3 -I dev/audit/harnesses/r10_seat_selftests_mutants.py prepr-1 .. prepr-12` at `36c5c78e9`: 12 KILLED, `RESULT survivors=0`.
 - **Scoped gate at `36c5c78e9`.** `GATE_SCOPE=auto PREPR_SKIP_CLOSURES=1 bash tests/run.sh`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, running `tests/entities.py` and `tests/harness_headers.py`. `harness_headers.py` prints `ALL 112 HARNESS HEADER CHECKS PASSED`. `entities.py` prints `4 of 2463 ENTITY CHECKS FAILED`, all four in the `hb:` py-spy heartbeat-timing family, and the same family fails on main's tip `d620369` (`6 of 2463` there), so the gate's one red script is this host's timing, not this diff.
 - `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures, fast, wave-script or instrument red predicted`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
