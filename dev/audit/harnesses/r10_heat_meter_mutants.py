@@ -19,9 +19,10 @@ reset branch, P the counter-first precedence (#2753's M1 mirror), O the
 earned-basis upgrade, A the ``span_clean`` AND, I the ``integrated`` branch
 in ``space_heat_kw``; and the carries' own: D the counter's on-change decision
 (R10-INPUT-STALENESS), L6 the house meter's on-change limit, L9 the snapshot's
-named input (the D15 leads). Round 4 adds the two halves of the counter-only
-fold: S the no-power refusal's counter exemption (the round-3 defect, restored)
-and T the span close's duty floor on a counter install.
+named input (the D15 leads). Round 4 adds the counter-only fold and the four
+operators ``ci_predict.py`` lists under it: S the no-power refusal's counter
+exemption (the round-3 defect, restored), T the span close's duty floor, and
+U, V, W, X the two guard lines' boolean and off arms.
 """
 from __future__ import annotations
 
@@ -78,6 +79,20 @@ MUTANTS = {
             "else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params)) "
             "or coord._fold_cop_evidence(",
         "        coord._measured_cop.refusal = close.refusal or coord._fold_cop_evidence("),
+    "U the counter exemption's operator turned into or": (
+        CO, "if self._measured_power is None and not heat_energy.meter_of(self).counter:",
+        "if self._measured_power is None or not heat_energy.meter_of(self).counter:"),
+    "V the no-power refusal removed": (
+        CO, "        if self._measured_power is None and not heat_energy.meter_of(self).counter:\n"
+            "            return COP_REFUSED_NO_POWER",
+        "        if False:\n            return COP_REFUSED_NO_POWER"),
+    "W the per-cycle duty floor's operator turned into or": (
+        CO, "if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(",
+        "if self._measured_power is not None or (refusal := MeasuredCop.judge_floor("),
+    "X the per-cycle duty floor removed": (
+        CO, "        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor("
+            "commanded, self._measured_power, params)):\n            return refusal",
+        "        if False:\n            return refusal"),
 }
 
 ARCHIVE_FAIL = "and the path that proceeds still stamps a resolvable recorded_at (#363)"
