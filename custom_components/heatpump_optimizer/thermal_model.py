@@ -1739,7 +1739,7 @@ def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
     x = (electrical_power - params.min_electrical_power) / band
     # min/max keep a scalar a float; np.clip is the same IEEE op per row.
     x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)
-    return 1.0 - params.cop_partload_derate * x
+    return 1.0
 
 
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
