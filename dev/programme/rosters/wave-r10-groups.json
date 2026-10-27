@@ -1894,6 +1894,7 @@
     "D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the snapshot shows `learner_freeze_reason: ventilation` while `ventilation_active: false`, so the freeze reason may be sticky. Writers per the report: `coordinator.py:5251,5368,5430,5521,6509,6526`. VERIFY beside the L1 carry: drive the latch on then off and read the reason at each learner's next tick. Fix only if a reason outlives its cause. Controls: latch on then off clears the reason by the next tick (the expected arm); a reason set by a different cause survives the vent latch clearing (null); one mutant that stops clearing. (triage: dev/programme/triage/s6-batch24.md#P114)",
     "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). On a counter install (`heat_pump_heat_energy_entity` configured) the per-cycle COP fold returns `COP_REFUSED_SPAN_OPEN` (`span_open`) on every cycle that passed its gates: the COP folds at the span's close in `_async_learn_heat_span`, through `_fold_cop_evidence`. Render `span_open` as a span still open, never as a refusal or a not-measurable state, and the span refusals `counter_reset`, `counter_rollover`, `counter_resolution` and `span_too_long` (`heat_energy.SPAN_REFUSED_*`) and `unaligned_meters` as their own codes. Control: a counter install whose span folds shows its COP as measured while every cycle in between reads `span_open`.",
     "The learned top's consumer is this group's, not R10-CEILING-PROBE's (orchestrator ruling 2026-10-26, design-verdict/R10-CEILING-PROBE 3a261d86473f). The design review measured that `draw_range.planned_range` is read only from `diagnostics_view` (`draw_range.py:438-469`), that `_metered_range` is reachable only through `planned` (`:223`), which returns `None` unless `engaged` (`:221`), and that with twelve stored samples the observed window reads `(1.5, None)` while `planned` and `effective_max_kw` stay `None`. So a learned maximum with no reader is a value the plan cannot see: whichever group owns the COP gate must make the reference's learned top reach the surfaces that publish and use it, and assert it at eleven and twelve samples. Controls owed by that work: a synthetic pump with a known maximum (the control that separates a real learned top from a plan echo \u2014 a 1.0 h / 2-cycle run biases the store's median to 2.25 kW for a 3.0 kW pump, 25 % low, and still passes the 0.85 p_max gate), and a gate-held draw above idle. Re-measure at that group's merge base; the figures above are a snapshot at origin/main 6fe5170cd.",
+    "From #2854 (R10-HEAT-METER), round-4 settlement of the round-3 fix review's `_fold_flow_lift` read-level claim (2026-10-26; finding-propagation.md). The flow-bias learner's duty gate reads the COMMANDED split (`coordinator.py` `_fold_flow_lift`), and the plan-vs-observed duty decision is already this group's (carries 3 and 4). Measured at 7e9fea6ac: the review's stated case does not fire -- with the live mode hot water `_commanded_split()` zeroes space, so the gate reads (0, 0) with no planned hot water and (0, 1) with one, and folds nothing (null: the same plan with no mode entity folds). The residual does fire: a window whose last mode read was hot water and whose current read is space-capable leaves the plan split space-dominant while the dwell is hot-water-dominant, so the tank's supply reading folds into the space curve bias -- split (2.0, 0.0) with a 0.45 h hot-water / 0.05 h space window folds one sample (0 -> 1) while `heat_energy.meter_of(coord).attribution(split)` reports dhw_share 0.900 against `_COP_CURVE_SHARE` 0.15 (null: an all-space window folds under both readings). Control for the conversion: the switch-back window folds nothing once the gate reads the attribution, while both nulls still fold. Instrument: the round-4 fixer's 5-check probe, cited in #2854's body. Out of R10-HEAT-METER's owning seam by its approved design (design/R10-HEAT-METER 21f4fbfe9, out-of-scope list: `_fold_flow_lift` concerns the plan's ask).",
     "The heat-pump grade must mirror this branch's driver interface rather than invent a second one: scores[\"envelope_drivers\"] is a list of {\"code\": str, \"points\": float}; the points are the log shares of one ratio, rounded to one decimal, summing to the grade minus mid-scale, so they are not independent scores; the renderer drops zero-point drivers and falls back to a \"typical\" line when none moves, so a grade always carries at least one line; reasons[...] stays the separate absent-grade channel, and drivers exist only on a grade. The hover text names the metric in plain words (envelope loss in W/K, thermal-mass correction, normalization by configured type and era, what mid-scale means). Precondition, demonstrated at handoff/r10-house-grade c89e5b5db1a8c2bfddbb9a9259f8dc319187eee9: every preset-sized cell at its own typical state grades exactly mid-scale with zero drivers (240 cells in tests/features.py's null control, and tree_grade=50.0 for every preset house in dev/audit/harnesses/r10_scores_envelope.py), and one perturbed input moves the headline figure (era_spread 0.0 -> 50.5 under --era-blind). Re-measure against your own merge base: PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_house_grade.py, and the same PYTHONPATH with dev/audit/harnesses/r10_scores_envelope.py."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
@@ -8447,7 +8448,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8484,7 +8485,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8521,7 +8522,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8561,7 +8562,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8603,7 +8604,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8641,7 +8642,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8677,7 +8678,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2730
    ],
@@ -9140,7 +9141,7 @@
     "From R10-LEGIONELLA-COMPLETION (#2832): the step-0/step-1 flap stands. The plan's legionella step alternates between step 0 and step 1 on consecutive solves, and in control mode the disinfection switch is still turned on and off with each window, now daily rather than weekly on a pump that cannot reach the target. The debounce alternative changes the per-boost switch contract docs/configuration.md documents."
    ],
    "architect_note": null,
-   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8838-8895) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1149) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10201-10214) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
+   "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8838-8895) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1156) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10201-10214) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
    "resume": {
     "stage": "queued",
     "branch": null,
@@ -9703,7 +9704,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2509,
     2802

@@ -321,9 +321,19 @@ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
 
 def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
     """The thermostat's setpoint at step ``i``: the comfort schedule's, else ``default``."""
-    if comfort_targets is not None and i < len(comfort_targets):
-        return float(comfort_targets[i])
-    return default
+    return _baseline_targets(comfort_targets, i + 1, default)[i]
+
+
+def _baseline_targets(
+    comfort_targets: np.ndarray | None, n_steps: int, default: float
+) -> list[float]:
+    """The thermostat's setpoint for each of ``n_steps``, built at once: the
+    comfort schedule's where it reaches, else ``default``."""
+    targets = np.full(n_steps, default, dtype=float)
+    if comfort_targets is not None:
+        held = np.asarray(comfort_targets, dtype=float)[:n_steps]
+        targets[: len(held)] = held
+    return targets.tolist()
 
 
 def _floor_demand_at_target(
@@ -391,10 +401,13 @@ def _thermostat_demand_single(
     precipitation: float,
     solar_radiation: float,
     dt: float,
+    k_slab: float,
 ) -> float:
-    """Thermal power a thermostat needs this step in the single-zone model."""
+    """Thermal power a thermostat needs this step in the single-zone model.
+
+    ``k_slab`` is ``slab_heat_transfer_floored``, read once per horizon.
+    """
     p = model.params
-    k_slab = p.slab_heat_transfer_floored
 
     # Thermal power the room needs to sit at the setpoint.
     q_demand = _floor_demand_at_target(
@@ -425,6 +438,7 @@ def _thermostat_demand_two_zone(
     precipitation: float,
     solar_radiation: float,
     dt: float,
+    k_slab: float,
 ) -> float:
     """Thermal power a thermostat needs this step in the two-zone model.
 
@@ -433,10 +447,9 @@ def _thermostat_demand_two_zone(
     ``radiator_power_fraction``. One control cannot hold both zones exactly,
     which is also true of the real system being modelled, so the demand of
     the two zones is summed the way an outdoor-reset curve on a single
-    mixing valve would.
+    mixing valve would. ``k_slab`` is as the single-zone demand takes it.
     """
     p = model.params
-    k_slab = p.slab_heat_transfer_floored
 
     u_upper = model.effective_heat_loss_coefficient(
         p.upper_floor_heat_loss, wind_speed, precipitation
@@ -1331,6 +1344,33 @@ def idle_codes(
     return list(codes.tolist())
 
 
+#: A channel's own draw above which a plan step counts that channel as heating,
+#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
+#: their idle reasons against, and the line a plan view merges slots on. It sits
+#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
+#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
+CHANNEL_ACTIVE_KW = 0.05
+
+
+def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
+    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
+
+    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
+    pump at all (``planned_draws_run`` over both channels): a channel is never
+    "heating now" on a step the plan's on schedule calls off. The plan views'
+    ``active_now`` and slot merge read this, so neither can count a step the
+    on schedule calls off. An ``other`` series shorter than ``channel`` draws
+    nothing past its end.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    other = np.zeros_like(channel)
+    if other_kw is not None:
+        given = np.asarray(other_kw, dtype=float)[: len(channel)]
+        other[: len(given)] = given
+    runs = planned_draws_run(channel, other)
+    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
+
 def classify_space_steps(
     power: np.ndarray,
     prices: np.ndarray,
@@ -1339,7 +1379,7 @@ def classify_space_steps(
     heat_loss_factors: np.ndarray,
     surplus: np.ndarray | None,
     n_steps: int,
-    threshold: float = 0.05,
+    threshold: float = CHANNEL_ACTIVE_KW,
     *,
     other: np.ndarray | None = None,
     caps: np.ndarray | None = None,
@@ -1413,7 +1453,7 @@ def classify_dhw_steps(
     ready_temps: np.ndarray,
     legionella_step: int | None,
     n_steps: int,
-    threshold: float = 0.05,
+    threshold: float = CHANNEL_ACTIVE_KW,
     idle: IdleContext | None = None,
 ) -> list[str]:
     """Why each hot-water step is where it is.
@@ -2751,12 +2791,9 @@ class HeatPumpOptimizer:
         dhw_legionella_step: int | None = None,
         dhw_floors: np.ndarray | None = None,
     ) -> OptimizationResult:
-        """Assemble the result both solve paths return.
-
-        Roughly thirty field assignments that were previously written out twice
-        and had already begun to diverge — the DHW path was carrying fields the
-        space-only path had quietly stopped setting. Anything genuinely
-        specific to hot water arrives through the optional arguments.
+        """Assemble the result both solve paths return, once, so the two cannot
+        diverge; what is specific to hot water arrives through the optional
+        arguments.
         """
         import time
 
@@ -2764,11 +2801,8 @@ class HeatPumpOptimizer:
         total_power = (
             space_power if dhw_power is None else space_power + dhw_power
         )
-        # Only the start-time-independent baseline array is wanted here; the
-        # previous ``_grid_terms(h.n_steps, h.dt)`` call built offset-0
-        # cycling/capacity closures just to discard them, and read as if the
-        # published grid figures were folded without the anchor. They are
-        # not: ``_grid_report`` below gets ``h.start_time``.
+        # The published grid figures are folded at ``h.start_time``
+        # (``_grid_report``); only the baseline load array is wanted here.
         baseline_load = self.config.baseline_load_array(h.n_steps)
         grid = self._grid_report(total_power, baseline_load, h.dt, h.start_time)
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
@@ -4573,6 +4607,10 @@ class HeatPumpOptimizer:
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
 
+        # The savings reference is the plain thermostat at the comfort schedule
+        # (#2255): a counterfactual that runs all along must not depend on where
+        # the optimiser left the house, so the booked baseline is not the plan's
+        # own recovery transient.
         baseline_cost = float(energy_cost_of(baseline_power))
         predicted_cost = float(energy_cost_of(optimal_power))
 
@@ -4582,13 +4620,8 @@ class HeatPumpOptimizer:
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets, humidity=h.humidity,
         )
-        space_caps = self._settlement_caps(outdoor_temps, humidity=h.humidity)
-        deferred_cost = self._deferred_energy_cost(
-            baseline_end, optimized_end, prices, outdoor_temps,
-            caps=space_caps, humidity=h.humidity,
-        ) - self._start_gap_cost(
-            initial_state, weather, comfort_targets, prices, outdoor_temps,
-            space_caps, h.humidity, baseline_cost,  # the space-only reference
+        deferred_cost = self._settle_horizon(
+            h, weather, comfort_targets, baseline_end, optimized_end, baseline_cost,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4845,7 +4878,9 @@ class HeatPumpOptimizer:
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))
 
-        # Baseline cost; its house owns the plan's refill coil and draws.
+        # Baseline cost; its house owns the plan's refill coil and draws. The
+        # reference holds the comfort schedule, not the comfort the plan
+        # delivered (#2255): the baseline must not move with the plan's start.
         baseline_power, baseline_end = self._compute_baseline_power(
             weather, initial_state, dt, comfort_targets,
             coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
@@ -4867,16 +4902,12 @@ class HeatPumpOptimizer:
         # The tank only has to satisfy the requirement in force at the end of
         # the horizon. Outside a demand window that is the idle minimum, so a
         # cold tank at midnight is not treated as borrowed heat.
-        deferred_cost = self._deferred_energy_cost(
-            baseline_end, optimized_end, prices, outdoor_temps, include_dhw=True,
-            caps=self._settlement_caps(
+        deferred_cost = self._settle_horizon(
+            h, weather, comfort_targets, baseline_end, optimized_end,
+            float(energy_cost_of(baseline_power)),
+            dhw_caps=self._settlement_caps(
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
             ),
-            humidity=h.humidity,
-        ) - self._start_gap_cost(
-            initial_state, weather, comfort_targets, prices, outdoor_temps,
-            self._settlement_caps(outdoor_temps, humidity=h.humidity), h.humidity,
-            float(energy_cost_of(baseline_power)),
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -5102,17 +5133,10 @@ class HeatPumpOptimizer:
         heat would actually be bought back at, which is the cheapest part of the
         upcoming window rather than the average.
 
-        Symmetric: a surplus is credited exactly as a deficit is charged. It
-        used to be one-sided, on the reasoning that the reference is a
-        thermostat rather than a competing plan -- but that argument forbids
-        charging just as much as it forbids crediting, and what it produced was
-        a savings figure that understated itself precisely when the plan chose
-        to end the window warm. Measured across ten scenarios, three ended with
-        more useful heat than the thermostat baseline and were given nothing for
-        it: shoulder by 2.29 SEK on a reported 27.64 (8 %), flat prices by 3.52
-        on 14.85 (24 %), and flat prices with no mixing valve at all by 6.06 on
-        9.84 -- a 62 % understatement, and nothing to do with storage. It is the
-        building's own mass ending warmer than a thermostat would have left it.
+        Symmetric: a surplus is credited exactly as a deficit is charged, since
+        the argument that forbids a credit against a thermostat forbids a charge
+        just as much; one-sided, the figure understated itself whenever the
+        building's own mass ended warmer than a thermostat would have left it.
 
         What makes the credit safe is ``caps``: every store is already limited
         to the temperature above which its heat is of no further use, so this
@@ -5142,14 +5166,10 @@ class HeatPumpOptimizer:
         # v4.0.5: the tank shares of the gap re-price at their own marginal
         # COP — the buffer refills at the flow-derated COP of its settlement
         # temperature, the DHW tank at `compute_cop_dhw` — because that is
-        # what the simulation would actually charge to put the heat back.
-        # Pricing them at the plain space curve made a cold tank cheap to
-        # refill and a warm one rich to credit, so the reported savings
-        # overstated themselves exactly when the plan ended with a cold tank.
-        # Written as corrections on the plain-COP total rather than a clean
-        # per-store split so every store still priced at the plain curve —
-        # and every configuration where the tank COPs collapse to it —
-        # keeps the historical arithmetic bit for bit.
+        # what the simulation would actually charge to put the heat back;
+        # at the plain curve a cold tank was cheap to refill. Written as
+        # corrections on the plain-COP total so every store still priced at
+        # the plain curve keeps the historical arithmetic bit for bit.
         p = self.model.params
         caps = caps or {}
 
@@ -5157,39 +5177,24 @@ class HeatPumpOptimizer:
             cap = caps.get(cap_key)
             return min(value, cap) if cap is not None else value
 
+        # (store, mass, COP-read temperature, reference end, plan end)
+        tanks: list[tuple[str, float, float | None, float, float]] = []
         if p.two_zone_enabled:
-            cop_buffer = max(
-                self.model.marginal_cop(
-                    out_mean, "buffer", store_temp=caps.get("buffer"),
-                    humidity=hum_mean,
-                ),
-                1e-3,
-            )
-            if cop_buffer != cop:
-                buffer_gap = p.buffer_tank_thermal_mass * (
-                    _capped(baseline_end.buffer_tank_temperature, "buffer")
-                    - _capped(optimized_end.buffer_tank_temperature, "buffer")
-                )
-                electrical += buffer_gap / cop_buffer - buffer_gap / cop
+            tanks.append(("buffer", p.buffer_tank_thermal_mass, caps.get("buffer"),
+                          baseline_end.buffer_tank_temperature,
+                          optimized_end.buffer_tank_temperature))
         if include_dhw:
             dhw_cap = caps.get("dhw")
-            cop_dhw = max(
-                self.model.marginal_cop(
-                    out_mean,
-                    "dhw",
-                    store_temp=(
-                        dhw_cap if dhw_cap is not None else p.dhw_setpoint
-                    ),
-                    humidity=hum_mean,
-                ),
-                1e-3,
-            )
-            if cop_dhw != cop:
-                dhw_gap = p.dhw_tank_thermal_mass * (
-                    _capped(baseline_end.dhw_temperature, "dhw")
-                    - _capped(optimized_end.dhw_temperature, "dhw")
-                )
-                electrical += dhw_gap / cop_dhw - dhw_gap / cop
+            tanks.append(("dhw", p.dhw_tank_thermal_mass,
+                          dhw_cap if dhw_cap is not None else p.dhw_setpoint,
+                          baseline_end.dhw_temperature, optimized_end.dhw_temperature))
+        for store, mass, cop_temp, ref_end, plan_end in tanks:
+            cop_store = max(self.model.marginal_cop(
+                out_mean, store, store_temp=cop_temp, humidity=hum_mean,
+            ), 1e-3)
+            if cop_store != cop:
+                gap = mass * (_capped(ref_end, store) - _capped(plan_end, store))
+                electrical += gap / cop_store - gap / cop
         return float(electrical * refill_price)
 
     def _compute_baseline_power(
@@ -5209,11 +5214,10 @@ class HeatPumpOptimizer:
         saving, so the controller is built from the model's own steady state
         rather than from a heuristic.
 
-        The thermostat tracks the same per-step comfort targets the plan is
-        held to. Holding the flat ``target_temp`` around the clock instead
-        made the reference heat to the *day* temperature all night, and a
-        configured night setback was then booked as optimizer savings — value
-        any ordinary programmable thermostat delivers.
+        The thermostat tracks the plan's own per-step comfort targets — the
+        schedule the user set, not the comfort the plan delivered (#2492). A
+        flat ``target_temp`` around the clock booked a configured night
+        setback as optimizer savings — value any thermostat delivers.
 
         Heat is delivered to the slab and only reaches the room on the
         following step, so power is set by a cascade: the slab is driven to the
@@ -5223,10 +5227,7 @@ class HeatPumpOptimizer:
         The thermostat starts from the state it would have kept, not from
         ``initial_state`` (``_thermostat_held_state``, #2255): a thermostat
         running all along never inherits the optimiser's coasted or
-        pre-heated house. Started from that state, its first step was the
-        recovery transient -- the clip whenever the house sat below target,
-        0 kW above it -- and the settlement books the first step of every
-        plan, so the month's baseline was the transient's.
+        pre-heated house, whose recovery transient the settlement booked.
 
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
@@ -5252,22 +5253,23 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        state = _thermostat_held_state(
-            self.model, initial_state, weather,
-            _baseline_target(comfort_targets, 0, self.config.target_temp),
-        )
+        # Read once, not per step: the loop below runs to the horizon's end.
+        targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
+        hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
+        two_tank, k_slab = p.two_tank_modelled, p.slab_heat_transfer_floored
+        state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
 
         for i in range(n_steps):
-            target = _baseline_target(comfort_targets, i, self.config.target_temp)
+            target = targets[i]
             if p.two_zone_enabled:
                 required_thermal = _thermostat_demand_two_zone(
                     self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt,
+                    precipitation[i], solar_radiation[i], dt, k_slab,
                 )
             else:
                 required_thermal = _thermostat_demand_single(
                     self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt,
+                    precipitation[i], solar_radiation[i], dt, k_slab,
                 )
 
             # A thermostat's house receives a furnace burn too, and its
@@ -5278,10 +5280,7 @@ class HeatPumpOptimizer:
                 if external_heat_kw is not None and i < len(external_heat_kw)
                 else 0.0
             )
-            if (
-                p.two_tank_modelled
-                and state.wood_tank_temperature is not None
-            ):
+            if two_tank and state.wood_tank_temperature is not None:
                 # With the wood tank modelled, the 4-way valve covers part
                 # of the draw from the wood side; the reference backs its
                 # electric demand off by that share, computed with the SAME
@@ -5315,17 +5314,14 @@ class HeatPumpOptimizer:
                 required_thermal *= 1.0 - w_i
             required_thermal = max(0.0, required_thermal - ext_i)
 
-            hum_i = _step_humidity(humidity, i)
+            hum_i = hums[i]
             cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
-            # power is what determines energy use. Forcing the baseline up to
-            # the minimum modulation power made it burn a constant
-            # min_electrical_power * 24 h per day even when the house needed no heat at
-            # all, which inflated both the baseline and the savings.
-            power = float(
-                np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
-            )
+            # power is what determines energy use; a clamp burnt
+            # min_electrical_power * 24 h per day on a house needing no heat.
+            # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
+            power = min(required_thermal / cop, p.max_electrical_power)
             baseline_power[i] = power
 
             state = self.model.simulate_step(
@@ -5340,6 +5336,35 @@ class HeatPumpOptimizer:
 
         return baseline_power, state
 
+    def _settle_horizon(
+        self,
+        h: _Horizon,
+        weather: WeatherSeries,
+        reference_targets: np.ndarray,
+        baseline_end: ThermalState,
+        optimized_end: ThermalState,
+        space_baseline_cost: float,
+        dhw_caps: dict[str, float] | None = None,
+    ) -> float:
+        """The stored-heat settlement both solve paths book: the end's, less the start's.
+
+        ``dhw_caps`` settles the tank at the end too; the start, holding the
+        tanks as measured, is bounded by the house's end alone.
+        """
+        caps = self._settlement_caps(h.outdoor_temps, humidity=h.humidity)
+        house_end = self._deferred_energy_cost(
+            baseline_end, optimized_end, h.prices, h.outdoor_temps,
+            caps=caps, humidity=h.humidity,
+        )
+        end = house_end if dhw_caps is None else self._deferred_energy_cost(
+            baseline_end, optimized_end, h.prices, h.outdoor_temps,
+            include_dhw=True, caps=dhw_caps, humidity=h.humidity,
+        )
+        return end - self._start_gap_cost(
+            h.initial_state, weather, reference_targets, h.prices, h.outdoor_temps,
+            caps, h.humidity, space_baseline_cost, house_end,
+        )
+
     def _start_gap_cost(
         self,
         initial_state: ThermalState,
@@ -5350,16 +5375,15 @@ class HeatPumpOptimizer:
         caps: dict[str, float],
         humidity: np.ndarray | None,
         space_baseline_cost: float,
+        end_cost: float,
     ) -> float:
         """The start's side of the stored-heat settlement (#2255), netted off the end's.
 
-        The thermostat starts held and the plan measured, so they start with
-        different stored heat as they end with it; this values the start gap as
-        ``_deferred_energy_cost`` values the end's. The end's ``caps`` price heat
-        above comfort at nothing, since nothing past the horizon uses it; the
-        plan coasts on it, so a pre-heated start is debited past the caps, by no
-        more than the thermostat's space-heat cost (``space_baseline_cost``):
-        house heat displaces space-heat purchases only, none where there are none.
+        The thermostat starts held and the plan measured, so their start gap is
+        valued as the end's. A colder start is credited at the end's ``caps``; a
+        warmer one is debited what its heat could displace (#2492): the space
+        heat the thermostat buys plus the end's credit (``end_cost`` below 0),
+        never more -- a summer house's passive warmth displaced nothing.
         """
         held = _thermostat_held_state(
             self.model, initial_state, weather,
@@ -5371,8 +5395,8 @@ class HeatPumpOptimizer:
         uncapped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=None, humidity=humidity,
         )
-        surplus_above_caps = max(0.0, capped - uncapped)
-        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))
+        displaced = max(0.0, space_baseline_cost) + max(0.0, -end_cost)
+        return max(min(capped, uncapped), -displaced)
 
     def _stored_thermal_energy(
         self,

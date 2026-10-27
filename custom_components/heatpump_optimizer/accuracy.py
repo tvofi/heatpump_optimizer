@@ -35,6 +35,7 @@ from .const import (
     COP_TRACKING_ERROR_GATE,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
+    finite_float,
 )
 from .thermal_model import is_sunlit_interval
 from .draw_range import DrawRange, follows_ask
@@ -119,14 +120,8 @@ class AccuracySample:
             return None
 
         def num(key: str, lo: float = -np.inf) -> float | None:
-            value = data.get(key)
-            if value is None:
-                return None
-            try:
-                value = float(value)
-            except (TypeError, ValueError, OverflowError):
-                return None
-            return value if np.isfinite(value) and value >= lo else None
+            value = finite_float(data.get(key))
+            return value if value is not None and value >= lo else None
 
         return cls(
             when=when,
@@ -802,6 +797,13 @@ COP_REFUSED_OFF_ASK = "draw_off_ask"
 COP_REFUSED_BLENDED = "blended_duty"
 COP_REFUSED_MODELLED = "modelled_cop"
 COP_REFUSED_OBSERVED = "observed_cop"
+#: A heat counter (#2261): the COP folds at its span close on the two
+#: counters' deltas, so a cycle inside the span folds nothing, and a span
+#: whose electric counter was not read at both of its instants has no
+#: electrical figure to divide by. A span's own refusals are
+#: ``heat_energy``'s ``SPAN_REFUSED_*`` codes.
+COP_REFUSED_SPAN_OPEN = "span_open"
+COP_REFUSED_UNALIGNED = "unaligned_meters"
 
 #: How far the metered draw may depart from the plan's ask, as a share of the
 #: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence

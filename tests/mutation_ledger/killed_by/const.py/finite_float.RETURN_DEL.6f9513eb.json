@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/const.py:finite_float RETURN_DEL 6f9513eb",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return result if math.isfinite(result) else default",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

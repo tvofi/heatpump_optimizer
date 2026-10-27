@@ -4,7 +4,8 @@ from __future__ import annotations
 import math
 import re
 from datetime import timedelta
-from typing import Final
+from numbers import Real
+from typing import Any, Final, overload
 
 DOMAIN: Final = "heatpump_optimizer"
 #: Entity ids that name a person or a household calendar, anywhere in a
@@ -95,6 +96,11 @@ CONF_POWER_ENTITY: Final = "heat_pump_power_entity"
 # polling interval loses short compressor runs entirely, so a real meter is
 # preferred for cost accounting when one exists.
 CONF_ENERGY_ENTITY: Final = "heat_pump_energy_entity"
+# Optional cumulative delivered-heat meter (kWh, #2261): the heat over a span,
+# cycling included, where a thermal power entity is one instant's reading.
+# It outranks that entity and the flow meter (``flow_meter.read_heat_output_kw``),
+# and with the energy meter beside it makes COP heat over electricity.
+CONF_HEAT_ENERGY_ENTITY: Final = "heat_pump_heat_energy_entity"
 # Whole-house load, needed for a capacity tariff (the peak is metered at the
 # house connection, not at the heat pump) and for PV surplus.
 CONF_HOUSE_POWER_ENTITY: Final = "house_power_entity"
@@ -293,6 +299,7 @@ INPUT_MAX_AGE_MINUTES: Final = {
     CONF_SOLAR_RADIATION_ENTITY: 90.0,
     CONF_POWER_ENTITY: 30.0,
     CONF_ENERGY_ENTITY: 180.0,
+    CONF_HEAT_ENERGY_ENTITY: 180.0,
     CONF_HOUSE_POWER_ENTITY: 30.0,
 }
 # Buffer tank and other keys defined later in this module are added to the map
@@ -1287,6 +1294,42 @@ BUFFER_INSULATION_U_TYPICAL: Final = 1.0  # W/m2K, an ordinary insulated tank
 BUFFER_INSULATION_U_WORST: Final = 8.0  # W/m2K, effectively a bare cylinder
 
 
+# --- One finite-float coercion (D7-s2-58, #2239) ---------------------------
+#
+# Here, the package's one dependency-free module, rather than in inputs.py:
+# a model, a learner, the config parse and the glue all ask "is this value a
+# finite number", and inputs.py's reader runs on Home Assistant's clock, so
+# reading the answer there would lift every pure caller into the glue layer.
+# Nine coercers each answered it with their own bool, text, NaN and overflow
+# policy before this; tests/finite_boundary.py's census holds the count at one.
+
+
+@overload
+def finite_float(value: Any) -> float | None: ...
+@overload
+def finite_float(value: Any, default: float) -> float: ...
+@overload
+def finite_float(value: Any, default: float | None) -> float | None: ...
+def finite_float(value: Any, default: float | None = None) -> float | None:
+    """``value`` as a finite float; anything else is ``default``.
+
+    The one coercion every reader shares (D7-s2-58): ``None``, text that is
+    not a number, NaN, an infinity and an int past a double (an attribute-
+    or service-fed value orjson never parsed) are all unreadable, never a
+    raise and never a non-finite number handed on to the solver. Only a real
+    number or text is read: a ``bool`` is not a number here, although
+    ``float()`` takes it -- ``True`` read as 1.0 kW, 1.0 degC or a 1 degC
+    away target is a guess, not a reading -- and neither are bytes.
+    """
+    if isinstance(value, bool) or not isinstance(value, (Real, str)):
+        return default
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return result if math.isfinite(result) else default
+
+
 def buffer_tank_surface_area(volume_litres: float) -> float:
     """Outer area of a tank of this volume, m2.
 
@@ -1294,10 +1337,10 @@ def buffer_tank_surface_area(volume_litres: float) -> float:
     wide, which is what accumulators of every size look like. Exactness does not
     matter here; the volume^(2/3) growth does.
     """
-    try:
-        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0
-    except (TypeError, ValueError):
+    volume = finite_float(volume_litres)
+    if volume is None:
         return 0.0
+    volume_m3 = max(volume, 1e-6) / 1000.0
     diameter: float = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
     return 9.42 * diameter * diameter  # side + both ends
 
@@ -1364,9 +1407,16 @@ LOWER_FLOOR_LOSS_RATIO_MIN: Final = 0.3
 LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
 # What the heat-loss learners replay as the interval's heat input, worst
 # first: the commanded draw carries every delivery shortfall into the fit, a
-# metered draw does not. Evidence on an earlier basis than the one now
-# configured is void against it (G-ID-3); a later one is kept.
-HEAT_LOSS_BASES: Final = ("commanded", "metered")
+# metered draw does not, and a measured heat carries no COP inference at all.
+# Evidence on an earlier basis than the one in force is void against it
+# (G-ID-3); a later one is kept. The third is earned at the first fold that
+# replayed a measured heat (``heat_energy.HeatEnergyMeter.earned``), not
+# configured, so a meter the replay never uses keeps the scale. On a thermal
+# power install an interval without a usable reading still replays the draw
+# under it, as #2753 does: freezing those would be worse on a combination
+# selector, where no interval is space-only. A counter install folds the
+# scale at span close alone, so it mixes nothing.
+HEAT_LOSS_BASES: Final = ("commanded", "metered", "measured_heat")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
@@ -1609,6 +1659,8 @@ INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
     **INPUT_MAX_AGE_MINUTES,
     CONF_POWER_ENTITY: math.inf,  # 0 W through an idle spell
     CONF_ENERGY_ENTITY: math.inf,  # a counter holds while the pump idles
+    CONF_HEAT_ENERGY_ENTITY: math.inf,  # and so does the heat it delivered
+    CONF_HOUSE_POWER_ENTITY: math.inf,  # a quiet circuit holds its reading
     CONF_HEAT_PUMP_MODE_ENTITY: math.inf,  # changes only when the mode does
     # Water at rest stays inside its report threshold, and flow holds 0 while
     # the circulator is off.

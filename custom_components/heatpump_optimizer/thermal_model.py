@@ -110,6 +110,7 @@ from .const import (
     topology_layout_valid,
 )
 from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
+from .const import finite_float
 from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
     DHWWindowError,
@@ -1341,7 +1342,9 @@ def probe_install(config: Any) -> InstallCapability:
         frequency=bool(
             freq_entity or cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR)
         ),
-        measured_heat=bool(cfg.get(const.CONF_THERMAL_POWER_ENTITY)),
+        measured_heat=bool(
+            cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
+        ),
     )
 
 
@@ -1438,9 +1441,14 @@ def learner_unmetered(config: Any) -> str | None:
     )
 
 
-def heat_loss_basis(config: Any) -> str:
-    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install."""
-    return const.HEAT_LOSS_BASES[1 if probe_install(config or {}).measured_power else 0]
+def heat_loss_basis(config: Any, earned: bool = False) -> str:
+    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install.
+
+    ``earned``: a fold has replayed a measured heat, which counts while the
+    install still has a heat meter.
+    """
+    cap = probe_install(config or {})
+    return const.HEAT_LOSS_BASES[2 if earned and cap.measured_heat else 1 if cap.measured_power else 0]
 
 
 def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
@@ -1507,10 +1515,10 @@ def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
     on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``
     for an unmeasured inlet.
     """
-    inlet = _optional_float(inlet_c)
+    inlet = finite_float(inlet_c)
     if inlet is None:
         return None
-    gate = _optional_float(gate_c)
+    gate = finite_float(gate_c)
     return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
 
 
@@ -1533,10 +1541,10 @@ def flow_setpoint_for_level(
     the historical constant.
     """
     heat = float(heat_c)
-    planned = _optional_float(planned_kw)
-    lo = _optional_float(p_min)
-    hi = _optional_float(p_max)
-    floor = _optional_float(floor_c)
+    planned = finite_float(planned_kw)
+    lo = finite_float(p_min)
+    hi = finite_float(p_max)
+    floor = finite_float(floor_c)
     ready = all((
         planned is not None, lo is not None, hi is not None,
         floor is not None, math.isfinite(heat),
@@ -1571,26 +1579,11 @@ def flow_setpoint_for_level(
     )
 
 
-def _optional_float(value: Any) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        number = None
-    return (
-        number
-        if (
-            number is not None
-            and math.isfinite(number)
-        )
-        else None
-    )
-
-
 def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
     """The heating-flow ceiling from config, else ``default`` (°C)."""
     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
     raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
-    number = _optional_float(raw)
+    number = finite_float(raw)
     return (
         float(fallback) if number is None else number
     )

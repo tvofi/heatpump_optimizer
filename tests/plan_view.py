@@ -135,6 +135,32 @@ if abs(slot_e - sp) > 0.01:
 if abs(slot_d - dw) > 0.01:
     issues.append(f"dhw slot energy {slot_d:.3f} kWh != schedule {dw:.3f} kWh")
 
+# #2492, the owner's acceptance: the card's Savings tab equals
+# ``ledger.savings_months`` cell for cell. The tab reads the monthly-savings
+# sensor's attributes, so the payload carries what that sensor publishes over
+# a ledger settled through the production path -- a closed month whose meter
+# exceeds the plan's model by a fixed factor, and an open one priced over a
+# varying profile -- beside the ledger's own rows, which card.mjs compares.
+from harness import FakeCoordinator, FakeEntry
+from heatpump_optimizer.ledger import MonthlyLedger
+from heatpump_optimizer.sensor import MonthlySavingsSensor
+_ledger = MonthlyLedger()
+for _h in range(48):
+    for _month, _spot in ((9, 1.0 + 0.5 * (_h % 4)), (10, 0.8 + 0.3 * (_h % 3))):
+        _ledger.observe_spot_and_settle_savings(
+            datetime(2026, _month, 3 + _h // 24, _h % 24, 0), _spot,
+            {"baseline_kw": 0.5 if _month == 9 else 1.2, "power": 0.9 if _h % 2 else 0.4, "grid_fee": 0.3},
+            1.56 * (0.9 if _h % 2 else 0.4), 1.0,
+        )
+_savings_now = datetime(2026, 10, 5, 0, 0)
+_savings_rows = _ledger.savings_months(_savings_now)
+views["savings"] = {
+    "attributes": MonthlySavingsSensor(
+        FakeCoordinator({"savings_months": _savings_rows, "receipts": []}), FakeEntry()
+    ).extra_state_attributes,
+    "ledger_rows": _savings_rows,
+}
+
 # The rendered-plan payload for card.mjs. The path is shared via HPO_PLANDATA,
 # defaulting to a name derived from this checkout's tests/ directory so a run
 # here can never satisfy (or be satisfied by) a stale file another checkout
