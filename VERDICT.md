@@ -1,70 +1,79 @@
-Fix review: blocked 1a7484a36d0e797d73f4c1bca3a619d4bf6b6dfc claim: the arm-2 universal "the only scripts that take the lease" does not reproduce (tools/audit/judge_batch.py holds the exclusive lease across a batch), and s6-batch37.md does not resolve at this head
-bus-nonce: 0145ab2347c1dd7bcd13314ee83bd966
+Fix review: blocked d606ade6db7775606e3f31f8df45032a183c5e1a claim: s6-batch38.md:76-77 still says needs_lease "answers `lease` only for `MACHINE_MEASURING`, an empty scope, or an unreadable table" but tests/gate_lock.py:940-942 returns lease for an unreadable scope (needs-lease /nonexistent -> lease); :81-82 says only gate_lock.py's own self-tests pass wait=False, but tests/entities.py's executed _gl_* tests do too; and the cited grep B | grep -v gate_lock.py prints nothing
+bus-nonce: e3ec61dd78564740a84bd930b21cf6fb
 
-Measured head: 1a7484a36d0e797d73f4c1bca3a619d4bf6b6dfc (git ls-remote refs/heads/fix/triage-s6-batch38, re-read immediately before this file was written).
-Merge base: 524c1896b6943b3da03d6cad61420ced31e14c9c = origin/main at review time = the batch's stated facts SHA.
-Diff: 2 files, +82 (dev/programme/triage/s6-batch38.md +81, dev/programme/delivery/2881.md +1). The dispatch brief's +62/+61 does not match the head; I trust git.
+Measured head: d606ade6db7775606e3f31f8df45032a183c5e1a (git ls-remote refs/heads/fix/triage-s6-batch38 and refs/pull/2881/head both answered it; re-read before writing this file).
+Merge base: 34cd75bf1fe506334611ba6c074c223317370e67 = origin/main at review time.
+Diff: 2 files, +115 (dev/programme/triage/s6-batch38.md +114, dev/programme/delivery/2881.md +1).
+See EVIDENCE.md for every command and result.
 
-See EVIDENCE.md for every command and RESULT line.
+The repaired sentence holds (s6-batch38.md:42-46)
+- "the `gate_lock.take`/`_gate_lock.take` matches in `tests/gate_lock.py` and
+  `tests/entities.py` are self-tests against a temp `lock_dir=d`; the CLI is not one of
+  those matches" -- TRUE. The matches are gate_lock.py:1855,1923 (holder-script strings
+  against temp d3/d6) and entities.py:15395-16073 (_gl_* tests under TemporaryDirectory
+  d/d1/d2/lock, executed at import). `_cmd_take` at 1008 calls `take(args.label,
+  lock_dir=args.lock_dir, ...)` at 1009, and `--lock-dir` defaults to DEFAULT_LOCK_DIR
+  (/tmp/hpo-gate.lock) at 1139-1145 -- the by-hand route. The earlier contradiction is gone.
 
-Findings
-F1 (blocking). `s6-batch38.md:22-23`: "the only scripts that take the lease are `tests/stress.py` and
-`tests/harness_headers.py`". False at this head. `tools/audit/judge_batch.py` (live: referenced by
-`.claude/workflows/audit-verify.js`, `tests/closure.py`, `tests/closures.json`) imports `gate_lock` and
-calls `gate_lock.take(...)` in `Lease._take` (line 185), holding the exclusive lease across a whole
-batch of commands and renewing per command. That is a third holder and it is not a `MACHINE_MEASURING`
-script. `tools/pr/prepr.sh:344` is a second route through `needs-lease`. The arrow's conclusion (a
-heavy slot would let measuring work share a loaded box) survives because judge_batch's commands are
-measurements, but the sentence that carries it is a universal the tree contradicts, and the batch's
-own binding ("the bound must be at least the awaited script's recorded duration when the caller names
-one") has no answer for a judge_batch holder.
-
-F2 (blocking, smaller). `s6-batch38.md:3` cites `s6-batch37.md`. It does not exist at this head
-(`git cat-file -e HEAD:dev/programme/triage/s6-batch37.md` fails; main's triage dir ends at
-s6-batch35.md). It exists on `fix/triage-s6-batch37` at a63c6bfd with "batch 37 (P205)", so the
-citation is true of an unmerged branch, not of the tree the batch claims. No tag is cited, and
-brief-citations.md resolves a path only in the tree or at a cited tag. If #2881 merges ahead of the
-sibling, main carries "continues after s6-batch37.md" with no such file.
+Findings (claim / evidence / harness / metric / perturbation)
+F1 (blocking, same class). s6-batch38.md:76-77, "needs_lease answers `lease` only for
+  `MACHINE_MEASURING`, an empty scope, or an unreadable table (lines 918-954)".
+  Evidence: tests/gate_lock.py:918-954 has FOUR lease-returning arms; 940-942
+  (`except OSError: return "lease"`, an unreadable scope file) is missing from the list.
+  Harness: `python3 tests/gate_lock.py needs-lease /nonexistent/scope.scope`.
+  Metric: 1 of 4 arms unlisted, inside the cited range. Perturbation: an unreadable scope
+  answers `lease`, which the enumeration does not contain -- the file contradicts its own
+  citation. (The empty-scope and unreadable-table arms it does list are real.)
+F2 (blocking, same class). s6-batch38.md:81-82, "only `gate_lock.py`'s own self-tests pass
+  it [wait=False]". Evidence: `wait=False` take/take_slot arguments also occur throughout
+  tests/entities.py:15395-16073, and those _gl_* self-tests execute at import (15500, 15892,
+  16085). The batch's own repaired sentence names tests/entities.py as holding gate_lock
+  self-tests. Harness/metric: `grep -rn wait=False` -> 2 files pass it as a take argument,
+  not 1. Perturbation: the entities.py block runs `_gate_lock.take(..., wait=False)`.
+  What holds: no production caller passes wait=False.
+F3 (blocking, support). s6-batch38.md:49-50, grep B "piped to `grep -v gate_lock.py`, which
+  adds `mutation_table.py`, `prepr.sh`, `run.sh` and `derive_closures.sh`, plus
+  `prepare_baseline.sh`". Harness: run the exact pipeline -- it prints 0 lines (exit 1),
+  because every line grep B matches contains the literal gate_lock.py, so `grep -v
+  gate_lock.py` removes them all. Metric: 0 vs 5 claimed; the un-piped grep does produce
+  prepr.sh:3142, prepare_baseline.sh:322, mutation_table.py:1987, derive_closures.sh:128,
+  run.sh:343/347/350 (and two docstring mentions it omits). Perturbation: drop the pipe and
+  the claim reproduces; as written it cannot. The fix is an anchored filter
+  (`grep -v '^tests/gate_lock.py:'`) or no pipe.
+F4 (finding, body, same class). PR body `## Figures`: "`needs_lease` (lines 918-954) answers
+  `lease` only for `MACHINE_MEASURING`." False as an answer-set claim: `needs_lease('')`,
+  `needs_lease('/nonexistent')` and an unreadable closures table all answer `lease`. True
+  only if silently read as script classification, which the sentence does not say;
+  preflight.sh:109-111 states the rule ("Unqualified quantifiers ... enumerate the SET").
 
 Everything else holds
-- Paths named by the batch: 4 of 5 resolve at the head (tools/pr/prepr.sh, tests/gate_lock.py,
-  tests/closures.json, tests/run.sh). `s6-batch37.md` does not (F2). `proposals.md` is an out-of-tree
-  s6 source document, named the same way by batches 33-35, and is not a tree path.
-- Figures that reproduce exactly at this head: stress.py 936.3 s and harness_headers.py 241.1 s
-  (closures.json `recorded`); 2 x 936.3 s = 1872.6 s = 31.21 min; LEASE_SECONDS = 1800 (line 78);
-  RENEW_REFUSED_RC = 75 (line 120); renew() at line 568; SLOT_MIN_SECONDS = 69; take() 511-566 with the
-  unbounded `while True` + `time.sleep(WAIT_POLL_SECS)` at 562; needs_lease 918-954; the docstring
-  sentence at 57-59 verbatim, including "since"; the renew refusal text verbatim; the run.sh comment at
-  325-326; leased() asking needs-lease at 335; `needs-lease` returns slot for two ordinary scripts and
-  lease for stress.py / harness_headers.py (re-run); 208 roster groups; tests/run.sh in no group's
-  `files`; R10-PREPR-CAP owns tools/pr/prepr.sh and tests/gate_lock.py, stage done, carry [].
-  `grep -n 'timeout|deadline|max_wait'` does return only subprocess/thread cleanup waits (895, 1867, 1934).
-- Figures that do not reproduce: F1's count of lease holders. Cite: 2 -> tree: 3+.
-- The 38-minute wait, its pid, and its timestamps are the orchestrator's external measurement; the
-  batch says so ("not re-derived here"). The stated accounting reaches 31.2 min from the recordings and
-  bridges ~6.8 min with "the first run's tail plus queueing", for which no command is given. Disclosed,
-  so recorded as a bounded gap rather than a defect.
-- Dispositions: the batch has no closing disposition (fixed / not-a-defect / out-of-scope / deferred).
-  Its one row is ACCEPT-narrowed -> a carry; its evidence is in this batch and in the tree (above).
-- Delivery row: dev/programme/delivery/2881.md is new, one line, right PR number, names the batch, state
-  **open** matching the PR. delivery-status-tracking.md's shape is met.
-- P/V numbering: continuous. In tree batch35 = P199-P203 / V119-V123; branch batch36 = P204 / V124;
-  branch batch37 = P205 / V125; this = P206 / V126. The orchestrator's triage-STATE.md says next is P207.
-- Lint: `node tools/policy/brief_lint.mjs` exits 0. dev/programme/triage/ is not among its inputs
-  (wave-*-groups.json briefs, dev/programme/carries/carry-<N>.json), so it does not lint this document;
-  its own output is "ROSTER ok ... CARRY ok ...", with the 10 errors printed being its fixtures.
-- Body checks: head named in the body is 1a7484a3 and is the head; 51dd6d00 is the authored head and the
-  row commit adds only delivery/2881.md (measured). "Red checks: none" holds: all 55 runs on the head are
-  success or skipped; the earlier commit's 27 runs contain 6 cancellations and no failure.
-  The body's mutation proof and null control re-execute exactly: P206 verdict ACCEPT, refusal None,
-  mutant DEFER -> "dev/programme/triage/s6-batch38.md#P206 is not an ACCEPT ruling (DEFER)", P999 -> None.
-- Forward-carry: P206 is routed in prose to R10-PREPR-CAP (stage done) and the orchestrator's
-  roster-queue-s7.txt carries the append-carry line (b38-P206.txt). It is not yet on the roster branch,
-  which matches the P196 precedent (batch 34 landed 10:14, roster append 15:47), so not blocked.
-- `git merge-tree --write-tree origin/main <head>` exits 0: no conflict. VERSION, the manifest and
-  RELEASE_NOTES.md are untouched (2-file diff). No budget, ledger or golden figure moves.
+- closures 936.3 s / 241.1 s (recorded table); 2 x 936.3 = 1872.6 s = 31.21 min.
+- LEASE_SECONDS=1800:78; RENEW_REFUSED_RC=75:120 (dispatched at 1973-1975); renew():568;
+  SLOT_MIN_SECONDS=69:116; MACHINE_MEASURING:117; take() 511-566 unbounded; the only
+  timeout/deadline/max_wait hits (895, 1867, 1934) are subprocess waits.
+- run.sh 317 comment, leased() 329-353, needs-lease 335, slot-auto-lease 343, flock-wrap
+  347, auto-lease 350; no other lease mechanics in the file.
+- mutation_table.py 1986-1998 and LEASED:2342; judge_batch.py take:185, Lease entered:378,
+  renew per command (196-198, called at 268); prepr.sh slot-take:3142, needs-lease asked:344;
+  derive_closures.sh:128; gate-scoping.md:28-33; audit-verify.js:192.
+- 208 roster groups; R10-PREPR-CAP owns prepr.sh + gate_lock.py, stage done, carry [];
+  tests/run.sh in no group's files; `grep -rn judge_batch .github/` empty.
+- stress.py / harness_headers.py take no lease themselves (no gate_lock reference).
+- Mutation proof + null control reproduced with roster_edit.triage_refusal (ACCEPT / None /
+  P999 None / DEFER refused / missing-file refused).
+- Red checks "none": 38 head check-runs = 26 success, 10 skipped, 3 in_progress, 0 failed.
+- Diff scope: the batch plus the PR's own delivery row; nothing outside the seam.
 
 Could not establish
-- Whether any proposal was dropped from the batch: its source register (`proposals.md`, V126) is out of
-  tree and the batch says the entry "was not yet appended". Only the P/V continuity above is checkable.
-- The 38-minute wait itself: no in-tree harness, no log to a retained path.
+- The 38-minute wait: /tmp/hpo-gate.lock/owner is gone; the batch declares it the
+  orchestrator's measurement, not re-derived. Arithmetic is consistent with two runs.
+- s6-batch37.md (cited line 3) is absent at the head and on origin/main; it exists only on
+  unmerged fix/triage-s6-batch37 (a63c6bfd). The r2 fix brief records the orchestrator's
+  disposition ("resolves by merge order"), so noted, not re-raised.
+- "Every holder above is a measurement context": enumerated for run.sh/mutation_table/
+  judge_batch; for the by-hand route true by gate-scoping.md's definition, not by an
+  enumerated runtime instance.
+
+What unblocks: name all four needs_lease arms (add the unreadable scope) at s6-batch38.md:
+76-77; say "only self-tests, in gate_lock.py and tests/entities.py" at :81-82; anchor or drop
+the filter at :49-50; and bring the body's Figures line to the same enumeration.
