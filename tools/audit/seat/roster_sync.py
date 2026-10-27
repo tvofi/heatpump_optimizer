@@ -82,21 +82,46 @@ import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 import roster_edit  # noqa: E402  the one write path: dump, commit, lint gate
 import roster_lib  # noqa: E402  which roster, and what a done stage is
 
-#: The stages a repository measurement may rewrite: the factual working
-#: states. A stage outside this tuple is a human disposition and is never
-#: overwritten -- the rule that keeps `deferred` and `refused` intact.
-DERIVABLE_STAGES = ("not-started", "planned", "queued", "in-progress",
-                    "in-flight", "fixing", "handoff", "done")
+#: The stages a repository measurement may touch: the registry's closeable
+#: view, imported rather than declared, so the reconciler and the writer cannot
+#: disagree about a word. A stage outside it is a human disposition -- or an
+#: unclassified word a hand-edited roster carries -- and is left alone.
+DERIVABLE_STAGES = roster_lib.DERIVABLE
 #: The human dispositions, named so a skip can say which rule protected it.
 #: Not exhaustive by design: anything unclassified is protected too, and the
-#: self-test refuses a roster stage this tuple and DERIVABLE_STAGES together
-#: do not cover. `deferred` and `refuted` are the tree's own rosters' words;
-#: `refused`, `absorbed` and `rca-done` are the orchestrator's and design 6.4's.
+#: self-test refuses a roster stage the registry does not classify.
+#: `deferred` and `refuted` are the tree's own rosters' words; `refused` and
+#: `absorbed` are the orchestrator's and design 6.4's (`rca-done` is a closed
+#: stage in the registry's DONE view, not a disposition).
 #: `carries-open`: the group's code is done but it still owns open carries; a
 #: human disposition, so a merged PR must not turn it into `done`. It is not
 #: `in-progress`, so `pr_cap.py` (WIP_STAGE equality) does not count it.
-PROTECTED_STAGES = ("deferred", "refused", "refuted", "absorbed", "rca-done",
-                    "carries-open")
+PROTECTED_STAGES = roster_lib.DISPOSITION
+
+
+def roster_sizes(root) -> dict:
+    """{size: the roster file carrying it} over every wave roster at `root`.
+
+    The durations model IS the size vocabulary (R10-ORCH-ROSTER-SCHEMA), so
+    this is the reading a drift check dials: a size a roster carries and the
+    model does not is `replan.build_plan`'s `size_hours[...]` KeyError, seen
+    before it happens. `None` is not a size -- the r9 roster carries none and
+    the planner defaults an absent one to M -- so it is skipped.
+    """
+    seen: dict[str, str] = {}
+    for path in sorted((Path(root) / roster_lib.ROSTERS_DIR)
+                       .glob("wave-*-groups.json")):
+        groups = json.loads(path.read_text(encoding="utf-8")).get("groups", [])
+        for g in groups:
+            size = g.get("size")
+            if size is not None:
+                seen.setdefault(size, path.name)
+    return seen
+
+
+def unmodelled_sizes(seen: dict, model) -> dict:
+    """The part of `seen` the duration model does not key: the drift."""
+    return {s: w for s, w in seen.items() if s not in model}
 #: The branch prefixes a topic is read past (design 6.4's B13 rule).
 PREFIXES = ("handoff-body/", "handoff/", "fix/")
 OPEN, MERGED, CLOSED = "OPEN", "MERGED", "CLOSED"
@@ -263,7 +288,15 @@ class Change(NamedTuple):
 def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
     """(changes, skips, transitions): the stage writes a read supports, the
     groups a human disposition protected, and the merged pull requests whose
-    group moves to done in this pass -- the only bodies read for `Carry:`."""
+    group moves to done in this pass -- the only bodies read for `Carry:`.
+
+    The registry decides what a stage allows. A disposition is skipped. A
+    closed stage is a settled record and is left alone in both arms. A live
+    claim (`review`, `in-review`) is left alone while its pull request is open
+    and closed to `done` on the merge -- the transition that keeps a merged
+    group from being stranded open. Every other derivable stage follows the
+    read: an open pull request makes it `in-progress`, a merge makes it `done`.
+    """
     by_group = matches(roster, prs)
     changes: list[Change] = []
     skips: list[tuple] = []
@@ -276,9 +309,16 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         if pr is None:
             continue
         if stage not in DERIVABLE_STAGES:
-            skips.append((gid, stage, pr))
+            why = ("a human disposition"
+                   if stage in PROTECTED_STAGES else
+                   "unclassified: the writer refuses it and no read derives it")
+            skips.append((gid, stage, pr, why))
+            continue
+        if stage in roster_lib.DONE_STAGES:
             continue
         if pr.state == OPEN:
+            if stage in roster_lib.LIVE_CLAIM:
+                continue
             if stage != "in-progress" or resume.get("pr") != pr.number:
                 changes.append(Change(gid, "in-progress", pr.number, None, stage,
                                       pr.state))
@@ -289,10 +329,9 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         # A transition only: a group already done is a settled record, and its
         # commit is not re-recorded (the tick checks a done commit is in main;
         # a pull request's head is, once merged).
-        if stage != "done":
-            changes.append(Change(gid, "done", pr.number, pr.merge_commit,
-                                  stage, pr.state))
-            transitions.append(pr)
+        changes.append(Change(gid, "done", pr.number, pr.merge_commit,
+                              stage, pr.state))
+        transitions.append(pr)
     return changes, skips, transitions
 
 
@@ -494,7 +533,10 @@ def sync(a) -> int:
         if not made:
             parent = Path(tempfile.mkdtemp(prefix="hpo-roster-sync-"))
             made = str(parent / "wt")
-        def edit(roster) -> bool:
+        def edit(roster, _rel) -> bool:
+            # `_rel` is the roster's path, which write_roster hands every edit
+            # for a refusal to name; a sync derives only classified stages, so
+            # it has nothing to refuse and does not use it.
             # Re-derive on the bytes this write path is about to replace --
             # on every attempt of a push race -- so the edit is computed from
             # the file it lands in, never an older read.
@@ -604,6 +646,63 @@ def self_test() -> int:
     LINT_OK = ("console.log('TOTAL: 0 error(s) across 1 file(s)');\n")
     LINT_BAD = ("console.log('TOTAL: 1 error(s) across 1 file(s)');\n")
     ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+
+    # THE LIVE-CLAIM CLOSE (R10-ORCH-ROSTER-SCHEMA). `review` and `in-review`
+    # are a seat's claim that the work is live: the reconciler leaves the claim
+    # alone while its pull request is open and closes it to `done` on the merge,
+    # so a live claim can never strand a merged group open. A done group is a
+    # settled record in both arms.
+    #
+    # First, before any git fixture: these arms are pure, and a mutant on the
+    # done guard breaks the fixtures below in ways that abort them -- a plant
+    # must turn its OWN arm red, not die in a later block first.
+    live = {"groups": [
+        {"group": "L-OPEN", "resume": {"stage": "in-review",
+                                       "branch": "handoff/l-open"}},
+        {"group": "L-MERGED", "resume": {"stage": "review",
+                                         "branch": "handoff/l-merged"}},
+        {"group": "L-GONE", "resume": {"stage": "done",
+                                       "branch": "handoff/l-gone"}},
+    ]}
+    got_changes, got_skips, _ = derive(live, [
+        PR(31, OPEN, "handoff/l-open", None, ""),
+        PR(32, MERGED, "handoff/l-merged", "3" * 40, "## Friction\n\n- none\n"),
+        PR(33, OPEN, "handoff/l-gone", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    check("a live claim survives its open pull request (no change)",
+          "L-OPEN" not in by and not [s for s in got_skips if s[0] == "L-OPEN"],
+          (by, got_skips))
+    check("a live claim is closed to done by its merge",
+          "L-MERGED" in by and by["L-MERGED"].stage == "done"
+          and by["L-MERGED"].merge_commit == "3" * 40, by)
+    check("a done group stays settled under a matching open pull request",
+          "L-GONE" not in by, by)
+
+    # The reader half of the vocabulary barrier: a word the registry does not
+    # classify is skipped with that reason and never derived, while a
+    # classified word in the same fixture still derives -- so the skip is the
+    # word's, not the fixture's shape.
+    odd = {"groups": [
+        {"group": "L-ODD", "resume": {"stage": "reviewed",
+                                      "branch": "handoff/l-odd"}},
+        {"group": "L-OK", "resume": {"stage": "not-started",
+                                     "branch": "handoff/l-ok"}},
+    ]}
+    got_changes, got_skips, _ = derive(odd, [
+        PR(34, OPEN, "handoff/l-odd", None, ""),
+        PR(35, OPEN, "handoff/l-ok", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    skip = {s[0]: s[3] for s in got_skips}
+    check("an unclassified stage is skipped, named as unclassified, and not "
+          "derived", "L-ODD" not in by and "unclassified" in skip.get("L-ODD", ""),
+          (by, skip))
+    check("a classified stage beside it still derives (null control)",
+          by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
+          by)
+
+
 
     def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:
         """(bare origin, driver clone, fixture roster path at the driver)."""
@@ -962,6 +1061,36 @@ def self_test() -> int:
           and "carries-open" not in DERIVABLE_STAGES)
     check("the classification covers the tree's rosters at all",
           bool(seen), sorted(seen))
+
+    # The same rule for the size vocabulary: the durations model IS the
+    # vocabulary, so a roster size the model does not carry breaks the planner
+    # (`size_hours[...]` raises KeyError) with no gate to see it. Driven first
+    # on a planted roster, so the tree's green is a measurement, not a scan
+    # that could have returned the same nothing while reading nothing.
+    model = roster_lib.sizes(roster_lib.read_durations(root))
+    planted = Path(tempfile.mkdtemp(prefix="hpo-size-scan-"))
+    try:
+        (planted / roster_lib.ROSTERS_DIR).mkdir(parents=True)
+        (planted / roster_lib.ROSTERS_DIR / "wave-r1-groups.json").write_text(
+            json.dumps({"groups": [{"group": "P1", "size": "S"},
+                                   {"group": "P2", "size": "__unmodelled__"},
+                                   {"group": "P3"}]}), encoding="utf-8")
+        p_seen = roster_sizes(planted)
+        check("the size scan reads a roster and skips an absent size",
+              p_seen == {"S": "wave-r1-groups.json",
+                         "__unmodelled__": "wave-r1-groups.json"}, p_seen)
+        check("the size scan refuses a size the model lacks (null control)",
+              unmodelled_sizes(p_seen, model)
+              == {"__unmodelled__": "wave-r1-groups.json"},
+              unmodelled_sizes(p_seen, model))
+    finally:
+        shutil.rmtree(planted, ignore_errors=True)
+    sizes_seen = roster_sizes(root)
+    check("every size the tree's rosters carry is in the durations model",
+          not unmodelled_sizes(sizes_seen, model),
+          unmodelled_sizes(sizes_seen, model))
+    check("the size scan covers the tree's rosters at all",
+          bool(sizes_seen), sorted(sizes_seen))
 
     print(f"roster_sync self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
