@@ -27,6 +27,12 @@ Plants, one per refusal of the two ops and per round-trip property:
   T1-T5  the triage gate (decision 0015): the uncited proposal arm, a
          non-ACCEPT verdict passing, a missing batch read as an empty one, the gate's call
          in write_roster, and added_texts blind to appended carries.
+  S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
+         stage-writing ops losing its classification check (S1 set-stage, S2
+         set-resume --field stage, S3 append-group), append-group losing the
+         size check (S4), the registry itself letting any word through (S5
+         stage, S6 size), and apply_op dropping the threaded vocabulary, so a
+         legal size is refused (S7 -- the barrier becoming a blanket one).
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -87,6 +93,22 @@ PLANTS = {
            '        return r.stdout if r.returncode == 0 else ""\n'),
     "T4": ("        if why:\n            raise Refuse(f\"triage gate: {why}; nothing written\")\n", ""),
     "T5": ("        out += [c for c in carry if c not in held]\n", ""),
+    "S1": ('    why = _stage_why(stage, rel, group)\n    if why:\n        raise Refuse(why)\n',
+           '    why = None  # S1\n    if why:\n        raise Refuse(why)\n'),
+    "S2": ('        why = _stage_why(value, rel, group)\n        if why:\n            raise Refuse(why)\n',
+           '        why = None  # S2\n        if why:\n            raise Refuse(why)\n'),
+    "S3": ('    if stage is not None:\n        why = _stage_why(stage, rel, gid)\n',
+           '    if False:  # S3\n        why = _stage_why(stage, rel, gid)\n'),
+    "S4": ('    why = _size_why(new.get("size"), sizes, rel, gid)\n    if why:\n'
+           '        raise Refuse(f"append-group: {why}")\n',
+           '    why = None  # S4\n    if why:\n'
+           '        raise Refuse(f"append-group: {why}")\n'),
+    "S5": ("    if stage in roster_lib.STAGES:\n        return None\n",
+           "    if True:  # S5\n        return None\n"),
+    "S6": ("    if size is None or size in sizes:\n        return None\n",
+           "    if True:  # S6\n        return None\n"),
+    "S7": ("        op_append_group(roster, value, rel, sizes)\n",
+           "        op_append_group(roster, value)  # S7\n"),
 }
 
 

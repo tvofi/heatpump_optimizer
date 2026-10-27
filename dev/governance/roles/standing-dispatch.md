@@ -17,9 +17,9 @@ at the live head, `bus.sh confirm`. Report each `handoff-body/<topic>` return.
 ## Read the ref, not the record
 
 The roster's `resume.stage` and `resume.branch` are a seat's own claim;
-`roster_edit.py set-stage` accepts any string and nothing verifies `branch`
-against the remote (measured 2026-10-10: three of five orphaned lanes named
-refs the remote lacked). Where `resume.commit` is set,
+`roster_edit.py set-stage` refuses unknown stages; nothing verifies
+`branch` against the remote (measured 2026-10-10: three of five orphaned lanes
+named refs the remote lacked). Where `resume.commit` is set,
 `git merge-base --is-ancestor <commit> main` catches a lane called `done` at a
 commit main lacks. Before a dispatch, ask the repository:
 
