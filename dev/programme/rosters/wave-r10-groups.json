@@ -4912,7 +4912,7 @@
    "wave": 2,
    "resume": {
     "stage": "in-progress",
-    "branch": "wip-sync/ext-wt-a58e58ff",
+    "branch": "handoff/r10-cop-partload",
     "commit": "50ef300f72a96fe467467deec6f4877bdadb8221",
     "last_step": null,
     "next_step": "fixer live; the fix is 5eb2891aa, price COP's fall with compressor power, off by default, and 50ef300f7 re-records class_excess_loc for it in the structure ratchet. No handoff branch and no PR yet: reachable at wip-sync/ext-wt-a58e58ff (snapshot). Push handoff/r10-cop-partload, then open the PR.",
