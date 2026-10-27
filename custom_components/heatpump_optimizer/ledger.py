@@ -26,6 +26,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
+from .const import finite_float
 from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
     factor.
     """
     entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
-    settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
+    settled = finite_float(entry["sum"], 0.0) if isinstance(entry, dict) else 0.0
     folds = int(entry["count"]) if isinstance(entry, dict) else 0
     spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
     if settled > 0 and folds >= spot_folds:
