@@ -28,9 +28,92 @@ import subprocess
 import sys
 from pathlib import Path
 
-# gen_table_rev3.py's exact open set. A stage the orchestrator records that is
-# not in DONE_STAGES keeps the group open (and its after-edges constraining).
-DONE_STAGES = ("done", "rca-done")
+# ------------------------------------------------------------- the stage set
+#
+# ONE registry, so the roster's stage vocabulary cannot drift between the
+# writer that accepts a word and the readers that act on it. The class this
+# closes (dev/audit/rca/R10-N-vocabulary-drift.md): `in-review` was written by
+# `roster_edit` while `roster_sync` had no rule for it, and `XS` was appended
+# while the duration model had no such size, so `replan.build_plan` raised
+# KeyError with no gate to see it. A word is legal only if it is in this tuple;
+# `roster_edit` refuses anything else and `roster_sync` imports the views.
+#
+# `kind` says what may MOVE the word:
+#   derivable   the reconciler may set or rewrite it from a repository read;
+#   live-claim  a seat's claim that the work is live; the reconciler may CLOSE
+#               it (a merge makes it `done`) but never rewrite it while the
+#               pull request is open;
+#   done        closed: a settled record, read and not rewritten;
+#   disposition a human disposition; no read derives, clears or overwrites it.
+STAGE_KIND = (
+    ("not-started", "derivable"),
+    ("planned", "derivable"),
+    ("queued", "derivable"),
+    ("in-progress", "derivable"),
+    ("in-flight", "derivable"),
+    ("fixing", "derivable"),
+    ("handoff", "derivable"),
+    ("review", "live-claim"),
+    ("in-review", "live-claim"),
+    ("done", "done"),
+    ("rca-done", "done"),
+    ("deferred", "disposition"),
+    ("refused", "disposition"),
+    ("refuted", "disposition"),
+    ("absorbed", "disposition"),
+    ("carries-open", "disposition"),
+)
+#: Every classified word, in the registry's order: the writer's vocabulary.
+STAGES = tuple(w for w, _ in STAGE_KIND)
+#: The words a repository read may touch -- every kind but a disposition. This
+#: is the reconciler's guard: a stage outside it is left alone and printed.
+DERIVABLE = tuple(w for w, k in STAGE_KIND if k != "disposition")
+#: The live claims: a measurement may close one, never rewrite it.
+LIVE_CLAIM = tuple(w for w, k in STAGE_KIND if k == "live-claim")
+#: Closed stages -- gen_table_rev3.py's exact open set. A stage the orchestrator
+#: records that is not here keeps the group open (and its after-edges
+#: constraining).
+DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
+#: Human dispositions: nothing derives, clears or overwrites one.
+DISPOSITION = tuple(w for w, k in STAGE_KIND if k == "disposition")
+#: The stages in which a group's work is under way, for the planner's live
+#: fraction: each live claim, plus the two repository-owned working states the
+#: reconciler records. These four are exactly the tuple `tools/plan/replan.py`
+#: carries as `LIVE_STAGES`, so that module converging on this view changes no
+#: figure; `handoff` and `in-flight` stay out because the planner never priced
+#: them live, and widening the fraction is its owner's measurement.
+LIVE = ("in-progress", "fixing") + LIVE_CLAIM
+
+# --------------------------------------------------------------- the size model
+#
+# The size vocabulary is the duration model's own keys; there is no second list
+# to drift. A size the planner has no hours for breaks it at `size_hours[...]`
+# with a KeyError no gate reads (`tools/plan/` is INERT at tests/closure.py).
+DURATIONS = "tools/plan/durations.json"
+
+
+class SchemaError(Exception):
+    """A tree whose size model is missing or unreadable. A refusal, never a
+    guessed vocabulary: `fixer.md`'s invalid input refuses, it does not guess."""
+
+
+def read_durations(root=".") -> dict:
+    """The measured size model at `root`: the tree whose roster is being
+    written, so the vocabulary checked is the one the planner will read."""
+    try:
+        return json.loads((Path(root) / DURATIONS).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise SchemaError(f"{DURATIONS} under {Path(root).resolve()} is "
+                          f"unreadable: {e}")
+
+
+def sizes(durations: dict) -> tuple:
+    """The size vocabulary: the keys of the model's `sizes_hours` table."""
+    try:
+        return tuple(durations["sizes_hours"])
+    except (KeyError, TypeError) as e:
+        raise SchemaError(f"{DURATIONS} carries no sizes_hours table: {e}")
+
 # WHICH ROSTER -- the one owner (R10-TICK b, d). Every seat tool that reads or
 # edits a roster asks `roster_path()`; none carries a path of its own. A round's
 # roster is `dev/programme/rosters/wave-r<N>-groups.json`, the programme-record
@@ -389,10 +472,41 @@ def _self_test() -> int:
             return f"CRASH, not a refusal: {type(e).__name__}"
         return ""
 
+    def schema_refuses(call) -> bool:
+        """True when `call` raises SchemaError naming the size model."""
+        try:
+            call()
+        except SchemaError as e:
+            return DURATIONS in str(e)
+        return False
+
     check("round of a path", roster_round(f"{ROSTERS_DIR}/wave-r10-groups.json") == 10)
     check("newest is numeric, not textual",
           newest_roster(["wave-r9-groups.json", "wave-r10-groups.json"])
           == f"{ROSTERS_DIR}/wave-r10-groups.json")
+    # THE REGISTRY (R10-ORCH-ROSTER-SCHEMA). The three views are drawn from
+    # the one tuple, so a word cannot be classified for the writer's check and
+    # unknown to the reader's.
+    check("the views partition the registry (derivable + disposition)",
+          set(DERIVABLE) | set(DISPOSITION) == set(STAGES)
+          and not set(DERIVABLE) & set(DISPOSITION), STAGE_KIND)
+    check("live claims are derivable (a merge can close them) and live",
+          set(LIVE_CLAIM) <= set(DERIVABLE) and set(LIVE_CLAIM) <= set(LIVE),
+          (LIVE_CLAIM, LIVE))
+    check("a done stage is neither live nor a disposition",
+          not set(DONE_STAGES) & set(LIVE) and not set(DONE_STAGES) & set(DISPOSITION),
+          (DONE_STAGES, LIVE, DISPOSITION))
+    check("the live view is the planner's own four words (no figure moves)",
+          LIVE == ("in-progress", "fixing", "review", "in-review"), LIVE)
+    check("the size vocabulary is the model's own keys",
+          sizes({"sizes_hours": {"S": 1.0, "XL": 2.0}}) == ("S", "XL"))
+    check("a model with no sizes_hours refuses, never an empty vocabulary",
+          schema_refuses(lambda: sizes({"sizes_hours": None}))
+          and schema_refuses(lambda: sizes({})))
+    check("an absent size model refuses, never an empty vocabulary",
+          schema_refuses(lambda: read_durations("/nonexistent-hpo-root")),
+          "read_durations returned on a missing file")
+
     check("non-rosters are ignored",
           newest_roster(["README.md", "wave-r9-groups.json.bak"]) is None)
     with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:

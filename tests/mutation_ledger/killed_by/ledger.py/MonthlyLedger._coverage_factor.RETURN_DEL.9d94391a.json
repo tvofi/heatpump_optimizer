@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor RETURN_DEL 9d94391a",
-  "killed_by": "tests/features.py",
-  "old": "        return pro_rata_factor(now)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}
