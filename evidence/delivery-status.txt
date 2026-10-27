@@ -1,0 +1,6 @@
+DELIVERY STATUS OK — 215 rowed, 3 pending, 0 overdue (overdue at 12 commits)
+  pending  #2879 6eb5521 0 commit(s) since — triage: s6 batch 37 (P205)
+  pending  #2884 e40806a 1 commit(s) since — triage: s6 batch 39 (P207-P210)
+  pending  #2877 3ce45cb 2 commit(s) since — triage: s6 batch 36 (P204)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.

@@ -1,0 +1,31 @@
+# R2 -- each rewritten row against the merge it names (head 0e3b89f23c35a89f605e9611d5d074d800783b5b)
+# command 1: git merge-base --is-ancestor <sha> origin/main ; git log -1 --format='%s' <sha>
+34cd75b  34cd75bf1fe506334611ba6c074c223317370e67  on-origin/main=yes  Merge pull request #2745 from tvofi/fix/r10-sav-comfort
+4f3c730  4f3c7302046eccd1f869724a6de2cbf6f8183418  on-origin/main=yes  Merge pull request #2819 from tvofi/fix/r10-arch-shapes-pr
+6f44346  6f44346080d2630563a2cda08bd158ca50a1d23e  on-origin/main=yes  Merge pull request #2869 from tvofi/fix/r10-flow-audit-plan
+273221c  273221c71347fce38f6361d46e80bde3d8033d43  on-origin/main=yes  Merge pull request #2871 from tvofi/fix/audit-r10-roster-pr
+524c189  524c1896b6943b3da03d6cad61420ced31e14c9c  on-origin/main=yes  Merge pull request #2874 from tvofi/fix/r10-plan-prio-pr
+67178dc  67178dc6a589cf95d2ce7cff36d8bbf17343e8dc  on-origin/main=yes  Merge pull request #2880 from tvofi/fix/r10-roster-schema-pr
+2b45d09  2b45d098c92ed880a37a2848eac99713c3a2730b  on-origin/main=yes  Merge pull request #2881 from tvofi/fix/triage-s6-batch38
+4db1d3e  4db1d3e28f0dff50f6916e39d52efed0ce856d0a  on-origin/main=yes  Merge pull request #2882 from tvofi/fix/r10-train-overlap-grade
+
+# command 2: gh pr view <n> --json title,state,mergeCommit vs the row's own facts
+2745	MERGED	34cd75bf1fe506334611ba6c074c223317370e67	R10-SAV-COMFORT: the savings figures on the owner's baseline specification
+2819	MERGED	4f3c7302046eccd1f869724a6de2cbf6f8183418	R10-ARCH-SHAPES: one owner per duplicated shape, power readings bounded
+2869	MERGED	6f44346080d2630563a2cda08bd158ca50a1d23e	R10-FLOW-AUDIT-PLAN: an audit-plan stage between verify and the fix wave
+2871	MERGED	273221c71347fce38f6361d46e80bde3d8033d43	roster: round-10 batch 23
+2874	MERGED	524c1896b6943b3da03d6cad61420ced31e14c9c	plan: dispatch by the owner's priority, refuse an unmeasured size
+2880	MERGED	67178dc6a589cf95d2ce7cff36d8bbf17343e8dc	fix(roster): one stage and size registry, and a writer that refuses what no read closes
+2881	MERGED	2b45d098c92ed880a37a2848eac99713c3a2730b	triage: s6 batch 38 (P206)
+2882	MERGED	4db1d3e28f0dff50f6916e39d52efed0ce856d0a	train: grade each merge tree before its car lands
+
+# command 3: re-derive each row line with the generator's own record_row.row_line
+#            (roster read at 0e3b89f23c35a89f605e9611d5d074d800783b5b; roster_lib.show_roster)
+MATCH 2745 group='R10-SAV-COMFORT'
+MATCH 2819 group=None
+MATCH 2869 group='R10-FLOW-AUDIT-PLAN'
+MATCH 2871 group=None
+MATCH 2874 group=None
+MATCH 2880 group=None
+MATCH 2881 group=None
+MATCH 2882 group='R10-TRAIN-OVERLAP-GRADE'

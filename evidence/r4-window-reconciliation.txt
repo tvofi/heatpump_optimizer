@@ -1,0 +1,14 @@
+# R4 -- every PR merge in the record window (<last v* tag>..head), row at head compared to it
+# window tag: v7.0.4  head: 0e3b89f23c
+
+merges in window: 215
+rows telling their merge: 209
+record-class (self-disposing) merges owing no rewrite: 6 [2795, 2845, 2847, 2856, 2863, 2868]
+MISSING ROW: []
+STALE non-record rows: []
+
+# merges landed AFTER this PR's base 4db1d3e (three-dot base):
+  #2877 3ce45cbf6b4de945d8da117a9714de10220c258f  row-at-origin/main: - [#2877](https://github.com/tvofi/heatpump_optimizer/pull/2877) — **open**, triage: s6 batch 36 (P2
+  #2879 6eb552157b63d1e98a9653250789d9fe0027b5bc  row-at-origin/main: - [#2879](https://github.com/tvofi/heatpump_optimizer/pull/2879) — **open**, triage: s6 batch 37 (P2
+  #2884 e40806a7d8b024e7090182ea6d1906f45ddf89e2  row-at-origin/main: - [#2884](https://github.com/tvofi/heatpump_optimizer/pull/2884) — **open**, triage: s6 batch 39 (P2
+  -> each carries a row written by its own branch; none lacks a row.

@@ -1,0 +1,14 @@
+# check-runs at head 0e3b89f23c35a89f605e9611d5d074d800783b5b (gh api --paginate .../check-runs)
+total=      58
+   2 null
+  20 skipped
+  36 success
+
+failing:
+(none above)
+
+queued:
+refresh	queued	null
+prelude	queued	null
+
+# earlier head fddc5809b: 4 cancelled (superseded), 10 skipped, 0 red
