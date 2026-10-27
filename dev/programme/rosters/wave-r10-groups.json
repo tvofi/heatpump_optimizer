@@ -4870,7 +4870,7 @@
     "branch": "handoff/r10-buffer-store",
     "commit": "5c01e40658af339371b22b1b7c141ae3e539deb9",
     "last_step": "handoff pushed at 5c01e4065 (body handoff-body 1b5ff1d65); merged origin/main 524c1896b, re-recorded functions_cc_over_15 28->27, 11 mutants KILLED, 25 unpinned sites disposed, scoped gate at this head",
-    "next_step": "review the handoff at 173b71ba4 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store",
+    "next_step": "open the PR from handoff/r10-buffer-store and dispatch the fix review at 5c01e4065 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store; gate reds are answered in its ## Red checks",
     "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md (process state (c), census countermeasure). Gate reds: the stress_budgets raise on summer/1z/space/valve is the owner's; the shoulder economics red reads the same at base, main and head; the optimality claim closed; card.mjs OOM on this host."
    },
    "class": "production",
