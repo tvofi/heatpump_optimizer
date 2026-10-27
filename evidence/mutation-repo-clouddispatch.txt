@@ -62,14 +62,20 @@
   ok   the worker registry records the reviewer: pr, head, seat, nonce, time and the model
   ok   a dispatch through dispatch_group closes reviewer-fire at its pr and head in the ledger
   ok   a reviewer is dispatched at the PR head passed, not at a ref's tip
+  ok   the reviewer's brief carries the packet render at the dispatched head for the seat's own machine
   ok   a nonce no dispatch minted is refused by the bus, and records nothing
+  ok   a packet the renderer refuses holds the reviewer dispatch, and records nothing
+  ok   a packet the seat cannot render dispatches anyway, records, and says why (the #2870 regression)
   ok   a dispatch ref that was not published reopens reviewer-fire: the seat was never fired
   ok   _publish itself refuses a ref that would publish the host, and pushes nothing
   ok   by default the brief is the round's roster branch's and the head is main's tip, not that branch's
   ok   an explicit roster ref is read, not the round's roster branch
   ok   the --group CLI passes --head and --roster-ref through
+  ok   a relay dispatch at a second pull request mints its nonce
   ok   the --group CLI passes --role, --group, --model, --pr and --nonce through
   ok   a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
   ok   a re-dispatch from a second clone fast-forwards the existing ref
-cloud_dispatch self-test: 73 checks, 0 failed
-base rc=0
+cloud_dispatch self-test: 77 checks, 0 failed
+real 21.92
+user 5.68
+sys 6.53

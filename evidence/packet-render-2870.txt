@@ -1,4 +1,0 @@
-review_packet: REFUSE red-unanswered: concluded red check `governance / instrument-self-tests` is not named in ## Red checks
-review_packet: REFUSE red-unanswered: concluded red check `pr-contract / pr-contract` is not named in ## Red checks
-review_packet: REFUSE required-red: required context `gate` concluded failure at 410d3988fd2ae01ea6ec281174e470b4f5540bcb
-rc=1 ; packet written: no

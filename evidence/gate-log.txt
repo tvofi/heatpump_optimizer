@@ -1,3 +1,0 @@
-gate (latest) id=121997429064 log excerpt:
-2026-10-27T03:46:50.2638243Z FAIL pr-contract / pr-contract: failure (run 40442189565)
-2026-10-27T03:46:50.2734169Z ##[error]Process completed with exit code 1.
