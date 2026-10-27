@@ -1,0 +1,22 @@
+head reviewed: b95d3faf8d1ebf1a03d26d39a593ad91e410b891
+
+== '; main ' in triage s7 lines ==
+count: 32
+first: ledger:1330 2026-10-27T08:12:52Z
+
+== the seat's own non-plain lines with NO 'main' ==
+1372: triage s7: 2026-10-27T09:22:53Z ESCALATED duplicate triage seat: second writer started 08:13:15Z, plain HOLD l
+1380: triage s7: 2026-10-27T09:33:26Z ACK orch RULING (a1c1b98c is the triage seat; annotated form continues; pre-st
+1382: triage s7: 2026-10-27T09:34:28Z RECONCILED V119-V123 already ruled as P199-P203 in s6-batch35.md (merged c73d8
+1387: triage s7: 2026-10-27T09:51:38Z RULED V124 DEFER (P204, batch 36): the seat-start claim as filed binds only se
+1388: triage s7: 2026-10-27T09:51:38Z PUSHED handoff/triage-s6-batch36 1b84be415587523f0e26ebbbf274b2e871ef2334 and 
+1394: triage s7: 2026-10-27T10:05:28Z CONTROLLED seat-launch.sh (orchestrator's new dispatch instrument): --dup null
+1399: triage s7: 2026-10-27T10:16:54Z #2877 bookkeeping: opener added delivery row 6d58fa0bc on fix/triage-s6-batch3
+1430: triage s7: 2026-10-27T11:28:24Z RULED V125 ACCEPT narrowed (P205, batch 37): ledger.py level() exempts a hando
+1436: triage s7: 2026-10-27T11:34:49Z HOLD+ruling work: batch 37 amended to 10ecdefa6 (dispose outcome + store trap 
+1439: triage s7: 2026-10-27T11:39:57Z HOLD (no v7.0.5 tag; waiting on batch 37 full prepr)
+1442: triage s7: 2026-10-27T11:46:10Z PUSHED batch 37 refs: handoff/triage-s6-batch37 10ecdefa658330e6ad0f7ab0d157ff
+count:       11
+
+== plain writer still running ==
+last exact plain line: ledger:1594 2026-10-27T16:39:25Z

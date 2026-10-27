@@ -1,0 +1,7 @@
+=== git grep 'no v7.0.5 tag' ===
+dev/programme/triage/s6-batch36.md:30:  `HOLD (no v7.0.5 tag)` form, 18 of them, at 5:00-5:01 intervals: 08:13:15, 08:18:16,
+=== git grep 'triage s7:' ===
+dev/programme/triage/s6-batch36.md:28:- Two writers, one role. `grep -n 'triage s7:' seat-ledger.md`, in the orchestrator state
+dev/programme/triage/s6-batch36.md:37:  the whole-ledger series (`grep -n 'triage s7:' seat-ledger.md`) puts a plain-`HOLD`
+=== git grep HOLD writes in seat tools ===
+(none)

@@ -1,0 +1,11 @@
+=== P197 count in roster (origin/main) ===
+0
+=== P197 count at cited base 524c1896b ===
+0
+=== P197 across all roster files at 524c ===
+dev/programme/rosters/critical-path.json: 0
+dev/programme/rosters/wave-r10-groups.json: 0
+dev/programme/rosters/wave-r9-groups.json: 0
+=== carry 13 (index 12) of BEATD at 524c ===
+carries: 34
+index12: tvofi 2026-10-24 card 2, amended twice (owner; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): the same orchestrator.md edit adds one paragraph on context rotation, with caps by role: about 150 k tokens for mechanical, standing and relay seats, reviewers, and S and M fixers; about 300 k for L and XL fixers, designers, pre-studies, root-cause and plan seats; about 500 k for the orchest

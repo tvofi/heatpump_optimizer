@@ -1,6 +1,0 @@
-head: f92442065832f5ccbe397882b73c79c173ab4dd7
-== every check-run conclusion (paginated) ==
-[{"conclusion":"skipped","n":17},{"conclusion":"success","n":38}]
-== any run not success/skipped ==
-== total ==
-55

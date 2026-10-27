@@ -1,0 +1,17 @@
+=== f924420 parents ===
+tree 27df4787d2d2b1738da8a52cab5aeb169012e183
+parent 6d58fa0bc404485ca96f543b0c894d6ea8e72a59
+parent 996eb1df1bda32611d3f104d611fb321ce30ef8c
+author tvofi <70032254+tvofi@users.noreply.github.com> 1793110761 +0100
+=== 6d58fa0bc numstat ===
+record: the delivery row for #2877
+
+1	0	dev/programme/delivery/2877.md
+=== 996eb1df1 numstat ===
+triage: correct batch 36's P197 claim; record the unresolved arrival order
+
+12	5	dev/programme/triage/s6-batch36.md
+=== 1b84be415 parent ===
+tree 16db9868d1e303149efdb39cb1ba31b413e701b3
+parent 524c1896b6943b3da03d6cad61420ced31e14c9c
+author tvofi <70032254+tvofi@users.noreply.github.com> 1793094190 +0100
