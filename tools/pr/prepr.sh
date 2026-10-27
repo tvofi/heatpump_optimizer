@@ -521,7 +521,7 @@ closures_records_here() { # rc 0 record scoped closures on this machine, 1 leave
 # The recorder is `derive_closures.sh` unless PREPR_RECORD names another one
 # taking the same arguments, which only `--self-test` does. rc 3 is a skip.
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
-  local cw kind s v left="" strace=0 r=0 rp=""
+  local cw kind s v left="" strace=0 r=0 rp="" rec_rc=0
   cw=$(mktemp -d)
   if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
@@ -562,8 +562,15 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         # keeps the prepr's own signal traps prompt.
         heavy_run "$cw/derive.out" env GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
           --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec"
+        rec_rc=$?
       fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
+      elif [ "$rec_rc" -eq 124 ]; then
+        # The heavy deadline killed the recorder. What it wrote is a prefix of
+        # the set, and `check --partial` reads a prefix as covered, so the rc is
+        # the only witness that the set is incomplete: refuse, never pass.
+        echo "killed at its heavy deadline: the recordings it left are incomplete, so they are not read as covered"
+        r=1
       elif [ ! -d "$cw/rec" ]; then
         if closures_records_here; then
           echo "nothing scoped can be recorded on this machine; left to CI:$left"
@@ -602,17 +609,47 @@ closures_step() { # merge base; sets CLOSURES_LINE, returns closures_line's rc
 # watchdog reaps that group once the prepr (`$$`) is gone -- a KILL, a TERM
 # to the prepr alone and a signal to its group all end it. The log is
 # appended, so a chain of two commands shares one.
-heavy_run() { # log file, command... -> the command's rc
-  local log=$1 hpid wpid r m=""
+#
+# AND A HEAVY STEP IS BOUNDED. Dying with the prepr leaves the other half of
+# the same defect: a check that never returns pins its slot for as long as its
+# seat leaves the process alive. The pool holds a slot for the life of the run
+# and does not reclaim one from a live pid (`take_slot`, `_free_slot`), so the
+# lease expiring is no rescue, and a nested self-test waiting on that check
+# pins the outer run too (2026-10-27: pids 14215 and 16932, 29 and 27 minutes,
+# `sample` 881/881 and 791/791 in `__wait4` at the `wait` below). The bound is
+# the lease the pool itself uses (`LEASE_SECONDS`, 1800 s): one step outliving
+# it already holds a slot the lock reports expired, which is the starvation,
+# and a normal heavy step is minutes. It is a wall-clock bound on the step,
+# never a liveness probe: `ps %cpu` is a lifetime average and reads 0.0 for a
+# process that has blocked. `HPO_HEAVY_DEADLINE` overrides it in seconds, 0
+# disables it; a step that trips it returns 124, so `step` prints its refusal.
+heavy_deadline=${HPO_HEAVY_DEADLINE:-1800}
+case $heavy_deadline in ''|*[!0-9]*) heavy_deadline=1800 ;; esac
+heavy_run() { # log file, command... -> the command's rc, 124 when the deadline fired
+  local log=$1 hpid wpid r m="" d=""
   shift
   case $- in *m*) m=1 ;; esac
+  rm -f "$log.deadline"
   set -m
   "$@" >>"$log" 2>&1 & hpid=$!
-  ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+  ( i=0
+    while kill -0 "$$" 2>/dev/null; do
+      if [ "$heavy_deadline" -gt 0 ] && [ "$i" -ge "$heavy_deadline" ]; then
+        printf '%s\n' "$heavy_deadline" >"$log.deadline"
+        kill -TERM -- -"$hpid" 2>/dev/null; sleep 5; kill -KILL -- -"$hpid" 2>/dev/null
+        exit 0
+      fi
+      i=$((i + 1)); sleep 1
+    done
     kill -TERM -- -"$hpid" 2>/dev/null ) & wpid=$!
   wait "$hpid"; r=$?
   kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
   [ -n "$m" ] || set +m
+  if [ -f "$log.deadline" ]; then
+    d=$(cat "$log.deadline" 2>/dev/null); rm -f "$log.deadline"
+    echo "TIMEOUT: the step ran ${d:-$heavy_deadline}s, its heavy deadline, so it was killed with its process group and this step refuses -- the run can now finish and release its slot; the step's output is $log"
+    return 124
+  fi
   return "$r"
 }
 
@@ -2291,7 +2328,7 @@ rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how
 for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
-  printf '#!/bin/bash\n[ -n "${CALLLOG:-}" ] && printf '"'"'%%s\\n'"'"' "$1" >> "$CALLLOG"\nmkdir -p "$5"\nif [ "$1" = "--scripts-from" ]; then\n  while read -r s; do\n    [ -n "$s" ] || continue\n    cp "$FIXTURE_REC/$(basename "$s").json" "$5/"\n    [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\n  done < "$2"\nelse\n  cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n  [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nfi\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  printf '#!/bin/bash\n[ -n "${CALLLOG:-}" ] && printf '"'"'%%s\\n'"'"' "$1" >> "$CALLLOG"\nmkdir -p "$5"\nif [ "$1" = "--scripts-from" ]; then\n  while read -r s; do\n    [ -n "$s" ] || continue\n    cp "$FIXTURE_REC/$(basename "$s").json" "$5/"\n    [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\n  done < "$2"\nelse\n  cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n  [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nfi\nexit "${FIXTURE_EXIT:-0}"\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
   # The recording arms below drive the recorder, so they name the off-Linux
   # opt-in: off Linux the default is now the skip its own arms pin, and CI
   # runs this self-test on Linux. See the platform arms after them.
@@ -2299,6 +2336,7 @@ PY
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
+  got=$(FIXTURE_EXIT=124 closures_at cl ok); st "$got" '1:killed at its heavy deadline' "6b refuses a recorder the heavy deadline killed, where its complete-looking prefix would pass --partial (the false green)"
   # `sk`, not `rec`: the inert_reads rule (#2109's fix) makes a NEW file
   # under docs/ reach tests/doc_claims.py's recorded read (docs/site/ is one
   # level below its parent), so `rec` -- a delivery row under docs/, kept for
@@ -2974,6 +3012,33 @@ EOF
   hr_arm fg TERM prepr
   case "$HRA" in alive:alive:alive) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and a TERM to the prepr waits behind it (null control: the deferred trap)"
+  # (9b) The deadline: a heavy step that never returns is killed with its group
+  # and fails loudly, where before it held its slot for the life of the seat --
+  # the pool never reclaims a live pid's slot (gate_lock's `_free_slot`), so
+  # the lease expiring rescued nobody. The sleeper is (9)'s, so its lane is the
+  # nested run a stuck step leaves behind.
+  dl=$heavy_deadline
+  : > "$HR/pid"; : > "$HR/pid.lane"
+  heavy_deadline=8
+  heavy_run "$HR/dl.log" bash "$HR/sleeper.sh" >"$HR/dl.out" 2>&1; r=$?
+  heavy_deadline=$dl
+  spid=$(cat "$HR/pid" 2>/dev/null); lpid=$(cat "$HR/pid.lane" 2>/dev/null)
+  st "$r:$([ -n "$spid" ] && [ -n "$lpid" ] && echo started)" 124:started \
+    "a heavy step past its deadline is killed and returns 124, so the run can release its slot"
+  case "$(cat "$HR/dl.out")" in *"TIMEOUT: the step ran 8s"*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal is loud, naming the deadline that fired"
+  for i in $(seq 1 50); do alive "$spid" || alive "$lpid" || break; sleep 0.1; done
+  st "$(alive "$spid" && echo alive || echo gone):$(alive "$lpid" && echo alive || echo gone):$([ -f "$HR/dl.log.deadline" ] && echo marker || echo clean)" \
+    gone:gone:clean "and the step, its lane and the marker are gone behind it -- no orphan left to hold the slot"
+  heavy_deadline=20
+  heavy_run "$HR/ok.log" bash -c 'echo done' >"$HR/ok.out" 2>&1; r=$?
+  heavy_deadline=$dl
+  st "$r:$(cat "$HR/ok.log"):$([ -s "$HR/ok.out" ] && echo said || echo quiet)" \
+    0:done:quiet "a step inside its deadline returns its own rc and says nothing (null control)"
+  heavy_deadline=0
+  heavy_run "$HR/off.log" bash -c 'sleep 3; echo done' >"$HR/off.out" 2>&1; r=$?
+  heavy_deadline=$dl
+  st "$r" 0 "and 0 disables the bound, for a step a seat knows is slower than the lease"
   rm -rf "${HR:?}"
   # The call sites: no step from 3 to 3h runs a program in the foreground. The
   # section is the main flow's text between the two step markers.
