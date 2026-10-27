@@ -2642,7 +2642,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Bounds the WAIT for the gate lease, not the lease itself (P206/V126, from the 38-minute lane block behind two stress.py runs). `tests/gate_lock.py`: `take()`'s wait loop today has no deadline (`while True: ... time.sleep(WAIT_POLL_SECS)`), so a waiter behind a running measurement blocks for as long as measurements keep arriving; `LEASE_SECONDS = 1800` and `renew()`'s refusal (rc 75 while another label's ticket waits) already bound the holder and cannot preempt a live run's `flock`. Add a wait deadline defaulting to the awaited script's recorded duration when the caller names one (`tests/closures.json` records `tests/stress.py` at 936.3 s and `tests/harness_headers.py` at 241.1 s) and to `LEASE_SECONDS` otherwise, exiting with a distinct code and one line naming the wait and its bound. `tests/run.sh`'s `leased()` gains a case arm mapping that code to the existing sanctioned exit, `SKIP: <script> ... left to CI, named unrun` (`gate-scoping.md`), so the lane records a named unrun instead of a pass. Constraints: the bound must be at least the awaited script's recorded duration; the skip must never be a silent pass; it applies only to scripts `needs_lease` classifies `lease` (a `slot` waiter already shares the four-slot pool and must not skip); uncontended runs take no new branch (null control); neither `LEASE_SECONDS` nor `renew()`'s refusal changes. Two self-test arms: a waiter past the bound exits with the code and the line, one within it still runs. triage: dev/programme/triage/s6-batch38.md#P206"
+   ],
    "architect_note": null,
    "resume": {
     "stage": "fixing",
