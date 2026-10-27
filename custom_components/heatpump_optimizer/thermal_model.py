@@ -1744,9 +1744,9 @@ def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
     """COP multiplier at ``electrical_power`` kW: 1 at or below the modulation
     floor (a lower draw duty-cycles at the floor), falling linearly to
     ``1 - cop_partload_derate`` at max power, as heat-exchanger approach grows
-    with the heat rate. Hot water is priced at its tank's own lift instead
-    (``compute_cop_dhw``). Elementwise, so the batch twin's rows and the
-    scalar step share it."""
+    with the heat rate. The hot-water schedule takes it too, on top of its own
+    tank lift (``compute_cop_dhw``). Elementwise, so the batch twin's rows and
+    the scalar step share it."""
     band = params.max_electrical_power - params.min_electrical_power
     if band <= 0.0:
         return 1.0
@@ -1757,7 +1757,8 @@ def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
 
 
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
-    """Space heat the pump delivers at ``cop`` and ``electrical_power``.
+    """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
+    water.
 
     Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
     no part-load term is byte-identical to one priced before it."""
@@ -2800,7 +2801,7 @@ class ThermalModel:
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=cop * schedule[i],
+                dhw_power_thermal=delivered_heat_kw(self.params, cop, schedule[i]),
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -4040,7 +4041,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
             )
-            dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
+            dhw_thermal_power = delivered_heat_kw(self.params, cop_dhw, dhw_power_schedule[i])
 
             new_dhw = self.simulate_dhw_step(
                 dhw_temp=state.dhw_temperature,

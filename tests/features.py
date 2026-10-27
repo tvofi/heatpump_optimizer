@@ -70595,4 +70595,46 @@ R.check(
     f"d=0 {_pl_peak_share(_pl_flat0):.3f} d=0.15 {_pl_peak_share(_pl_flat1):.3f}",
 )
 
+
+def _pl_dhw_step(derate, kw):
+    """Hot-water tank temperature after one 15-minute step at ``kw``."""
+    temps = np.array([45.0, 0.0])
+    _pl_model(derate).extend_dhw_temps(
+        temps, 0, np.array([kw]), np.array([5.0]), np.zeros(1), dt_hours=0.25)
+    return float(temps[1])
+
+
+_pl_dhw_hi = {d: _pl_dhw_step(d, 5.0) for d in (0.0, 0.2)}
+_pl_dhw_lo = {d: _pl_dhw_step(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "a hot-water schedule carries the derate too: the same electrical power "
+    "warms the tank less with the term on; "
+    "null control: at the modulation floor the tank is unchanged",
+    _pl_dhw_hi[0.2] < _pl_dhw_hi[0.0] and _pl_dhw_lo[0.2] == _pl_dhw_lo[0.0],
+    f"max {_pl_dhw_hi} floor {_pl_dhw_lo}",
+)
+
+
+def _pl_dhw_traj(derate, kw=5.0):
+    """DHW temperature after one step of the full space + hot-water path."""
+    out = _pl_model(derate).simulate_trajectory_with_dhw(
+        ThermalState(room_temperature=20.0, upper_floor_temperature=20.0,
+                     lower_floor_temperature=20.0, slab_temperature=20.5,
+                     outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                     dhw_temperature=45.0),
+        np.zeros(1), np.full(1, kw), _WS(np.full(1, 5.0)),
+        start_hour=20.0, dt_hours=0.25)
+    return float(out[4][-1])
+
+
+_pl_traj = {d: _pl_dhw_traj(d) for d in (0.0, 0.2)}
+_pl_traj_lo = {d: _pl_dhw_traj(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "the full trajectory's hot-water track prices the same conversion as the "
+    "step twin: the derated tank ends cooler; "
+    "null control: at the modulation floor the track is unchanged",
+    _pl_traj[0.2] < _pl_traj[0.0] and _pl_traj_lo[0.2] == _pl_traj_lo[0.0],
+    f"max {_pl_traj} floor {_pl_traj_lo}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
