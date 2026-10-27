@@ -1,0 +1,32 @@
+# Flow board
+
+Window ends 2026-10-27T19:27:28+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+
+Sources: tree `e40806a7d8b024e7090182ea6d1906f45ddf89e2`, roster `cfacd3800bb5fa7deb043e6afd7533fa73f3a5d8`, bus `origin/review/*`
+
+| measure | last 1 h | last 24 h |
+|---|---|---|
+| roster groups closed vs takt | 1 / 1.0 | 9 / 24.0 |
+| fly-ins closed | 1 | 5 |
+| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 1 | 6 / 1 / 4 / 5 |
+| first-pass fix-review yield | 1/2 (0.50) | 8/18 (0.44) |
+| blocked-class mix | budget-exceeded:1, claim-false:1, roster-stale:1 | architecture-unsound:1, body-stale:1, budget-exceeded:2, carry-missing:1, claim:2, claim-false:1, class-open:2, harness:1, metric-gamed:1, other:4, prior:1, root-cause-detectable:2, roster-stale:1, ruling:1 |
+| lead time per size (h, n/p50/max) | M n=1 p50=5.65 max=5.65; S n=1 p50=8.63 max=8.63 | M n=3 p50=9.08 max=78.24; S n=3 p50=8.63 max=11.34 |
+
+### WIP by flow lane (snapshot at the window's end)
+
+| A critical path | B product | C process | F fly-in |
+|---|---|---|---|
+| 4 | 49 | 6 | 12 |
+
+## Rules
+
+- every period is CLOSED at both ends: an event at exactly the window's start or end is counted, so the default window -- which ends at a ref tip's own committer time -- includes the tip's merge.
+- roster groups closed: a group whose resume.stage enters roster_lib's DONE_STAGES in the period, counted per first-parent commit of the roster ref; takt is 1.0 group per hour, so the period's demand is its hours.
+- fly-ins closed: a first-parent PR merge of the tree in the period whose branch maps to no roster group and is neither a record nor a roster edit.
+- main moves: each first-parent PR merge of the tree in the period, by kind -- group-carrying (roster_lib's branch-to-group answer), record (--record-prefix), roster-edit (the merge's diff touches the roster directory), fly-in (the rest).
+- first-pass yield: of the PRs whose FIRST bus verdict falls in the period, the share whose first verdict is `merge`; a PR whose first verdict predates the period is not judged in it.
+- blocked-class mix: every blocked verdict in the period, by the class word its subject carries.
+- lead time per size: merge time minus the earliest commit the group's branch carries, over group-carrying merges whose roster group names a size; n, p50 and max hours.
+- WIP by lane: open roster groups at the window's end -- A when in the published critical-path set, F for roster lanes F/FLY, C for C/tooling, B otherwise. A ref that publishes no critical-path file puts no group on it; a file that is there and cannot be read is UNAVAILABLE.
+- A source that cannot be read prints UNAVAILABLE with its reason; it is never a zero.

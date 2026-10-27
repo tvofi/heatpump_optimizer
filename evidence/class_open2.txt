@@ -1,0 +1,6 @@
+RESULT crit_cat_file_e_rc = 1
+RESULT crit_rev_parse_rc = 0
+RESULT absent_path_rev_parse_rc = 1
+RESULT critical_path_read_on_unreadable_blob = (set(), '')
+RESULT wip_lanes = {'A': 0, 'B': 1, 'C': 0, 'F': 0}
+RESULT is_silent_empty_measurement = True

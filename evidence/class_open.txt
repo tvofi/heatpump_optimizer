@@ -1,0 +1,4 @@
+RESULT corrupt_blob_was_loose = True
+RESULT cat_file_e_rc = 1 | show_rc = 128
+RESULT closed_for_unreadable_object = (0, '')
+RESULT is_zero_without_reason = True
