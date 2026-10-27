@@ -9,6 +9,9 @@ pinned_touched() { # file of changed paths, pins (one per line)
   done <"$1"
   return 1
 }
+
+# Step 7a's whole body, so `--self-test` drives the code the step runs rather
+
 CLAIMS_DOCS='README.md
 docs/*.md'
 CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
@@ -71,14 +74,17 @@ claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1
   # missing target is taken from HEAD, so the copy resolves exactly as a
   # whole-tree `git archive HEAD` copy does, and a target the repository lacks
   # is still graded broken. Today's targets are all in CLAIMS_INPUTS, so an
-  # ordinary docs diff adds no archive here.
+  # ordinary docs diff adds no archive here. The normalisation is done in the
+  # shell, not by spawning an interpreter per target: a `python3 -I -c` here
+  # cost this check 2.84-3.12 s of CPU across the 84 targets and put it over the
+  # owner's 5 s cap (#2853's round-2 review). A leading `..` still escapes the
+  # copy the way `os.path.normpath` refused it; a `docs/../x` form is left as
+  # written, which `test -e` and git both resolve.
   local repo=$PWD t rel
   if [ -f "$repo/$CLAIMS_GEN" ] && grep -q -e '--print-link-targets' "$2/$CLAIMS_GEN" 2>/dev/null; then
     while IFS= read -r t; do
       [ -n "$t" ] || continue
-      rel=$(python3 -I -c 'import os, sys
-p = os.path.normpath(sys.argv[1])
-print("" if os.path.isabs(p) or p == ".." or p.startswith("../") else p)' "$t") || continue
+      rel=${t#./}; case $rel in /*|..|../*) continue;; esac
       [ -n "$rel" ] || continue
       [ -e "$2/$rel" ] && continue
       [ -n "$(git -C "$repo" ls-tree --name-only HEAD -- "$rel" 2>/dev/null)" ] || continue

@@ -1,0 +1,4 @@
+[head/A] invocations=6  of which per-target normpath=0
+[head/B] invocations=6  of which per-target normpath=0
+[spawn/A] invocations=261  of which per-target normpath=85
+[spawn/B] invocations=261  of which per-target normpath=85

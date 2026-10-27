@@ -1,0 +1,18 @@
+targets printed: 84
+old (normpath) derived set: 38
+new (shell) derived set:    40
+SET EQUAL: False
+only old: ['dev/archive/backlog.md', 'tools/audit/archscore/ABOUT.md']
+only new: ['docs/../README.md', 'docs/../dev/archive/backlog.md', 'docs/../tests/README.md', 'docs/../tools/audit/archscore/ABOUT.md']
+per-target rel differs: 9
+  'docs/../tools/audit/archscore/ABOUT.md': old='tools/audit/archscore/ABOUT.md' new='docs/../tools/audit/archscore/ABOUT.md'
+  'docs/../tests/README.md': old='tests/README.md' new='docs/../tests/README.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+  'docs/../dev/archive/backlog.md': old='dev/archive/backlog.md' new='docs/../dev/archive/backlog.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+  'docs/../README.md': old='README.md' new='docs/../README.md'
+old set outside CLAIMS_INPUTS: []
+new set outside CLAIMS_INPUTS: []
