@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_score_sample CLAMP_DROP 7a634b7b",
+  "killed_by": "tests/features.py",
+  "old": "            book[\"kwh\"] = finite_float(book.get(\"kwh\"), 0.0) + max(0.0, kwh)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`book[\"kwh\"] = finite_float(book.get(\"kwh\"), 0.0) + (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}
