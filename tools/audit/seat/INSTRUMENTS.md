@@ -508,6 +508,15 @@ sweep's standing-seat liveness step keep them alive.
   not wait on main's CI (log-only) and re-carries every serial entry up front
   so their pull_request runs fire together; each lands in queue order when
   its own required contexts conclude — the ruleset still gates every head.
+  A serial entry whose base THIS batch's own merges moved is graded before it
+  lands (`Train.grade_merge`, R10-TRAIN-OVERLAP-GRADE): the merge GitHub
+  would make is built with the train's driver-free text merge, materialised
+  as a throwaway worktree, and read by `policy_lint` always and
+  `tests/structure.py` where `tests/closures.json` selects it for the merge's
+  files. A red posts no approval and is HELD: `MAIN-MOVED` re-carries it and
+  CI judges the new head, and a recarry that reproduces the same red tree
+  stops instead of looping. A one-car batch (the #2595 repair car onto a red
+  main) cannot move a base, so the grade never fires there.
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
