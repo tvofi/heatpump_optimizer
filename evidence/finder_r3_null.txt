@@ -1,7 +1,0 @@
-null: plan kWh 114.5 vs booked thermostat kWh 122.0; plan mean room 18.79 C vs mean comfort target 20.44 C
-null: flat price, 2 days, re-plan every 1.00 h: baseline 146.46 actual 137.41 saved 9.05 (6.179161545814557 %)
-null: DEFECT
-arms run 1, defect 1: null
-EXIT=0
-
-[exited with code 0]

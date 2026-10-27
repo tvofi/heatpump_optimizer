@@ -1,0 +1,24 @@
+# NEW  pro_rata=2.8 month_hours=672.0
+RESULT NEW        | control: genuinely covered (24 h settled, 24 spot folds) | got=28.0                         | scaled
+RESULT NEW        | control: no coverage (meta={})                       | got=2.8                          | fallback
+RESULT NEW        | settled entry None                                   | got=2.8                          | fallback
+RESULT NEW        | settled entry not a dict (list)                      | got=2.8                          | fallback
+RESULT NEW        | settled entry not a dict (str)                       | got=2.8                          | fallback
+RESULT NEW        | settled dict missing 'sum'                           | got=2.8                          | fallback
+RESULT NEW        | settled sum non-numeric 'warm'                       | got=2.8                          | fallback
+RESULT NEW        | settled sum 'nan'                                    | got=2.8                          | fallback
+RESULT NEW        | settled sum 'inf'                                    | got=2.8                          | fallback
+RESULT NEW        | settled sum float('nan')                             | got=2.8                          | fallback
+RESULT NEW        | settled sum float('inf')                             | got=2.8                          | fallback
+RESULT NEW        | settled sum bool True                                | got=2.8                          | fallback
+RESULT NEW        | settled dict missing 'count'                         | got=28.0                         | OTHER
+RESULT NEW        | settled count 'nan'                                  | got=28.0                         | OTHER
+RESULT NEW        | settled count 'inf'                                  | got=28.0                         | OTHER
+RESULT NEW        | settled count bool True                              | got=28.0                         | scaled
+RESULT NEW        | spot entry None (covered settled)                    | got=28.0                         | scaled
+RESULT NEW        | spot entry not a dict                                | got=28.0                         | scaled
+RESULT NEW        | spot dict missing 'count'                            | got=28.0                         | scaled
+RESULT NEW        | spot count 'nan'                                     | got=28.0                         | scaled
+RESULT NEW        | spot count 'inf'                                     | got=28.0                         | scaled
+RESULT NEW        | whole meta is None (out of stated scope)             | got=None                         | raise:AttributeError
+RESULT NEW unexpected=3 count

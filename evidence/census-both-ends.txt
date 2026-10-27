@@ -1,0 +1,24 @@
+=== finder's harness dev/audit/harnesses/r10_finite_float_census.py : head's seam rule applied to each end
+--- rule=3522cd925 tree, target=4bf7c2eaa tree (OLD)
+RESULT coercers=14
+   away.py::_as_num
+   const.py::buffer_tank_surface_area
+   coordinator.py::_as_float
+   entry_config.py::_number
+   inputs.py::_finite
+   ledger.py::coverage_factor
+   modbus_prefill.py::_number
+   price_model.py::_raw_value
+   price_tiles.py::monthly_figure
+   pump_arbiter.py::_finite_or_none
+   quiet_windows.py::_power_entity_kw
+   sensor.py::_dhw_min_ceiling
+   thermal_model.py::_optional_float
+   wood_fuel.py::_optional_float
+--- rule=3522cd925 tree, target=3522cd925 tree (NEW)
+RESULT coercers=1
+   const.py::finite_float
+=== finder's rule (head's) applied to the merge-forward tree 02a28aed1 (the head that went red)
+RESULT coercers=2
+   const.py::finite_float
+   ledger.py::coverage_factor
