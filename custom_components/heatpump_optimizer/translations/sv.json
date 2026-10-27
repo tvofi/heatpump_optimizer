@@ -991,6 +991,7 @@
           "heat_pump_cop_nominal": "Värmepumpens nominella COP",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "heat_pump_min_power": "Värmepump min effekt (kW)",
+          "heat_pump_cop_partload_derate": "Värmepumpens COP-förlust vid maxeffekt",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -1001,6 +1002,7 @@
           "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
           "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
           "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
+          "heat_pump_cop_partload_derate": "Andel av verkningsgraden som går förlorad vid maxeffekt jämfört med mineffekt, som bråkdel (0,1 = 10 %). Större värmeflöden kräver större temperaturskillnad över värmeväxlarna. 0 låter effekten vara utan inverkan på COP; vanliga luft/vatten-pumpar förlorar 0,05 till 0,15. Ingen värmemätare behövs.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
