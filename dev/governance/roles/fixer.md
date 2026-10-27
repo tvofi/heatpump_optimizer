@@ -306,9 +306,9 @@ trigger, not analysing it; the analysis is `root-cause.md`'s seat.
 
 ## Past three rounds, re-cut rather than repair
 
-The owner's rule. At the **fourth** round, replace the body instead of repairing
-it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
-fire, and only figures re-taken in that pass. Round history is deleted, not
+The owner's rule. At the **fourth** round, replace the body under a `## Re-cut`
+note, which `bus.sh dispatch` requires: the headings `.github/PULL_REQUEST_TEMPLATE.md`
+requires, the arms that fire, and only figures re-taken in that pass. Round history is deleted, not
 restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
-tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
-so the orchestrator splits the branch or closes it.
+tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**:
+the orchestrator splits or closes it.
