@@ -54,7 +54,7 @@ The cost of the added checks against the owner's second cap holds at this head: 
 
 ## Evidence
 
-`~/hpo-seats/r10s6/review-2853-r4-ev/`: `fx_head.sh`, `fx_spawn.sh`, `fx_perturb.sh` (the three function extractions, diffed against each other and against the head), `drive6g.sh` and `time6g.sh` (my instruments), `timing_head.txt`, `timing_spawn.txt`, `target_set_equality.txt`, `archive_actions_head.txt`, `spawn_count.txt`, `containment.txt`, `body_check.txt`, `check_runs_head.tsv`, `merge_tree.txt`, `untouched.txt`, and the four fixture repositories under `work/`.
+`~/hpo-seats/r10s6/review-2853-r4-ev/`: `fx_head.sh`, `fx_spawn.sh`, `fx_perturb.sh` (the three function extractions, diffed against each other and against the head), `drive6g.sh` and `time6g.sh` (my instruments), `timing_head.txt`, `timing_spawn.txt`, `target_set_equality.txt`, `archive_actions_head.txt`, `spawn_count.txt`, `containment.txt`, `body_check.txt`, `check_runs_head.tsv`, `merge_tree.txt`, `untouched.txt`, and `mkfixtures.sh`, which rebuilds the four fixture repositories deterministically from the reviewed head (I verified it reproduces the copies byte-for-byte: manifests `f38e9751…` and `8dd1ee4c…`).
 
 ## What could not be established
 
