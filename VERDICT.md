@@ -1,11 +1,11 @@
 Fix review: merge 253dc4867cf39f2aa9875f5f2540c5b67b7c1018
-bus-nonce: d170600f052c0751bba46d70b112099c
+bus-nonce: 6150a6ac8c990cf81902b46e7758974c
 
 # Fix review -- PR #2876, R10-HOUSE-GRADE
 
 Reviewed head: 253dc4867cf39f2aa9875f5f2540c5b67b7c1018 (PR head; GitHub's
 `headRefOid` matched it through the review). My worktree: a detached worktree
-at the head under /Users/timmalmstrom/hpo-seats/r10s6/rev-2876-wt; the base
+at the head under ~/hpo-seats/r10s6/rev-2876-wt; the base
 worktree at 3b4180dcc; mutants in a third worktree. I never ran the fixer's
 worktree, pushed the branch, or touched the clean main checkout except to
 publish this verdict.
