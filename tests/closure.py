@@ -827,18 +827,28 @@ INERT_EXCEPT = (
     # of the generator reads it the same way -- the ref_privacy.py route below.
     "tools/audit/seat/gh_read.py",
     # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
-    # its self-test, and that self-test SPAWNS the three state-doc generators
-    # on subprocess command lines -- a repo path on a command line is a real
-    # dependency of the spawning script, so all four land in entities.py's
-    # recorded closure. Left inside the `tools/audit/` prefix they would be
-    # declared unread while being read -- the #357 contradiction, measured
-    # three times on this list already. They leave the prefix the way
-    # record_row.py and roster_lib.py did, so an edit to the beat, or to a
-    # generator it runs, selects tests/entities.py instead of skipping it.
+    # its self-test, and that self-test SPAWNS the state-doc generators on
+    # subprocess command lines -- a repo path on a command line is a real
+    # dependency of the spawning script, so the beat and every generator it
+    # runs land in entities.py's recorded closure. Left inside the
+    # `tools/audit/` prefix they would be declared unread while being read --
+    # the #357 contradiction, measured three times on this list already. They
+    # leave the prefix the way record_row.py and roster_lib.py did, so an edit
+    # to the beat, or to a generator it runs, selects tests/entities.py
+    # instead of skipping it.
     "tools/audit/seat/state_docs.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/handover_prompt.py",
+    # #2883: `merge_throughput.py flow` is the FLOW-BOARD.md generator, the
+    # fourth state doc's, and it lives beside the seat directory rather than
+    # in it. Same route as the four above: state_docs spawns it with its path
+    # on the command line, and `_exec_record` records any repo path on a
+    # subprocess command line as a read, so it is a read tests/entities.py
+    # performs. The pull request that added the call did not re-derive after
+    # it, so the committed closure never listed the file and CI's closures job
+    # named it -- INERT READS UNDER-APPROXIMATED, run 40548660478.
+    "tools/audit/merge_throughput.py",
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",

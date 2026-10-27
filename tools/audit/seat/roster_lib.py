@@ -280,6 +280,30 @@ def reader_ref(repo: str, ref: str | None) -> str:
     return ref
 
 
+def roster_shape(roster) -> str:
+    """Why `roster` is not a roster ("" when it is one).
+
+    JSON that parses is not yet a source this module can read: every reader
+    below indexes `groups` and each entry's `group`, so a list, a `groups`
+    that is not one, or an entry without a string `group` is an unreadable
+    source -- UNAVAILABLE to a caller that must tell it from a measurement
+    (#2883) -- and not an empty roster. A missing `groups` key is still an
+    empty roster: `groups_of` has always read that as no groups, and a
+    roster of none is a measurement.
+    """
+    if not isinstance(roster, dict):
+        return f"not a JSON object ({type(roster).__name__})"
+    groups = roster.get("groups", [])
+    if not isinstance(groups, list):
+        return f"`groups` is a {type(groups).__name__}, not a list"
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict):
+            return f"groups[{i}] is a {type(g).__name__}, not an object"
+        if not isinstance(g.get("group"), str):
+            return f"groups[{i}] carries no string `group`"
+    return ""
+
+
 def groups_of(roster: dict) -> dict:
     """group id -> entry, preserving roster order."""
     return {g["group"]: g for g in roster.get("groups", [])}
@@ -416,32 +440,59 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
 #     {"at": "<iso8601>", "critical": ["R10-GROUP", ...]}
 #
 # `at` records when the set was published and is not read; `critical` is the
-# list of roster group ids. A missing, unreadable or differently-shaped file is
-# None -- "no group is critical" to a caller, never a crash and never "all are".
+# list of roster group ids. A ref that publishes no file means no group is
+# critical -- a measurement, `set()`; a file that is there and cannot be read
+# (git's own failure, invalid JSON, a non-object, a `critical` that is not a
+# list of strings) is UNAVAILABLE with its reason, never a zero and never "all
+# are" (#2883). `critical_path_groups` keeps the lossy None for callers whose
+# contract is to fail toward "nothing critical"; `critical_path_read` is the
+# reason-bearing form a board that must print the difference reads.
 CRITICAL_PATH_NAME = f"{ROSTERS_DIR}/critical-path.json"
+
+
+def critical_path_read(repo: str, ref: str) -> tuple[set[str] | None, str]:
+    """`(set, "")` when `ref` answered; `(None, why)` when it could not be read.
+
+    Read at `ref` (`git show`), so a caller needs no checkout of the roster
+    branch. An unresolvable REF and a file that will not parse are both
+    unreadable; only a ref that resolves and carries no
+    `CRITICAL_PATH_NAME` at all is the measurement "none published".
+    """
+    if _git(repo, "rev-parse", "--verify", "--quiet",
+            f"{ref}^{{commit}}").returncode:
+        return None, f"cannot read {ref}: not a resolvable commit"
+    if _git(repo, "cat-file", "-e", f"{ref}:{CRITICAL_PATH_NAME}").returncode:
+        return set(), ""
+    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
+    if r.returncode:
+        return None, (f"cannot read {CRITICAL_PATH_NAME} at {ref}: "
+                      f"{(r.stderr or r.stdout).strip()[:140]}")
+    try:
+        data = json.loads(r.stdout)
+    except ValueError as e:
+        return None, f"{CRITICAL_PATH_NAME} at {ref} is not JSON: {e}"
+    if not isinstance(data, dict):
+        return None, (f"{CRITICAL_PATH_NAME} at {ref} is not a JSON object "
+                      f"({type(data).__name__})")
+    ids = data.get("critical")
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        return None, (f"{CRITICAL_PATH_NAME} at {ref} carries no `critical` "
+                      "list of ids")
+    return {norm_group(i) for i in ids}, ""
 
 
 def critical_path_groups(repo: str, ref: str) -> set[str] | None:
     """The normalized group ids `CRITICAL_PATH_NAME` lists at `ref`, or None.
 
-    Read at `ref` (`git show`), so a caller needs no checkout of the roster
-    branch. None covers every failure the caller must treat as "nothing is
-    critical": the file absent at this ref, git unreadable, invalid JSON, a
-    non-object, or a `critical` that is not a list of strings.
+    The lossy convenience form of `critical_path_read`: None covers every
+    outcome a caller must treat as "nothing is critical" -- the file absent at
+    this ref, git unreadable, invalid JSON, a non-object, or a `critical` that
+    is not a list of strings. `gate_priority.py`'s pre-pr helper is that
+    caller: it must never crash a run. A reader that has to *print* the
+    difference reads `critical_path_read`.
     """
-    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
-    if r.returncode:
-        return None
-    try:
-        data = json.loads(r.stdout)
-    except ValueError:
-        return None
-    if not isinstance(data, dict):
-        return None
-    ids = data.get("critical")
-    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
-        return None
-    return {norm_group(i) for i in ids}
+    groups, _ = critical_path_read(repo, ref)
+    return groups or None
 
 
 # ------------------------------------------------------------------ self-test
@@ -540,6 +591,20 @@ def _self_test() -> int:
         check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
         check("no critical-path file at a ref is None",
               critical_path_groups(str(repo), "HEAD") is None)
+        check("critical_path_read: a ref publishing no file is (set(), ''), a "
+              "measurement not a failure",
+              critical_path_read(str(repo), "HEAD") == (set(), ""),
+              critical_path_read(str(repo), "HEAD"))
+        check("critical_path_read: an unresolvable ref is UNAVAILABLE",
+              critical_path_read(str(repo), "refs/heads/nope")[0] is None
+              and bool(critical_path_read(str(repo), "refs/heads/nope")[1]))
+        check("roster_shape: an absent groups key is an empty roster",
+              roster_shape({}) == "", roster_shape({}))
+        check("roster_shape: a list is not a roster",
+              "not a JSON object" in roster_shape([]), roster_shape([]))
+        check("roster_shape: an entry without a string group is not a roster",
+              "groups[0]" in roster_shape({"groups": [{"lane": "IN"}]}),
+              roster_shape({"groups": [{"lane": "IN"}]}))
         (repo / CRITICAL_PATH_NAME).write_text(
             json.dumps({"at": "2026-10-20T00:00:00Z", "critical": ["R10_A", "R10-B"]}),
             encoding="utf-8")
@@ -557,6 +622,11 @@ def _self_test() -> int:
             check(f"a malformed critical-path file is None: {bad}",
                   critical_path_groups(str(repo), "HEAD") is None,
                   critical_path_groups(str(repo), "HEAD"))
+            check(f"critical_path_read: a malformed file is UNAVAILABLE, not "
+                  f"empty: {bad}",
+                  critical_path_read(str(repo), "HEAD")[0] is None
+                  and bool(critical_path_read(str(repo), "HEAD")[1]),
+                  critical_path_read(str(repo), "HEAD"))
         check("two rosters at a ref: the newest",
               roster_path(str(repo), "HEAD")
               == f"{ROSTERS_DIR}/wave-r10-groups.json")
