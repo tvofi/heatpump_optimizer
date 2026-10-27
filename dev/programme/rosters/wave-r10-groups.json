@@ -10723,12 +10723,13 @@
     "Registered by the orchestrator 2026-10-27 because the triage s6 batch 37 handoff was pushed with no pull request and no group: an orphan handoff is a gap the board's OWED line names and no seat owns. Batch 37 is cut as its own branch rather than folded into batch 36 so that a pending review on that pull request is not moved under."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "fix/triage-s6-batch37",
     "commit": null,
     "last_step": "registered",
     "next_step": "advance the head over the gap repair, then review it",
-    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2879
    },
    "brief": "Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. The batch is a ruling on one proposal plus the corrections the ruling took from the seats that measured it, so re-derive each stated fact from the tree or from the remote rather than repeating it: a ruling that quotes a figure the tree no longer answers is the defect this group exists to catch. Read dev/governance/roles/proposal-triage.md for what a batch may and may not rule, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Keep batch 37 off batch 36's branch: a pending review must not be moved under."
   }
