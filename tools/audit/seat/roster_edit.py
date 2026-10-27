@@ -873,6 +873,13 @@ def _self_test() -> int:
             rc = sysrc(lambda: edit(*args, **kw))
         return rc not in (0, None) and why in err.getvalue()
 
+    def refusal(*args, **kw):
+        """(rc, stderr) of one refused call: the message a seat reads."""
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = sysrc(lambda: edit(*args, **kw))
+        return rc, err.getvalue()
+
     def branch_roster(name="edit-1"):
         sha = run(["git", "-C", str(origin), "rev-parse",
                    f"refs/heads/{name}"]).strip()
@@ -880,10 +887,25 @@ def _self_test() -> int:
                                f"{sha}:{FIXTURE_ROSTER}"]))
 
     # round-trips: each op lands in the dumped JSON, never a string splice.
-    check("set-stage rc", edit("set-stage", "R9-A", "in-review") == 0)
+    # R10-ORCH-ROSTER-SCHEMA: the round-trip runs on a stage the registry
+    # classifies. It used to pin `in-review`, a word the writer accepted while
+    # roster_sync's self-test refused to classify it -- the writer's own test
+    # pinning the drift the class is about.
+    check("set-stage rc", edit("set-stage", "R9-A", "in-progress") == 0)
     r = branch_roster()
     check("set-stage round-trip",
-          r["groups"][0]["resume"]["stage"] == "in-review")
+          r["groups"][0]["resume"]["stage"] == "in-progress")
+    # THE VOCABULARY BARRIER. A stage the registry does not classify is refused
+    # at the writer, naming the roster, the group and the offending value; a
+    # classified stage still lands, or the refusal would be a blanket one that
+    # no roster could satisfy.
+    rc, said = refusal("set-stage", "R9-B", "reviewed")
+    check("set-stage refuses an unclassified stage", rc == 2
+          and "not a classified roster stage" in said and "R9-B" in said
+          and "reviewed" in said and FIXTURE_ROSTER in said, (rc, said[-300:]))
+    check("set-stage accepts a classified live-claim stage (null control)",
+          edit("set-stage", "R9-B", "review") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "review")
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)
@@ -951,6 +973,32 @@ def _self_test() -> int:
                                 "lane": "L2", "brief": "x"}), encoding="utf-8")
     check("dangling after refused",
           edit("append-group", "R9-D", str(badg)) == 2)
+    # A new group carries a stage and a size like any other entry, so
+    # append-group validates both against the registry and the duration model.
+    badstage = Path(tmp, "bad-stage.json")
+    badstage.write_text(json.dumps({"group": "R9-G", "lane": "L2", "after": [],
+                                    "brief": "fixture G",
+                                    "resume": {"stage": "shipped"}}),
+                        encoding="utf-8")
+    rc, said = refusal("append-group", "R9-G", str(badstage))
+    check("append-group refuses an unclassified stage", rc == 2
+          and "not a classified roster stage" in said and "R9-G" in said
+          and "shipped" in said, (rc, said[-300:]))
+    badsize = Path(tmp, "bad-size.json")
+    badsize.write_text(json.dumps({"group": "R9-H", "lane": "L2", "after": [],
+                                   "brief": "fixture H", "size": "XS"}),
+                       encoding="utf-8")
+    rc, said = refusal("append-group", "R9-H", str(badsize))
+    check("append-group refuses a size the duration model lacks", rc == 2
+          and "duration model" in said and "R9-H" in said and "XS" in said,
+          (rc, said[-300:]))
+    goodsize = Path(tmp, "good-size.json")
+    goodsize.write_text(json.dumps({"group": "R9-I", "lane": "L2", "after": [],
+                                    "brief": "fixture I", "size": "S"}),
+                        encoding="utf-8")
+    check("append-group accepts a modelled size (null control)",
+          edit("append-group", "R9-I", str(goodsize)) == 0
+          and branch_roster()["groups"][-1].get("size") == "S")
     check("edit-brief rc",
           edit("edit-brief", "R9-B", "rewritten brief") == 0
           and branch_roster()["groups"][1]["brief"] == "rewritten brief")
@@ -1037,6 +1085,14 @@ def _self_test() -> int:
           edit("set-resume", "R9-ZZ", "x", field="last_step") == 2)
     check("set-resume unknown field refused",
           sysrc(lambda: edit("set-resume", "R9-A", "x", field="log")) == 2)
+    # set-resume --field stage is the second way a stage word reaches the file.
+    rc, said = refusal("set-resume", "R9-B", "shipped", field="stage")
+    check("set-resume --field stage refuses an unclassified stage", rc == 2
+          and "not a classified roster stage" in said and "R9-B" in said
+          and "shipped" in said, (rc, said[-300:]))
+    check("set-resume --field stage accepts a classified stage (null control)",
+          edit("set-resume", "R9-B", "fixing", field="stage") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "fixing")
 
     # set-after: a group's after-edges replaced whole, through the same
     # load/modify/dump flow; every refusal leaves the remote branch where it

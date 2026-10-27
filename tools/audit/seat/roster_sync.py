@@ -943,6 +943,34 @@ def self_test() -> int:
               roster_lib.groups_of(roster_at(bare3, branch))["R9-LIVE"]
               ["resume"]["stage"] == "done")
 
+    # THE LIVE-CLAIM CLOSE (R10-ORCH-ROSTER-SCHEMA). `review` and `in-review`
+    # are a seat's claim that the work is live: the reconciler leaves the claim
+    # alone while its pull request is open and closes it to `done` on the merge,
+    # so a live claim can never strand a merged group open. A done group is a
+    # settled record in both arms.
+    live = {"groups": [
+        {"group": "L-OPEN", "resume": {"stage": "in-review",
+                                       "branch": "handoff/l-open"}},
+        {"group": "L-MERGED", "resume": {"stage": "review",
+                                         "branch": "handoff/l-merged"}},
+        {"group": "L-GONE", "resume": {"stage": "done",
+                                       "branch": "handoff/l-gone"}},
+    ]}
+    got_changes, got_skips, _ = derive(live, [
+        PR(31, OPEN, "handoff/l-open", None, ""),
+        PR(32, MERGED, "handoff/l-merged", "3" * 40, "## Friction\n\n- none\n"),
+        PR(33, OPEN, "handoff/l-gone", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    check("a live claim survives its open pull request (no change)",
+          "L-OPEN" not in by and not [s for s in got_skips if s[0] == "L-OPEN"],
+          (by, got_skips))
+    check("a live claim is closed to done by its merge",
+          "L-MERGED" in by and by["L-MERGED"].stage == "done"
+          and by["L-MERGED"].merge_commit == "3" * 40, by)
+    check("a done group stays settled under a matching open pull request",
+          "L-GONE" not in by, by)
+
     # The live roster's own words: every stage a round's roster carries is
     # classified, so a new wording cannot be silently overwritten.
     root = Path(__file__).resolve().parents[3]
@@ -962,6 +990,28 @@ def self_test() -> int:
           and "carries-open" not in DERIVABLE_STAGES)
     check("the classification covers the tree's rosters at all",
           bool(seen), sorted(seen))
+
+    # The same rule for the size vocabulary: the durations model IS the
+    # vocabulary, so a roster size the model does not carry breaks the planner
+    # (`size_hours[...]` raises KeyError) with no gate to see it. The scan is
+    # driven on a planted unknown below, so a green zero is a measurement.
+    model = json.loads((root / "tools/plan/durations.json").read_text(
+        encoding="utf-8"))["sizes_hours"]
+    sizes_seen: dict[str, str] = {}
+    for path in sorted((root / roster_lib.ROSTERS_DIR).glob("wave-*-groups.json")):
+        for g in json.loads(path.read_text(encoding="utf-8")).get("groups", []):
+            size = g.get("size")
+            if size is not None:
+                sizes_seen.setdefault(size, path.name)
+    unknown_sizes = {s: f for s, f in sizes_seen.items() if s not in model}
+    check("every size the tree's rosters carry is in the durations model",
+          not unknown_sizes, unknown_sizes)
+    check("the size scan covers the tree's rosters at all",
+          bool(sizes_seen), sorted(sizes_seen))
+    planted = {"size": "__unmodelled__"}
+    check("the size scan refuses a size the model lacks (null control)",
+          [s for s in [planted["size"]] if s not in model] == ["__unmodelled__"],
+          model)
 
     print(f"roster_sync self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
