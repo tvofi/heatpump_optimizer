@@ -10,7 +10,7 @@ bus-nonce: 90602aa3a83e9d593d64b3f3bc454260
 
 ## Verified (non-blocking)
 
-- **Triage gate moves on every arm.** Reviewer-built harness on `roster_edit.triage_refusal` (`ev/triage_gate_harness.py`, output `ev/triage_gate.out`): the committed P216 reads ACCEPT; the ACCEPT citation resolves; DEFER, REJECT, a renamed heading, an absent entry, a missing batch, and an uncited proposal are all refused; a plain carry lands. `RESULT PASS` x9, 0 FAIL.
+- **Triage gate moves on every arm.** Reviewer-built harness on `roster_edit.triage_refusal` (`evidence/triage_gate_harness.py`, output `evidence/triage_gate.out`): the committed P216 reads ACCEPT; the ACCEPT citation resolves; DEFER, REJECT, a renamed heading, an absent entry, a missing batch, and an uncited proposal are all refused; a plain carry lands. `RESULT PASS` x9, 0 FAIL.
   Carry: dismissed: verified, no action.
 - **Destination holds.** At `origin/handoff/audit-r10-roster` `9aed78e0e` (212 groups), `R10-ROUND-PLAYBOOK` exists with `resume.stage: not-started`, files `CLAUDE.md` and `dev/audit/README.md`, 7 carries. `R10-BRIEFS-FOLD` is done, carries 20, and also lists `CLAUDE.md`; `R10-RCA-ORCH-CONTINUITY` lists `sweep_template.md`, not `CLAUDE.md`. The destination and the pre-emption in the body are accurate.
   Carry: R10-ROUND-PLAYBOOK
@@ -30,7 +30,7 @@ bus-nonce: 90602aa3a83e9d593d64b3f3bc454260
 
 ## Evidence
 
-- `ev/head.txt`, `ev/citations.txt`, `ev/checks.txt`, `ev/triage_gate_harness.py`, `ev/triage_gate.out`.
+- `evidence/head.txt`, `evidence/citations.txt`, `evidence/checks.txt`, `evidence/triage_gate_harness.py`, `evidence/triage_gate.out`.
 - RESULT symbol/id: V129 resolves at `proposals.md:653`; V136 resolves nowhere (0 of 121 entries). RESULT lines: `ruling_verdict` 455 vs body 456; `triage_refusal` 466 vs body 464.
 - RESULT figures: 212 groups at `9aed78e0e`; PLAYBOOK 7 carries, `not-started`; BRIEFS-FOLD 20 carries, done.
 - RESULT gate: 9 of 9 arms move. RESULT records: merge-tree clean, carry-audit 0 unrouted, two-file diff.
