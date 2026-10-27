@@ -1,8 +1,0 @@
-pr-body ok: PR-BODY: 0 error(s) in ~/hpo-seats/r10s6/review-2853-r4-ev/body.md -- no budget leaf raised over 4db1d3e28...b69828eb4
-carry ok: CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 2b1fefed1
-preflight ok
-figures ok: FIGURES: 17 resolved, 2 not verified, 0 refused
-ref_privacy ok: ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 479 line(s) added since 4db1d3e28f0d judged, 0 refused
-real 16.65
-user 2.31
-sys 3.08

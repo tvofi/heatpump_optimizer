@@ -1,0 +1,45 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 9739df21e..136902233 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -537,7 +537,7 @@ def unpinned(base):
+ # single question answered: `prepr.sh --fill-red` derives the `mutation` red
+ # alone, and reaching it by running the other eight cost 6.5 s of CPU against
+ # the 5 s budget the seat's checks meet (R10-FLOW-JIDOKA's review, 2026-10-26).
+-ARMS = ("orphans", "layout", "privacy", "agreement", "no-recording",
++ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "no-recording",
+         "under-scoped", "inert-siblings", "left-inert", "mutation")
+ 
+ 
+@@ -560,6 +560,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
+         ("orphans", lambda: orphans(changed, closure)),
+         ("layout", lambda: layout_preds(root, base)),
+         ("privacy", lambda: privacy_preds(root)),
++        ("wiring", lambda: wiring_preds(root, changed)),
+         ("agreement", lambda: agreement_preds(root, base_ref, changed)),
+         ("no-recording", lambda: no_recording(root, base, changed, closure)),
+         ("under-scoped", lambda: under_scoped(root, base, changed, tracked, closures,
+@@ -569,23 +570,9 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
+         ("mutation", lambda: unpinned(base)),
+     )
+     preds: list[tuple[str, str]] = []
+-<<<<<<< b69828eb4a056850e7fc8914e6cde391f04743df
+     for name, arm in arms:
+         if only is None or name == only:
+             preds += arm()
+-=======
+-    preds += orphans(changed, closure)
+-    preds += layout_preds(root, base)
+-    preds += privacy_preds(root)
+-    preds += wiring_preds(root, changed)
+-    preds += agreement_preds(root, base_ref, changed)
+-    preds += no_recording(root, base, changed, closure)
+-    preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
+-                          closure, pairs, scripts)
+-    preds += inert_siblings(changed, inert_reads, closure, pairs)
+-    preds += left_inert(changed, closures, inert_reads, closure, scripts)
+-    preds += unpinned(base)
+->>>>>>> a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9
+     if body:
+         preds += carry_preds(root, body)
+     seen, out = set(), []
