@@ -42,6 +42,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, TypedDict, cast
 from weakref import WeakKeyDictionary
 
+from .const import finite_float
 from .payload import PriceTile
 
 #: The owner's horizon (#2257 item 6): "a 30-day rolling average".
@@ -139,8 +140,7 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
 def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
     """The monthly figure a tile averages: a degree held, or the plan under a cap, settled."""
     key = "monthly_settled_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
-    value = answer.get(key)
-    return float(value) if isinstance(value, (int, float)) else None
+    return finite_float(answer.get(key))
 
 
 def _within(days: list[TileDay], today: date) -> list[TileDay]:
