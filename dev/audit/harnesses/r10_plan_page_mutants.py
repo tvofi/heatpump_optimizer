@@ -74,6 +74,9 @@ MUTANTS = [
      "f\"start, ETA and wave. {max(0, len(chain) - 1) - drawn} of"),
     ("E-explicit-ref-wins", PLAN, "    ref = ref or gen.get(\"roster_ref\") or \"\"",
      "    ref = gen.get(\"roster_ref\") or ref or \"\""),
+    # R10-PLAN-PRIO: the Tier column is the plan's computed dispatch priority.
+    ("tier-column", PAGE,
+     '{r["tier"] if r["tier"] is not None else "—"}', '"—"'),
 ]
 
 
