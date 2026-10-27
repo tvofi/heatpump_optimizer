@@ -5106,7 +5106,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # efficiency past it); a draw off the ask needs draw_range's
         # evidence. A measured heat (fold e) leaves the gates nothing to judge.
         heat_kw = self._flow_bias.heat_output_kw
-        ratio = float(self._measured_power) / max(commanded, 1e-6)
+        ratio = float(cast(float, self._measured_power)) / max(commanded, 1e-6)  # the two guards leave a power here
         # Seeded at 1.0, the model's own expectation, and gated against the
         # value BEFORE this sample updates it, so a first-sample blip cannot
         # vouch for itself; it walks on every sample, accepted or not.
@@ -5119,7 +5119,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 refusal, commanded, self._measured_power, ewma,
             )
             return refusal
-        return self._fold_cop_evidence(commanded, self._measured_power, heat_kw, self._cop_reference_curve())
+        return self._fold_cop_evidence(commanded, cast(float, self._measured_power), heat_kw, self._cop_reference_curve())
 
     def _fold_cop_evidence(
         self, commanded: float, electrical_kw: float, heat_kw: float | None,
