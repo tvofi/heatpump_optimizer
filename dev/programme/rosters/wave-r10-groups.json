@@ -9831,7 +9831,7 @@
    "architect_note": "",
    "brief": "From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). The house grade should measure envelope loss in W/K, corrected for thermal mass, and normalized by the configured house type and/or building period. At main, and in R10-PARAMS-OWNER, `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py` grades a time constant against one all-era band, and the configured era, structure and area never enter it. The owner's specification: a 100-year-old house with new windows and added insulation should score at least 30-40. Seams: `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py`, the era and structure presets in `custom_components/heatpump_optimizer/presets.py`, and the score strings in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`. Build it measure-first: derive the loss in W/K from the learned parameters, show on a null control that two houses of equal envelope but different era score the same after normalization and that the old-house example above reaches the stated floor, then change the grade. Edge: after R10-PARAMS-OWNER, which reshapes the same function.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "handoff",
     "branch": "handoff/r10-house-grade",
     "commit": "f1f67bec2420ab603de2ee39dcb69649498ea988",
     "last_step": "PR head 253dc4867 (code f1f67bec2, body ref 0ed3c466d) is fully green: 55 check-runs, 39 success, 16 skipped, 0 pending, 0 failure; tests / fast and tests / mutation both success",
