@@ -10597,6 +10597,49 @@
     "commit": "524c1896b6943b3da03d6cad61420ced31e14c9c"
    },
    "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
+  },
+  {
+   "group": "R10-TRIAGE-B36",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27 under the owner's ruling that a delivery gap with no owning group gets folded into the roster rather than left as an orphan handoff. This group exists because the triage s6 batch 36 pull request carried a handoff ref that no group named, so the drain, the plan count and the board's OWED handoffs line all saw it as uncovered work with no seat."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "fix/triage-s6-batch36",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "advance the head over the gap repair, then review it",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+   },
+   "brief": "Own the triage s6 batch 36 pull request to a merge-ready head. The batch file and the pull request's own Figures section must agree on every deferred item: the repair that reopened this group was one place saying a proposal was already carried while the enumerator printed zero for it. Re-derive the enumerator's output at your merge base rather than quoting the body's, and when the two disagree, the enumerator wins and the prose is the defect. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Do not add a survivor-triage record; a survivor list is repaired by killing the mutant or by an equivalent assertion, not by recording it."
   }
  ]
 }
