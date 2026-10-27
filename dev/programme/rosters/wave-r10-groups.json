@@ -4866,12 +4866,12 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "fixing",
-    "branch": "wip-sync/ext-mut-297fc65b",
-    "commit": "eb46ec47ad6add449c46d1f0d3bfae4694355e67",
-    "last_step": null,
-    "next_step": "fixer live; eb46ec47a models the valved buffer tank in the single-zone step. No handoff branch and no PR yet: reachable at wip-sync/ext-mut-297fc65b (snapshot) and wip-sync/ext-wt-e3556a49. Push handoff/r10-buffer-store, then open the PR.",
-    "note": null
+    "stage": "in-progress",
+    "branch": "handoff/r10-buffer-store",
+    "commit": "173b71ba44480b6992f8f91021109c8eecc16582",
+    "last_step": "handoff pushed at 173b71ba4; 11 mutants KILLED at the tip",
+    "next_step": "review the handoff at 173b71ba4 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store",
+    "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md (process state (c), census countermeasure). Gate reds: the stress_budgets raise on summer/1z/space/valve is the owner's; the shoulder economics red reads the same at base, main and head; the optimality claim closed; card.mjs OOM on this host."
    },
    "class": "production",
    "group": "R10-BUFFER-STORE",
