@@ -1721,7 +1721,7 @@ def _partload_derate(value: Any) -> float:
         derate = float(value)
     except (TypeError, ValueError):
         return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
-    if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
+    if 0.0 < derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
         return derate
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
 
