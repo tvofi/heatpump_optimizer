@@ -311,8 +311,19 @@ def coupling(ref: str, window: int, repo: Path = ROOT) -> dict:
             continue  # a direct commit on main is not a merged pull request
         sha, parent = parts[0], parts[1]
         merges += 1
-        changed = [p for p in git("diff", "--name-only", parent, sha, "--", PKG, cwd=repo).splitlines()
-                   if p.endswith(".py")]
+        # `--name-status -M`, not `--name-only`: `tests/closure.py`'s census
+        # refuses a rename-collapsing `--name-only` diff under RENAME_SITES,
+        # because a collapse hides a deleted path from a list the gate scopes
+        # on (`closure.py`'s own `changed_between` reads both sides). The
+        # question here is module identity, so detection is kept and the
+        # destination taken: one rename is one module, never a false pair --
+        # `--no-renames` would split it into a deleted plus an added module and
+        # count a co-change that no one made.
+        changed = []
+        for row in git("diff", "--name-status", "-M", parent, sha, "--", PKG, cwd=repo).splitlines():
+            path = row.split("\t")[-1]
+            if path.endswith(".py"):
+                changed.append(path)
         modules = sorted({str(Path(p).relative_to(PKG)) for p in changed})
         if len(modules) < 2:
             continue
@@ -580,6 +591,18 @@ def self_test() -> int:
         both = coupling("main", 50, repo)
         t("the null control: a later merge of one module alone lowers the rate",
           both["merges"] == 2 and both["cochange_per_100"] == 50.0, repr(both))
+        # The rename arm: `--no-renames` would read this as a.py deleted and
+        # d.py added in one merge, a pair nobody made; detection reads one
+        # module. The rate therefore falls with the third merge and no pair.
+        git("checkout", "-qb", "renamed", "HEAD", cwd=repo)
+        git("mv", f"{PKG}/a.py", f"{PKG}/d.py", cwd=repo)
+        git("commit", "-qm", "rename a", cwd=repo)
+        git("checkout", "-q", "main", cwd=repo)
+        git("merge", "-q", "--no-ff", "-m", "merge rename", "renamed", cwd=repo)
+        renamed = coupling("main", 50, repo)
+        t("a rename alone is one module, so it adds no co-change pair",
+          renamed["merges"] == 3 and renamed["cochange_per_100"] == round(100 / 3, 4),
+          repr(renamed))
 
     print(f"plan_audit self-test: {checks} checks, {failures} failed")
     return 1 if failures else 0
