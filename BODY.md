@@ -66,7 +66,7 @@ none
 
 ## Forward-carry
 
-- `dev/programme/rosters/wave-r10-groups.json`: 8 groups are sized `XS`, a value `tools/plan/durations.json` does not define, and nothing checks the roster's size vocabulary when it is written. `replan.py` now refuses it at the boundary by name; the class is being root-caused in its own seat. Carry: the roster-vocabulary root-cause seat (coordinator, 2026-10-27).
+- `dev/programme/rosters/wave-r10-groups.json`: 8 groups are sized `XS`, a value `tools/plan/durations.json` does not define, and nothing checks the roster's size vocabulary when it is written. `replan.py` now refuses it at the boundary by name. Carry: dismissed: the roster-vocabulary class is being root-caused in its own seat (coordinator, 2026-10-27), and the planner's side is closed by this change.
 
 ## Friction
 
