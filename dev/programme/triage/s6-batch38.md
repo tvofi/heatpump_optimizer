@@ -39,8 +39,11 @@ sanctions (`SKIP: <script> ... left to CI, named unrun`) instead of blocking unb
   A SLOT, not this lease, and so outside the arm: `tools/pr/prepr.sh`'s whole-run `slot-take`
   (line 3142; its line 344 only *asks* `needs-lease`, to defer a `lease` script to CI),
   `tests/run.sh`'s `slot-auto-lease` (line 343), `tests/derive_closures.sh`'s `slot-take`
-  (line 128). `take(` in `tests/gate_lock.py` and `tests/entities.py` is called against temp
-  lock dirs: self-tests, not the shared lock. Command: the importer grep
+  (line 128). The `gate_lock.take`/`_gate_lock.take` matches in `tests/gate_lock.py`
+  and `tests/entities.py` are self-tests against a temp `lock_dir=d`; the CLI is not
+  one of those matches -- `_cmd_take` (line 1008) calls `take(args.label,
+  lock_dir=args.lock_dir, ...)` with `--lock-dir` defaulting to `DEFAULT_LOCK_DIR`
+  (lines 1140-1145), and that is the by-hand route named above. Command: the importer grep
   `grep -rn 'gate_lock\.take\|gate_lock import\|from gate_lock' tools/ tests/ .claude/ | grep -v '\.pyc'`
   finds `judge_batch.py` but not the CLI route, so it is completed by
   `grep -rn 'gate_lock\.py.*\(take\|auto-lease\|flock-wrap\|slot-take\|slot-auto-lease\)' --include='*.sh' --include='*.py' tools/ tests/`
