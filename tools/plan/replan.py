@@ -12,15 +12,24 @@ What it reads
     `git show`; `tools/plan/durations.json` (the measured, cached durations);
     `VERSION` from the checkout. No network and no GitHub state: the same
     inputs produce byte-identical output. `--measure-ci` is the one network
-    path and it only rewrites the durations file, never a plan.
+    path and it only rewrites the durations file, never a plan. A roster size
+    `sizes_hours` does not carry is refused, naming the roster, the group and
+    the size: a duration is never invented (the live roster's `XS` has no
+    measured sample).
 
 The schedule
     List scheduling over the roster's `after` edges with six pull-request
-    slots, longest-remaining-path first. A group holds a slot from its start
-    (the PR opens) to its finish (the PR merges). Groups whose fixer is
+    slots, the owner's dispatch priority first and longest-remaining-path
+    within a tier. The priority (tvofi 2026-10-26) is derived at every replan:
+    tier 0 is `critical_path()`'s output for the roster graph as it stands
+    (never a stored list), tier 1 a production-lane group, tier 2 everything
+    else, ranked within tier 2 by the roster's `savings` field (absent sorts
+    last). Height breaks ties within a tier. A group holds a slot from its
+    start (the PR opens) to its finish (the PR merges). Groups whose fixer is
     already working (stage `in-progress`) were dispatched before the replan:
-    up to six start at the replan instant in height order, whatever their
-    dependency state, and the rest wait for a slot like any pending group.
+    up to six start at the replan instant in the same priority order, whatever
+    their dependency state, and the rest wait for a slot like any pending
+    group.
 
     The coordinator cap is enforced on the groups the PLAN dispatches. The
     inherited in-progress set can itself exceed it -- on 2026-10-20 three of
@@ -64,7 +73,7 @@ plan.json shape
     inherited_coordinator, inherited_dependency_violations}; summary {closure,
     wall_hours, ci_minutes, batches, stamps, ...}; critical_path [group...];
     groups {name: {wave, start, finish, slot, duration_minutes, size, lane,
-    level, live, inherited, coordinator, batch, stamp, after}}; waves [{wave,
+    tier, level, live, inherited, coordinator, batch, stamp, after}}; waves [{wave,
     opens, drains, stamp, batch, groups}]; batches [{id, at, groups}]; stamps
     [{version, at, kind, batch, carries}].
 """
@@ -89,6 +98,11 @@ SELF = "tools/plan/replan.py"
 # the owner's cadence ("a patch stamp after roughly five production groups").
 LANES = ("Learners", "Core model", "Product UX", "Replay", "Instruments", "Docs")
 PRODUCTION = ("Learners", "Core model", "Product UX")
+
+# The owner's dispatch priority (tvofi 2026-10-26): the critical path first,
+# then production, then everything else by the savings it carries. The tiers
+# are derived from the roster graph at every replan; none is stored.
+TIER_CRITICAL, TIER_PRODUCTION, TIER_OTHER = 0, 1, 2
 
 # A fixer already working. `queued` is not working: the plan dispatches it.
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
@@ -299,10 +313,39 @@ def critical_path(deps: dict, dur: dict, order: list) -> list:
     return chain
 
 
+def dispatch_tier(n: str, crit: set, lane: dict) -> int:
+    """The owner's dispatch tier: 0 the critical path, 1 production, else 2.
+
+    `crit` is `critical_path()`'s own output for this replan, so tier 0 moves
+    with the roster graph rather than being a list anyone maintains.
+    """
+    if n in crit:
+        return TIER_CRITICAL
+    return TIER_PRODUCTION if lane[n] in PRODUCTION else TIER_OTHER
+
+
+def dispatch_key(n: str, tier: dict, savings: dict, height: dict,
+                 dur_min: dict) -> tuple:
+    """The dispatch order, lowest first: tier, then savings, then height.
+
+    Only a tier-2 group is ranked by the roster's `savings`; a group with no
+    savings sorts behind every group that has one. Height breaks ties within a
+    tier and the name makes the order total, so the schedule stays
+    deterministic.
+    """
+    t = tier[n]
+    if t == TIER_OTHER:
+        sav = -savings[n] if n in savings else float("inf")
+    else:
+        sav = 0.0
+    return (t, sav, -height[n], -dur_min[n], n)
+
+
 # ------------------------------------------------------------------- schedule
 
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
-               version: str, roster_ref: str = "", roster_blob: str = "") -> dict:
+               version: str, roster_ref: str = "", roster_blob: str = "",
+               roster_path: str = "") -> dict:
     G = groups_of(roster)
     deps, open_, done = dependency_graph(G)
     order = topo_order(deps)
@@ -322,11 +365,41 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         is_live = stage in LIVE_STAGES
         if is_live:
             live.add(n)
-        base = float(size_hours[G[n].get("size") or "M"])
+        size = G[n].get("size") or "M"
+        if size not in size_hours:
+            # An unmeasured size is refused at the roster boundary: a
+            # hand-written duration would be a fabricated measurement, and a
+            # KeyError from inside the schedule names neither the group nor
+            # the roster. The live roster carries `XS`; sizes_hours records no
+            # XS sample, so the honest answer is this refusal.
+            raise PlanError(
+                f"{n}: size {size!r} has no measured duration in sizes_hours "
+                f"({', '.join(sorted(size_hours))}) -- roster "
+                f"{roster_path or roster_ref or '<fixture>'}")
+        base = float(size_hours[size])
         dur_h[n] = base * live_fraction if is_live else base
     dur_min = {n: max(1, int(round(dur_h[n] * 60))) for n in open_}
     height = heights(deps, dur_h, order)
     lvl = levels(deps, order)
+
+    # The owner's dispatch priority, derived from this replan's graph. `crit`
+    # is `critical_path()`'s output, never a stored list. `savings` is a
+    # roster field; a value that is not a number is refused rather than
+    # silently treated as absent.
+    cp = critical_path(deps, dur_h, order)
+    crit = set(cp)
+    savings: dict = {}
+    for n in open_:
+        s = G[n].get("savings")
+        if s is None:
+            continue
+        if isinstance(s, bool) or not isinstance(s, (int, float)):
+            raise PlanError(f"{n}: savings is not a number: {s!r}")
+        savings[n] = float(s)
+    tier = {n: dispatch_tier(n, crit, lane) for n in open_}
+
+    def priority(n: str):
+        return dispatch_key(n, tier, savings, height, dur_min)
 
     slots = int(caps["slots"])
     seats = int(caps["seats"])
@@ -358,13 +431,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         return sum(1 for n in list(running) + list(finished) if coord[n])
 
     def pick(candidates, now: int):
-        """Highest remaining path first; coordinator cap on planned starts."""
+        """The owner's dispatch priority; coordinator cap on planned starts."""
         cc = in_flight_coord()
         best = None
         for n in candidates:
             if coord[n] and n not in inherited and cc >= coord_cap:
                 continue
-            key = (-height[n], -dur_min[n], n)
+            key = priority(n)
             if best is None or key < best[0]:
                 best = (key, n)
         return None if best is None else best[1]
@@ -378,14 +451,15 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
 
         # 1. At the replan instant, the groups whose fixer is already working
         #    were dispatched before the plan: admit up to `slots` of them in
-        #    height order whatever their dependency state. That state is why
+        #    the SAME priority order the rest of the schedule uses, whatever
+        #    their dependency state. That state is why
         #    `generated.inherited_dependency_violations` can be non-empty -- a
         #    fixer can be ahead of the roster's serialisation. After this
         #    instant a live group still waiting for a slot queues like any
         #    other and is released when its dependencies have merged.
         if t == 0:
             live_pending = sorted((n for n in pending if n in live),
-                                  key=lambda n: (-height[n], n))
+                                  key=priority)
             while live_pending and free_slot() is not None:
                 n = live_pending.pop(0)
                 s = free_slot()
@@ -507,6 +581,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             groups_out[n] = {
                 "wave": None, "start": None, "finish": None, "slot": None,
                 "duration_minutes": 0, "size": G[n].get("size"), "lane": lane[n],
+                # A done group is not dispatched, so it carries no tier.
+                "tier": None,
                 "level": None, "live": False, "inherited": False,
                 "coordinator": touches_coordinator(G[n]), "batch": None,
                 "stamp": None, "after": [], "done": True,
@@ -520,6 +596,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "duration_minutes": dur_min[n],
             "size": G[n].get("size"),
             "lane": lane[n],
+            "tier": tier[n],
             "level": lvl[n],
             "live": n in live,
             "inherited": n in inherited,
@@ -532,7 +609,6 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
 
     peak_flight, peak_coord = peak_concurrency(groups_out, start)
     peak_working = peak_seats(groups_out, start)
-    cp = critical_path(deps, dur_h, order)
     inherited_deps = [
         {"group": n, "after": g, "dependent_start": iso(start, start_t[n]),
          "dependency_finish": iso(start, merged_t[g])}
@@ -1055,6 +1131,127 @@ def selftest() -> int:
            p5["groups"]["A"]["start"] > p5["groups"]["B"]["start"],
            f"A starts {p5['groups']['A']['start']}, B {p5['groups']['B']['start']}")
 
+    # The owner's dispatch priority (tvofi 2026-10-26): the critical path
+    # computed from the graph, then production, then the rest by the roster's
+    # `savings`. The fixtures below fail on a key that sees remaining height
+    # alone; the tiers are derived at each replan, never stored.
+    prio = {"groups": [
+        # CP -> CP2 is the 10 h chain, so it is `critical_path()`
+        {"group": "CP", "size": "L", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "CP2", "size": "M", "lane": "IN", "kind": "instrument",
+         "after": ["CP"], "resume": {"stage": "not-started"}},
+        # a SHORT production group (Core model, 2 h) beside a TALLER
+        # non-production one (Instruments, 8 h): priority puts production
+        # second; height alone puts the taller group second
+        {"group": "PROD", "size": "S", "lane": "CO", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "TALL", "size": "XL", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+    ]}
+    p7 = build_plan(prio, durations, one, start, "v1.0.0")
+    starts7 = {g: p7["groups"][g]["start"] for g in ("CP", "CP2", "PROD", "TALL")}
+    expect("the computed critical path is CP -> CP2",
+           p7["critical_path"] == ["CP", "CP2"], str(p7["critical_path"]))
+    expect("the critical path is dispatched before the shorter work",
+           p7["groups"]["CP"]["start"] == iso(start, 0)
+           and p7["groups"]["CP2"]["start"] < p7["groups"]["PROD"]["start"],
+           str(starts7))
+    expect("a short production group outranks a taller non-production one",
+           p7["groups"]["PROD"]["start"] < p7["groups"]["TALL"]["start"], str(starts7))
+
+    # The t==0 live admission must use the SAME key: under height alone TALL
+    # (8 h) is admitted and the short production group is queued.
+    liveprio = {"groups": [
+        {"group": "CP", "size": "L", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "CP2", "size": "M", "lane": "IN", "kind": "instrument",
+         "after": ["CP"], "resume": {"stage": "not-started"}},
+        {"group": "PROD", "size": "S", "lane": "CO", "kind": "defect",
+         "after": [], "resume": {"stage": "in-progress"}},
+        {"group": "TALL", "size": "XL", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "in-progress"}},
+    ]}
+    p8 = build_plan(liveprio, durations, one, start, "v1.0.0")
+    expect("the t==0 live admission uses the same priority key",
+           p8["groups"]["PROD"]["inherited"] is True
+           and p8["groups"]["TALL"]["inherited"] is False,
+           str({g: p8["groups"][g]["inherited"] for g in ("PROD", "TALL")}))
+
+    # Within tier 2 the roster's `savings` ranks; absent sorts last. CP owns
+    # the critical path so HI/LO/NONE are all tier 2. The size order (L, M, S)
+    # is the opposite of the savings order, so height alone would invert it.
+    save = {"groups": [
+        {"group": "CP", "size": "XL", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "HI", "size": "S", "lane": "IN", "kind": "instrument",
+         "savings": 9, "after": [], "resume": {"stage": "not-started"}},
+        {"group": "LO", "size": "L", "lane": "IN", "kind": "instrument",
+         "savings": 1, "after": [], "resume": {"stage": "not-started"}},
+        {"group": "NONE", "size": "M", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+    ]}
+    p9 = build_plan(save, durations, one, start, "v1.0.0")
+    expect("tier 2 ranks by savings, and absent savings sorts last",
+           p9["groups"]["HI"]["start"] < p9["groups"]["LO"]["start"]
+           < p9["groups"]["NONE"]["start"],
+           str({g: p9["groups"][g]["start"] for g in ("HI", "LO", "NONE")}))
+
+    # Height breaks ties within a tier, ahead of the name (AAA would win on
+    # the name alone).
+    tie = {"groups": [
+        {"group": "CP", "size": "XL", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "AAA", "size": "S", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "ZZZ", "size": "L", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+    ]}
+    p10 = build_plan(tie, durations, one, start, "v1.0.0")
+    expect("height breaks ties within a tier, ahead of the name",
+           p10["groups"]["ZZZ"]["start"] < p10["groups"]["AAA"]["start"],
+           str({g: p10["groups"][g]["start"] for g in ("AAA", "ZZZ")}))
+
+    # A size the durations table does not measure is refused at the roster
+    # boundary, naming the roster, the group and the size -- never a KeyError
+    # from inside the schedule and never an invented duration (the live roster
+    # carries `XS`; sizes_hours records no XS sample).
+    unmeasured = {"groups": [
+        {"group": "XS-GROUP", "size": "XS", "lane": "IN", "kind": "instrument",
+         "after": [], "resume": {"stage": "not-started"}},
+    ]}
+    try:
+        build_plan(unmeasured, durations, caps, start, "v1.0.0",
+                   roster_path="dev/programme/rosters/wave-r10-groups.json")
+        expect("an unmeasured size is refused, naming roster, group and size",
+               False, "it scheduled an XS group")
+    except PlanError as exc:
+        msg = str(exc)
+        expect("an unmeasured size is refused, naming roster, group and size",
+               "XS-GROUP" in msg and "XS" in msg
+               and "wave-r10-groups.json" in msg, msg)
+    measured = {"groups": [
+        {"group": f"MX{k}", "size": s, "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}}
+        for k, s in enumerate(("S", "M", "L", "XL"))]}
+    try:
+        build_plan(measured, durations, caps, start, "v1.0.0")
+        expect("a roster of only measured sizes plans", True)
+    except PlanError as exc:
+        expect("a roster of only measured sizes plans", False, str(exc))
+
+    # A non-numeric savings is refused, never silently treated as absent (it
+    # would otherwise reach float() and crash, or worse, sort last unnoticed).
+    badsav = {"groups": [
+        {"group": "BADSAV", "size": "S", "lane": "IN", "kind": "instrument",
+         "savings": "lots", "after": [], "resume": {"stage": "not-started"}},
+    ]}
+    try:
+        build_plan(badsav, durations, caps, start, "v1.0.0")
+        expect("a non-numeric savings is refused", False, "it scheduled")
+    except PlanError as exc:
+        expect("a non-numeric savings is refused", "savings" in str(exc), str(exc))
+
     prod = {"groups": [
         {"group": f"P{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "not-started"}} for i in range(6)]}
@@ -1118,9 +1315,27 @@ def selftest() -> int:
              _m("if prev is None or started ", '< prev["started"]:'), "if prev is None:"),
             ("coordinator-cap", _m("def pick(candidates, ", "now: int):"),
              _m("if coord[n] and n not in inherited ", "and cc >= coord_cap:"), "if False:"),
-            ("dispatch-order",
+            ("tier-critical-path",
+             _m("def dispatch_tier(n: str, ", "crit: set, lane: dict) -> int:"),
+             "if n in crit:", "if False:"),
+            ("tier-production",
+             _m("def dispatch_tier(n: str, ", "crit: set, lane: dict) -> int:"),
+             _m("return TIER_PRODUCTION if lane[n] in ", "PRODUCTION else TIER_OTHER"),
+             "return TIER_OTHER"),
+            ("tier-savings",
+             _m("def dispatch_key(n: str, ",
+                "tier: dict, savings: dict, height: dict,"),
+             _m('sav = -savings[n] if n in savings ', 'else float("inf")'), "sav = 0.0"),
+            ("height-tiebreak",
+             _m("def dispatch_key(n: str, ",
+                "tier: dict, savings: dict, height: dict,"),
+             _m("(t, sav, -height[n], ", "-dur_min[n], n)"), "(t, sav, n)"),
+            ("live-same-key",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("key = (-height[n], ", "-dur_min[n], n)"), "key = (n,)"),
+             "key=priority", _m("key=lambda n: ", "(-height[n], n)")),
+            ("savings-validated",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("if isinstance(s, bool) or not isinstance(s, ", "(int, float)):"), "if False:"),
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if len(carry) >= ", "every:"), "if False:"),
@@ -1350,7 +1565,17 @@ def main(argv=None) -> int:
         version = "0.0.0"
     roster, ref, blob = load_roster(args.repo, args.roster_ref, args.roster_path,
                                     args.roster_file)
-    plan = build_plan(roster, durations, caps, start, version, ref, blob)
+    # The roster's own path, so a refusal can name the file it read rather
+    # than the ref it came through (`load_roster` resolves it but returns only
+    # the blob). A fixture names itself.
+    src = args.roster_file
+    if not src:
+        try:
+            src = roster_lib.roster_path(args.repo, ref, args.roster_path)
+        except roster_lib.RosterNotFound:
+            src = args.roster_path or ""
+    plan = build_plan(roster, durations, caps, start, version, ref, blob,
+                      roster_path=src)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
