@@ -271,6 +271,6 @@
   "S": 13.1,
   "XL": 30.2
  },
- "sizes_provenance": "median (latest merge - earliest PR commit) over 25 done round-10 groups: S n=16, M n=7, L n=2; XL = 1.5 x L because no XL group has merged. Wall-clock including review rounds and queueing, so a group that waited in review inflates its size (S 13.1 > M 11.4). Measured in wave-data.md section 3 at 2026-10-18; no merged group has changed the method since.",
+ "sizes_provenance": "median (latest merge - earliest PR commit) over 25 done round-10 groups: S n=16, M n=7, L n=2; XL = 1.5 x L because no XL group has merged. Wall-clock including review rounds and queueing, so a group that waited in review inflates its size (S 13.1 > M 11.4). Measured in wave-data.md section 3 at 2026-10-18; no merged group has changed the method since. XS is unmeasured (no XS group has merged), so a roster carrying an XS group is refused by replan.py until an XS duration is measured.",
  "stamp_lead_minutes": 60
 }
