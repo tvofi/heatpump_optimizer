@@ -1,10 +1,10 @@
 Fix review: blocked f92442065832f5ccbe397882b73c79c173ab4dd7 other: the body's ## Figures still asserts R10-ORCH-BEATD "already carries P197" — the exact claim round 1 blocked and 996eb1df1's own message calls false (0 P197 in the roster); the repair landed in s6-batch36.md but not in the body — and the ruling's cost reads one of the destination group's 34 carries, missing P97(b) at index 21 which already carries the per-instance alive entry, the sweep arm and the DUPLICATE print it prices as new
-bus-nonce: 985f4ae3abf1885e15383bef6f809549
+bus-nonce: ec8302171ca647f00d83db56e4b0f5bf
 
 Head reviewed: `f92442065832f5ccbe397882b73c79c173ab4dd7` (re-read at the PR and at `git rev-parse origin/fix/triage-s6-batch36` before writing: unchanged).
 Base: `524c1896b6943b3da03d6cad61420ced31e14c9c` (the batch's stated base; merge base).
-Worktree: `/Users/timmalmstrom/hpo-seats/r10s6/rev-2877`, detached at the head.
-Evidence: `/Users/timmalmstrom/hpo-seats/r10s6/rev-2877-ev/` (`EVIDENCE.md` and the numbered files it lists).
+Worktree: `~/hpo-seats/r10s6/rev-2877`, detached at the head.
+Evidence: `~/hpo-seats/r10s6/rev-2877-ev/` (`EVIDENCE.md` and the numbered files it lists).
 Round: 1 at this head; the prior verdict is at `b8c62d10…` (head `6d58fa0bc`).
 
 ## Verdict
