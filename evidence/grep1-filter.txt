@@ -1,0 +1,37 @@
+=== grep1 | grep -v gate_lock.py ===
+tools/audit/judge_batch.py:185:        gate_lock.take(self.label, lock_dir=self.lock_dir, lease_seconds=self.seconds,
+tests/entities.py:15395:                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+tests/entities.py:15417:            taken = _gate_lock.take(
+tests/entities.py:15433:            taken = _gate_lock.take(
+tests/entities.py:15444:        first = _gate_lock.take("live", lock_dir=d, lease_seconds=2, wait=False)
+tests/entities.py:15450:            _gate_lock.take("other", lock_dir=d, wait=False)
+tests/entities.py:15458:            _gate_lock.take("other", lock_dir=d, wait=False)
+tests/entities.py:15466:            late = _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+tests/entities.py:15476:        _gate_lock.take("live", lock_dir=d, lease_seconds=1800, wait=False)
+tests/entities.py:15478:            _gate_lock.take("other", lock_dir=d, wait=False)
+tests/entities.py:15521:        _gate_lock.take(
+tests/entities.py:15525:            taken = _gate_lock.take("successor", lock_dir=d, lease_seconds=60, wait=False)
+tests/entities.py:15531:        _gate_lock.take(
+tests/entities.py:15535:            _gate_lock.take("other", lock_dir=d2, wait=False)
+tests/entities.py:15571:        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+tests/entities.py:15639:                    got.append(_gate_lock.take(f"r{i}", lock_dir=d, wait=False).label)
+tests/entities.py:15661:            stolen = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
+tests/entities.py:15699:            _gate_lock.take("successor", lock_dir=d, wait=False)
+tests/entities.py:15710:            after = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
+tests/entities.py:15716:        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+tests/entities.py:15844:        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+tests/entities.py:15847:            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+tests/entities.py:15852:        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+tests/entities.py:15856:        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+tests/entities.py:15858:            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+tests/entities.py:15874:        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+tests/entities.py:15877:            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+tests/entities.py:15882:        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+tests/entities.py:15885:            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+tests/entities.py:15919:    _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+tests/entities.py:15959:        _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+tests/entities.py:15988:        _gate_lock.take("seat", lock_dir=d, lease_seconds=60, wait=False)
+tests/entities.py:15992:            _gate_lock.take("w", lock_dir=d, lease_seconds=60)
+tests/entities.py:16028:            taken = _gate_lock.take(
+tests/entities.py:16050:                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+tests/entities.py:16070:        _gate_lock.take("holder", lock_dir=d, lease_seconds=1800, wait=False)
