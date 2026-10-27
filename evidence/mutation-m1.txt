@@ -1,0 +1,13 @@
+head 24702c3756442023ab88524e182fe4333c46ad50
+M1: grade_merge returns at its entry; restored after; git status empty
+MUTANT M1: grade_merge returns at its entry
+  FAIL THE OVERLAP GRADE, arm 1: a serial car whose base the batch's own merges moved is graded before it lands, and a red one is HELD -- never merged -- and re-carried
+  FAIL THE OVERLAP GRADE: the red arm read the MERGE tree -- #3's own file was in the graded worktree, and the grade ran once per moved base (the recarry's identical tree is cached, not re-run)
+  ok   THE OVERLAP GRADE leaves no worktree behind: the graded tree is a throwaway, so the next run's pre-flight finds nothing holding a branch
+  FAIL THE OVERLAP GRADE builds GitHub's merge with git's TEXT merge, never the clone's ledger driver: a car the batch's own merges put in conflict on a driven file is reported as a conflict and re-carried, not silently resolved into a tree the grade calls green
+  FAIL THE OVERLAP GRADE, arm 2 (the unmodified green car): a green merge tree still merges, and the car the batch moved the base FOR is graded exactly once
+  ok   THE OVERLAP GRADE's null control: the first car's base never moved, so nothing is graded
+  FAIL THE OVERLAP GRADE runs structure.py where the gate's own closure selects it for what the merge changes, and only then (the workflow-only car above got policy_lint alone)
+batch arms: 81 checks, 5 failed
+
+[exited with code 0]

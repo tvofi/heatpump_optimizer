@@ -1,0 +1,17 @@
+Reviewed head: 24702c3756442023ab88524e182fe4333c46ad50
+Pull request: #2882, refs/heads/fix/r10-train-overlap-grade
+Refs checked at review time (git ls-remote):
+  24702c3756442023ab88524e182fe4333c46ad50  refs/pull/2882/head
+  24702c3756442023ab88524e182fe4333c46ad50  refs/heads/fix/r10-train-overlap-grade
+Diff under review (three-dot against the merge base 67178dc6a589):
+  dev/programme/delivery/2882.md  |   1 +
+  tools/audit/seat/INSTRUMENTS.md |   9 +
+  tools/audit/seat/merge_train.py | 275 +++++++++++++++++++++++++-
+Code head the body names: 61b81ba987fc5da175d9555596ce3ddd05dcd9b7 and its
+delivery-row commit 24b0f9b8510aa0d6ce203607577b32fa66e34bf1; both are
+ancestors of the reviewed head.
+Check-runs at the reviewed head at review time: prelude success, the tests/
+lanes success (fast (3.14), mutation, closures, closure-scope, claims, typing,
+arch-instrument, briefs, browser, nightly-status), governance/* success;
+tests / coverage in_progress; no `gate` or `pr-contract` check-run published
+yet (the umbrella's prelude was still running).

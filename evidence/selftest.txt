@@ -1,0 +1,7 @@
+head 24702c3756442023ab88524e182fe4333c46ad50
+PR 2882 fix/r10-train-overlap-grade
+
+--- merge_train.py --self-test (full), worktree at the head ---
+merge_train self-test: 327 checks, 0 failed
+
+[exited with code 0]

@@ -1,0 +1,12 @@
+head 24702c3756442023ab88524e182fe4333c46ad50
+base 24702c375644
+arm RED  structure_reaches: True
+grade policy_lint e8a070d7: ok (103s)
+grade structure.py e8a070d7: RED (108s) FAIL methods_over_200 9 > 8 (+1)
+arm RED  GRADE: ['structure.py (FAIL methods_over_200 9 > 8 (+1))']  (217s)
+arm GREEN structure_reaches: True
+grade policy_lint d16f2252: ok (85s)
+grade structure.py d16f2252: ok (71s)
+arm GREEN GRADE: []  (162s)
+
+[exited with code 0]
