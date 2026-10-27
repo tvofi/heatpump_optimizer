@@ -44381,6 +44381,59 @@ R.check(
     "as a simulation failure",
 )
 
+# #2508: with NO indoor temperature entity there is no observed room.
+# `_update_current_state` leaves ``ThermalState.room_temperature`` at its
+# 21.0 C constructor default, and ``_learning_frozen`` deliberately passes an
+# unconfigured slot -- so before this fix the learner folds a residual
+# between two constants and persists a coefficient fitted to neither. The
+# learner must not admit the sample. Null controls: the configured indoor
+# entity still learns (its unconfigured *power* slot is passed for the same
+# reason, and must not now freeze anything), and the lower-floor learner --
+# whose observable is its own zone's sensor -- is untouched by the guard.
+_t2_hl_no_indoor = _t2_house(observed=21.0, indoor_temp_entity=None)
+_t2_no_indoor_reader = InputReader(
+    _t2_hl_no_indoor.hass, _t2_hl_no_indoor.effective_config,
+)
+_t2_no_indoor_reader.read("indoor_temp_entity")
+_t2_hl_no_indoor._input_health = _t2_no_indoor_reader.health
+_t2_drive(_t2_hl_no_indoor, "_async_learn_house_heat_loss")
+_t2_no_indoor_view = _t2_hl_no_indoor._input_health_view()
+R.check(
+    "#2508: no indoor temperature entity freezes the house heat-loss learner "
+    "with a visible reason instead of fitting the 21.0 C default",
+    _t2_hl_no_indoor._house_heat_loss_samples == 0
+    and _t2_hl_no_indoor._house_heat_loss_scale == 1.0
+    and _t2_hl_no_indoor._learner_freeze_reason
+    == "not_configured:indoor_temp_entity"
+    and _t2_no_indoor_view["learner_freeze_reason"]
+    == "not_configured:indoor_temp_entity"
+    and _t2_no_indoor_view["learners_frozen"] is True,
+    f"samples {_t2_hl_no_indoor._house_heat_loss_samples} scale "
+    f"{_t2_hl_no_indoor._house_heat_loss_scale!r} reason "
+    f"{_t2_hl_no_indoor._learner_freeze_reason!r} view {_t2_no_indoor_view!r}",
+)
+_t2_hl_indoor_ok = _t2_house(observed=20.9)
+_t2_drive(_t2_hl_indoor_ok, "_async_learn_house_heat_loss")
+R.check(
+    "#2508 null control: a configured indoor entity still learns, and its "
+    "unconfigured power slot does not freeze it",
+    _t2_hl_indoor_ok._house_heat_loss_samples == 1
+    and _t2_hl_indoor_ok._learner_freeze_reason is None,
+    f"samples {_t2_hl_indoor_ok._house_heat_loss_samples} reason "
+    f"{_t2_hl_indoor_ok._learner_freeze_reason!r}",
+)
+_t2_lo_no_indoor = _t2_house(
+    two_zone=True, lower=19.9, indoor_temp_entity=None,
+)
+_t2_drive(_t2_lo_no_indoor, "_async_learn_lower_floor_loss")
+R.check(
+    "#2508 guard: the lower-floor learner still learns with no indoor entity "
+    "(its observable is the lower zone's own sensor)",
+    _t2_lo_no_indoor._lower_floor_loss_samples == 1,
+    f"samples {_t2_lo_no_indoor._lower_floor_loss_samples} reason "
+    f"{_t2_lo_no_indoor._learner_freeze_reason!r}",
+)
+
 _t2_hl_mild = _t2_house(outdoor=16.0)
 _t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")
 R.check(

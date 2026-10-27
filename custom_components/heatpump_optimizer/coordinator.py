@@ -324,6 +324,7 @@ from .thermal_model import (
     heat_loss_basis,
     heat_loss_basis_voids,
     learner_newton_step,
+    learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
@@ -5463,14 +5464,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         observed = ctx._current_state.room_temperature
 
-        frozen = replay_freeze(self._learning_frozen(
+        # #2508: no observed room at all -- ranked before the ventilation
+        # pass-through below, so a constant is never fed to the detector.
+        frozen = learner_room_unread(ctx._config) or replay_freeze(self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
         ), ctx._config, _interval_measured_heat_kw(self))
-        # "ventilation" is the one freeze reason this method must look
-        # past: the ventilation detector below is what CLEARS it, and it
-        # needs the residual to see the window close. Every other reason
-        # (stale sensors, external heat) makes the residual itself
-        # untrustworthy, detector included.
+        # "ventilation" is the one reason to look past: the detector below
+        # clears it and needs the residual to see the window close. Any other
+        # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
             self._learner_freeze_reason = frozen
@@ -10916,13 +10917,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         # #1523: the experiment is a heat-loss learner, so it stands down on
         # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable room or outdoor reading, the pump's freezes,
-        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        # window, an unusable or unconfigured room or outdoor reading) and on
+        # a mode that cannot heat. The room half is ``learner_room_unread``.
         why = (
             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
             if self._pump_signals.space_blocked
             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        )
+        ) or learner_room_unread(getattr(ctx, "_config", None))
         if why is not None:
             self._sysid.abort(why)
             return
