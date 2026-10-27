@@ -1,0 +1,9 @@
+total_count 47
+PENDING: 8
+neutral: 1
+skipped: 9
+success: 29
+failures: []
+pending: ['prelude', 'tests / coverage', 'tests / closures', 'prelude', 'prelude', 'governance / instrument-self-tests', 'codeql / Analyze (python)', 'prelude']
+{"headRefOid":"88b452c6ac61231c83967bd4de148c18f7ee407c","mergeStateStatus":"BLOCKED","mergeable":"MERGEABLE","state":"OPEN"}
+merge-tree exit=0

@@ -1,0 +1,13 @@
+roster: dev/programme/rosters/wave-r10-groups.json at origin/handoff/audit-r10-roster
+groups: 212 carries: 692 carries naming a PR: 396
+(group,PR) pairs where one destination holds >1 carry naming the same PR: 52
+  of those: From+non-From mixed 11 | all-From 11 | no From-marker 30
+examples (group, PR, count):
+   ('R10-ADVISOR', '2255') 2
+   ('R10-ADVISOR', '2452') 5
+   ('R10-ARCH-SHAPES', '2238') 2
+   ('R10-HEAT-METER', '2753') 2
+   ('R10-COP-GATE', '2753') 2
+   ('R10-UX-HEALTH', '2253') 2
+prose mention is read as a source: carried_from(<carry from another PR>,2447) on
+  'From the R10-BRIEFS-FOLD body ... a second instance beside #2447\'s:' -> True
