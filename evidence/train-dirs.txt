@@ -1,0 +1,32 @@
+# train dirs scanned: loop over s*/ in the orchestrator's train state dir (population 27)
+# command: for d in s*/; do grep -qE "TRAIN (DONE|STOPPED)" "$d"* || echo NO-END $d; done
+s38/     end_lines=0
+s39/     end_lines=1
+s40/     end_lines=1
+s41/     end_lines=1
+s42/     end_lines=1
+s43/     end_lines=1
+s44/     end_lines=0
+s45/     end_lines=1
+s46/     end_lines=1
+s47/     end_lines=1
+s48/     end_lines=1
+s49/     end_lines=1
+s50/     end_lines=1
+s51/     end_lines=1
+s52/     end_lines=1
+s53/     end_lines=1
+s54/     end_lines=1
+s55/     end_lines=1
+s56/     end_lines=1
+s57/     end_lines=2
+s58/     end_lines=2
+s59/     end_lines=1
+s60/     end_lines=0
+s60b/    end_lines=1
+s61/     end_lines=1
+s61b/    end_lines=1
+s62/     end_lines=1
+
+# digits-suffixed dirs: 25
+# all s* dirs:          27

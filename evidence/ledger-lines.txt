@@ -1,0 +1,29 @@
+# cited seat-ledger lines (state dir ledger)
+-- line 1078
+2026-10-26T14:22:00Z orch s7 sweep: #2849 r2 MERGE verdict never published -- review/2849 still 89124da6 (r1); relay refused probe/rev-2849-7794e967 c02f0273 (subject 'verdict: #2849 ...' on a probe ref). Resumed rev-2849 ce2ad515 to publish via review ref. Relay OWED: handoff-update r10-heat-meter 52aa1f5d, r10-arch-shapes 864a96c0 (fixers f68d6a2a/6bd13b6f live); handoff-no-pr jidoka-p2-body b9b690af.
+-- line 1112
+merge s7: 2026-10-26T17:00:39Z s59 TRAIN STOPPED rc=1 recarry: #2745 @d2cd24dcdfee19518416e299b8ac3207b92bc8b3 does not merge origin/main 0137c4cb (post-#2834): conflicts custom_components/heatpump_optimizer/coordinator.py (content) and tests/golden/claimed_drift.txt (claimnotes refused: both sides rewrote claim list); fixer resolution + re-review owed; #2745 unmerged; s59/wt/2745 merge aborted (clean, still holds fix/r10-sav-comfort; remove before fixer resumes); fix-2745 holder detached by train; no confirm/state_docs run
+-- line 1113
+merge s7: 2026-10-26T17:01:45Z train s60 launched, queue60=[#2858 @52f7d33a3213f2757c0cc368340d936e160a97cf verdict comment 6421515451]; s59 ended TRAIN STOPPED rc=1 (recarry #2745 needs resolution)
+-- line 1123
+2026-10-26T18:24:00Z orch s7 sweep: loops alive (tick 19:17, beat, wt_sync, sweep timer). s60 #2858 DIED silently after 17:02Z recarry b7096782 (no train proc; seat 9df5295d stale since 18:09 local). pr-contract red at b7096782 = CodeQL wait timeout 600s -> rerun 40364843458. New merge seat relaunches s60b (daemonized). #2865 = R10-ORCH-DISPATCH-REG PR opened (handoff c8a9f5d7). Board: #2854 DIRTY structure_budgets conflict, #2853 behind 97.
+-- line 1124
+merge s7: 2026-10-26T18:21:51Z s60 found dead (pid 71741 gone, launch.log empty, last log 17:02Z; launched undetached, died with its seat's shell); stale s60/wt/2858 (clean, b7096782) removed; train s60b launched via daemonize pid 57948, queue60=[#2858 @52f7d33a verdict comment 6421515451, live head b70967829ecdbd5e674a99c1d410e3c2182c24e3]
+-- line 1125
+merge s7: 2026-10-26T18:30:14Z s60b TRAIN DONE rc=0: merged #2858 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f (recarried head b7096782, carried verdict comment 6421515451 accepted by app_approve; no bus.sh confirm needed) closed none; state_docs already current handoff/audit-r10-plan 8dc8a8ef3a4d4cd7faf0a9ed66f951b8e7be88dc; set-stage owed R10-FLY-OPENPR-ATOMIC done 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f
+-- line 1131
+2026-10-26T19:45Z orch s7: rev 08190af7 blocked #2745@1a13f2b3 metric-gamed (14/21 lines line-joins). Relay needed 4 orch repairs to probe (short ref name, 'blocked ' marker, bus-nonce line, ev naming head) -> next reviewer brief must spell relay format exactly (preamble rule 4 underspecifies). Relayed 165c15e8, confirmed. Fixer efc9a8a4 resumed to re-pay (real refactor or mandate raise w/ archscore).
+-- line 1145
+2026-10-26T20:50Z orch s7: s61 TRAIN STOPPED rc1 20:30Z: '#2864 red at its head: gate' = train read stale failed gate check-run 121687736029 (16:06Z rate-limit) despite newer success 121690658158 (16:11Z). Train defect -> V122 (train must grade the newest check-run per name). Merged nothing. s61b launched #2865 alone. #2864 next: fresh run or train fix. Also: s61 stop at 20:30 was not noticed until sweep 20:40 (10 min).
+-- line 1148
+2026-10-26T21:10Z orch s7: s61b TRAIN rc0 20:45Z: #2865 MERGED bfc4a1e2 (CP). CP fixer ORCH-REVIEW-PACKET 39eb5269 dispatched. #2864 gate rerun failed on HTTP 502 (transient) -> rerun again. Sweep now mechanical: s7/sweep_mech.sh (beat, wt-sync, tick, train liveness; restarts dead loops; logs) runs each 1200 s tick before AGENT_LOOP_TICK_sweep; notify also on '-> RESTARTED|DEAD'.
+-- line 1150
+triage s7: 2026-10-26T20:53:33Z hold — v7.0.5 tag absent on origin; alive touched
+-- line 1152
+merge s7: 2026-10-26T20:55:11Z train s62 launched (daemonize pid 27643) queue62 #2864@30c940e5 c6426559856
+-- line 1162
+- 32 'owner disposition' groups: every one carries a mandated-approval owner_gate (6175172275 / 6319294694 / 6329234399; 4 say tvofi approves at merge, covered by scope all) -> not blocked; tick misreads mandated gates as owner-blocked -> V123.
+-- line 1166
+- probe-refused (rev-2745 already relayed as 165c15e8; rev-2853-d18e29be verdict at old head 819b82fb; rev-2858 old free-text subject) and handoff-body/r10-flow-jidoka-p2-body (stale body ref; #2853 carries its own): dismissed, historic.
+-- line 1182
+merge s7: 2026-10-26T21:16:05Z train s62 rc0: #2864 MERGED 6fe5170cd7ce01e60ffebfc93e598c216e628fa3, closed none; state_docs already current a59ad2cefc13
