@@ -1,0 +1,104 @@
+=== 6a7eb805 parents ===
+tree 27938516fef34e3df67a4731c90d49f72e3917e4
+parent f92442065832f5ccbe397882b73c79c173ab4dd7
+parent 35a165fc06f3be19d9f51e95348fc014bac6be9f
+author tvofi <70032254+tvofi@users.noreply.github.com> 1793118123 +0100
+
+=== log graph ===
+*   b95d3faf8 Merge remote-tracking branch 'origin/main' into fix/triage-s6-batch36
+|\  
+| *   67178dc6a Merge pull request #2880 from tvofi/fix/r10-roster-schema-pr
+| |\  
+| | *   b2ee78fb5 Merge remote-tracking branch 'origin/main' into fix/r10-roster-schema-pr
+| | |\  
+| | |/  
+| |/|   
+| * |   34cd75bf1 Merge pull request #2745 from tvofi/fix/r10-sav-comfort
+| |\ \  
+| | * \   3522cd925 Merge commit '6d526cfdc50ff472d3530f3c52dacee60bead7ee' into fix/r10-sav-comfort
+| | |\ \  
+| | | * | 6d526cfdc fix(ledger): make coverage_factor total for a partial month meta
+| | | * |   805550f53 Merge remote-tracking branch 'origin/main' into fix/r10-sav-comfort
+| | | |\ \  
+| | |_|/ /  
+| |/| | |   
+| | | * | 4522d46b0 fix(ledger): route coverage_factor's sum through const.finite_float
+| | |/ /  
+| | * |   02a28aed1 Merge remote-tracking branch 'origin/main' into fix/r10-sav-comfort
+| | |\ \  
+| | * | | 4bf7c2eaa R10-SAV-COMFORT: restore the finder's harness, port the proof and the control
+| | * | | 0ff823754 R10-SAV-COMFORT: the savings reference is the thermostat at the comfort schedule
+| | * | | a50fe5146 R10-SAV-COMFORT: book the month on one basis, calibrated to the meter
+
+=== is 35a165fc0 ancestor of HEAD? ===
+YES
+=== is 35a165fc0 ancestor of origin/main? ===
+NO
+=== diff HEAD^1..HEAD paths ===
+ .claude/workflows/audit-find.js                    |   4 +-
+ custom_components/heatpump_optimizer/ledger.py     | 140 +++++----
+ custom_components/heatpump_optimizer/optimizer.py  | 237 ++++++++-------
+ custom_components/heatpump_optimizer/payload.py    |   3 +
+ .../heatpump_optimizer/pump_arbiter.py             |  12 +-
+ dev/audit/config/bugclasses.json                   |  56 ++++
+ dev/audit/config/finding.schema.json               |   2 +-
+ dev/audit/harnesses/r10_sav_baseline_mutants.py    |  53 +++-
+ dev/audit/harnesses/r10_sav_volume.py              | 102 +++++++
+ dev/audit/harnesses/r10_savings_upgrade_month.py   |  10 +-
+ dev/audit/rca/R10-N-vocabulary-drift.md            | 108 +++++++
+ dev/governance/roles/standing-dispatch.md          |   6 +-
+ dev/programme/delivery/2745.md                     |   1 +
+ dev/programme/delivery/2880.md                     |   1 +
+ dev/programme/delivery/r10-roster-schema.md        |  11 +
+ dev/programme/rosters/wave-r10-groups.json         |  16 +-
+ docs/dashboard-card.md                             |  11 +-
+ tests/card.mjs                                     |  25 ++
+ tests/closures.json                                |  16 ++
+ tests/features.py                                  | 317 ++++++++++++++++++---
+ tests/golden/claimed_drift.txt                     |   2 +
+ .../ledger.py/@module.CONST.7dc7eda1.json          |   6 +
+ ...hlyLedger._coverage_factor.BOOLOP.0966076a.json |   6 -
+ ...edger._coverage_factor.CLAMP_DROP.fa57ad15.json |   6 -
+ ...Ledger._coverage_factor.CMP_BOUND.0966076a.json |   6 -
+ ...Ledger._coverage_factor.GUARD_OFF.0966076a.json |   6 -
+ ...edger._coverage_factor.RETURN_DEL.9d94391a.json |   6 -
+ ....add_savings_settlement.GUARD_OFF.336eb9f3.json |   6 +
+ ....add_savings_settlement.GUARD_OFF.dce68de8.json |   6 +
+ ...edger.meter_calibration.CMP_BOUND.66109ecf.json |   6 +
+ ...edger.meter_calibration.GUARD_OFF.66109ecf.json |   6 +
+ ...dger.meter_calibration.RETURN_DEL.fbe6bc9f.json |   6 +
+ ...nthlyLedger.month_cost.RETURN_DEL.db51d98c.json |   6 -
+ .../ledger.py/coverage_factor.BOOLOP.19542f25.json |   6 +
+ .../coverage_factor.CLAMP_DROP.fa52ec19.json       |   6 +
+ .../coverage_factor.CMP_BOUND.19542f25.json        |   6 +
+ .../coverage_factor.GUARD_OFF.19542f25.json        |   6 +
+ .../coverage_factor.RETURN_DEL.04ec4dfd.json       |   6 +
+ ...er._compute_baseline_power.BOOLOP.03ee6373.json |   6 +
+ ...compute_baseline_power.CLAMP_DROP.2bd515d1.json |   6 +
+ ..._compute_baseline_power.GUARD_OFF.03ee6373.json |   6 +
+ ...r._deferred_energy_cost.GUARD_OFF.d11cb401.json |   6 +
+ ...imizer._start_gap_cost.CLAMP_DROP.034eeda1.json |   6 -
+ ...imizer._start_gap_cost.CLAMP_DROP.31b40b21.json |   6 +
+ ...imizer._start_gap_cost.CLAMP_DROP.51a50741.json |   6 -
+ ...imizer._start_gap_cost.CLAMP_DROP.83697c20.json |   6 +
+ ...mizer._start_gap_cost.RETURN_DEL.83697c20.json} |   6 +-
+ .../_baseline_target.BOOLOP.f603ef97.json          |   6 -
+ .../_baseline_target.CMP_BOUND.f603ef97.json       |   6 -
+ .../_baseline_target.GUARD_OFF.f603ef97.json       |   6 -
+ .../_baseline_target.RETURN_DEL.26d08f36.json      |   6 +
+ .../_baseline_target.RETURN_DEL.3b5a6813.json      |   6 -
+ .../_baseline_targets.GUARD_OFF.7df02561.json      |   6 +
+ .../_baseline_targets.RETURN_DEL.e3ab3cc7.json     |   6 +
+ .../_observe.GUARD_OFF.f2ad4d4c.json               |   6 +
+ tests/plan_view.py                                 |  26 ++
+ tests/structure_budgets.json                       |   4 +-
+ tools/audit/seat/r10_roster_ops_mutants.py         |  22 ++
+ tools/audit/seat/r10_roster_sync_mutants.py        |  33 ++-
+ tools/audit/seat/roster_edit.py                    | 178 ++++++++++--
+ tools/audit/seat/roster_lib.py                     | 120 +++++++-
+ tools/audit/seat/roster_sync.py                    | 163 +++++++++--
+ 62 files changed, 1496 insertions(+), 387 deletions(-)
+=== diff 524c..HEAD three-dot ===
+ dev/programme/delivery/2877.md     |  1 +
+ dev/programme/triage/s6-batch36.md | 89 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+)
