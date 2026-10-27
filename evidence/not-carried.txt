@@ -1,0 +1,10 @@
+=== not carried by design: 46df1de62..d1b115ef ===
+d1b115ef1 roster_edit set-resume R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+91876ec3c roster_edit set-resume R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+4701ec177 roster_edit set-resume R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+94ece3d08 roster_edit set-stage R10-HOUSE-GRADE (tools/audit/seat/roster_edit.py)
+count: 4
+4	4	dev/programme/rosters/wave-r10-groups.json
+== live refs ==
+4180a7d01c3e8e4b34d746c4bccba452cf415d25	refs/heads/fix/audit-r10-roster-pr
+f5dc872dce81633ef076e21702821f0bfe25cd2a	refs/heads/handoff/audit-r10-roster

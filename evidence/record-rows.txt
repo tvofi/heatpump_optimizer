@@ -1,0 +1,15 @@
+head: 4180a7d01c3e8e4b34d746c4bccba452cf415d25
+PR 2834 API state/merge=MERGED	0137c4cb052e134c953f31054907c01393d55ad7
+  row at head: - [#2834](https://github.com/tvofi/heatpump_optimizer/pull/2834) — **merged `0137c4c`**, R10-ADVISOR-RESIDUE: the residue of #2257 that R10-ADVISOR recorded and left (R10-ADVISOR-RESIDUE).
+PR 2858 API state/merge=MERGED	3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f
+  row at head: - [#2858](https://github.com/tvofi/heatpump_optimizer/pull/2858) — **merged `3b4180d`**, R10-FLY-OPENPR-ATOMIC: open_pr releases its worktree and pushes the row row-only (R10-FLY-OPENPR-ATOMIC).
+PR 2862 API state/merge=MERGED	149ce54a36bcf9e794d357e0ef69dc8af62f8eb8
+  row at head: - [#2862](https://github.com/tvofi/heatpump_optimizer/pull/2862) — **merged `149ce54`**, triage: s6 batch 34 (P195-P198).
+PR 2864 API state/merge=MERGED	6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+  row at head: - [#2864](https://github.com/tvofi/heatpump_optimizer/pull/2864) — **merged `6fe5170`**, roster: round-10 batch 21.
+PR 2865 API state/merge=MERGED	bfc4a1e297fb2899be1c4643ae9d75b8a5829208
+  row at head: - [#2865](https://github.com/tvofi/heatpump_optimizer/pull/2865) — **merged `bfc4a1e`**, R10-ORCH-DISPATCH-REG: one dispatch registry, replay-safe confirm, the three-round re-cut (R10-ORCH-DISPATCH-REG).
+PR 2866 API state/merge=MERGED	484d9902222031f8e081df9f53b52ffd50fcc0af
+  row at head: - [#2866](https://github.com/tvofi/heatpump_optimizer/pull/2866) — **merged `484d990`**, roster: round-10 batch 22.
+2871 row at head:
+- [#2871](https://github.com/tvofi/heatpump_optimizer/pull/2871) — **open**, roster: round-10 batch 23 (R10-ORCH-ROSTER)
