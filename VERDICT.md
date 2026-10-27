@@ -1,55 +1,69 @@
-Fix review: blocked 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd body-stale: this head prints roster_sync 64 checks, 1 failed and R10-TRAIN-OVERLAP-GRADE stage "done --at-sha 4db1d3e28...", while the body claims 0 failed and in-progress
-bus-nonce: 90ccced14f4b9fae9b224c60d7fe14af
+Fix review: blocked 340b3298ac6645883fecf1d5aefe08132735db62 delivery-row-stale: `dev/programme/delivery/2878.md` still names `(R10-ORCH-ROSTER)`, a group no roster carries, while `roster_lib.group_for_branch("fix/audit-r10-roster-pr")` answers `R10-ROSTER-BATCH24`; the body records the contradiction as `## Friction` and a carry instead of correcting the one-line suffix, so `record_row` and the row disagree. Round 4: `fixer.md` owes a re-cut, not a repair.
+bus-nonce: 2ba1b589f7caf0d71b0ac99f7231bc33
 
-# Fix review — PR #2878 at `1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd`
+## Head
 
-Round 3. The last verdict was `blocked body-stale` at `0e370d603`; this reviews the repair at the head the PR now carries. Worktree `~/hpo-seats/r10s6/review-2878-r3/wt`, detached at the head; the main checkout is untouched. Head at publish time is still `1dbf3f674`. Delta since the last reviewed head: `git rev-list --count 0e370d603..1dbf3f674 --not origin/main` = 4 commits, one of them the new `12fd86e13 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE`. Evidence: `~/hpo-seats/r10s6/review-2878-r3/evidence/`.
+Reviewed `340b3298ac6645883fecf1d5aefe08132735db62` from a detached worktree at that SHA (`~/hpo-seats/r10s6/review-2878-r4`); `git rev-parse HEAD` and `gh pr view 2878 --json headRefOid` both answer it. `origin/main` is `a0e7664ea`, `git merge-base origin/main HEAD` is `6eb552157`. The head did not move. Round 3 blocked `b0920b94a`; this is round 4.
 
-RESULT blocked body-stale (B1). B2, B3 and B4 pass; the block is the body's own figures against this head, plus the roster value that makes one of them false.
+The worktree's `dev/governance/roles/fix-review.md` is three editorial lines behind the live contract (`git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is non-empty for that file only); the live copy was read instead, and it changes no rule this verdict turns on.
 
-## B1 — the body must describe this head: FAILS
+Three-dot, as the brief requires: `git diff --numstat $(git merge-base origin/main HEAD)...HEAD` is `1 0 dev/programme/delivery/2878.md` and `259 49 dev/programme/rosters/wave-r10-groups.json` — exactly two files. `git log --no-merges --format=%H origin/main..HEAD | wc -l` is 76, the number the body states.
 
-- The commit enumeration now describes this branch: `--no-merges origin/main..b0920b94a` = 27, `..cfacd3800` = 70, their union = 71 (intersection 26), `--no-merges origin/main..HEAD` = 71, and the 27 are exactly the 26 `roster_edit`/`roster_sync` ops in `3b78b44a0`..`a9c7555ad` plus the record `b0920b94a`. That part re-derives.
-  Carry: R10-ROSTER-BATCH24
-- `roster_sync --self-test` does NOT pass at this head. The head's own command prints `FAIL every stage the tree's rosters carry is classified (derivable or protected) (got: {'done --at-sha 4db1d3e28f0dff50f6916e39d52efed0ce856d0a': 'wave-r10-groups.json'})` and `roster_sync self-test: 64 checks, 1 failed`; the null control at `origin/main` prints `64 checks, 0 failed`, so the failure is this branch's roster. The body (lines 19 and 42) states `64 checks, 0 failed` at the merged tree. `governance / instrument-self-tests` runs exactly that command (`.github/workflows/governance.yml:761`) and greps `^roster_sync self-test: [1-9][0-9]* checks, 0 failed$` (line 762), so the head cannot go green: reproduction is `env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test`.
-  Carry: R10-ROSTER-BATCH24
-- The value behind that failure is `R10-TRAIN-OVERLAP-GRADE resume.stage = "done --at-sha 4db1d3e28f0dff50f6916e39d52efed0ce856d0a"`, not a `roster_lib.STAGES` value (`is_open()` reads it OPEN). The body (line 15) says the group moves to `in-progress`. It arrived in `12fd86e13`, newer than the last reviewed head, and is present on the current roster tip `32b938f3e`; the repair ops for it are still un-marked in `~/hpo-orch/r10s6/s7/roster-queue-s7.txt:35-36`.
-  Carry: R10-TRAIN-OVERLAP-GRADE
-- The null control's roster blobs do not re-derive. Body line 27 says "this head `cc64745e`, the roster tip `4b136c3e`, the merged tree `adff8318`". Actual: `origin/main` `582f75be3`, roster tip `cfacd3800` `e5cf37ba8` (which the body's own Figures line 40 states), `b0920b94a` `cc64745e`, this head `2740d0909`. `4b136c3e` is `f318f7014` (the previous authored head) and `adff8318` is `0e370d603` (the previous merged head), so both values were carried forward from the head the last verdict reviewed.
-  Carry: R10-ROSTER-BATCH24
+## B1 — the body is this pull request's own
 
-## B2 — delivery rows: PASSES
+RESULT b1-body-is-own: PASS — `diff` of this body against `gh pr view 2866 --json body` is one hunk, 157 lines removed and 33 added. Everything round 3 named as carried over is gone: #2866's `### The ops, oldest first, by kind` list, its 95-commit enumeration over `6fe5170..1e9180dc9`, its five-row `**open**` flip and its #2866 record beat. Every section the body now states describes #2878: `## Head` pins this head and its two merged inputs; the record beat names `b0920b94a`, whose `git show --stat` is one file, one insertion, `dev/programme/delivery/2878.md`; `## Null control` names this PR's two files; `## Forward-carry` is `none`; `## Friction` is this PR's own row. Carry: R10-ROSTER-BATCH24
 
-- `git diff --stat origin/main...1dbf3f674 -- dev/programme/delivery/` is `dev/programme/delivery/2878.md | 1 +`; the row added is the one line for #2878, and the body claims exactly that one (no flipped rows, no #2866 row).
-  Carry: dismissed: no defect found
+## B2 — every figure re-derives at the SHA the body pins
 
-## B3 — forward-carry: PASSES
+| claim | stated | measured | command |
+|---|---|---|---|
+| group-diff at this head | `208 212 4 25` | `208 212 4 25` | the body's python one-liner, `origin/main HEAD` |
+| group-diff at the roster ref | `208 212 4 33` | `208 212 4 33` at `2b1fefed1`; `208 212 4 34` at the live ref | same, ref vs `2b1fefed1` |
+| numstat `origin/main...b0920b94a` | `1 0`, `29 20` | `1 0`, `29 20` | `git diff --numstat` |
+| numstat at the roster ref | `259 49` | `259 49` at `2b1fefed1`; `262 52` live | `git diff --numstat origin/main...<ref>` |
+| no-merge commits over main at HEAD | 76 | 76 | `git log --no-merges --format=%H origin/main..HEAD \| wc -l` |
+| roster-ref no-merge count | 75 at tip `2b1fefed1` | 75 at `2b1fefed1`; 77 live | `git rev-list --count --no-merges origin/main..<ref>` |
+| merged-tree roster blob | `eb7252e2e` | `eb7252e2e` (`git rev-parse HEAD:…`) | `git rev-parse` |
+| roster tip blob | `c20ee1a87` | `c20ee1a87` at `2b1fefed1`; `1bc4b9446` live | `git rev-parse <ref>:…` |
+| this PR's own commits | 27 | 27 | `git rev-list --count --no-merges origin/main..b0920b94a` |
+| roster tip "adds 49 more" | 49 | 49 (75 − 26 common) | `comm -12` of the two sets |
+| union over main | 76 | 76, and HEAD's 76 are exactly that union | the body's `sort -u \| wc -l` |
+| nine groups the PR's own commits change | 9 | 9 against `524c1896b`; 17 against the live merge base `6eb552157` | the group-diff one-liner |
+| thirteen gain carries / twelve move resume / 25 change | 13 / 12 / 25 | 13 / 12 disjoint / 25 | group-dict comparison |
+| `size: XS` | 0 main, 8 roster ref, 8 at `524c1896b` | 0 / 8 / 8 | the body's `grep -c` |
+| `Triage P199\|P200\|P203` | 3, 3 | 3, 3 | the body's `grep -c` |
+| check-runs at `b0920b94a` | `{"skipped":19,"success":36}` | `{"skipped":19,"success":36}` | the body's `gh api` rollup |
+| `brief_lint` | `TOTAL: 0 error(s)` | `TOTAL: 0 error(s) across 1 file(s)` | `node tools/policy/brief_lint.mjs` |
+| `roster_sync --self-test` | `64 checks, 0 failed` | `64 checks, 0 failed` | `env -u BASH_ENV python3 -I … --self-test` |
 
-- The three append-carry ops the previous body ordered are already present, in this head and on `origin/main`: `82db76ffe`, `d052b8d78`, `2f63ddb60` (merge `72da5ffa1`). The body's `## Forward-carry` says `none`, which matches; the un-marked queue lines are the next lane's pending work, not carries this body owes.
-  Carry: dismissed: no defect found
+RESULT b2-figures: PASS — every value reproduces at the SHA the body names. Two labels have aged and are named rather than inferred: the body calls `524c1896b` "the merge base" and it is now only an ancestor of main (the live merge base is `6eb552157`), and its four live-ref spellings of `origin/handoff/audit-r10-roster` now print the newer values in the table because that ref took two commits after this head was cut. Carry: R10-ROSTER-BATCH24
 
-## B4 — R10-REVIEW-CARRY: PASSES
+## B3 — Forward-carry orders nothing already carried
 
-- The body cites the owner's ruling verbatim — "if there are no code changes, the previous review can be carried" — and names the group; the group's own `carry[0]` carries the same words.
-  Carry: R10-REVIEW-CARRY
-- Registration holds: `roster_edit.py --self-test` prints `124 checks, 0 failed`; `roster_edit.dump(load(file))` reproduces the file bytes exactly; 212 groups, 212 unique names; `after: []` and `files` (`fix-review.md`, `orchestrator.md`, `tools/audit/seat/`) are well formed; `brief_lint` prints `TOTAL: 0 error(s)`. `resume.stage: fixing` with `next_step` describing the helper and the two contract sentences — work to be done, not claimed done, which is correct for a policy group at `fixing`.
-  Carry: R10-REVIEW-CARRY
+RESULT b3-forward-carry: PASS — `## Forward-carry` is `none`, so no `append-carry` op is ordered and no op can duplicate a carried one. The superset check the brief also asks for is clean: the head loses 0 groups, 0 carries, 0 issues, 0 `after` edges and 0 resume keys against `origin/main`. P199/P200/P203 are already carried in the head roster, at `R10-FLOW-WIP` / `R10-ORCH-REVIEW-PACKET` / `R10-ORCH-ROSTER-SCHEMA`. Carry: R10-ROSTER-BATCH24
 
-## The three backwards rows
+## B4 — the row's group name is still dead, and that is the block
 
-- `R10-DIAG-AGES` fixing→in-progress: explained — its fixer is blocked; the body says in-progress, and the head agrees.
-  Carry: R10-DIAG-AGES
-- `R10-FLOW-BOARD` not-started→in-progress: explained — `roster_lib.STAGES` places `in-progress` after `not-started`, so only a ranking that omits `in-progress` reads the move backwards. Head and body agree.
-  Carry: R10-FLOW-BOARD
-- `R10-RCA-BODY-LINT` done→fixing: the reopen is the documented route (`~/hpo-orch/r10s6/s7/roster-queue-s7.txt:24`), but the append it was opened for is absent — 0 carries, and the b39-P208 text ("Check the body's `## Head` before the expensive steps") is nowhere in the roster (`grep -c P208` = 0) though the queue marks that op `#done`. The group is left at `fixing` for a carry that never landed. A finding for this group, not a block on this PR.
-  Carry: R10-RCA-BODY-LINT
+The head row reads `- [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) — **open**, roster: round-10 batch 24 (R10-ORCH-ROSTER)`. `R10-ORCH-ROSTER` is absent from all three rosters measured — main, this head and `origin/handoff/audit-r10-roster` — while `R10-ROSTER-BATCH24` is present in this head and in the roster branch. `roster_lib.group_for_branch(head_roster, "fix/audit-r10-roster-pr")` answers `R10-ROSTER-BATCH24`, and that is the name both `record_row.py` (which calls `group_for_branch`) and `open_pr.sh`'s `$G` are supposed to write, so the generator and the row disagree. The body records the contradiction in `## Friction` with `Carry: R10-ROSTER-BATCH24` and leaves the suffix wrong; `brief_lint` and `pr-contract` both pass on it, so nothing else will catch it. A one-line edit in this PR's own record commit fixes it; carrying it forward does not.
 
-## Arms run
+RESULT b4-row-group: FAIL — row names `(R10-ORCH-ROSTER)`; absent from main's, the head's and the roster branch's rosters; `record_row`'s rule answers `R10-ROSTER-BATCH24`. Carry: R10-ROSTER-BATCH24
 
-- `bash tools/pr/prepr.sh --body-check ~/hpo-seats/r10s6/review-2878-r3/body.md`: `pr-body ok: PR-BODY: 0 error(s)`, `carry ok: 1 routed, 0 unrouted, 0 bad destination(s)`, `preflight ok`. Not run, per the brief's cost discipline and because the diff is roster data only: full `prepr.sh`, the gate, the mutation table, `env_drift`, `card_drift`.
-  Carry: dismissed: no defect found
+## B5, B6 — the self-test and the red check
 
-## Could not establish
+RESULT b5-self-test: PASS — `env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test` prints `roster_sync self-test: 64 checks, 0 failed`, exit 0. The head's own `governance / instrument-self-tests` run concluded success at 19:40:35Z, so the check the round-3 block named is green on this tree. Carry: R10-ROSTER-BATCH24
 
-- `governance / instrument-self-tests` and six other jobs were still `in_progress`/`queued` at publish, so I reproduced that job's own command locally rather than citing its conclusion; I did not wait for the run to conclude.
-  Carry: dismissed: measurement incomplete
+RESULT b6-red-check: PASS — `gh api repos/tvofi/heatpump_optimizer/commits/1dbf3f674/check-runs` carries `governance / instrument-self-tests` with conclusion `failure` (run 122390395354, started 18:37:33Z), so the red the body answers is real at that SHA. The answer is the one `defect-root-cause.md` accepts: it names the cheaper detector, `python3 -I tools/audit/seat/roster_sync.py --self-test`, with its standing cost (~16 s per roster-touching push), and records that wiring it into `prepr.sh` is a `prepr.sh` change this roster-data PR does not carry. Carry: R10-ROSTER-BATCH24
+
+## Settled: the head is 2 commits behind the roster ref, and that is neutral
+
+`git rev-list --count HEAD..origin/handoff/audit-r10-roster` is 2. The commits are `7322d0deb set-stage R10-PREPR-CAP` (to `fixing`) and `8f7e252fe set-stage R10-ORCH-REVIEW-PACKET` (to `done`); both are timestamped 20:29:34 and 20:35:59, after this head's 20:16:16, so the head could not have carried them. Neither is state this PR takes away from main: main and this head both read `R10-PREPR-CAP` `done` and `R10-ORCH-REVIEW-PACKET` `in-progress`, and `git diff origin/main HEAD -- dev/programme/rosters/wave-r10-groups.json` has no line for either group. Merging this PR therefore regresses nothing and closes nothing falsely; the two ops stay on the branch and land at the next stamp. Not a block — but a re-cut must re-take the four live-ref figures in the B2 table.
+
+RESULT roster-ref-behind: PASS as a measurement — 2 commits, both postdating the head, neither changing a group this diff touches. Carry: R10-ROSTER-BATCH24
+
+## Checks and instruments
+
+The head's rollup is `{"skipped":19,"success":36}` with 0 failures, and `pr-contract / pr-contract` concluded `success` at 19:45:43Z–19:46:57Z, after the last push — so the body's own contract check has read the body it is being judged on. `git merge-tree --write-tree origin/main HEAD` exits 0 with tree `399d62c3c` (no conflict; `mergeStateStatus: BLOCKED` is the review requirement, not a dirty tree). `VERSION`, the manifest, `RELEASE_NOTES.md`, both claim files and every `*_budgets.json` are absent from the diff, so steps 4, 5 and 14 have nothing to measure. Roster data only: no production line is added, so the mutation proof is correctly `n/a` and there is no enumeration-rule class to open. `python3 tools/audit/carry_audit.py pr 2878` prints `1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`.
+
+## Not established
+
+Nothing material. I did not re-run `prepr.sh`, per the brief, and did not independently verify the `## Head` claim that the two merges were "an automatic merge by the orchestrator's script" beyond `merge-tree` finding them conflict-free; the merged tree is the pushed head, whose blob `eb7252e2e` matches the body.
