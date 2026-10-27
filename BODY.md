@@ -56,7 +56,9 @@ rc 2, naming the group, the size and the roster path. A fixture roster of measur
 - `python3 -I tools/audit/seat/plan_table.py --self-test` → `plan_table self-test: 25 checks, 0 failed`.
 - `python3 -I dev/audit/harnesses/r10_plan_page_mutants.py` → `RESULT survived=0`.
 - `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`, every metric at its budget and none above.
-- `./tests/run.sh` with `GATE_SCOPE=auto` → `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` and `GATE PASSED`; none of the three changed paths is in a scoped script's closure (`tools/plan/`, `tools/audit/` and `dev/audit/` are on `tests/closure.py`'s INERT list, which is why the count is zero and the mode line is what to read).
+- `./tests/run.sh` with `GATE_SCOPE=auto` → `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` over the four changed paths. That is **zero coverage, not a pass**: `tests/closure.py:336` declares `tools/plan/` INERT ("no gate script opens it"), so no suite script opens these files either way, and the green mode line says only that the selection is empty. The proof of this change is the four self-test and mutation runs above; the automated net that actually executes `replan.py --self-test` is the `governance / instrument-self-tests` CI job.
+
+That gap is also why a planner defect reaches `main` unmeasured: the `XS` `KeyError` the live roster had been hitting was visible to nobody in CI, because no gate script opens `tools/plan/`. It was found by a seat running the planner by hand, and it is proven fixed here the same way.
 
 ## Red checks
 
