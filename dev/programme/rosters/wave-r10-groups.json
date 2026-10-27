@@ -5015,7 +5015,7 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "done",
+    "stage": "fixing",
     "branch": null,
     "commit": "fd9914851",
     "last_step": null,
