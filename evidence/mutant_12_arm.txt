@@ -1,7 +1,0 @@
-== genuine ARMS:
-rc=0
-CI PREDICT: no closures, fast, wave-script or instrument red predicted against 524c1896b694 (a data-file read is not seen)
-== renamed-out arm (prepr-12):
-rc=2
-                     [--self-test] [--rekey-body BODY] [--from SHA]
-ci_predict.py: error: argument --only: invalid choice: 'mutation' (choose from 'orphans', 'layout', 'privacy', 'agreement', 'no-recording', 'under-scoped', 'inert-siblings', 'left-inert')

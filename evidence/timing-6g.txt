@@ -1,0 +1,55 @@
+# Step 6g's cost at the reviewed head, re-derived (not the fixer's re-take)
+# Host: Darwin 27.2.0, 8-core, load 27-32 during the head runs, ~50 during the
+# pre-repair run. Measure: user+sys from /usr/bin/time -p (the body's own
+# "load-independent measure"). Harness: harness/time6g.sh and harness/claims_block.sh,
+# which are the head's own claims_reg_line sourced verbatim (diff against
+# `sed -n '/^claims_reg_line()/,/^}/p' tools/pr/prepr.sh` is empty).
+
+## Head fccb883716, the narrow copy the step builds + claims_reg_line (3 runs)
+run1 copy_wall_cpu=0.42 0.24   fn_wall_cpu=9.87 6.85   total CPU 7.09
+run2 copy_wall_cpu=0.26 0.23   fn_wall_cpu=7.83 6.79   total CPU 7.02
+run3 copy_wall_cpu=0.24 0.22   fn_wall_cpu=7.38 6.63   total CPU 6.85
+                                                 => 6.85-7.09 s CPU
+
+## Pre-repair 36c5c78e9, same host, same narrow-copy shape, round-1's own
+## extracted block (identical to that head's function)
+fn CPU 3.24, 3.31, 3.33                            => ~3.3 s CPU (no derivation)
+(the 3.24/3.31 runs had no header subprocess because cwd was not the repo;
+ 3.33 was taken with cwd at the pre-repair tree, header comparison run)
+         delta attributable to the new derivation loop: ~3.3-3.5 s CPU
+
+## The loop alone, and the one-line cause
+`--print-link-targets` at the head prints 84 targets (85 in the fixture, which
+adds one unlisted link).
+Loop over a whole-tree copy (every target present, no archives at all):
+  per-target `python3 -I -c 'import os,sys; ...normpath...'`   2.84-3.12 s CPU
+  the same loop normalising in-shell (no per-target interpreter) ~0.0-0.16 s CPU
+One `python3 -I -c 'pass'` 0.03-0.034 s CPU; 84 spawns ~= 2.6-2.9 s CPU.
+(timing-loop.txt: 84 targets, python arm 2.84 CPU, shell arm 0.00, one spawn 0.03.)
+`python3 claims.py --print-link-targets` alone 0.17 s CPU; the copy 0.22-0.24.
+
+The step runs the interpreter FOR EVERY target before the `[ -e ]` test that
+would have skipped it: prepr.sh, claims_reg_line, the `rel=$(python3 -I -c ...)`
+inside the `while ... done < <(... --print-link-targets)` block.
+
+## What the loop buys on this tree
+`python3 -I dev/audit/rounds/round4/D6/claims.py --print-link-targets` at the
+head prints 84 targets; all 84 are already inside `CLAIMS_INPUTS` (0 outside).
+So on an ordinary docs diff the loop takes the `[ -e "$2/$rel" ] && continue`
+branch 84 times and archives nothing: ~3.1 s of CPU to copy 0 files. The step's
+own comment says as much ("Today's targets are all in CLAIMS_INPUTS, so an
+ordinary docs diff adds no archive here"), which makes the spawn the whole cost.
+A normalisation in-shell, or a generator that prints targets not already under
+`CLAIMS_INPUTS`, removes it (0.16 s CPU for the same loop).
+
+## Against the budget
+Owner ruling (body, carry): at most 5 s per added check, 10 s added per run.
+6g is an added check: 6.85-7.09 s CPU at this head, over 5 s.
+The body (## Figures, taken at a0e741cf) reports 3.89-4.10 s CPU; the repair
+commit's message claims 3.6-3.8 s. Both are pre-derivation numbers: the
+narrowed pre-repair step really is ~3.3 s CPU, and the loop adds ~3.3-3.5 s.
+Added per prepr run at this head: ~7.0 (6g) + 1.26 (privacy) + 0.25 (wave) =
+~8.5 s CPU, still under the 10 s per-run cap; the per-check cap is the one missed.
+For reference the reviewed whole-tree head fa18c13d2 measured 6.75-6.77 s CPU
+in round 1 (evidence/step6g_timing.txt on verdict/2853): the derivation loop
+returns 6g to the same CPU regime that block rejected.

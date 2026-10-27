@@ -1,3 +1,0 @@
-== positive arm: README link added, register not re-recorded (#2609's shape)
-committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
-rc=1
