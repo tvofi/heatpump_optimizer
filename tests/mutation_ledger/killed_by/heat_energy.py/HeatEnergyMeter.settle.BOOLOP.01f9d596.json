@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter.settle BOOLOP 01f9d596",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        dt_h = _hours(now, prev) if prev is not None and now is not None else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`dt_h = _hours(now, prev) if prev is not None or now is not None else 0.0`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

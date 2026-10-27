@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter.settle BOOLOP ba2517eb",
+  "killed_by": "tests/features.py",
+  "old": "        if self._opened and anchor[1] is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self._opened or anchor[1] is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

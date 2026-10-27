@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:dhw_share RETURN_DEL 9fa10d08",
+  "killed_by": "tests/features.py",
+  "old": "    return a.dhw / total if total > 1e-6 else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
