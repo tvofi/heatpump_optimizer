@@ -1,0 +1,12 @@
+== live #2625 derivation, BEFORE 88b452c6a ==
+RESULT appends_n: 0
+RESULT refusals_n: 2
+  REFUSED R10-FLOW-JIDOKA from #2625:: already carried from #2625: 'Orchestrator 2026-10-22 21:39Z, another prepr-passes/CI-fail'
+  REFUSED R10-FLOW-JIDOKA from #2625:: already carried from #2625: 'Orchestrator 2026-10-22 21:39Z, another prepr-passes/CI-fail'
+RESULT triage_gate_over_appends: None
+== live #2625 derivation, AFTER 43221bf16 ==
+RESULT appends_n: 1
+  APPEND R10-FLOW-JIDOKA :: Prepr step 7a, `figure_lint.mjs --pr-body`, has the same shape as this class: a pure function of the body, fir
+RESULT refusals_n: 1
+  REFUSED R10-FLOW-JIDOKA from #2625:: already carried (the same finding, from #2625): "Triage P3 (s4): add the base-pinned replay to prepr. CI's po"
+RESULT triage_gate_over_appends: None

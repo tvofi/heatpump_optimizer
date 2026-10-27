@@ -1,11 +1,7 @@
-git diff --stat a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9...HEAD
- dev/programme/delivery/2889.md  |  1 +
- tools/audit/seat/roster_sync.py | 57 ++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 57 insertions(+), 1 deletion(-)
+# three-dot diff from merge base a0e7664ea
+ dev/programme/delivery/2889.md  |   1 +
+ tools/audit/seat/roster_sync.py | 151 +++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 151 insertions(+), 1 deletion(-)
 
-numstat:
-1	0	dev/programme/delivery/2889.md
-56	1	tools/audit/seat/roster_sync.py
-
-forbidden paths (VERSION|RELEASE_NOTES.md|manifest.json|*_budgets.json|claim drift):
-none
+dev/programme/delivery/2889.md
+tools/audit/seat/roster_sync.py

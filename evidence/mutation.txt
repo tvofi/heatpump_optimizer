@@ -1,11 +1,26 @@
-MUTANT: removed the carried_from lookup and its refusal block (6 lines)
---- self-test at the mutant ---
-FAIL the dry run refuses an item the destination already carries from the same pull request (got: roster_sync: pull requests: 11 read offline from --pr-state
-FAIL apply rc 0 (got: (2, "roster_sync: pull requests: 11 read offline from --pr-state\nroster_sync: RECORD-INVALID R9-DONE bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb does not resolve to a commit\nroster_sync: RECORD-INVALID R9-SIB ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit\nroster_sync: R9-LIVE: stage not-started -> done at aaaaaaaaaaaa (PR #11 MERGED)\nroster_sync: R9-OPEN: stage queued -> in-progress (PR #12 OPEN)\nroster_sync: R9-CARRY: stage in-progress -> done at eeeeeeeeeeee (PR #15 MERGED)\nroster_sync: R9-ARM: stage not-started -> done at 111111111111 (PR #18 MERGED)\nroster_sync: R9-SIB-2: stage not-started -> in-progress (PR #19 OPEN)\nroster_sync: R9-PAIR-2: stage not-started -> done at 222222222222 (PR #20 MERGED)\nroster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #13 MERGED); left alone\nroster_sync: SKIP R9-CO: stage carries-open is a human disposition (PR #21 MERGED); left alone\nroster_sync: carry R9-DEST += 'the widget parser drops a unit. Carry: R9-DEST'\nroster_sync: carry R9-FROM += 'the same finding again, where triage P3 gives it. Carry: R9-FROM'\nroster_sync: carry R9-FROM-2 += 'the same finding for a destination naming another pull request. Carry: R9-FROM-2'\nroster_sync: REFUSED Carry: R9-OVER from #15: the destination is done (resume.stage done)\nroster: dev/programme/rosters/wave-r9-groups.json on handoff/audit-r9-roster\n", "roster_sync: REFUSED: triage gate: proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'the same finding again, where triage P3 gives it. Carry: R9-FROM'; nothing written\n"))
-FAIL apply pushes once (got: refs/heads/main)
---- after restore ---
-status: 0 dirty path(s)
-head blob:      286bb44035ab09a3433bdf8814cd275c28dedf6d
-restored blob:  286bb44035ab09a3433bdf8814cd275c28dedf6d
-self-test at the restored head:
-roster_sync self-test: 68 checks, 0 failed
+RESULT mutant_A_call_and_refusal_removed_reddened: 4 rc=1 | no summary
+    FAIL the dry run refuses an item the destination already carries: same finding, same triage ruling (got: roster_sync: pull requests: 11 read offline f
+    FAIL a duplicate differing only in markup is refused (got: roster_sync: pull requests: 11 read offline from --pr-state
+    FAIL apply rc 0 (got: (2, "roster_sync: pull requests: 11 read offline from --pr-state\nroster_sync: RECORD-INVALID R9-DONE bbbbbbbbbbbbbbbbbbbbbbbbbb
+    FAIL apply pushes once (got: refs/heads/main)
+RESULT mutant_A_call_and_refusal_removed_restored_identical: True (46725bebaf3a)
+RESULT mutant_B_ruling_arm_removed_reddened: 3 rc=1 | no summary
+    FAIL the dry run refuses an item the destination already carries: same finding, same triage ruling (got: roster_sync: pull requests: 11 read offline f
+    FAIL apply rc 0 (got: (2, "roster_sync: pull requests: 11 read offline from --pr-state\nroster_sync: RECORD-INVALID R9-DONE bbbbbbbbbbbbbbbbbbbbbbbbbb
+    FAIL apply pushes once (got: refs/heads/main)
+RESULT mutant_B_ruling_arm_removed_restored_identical: True (46725bebaf3a)
+RESULT mutant_C_text_arm_removed_reddened: 2 rc=1 | roster_sync self-test: 74 checks, 2 failed
+    FAIL a duplicate differing only in markup is refused (got: roster_sync: pull requests: 11 read offline from --pr-state
+    FAIL a duplicate differing only in markup is not appended (got: ['the widget parser drops a unit. `Carry: R9-ECHO`', 'the widget parser drops a unit. 
+RESULT mutant_C_text_arm_removed_restored_identical: True (46725bebaf3a)
+RESULT final_restore_identical: True
+RESULT mutant_D_reintroduce_pr_number_key: 8 red rc=1 | roster_sync self-test: 74 checks, 8 failed
+    FAIL a held carry naming another pull request does not suppress the append (#15 is not #1525) (got: roster_sync: pull requests: 11 read offline from --pr-state
+    FAIL a genuinely different finding from a pull request the destination already carries one from still appends (B1) (got: roster_sync: pull requests: 11 read offline from 
+    FAIL a prose mention of the source number does not suppress the append (got: roster_sync: pull requests: 11 read offline from --pr-state
+    FAIL a duplicate differing only in markup is refused (got: roster_sync: pull requests: 11 read offline from --pr-state
+    FAIL a genuinely different finding from the same pull request appends beside the one already held (B1) (got: ['From #15 (R9-CARRY): the widget parser drops a unit.'])
+    FAIL a prose mention of the source number leaves the append alone (got: ["From the R10-BRIEFS-FOLD body, a second instance beside #15's: the page cache."])
+    FAIL a duplicate differing only in markup is not appended (got: ['the widget parser drops a unit. `Carry: R9-ECHO`', 'the widget parser drops a unit. Carry: R9-ECHO'])
+    FAIL the dedupe's null control: a held carry naming another pull request leaves the append alone (got: ['From #1525 (other): landed.'])
+RESULT restored_identical: True

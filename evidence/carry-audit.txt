@@ -1,1 +1,3 @@
+NOTE #2889 body item c31d3d5d: dismissed:the `N-silent-stop` detector
+NOTE #2889 body item 63a7a62d: dismissed:pre-existing local clone state, not the tree; `git add -f
 CARRY-AUDIT #2889: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)

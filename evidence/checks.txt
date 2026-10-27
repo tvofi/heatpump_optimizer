@@ -1,9 +1,45 @@
-total_count 47
-PENDING: 8
-neutral: 1
-skipped: 9
-success: 29
-failures: []
-pending: ['prelude', 'tests / coverage', 'tests / closures', 'prelude', 'prelude', 'governance / instrument-self-tests', 'codeql / Analyze (python)', 'prelude']
-{"headRefOid":"88b452c6ac61231c83967bd4de148c18f7ee407c","mergeStateStatus":"BLOCKED","mergeable":"MERGEABLE","state":"OPEN"}
-merge-tree exit=0
+44
+completed	skipped	tests / claims-autofix
+in_progress	null	prelude
+completed	success	refresh
+completed	success	cancel-superseded
+completed	skipped	tests / mutation-autofix
+completed	skipped	tests / mutation-pins
+completed	neutral	CodeQL
+completed	skipped	tests / nightly-ha
+completed	skipped	tests / replay
+completed	success	tests / browser
+completed	success	tests / typing
+in_progress	null	tests / closures
+in_progress	null	tests / coverage
+completed	success	tests / arch-instrument
+completed	success	tests / fast (3.14)
+completed	success	cancel-superseded
+in_progress	null	prelude
+completed	success	refresh
+completed	skipped	governance / record
+completed	skipped	kernel-points
+completed	skipped	governance / delivery-status-publish
+completed	success	tests / briefs
+completed	success	governance / instrument-self-tests
+completed	success	governance / wave-script
+completed	success	governance / env-matrix
+completed	success	governance / policy-docs
+completed	success	governance / delivery-status
+completed	success	validate / validate-hacs
+completed	success	codeql / Analyze (javascript-typescript)
+completed	success	tests / closure-scope
+completed	success	tests / mutation
+completed	success	arch-score / arch-score
+completed	success	tests / nightly-status
+completed	success	codeql / Analyze (actions)
+in_progress	null	codeql / Analyze (python)
+completed	success	budget-raise-gate / budget-raise-gate
+completed	success	hassfest / hassfest
+completed	skipped	arm
+completed	success	refresh
+in_progress	null	prelude
+completed	success	cancel-superseded
+completed	success	prelude
+completed	success	cancel-superseded
+completed	success	refresh

@@ -1,0 +1,6 @@
+RESULT live_destinations: 212
+RESULT live_carries: 692
+RESULT live_carries_citing_ruling: 88
+RESULT live_carries_naming_pr: 396
+RESULT live_destinations_two_texts_one_ruling: 1
+   shared: ('R10-TRAIN-OVERLAP-GRADE', 'Amends carry 9 (P129) of this group; it replaces two parts o', 'From #2846 fix review round 2 (item 7bff69ba), applying P189')

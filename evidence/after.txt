@@ -1,0 +1,23 @@
+== driver AFTER ==
+RESULT driver_end: wt-head predicate= already_carried
+RESULT e_two_rows_one_held: appends=[('R9-DEST', 'finding one, already landed by routing. Carry: R9-DEST'), ('R9-DEST', 'finding two, genuinely new and not held. Carry: R9-DEST')] refusals=[]
+RESULT e_finding_two_lost: False
+RESULT e_both_distinct_findings_survive: True
+RESULT f_null_control_both_append: True appends=[('R9-DEST', 'finding one, already landed by routing. Carry: R9-DEST'), ('R9-DEST', 'finding two, genuinely new and not held. Carry: R9-DEST')] refusals=[]
+RESULT a_duplicate_refused: got='From #15 (R9-CARRY): landed.' want='From #15 (R9-CARRY): landed.' -> PASS
+RESULT b_same_pr_no_matching_carry_appends: got=None want=None -> PASS
+RESULT c_other_pr_named_appends: got=None want=None -> PASS
+RESULT d_null_control_appends: got=None want=None -> PASS
+RESULT b_ii_same_pr_distinct_finding_survives: got=None want=None -> PASS
+RESULT e_1525_is_not_15: got=None want=None -> PASS
+RESULT edge_markup_only_duplicate_refused: got='the widget parser drops a unit. `Carry: R9-ECHO`' want='the widget parser drops a unit. `Carry: R9-ECHO`' -> PASS
+RESULT edge_reworded_duplicate_appends: got=None want=None -> PASS
+RESULT edge_boilerplate_only_appends: got=None want=None -> PASS
+RESULT edge_shared_ruling_collapses_distinct: got='triage P3 (s4) routed the widget parser fix.' want='triage P3 (s4) routed the widget parser fix.' -> PASS
+RESULT edge_asterisk_collision: got=None want='budget 2*3 per pass.' -> FAIL
+RESULT edge_underscore_collision: got=None want='call set_state now.' -> FAIL
+RESULT unresolvable_prose_no_match_appends_and_gate: None -> proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'a proposal: triage P99 (s4). Carry: R9-DEST'
+RESULT unresolvable_cite_no_match_appends_and_gate: None -> proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'proposal triage P7 (s4). Carry: R9-DEST'
+RESULT unresolvable_file_cite_gate: the triage ruling dev/programme/triage/s9-batch1.md is not on the roster branch or origin/main
+RESULT edge_unresolvable_key_matches_held: got='holds triage: dev/programme/triage/s9-batch1.md#P1' want='holds triage: dev/programme/triage/s9-batch1.md#P1' -> PASS
+RESULT g_live_prose_reference_matches_2447: None

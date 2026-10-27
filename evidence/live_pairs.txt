@@ -1,0 +1,4 @@
+RESULT live_text_arm_duplicate_pairs: 0
+RESULT live_ruling_arm_duplicate_pairs: 2
+   RULING: ('R10-TRAIN-OVERLAP-GRADE', 'Amends carry 9 (P129) of this group; it replaces two parts o', 'From #2846 fix review round 2 (item 7bff69ba), applying P189')
+   RULING: ('R10-TRAIN-OVERLAP-GRADE', 'From #2846 fix review round 2 (item 7bff69ba), applying P189', 'Amends carry 9 (P129) of this group; it replaces two parts o')

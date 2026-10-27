@@ -1,0 +1,3 @@
+RESULT collide_asterisk: got='budget 2*3 per pass. `Carry: R9-DEST`' want='budget 2*3 per pass. `Carry: R9-DEST`' -> PASS
+RESULT collide_underscore: got='call set_state now. `Carry: R9-DEST`' want='call set_state now. `Carry: R9-DEST`' -> PASS
+RESULT collide_emphasis: got='**Ship it** now. `Carry: R9-DEST`' want='**Ship it** now. `Carry: R9-DEST`' -> PASS
