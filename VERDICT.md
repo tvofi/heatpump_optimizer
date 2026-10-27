@@ -43,7 +43,7 @@ The head's checks all concluded: **55 check runs, 38 success, 17 skipped, 0 fail
 
 `bash tools/pr/prepr.sh --body-check` on the real body exits 0: `figures ok: 17 resolved, 2 not verified, 0 refused`; `ref_privacy ok … 28 file(s) …, 479 line(s) added …, 0 refused`; `preflight ok`; `pr-body ok: 0 error(s)`. The body's `## Red checks` names the two historic reds with their check runs and counts and answers each, and `pr-contract` — which reads the body — is green at this head.
 
-`python3 tools/audit/carry_audit.py pr 2853`: **11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)**.
+`python3 tools/audit/carry_audit.py pr 2853` on the draft, before this verdict published: **11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)**. Re-run on the PR with this verdict at `refs/hpo-bus/review/2853`: **13 finding item(s): 13 routed, 0 unrouted, 0 bad destination(s)** — the two added are this verdict's own bullets, each carrying `R10-FLOW-JIDOKA`.
 
 The cost of the added checks against the owner's second cap holds at this head: a prepr run adds 6g 4.35 + `ref_privacy` 1.26 + `check-wave-script` 0.25 = 5.86 s CPU, and a `body_push` adds `--fill-red` 3.71 + `figure_lint` 0.11 + `ref_privacy` 1.26 = 5.08 s, both under 10 s.
 
