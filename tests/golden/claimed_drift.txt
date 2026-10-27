@@ -757,7 +757,12 @@ config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_pow
 # baseline_cost leaf moves. Claimed rather than re-recorded because the key is
 # the change: its points are the grade's own distance from 50 split by log
 # share, so the branch adds a published leaf rather than moving a recorded
-# value, and the fixtures stay the canonical environment's.
+# value, and the fixtures stay the canonical environment's. The committed files
+# were patched in those two paths alone -- an empty list in each, because a
+# coord fixture publishes no grade (`envelope_score: null`) -- and no other leaf
+# was re-recorded: a claim excuses drift but not a structurally stale fixture
+# (`env_drift --all`'s `rot.failed`), which is the `tests / fast` red that
+# patch answers.
 coord_all_features  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
 coord_dhw  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
 coord_grid_fee  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
