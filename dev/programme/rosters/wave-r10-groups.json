@@ -4940,7 +4940,9 @@
    "issues": [
     2500
    ],
-   "fixes": [],
+   "fixes": [
+    2500
+   ],
    "severity": "high",
    "size": "M",
    "fixerModel": "opus",
