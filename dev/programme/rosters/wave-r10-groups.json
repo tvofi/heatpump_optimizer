@@ -9826,7 +9826,7 @@
     "branch": "handoff/r10-house-grade",
     "commit": "b1134fa8bf984881df7d292d4dbcaa29b1a403c2",
     "last_step": "gate green at 65ac142",
-    "next_step": "dispatch the fix reviewer at the PR head; the R10-COP-GATE carry landed at a4a348a6",
+    "next_step": "open the pull request with open_pr.sh at b1134fa8b; the mutation refusal at c89e5b5d is answered by four killed_by rows",
     "note": null
    }
   },
