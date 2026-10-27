@@ -3435,6 +3435,17 @@
     "required": "Optional",
     "selector": "NumberSelector"
    },
+   "heat_pump_cop_partload_derate": {
+    "config": {
+     "max": "0.5",
+     "min": "0",
+     "mode": "'box'",
+     "step": "'any'"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
    "heat_pump_max_power": {
     "config": {
      "max": "20",
@@ -5916,6 +5927,17 @@
    "config": {
     "max": "6.0",
     "min": "1.5",
+    "mode": "'box'",
+    "step": "'any'"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "heat_pump_cop_partload_derate": {
+   "config": {
+    "max": "0.5",
+    "min": "0",
     "mode": "'box'",
     "step": "'any'"
    },
