@@ -1,0 +1,4 @@
+rename-detecting : ['b/moved.py']
+--no-renames     : ['a/old.py', 'b/moved.py']
+no-renames names both sides of the rename: True
+rename-detecting names only one side     : True

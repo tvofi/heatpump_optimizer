@@ -1,0 +1,30 @@
+head 24702c3756442023ab88524e182fe4333c46ad50 -- what one graded car costs
+
+Measured on this seat (macOS, darwin 27.2.0), the same head, with the tree's
+own checks:
+
+  node tools/policy/policy_lint.mjs       54.9 s wall (17.1 user, 82.0 sys, 180% cpu), rc 0
+                                          "TOTAL: 0 error(s) across 50 policy file(s)"
+  python3 tests/structure.py              32.4 s wall, rc 0, "STRUCTURE RATCHET PASSED"
+
+Through Train.grade_tree itself (probe_grade_arms.py, worktree at the head;
+run while a second harness was competing for the CPU, so read these as the
+loaded end):
+
+  arm RED   policy_lint ok 103 s, structure.py RED 108 s   (217 s for the tree)
+  arm GREEN policy_lint ok  85 s, structure.py ok   71 s   (162 s for the tree)
+
+Subprocesses per graded car (read from grade_merge/grade_tree, not counted
+live): git fetch, git rev-parse, git config --get-regexp (text_merge),
+git merge-tree, git show (the closure table), git commit-tree,
+git worktree add, node policy_lint, [python3 tests/structure.py when the
+closure selects it], git worktree remove -- about nine cheap git calls plus
+one or two checks. The guard's second grade_merge on the same tree adds
+fetch + rev-parse + show + merge-tree (one more merge-tree is the cache's own
+word for it) and no checks.
+
+So an overlap batch of N cars pays (N-1) x 55 s with the ratchet unselected,
+or (N-1) x about 90-150 s where it is selected. A red car also pays one
+recarry (app_push, whose prepr is the heavy half) and one CI cycle before the
+second encounter stops it -- the recarry's tree is the graded one by
+construction, so those minutes buy no new evidence.

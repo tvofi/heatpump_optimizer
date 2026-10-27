@@ -1,0 +1,19 @@
+head 24702c3756442023ab88524e182fe4333c46ad50
+
+--- failing check-runs at 24b0f9b8510aa0d6ce203607577b32fa66e34bf1 ---
+gate	122231365540
+pr-contract / pr-contract	122231068361
+gate	122230261140
+pr-contract / pr-contract	122229956060
+tests / fast (3.14)	122212454353
+
+--- tests / fast (3.14) job 122212454353 log ---
+2026-10-27T13:26:48.7172945Z   FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/audit/seat/merge_train.py:2351: touched = files + self.git("diff", "--name-only", rb, tip).split()]
+2026-10-27T13:26:48.7178426Z 1 of 117 closure shrink pins FAILED
+2026-10-27T13:26:48.7178668Z >>> FAILED: python3 tests/closure.py selftest
+
+--- pr-contract job 122231068361 refusal ---
+2026-10-27T13:55:44.3669062Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+--- gate job 122231365540 log ---
+2026-10-27T13:56:12.6147484Z FAIL tests / fast (3.14): failure (run 40510817880)

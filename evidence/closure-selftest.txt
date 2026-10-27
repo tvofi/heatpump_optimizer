@@ -1,0 +1,15 @@
+=== at head 24702c3756442023ab88524e182fe4333c46ad50 ===
+=== the changed-file list keeps both sides of a rename (O17) ===
+  ok   the changed list keeps both sides of a rename onto a delivery row
+  ok   no rename-detecting --name-only diff under RENAME_SITES
+  ok   no stale RENAME_ALLOW entry
+  ok   the census refuses a planted rename-detecting diff, and only it
+ALL 117 closure shrink pins PASSED
+
+=== with the pre-fix line restored (--no-renames removed) ===
+=== the changed-file list keeps both sides of a rename (O17) ===
+  ok   the changed list keeps both sides of a rename onto a delivery row
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/audit/seat/merge_train.py:2352: touched = files + self.git("diff", "--name-only", rb, tip).split()]
+  ok   no stale RENAME_ALLOW entry
+  ok   the census refuses a planted rename-detecting diff, and only it
+1 of 117 closure shrink pins FAILED

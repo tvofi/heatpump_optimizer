@@ -1,0 +1,9 @@
+ROOT: ~/hpo-seats/r10s6/review-2882/wt
+a module the closure measures    structure_reaches=True  select.mode=scoped structure.py in select.run=True
+a GATE_FILE                      structure_reaches=False select.mode=full   structure.py in select.run=True
+a new, unrecorded module         structure_reaches=False select.mode=full   structure.py in select.run=True
+
+tree e8a070d7051d (structure.py RED here: measured in the red arm)
+  touched=['tests/structure_budgets.json']     structure_reaches=True
+  touched=['tests/foo.md']                     structure_reaches=False
+  touched=['README.md']                        structure_reaches=False

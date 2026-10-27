@@ -1,0 +1,9 @@
+head 24702c3756442023ab88524e182fe4333c46ad50 (mutant applied in ~/hpo-seats/r10s6/review-2882/wt, restored after; git status empty)
+MUTANT: cache keyed on tree alone
+  ok   queue_batches refuses a mix of entries and batches, naming the rule
+  ok   queue_batches refuses an empty batch, naming the rule
+  ok   queue_batches refuses a pull request in two batches, naming the rule
+batch arms: 81 checks, 0 failed
+restored=no
+
+[exited with code 0]
