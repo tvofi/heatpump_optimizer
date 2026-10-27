@@ -35,6 +35,7 @@ from .const import (
     COP_TRACKING_ERROR_GATE,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
+    finite_float,
 )
 from .thermal_model import is_sunlit_interval
 from .draw_range import DrawRange, follows_ask
@@ -119,14 +120,8 @@ class AccuracySample:
             return None
 
         def num(key: str, lo: float = -np.inf) -> float | None:
-            value = data.get(key)
-            if value is None:
-                return None
-            try:
-                value = float(value)
-            except (TypeError, ValueError, OverflowError):
-                return None
-            return value if np.isfinite(value) and value >= lo else None
+            value = finite_float(data.get(key))
+            return value if value is not None and value >= lo else None
 
         return cls(
             when=when,

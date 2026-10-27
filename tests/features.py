@@ -424,6 +424,30 @@ R.check(
 )
 R.check("a missing unit is refused", normalize_power_kw(3000.0, None) is None)
 
+# D7-s2-61: the one live-state power parse and its three sign policies. Each
+# row is a policy's own answer; the non-finite, word and unit rows are every
+# policy's "no reading".
+from heatpump_optimizer.inputs import state_power_kw as _spk  # noqa: E402
+_spk_rows = {
+    ("-400", "W"): (-0.4, 0.0, None),
+    ("0", "kW"): (0.0, 0.0, None),
+    ("2500", "W"): (2.5, 2.5, 2.5),
+    ("inf", "kW"): (None, None, None),
+    ("1e400", "kW"): (None, None, None),
+    ("1e306", "MW"): (None, None, None),  # finite in, overflows on conversion
+    ("unknown", "kW"): (None, None, None),
+    ("3", "furlong"): (None, None, None),
+}
+_spk_got = {
+    k: tuple(_spk(FakeState(k[0], unit=k[1]), sign=p) for p in ("signed", "clamp", "positive"))
+    for k in _spk_rows
+}
+R.check(
+    "a power state parses to finite kW under the caller's sign policy, or to no reading",
+    _spk_got == _spk_rows and _spk(None) is None,
+    f"got {_spk_got}",
+)
+
 power_reader = reader(
     {"sensor.pump_power": FakeState("2400", unit="W", last_updated=NOW)}
 )
@@ -17216,8 +17240,8 @@ R.check(
 )
 R.check(
     "the plan lookup reads this step and the next",
-    _ps.plan_commands_heat([0.0, 2.0, 0.0], 0) == (False, True)
-    and _ps.plan_commands_heat([0.0, 2.0, 0.0], 2) == (False, False),
+    _ps.plan_commands_heat([False, True, False], 0) == (False, True)
+    and _ps.plan_commands_heat([False, True, False], 2) == (False, False),
 )
 
 # The coordinator glue: transitions only, and only configured entities.
@@ -17355,6 +17379,34 @@ R.check(
     "and a fresh plan drives the space pump, so the check above is not vacuous",
     _pump_entities(_fresh_pumps) == ["switch.vvc", "switch.space_pump"],
     f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
+)
+
+# D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
+# steps (optimizer.channel_heating_steps over both channels), not the space
+# draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
+# commands nothing. Null control: the 0.07 kW share on a step the hot-water
+# share makes run, and the 3 kW steps, still command heat.
+_ps_seen: list = []
+_ps_real = _ps.plan_commands_heat
+
+
+def _ps_spy(space_heating, step_index):
+    _ps_seen.append(list(space_heating or []))
+    return _ps_real(space_heating, step_index)
+
+
+_fresh_pumps._optimization_result.power_schedule[:3] = [0.07, 0.07, 3.0]
+_fresh_pumps._optimization_result.dhw_power_schedule = [0.0, 0.07] + [0.0] * 46
+_ps.plan_commands_heat = _ps_spy
+try:
+    _asyncio.run(_fresh_pumps._async_drive_pumps())
+finally:
+    _ps.plan_commands_heat = _ps_real
+R.check(
+    "the space pump reads the plan's space-heating steps, not its raw draw "
+    "(D8-s1-01)",
+    bool(_ps_seen) and _ps_seen[0][:3] == [False, True, True],
+    f"saw {_ps_seen[:1]}",
 )
 
 # The class D1-02 states, as a rule rather than an instance: every actuation
@@ -19073,6 +19125,20 @@ R.check(
         {"t": _RS_T0.isoformat()}
     ).solar_radiation is None,
     "a legacy sample (no field) must load as unknown, not as zero",
+)
+R.check(
+    "a stored sample's numbers go through const.finite_float: a bool or a "
+    "non-finite value loads as unknown (D7-s2-58 class)",
+    AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "solar_radiation": True}
+    ).solar_radiation is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "nan"}
+    ).actual_temp is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "21.5"}
+    ).actual_temp == 21.5,
+    "True used to load as 1.0",
 )
 
 
@@ -21314,6 +21380,23 @@ R.check(
     repr(_cs6._current_action),
 )
 
+# D8-s1-01 class sweep: the experiment's on flag is the pump's running rule
+# (planned_draw_runs, MIN_RUNNING_DRAW_KW), not the 0.05 kW channel line. Null
+# control: the 2.0 kW command above is on.
+_cs6_low = _t2_coord()
+_cs6_low._current_action = {"power": 1.0, "space_reason": None, "dhw_reason": None}
+_cs6_low._sysid.phase = PHASE_ARMED
+_cs6_low._sysid.step = lambda **kw: 0.07
+_sysid_cycle(_cs6_low, np.array([1.0]))
+R.check(
+    "an experiment command under the running floor does not mark the pump on "
+    "(D8-s1-01)",
+    _cs6._current_action["heat_pump_on"] is True
+    and _cs6_low._current_action["heat_pump_on"] is False,
+    f"2.0 kW -> {_cs6._current_action.get('heat_pump_on')!r}, "
+    f"0.07 kW -> {_cs6_low._current_action.get('heat_pump_on')!r}",
+)
+
 # --- #40 the month freeze --------------------------------------------------------
 _cm = _t2_coord()
 _cm._accumulate_energy(
@@ -23119,6 +23202,24 @@ R.check(
     "null control: a non-defrost interval still folds",
     _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
     repr(_cdf0._freq_map.buckets),
+)
+# D7-s2-01's pump_offline arm (R10-ARCH-SHAPES carry): an offline or faulted
+# pump's metered draw against its reported Hz is not its kW-per-Hz curve, and
+# every other learner already stands down on the freeze reason pump_signals
+# returns. The map admitted both; only cooling was refused.
+from heatpump_optimizer import pump_signals as _ps_mod  # noqa: E402
+_cfz = {}
+for _cfz_reason, _cfz_online in ((_ps_mod.FREEZE_OFFLINE, False),
+                                 (_ps_mod.FREEZE_FAULT, True),
+                                 (_ps_mod.FREEZE_COOLING, True)):
+    _cfz_c = _freq_coord()
+    _cfz_c._pump_signals = PumpSignals(online=_cfz_online, freeze_reason=_cfz_reason)
+    _cfz_c._observe_frequency(_T6)
+    _cfz[_cfz_reason] = bool(_cfz_c._freq_map.buckets)
+R.check(
+    "an offline, faulted or cooling pump's interval never teaches the frequency map",
+    _cfz == {r: False for r in _cfz},
+    repr(_cfz),
 )
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
@@ -34362,6 +34463,70 @@ def _db_band(coord, solve_time=_DB_T0):
     return coord._build_plan_views(_db_plan(solve_time))["dhw_plan"]["forecast"]
 
 
+# D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
+# plan's own on schedule calls off -- active_now read the channel's draw
+# against 0.05 kW, the running rule reads the step's whole ask against
+# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# Null control: the rows where the step runs keep their verdicts.
+def _ah_active(space0, dhw0):
+    plan = _db_plan(_DB_T0)
+    plan.power_schedule[0], plan.dhw_power_schedule[0] = space0, dhw0
+    views = _ah_coord._build_plan_views(plan)
+    return views["space_plan"]["active_now"], views["dhw_plan"]["active_now"]
+
+
+_ah_coord = _db_drive(cycles=1)
+_ah_rows = {
+    (0.07, 0.0): (False, False),  # the step's ask is under the running rule: off
+    (0.0, 0.07): (False, False),
+    (0.07, 0.07): (True, True),   # the step runs, and both channels carry it
+    (2.0, 0.0): (True, False),
+    (0.04, 2.0): (False, True),   # running, but space's own share is idle
+}
+_ah_got = {k: _ah_active(*k) for k in _ah_rows}
+R.check(
+    "a plan channel is heating now only on a step the plan runs (D8-s1-01)",
+    _ah_got == _ah_rows,
+    f"got {_ah_got}",
+)
+from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
+import inspect as _ah_inspect  # noqa: E402
+# The slot merge and the DHW schedule sensor read the same running rule
+# (D8-s1-01's secondary arm): each step of ``_ah_steps`` the plan calls off
+# must sit in no slot, and the schedule sensor counts no period from a raw
+# draw. Null control: the steps the plan runs keep their slot.
+_ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
+_ah_sp = [s for s, _ in _ah_steps]
+_ah_dw = [d for _, d in _ah_steps]
+_ah_ts = [_DB_T0 + timedelta(minutes=15 * i) for i in range(len(_ah_steps))]
+_ah_in_slot = [
+    [any(sl["start"] <= t.isoformat() < sl["end"] for sl in slots) for t in _ah_ts]
+    for slots in (
+        Coord._plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
+        Coord._plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
+    )
+]
+R.check(
+    "a plan slot holds only steps the plan runs, each channel on its own share "
+    "(D8-s1-01)",
+    _ah_in_slot == [
+        [True, False, False, True, False, False],
+        [False, False, False, True, True, False],
+    ],
+    f"got {_ah_in_slot}",
+)
+_ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
+_ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()
+R.check(
+    "the DHW schedule sensor counts periods only from the plan's own slots "
+    "(D8-s1-01): a raw draw of 0.07 kW does not say whether the pump runs",
+    _ah_sched.native_value is None
+    and not hasattr(_ah_sensor, "CHANNEL_ACTIVE_KW")
+    and "threshold" not in _ah_inspect.signature(Coord._plan_slots).parameters,
+    f"state {_ah_sched.native_value!r}",
+)
+
+
 # --- the record fills only from a configured, usable probe -----------------
 _db_ok = _db_drive()
 R.check(
@@ -40842,15 +41007,15 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [0.0], [0.0]),
+    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
 )
 R.check(
-    "one pump hour above 0.05 kW cheaper is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [0.2], [0.0]),
+    "one hour the plan runs the pump, and wood is cheaper, is on",
+    _wf_cheaper(1.0, [4.0], [2.0], [True]),
 )
 R.check(
     "that hour counts",
-    _wf_count(1.0, [4.0], [2.0], [0.2], [0.0]) == 1,
+    _wf_count(1.0, [4.0], [2.0], [True]) == 1,
 )
 
 from heatpump_optimizer.wood_fuel import night_advice as _wf_night
@@ -40947,8 +41112,7 @@ _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
     outdoor=[-5.0],
-    space_kw=[0.2],
-    dhw_kw=[0.0],
+    runs=[True],
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
@@ -40964,6 +41128,7 @@ from heatpump_optimizer.optimizer import OptimizationResult as _WfOR
 
 _wf_ts = datetime(2026, 1, 1, tzinfo=_tz_wf.utc)
 _wf_result = _WfOR(
+    heat_pump_on_schedule=[True],
     power_schedule=[0.2],
     room_temp_trajectory=[21.0, 21.0],
     slab_temp_trajectory=[21.0, 21.0],
@@ -40998,6 +41163,24 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper") is True
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
+)
+# D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
+# share the plan calls off buys no pump heat for wood to undercut. Null
+# control: the same plan with the step running counts it (the check above).
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
+try:
+    _dt_wf.now = lambda: NOW
+    _wf_off_pub = _wf_ready_coord._build_data_dict()
+finally:
+    _dt_wf.now = _real_now_wf
+R.check(
+    "a step the plan calls off is no pump hour for the wood advisor (D8-s1-01)",
+    _wf_off_pub["wood_fuel"].get("cheaper_hour_count") == 0
+    and _wf_off_pub["wood_fuel"].get("cheaper") is False,
+    repr(_wf_off_pub.get("wood_fuel")),
 )
 _wf_idle = _WfOR(
     power_schedule=[0.0],
@@ -41035,8 +41218,7 @@ R.check(
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
@@ -41088,8 +41270,7 @@ _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
@@ -41119,6 +41300,7 @@ _wf_probe_result = _WfNS(
     outdoor_temps=[0.0] * 48,
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
+    heat_pump_on_schedule=[False] * 48,
 )
 _wf_from_probes = _wf_from_coord(
     _wf_probe_coord._config,
@@ -47024,10 +47206,11 @@ def _t5_drive(coord, method, *args, **kwargs):
 # an entity the user never named is the one failure a heating integration
 # cannot take back.
 class _T5Plan:
-    """The two fields the pump driver reads off a solved plan."""
+    """The fields the pump driver reads off a solved plan."""
 
     def __init__(self, power_schedule, timestamps=None):
         self.power_schedule = power_schedule
+        self.dhw_power_schedule: list = []
         self.timestamps = timestamps or []
 
 
@@ -47597,7 +47780,7 @@ import io as _io  # noqa: E402
 import pickle as _t6_pickle  # noqa: E402
 from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
 from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
-from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.const import finite_float as _t6_as_float  # noqa: E402
 from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
 from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
 from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
@@ -48377,7 +48560,7 @@ R.check(
 
 
 # -- the module helpers every reader in the class goes through ------------
-# `_as_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
+# `finite_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
 # small, and that is exactly why they are worth pinning: a wrong answer in
 # any of them is wrong everywhere at once, and none of them has a caller
 # that would notice.
@@ -49406,14 +49589,14 @@ R.check(
 )
 
 
-# -- away._as_num and _parse_return_time -----------------------------------
+# -- away's numbers (const.finite_float) and _parse_return_time ------------------
 _g8_nums = {
-    "None": _g8_away._as_num(None, 7.0),
-    "int": _g8_away._as_num(3, 7.0),
-    "bool": _g8_away._as_num(True, 7.0),
-    "numeric string": _g8_away._as_num("3.5", 7.0),
-    "text": _g8_away._as_num("warm", 7.0),
-    "list": _g8_away._as_num([1], 7.0),
+    "None": _t6_as_float(None, 7.0),
+    "int": _t6_as_float(3, 7.0),
+    "bool": _t6_as_float(True, 7.0),
+    "numeric string": _t6_as_float("3.5", 7.0),
+    "text": _t6_as_float("warm", 7.0),
+    "list": _t6_as_float([1], 7.0),
 }
 R.check(
     "a configured number takes the default unless it really is one",
@@ -49757,16 +49940,16 @@ _G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
 _G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
 
 
-# -- _optional_float: the difference between "not set" and "set to zero" ----
+# -- wood numbers (const.finite_float): "not set" against "set to zero" ----
 _g8_wof = {
-    "None": _g8_wf._optional_float(None),
-    "empty string": _g8_wf._optional_float(""),
-    "zero": _g8_wf._optional_float(0),
-    "float": _g8_wf._optional_float(2.5),
-    "numeric string": _g8_wf._optional_float("2.5"),
-    "bool": _g8_wf._optional_float(True),
-    "text": _g8_wf._optional_float("lots"),
-    "list": _g8_wf._optional_float([2.5]),
+    "None": _t6_as_float(None),
+    "empty string": _t6_as_float(""),
+    "zero": _t6_as_float(0),
+    "float": _t6_as_float(2.5),
+    "numeric string": _t6_as_float("2.5"),
+    "bool": _t6_as_float(True),
+    "text": _t6_as_float("lots"),
+    "list": _t6_as_float([2.5]),
 }
 R.check(
     "an unset wood number is None and a zero one is 0.0, which are not the same",
