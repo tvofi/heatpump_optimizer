@@ -173,6 +173,7 @@ declaration. It asks the model's own numbers:
 | Heat pump nominal COP | 3.5 | 1.5–6.0 | As above. |
 | Heat pump max power | 5.0 kW | 1–20 | As above. |
 | Heat pump min power | 1.0 kW | 0–10 | As above. |
+| Heat pump COP loss at max power | 0 | 0–0.5, 0.01 steps | The share of efficiency lost running at max power rather than at min power, as a fraction (0.1 = 10 %). Larger heat flows need larger temperature differences across the heat exchangers, so the compressor's COP falls with its power; the model prices that as a linear fall across the modulation band. 0 leaves power out of the COP entirely, which is the default because no install without a heat meter can measure the slope; typical air-to-water units lose 0.05 to 0.15. |
 | Recalculate every | 30 min | 10–120, 5 steps | How often the plan is re-solved against fresh prices and weather. |
 | How hard to chase low prices | 1.0 | 0.1–10, 0.1 steps | Higher moves more heating into cheap hours, at the cost of more temperature swing. |
 | How strictly to hold the temperature | 5.0 | 0.1–20, 0.1 steps | The counterweight. Around 5 lets the house drift freely inside your allowed range; 10 keeps it noticeably closer to target; 20 or more behaves like an ordinary thermostat. |
