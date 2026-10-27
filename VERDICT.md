@@ -1,5 +1,5 @@
 Fix review: merge 8cdfc0ce950393f3709387a98dc94713f389ed5a
-bus-nonce: deba7a7e931d778f23ec6da34b9389ff
+bus-nonce: fb1d0ff38912b58a083d3eabd74c5e94
 
 Verdict: approve — every figure in s6-batch38.md re-derives at 8cdfc0ce, the narrowed `lock_dir` sentence is exactly true with both sets enumerated, all prior findings are answered, and the ACCEPT-narrowed carry ruling is sound.
 
@@ -37,3 +37,13 @@ Could not establish
 - The 38-minute wait and its timestamps: `/tmp/hpo-gate.lock/owner` is gone. The record declares it the orchestrator's measurement, not re-derived; `tools/audit/seat/update_pr.sh` exists, and 2 x 936.3 s plus tail/queueing is consistent, but that is arithmetic, not a second measurement.
 - The proposal's own text (P206/V126): `proposals.md` is not a tree path (batches 33-35 cite it the same way); the record says the entry was not yet appended when the ruling was cut.
 - "with a two-ordinary-script file it prints `slot`": the record names no file. It reproduces for a file whose scripts are multi-minute (entities.py + structure.py -> `slot`); two sub-69 s scripts answer `none`. Read existentially it holds; it is not a claim about every two-script file.
+
+## Routing of the round-1 disposition item
+
+The round-1 verdict (comment 6444053622) recorded a bullet on the batch's dispositions. At
+this head the batch's one row carries its closing disposition as its `Verdict:` line
+(`Verdict: ACCEPT narrowed -> a carry of R10-PREPR-CAP`, s6-batch38.md:6-7), and
+`dev/governance/roles/proposal-triage.md` makes the row's Verdict the record's disposition;
+no other disposition vocabulary exists in the tree.
+
+Carry: dismissed: the record's ACCEPT verdict is its closing disposition (item ac7bb763)
