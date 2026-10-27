@@ -1,0 +1,9 @@
+== real PR body, fixture branch with 5 unpinned sites (head of the fixture: 6e8c576d8)
+-- before --fill-red:
+  ERROR   [pr-body] /tmp/rev2853-tools/bodies/b_ctrl.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 2 error(s) in /tmp/rev2853-tools/bodies/b_ctrl.md
+rc=
+fill-red: wrote `mutation` under `## Red checks` for 5 unpinned site(s)
+-- after --fill-red:
+PR-BODY: 1 error(s) in /tmp/rev2853-tools/bodies/b_ctrl.md
+rc=

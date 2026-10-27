@@ -1,0 +1,4 @@
+== arm: genuine
+  ok   6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short)
+== arm: renamed
+  FAIL 6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short) (got ' NOTICE_MOVED', wanted '')

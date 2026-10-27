@@ -1,87 +1,66 @@
-Fix review: blocked fa18c13d206e312e2fe959d825ffa04ed77025e3 budget-exceeded: step 6g measures 5.39-6.2 s wall on the fixer's own box against the 5 s per-check budget the brief binds, the body restated the budget to 8 s and 15 s after measuring, and the wall time --fill-red adds to every body_push is not stated
+Fix review: blocked 2724c87bb4e336561e7034eaf6b0142f4664371b class-open: step 6g's narrowed copy holds the generator's files but not the link targets C108 resolves, so a docs edit that adds a link to an in-tree file outside CLAIMS_INPUTS refuses a correct, re-recorded register, and the remedy the refusal prints cannot clear it (the whole-tree check passes the same commit)
 
-bus-nonce: 85ff6725b1fb64d5c0735d6df6a852f9
+bus-nonce: 01cfb6aad691e7e08ffbb06e84852a10
 
-Review round: the second code head reviewed for this slice. The round note names the earlier head 5ab48352/819b82fb. Head measured: `fa18c13d206e312e2fe959d825ffa04ed77025e3` (ev/head.txt). `git ls-remote origin refs/pull/2853/head` read it again before this verdict was written: unmoved.
+Head reviewed: `2724c87bb4e336561e7034eaf6b0142f4664371b` — `refs/pull/2853/head` and the branch tip re-read immediately before publishing; unchanged since dispatch. Worktree: detached at the head, created by me (`/tmp/rev-2853-1`), `git status --porcelain` empty. The fixer's tree and the shared checkout were not used. Findings are from the head's own code, driven both ends; the fixer's harness was not reused except where stated.
 
-## Block
+## B1 (blocking) — step 6g grades a copy that is not the generator's read set
 
-Carry 6 is the owner's ruling (tvofi, 2026-10-22): the body states each added check's measured wall time and the total added, and **refuses any addition over a budget it names. A lane too slow for that budget stays CI-only.** The brief binds the budget at at most 5 s wall per added check and at most 10 s added to any one prepr or body_push run, the figures the earlier body round named.
+**Claim.** The body, line 5: 6g "copies HEAD's inputs — … the paths `dev/audit/rounds/round4/D6/claims.py` reads". The enumerated list is presented as that read set, and `## Null control` presents byte-identity on this head as proof the narrowing is faithful.
 
-1. **Step 6g is over 5 s by the body's own measurement.** The body measures it at `5.39 s through the function and 6.2 s at most split by hand`. Instead of refusing it or listing 6g as CI-only, the body moves the budget to `at most 8 s wall per added check, and at most 15 s added to any one prepr or body_push run`, because on its box "6g takes up to 6.2 s". It calls this "a disclosed self-correction the orchestrator rules on". A budget raised after the measurement to admit the addition it was meant to refuse is not a correction. That is the move carry 6 forbids, and `ratchet-budgets.md` refuses the same shape for caps: never widened to fit a change. On this host 6g takes 15.41-16.29 s wall over three runs at load average 65-81 on 8 cores. That is 7.3 s of CPU time (user+sys 3.93+3.45 and 3.88+3.48), which is above 5 s even before contention. The body's split shows where the time goes: `git archive` takes 3.10-3.58 s of it.
-2. **`--fill-red` added step 6d's predictor to every `body_push.sh` run without a wall figure.** The body's Figures say "a body_push gets `--fill-red` (step 6d's predictor) plus 0.19 + 0.38 s", which is not a measurement. Here `bash tools/pr/prepr.sh --fill-red` takes 10.34-18.79 s wall over five runs at load average 65-81, and 5.48-5.52 s CPU (user 4.17-4.26, sys 1.22-1.35). On CPU alone that is above the 5 s per-check budget, and with figure lint and ref_privacy it reaches about 6 s of the 10 s per-run budget. Neither figure is in the body.
+**Evidence.** The generator reads more than the listed files. `dev/audit/rounds/round4/D6/claims.py:1209-1229` (C108) walks every relative link in `README.md`, `DISCLAIMER.md` and `docs/*.md`, resolves it against the document's directory and tests `.exists()`; only four hard-coded export-cut names are excused. So the generator's input population includes **whatever tree path a documentation link names** — it changes with the docs and no static enumeration can close it. The uncovered region is most of the tree: `tools/` except `tools/audit/archscore/ABOUT.md`, `tests/` except five entries, `dev/` except three, and the repo root except five files.
 
-**What clears it (any one, per check):** bring 6g under 5 s, for example by archiving only `claims.py`'s inputs (`git archive HEAD -- <the files it reads>`) in place of the whole tree, which the body's own split says costs 3.1-3.6 s. Or move 6g CI-only, listed as such under carry 6. Or get the owner's ruling for 8 s and 15 s. Also measure `--fill-red`'s wall time and state it against the budget, refusing or moving it if it is over. Every other check below verified.
+**Fixture.** Commit `eb7e1dee2` = this head + one line in `docs/architecture.md` linking `../tools/audit/seat/INSTRUMENTS.md`. The target exists in the tree; `docs/architecture.md` already links `../tools/audit/archscore/ABOUT.md` and `../tests/README.md` the same way, and both are inside the list — this is the same edit shape, one path over. The register was re-recorded **at the repo root on the full tree** and committed: C108 `true | 85 links, broken=[], of which removed-by-the-export=[]`.
 
-## Findings
+**Harness.** Extracted `claims_reg_line` (the head's own function, sourced verbatim from `tools/pr/prepr.sh:325-354`) driven over (a) a whole-tree copy, `git archive HEAD | tar -x`, and (b) the copy the step builds, `git archive HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" | tar -x`, at the same commit, in a clone at `/tmp/rev2853-def`.
 
-- 6g's trigger (`CLAIMS_DOCS`: `README.md`, `docs/*.md`) is narrower than what `dev/audit/rounds/round4/D6/claims.py` reads. It also reads `DISCLAIMER.md`, the package's `services.yaml`, `strings.json`, `translations/*.json` and `manifest.json`, plus `hacs.json`, `VERSION`, the card JS and `tests/entities.py` (claims.py lines 244-269). A diff to `strings.json` or the card can therefore move the register and still reach CI stale under `PREPR_SKIP_CLOSURES=1`, which is #2609's class. The slice builds carry 20 exactly as worded, so this is not a block. Carry: R10-FLOW-JIDOKA
-- `docs/*.md` under bash `[[ $f == $p ]]` also matches nested paths: `docs/design/2026-09-05-away-plan-toggle/plan.md` runs 6g (ev/finding_nested_docs.txt), while claims.py globs `docs/*.md` top-level only. This is an over-trigger: each design-doc diff pays for a 6g run that grades nothing. Carry: R10-FLOW-JIDOKA
-- The carried figure "6 of 152 handoff-body tips" (prepr.sh comment, and carry 8) cannot be re-derived now. Today's corpus is 88 `handoff-body/*` tips, and 11 of them fail `figure_lint.mjs --pr-body` in this tree (ev/carry8.txt has the enumeration). It is a snapshot in a code comment, not a body figure. Carry: dismissed: a carried snapshot whose window closed, not a claim this PR measures
-- prepr-1, prepr-2 and prepr-6 are killed only by the self-test's call-site text rows (`case "$flow"`/`case "$bc"`), not by behaviour. The functions they call have behavioural rows: `privacy_line`'s refusal is killed by my m19 below. Carry: dismissed: the repository's call-site-row idiom (#1591), with the called functions pinned behaviourally
+**Metric.**
 
-## Evidence
+- whole-tree copy, 135,540 KB → **rc 0**, "claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold"
+- narrowed copy, 14,048 KB → **rc 1**, "committed claims.json claims.md not what … claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit"
+- C108 in the narrowed run: `false | 85 links, broken=[('docs/architecture.md', '../tools/audit/seat/INSTRUMENTS.md')], of which removed-by-the-export=[]`
 
-All files are under ev/. The no-voluptuous interpreter is a bare `venv --without-pip` built from Homebrew Python 3.13.15. Before each run, `python3 -c 'import voluptuous'` printed `ModuleNotFoundError: No module named 'voluptuous'` (ev/bare_python_voluptuous_refusal.txt, and the second line of each self-test log). Every self-test ran with `env -u BASH_ENV` and that interpreter first on PATH.
+**Perturbation.** (1) The same commit under the whole-tree copy passes, so the narrowing — not the fixture's register — is the cause. (2) Positive control for detection: a README link added *without* re-recording the register (the #2609 shape) is still refused, so the stale arm is intact. (3) Copy-shortness arm: `git archive HEAD -- README.md NOTICE_MOVED | tar -x` under the script's `set -uo pipefail` → rc 128, 0 files extracted, so a *renamed* entry refuses rather than grading short (the body's claim holds; tried to break it, could not).
 
-**instrument-self-tests reproduction (round note).** `bash tools/pr/prepr.sh --self-test`:
-- At 5ab4835246614398074616eaaa301593359a1b61: `409 passed, 2 failed`, EXIT=2, with `FAIL 6g passes a docs diff whose register the generator rewrites byte-identical (null control) (got 1, wanted 0)` and `FAIL and names the stale files and the moved header RESULT (got 1, wanted 0)`, each after `ModuleNotFoundError: No module named 'voluptuous'` (ev/selftest_bare_wt-5ab.log).
-- At the head: `412 passed, 0 failed`, EXIT=0, including `ok 6g's header parsers import without voluptuous or homeassistant (the governance job's python3)` (ev/selftest_bare_wt.log). Each run took 13 min 47 s wall under load.
-- `## Red checks` names `governance / instrument-self-tests` with the fixing commit `eb898c9bb`.
+**Why this blocks, not comments.**
 
-**Diff size.** `git diff --stat $(git merge-base origin/main HEAD)...HEAD`: 5 files, 267 insertions, 13 deletions (280 lines), under the ~400-line cap (ev/diffstat.txt).
+1. The printed remedy cannot clear it. "Re-run it and commit" at the repo root writes exactly the register already committed — the whole-tree arm, rc 0, proves it — so the copy's output still differs and the next push refuses again. A seat following the message loops; the only escapes are to delete a correct link (wrong) or to edit `CLAIMS_INPUTS` (a further PR the message never implies).
+2. The trigger is the check's own population: any diff touching `README.md` or `docs/*.md`. Adding in-repo links to those documents is routine.
+3. `## Null control` cannot see it: it runs both copies on *this* head, whose nine out-of-docs links all land inside the list. It is a spot check on one tree, not a bound on the class.
+4. `survivors=0` does not cover the arm: prepr-11 renames a **listed** entry, pinning "a listed path missing refuses", not "an unlisted read is missing from the copy". No mutant plants a link to an unlisted path.
 
-**The 22 carries:** ev/carries_table.md. All 22 are itemised in the body. Carry 6 is not honoured (## Block). `python3 -I tools/audit/carry_audit.py pr 2853`: `7 routed, 0 unrouted, 0 bad destination(s)`, rc 0 (ev/carry_audit.txt).
+**Shape of the fix (not designing it).** Make the copy faithful by derivation: e.g. archive the whole tree minus the measured 81.7 MB of `dev/audit` round evidence, keeping the generator's own directory — that preserves every link target at roughly the narrowed cost; or teach the generator to distinguish "absent from the export" from "broken in the repository", which the current `_export_cut` cannot. Either way, add one fixture/mutant that plants a link to an unlisted path: today no arm exercises it.
 
-**Carry 19 (and 5), step 3f7 `privacy_line`, on the finder's instances.** Each instance was run in a shared clone with `origin/main` set to that pull request's base, using this head's `privacy_line` (ev/carry19_instances.txt):
-- #2735 5a03e901 refuses (`dev/programme/triage/s6-batch5.md:9: home-directory, account-name, host-path ...`), and its fixed tip b0465583 passes (null).
-- #2741 d367b16d and ca804c6d refuse (`s6-batch7.md:9`), and its fixed tip 77656132 passes (null).
-- Mutant m19, with the ref_privacy call replaced by rc 0, passes 5a03e901 (ev/carry19_mutant.txt). The self-test row `privacy_line refuses a host path in an added line` is that mutant's killer.
-- Planted mutant prepr-1: the row `step 3f7 runs privacy_line and refuses on its rc` goes from ok to FAIL (ev/mutant_rows_prepr-1_prepr-6.txt).
-- Wall time: 1.52-1.98 s at load 65-81, and 1.06-1.10 s CPU. The body's 0.38 s unloaded figure is consistent with this.
+## Accepted, with the measurements that decided it
 
-**Carry 18, `WAVE_INPUTS`, on #2736 at fbbd3e61.** Its changed paths from its base e97f5749 are `dev/governance/dimensions/D11.md` and its delivery row (ev/carry18.txt):
-- The old trigger's `git diff --quiet` gives rc 0, so the step is skipped: the defect. The old briefs glob matches 0 files, and roles plus dimensions match 33.
-- `pinned_touched` against `WAVE_INPUTS` gives rc 0, so the step runs.
-- Null: a README-only diff gives rc 1 (skip).
-- Mutant, old glob restored: rc 1.
-- Planted prepr-3, full self-test: `410 passed, 2 failed` (`a diff touching one role contract runs step 4's wave-script (P75)`, `and one touching a dimension brief`) (ev/mutant_selftest_prepr-3.log).
-- `check-wave-script.mjs` takes 0.38-0.50 s.
+**A1 — the wall→CPU measure switch is not the block.** My both-ends run, same host, same session, `/usr/bin/time -p`:
 
-**Carry 20, step 6g `claims_reg_line`, on #2609's red ff83a3d7 (check-run 119826108493).** Run with the seat venv (claims.py needs yaml) over a `git archive` copy (ev/carry20_instance.txt):
-- ff83a3d7 refuses: `committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; re-run it and commit`.
-- Null: #2609's merged head 97ac438d passes with `rewrites claims.json and claims.md byte-identical`.
-- Mutant m20, with the comparison deleted, passes ff83a3d7.
-- Planted prepr-5, full self-test: `411 passed, 1 failed` (`and names the stale files and the moved header RESULT`) (ev/mutant_selftest_prepr-5.log).
-- Wall time: see ## Block.
+- reviewed head `fa18c13d2`, whole-tree copy: total CPU 6.63–6.89 s, wall 13.16–16.06 s at load 39.28–40.35
+- this head, narrowed copy: total CPU 3.63–3.81 s, wall 4.04–5.40 s at load 27.92–30.59
 
-**Carry 8, figure lint in `--body-check`.** Finder's corpus: of 88 `handoff-body/*` tips, 11 fail `figure_lint.mjs --pr-body`. The instance used is handoff-body/r10-heat-meter ce2d38d3, whose instrument is absent from the tree (ev/carry8.txt):
-- This PR's body plus the instance's figure line: `REFUSE figures`, rc 1.
-- The same body under mutant m8 (the rc is not propagated): rc 0.
-- Null: this PR's body unchanged gives rc 0 with `FIGURES: 18 resolved, 3 not verified, 0 refused`.
-- Planted prepr-6: the row `--body-check runs step 7a's figure lint and refuses on its rc (carry 8)` goes from ok to FAIL (ev/mutant_rows_prepr-1_prepr-6.txt).
-- Wall time: 0.23-0.29 s.
+`prepr.sh` contains no comparison against 5 s; the budget is the group carry's and the body's. The body states wall with the load it was taken at and CPU, and the 8 s/15 s restatement is withdrawn. The change is cheaper in CPU at either load and, in these runs, in wall — the switch does not hide a regression.
 
-**Carry 17, `fill_red`.** The grader is pr-contract's red arm, `policy_lint.mjs --pr-body --head <sha> --red mutation`, on this PR's body with `## Red checks` set to `none` and a 3-key site file. This is my fixture: no instance head with unpinned sites was rebuilt (ev/carry17.txt).
-- Before: rc 1.
-- No site: writes nothing, byte-identical, still rc 1 (null).
-- With sites: one line is written and the grader gives rc 0. A second run is byte-identical.
-- Mutant m17, the no-site guard deleted: writes `0 site(s)`.
-- Planted prepr-8, full self-test: `408 passed, 4 failed` (the null-control rows) (ev/mutant_selftest_prepr-8.log).
+**A2 — the raised wrapper bound cannot turn a survivor into a kill.** `run_step` passes `timeout=900` (`r10_seat_selftests_mutants.py:452`) and the verdict is `NOT RUN if rc == -1 else KILLED if rc else SURVIVED`. Forcing the bound to 0.01 s raises `TimeoutExpired` uncaught, exits non-zero with **zero** KILLED lines and no verdict: a timeout aborts, it cannot read as killed; raising 900→5400 only increases how many runs are evaluable. Stated limit: I did not reproduce the full 12-mutant run end to end — at load 110 the unmutated baseline self-test was still running after 35 minutes and I stopped it rather than hold the box. I re-derived the two new mutants directly: prepr-11's own row (extracted verbatim from the head's self-test) passes with the genuine list and fails with `NOTICE_MOVED` (`got ' NOTICE_MOVED'`); prepr-12's ARMS without `mutation` makes `--only mutation` an argparse error, rc 2, which fails the behavioural `--fill-red` row (`grep -c mutation` = 0, expected 1). 12/12 is accepted on that plus the rc-based kill rule, not on an independent full run.
 
-**Mutation proof route.** The in-tree harness `r10_seat_selftests_mutants.py` was run in three worktrees (prepr-1/3, prepr-5/6, prepr-8/10). Each run died on its own 900 s step timeout during the unmutated baseline, with host load average 40-70 (ev/mutants_m1.log .. m3.log), so nothing came of it. I then planted the harness's own MUTANTS entries (exact strings) and ran the full self-test without a timeout. prepr-1 and prepr-6 were stopped by this seat at about 255 of 424 lines, at load average about 300. Their killing rows are text assertions, so I evaluated them directly as above. prepr-10 was not re-run here: the 5ab48352 red above is the same defect. CI's heavy runs were cited, never re-run: gate, mutation, closures and `fast (3.14)` are green at the head.
+**A3 — `--fill-red` is cheaper in the quantity paid and still detects.** Full predictor: wall 17.80 s / CPU 5.96 s; `--only mutation`: wall 8.40 s / CPU 3.18 s, with the same five mutation-site lines. Before/after on a real body over the five-site fixture: 2 lint errors → 1 (the mutation red written); on this head (no sites) the body is byte-identical, so the null control holds. The one-arm switch reduces work, not coverage: the arm it runs is the only one whose output it writes.
 
-**Quantified body claims, nulls shown.** The 6g refusal, 3f7 refusal, WAVE_INPUTS and fill_red nulls are all shown above. Self-test 412/0 at the head and 409/2 at 5ab48352 were re-derived. I did not re-run: 384/0 at 5fb833930, the 4 min 33 s wall, the `408 passed, 4 failed` prepr-10 tree, and the prepr 24 min 53 s run. These are not verified.
+**A4 — the rest of the body checks out.**
 
-**Scope and hygiene.**
-- VERSION, the manifest, RELEASE_NOTES.md, both claim files and every `tests/*_budgets.json` are untouched (three-dot, ev/untouched.txt empty). No budget raise.
-- `dev/programme/delivery/2853.md` is present.
-- `ref_privacy --check`: 0 refused, 26 push-site files, so no push site was added.
-- `throwaway_git.py --check`: 0 refused. `tmp_paths.py --check`: 0 refused. `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `git merge-tree --write-tree origin/main HEAD` against 149ce54a36bcf9e794d357e0ef69dc8af62f8eb8: rc 0 (ev/merge_tree.txt).
-- `tests/entities.py` is not re-run (a gate script). It is cited from CI's `tests / closures` and `tests / fast (3.14)`, both green at the head.
-- No Co-Authored-By, Claude, session or Generated trailer is on the authored commits.
+- CI at this head: 47 contexts, **31 pass, 16 skipping, 0 fail** — including `gate`, `arch-score`, `tests / fast (3.14)`, `tests / mutation`, `pr-contract`, `governance / instrument-self-tests` (18m46s), `governance / delivery-status`.
+- `harness_headers.py`'s import fix is pinned by a self-test row that blocks `voluptuous`/`homeassistant`, and that job passes at this head.
+- `prepr.sh --body-check` on the real body passes: 17 figures resolved, 2 unverified, 0 refused; `## Red checks` answers both reds it names (`governance / delivery-status`, `governance / instrument-self-tests`).
+- `VERSION`, the manifest version, `RELEASE_NOTES.md`'s heading, both claim files and every `*_budgets.json` are untouched at this head; no Claude/Co-Authored-By trailers; claims checked three-dot.
+- `entities.py`'s `hb:` family (4 of 2,463 at this head against main's 6) is pre-existing and not head-caused; CI `tests / fast` and `gate` pass. My local re-run was still queued behind load 110 at publication; CI is the authority.
+- `structure.py` / archscore: CI `gate` and `arch-score` pass at this head; local re-run queued behind load 110 (not load-bearing for the verdict).
 
-**Check runs at the head** (ev/check_runs_head.tsv). The only red is `governance / delivery-status`: `DELIVERY STATUS OVERDUE ... overdue #2844 21b4552` (ev/delivery_status_log.txt). That grades main, and this diff adds only its own row, so it is not this PR's. `pr-contract` (started 10:54:23Z, after the last workflow concluded at 10:54:20Z) and `gate` are green. The earlier head's reds (instrument-self-tests, pr-contract and gate at 819b82fb) are named and answered under `## Red checks`, with a cheaper detector and its standing cost.
+## Tried to break, could not
 
-**Instruments of my own** (ev/fx.sh copied from the scratch tools dir) extract the slice's functions from a given prepr.sh. That let me run the finder instances and the m8, m17, m19 and m20 mutants against the head's own code.
+- archive under an unmatched pathspec → rc 128, 0 files (no short grading).
+- stale-register detection → still refuses a register that was not re-recorded.
+- `--fill-red` null control → no sites, nothing written, body byte-identical.
+- the CPU measure as cover for a wall regression → the old code is higher CPU at the same head, so the measure moves with the truth.
+- 6g's byte-identity at this head → reproduced independently (14,048 KB copy, same `claims.json`/`claims.md` bytes as the committed register).
+
+## Owed by this verdict
+
+A blocked verdict re-owes the delivery row (`delivery-status-tracking.md`): `dev/programme/delivery/2853.md` must state this block and the under-coverage it names before the next handoff. This is the fourth round; if the next fixer finds the same class again, `fixer.md`'s round rule owes a re-cut, not a repair.

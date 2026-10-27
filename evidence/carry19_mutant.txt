@@ -1,3 +1,0 @@
-MUTANT m19 (ref_privacy call replaced by rc 0) at #2735 5a03e901:
-0 refused
-rc=0 (0 = defect passes: the self-test arm 'privacy_line refuses a host path' must go red)
