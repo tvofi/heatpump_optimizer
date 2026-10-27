@@ -479,6 +479,8 @@ def _group_checks(check) -> None:
         check("a reviewer is dispatched at the PR head passed, not at a ref's tip",
               rhead in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
               and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        check("the reviewer's brief carries the packet render at the dispatched head for the seat's own machine",
+              f"review_packet.py render --pr 7 --head {rhead} " in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
         check("a nonce no dispatch minted is refused by the bus, and records nothing",
               refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
         check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
