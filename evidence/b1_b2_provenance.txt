@@ -1,0 +1,31 @@
+=== B1: citations re-derived by this seat, not taken from the fixer ===
+-- ~/hpo-orch/r10s6/seat-ledger.md:1684-1687 --
+triage s7: 2026-10-27T18:43:35Z RULED V131 P211 ACCEPT narrowed -> carry R10-UPDATE-PR-SIGNALS (the stuck andon samples the run tree's CPU advance, not age alone; REJECTED: raising the threshold, and the gate_lock lease arm -- a prepr takes a pool slot held for the run's life, tests/gate_lock.py:53-56)
+triage s7: 2026-10-27T18:43:35Z batch 40 pushed: handoff/triage-s6-batch40 5ecdd96a417744bdce5c2a6c6f7352c4243eefb3 (s6-batch40.md only, base 6eb552157); handoff-body/triage-s6-batch40 bad5eae337a5fbcca2aea1183bbac19e597334b5 byte-identical; --body-check pr-body ok/carry ok/preflight ok; queue op appended and HELD until the file is on main
+triage s7: 2026-10-27T18:43:35Z source note: proposals.md gained V124 at 18:53Z (newest entry was V123); the file's V-numbers and this seat's ruling numbers are separate sequences, so V124 rules as P211/V131
+triage s7: 2026-10-27T18:43:40Z correction to the line above: 18:53Z is V124's own header stamp, not its arrival -- proposals.md's mtime is 2026-10-27T18:23Z on this box (19:23 local), so the entry's stamp runs 10 min ahead of this seat's clock; the ruling uses the mtime as arrival.
+
+-- proposals.md mtime, measured: TZ=UTC stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%SZ' --
+2026-10-27T18:23:44Z  ~/hpo-orch/r10s6/proposals.md
+-- V124 header line (proposals.md:601) --
+## V124 (orchestrator s7, 2026-10-27T18:53Z): the push-stuck guard's threshold sits below the work it is guarding
+
+=== B2: #2854 ===
+-- verbatim quote, grep -o on gh pr view 2854 --json body --
+when the 30-minute lease lapsed inside the 85-minute run
+-- updatedAt now --
+2026-10-27T19:09:27Z
+-- every timeline stamp matching T18: or :23:17 --
+2026-10-27T02:23:17Z
+2026-10-27T18:46:52Z
+
+=== file lines 3-11 as written at head 0f779c2dc ===
+One entry, the first from `proposals.md` since V123: V124, the orchestrator s7 entry. Its
+arrival is `proposals.md`'s mtime on this box, 2026-10-27T18:23Z; the entry's own header stamp
+reads 2026-10-27T18:53Z, about 10 min ahead of this box's clock -- the seat read and ruled it at
+18:43:35Z, so 18:53Z is a stamp, not an arrival. Facts read at origin/main `6eb552157`; roster
+at `origin/handoff/audit-r10-roster` `32b938f3e` (212 groups).
+
+Provenance note on the 85-minute figure: it is #2854's own body text -- "when the 30-minute
+lease lapsed inside the 85-minute run" (`updatedAt` 2026-10-27T18:23:17Z) -- not a measurement on
+this box, and it is not re-derived here; the claim that #2854's body lacks the figure is false.

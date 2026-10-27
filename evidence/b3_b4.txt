@@ -1,0 +1,18 @@
+=== B3: the carried non-blocking finding is recorded as a limitation ===
+-- s6-batch40.md:73-76 --
+sample prints nothing (null control). Known limitation of the carried arm: the stored sample
+must be keyed to the pid and start it sampled, and re-stored when either differs, or a branch
+lock re-taken by a later run compares its CPU against the earlier run's sample and prints a
+false STUCK.
+
+-- round 1 NONBLOCK, ~/hpo-seats/r10s6/review-2886-r1/VERDICT.md:23-24 --
+- NONBLOCK: the sample the binding stores is not keyed to the pid and start it sampled. "the first sighting past the bound stores the sample and prints nothing" (`s6-batch40.md:57-58`) plus "a per-branch sample file under `$HPO_STATE_DIR`" (48) leaves the next run on the same branch comparing its CPU against a previous run's sample: a delta that is not positive reads as "not advanced" and prints a false STUCK — the exact class the change exists to remove. The implementation needs `(pid, start, cpu)` in the sample and a re-store when either differs. I do not block on a specification gap the implementer can see, but the ruling's value is that the implementer need not re-derive it.
+  Carry: R10-UPDATE-PR-SIGNALS
+
+=== B4: delivery row and file set ===
+-- dev/programme/delivery/2886.md --
+- [#2886](https://github.com/tvofi/heatpump_optimizer/pull/2886) — **open**, triage: batch 40 -- rule V124 as P211/V131 (the push-stuck guard's CPU-advance arm) (R10-UPDATE-PR-SIGNALS)
+-- PR state --
+OPEN
+-- delivery-status check on this head --
+governance / delivery-status COMPLETED SUCCESS
