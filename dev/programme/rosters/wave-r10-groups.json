@@ -1707,7 +1707,7 @@
     "branch": "handoff/r10-arch-shapes",
     "commit": "4f3c7302046eccd1f869724a6de2cbf6f8183418",
     "last_step": null,
-    "next_step": "PR #2819 is open at af7ec86f4, which is an ancestor of this ref: the handoff branch has main merged in (1f82fee49, #2856) and the PR head does not. Update the PR head to 04669d82f, or resolve the conflict on the PR, then review.",
+    "next_step": "none: #2819 merged at 4f3c73020; the classifier arm it parked is R10-ARCH-SHAPES-CLASSIFIER, whose two prerequisites (#2819, #2843) are both done.",
     "note": null,
     "pr": 2819
    },
@@ -4918,9 +4918,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-cop-partload",
-    "commit": "f4415303e012a4851585ff366441b0c4f88ac661",
+    "commit": "fe964895e628e0fc54762f9e80dc6098ff606e0b",
     "last_step": "Handoff pushed at 775ae0340: the term at the seven priced forward sites and the two hot-water sites, the structure re-record (class_excess_loc 18082; the naive shape measures 18111, so the shape pays 29 lines and the rise over the base is 3), the golden config_flow re-record and its claim, the buffer-ceiling triage re-anchor, the harness INERT read, the RCA at dev/audit/rca/R10-RCA-COP-PARTLOAD.md, and the two audit header blocks. Scoped gate MODE: SCOPED -- 30 script(s) run, 3 scoped out; its reds are classified against 3b4180dcc in the body's ## Red checks -- golden 55/56, the stress shoulder economics and the card.mjs V8 OOM reproduce at the base, harness_headers was fixed in dc67636b2 and re-runs green, and the stress production-call channel is this branch's, named there for the owner's pass.",
-    "next_step": "PR #2872 open at the merge-forwarded head f4415303e (main 524c1896b merged, no hand resolution; structure.py and entities.py re-run green: 18070<=18070, ALL 2467). Body on handoff-body/r10-cop-partload (fa3905d28); update_pr advanced the branch and the ## Head note. Review owed at f4415303e from a detached worktree with the finder's harness. Two checks are owner-gated rather than fixer-gated: tests / fast (3.14) (13 stress production-call scenarios 1.050x-1.063x past the 1.05 allowance, work counts vouching 1.000x) and budget-raise-gate (class_excess_loc 18067->18070; ## Raise justification carries dS +0.0000 NULL and the rejected naive shape at 18099). Under mandate 6329234399 the budget-raise arm is mine to rule once the reviewer confirms no payment improves the architecture; the stress allowance is not, and it waits for tvofi.",
+    "next_step": "PR #2872 is open at fe964895e; the handoff tip f4415303e (main 524c1896b merged, no hand resolution; structure.py and entities.py re-run green at that tip: 18070<=18070, ALL 2467) is not in the PR head, so update_pr owes the advance before the review. Body on handoff-body/r10-cop-partload (fa3905d28). Two checks are owner-gated rather than fixer-gated: tests / fast (3.14) (13 stress production-call scenarios 1.050x-1.063x past the 1.05 allowance, work counts vouching 1.000x) and budget-raise-gate (class_excess_loc 18067->18070; ## Raise justification carries dS +0.0000 NULL and the rejected naive shape at 18099). Under mandate 6329234399 the budget-raise arm is mine to rule once the reviewer confirms no payment improves the architecture; the stress allowance is not, and it waits for tvofi.",
     "note": null,
     "pr": 2872
    },
@@ -10054,7 +10054,7 @@
     "branch": null,
     "commit": null,
     "last_step": null,
-    "next_step": "wait for R10-996-RUNNER-CLAIMS and R10-ARCH-SHAPES, then a fixer from the parked branch",
+    "next_step": "both prerequisites are done -- #2843 (R10-996-RUNNER-CLAIMS) merged at bb8addd8 and #2819 (R10-ARCH-SHAPES) merged at 4f3c73020 -- so a fixer starts from park/r10-arch-shapes-classifier at 996b54cf, which carries the D8-s1-01 classifier arm.",
     "note": null
    }
   },
@@ -10464,9 +10464,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-diag-ages",
-    "commit": "ec2384f70c89db880b6eb7d84b96550b3d205300",
+    "commit": "e73ff68cad418f881ae7c727767daee7c03b539a",
     "last_step": "Handoff pushed at ec2384f70: the three #2814 residues (input ages re-based from input_ages_at to the export; plan_stale re-judged at the export with plan_stale_limit_minutes; self_tests_at stored with the results and stated in the manifest), the structure re-record (class_excess_loc 18079->18078, max_class_loc 8236->8235, no raise) and 107 lines of failing-first checks in tests/debug_collect.py (144 checks). Scoped gate MODE: SCOPED -- 27 script(s) run, 6 scoped out; 5 red scripts, all reproduced at merge base 6fe5170cd in the same environment (card V8 OOM, strict golden, entities BSD wc -l padding, optimality closed claim, the stress shoulder measurement); golden in drift mode rc 0. prepr PRE-PR clean, 0 refusals.",
-    "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder harness). Body on handoff-body/r10-diag-ages; open the PR after the verdict. One forward-carry to R10-FLY-SUITE-ENV-FLAKES (the entities py-spy stub BSD wc -l padding).",
+    "next_step": "review owed at e73ff68ca, the open PR #2873 head (fix-review from a detached worktree with the finder's harness). Body on handoff-body/r10-diag-ages. One forward-carry to R10-FLY-SUITE-ENV-FLAKES (the entities py-spy stub BSD wc -l padding).",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
     "pr": 2873
    },
@@ -10632,12 +10632,13 @@
     "Registered by the orchestrator 2026-10-27 under the owner's ruling that a delivery gap with no owning group gets folded into the roster rather than left as an orphan handoff. This group exists because the triage s6 batch 36 pull request carried a handoff ref that no group named, so the drain, the plan count and the board's OWED handoffs line all saw it as uncovered work with no seat."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "fix/triage-s6-batch36",
-    "commit": null,
+    "commit": "6d58fa0bc404485ca96f543b0c894d6ea8e72a59",
     "last_step": "registered",
-    "next_step": "advance the head over the gap repair, then review it",
-    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+    "next_step": "review owed at 6d58fa0bc, the open PR #2877 head (the P204 ruling 1b84be41 and this group's own row are in it).",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2877
    },
    "brief": "Own the triage s6 batch 36 pull request to a merge-ready head. The batch file and the pull request's own Figures section must agree on every deferred item: the repair that reopened this group was one place saying a proposal was already carried while the enumerator printed zero for it. Re-derive the enumerator's output at your merge base rather than quoting the body's, and when the two disagree, the enumerator wins and the prose is the defect. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Do not add a survivor-triage record; a survivor list is repaired by killing the mutant or by an equivalent assertion, not by recording it."
   },
@@ -10675,12 +10676,13 @@
     "Registered by the orchestrator 2026-10-27: the round-10 roster batch 24 pull request was advancing a handoff ref that no roster group named, so the board read it as an orphan handoff with no pull request even while the pull request was open. A record-only change still needs an owning group, or the drain cannot see it finish."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "fix/audit-r10-roster-pr",
     "commit": null,
     "last_step": "registered",
-    "next_step": "bring the pull request head up to the roster handoff, then review it",
-    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered"
+    "next_step": "review owed at the head update_pr lands for #2878; the roster corrections in this batch are the diff.",
+    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered",
+    "pr": 2878
    },
    "brief": "Own the round-10 roster batch 24 pull request to a merge-ready head. It is a record change, so the review is about whether the recorded state is true, not about code: re-derive each row from the tree and from the open pull requests rather than trusting the previous batch's claim, and correct any row that has gone stale since it was written. Keep the roster's own formatting byte-identical where no row changes -- the round-trip rule in tools/audit/seat/roster_edit.py is the constraint that stops a one-row edit rewriting the whole file. Read dev/governance/rules/delivery-status-tracking.md before touching a status row: the record outranks any wave body."
   }
