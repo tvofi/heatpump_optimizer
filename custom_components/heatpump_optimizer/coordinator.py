@@ -2946,9 +2946,7 @@ def compose_scores(
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
-        "envelope_drivers": [
-            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
-        ],
+        "envelope_drivers": [],
     }
 
 
