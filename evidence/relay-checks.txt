@@ -1,0 +1,42 @@
+# cloud_relay.sh relay() checks (lines 190-230)
+  git cat-file -e "$tip^{commit}" 2>/dev/null || git fetch -q origin "+refs/heads/review/$1:refs/hpo-relay/review/$1" 2>/dev/null
+  git cat-file -e "$tip^{commit}" 2>/dev/null && echo "$tip"
+}
+
+relay() {
+  local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
+  case $pr in ''|*[!0-9]*) die "pr '$pr' is not a number"; return;; esac
+  printf '%s' "$head" | grep -Eq '^[0-9a-f]{40}$' || { die "head must be 40 lowercase hex"; return; }
+  printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$' || { die "nonce must be 32 hex"; return; }
+  ref=refs/heads/probe/rev-$pr-$(printf '%s' "$nonce" | cut -c1-8)
+  sha=$(git ls-remote origin "$ref" | awk 'NF { print $1; exit }')
+  [ -n "$sha" ] || { die "no $ref on origin"; return; }
+  state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
+  if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
+  git fetch -q origin "$ref" || { echo "cloud_relay: could not fetch $ref" >&2; return 1; }
+  d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
+  git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
+  subj=$(git log -1 --format=%s "$sha")
+  [ "$subj" = "verdict $pr $head" ] || { die "the ref's commit says '$subj', not 'verdict $pr $head': another PR or head"; return; }
+  [ -f "$d/verdict.md" ] || { die "no verdict.md in the ref"; return; }
+  first=$(head -n 1 "$d/verdict.md")
+  if [[ $first =~ ^(Fix\ review:\ blocked\ [0-9a-f]{40})\ \[([a-z-]+:\ [^][]+)\]$ ]]; then
+    local fixed="${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
+    { printf '%s\n' "$fixed"; tail -n +2 "$d/verdict.md"; } > "$d/verdict.new" && mv "$d/verdict.new" "$d/verdict.md"
+    echo "cloud_relay: normalised first line: $first -> $fixed"
+    first=$fixed
+  fi
+  # bus.sh's grammar (verdict_sha): merge has no tail; blocked has `<class>: <reason>`.
+  if [ "$first" = "Fix review: merge $head" ]; then :
+  elif [[ $first == "Fix review: blocked $head "* ]] && [[ ${first#"Fix review: blocked $head "} =~ ^[a-z-]+:\ .+$ ]]; then :
+  else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
+  grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
+  [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
+  local out sha2 wt tip tries=0
+  wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
+  # A push refused non-fast-forward (review/<pr> moved since push-verdict read its tip) is
+  # re-applied: push-verdict reads the fresh tip again and appends the same verdict there,
+  # never forcing. A fresh tip that already carries this verdict's tree is not re-applied.
+  while :; do
+    tries=$((tries + 1))
+    out=$(push_run "$pr" "$d/verdict.md" "$d/ev" 2> "$d/push.err") && { cat "$d/push.err" >&2; break; }

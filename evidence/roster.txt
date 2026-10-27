@@ -1,0 +1,78 @@
+roster tip 9937317d8: groups=208 open=70 gated=34
+  R10-ARCHSCORE-SPELLINGS          mandate=0 code-owned=1 policy=0 budget=0 | code-owned: archscore weights.json and calibration/expected.json
+  R10-BRIEFS-FOLD-D0               mandate=1 code-owned=0 policy=1 budget=0 | policy: dimension briefs (mandated approval under 6329234399)
+  R10-BUFFER-STORE                 mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-CEILING-PROBE                mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-CLOSEOUT-CLEANUP             mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-COP-PARTLOAD                 mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-ERREXIT-COUNTERMEASURES      mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-FLOW-AUDIT-PLAN              mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-BOARD                   mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-BODY-ONLY               mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-DESIGN-STAGES           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-JIDOKA                  mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-POSTMERGE               mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-ROSTER-FREEZE           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-TOOLKIT-MODEL           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLOW-WIP                     mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6175172275
+  R10-FLY-CARRY-DISPOSITION        mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694
+  R10-FLY-CARRY-DOC-CONTEXT        mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694
+  R10-FLY-GH-READ-RETRY            mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694
+  R10-FLY-MANDATE-REVOKE-GUARD     mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-FLY-ORPHANS-REWRITTEN        mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694
+  R10-FLY-RELAY-REVIEW-FF          mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694
+  R10-FLY-ROW-HEAD-CARRY           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6319294694 (code-owned .github/workflows/*)
+  R10-FLY-STAMP-CHECK-NOTES        mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-MERGE-SUBJECT-CASEARM        mandate=0 code-owned=0 policy=1 budget=0 | policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate
+  R10-ORCH-MACHINERY               mandate=1 code-owned=0 policy=0 budget=0 | Mandated approval under 6175172275 for the orchestrator-owned instruments; any change to a policy fi
+  R10-ORCH-REVIEW-PACKET           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-ORCH-ROSTER-SCHEMA           mandate=1 code-owned=0 policy=1 budget=0 | Policy: tvofi approves at merge (design section 8 rows vii and viii, DONE_STAGES and the roster sche
+  R10-POLICY-ROLE-PACK             mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-RECORD-API-O1                mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-RECORD-HOLD-APPROVE          mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+  R10-REPLAY-REAL-DAY              mandate=1 code-owned=1 policy=0 budget=0 | code-owned: tests/replay.py (mandated approval under 6329234399)
+  R10-ROUND-PLAYBOOK               mandate=1 code-owned=0 policy=0 budget=0 | owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694
+  R10-ROUTING-INVARIANTS           mandate=1 code-owned=0 policy=0 budget=0 | mandated approval under 6329234399
+counts: mandate=32 code-owned=2 policy=3 budget=0 rows_matching_more_than_one=3
+code-owned rows: ['R10-REPLAY-REAL-DAY', 'R10-ARCHSCORE-SPELLINGS']
+R10-DEPENDABOT-SETUPTOOLS: in gated? False | owner_gate= None | stage= not-started
+
+join over 73 open issues at the record's read (today's 71 + #2494 + #2509; none created since)
+  routed to a live group: 72 of 72 besides #201
+  unlisted by any group:  0 []
+  listed only by done/absorbed: 0 []
+  also listed by a done group:          26
+  also listed by a done or absorbed group: 29
+  #2835: ['R10-FRICTION-GATE-SCOPING'] live=['R10-FRICTION-GATE-SCOPING']
+  #2840: ['R10-FRICTION-MUTATION-SURVIVOR'] live=['R10-FRICTION-MUTATION-SURVIVOR']
+  #2855: ['R10-RCA-FRICTION-RESIDUE'] live=['R10-RCA-FRICTION-RESIDUE']
+  #2860: ['R10-FRICTION-REGRESSION'] live=['R10-FRICTION-REGRESSION']
+
+R10-FLOW-WIP               stage=not-started pr=None is_open=True size=S carries=7
+                           files=['tools/audit/seat/pr_cap.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/INSTRUMENTS.md']
+R10-FLY-WIP                ABSENT
+R10-ORCH-REVIEW-PACKET     stage=not-started pr=None is_open=True size=M carries=9
+                           files=['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/INSTRUMENTS.md']
+R10-ORCH-ROSTER-SCHEMA     stage=not-started pr=None is_open=True size=M carries=22
+                           files=['tools/audit/seat/roster_lib.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/roster_edit.py']
+R10-FLOW-PULL              stage=done pr=None is_open=False size=S carries=0
+                           files=['dev/governance/roles/nudge.md', 'dev/governance/roles/orchestrator.md']
+R10-TRAIN-OVERLAP-GRADE    stage=queued pr=None is_open=True size=M carries=15
+                           files=['tools/audit/seat/merge_train.py', 'tools/audit/seat/INSTRUMENTS.md']
+R10-MUTANT-SKIP            stage=done pr=2749 is_open=False size=M carries=0
+                           files=None
+R10-COP-PARTLOAD           stage=queued pr=None is_open=True size=M carries=0
+                           files=['custom_components/heatpump_optimizer/optimizer.py']
+R10-ORCH-ROSTER-SCHEMA     stage=not-started pr=None is_open=True size=M carries=22
+                           files=['tools/audit/seat/roster_lib.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/roster_edit.py']
+R10-ORCH-ROSTER-SCHEMA: issues=[2505, 2733] fixes=[]
+R10-ROUTING-INVARIANTS stage= absorbed note= absorbed into R10-ORCH-ROSTER-SCHEMA (consolidation audit 2026-10-25, tvofi existing-groups-first); brief, 3 carries and #2733 carried there
+# P201 PR join at the roster branch (the reader the tick uses):
+   2854 -> R10-HEAT-METER
+   2853 -> R10-FLOW-JIDOKA
+   2819 -> R10-ARCH-SHAPES
+   2745 -> R10-SAV-COMFORT
+   2678 -> R10-DEPENDABOT-SETUPTOOLS
+   2866 -> NO GROUP
+   2867 -> NO GROUP
+# main in-tree roster: R10-DEPENDABOT-SETUPTOOLS present? False

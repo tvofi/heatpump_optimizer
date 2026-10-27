@@ -1,0 +1,10 @@
+# policy_lint --budgets at 6fe5170cd (head tree), fix-review row
+file                                           lines cap  ~tokens  cap always
+tools/audit/briefs/fix-review.md                 140  140     2448  2451 
+.claude/rules/ratchet-budgets.md                 110  114     1623  1664 
+-- wc -l dev/governance/roles/fix-review.md
+     140
+-- tests/layout.json retired entry mapping the printed (canon) row to the role file
+[{'old': 'tools/audit/briefs/fix-review.md', 'new': 'dev/governance/roles/fix-review.md', 'since': None}]
+-- fix-review.md line 7
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233), never the owner's approving review, which code-owned paths still need.

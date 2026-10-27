@@ -1,0 +1,12 @@
+# stale train wiring, 2026-10-27T00:50:50Z
+lrwxr-xr-x@ 1 timmalmstrom staff 12 Oct 26 16:59 current-queue.json -> queue58.json
+lrwxr-xr-x@ 1 timmalmstrom staff 13 Oct 26 16:59 current.log -> s58/train.log
+-- sweep_mech.sh:26
+  bash $WT/tools/audit/seat/tick_loop.sh --interval 300 --out $O/tick.txt -- --queue $O/train/current-queue.json --train-log $O/train/current.log
+-- board TRAIN section (tick.txt lines 2-7)
+== TRAIN ==
+   prepr slots: 0 running (cap 4)
+   queue empty
+   no train running (the queue holds no OPEN entry)
+   log tail: #2834 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2257,"state":"CLOSED"}]}}}}} | NOT released <home>/hpo-orch/r10s6/train/s58/wt/2834 (rc=128: fatal: '<home>/hpo-orch/r10s6/train/s58/wt/2834' is not a working tree); remove it by hand | TRAIN HOLD released | TRAIN DONE | TRAIN_RC=0 end=2026-10-26T16:59:07Z
+== PRS ==

@@ -1,0 +1,35 @@
+# MF3 (#2494) evidence at origin/main 6fe5170cd
+-- 09b1d002c ancestry:
+   ancestor of origin/main: YES
+-- commit stat:
+   09b1d002c19f941e9ba77367554e086c8cec50ee 2026-10-24 08:01:01 +0000 fix(R10-MERGE-SUBJECT-HARDEN): the title template is the host's shape, and the writer scan reads the call
+
+ tools/policy/agreement.mjs | 75 ++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 69 insertions(+), 6 deletions(-)
+-- -S search:
+   09b1d002c 2026-10-24 fix(R10-MERGE-SUBJECT-HARDEN): the title template is the host's shape, and the writer scan reads the call
+-- agreement --self-test:
+SELF-TEST 180 of 180 probes held
+-- first-parent census since 2026-10-19T00:00Z (the record names no cutoff):
+   first-parent=382 merges=369 single-parent=13 host-shape=369 squash=0 neither=0
+
+# MF4 (#2509) evidence
+-- issue #2509 state: CLOSED 2026-10-26T22:47:57Z (gh issue view)
+-- group R10-MUTANT-SKIP: stage=done pr=2749 (main in-tree roster)
+-- 6b5d2a8169d6:
+   6b5d2a8169d64ab9ec276cfa2670ae32b2e2053b Merge pull request #2749 from tvofi/fix/r10-mutant-skip
+   in origin/main: YES
+-- replay artifacts at origin/main:
+dev/audit/harnesses/r10_mutant_skip/matrix.tsv
+dev/audit/harnesses/r10_mutant_skip/null_drive.py
+dev/audit/harnesses/r10_mutant_skip/replay.py
+   matrix.tsv data rows: 6077  (the issue's own plan says 595 rows; the delivered matrix is this size)
+
+# MF1/MF2
+-- pool/POOL matches in tools/audit/seat/cloud_dispatch.py: 0  (file      747 lines)
+-- tools/audit/seat/pool.py tracked: 0
+-- updated-for readers:
+137:UPDATED_FOR = re.compile(r"^updated-for:\s*([0-9a-f]{40})", re.M)
+1564:        m = UPDATED_FOR.search(o)
+8
+          # git whether `updated-for:` is an ancestor -- unanswerable at depth 1.

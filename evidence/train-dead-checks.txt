@@ -1,0 +1,23 @@
+# dead-vs-unfinished checks, 2026-10-27T00:50:49Z
+== s38
+-- rc: none
+-- train.pid: none
+-- last 2 log lines:
+     TRAIN HOLD refs/heads/train-hold 0727b282: the record beat waits
+     NOT RUN #2780: added, still in queue-add.jsonl; the next train runs them
+== s44
+-- rc: 143
+-- train.pid: none
+-- last 2 log lines:
+     TRAIN HOLD released
+     TRAIN_RC=143 end=2026-10-26T03:01:39Z
+== s60
+-- rc: none
+-- train.pid: 71741
+-- last 2 log lines:
+     serial: #2858
+     TRAIN HOLD refs/heads/train-hold 40ce2ce6: the record beat waits
+-- s60 pid liveness:
+   pid 71741 NOT alive
+-- live merge_train.py processes:
+   none
