@@ -84,14 +84,14 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
 
-    The handoff makes the head yours from then on, so one that moved under you
-    is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
-    instead is yours to offer, never owed.
+    The handoff makes the head yours, so one that moved under you is a broken
+    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+    is yours to offer, never owed.
 
-    **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
-    section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
-    main merge returns as its **resolution delta**, which alone you judge;
-    any other move is re-reviewed.
+    **A `merge` verdict attaches to the head its first line names and carries**
+    (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
+    <verdicted> <new>` prints `CARRY`: no branch-only commit, not `head-moved`.
+    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run

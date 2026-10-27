@@ -20,7 +20,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 
 - `app_approve.sh` — approves a pull request as the `hpo-approver` App at one
   exact head SHA, only on a `merge` verdict for that SHA from an allowlisted
-  account (`--carry` re-approves a carried verdict). When: landing a
+  account (`--carry` re-approves a carried verdict: no branch-authored commit
+  in `git rev-list <verdict>..<head> --not main`, every merge git's automatic
+  one and each `claimnotes` file a pure union of its parents' lines). When:
+  landing a
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
@@ -850,6 +853,24 @@ sweep's standing-seat liveness step keep them alive.
   PR state, under a byte budget. When: a state beat; regenerate rather than
   hand-edit the resume. Refusal: over-budget output refuses with `--out`
   unwritten — archive before regenerating.
+- `review_carry.py` — answers, from two shas and the commit range alone,
+  whether a moved head still needs its own review: `review_carry.py
+  <reviewed> <new>` prints the branch-only commit count, their subjects and
+  exactly one `CARRY`/`FRESH-REVIEW` (`git rev-list --count <reviewed>..<new>
+  --not origin/main`; zero, or every commit in it a merge, is the only CARRY,
+  since a merge authors no commit and what it joins is either main's history
+  or branch commits the range already returns — so a merge of the branch's
+  own previous head, update_pr.sh's re-cut, is not a change). When: before
+  dispatching a reviewer at a moved head, and in a verdict that re-issues a
+  prior one — the owner's 2026-10-27 ruling, "if there are no code changes,
+  the previous review can be carried", made mechanical. Refusal: an unknown
+  sha, a missing main ref or a missing commit cannot be decided (exit 2, no
+  verdict line, so it is never read as CARRY); a force-push, a non-merge
+  commit — including the commits a merge of a non-main branch brings in — and
+  a `ci:`/`claims:` commit are all `FRESH-REVIEW`. A claim file resolved
+  INSIDE a merge is `app_approve.sh --carry`'s read, not this one's.
+  `--verdict-only` prints the token alone; `bus.sh dispatch --reviewed-head`
+  is its caller, and `--self-test` grades the ranges.
 - `review_strength.py` — real-catch blocks per reviewed PR, incidence and
   first-pass share from the `review/*` bus and its `archive/review/*` tags,
   over git only (no REST), per window and per stratum: reviewer kind (a
