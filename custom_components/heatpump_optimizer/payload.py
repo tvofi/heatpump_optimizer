@@ -696,6 +696,7 @@ class AssemblerSlice(TypedDict, total=False):
     heat_pump_power_series: list[float]
     house_power_series: list[float]
     energy_totals_counting_since: str
+    dhw_advisor: DhwAdvisor
     battery: Battery
     insight: Insight
     freq_control: FreqControl
@@ -756,7 +757,6 @@ class DhwView(DisinfectionView, total=False):
     dhw_legionella_due_in_hours: float | None
     dhw_inlet_temperature: float
     dhw_mixed: DhwMixed
-    dhw_advisor: DhwAdvisor
     dhw_draw_stats: dict[str, DrawStat]
 
 
@@ -811,6 +811,7 @@ class MeasurementView(TypedDict, total=False):
 
 class GridView(TypedDict, total=False):
     current_price: float | None
+    recent_kwh_price: float | None
     prices_available: int
     weather_forecast_available: int
     outdoor_forecast_temperature: float | None

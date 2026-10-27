@@ -289,16 +289,55 @@ dev/governance/dimensions/*.md'
 # documents it reads. #2609 (ff83a3d7) moved README.md's link count, ran prepr
 # with PREPR_SKIP_CLOSURES=1, and reached CI with claims.json and claims.md
 # stale. The generator writes into the tree it runs in, so it runs on a copy
-# and the committed files are compared, never rewritten. A few seconds.
+# and the committed files are compared, never rewritten.
 CLAIMS_DOCS='README.md
 docs/*.md'
 CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
+# What the copy must hold: `git archive` of the whole tree writes 135 MB, of
+# which dev/audit's round evidence is 82 MB the generator never opens, and it
+# cost 2.7-3.7 s of the step's 7.4-8.2 s of CPU (R10-FLOW-JIDOKA's review,
+# 2026-10-26) where a copy of these entries costs 0.2 s. Each is a read in
+# `claims.py`, not a guess: the files and docs it parses, the package it
+# imports and scans, the `tests` modules it puts on `sys.path`, its own
+# directory (which holds the committed register it is compared against), and
+# the six targets outside `docs/` that its C108/C110 arms `exists()`-test
+# (NOTICE, dev/README.md, dev/archive/README.md, dev/archive/backlog.md,
+# tests/README.md, tools/audit/archscore/ABOUT.md). A renamed entry makes
+# `git archive` refuse the whole pathspec, so a short copy fails the step
+# loudly: it never grades a tree the generator did not read.
+CLAIMS_INPUTS='README.md
+DISCLAIMER.md
+LICENSE
+NOTICE
+VERSION
+hacs.json
+docs
+.github/workflows
+custom_components
+tests/README.md
+tests/harness.py
+tests/golden.py
+tests/entities.py
+tests/rolling.py
+tests/profiles.py
+tests/hastub
+dev/README.md
+dev/archive/README.md
+dev/archive/backlog.md
+tools/audit/archscore/ABOUT.md
+dev/audit/rounds/round4/D6'
 claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1 stale, 3 skipped
   local d out r f stale="" hdr
   pinned_touched "$1" "$CLAIMS_DOCS" || { echo "no change to README.md or docs/*.md"; return 3; }
   [ -f "$2/$CLAIMS_GEN" ] || { echo "no $CLAIMS_GEN in the tree"; return 3; }
-  d=$(dirname "$2/$CLAIMS_GEN"); mkdir -p "$2/.was"
-  cp "$d/claims.json" "$d/claims.md" "$2/.was/" 2>/dev/null
+  d=$(dirname "$2/$CLAIMS_GEN")
+  # The verdict is the generator's output against the register committed
+  # beside it. A copy holding the generator but not the register would compare
+  # against nothing and read as stale, so it is named instead.
+  [ -f "$d/claims.json" ] && [ -f "$d/claims.md" ] \
+    || { echo "the copy has no committed $d/claims.json and claims.md beside $CLAIMS_GEN, so nothing was compared"; return 1; }
+  mkdir -p "$2/.was"
+  cp "$d/claims.json" "$d/claims.md" "$2/.was/"
   out=$(cd "$2" && PYTHONPATH=tests/hastub python3 "$CLAIMS_GEN" 2>&1); r=$?
   [ "$r" -eq 0 ] || { echo "$CLAIMS_GEN exited $r: $(tail -1 <<<"$out")"; return 1; }
   for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done
@@ -502,13 +541,15 @@ PY
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
 # Every PREDICT line prints above the step line; the step line is the last.
-predict_line() { # base ref, [file the unpinned site keys are written to], [body file]; rc 0 none, 1 predicted, 3 skipped
-  local out r
+predict_line() { # base ref, [file the unpinned site keys are written to], [body file], [one arm to run]; rc 0 none, 1 predicted, 3 skipped
+  local out r only=""
   if [ ! -f tools/pr/ci_predict.py ]; then
     echo "tools/pr/ci_predict.py is not in this tree"; return 3
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
-  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} 2>&1); r=$?
+  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not nine
+  # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
     | sed -nE 's/^PREDICT tests \/ mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
@@ -1512,11 +1553,13 @@ fi
 
 # `body_push.sh`'s second entry point: `prepr.sh --fill-red <body.md>` runs
 # step 6d's predictor over HEAD and `fill_red` on the body. It never refuses:
-# a predictor that did not run lists no site, so nothing is written.
+# a predictor that did not run lists no site, so nothing is written. It asks
+# the predictor one arm -- `mutation`, the only one whose sites it writes --
+# because the other eight cost 4 s of the 5 s a seat's added check may take.
 if [ "${1:-}" = "--fill-red" ]; then
   [ -f "${2:-}" ] || { echo "fill-red: no body at ${2:-}"; exit 2; }
   S=$(mktemp)
-  predict_line origin/main "$S" >/dev/null 2>&1
+  predict_line origin/main "$S" "" mutation >/dev/null 2>&1
   echo "fill-red: $(fill_red "$2" "$S" "$(git rev-parse HEAD)")"
   rm -f "$S"; exit 0
 fi
@@ -2794,6 +2837,15 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   st "$(tail -1 <<<"$got")" 1 "--fill-red at the pmut head predicts its sites and writes the line"
   case "$(cat tools/audit/seat/body_push.sh)" in *'--fill-red "$ABS"'*'--body-check "$ABS"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "body_push runs --fill-red on the body before the --body-check lint"
+  # One arm, not nine: `--fill-red` writes only the `mutation` red, and the
+  # other eight cost 4 s of the 5 s an added check may take. A `--only` value
+  # ci_predict does not name makes argparse exit 2, so the arm is always run.
+  case "$(sed -n '/^if \[ "${1:-}" = "--fill-red" \]/,/^fi$/p' "$PREPR_PATH")" in
+    *'predict_line origin/main "$S" "" mutation'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--fill-red asks the predictor one arm, the only one whose sites it writes"
+  got=$(python3 -I -c "import sys; sys.path.insert(0, 'tools/pr'); import ci_predict as c; print(' '.join(c.ARMS))" 2>&1); r=$?
+  case "$got" in *' mutation'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and ci_predict names that arm, so --only cannot select none"
   # Step 3f7 (P78): a host path in a line the diff adds is refused, named by
   # file and line; the same line made home-relative passes. Built, never spelled.
   hp=$(printf '%s/%s/%s/proj' '' Users alice)
@@ -2938,6 +2990,16 @@ sys.meta_path.insert(0, Block()); sys.path[:0] = ["tests", "tests/hastub"]
 with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
 h.expected_from, h.printed_from' >/dev/null 2>&1
   st $? 0 "6g's header parsers import without voluptuous or homeassistant (the governance job's python3)"
+  # 6g copies only what the generator reads, so a renamed input must refuse the
+  # copy instead of grading a short one: `git archive` fails the whole
+  # pathspec on a path it cannot match, which is the arm just above's message.
+  # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
+  git ls-tree -r --name-only HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" > "$WF/arch" 2>/dev/null
+  miss=""
+  for p in $CLAIMS_INPUTS "$CLAIMS_GEN"; do
+    grep -q -e "^$p\$" -e "^$p/" "$WF/arch" || miss="$miss $p"
+  done
+  st "$miss" "" "6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short)"
   rm -rf "$CG"
   rm -rf "${WF:?}"
 
@@ -3631,8 +3693,9 @@ esac
 CR=$(mktemp -d)
 if ! diff_paths "$BASE" "$CR.paths"; then
   step "claims register" 1 "the changed-path list did not derive from $BASE...HEAD, so the register was not compared"
-elif pinned_touched "$CR.paths" "$CLAIMS_DOCS" && ! { git archive HEAD | tar -x -C "$CR"; }; then
-  step "claims register" 1 "HEAD could not be copied to run $CLAIMS_GEN on, so nothing was compared"
+elif pinned_touched "$CR.paths" "$CLAIMS_DOCS" && ! { # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
+    git archive HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" 2>"$CR.arch" | tar -x -C "$CR"; }; then
+  step "claims register" 1 "HEAD could not be copied to run $CLAIMS_GEN on, so nothing was compared: $(tail -1 "$CR.arch")"
 else
   CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")
   case $? in
@@ -3641,7 +3704,7 @@ else
     *) step "claims register" 1 "$CLAIMS_REG" ;;
   esac
 fi
-rm -rf "$CR" "$CR.paths"
+rm -rf "$CR" "$CR.paths" "$CR.arch"
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
