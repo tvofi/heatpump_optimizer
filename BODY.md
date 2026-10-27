@@ -1,10 +1,10 @@
-Triage batch 36 rules V124, the duplicate-seat class: two writers on one role, invisible to the liveness file and unstoppable by the orchestrator. The verdict is **DEFER**: the proposed seat-start claim binds only the seats that implement it, and the writer that motivated the proposal implements nothing, so its benefit is unmeasured against its own target while its costs are immediate. The ruling names what would change the answer and the one element that survives (a launch record written by whoever dispatches a seat, which the orchestrator can adopt in its own dispatch path with no repository change). No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
+Triage batch 36 rules V124, the duplicate-seat class: two writers on one role, invisible to the liveness file and unstoppable by the orchestrator. The verdict is **DEFER**: the proposed seat-start claim binds only the seats that implement it, and the writer that motivated the proposal implements nothing, so its benefit is unmeasured against its own target while its costs are immediate. The ruling names what would change the answer and the one element that survives (a launch record written by whoever dispatches a seat, which the orchestrator can adopt in its own dispatch path with no repository change). No product behaviour changes: this seat's diff is one markdown file under `dev/programme/triage/`, and the branch's only other commit is the opener's delivery row.
 
 Two facts kept out of the ruling's body but owed to the reader: the seat brief named V119-V122 as pending after `s6-batch35.md` had already ruled them (merged `c73d8984a`, 2026-10-26T22:24:12Z), which this seat reconciled in its state file rather than re-ruling; and the second writer was still emitting its plain HOLD line at 09:38:27Z when this batch was cut.
 
 ## Head
 
-`1b84be415587523f0e26ebbbf274b2e871ef2334`; the file is the whole diff against `524c1896b6943b3da03d6cad61420ced31e14c9c`.
+`6d58fa0bc404485ca96f543b0c894d6ea8e72a59`; this seat's commit `1b84be41` is the whole of its diff against `524c1896b6943b3da03d6cad61420ced31e14c9c`, and `6d58fa0bc` adds only the opener's delivery row.
 
 ## Mutation proof
 
