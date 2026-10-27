@@ -1,7 +1,0 @@
-groups main 208 head 208 added 0 removed 0
-R10-COP-GATE ['carry']
-R10-COP-PARTLOAD ['carry', 'resume']
-R10-FLOW-AUDIT-PLAN ['resume']
-R10-FLOW-JIDOKA ['carry']
-R10-ORCH-REVIEW-PACKET ['resume']
-R10-SAV-COMFORT ['carry']

@@ -1,0 +1,25 @@
+UNCLASSIFIED STAGES (head): []
+count: 0
+
+=== R10-HOUSE-GRADE resume ===
+{
+ "stage": "in-progress",
+ "branch": "handoff/r10-house-grade",
+ "commit": "c89e5b5db1a8c2bfddbb9a9259f8dc319187eee9",
+ "last_step": null,
+ "next_step": "dispatch the fix reviewer at the PR head; the R10-COP-GATE carry landed at a4a348a6",
+ "note": null
+}
+
+=== the four matched rows ===
+R10-HEAT-METER: stage='in-progress'
+   next_step='PR #2854 is open at 7e9fea6ac (pin killed mutants); handoff/r10-heat-meter db4493c3e is its ancestor. Review owed, then land.'
+R10-SAV-COMFORT: stage='in-progress'
+   next_step="PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land."
+R10-COP-PARTLOAD: stage='in-progress'
+   next_step="Review owed at the handoff tip (fix-review from a detached worktree, the finder's harness). Body on handoff-body/r10-cop-partload; open the PR after the verdict. The RCA the group's rca step owed is in the diff (dev/audit/rca/R10-RCA-COP-PARTLOAD.md), and the two carries are on this group's carry list."
+R10-FLOW-JIDOKA: stage='in-progress'
+   next_step="p1 landed (#2838, 2026-10-26T04:40Z). PR #2853 is open at fa18c13d2 for the p2 slice (error-proofing second slice); handoff/r10-flow-jidoka-p2 1fc98acd is its ancestor. Review owed, then land; the carries #2825 and #2838 routed here are on this group's carry list."
+
+=== any row with stage 'in-review' anywhere ===
+[]

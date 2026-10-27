@@ -1,0 +1,19 @@
+=== closure.py affected --files (closures lane) ===
+########## closures check ##########
+  CASE: SCOPED -- 2 closure(s) intersect the diff
+  changed files (2):
+      dev/programme/delivery/2871.md
+      dev/programme/rosters/wave-r10-groups.json
+
+      REDERIVE  tests/doc_claims.py  <- dev/programme/rosters/wave-r10-groups.json
+      REDERIVE  tests/harness_headers.py  <- dev/programme/delivery/2871.md, dev/programme/rosters/wave-r10-groups.json
+
+  Every other closure is left alone: no changed file is in it, so a
+  fresh recording could not disagree with the committed one. The FULL
+  unscoped re-derivation on every push to main re-checks that claim.
+
+=== harness_headers inert_reads cause (dir: dev/programme) ===
+{'tests/harness_headers.py': {'changed': ['dev/programme/delivery/2871.md', 'dev/programme/rosters/wave-r10-groups.json'], 'via': 'inert_reads (dir: dev/programme)'}}
+=== tests/closures lane reruns these (tests.yml affected -> closures job); green at head ===
+skipped	completed	tests / closures-autofix	122059763300
+success	completed	tests / closures	122059762868

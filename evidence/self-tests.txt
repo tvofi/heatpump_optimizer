@@ -1,0 +1,10 @@
+=== roster_sync --self-test (head) ===
+roster_sync self-test: 55 checks, 0 failed
+=== roster_edit --self-test (head) ===
+pushed edit-r9 at a677f980bd039816a65e26c0edd53ced8ea9f432
+roster_edit self-test: 117 checks, 0 failed
+=== record_row --self-test (head) ===
+gh_read self-test: 122 checks, 0 failed
+record_row self-test: all checks passed
+=== roster byte-identical canonical dump ===
+byte_identical True groups 208 blob 91933dbd260329feb541e4a6e4ada15087dfedb0

@@ -1,68 +1,54 @@
-Fix review: blocked 4180a7d01c3e8e4b34d746c4bccba452cf415d25 carry-missing: P199, P200 and P203 are carried only in this body; their ruling is on origin/main, so the three roster carries are writable now and must land before merge
-bus-nonce: 37597a6f18885bc7026000c01909529a
+Fix review: merge 4d4b3a5b3aa235311b596938e2041acefc0c4380
+the prior carry-missing finding is cleared at this head and the new work measures sound
+bus-nonce: b5cc5472ed41febf0153093f969e9a22
 
 # Fix review — #2871 `roster: round-10 batch 23`
 
-Head measured: `4180a7d01c3e8e4b34d746c4bccba452cf415d25`, unchanged before and after every measurement below.
-Merge base with origin/main: `d620369fad72e18081b2efa1b66ee0058296f12c` (= current origin/main).
-Three-dot diff vs main: `dev/programme/delivery/2871.md` (1/0) and `dev/programme/rosters/wave-r10-groups.json` (25/17). Nothing under `dev/governance/`, `.claude/rules/`, `.cursor/rules/`; `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading untouched; both claim files untouched.
+Round: 2 (the verdict at `4180a7d01`, `verdict/2871` `9cabb1d70`, was blocked round 1; no re-cut is owed under `fixer.md` until round 4).
 
-## What I verified and found true
+Head measured: `4d4b3a5b3aa235311b596938e2041acefc0c4380`, checked before and after every measurement below and still `gh pr view 2871 --json headRefOid` at publication.
+Merge base with origin/main: `4f3c7302046eccd1f869724a6de2cbf6f8183418` (= current origin/main).
+Three-dot diff: `dev/programme/delivery/2871.md` (1/0) and `dev/programme/rosters/wave-r10-groups.json` (37/25). Nothing under `dev/governance/`, `.claude/rules/`, `.cursor/rules/`; `VERSION`, the manifest version, the `RELEASE_NOTES.md` heading and both claim files untouched. (`evidence/diff-numstat.txt`.)
 
-- **Every flipped row is true.** #2834, #2858, #2862, #2864, #2865 are MERGED and each row's merge sha matches the API exactly (`0137c4c`, `3b4180d`, `149ce54`, `6fe5170`, `bfc4a1e`); #2866 is MERGED at `484d990` and its row reads that. #2871's own row reads `**open**`, correct for an open pull request. `evidence/record-rows.txt`.
-- **The flips are the generator's, not a hand.** I re-ran `record_row.py --plan` against the base tree `6fe5170cd` with the API's merge facts and the base roster: all six planned lines are byte-equal to the six rows at head (`6/6`). `self_disposing()` returns True for #2856 and #2863, so the record-class exemption the body names is the tool's own predicate, and the one-line-each-way rewrite shape is `_rewrite_granted`'s. `evidence/generator-plan.json`, `evidence/generator-plan-check.txt`, `evidence/record-class.txt`.
-- **The roster is valid and its bytes are the tool's.** JSON loads, 208 groups; the head blob is `da55886c746714f6d10b4b12738e030fd9c11c37` and is byte-identical to `json.dumps(parsed, indent=1)` (1,055,658 bytes, no trailing newline), the dump `roster_edit.py:563` writes. `roster_edit.py --self-test` 117 checks 0 failed; `roster_sync.py --self-test` 55 checks 0 failed (the body's figure re-taken); `record_row.py --self-test` all checks passed. `evidence/roster-validity.txt`.
-- **The lint gate.** `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` at head: `TOTAL: 0 error(s) across 1 file(s)`, exit 0. `evidence/brief-lint.txt`.
-- **Record content the body does not enumerate is coherent.** The head carries 18 roster commits after `1e9180dc9`; the six groups changed against main are R10-COP-GATE, R10-COP-PARTLOAD, R10-FLOW-AUDIT-PLAN, R10-FLOW-JIDOKA, R10-ORCH-REVIEW-PACKET, R10-SAV-COMFORT. The two branch tips they name match origin (`handoff/r10-cop-partload` = `775ae0340`, `handoff/r10-orch-review-packet` = `52aa5105`), and PR #2869 exists OPEN as recorded. `evidence/changed-groups.txt`, `evidence/body-vs-head.txt`.
-- **CI at the head** is green: 47 contexts, zero non-green. `evidence/check-runs.txt`.
-- **No conflict:** `git merge-tree --write-tree origin/main HEAD` exits 0, tree `945c422a`. `evidence/diff-and-merge-tree.txt`.
-- **The body's Carry lines resolve:** three finding items, 3 routed, 0 bad destination. `evidence/carry-audit.txt`.
+## The prior finding is cleared
+
+The blocked verdict required the three batch-35 carries to be in the tree, not only the body, because their ruling `dev/programme/triage/s6-batch35.md` (`c73d8984a`, an ancestor of origin/main) was already live. Re-measured at this head:
+
+- **P199 → R10-FLOW-WIP.** Present: the group carries 8 entries at the head vs 7 on origin/main; the new entry begins `Triage P199 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P199)`. (`evidence/roster-carry-stage.txt`.)
+- **P200 → R10-ORCH-REVIEW-PACKET.** Present: 10 vs 9, cites `#P200`.
+- **P203 → R10-ORCH-ROSTER-SCHEMA.** Present: 23 vs 22, cites `#P203`.
+
+Each destination is the one the triage file's Verdict line names, and each group is live (`not-started` / `in-progress`). The three carry commits the body names — `82db76ffe`, `d052b8d78`, `2f63ddb60` — are ancestors of this head, so the carries are in the PR's own diff as well as on `handoff/audit-r10-roster`. Each carry text states its controls and its binding precondition on the same line: P199 `Controls: (1) the s60 shape ... (5) one mutant drops the end-line test and must fail (1)`, P200 `Binding: fix-review.md is at its policy cap ..., so the carry must pay by deleting prose in the same file`, P203 `Controls: a fixture of the gate strings ... one mutant ... null -- a group with no gate is not in the line at all`. (`evidence/forward-carry.txt`.)
+
+`tools/audit/carry_audit.py pr 2871` reads the PR body as 5 finding items, all routed, 0 bad destinations. (`evidence/carry-audit.txt`.)
+
+## Claims verified
+
+- **Stage value.** `R10-HOUSE-GRADE.resume.stage` is `in-progress` at this head. `629674e0c` is the write that changed it, and its roster diff is exactly `- "stage": "in-review"` / `+ "stage": "in-progress"`. The null control reproduces: at `6bece0588` the stage is `in-review` and the unclassified scan returns `[('R10-HOUSE-GRADE', 'in-review')]`; at the head it returns `[]`. (`evidence/null-control-stage.txt`, `evidence/stage-classification.txt`.)
+- **The four matched rows.** R10-HEAT-METER, R10-SAV-COMFORT, R10-COP-PARTLOAD and R10-FLOW-JIDOKA each carry `in-progress` and a `next_step` saying a review is owed, exactly as the body states. Roster-wide there are zero unclassified stages at this head.
+- **Red check matches CI exactly.** Job `122016117273`, run `40451793722`, step 59 (`Show the roster-sync reconciler refusing its own fixtures`) concluded `failure` at head `6bece0588`; the run is the `CI code pr=2871` run at that sha and its only failed job is `governance / instrument-self-tests` (27 success, 12 skipped beside it). At this head the same context is `success` (job `122059761224`). (`evidence/job-122016117273.json`, `evidence/job-122016117273-summary.txt`, `evidence/red-run-jobs.txt`.)
+- **The red check's answer is present.** The body names the check, the failing line, the cause (`in-review` in neither `DERIVABLE_STAGES` nor `PROTECTED_STAGES`), a cheaper detector (the same `roster_sync.py --self-test`, seconds locally) and demonstrates it failing at `6bece0588` and passing at `629674e0c`; I reproduced both (`55 checks, 1 failed` with the exact `FAIL every stage ... (got: {'in-review': 'wave-r10-groups.json'})` line, then `55 checks, 0 failed`). (`evidence/self-tests.txt`.)
+
+## The disclosed drift is not a revert
+
+On origin/main `R10-COP-PARTLOAD` reads `fixing` / `50ef300f7`; at the head it reads `in-progress` / `775ae0340`. This is a newer write, not a revert of another seat's row: main's write `de0354ada` is dated `2026-10-26T23:28:05+01:00`, the branch's write `deee1e8ca` is `2026-10-27T03:58:17+01:00`, and `de0354ada` is an ancestor of `deee1e8ca` (`git merge-base` of the two is `de0354ada`; `de0354ada..deee1e8ca` counts 41 commits). The branch therefore saw main's `fixing` write and superseded it with the pushed-handoff state; the handoff's `last_step` carries the structure re-record the main row described. No other origin/main commit after `de0354ada` touches the row. (`evidence/cop-partload-timeline.txt`.)
+
+## Instrument behaviours judged
+
+- **`closure.py select` workdir poisoning: real, and not the gate's.** Reproduced both ways. A `--workdir` inside the repo makes a second `select` in the same directory print `MODE: FULL` with `reason: no recorded closure mentions .scope-test/scope.json, .scope-test/scope.run, .scope-test/scope.skip, .scope-test/scope.txt`; a workdir outside the repo prints `MODE: SCOPED` on both runs. The gate is unaffected: `tests/run.sh:132` puts `WORKDIR` under `mktemp -d` in `TMPDIR` (outside the repo, which I confirmed), calls `select` once, and `tools/pr/prepr.sh:3167` passes no `--workdir` at all. Sound. (`evidence/closure-poison.txt`.)
+- **The `in-review` contradiction class is not worsened.** This PR removes the only `in-review` occurrence and adds none; it deliberately does not add `in-review` to `roster_sync.py`'s tuples, so it neither entrenches the contradiction nor creates a second reader. The class is being root-caused and carried separately. Carry: R10-ORCH-ROSTER-SCHEMA
+
+## Measurements at the frozen head
+
+- **CI.** 81 check-runs across all pages, 47 distinct contexts: 50 `success`, 31 `skipped`, **zero non-green**. (`evidence/check-runs-all.tsv`, `evidence/check-runs-summary.txt`.)
+- **Scoped gate, re-derived in a clean workdir.** `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, `RUN tests/doc_claims.py`; the named script prints `ALL 203 checks PASSED`. A re-run in the same directory outside the repo stays `SCOPED`, so the figure is not a reuse artefact. (`evidence/scoped-gate.txt`.)
+- **The closures arm agrees and is green.** `closure.py affected --files <the two files>` re-derives 2 closures: `tests/doc_claims.py` (the roster) and `tests/harness_headers.py` (via its recorded inert read of `dev/programme`, `dir: dev/programme`). `tests / closures` is `success` at this head, so harness_headers was re-derived and ran; the gate's `select` arms the fast subset only, which is the two-arm design of `1ec5ce967`. No under-scope. (`evidence/closure-affected.txt`.)
+- **Merge-tree.** `git merge-tree --write-tree origin/main HEAD` exits 0, tree `0f26573d0d9a31781c65e53fdb80c9787988f65d`, which is `HEAD^{tree}` and the tree the body names. (`evidence/merge-tree.txt`.)
+- **Roster is valid and tool-shaped.** JSON loads, 208 groups, blob `91933dbd2`, and byte-identical to `json.dumps(d, indent=1)`. `roster_sync --self-test` 55/0, `roster_edit --self-test` 117/0, `record_row --self-test` all passed. (`evidence/self-tests.txt`.)
+- **Lint and ratchet.** `brief_lint.mjs` `TOTAL: 0 error(s) across 1 file(s)`; `tests/structure.py` `STRUCTURE RATCHET PASSED`. (`evidence/brief-lint.txt`, `evidence/structure.txt`.)
+- **Body figures re-derived at the merged tree, not an ancestor.** roster blob `91933dbd2` (main `852ec7bdd`), origin/main..head numstat `1/0` + `37/25`, 9 changed groups, carry counts main `7/9/22` head `8/10/23`, unclassified `[]` at head and `[('R10-HOUSE-GRADE','in-review')]` at `6bece0588`, ruling `c73d8984a` is an ancestor of origin/main. All match the body.
+- **The `R10-FLY-WIP` friction is real.** The triage file's P199 Verdict names `R10-FLOW-WIP` (line 15) but its orchestrator dispatch list names `R10-FLY-WIP` (line 406); `R10-FLY-WIP` is a group in neither roster, and `R10-FLOW-WIP` is the group whose files and `after` edge match, where the carry landed. The fixer routed to the group that exists, per `finding-propagation.md`. (`evidence/triage-fly-wip.txt`.)
 
 ## Findings
 
-### 1. BLOCKING — carry-missing: the three batch-35 findings are not in the tree
-
-Triage batch 35 accepted three proposals (`dev/programme/triage/s6-batch35.md`, on origin/main), each routed to a live group:
-
-- P199 (dead merge trains) → `R10-FLOW-WIP` (stage not-started)
-- P200 (reviewer verdict relay format) → `R10-ORCH-REVIEW-PACKET` (stage in-progress)
-- P203 (`roster_lib.gate_kind`) → `R10-ORCH-ROSTER-SCHEMA` (stage not-started)
-
-None is in the tree at this head: the roster carries zero mentions of `s6-batch35`, `dead merge trains`, `verdict relay` or `gate_kind`, and no file under `dev/programme/carries/` cites them. They exist only in this PR's Forward-carry prose, which `finding-propagation.md` says records but does not propagate.
-
-The body's stated reason for deferring them is false at this head: it says "the batch-35 record lives only on `handoff/triage-s6-batch35` (`c73d8984a`), not on origin/main or this branch". `c73d8984a` is in origin/main and in the head (via #2867's merge `38d12ffd8`, 02:28:41Z), `dev/programme/triage/s6-batch35.md` is at origin/main and at head, and the body was written at 03:53Z — after both. `roster_edit.py`'s triage gate reads the ruling from the edit's base and else origin/main, so one `append-carry` per line is writable now. `evidence/triage-carries.txt`.
-
-Carry: R10-FLOW-WIP
-Carry: R10-ORCH-REVIEW-PACKET
-Carry: R10-ORCH-ROSTER-SCHEMA
-
-### 2. Body figures and null control are pinned to an ancestor, not the head
-
-The body claims it "describes the head it is pushed with", but its opening, null control and Figures measure `1e9180dc9`, which is on origin/main. Re-taken at head:
-
-| figure | body (at `1e9180dc9`) | head |
-|---|---|---|
-| roster blob `this head prints` | `852ec7bd…` | `da55886c…` (`852ec7bd` is origin/main's) |
-| no-merges commits `6fe5170cd..` | 95 | 119 |
-| roster numstat `6fe5170cd...` | 461/62 | 475/68 (vs current main 25/17) |
-| groups changed `6fe5170cd..` | 27 | 28 (adds R10-FLOW-AUDIT-PLAN) |
-
-The body's numbers are true at the ref it names (`6fe5170cd..1e9180dc9`: 95 commits; numstat 461/62; groups 199→208, 9 added, 27 changed — all re-derived), but that ref is 18 roster commits behind the authored code head `46df1de62` the PR actually carries, so the sentence "this head prints `852ec7bd`" is false. `evidence/body-vs-head.txt`.
-
-Carry: R10-ORCH-ROSTER-SCHEMA
-
-### 3. Not carried by design — what the next batch still owes
-
-The roster ref is at `d1b115ef`; this head carries `46df1de62`. The four commits between them are R10-HOUSE-GRADE only (`94ece3d08` set-stage, `4701ec177` / `91876ec3c` / `d1b115ef1` set-resume), 4/4 roster lines. The next batch carries them. `evidence/not-carried.txt`.
-
-Carry: R10-ORCH-ROSTER-SCHEMA
-
-### 4. Non-blocking note — pre-existing ledger rot outside the record window
-
-Fifteen rows read `**open**` at this head. One is #2871 itself (correct). Nine are record-class merges whose open self-row `self_disposing()` exempts by design (#2198, #2483, #2604, #2795, #2845, #2847, #2856, #2863, #2868); #2856 and #2863 are disclosed in the body. The other five are pre-existing and not in this diff: #2465, #2485, #2480, #2609 are merged but not record-class, and #2373 is CLOSED-unmerged. All four merged ones landed before v7.0.4 (`2026-10-22T15:48:08+02:00`; #2609 merged 37 s before the tag), so they are outside the beat's `--since` window and owed by no current beat. `evidence/ledger-rot.txt`, `evidence/record-class.txt`.
-
-Carry: dismissed: pre-existing before the v7.0.4 record window, outside this PR's diff; the row is graded by the API, not the word
-
-## Evidence
-
-`evidence/HEAD.txt` (exactly the head sha), `pr-body.md`, `diff-and-merge-tree.txt`, `record-rows.txt`, `generator-plan.json`, `generator-plan-check.txt`, `roster-validity.txt`, `brief-lint.txt`, `carry-audit.txt`, `body-vs-head.txt`, `triage-carries.txt`, `not-carried.txt`, `changed-groups.txt`, `record-class.txt`, `ledger-rot.txt`, `check-runs.txt`.
+None blocking. The one item the prior verdict blocked on is in the tree, routed to the destinations the triage file's Verdict names; the red check is answered and reproduced; the disclosed drift is a forward write, not a revert; and every figure the body quotes re-derives at this head.

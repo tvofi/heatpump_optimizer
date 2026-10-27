@@ -1,0 +1,1 @@
+{"conclusion":"failure","head_sha":"6bece058848894343ae74ba099d993442da38bd4","name":"governance / instrument-self-tests","run_id":40451793722,"step59":{"conclusion":"failure","name":"Show the roster-sync reconciler refusing its own fixtures","status":"completed"}}

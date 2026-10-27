@@ -1,2 +1,0 @@
-=== check-runs at head, paginated, every non-green by full name ===
---- contexts: 47
