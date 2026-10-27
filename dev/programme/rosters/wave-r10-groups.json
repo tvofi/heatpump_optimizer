@@ -9827,7 +9827,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-house-grade",
-    "commit": "8b37c0a5c19dbc2cd5e42a7d71eb862deddb192b",
+    "commit": "f1f67bec2420ab603de2ee39dcb69649498ea988",
     "last_step": "PR #2876 open at 8b37c0a5; delivery row dev/programme/delivery/2876.md pushed at the head",
     "next_step": "a reviewer is owed at 8b37c0a5; mutation reads 3818 unpinned at 6f443460 and 3818 at the head, 0 added",
     "note": null,
