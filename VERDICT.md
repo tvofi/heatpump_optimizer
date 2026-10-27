@@ -1,5 +1,7 @@
 Fix review: merge eb97437efd6c273745352ee2cdb5c65c970c3c74
 
+bus-nonce: 1fadb5a2195441e7e8b572f55e329e80
+
 Seat: fix-review, local, round 1 for this PR. Measured at head
 `eb97437efd6c273745352ee2cdb5c65c970c3c74` (re-read from the PR at
 2026-10-27T01:24:42Z, unchanged), merge base `origin/main`
@@ -9,6 +11,8 @@ re-derived the body's null control instead. The comparison instruments below
 are mine (fix-review step 9): I wrote the roster diff/scan scripts; the
 tree's own `roster_sync.py --self-test`, `brief_lint.mjs`, `tests/structure.py`,
 `tests/delivery_status.py` and `carry_audit.py` were run as the tree ships them.
+The second commit on this ref adds only the dispatch nonce above and records
+that this file's head is also in `evidence/HEAD.txt`; no measurement changed.
 
 RESULT verdict merge
 RESULT head eb97437efd6c273745352ee2cdb5c65c970c3c74
