@@ -1,0 +1,12 @@
+RESULT ok   WIP lanes with the critical file present: got={'A': 1, 'B': 1, 'C': 1, 'F': 1} want={'A': 1, 'B': 1, 'C': 1, 'F': 1}
+RESULT ok   WIP lanes with the file UNREADABLE: A prints 0, not UNAVAILABLE: got={'A': 0, 'B': 2, 'C': 1, 'F': 1} want={'A': 0, 'B': 2, 'C': 1, 'F': 1}
+RESULT ok   the rendered board says nothing about the unreadable critical file: got=False want=False
+RESULT ok   critical-path INVALID JSON reads None, indistinguishable from absent: got=None want=None
+RESULT ok   WIP lanes with INVALID critical JSON: A prints 0: got={'A': 0, 'B': 2, 'C': 1, 'F': 1} want={'A': 0, 'B': 2, 'C': 1, 'F': 1}
+RESULT ok   the board renders the invalid critical file as a numeric zero: got=False want=False
+RESULT ok   a malformed roster at the only in-window commit reads 0, not UNAVAILABLE: got=(0, '') want=(0, '')
+RESULT ok   default until is the tree tip time: got='2026-10-01T04:00:00+00:00' want='2026-10-01T04:00:00+00:00'
+RESULT ok   the tip merge at exactly until is EXCLUDED from the board: got=0 want=0
+RESULT ok   the same tip merge is counted one second later: got=1 want=1
+RESULT self_test_reads_no_review_refs_arm= True
+RESULT failures= 0 []

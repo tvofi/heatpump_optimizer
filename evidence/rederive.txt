@@ -1,6 +1,0 @@
-RESULT until=2026-10-27T17:12:43+00:00 window=2026-10-26T17:12:43+00:00..2026-10-27T17:12:43+00:00
-RESULT rederived_moves g/r/re/f = 4 1 4 3 fly-ins 3
-RESULT rederived_closed = 8
-RESULT rederived_yield = 7 / 16
-RESULT rederived_classes = {'architecture-unsound': 1, 'body-stale': 1, 'budget-exceeded': 1, 'carry-missing': 1, 'claim': 2, 'class-open': 2, 'harness': 1, 'metric-gamed': 1, 'other': 4, 'prior': 1, 'root-cause-detectable': 2, 'ruling': 1}
-RESULT rederived_lead = {'M': (2, [9.08, 78.24]), 'S': (2, [6.21, 11.34])} unresolved 0
