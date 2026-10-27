@@ -1011,7 +1011,9 @@ class ThermalParameters:
             "min_electrical_power": (
                 "HEAT_PUMP_MIN_POWER", "HEAT_PUMP_MIN_POWER"
             ),
-            "cop_partload_derate": ("HEAT_PUMP_COP_PARTLOAD_DERATE",) * 2,
+            "cop_partload_derate": (
+                "HEAT_PUMP_COP_PARTLOAD_DERATE", "HEAT_PUMP_COP_PARTLOAD_DERATE"
+            ),
         }
 
         values = {
@@ -1183,6 +1185,32 @@ class ThermalParameters:
         values["dhw_day_windows"] = parse_day_overrides(config)
 
         return cls(**values)
+
+    def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
+        """COP multiplier at ``electrical_power`` kW: 1 at or below the modulation
+        floor (a lower draw duty-cycles at the floor), falling linearly to
+        ``1 - cop_partload_derate`` at max power, as heat-exchanger approach grows
+        with the heat rate. The hot-water schedule takes it too, on top of its own
+        tank lift (``compute_cop_dhw``). Elementwise, so the batch twin's rows and
+        the scalar step share it."""
+        band = params.max_electrical_power - params.min_electrical_power
+        if band <= 0.0:
+            return 1.0
+        x = (electrical_power - params.min_electrical_power) / band
+        # min/max keep a scalar a float; np.clip is the same IEEE op per row.
+        x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)
+        return 1.0 - params.cop_partload_derate * x
+
+    def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
+        """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
+        water.
+
+        Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
+        no part-load term is byte-identical to one priced before it."""
+        heat = cop * electrical_power
+        if params.cop_partload_derate:
+            heat = heat * partload_factor(params, electrical_power)
+        return heat
 
 def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
     if const.CONF_DHW_ENABLED in config:
@@ -1740,32 +1768,6 @@ def _partload_derate(value: Any) -> float:
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
 
 
-def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
-    """COP multiplier at ``electrical_power`` kW: 1 at or below the modulation
-    floor (a lower draw duty-cycles at the floor), falling linearly to
-    ``1 - cop_partload_derate`` at max power, as heat-exchanger approach grows
-    with the heat rate. The hot-water schedule takes it too, on top of its own
-    tank lift (``compute_cop_dhw``). Elementwise, so the batch twin's rows and
-    the scalar step share it."""
-    band = params.max_electrical_power - params.min_electrical_power
-    if band <= 0.0:
-        return 1.0
-    x = (electrical_power - params.min_electrical_power) / band
-    # min/max keep a scalar a float; np.clip is the same IEEE op per row.
-    x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)
-    return 1.0 - params.cop_partload_derate * x
-
-
-def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
-    """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
-    water.
-
-    Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
-    no part-load term is byte-identical to one priced before it."""
-    heat = cop * electrical_power
-    if params.cop_partload_derate:
-        heat = heat * partload_factor(params, electrical_power)
-    return heat
 
 
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:

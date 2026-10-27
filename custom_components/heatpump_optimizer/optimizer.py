@@ -5069,7 +5069,8 @@ class HeatPumpOptimizer:
             cop = self.model.marginal_cop(
                 out_mean, "buffer", store_temp=temp, humidity=humidity
             )
-            heat = delivered_heat_kw(p, cop, p.max_electrical_power)
+            p_max = p.max_electrical_power
+            heat = delivered_heat_kw(p, cop, p_max)
             return heat - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
 
         if net(hi) > 0.0:
