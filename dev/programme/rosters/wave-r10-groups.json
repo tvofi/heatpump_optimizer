@@ -10785,7 +10785,7 @@
     "This group exists to make the test non-judgeable. A seat that has to decide whether a move carried code will eventually decide wrong in the direction that merges unreviewed code, so the work is a helper plus two contract sentences, not a rule the orchestrator is trusted to apply by eye."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "fixing",
     "branch": null,
     "commit": null,
     "last_step": "registered",
