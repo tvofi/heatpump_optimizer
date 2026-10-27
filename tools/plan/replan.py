@@ -1225,7 +1225,7 @@ def selftest() -> int:
                    roster_path="dev/programme/rosters/wave-r10-groups.json")
         expect("an unmeasured size is refused, naming roster, group and size",
                False, "it scheduled an XS group")
-    except PlanError as exc:
+    except Exception as exc:  # noqa: BLE001 -- any other failure is a crash, not this refusal
         msg = str(exc)
         expect("an unmeasured size is refused, naming roster, group and size",
                "XS-GROUP" in msg and "XS" in msg
@@ -1249,7 +1249,7 @@ def selftest() -> int:
     try:
         build_plan(badsav, durations, caps, start, "v1.0.0")
         expect("a non-numeric savings is refused", False, "it scheduled")
-    except PlanError as exc:
+    except Exception as exc:  # noqa: BLE001 -- any other failure is a crash, not this refusal
         expect("a non-numeric savings is refused", "savings" in str(exc), str(exc))
 
     prod = {"groups": [
@@ -1336,6 +1336,9 @@ def selftest() -> int:
             ("savings-validated",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if isinstance(s, bool) or not isinstance(s, ", "(int, float)):"), "if False:"),
+            ("size-refusal",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "if size not in size_hours:", "if False:"),
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if len(carry) >= ", "every:"), "if False:"),
