@@ -1,0 +1,60 @@
+BODY ## Head AND COMMITS LINE, RE-DERIVED
+$ git log --oneline 524c1896b..HEAD -- dev/programme/triage/s6-batch36.md
+f6cb1a468 triage(s6-batch36): measure the three blocked claims at this head
+35a165fc0 triage(s6-batch36): name the plain-HOLD cadence's referent in the arrival-order paragraph
+7c5cb7aeb triage(s6-batch36): retract the P197 claim in the body, price against P97(b)
+996eb1df1 triage: correct batch 36's P197 claim; record the unresolved arrival order
+1b84be415 triage: batch 36 (P204) ruling on the duplicate-seat class
+
+per-commit stat and file length
+1b84be415: dev/programme/triage/s6-batch36.md | 78 ++++++++++++++++++++++++++++++++++++++
+  file length at 1b84be415: 78 lines
+996eb1df1: dev/programme/triage/s6-batch36.md | 17 ++++++++++++-----
+  file length at 996eb1df1: 85 lines
+7c5cb7aeb: dev/programme/triage/s6-batch36.md | 20 ++++++++++++--------
+  file length at 7c5cb7aeb: 89 lines
+35a165fc0: dev/programme/triage/s6-batch36.md | 6 +++---
+  file length at 35a165fc0: 89 lines
+f6cb1a468: dev/programme/triage/s6-batch36.md | 55 ++++++++++++++++++++++----------------
+  file length at f6cb1a468: 98 lines
+
+HEAD NAMED IN THE BODY
+390e23875 parents: b95d3faf8d1ebf1a03d26d39a593ad91e410b891 f6cb1a4681eeb6329d1503c5bb5f483c64e43d99 
+b95d3fa parents:  6a7eb80590c44a0d613fe3f1b777ef29fc4e6261 67178dc6a589cf95d2ce7cff36d8bbf17343e8dc 
+
+CHECK-RUNS, re-derived
+b95d3fa current totals by conclusion:
+   5 cancelled
+  24 skipped
+  39 success
+b95d3fa as of 16:53Z (completed_at <= 16:53:00Z):
+55 total
+   1 cancelled
+  17 skipped
+  37 success
+f6cb1a468 check-runs: 0
+390e23875 check-runs by conclusion (null = in progress):
+   2 null
+  10 skipped
+  24 success
+
+ROSTER FIGURE (the body s own command at current origin/main)
+not-started L 34
+P197 occurrences at origin/main: 0
+
+ORIGIN/MAIN NEWER RECORDS
+ dev/programme/delivery/2881.md     |   1 +
+ dev/programme/triage/s6-batch38.md | 108 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 109 insertions(+)
+P204/duplicate/P97/BEATD hits in s6-batch38.md: 0
+s6-batch39.md on origin/main: absent
+
+DELIVERY ROW AT THE HEAD
+- [#2877](https://github.com/tvofi/heatpump_optimizer/pull/2877) — **open**, triage: s6 batch 36 (P204)
+
+PER-COMMIT SUMMARY LINES (git show --stat --format=)
+1b84be415: 1 file changed, 78 insertions(+)
+996eb1df1: 1 file changed, 12 insertions(+), 5 deletions(-)
+7c5cb7aeb: 1 file changed, 12 insertions(+), 8 deletions(-)
+35a165fc0: 1 file changed, 3 insertions(+), 3 deletions(-)
+f6cb1a468: 1 file changed, 32 insertions(+), 23 deletions(-)

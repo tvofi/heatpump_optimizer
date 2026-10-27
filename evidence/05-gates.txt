@@ -1,0 +1,42 @@
+ROSTER_EDIT TRIAGE GATE (re-run, out-of-tree mutant)
+committed verdict: DEFER
+committed refusal: dev/programme/triage/s6-batch36.md#P204 is not an ACCEPT ruling (DEFER)
+mutant verdict: ACCEPT
+mutant refusal: None
+absent-file refusal: the triage ruling dev/programme/triage/s6-batch36.md is not on the roster branch or origin/main
+P999 verdict: None
+P999 refusal: dev/programme/triage/s6-batch36.md#P999 is not an ACCEPT ruling (no such entry)
+
+PREPR --body-check AT THE HEAD (relative body path)
+pr-body ok: PR-BODY: 0 error(s) in ../ev/pr-body-390e238.md -- no budget leaf raised over 67178dc6a...390e23875
+carry ok: CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster d0c6f2c24
+preflight ok
+exit=0
+
+CI_PREDICT (base = merge-base with origin/main; body given)
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 67178dc6a589 (a data-file read is not seen)
+exit=0
+
+CARRY_AUDIT on the PR (body + posted verdict comments)
+UNROUTED #2877 review 6440278323 item f7161642 (## F1 (blocking) — "already carries P197" is false, and the body's own enumerator refutes it) [non-blocking]: '- **Perturbation.** Remove the claim and nothing about the ruling changes; add the true statement and the rout'
+UNROUTED #2877 review 6440278323 item c7d06636 (## F2 (non-blocking note) — the plain writer is the OLDER cadence, and its 14-hour span is undisclosed) [section]: '- **Claim.** `s6-batch36.md:24-33` calls the plain `HOLD (no v7.0.5 tag)` writer "the second writer", reports '
+UNROUTED #2877 review 6440278323 item 45831259 (## F2 (non-blocking note) — the plain writer is the OLDER cadence, and its 14-hour span is undisclosed) [section]: '- **Evidence.** The "separate timer" conclusion is right: the annotated seat stalls 08:54:25Z→09:15:38Z and th'
+UNROUTED #2877 review 6440278323 item fe77be45 (## F2 (non-blocking note) — the plain writer is the OLDER cadence, and its 14-hour span is undisclosed) [section]: '- **Harness.** Same ledger and grep the ruling cites; I enumerated the whole plain series and its inter-line g'
+UNROUTED #2877 review 6440278323 item a93a5746 (## F2 (non-blocking note) — the plain writer is the OLDER cadence, and its 14-hour span is undisclosed) [section]: '- **Metric.** Plain-writer lines in the whole ledger: **170** (cited: 18). First plain line 20:56:28Z; first a'
+UNROUTED #2877 review 6440278323 item 1a559cc2 (## F2 (non-blocking note) — the plain writer is the OLDER cadence, and its 14-hour span is undisclosed) [section]: '- **Perturbation.** Restrict the series to the 08:13–09:38 window and the count is 18 and the four-in-stall co'
+NOTE #2877 review 6440278323 item 2213ed72: R10-ORCH-BEATD
+UNROUTED #2877 review 6446348512 item 68f2a69d (## F1 (blocking) — the body's `## Figures` still says BEATD "already carries P197") [non-blocking]: "- **Evidence.** The body's own enumerator prints nothing matching P197: `git show origin/main:dev/programme/ro"
+UNROUTED #2877 review 6446348512 item 9a47ce8f (## F1 (blocking) — the body's `## Figures` still says BEATD "already carries P197") [non-blocking]: "- **Metric.** Occurrences of `P197` in R10-ORCH-BEATD's object: **0** (also 0 across every roster file). The c"
+UNROUTED #2877 review 6446348512 item 264700ba (## F7 (unsettled) — "this seat's first line" in the corrected arrival-order paragraph) [non-blocking]: '- **What I could verify.** "No gap over 7 minutes" is true: 222 plain lines, 20:56:28Z→15:19:15Z, largest gap '
+CARRY-AUDIT #2877: 10 finding item(s): 1 routed, 9 unrouted, 0 bad destination(s)
+exit=1
+
+HEAD RE-READ BEFORE WRITING
+390e238754a08b29e82b2004f061e086a75b5a1b	refs/heads/fix/triage-s6-batch36
+390e238754a08b29e82b2004f061e086a75b5a1b	refs/pull/2877/head
+390e238754a08b29e82b2004f061e086a75b5a1b
+
+CARRY_AUDIT ON THE DRAFT VERDICT (check --body)
+NOTE body item 854ae23b: dismissed:body metadata, not a record claim; the head's checks are green, the section names its SHA and time, and the ruling is unaffected.
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+exit=0

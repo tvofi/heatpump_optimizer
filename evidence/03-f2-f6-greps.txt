@@ -1,0 +1,32 @@
+F2 — THE RECORD S RE-RUNNABLE BASIS
+$ grep -rn 'HOLD (no v7' tools/audit/seat/
+rc=1 (1 = no match)
+
+$ git grep -n 'HOLD (no v7'   (whole tree)
+dev/programme/triage/s6-batch36.md:30:  `HOLD (no v7.0.5 tag)` form, 18 of them, at 5:00-5:01 intervals: 08:13:15, 08:18:16,
+dev/programme/triage/s6-batch36.md:38:  `| grep -c 'HOLD (no v7.0.5 tag)$'` prints `18`). This seat's annotated cadence stopped for
+dev/programme/triage/s6-batch36.md:57:  no file under `tools/audit/seat/` carries the line's literal, `HOLD (no v7` (`grep -rn
+dev/programme/triage/s6-batch36.md:58:  'HOLD (no v7' tools/audit/seat/` prints nothing), and `s7/roster-loop.sh`, read in full this
+
+$ grep -n 'roster s7\|triage\|HOLD' s7/roster-loop.sh
+32:    echo "roster s7: $op $grp -> $res" >> "$LED"
+57:    echo "roster s7: unwired open $t #$n (no live group); escalated" >> "$LED"
+
+$ cat w71/loop.pid ; ps -p 76559
+76559
+  PID COMMAND
+76559: no such process
+no w71 process
+
+F6 — THE CARRY OWNS THE FUTURE EDIT
+$ grep -c 'older id\|DUPLICATE' tools/audit/seat/sweep_template.md
+0
+rc=1
+
+$ grep -n '(1b)' tools/audit/seat/sweep_template.md  (step (1b) present, no older-id stop)
+57:(1b) Standing-seat liveness. The four standing seats are `dev/governance/roles/standing-tick.md`, `dev/governance/roles/standing-merge.md`, `dev/governance/roles/standing-dispatch.md` and `dev/governance/roles/standing-roster.md`. Run `python3 -I tools/audit/seat/pulse.py --repo {{repo}} {{seat_queues}}`; a seat that is absent from {{seat_ledger}}, that finished with work still owed, or that a `PULSE` line reports `STOPPED seat <name>:` is restarted in this sweep on its contract with its queue, and the restart is logged in {{seat_ledger}}. Routine work goes to these seats as queue lines, never inline (`dev/governance/roles/orchestrator.md` section 5).
+65:(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board.
+
+$ roster index 21 (carry 22), P97(b) sentence
+carry count: 34
+Step (1b) of tools/audit/seat/sweep_template.md then stops the older id before anything else, and logs both ids. Self-te

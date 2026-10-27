@@ -1,0 +1,43 @@
+HEAD IDENTITY
+$ git ls-remote origin refs/pull/2877/head refs/heads/fix/triage-s6-batch36
+390e238754a08b29e82b2004f061e086a75b5a1b	refs/heads/fix/triage-s6-batch36
+390e238754a08b29e82b2004f061e086a75b5a1b	refs/pull/2877/head
+$ gh pr view 2877 --json headRefOid
+390e238754a08b29e82b2004f061e086a75b5a1b
+
+REPAIR RANGE b95d3faf8d1ebf1a03d26d39a593ad91e410b891..f6cb1a4681eeb6329d1503c5bb5f483c64e43d99
+ dev/programme/triage/s6-batch36.md | 55 ++++++++++++++++++++++----------------
+ 1 file changed, 32 insertions(+), 23 deletions(-)
+
+PR RANGE AT THE PREVIOUS HEAD b95d3fa..390e23875
+ dev/programme/triage/s6-batch36.md | 55 ++++++++++++++++++++++----------------
+ 1 file changed, 32 insertions(+), 23 deletions(-)
+
+MERGE COMMIT PARENTS (390e23875)
+tree f2101840ed953041893501b801ec544d37339cee
+parent b95d3faf8d1ebf1a03d26d39a593ad91e410b891
+parent f6cb1a4681eeb6329d1503c5bb5f483c64e43d99
+author tvofi <70032254+tvofi@users.noreply.github.com> 1793120924 +0100
+
+DIFF vs FIRST PARENT
+ dev/programme/triage/s6-batch36.md | 55 ++++++++++++++++++++++----------------
+ 1 file changed, 32 insertions(+), 23 deletions(-)
+
+DIFF vs SECOND PARENT
+
+MERGE BASE WITH origin/main
+67178dc6a589cf95d2ce7cff36d8bbf17343e8dc
+
+THREE-DOT PR SCOPE (merge-base...HEAD)
+ dev/programme/delivery/2877.md     |  1 +
+ dev/programme/triage/s6-batch36.md | 98 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 99 insertions(+)
+
+THREE-DOT VERSION/MANIFEST/NOTES/CLAIM FILES (empty = untouched)
+
+MERGE-TREE AGAINST CURRENT origin/main
+47a24935beb9d0e431c0d4ba242daef735b128ae
+exit=0
+
+STRUCTURE RATCHET
+STRUCTURE RATCHET PASSED
