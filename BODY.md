@@ -19,20 +19,20 @@ It also carries the group's root-cause work: process state (c), and a census
 that drives the tank's three live capabilities in **every** value of the zoning
 domain, registered in `tests/entities.py`'s `_P2_CENSUSES`.
 
-The last commits are what let the above land under the ratchets. The store's
-physics pushed `ThermalModel` past its class budget and left one clone over
-`duplication_copies`; merging the batch's copies into module helpers paid both
-but put seven calls into the sub-step loop, which the production-call channel
-priced at 1.191x on an unchanged plan against a 1.05x allowance, so that attempt
+The commits before the merge are what let the above land under the ratchets.
+The store's physics pushed `ThermalModel` past its class budget and left one
+clone over `duplication_copies`; merging the batch's copies into module helpers
+paid both but put extra calls into the sub-step loop, which the production-call
+channel priced over its 1.05x allowance on an unchanged plan, so that attempt
 is discarded. The payment instead moves the scalar two-zone valved delivery
 verbatim into `_valve_two_zone_delivery` (one call per scalar step) and has the
 batch's single-zone store block call `_single_valve_rates` rather than restate
-it. The moved law first read fifteen scalars, which put one function over the
-ten-parameter guard (`params_over_10` 7 → 8, dS -0.1699 WORSENS); it now takes
-the step's own `state` and reads `p.radiator_power_fraction` and
-`_buffer_capacity(p)`, so it reads ten and the score is NULL. The price is one
-`_buffer_capacity` call per two-zone valved step, which moved the judged
-families from 1.011x/1.012x to 1.028x/1.029x against the 1.05x allowance.
+it. The moved law first read too many scalars, which put one function over the
+ten-parameter guard (the score read WORSENS); it now takes the step's own
+`state` and reads `p.radiator_power_fraction` and `_buffer_capacity(p)`, so it
+reads ten and the score is NULL. The price is one `_buffer_capacity` call per
+two-zone valved step, which moved the judged families to 1.028x/1.030x against
+the 1.05x allowance.
 
 Closes #2500
 
@@ -43,32 +43,54 @@ than fixed, so #2499 stays open on that residual.
 
 ## Head
 
-`5c01e40658af339371b22b1b7c141ae3e539deb9`
+`8d0a1c3f7f699f94f1da93ef4e0c29c1f00cb22c`, a merge whose parents are the
+branch's `5c01e40658af339371b22b1b7c141ae3e539deb9` and `origin/main`'s
+`67178dc6a589cf95d2ce7cff36d8bbf17343e8dc` (`git log -1 --format=%P HEAD`).
+The base is `67178dc6a` itself (`git merge-base origin/main HEAD`), so the
+reviewed range is the branch's own 15 commits and 14 changed files
+(`git rev-list --count 67178dc6a..8d0a1c3f7`; `git diff --stat
+67178dc6a...8d0a1c3f7`: 1008 insertions, 191 deletions).
 
-A merge of the branch's `7a9c76aa6` and `origin/main`'s `524c1896b`, because
-`git merge-tree --write-tree origin/main HEAD` reported a conflict and a
-conflict on any path but the two claim files is the reviewer's to block on
-(`fix-review.md` step 13). The one conflict was `tests/entities.py`'s py-spy
-stub: both sides landed the same BSD `wc` fix — ours in `758036d`, main's from
-another seat — so the resolution takes main's text and changes nothing.
-`tests/structure_budgets.json` merged to `class_excess_loc` 18019 (both
-deltas, under the 18031 budget) and `tests/closures.json` merged with
-`inert_reads.tests/harness_headers.py` as a set, through the repository's own
-drivers; both are re-measured below at this head. Every figure is re-taken at
-this head and `## Unpinned sites` is re-derived against it; main touches none
-of the store and valve code, and the plan sha1s read byte-identical. The
-commit after the merge is the structure budget's re-record
-(`functions_cc_over_15` 28 -> 27, `recorded_at` 524c1896b), a data row
-`tests/structure.py` reads; that script is re-run at this head and passes.
+The one conflict is `dev/audit/config/bugclasses.json` — this branch's
+`R10-RCA-BUFFER-STORE` class against main's `R10-N-vocabulary-drift` row;
+`git merge-tree --write-tree 5c01e4065 67178dc6a` names that path and no
+other, and the resolution keeps both classes (the file at this head carries the
+`R10-RCA-BUFFER-STORE` and `R10-N-vocabulary-drift` class entries, with main's
+sibling rows intact), which is the union `tools/merge/ledger_merge.py` writes
+for that file.
+`fix-review.md` step 13 makes a conflict on any path but the two claim files
+the reader's to block on, so the resolution is recorded here rather than left to
+a merge-state field. `tests/structure_budgets.json` merged through the same
+driver to `class_excess_loc` 17999 — the merge base's 18067 plus both sides'
+deltas (−48 on the branch, −20 on main) — and `tests/structure.py` measures the
+merged tree at exactly 17999, with `functions_cc_over_15` 27 and `recorded_at`
+524c1896b. `tests/closures.json` merged as a set under that driver (main's added
+stub scripts land beside the branch's rows, e.g.
+`tests/hastub/homeassistant/components/sensor.py`); both are re-measured below.
+
+The merge is committed twice,
+`78f65274e5b0a3f91e89463ceaf7198370fe3fe6` on
+`refs/heads/fix/r10-buffer-store` and `8d0a1c3f7` on the handoff ref, and the
+trees are identical (`git diff 78f65274e 8d0a1c3f7` prints nothing). The
+branch's pre-merge commit `5c01e4065` is the structure budget's re-record
+(`functions_cc_over_15` 28 → 27), a data row `tests/structure.py` reads.
+
+`custom_components/heatpump_optimizer/thermal_model.py` is byte-identical at the
+pre-merge head `0db6d58` and this head (both
+`800921b3a5da0fc85dd3f9994c408657b3bd877a`), so the store and valve code is
+unchanged by the merge; main's `optimizer.py` changes are re-measured in the
+figures below. Every figure was re-taken over `67178dc6a...8d0a1c3f7`.
 
 ## Mutation proof
 
 Eleven mutants, each applied to the production tree and run against the group
 probe (`tests/features.py`'s four `_grad_parity` cells plus the store section,
-the new batch twin included) at this head (a `git archive` copy of the merge
-head `0db6d58`; the commit since touches only the structure budget's data row,
-no production file): **11 KILLED, 0 SURVIVED**, each
-by the checks named here, pasted from the run.
+the new batch twin included) at this head (a `git archive` copy of `8d0a1c3f7`
+whose `thermal_model.py` and `optimizer.py` hash identically to the head's —
+`ba192d7e…` and `330a8830…`; `thermal_model.py` is also byte-identical to
+`0db6d58` where ten of the eleven apply, and M1's `optimizer.py` target still
+matches exactly once): **11 KILLED, 0 SURVIVED**, each by the checks named here,
+pasted from the run.
 
 | mutant | checks that go red |
 |---|---|
@@ -133,53 +155,54 @@ head:
   `if params.two_zone_enabled:` — while `_settlement_caps` priced the buffer in
   every zoning. Process state **(c)**: followed, and did not produce the
   intended result — the parity grid built three of the four zoning x valve
-  cells (33 `ThermalParameters` constructions set `mixing_valve_mode`, 32 of
-  them also `two_zone_enabled=True`), and `config_flow` has offered a buffer to
-  every install since the base with no `when=` gate, so nothing moved
-  underneath it. Cost test: the census costs **0.001 s median / 0.031 s worst**
-  marginal in `tests/features.py`, which runs once per gated pull request,
-  **334 merges per release** over the seven `v6.7.12..v7.0.4` intervals =
-  **0.33 s per release**; the defect costs **4.35 h = 15,660 s** per occurrence
-  and the class carries **0.66 instances per release**, so **10,336 s per
-  release** against 0.33 s — about **31,000x** (about 1,000x on the worst
-  sample). The census's domain is the zoning flag's two values, enumerated, so
+  cells (33 `ThermalParameters` constructions in the base's
+  `tests/features.py` set `mixing_valve_mode`, 32 of them also
+  `two_zone_enabled=True`), and `config_flow` has offered a buffer to every
+  install since the base with no `when=` gate, so nothing moved underneath it.
+  Cost test: the census costs **0.0003 s median / 0.0003 s worst** marginal in
+  `tests/features.py` here (the RCA's loaded sample: **0.001 s / 0.031 s**),
+  which runs once per gated pull request; the tree carries **2,338 merges** over
+  `v6.7.12..v7.0.4` (`git rev-list --merges --count v6.7.12..v7.0.4`, ten tag
+  intervals — the RCA divides the same count by seven) = **234 per release**, so
+  **0.07 s per release** at this sample (0.23 s on the RCA's, 7.3 s on its
+  worst); the defect costs **4.35 h = 15,660 s** per occurrence and the class
+  carries **0.66 instances per release**, so **10,336 s per release** against
+  0.07 s — about **1.5×10^5×** (4.4×10^4× on the RCA's sample, 1.4×10^3× on its
+  worst). The census's domain is the zoning flag's two values, enumerated, so
   it cannot skip a slot; its three check texts are registered in
   `_P2_CENSUSES`, which refuses a vanished text (`CENSUS-MISSING`).
-- `python3 tests/features.py` (this head's test file, the store block's **18
-  checks**): **9 ok, 9 FAIL** at `3b4180dcc` (the merged test file against that
-  production) and **18 ok, 0 FAIL** at this head. The three census readings are
-  the same lines in both: base valve `single-zone +0.0000 K, two-zone +0.1973
-  K`; cap `single-zone 0.0000 kW, two-zone 1.5947 kW`; credit `single-zone
-  0.0000, two-zone -17.3299`. At head: `+0.2744 / +0.1973 K`, `3.4614 / 1.5947
-  kW`, `-17.3299 / -17.3299`.
+- The store block out of this head's `tests/features.py` (18 checks, extracted
+  by text by the group's probe): **9 ok, 9 FAIL** at `3b4180dcc` (the head's
+  test file against that production) and **18 ok, 0 FAIL** at this head. The
+  three census readings are the same lines in both: base valve `single-zone
+  +0.0000 K, two-zone +0.1973 K`; cap `single-zone 0.0000 kW, two-zone 1.5947
+  kW`; credit `single-zone 0.0000, two-zone -17.3299`. At head: `+0.2744 /
+  +0.1973 K`, `3.4614 / 1.5947 kW`, `-17.3299 / -17.3299`.
 - The wider probe (`mutants.py`'s probe: the same block plus the four
   `_grad_parity` cells, **34 checks**) reads **25 ok, 9 FAIL** at the base and
   **34 ok, 0 FAIL** at this head.
 - `dev/audit/harnesses/r10_buffer_store.py bench 5` — `optimize` wall time and
-  peak RSS over 5 solves per arm on the owner shape, base and this head **run
-  concurrently** so both sides share the machine load: head 7.735 s median /
-  17.314 s worst / 88.9 MB against base 5.199 / 5.821 / 79.5 MB; the flat
-  no-buffer null 5.437 / 9.114 / 87.5 MB against 4.763 / 6.386 / 82.6 MB.
+  peak RSS over 5 solves per arm on the owner shape, at the base and at this
+  head in the same window: head 7.397 s median / 16.082 s worst / 89.0 MB
+  against base 2.666 / 7.236 / 87.8 MB; the flat no-buffer null 2.441 / 3.144 /
+  90.9 MB against 3.686 / 5.867 / 81.6 MB. The null reads **0.66x** here (the
+  head faster), so this pair is dominated by machine load and is not the
+  performance figure.
 - The same arms in **CPU seconds**, which is the reading that does not move
   with the box's load (`benchcpu2.py`, 10 solves per arm, one process per tree,
   the same seeded price sequence at both ends). Two pairs, each end taken at
   the same moment: against the branch's own base (`3b4180dcc`) the owner arm
-  **8.560 s → 22.338 s** (**×2.61**; per-solve medians 0.968 → 2.258, ×2.33),
-  and against current `origin/main` (`524c1896b`) at the merged head
-  **8.064 → 23.657 s** (**×2.93**; medians 0.929 → 2.513, ×2.70). The flat
-  no-buffer null reads **×1.15** in both pairs (9.611 → 11.014 and
-  9.164 → 10.519; medians 1.17x and 1.11x), so the ratio is the store's and
-  not the instrument's dispersion. The
-  wall-clock pair above is inflated on both arms by the load it was run under
-  (its own null reads 1.14x) and is not the performance figure. The
-  sensitivity control: doubling the batch substeps moves the owner arm
-  7.492 → 84.494 s (×11.3) while it moves the no-buffer null only
-  3.697 → 5.371 s (×1.45), so the benchmark responds to the buffer state
-  resolution. The production-call channel (`stress.calls_population`): the
-  two-zone valved families 1.028x and 1.029x (max 1.0295x where the plan is
-  unchanged, against the 1.05x allowance), every other family 1.000x, and the
-  single-zone valved family 3.129x raw / 1.852x vouched — it re-plans, 64
-  objective evaluations against 40, and the channel exempts a re-planned family.
+  **8.016 s → 22.305 s** (**×2.78**; per-solve medians 0.888 → 2.313, ×2.61),
+  and against the merge base `67178dc6a` **8.587 → 22.693 s** (**×2.64**;
+  medians 0.969 → 2.317, ×2.39). The flat no-buffer null reads **×1.08**
+  (9.325 → 10.034; medians 0.958 → 1.018, ×1.06) and **×1.05** (9.675 → 10.171;
+  medians 1.001 → 1.025, ×1.02), so the ratio is the store's and not the
+  instrument's dispersion. The production-call channel
+  (`stress.calls_population`): the two-zone valved families 1.028x and 1.030x
+  (plans unchanged, the channel's work count `vouched 1.000x`, against the 1.05x
+  allowance), every other family 1.000x, and the single-zone valved family
+  3.155x raw / 1.852x vouched — it re-plans, 64 objective evaluations against
+  40, and the channel classifies a re-planned family separately.
 - `dev/audit/harnesses/r10_buffer_store.py accuracy` — the two fields'
   definitions read off the tree (`power_ratio` = mean(actual/predicted) over
   samples with predicted > 0.05; `cost_error_percent` = (Σpredicted −
@@ -201,9 +224,9 @@ head:
 ## Architecture score
 
 Architecture score: dS +0.0000 NULL (`tools/audit/archscore/score.py --diff
-524c1896b 5c01e4065`). `tests/arch_score_head.py` reads **ALL 18 CHECKS
+67178dc6a 8d0a1c3f7`). `tests/arch_score_head.py` reads **ALL 18 CHECKS
 PASSED** at this head, and `tests/structure.py` reads every metric within its
-budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
+budget (`class_excess_loc` 17999, `recorded_at` 524c1896b).
 
 ## Unpinned sites
 
@@ -235,6 +258,15 @@ budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
 
 ## Red checks
 
+- **No check runs exist at `8d0a1c3f7`.** `gh api
+  repos/tvofi/heatpump_optimizer/commits/8d0a1c3f7/check-runs` returns
+  `total_count 0`, so there is no rollup at this head to read and none is
+  claimed; the pull request's first `gate` run is the authority. A reviewer runs
+  `bash tools/pr/prepr.sh <body>`, and for the two sections a push cannot show
+  `node tools/policy/figure_lint.mjs --pr-body <body>` and `python3 -I
+  tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check
+  --body <body>`; the reds below were observed at the heads they name and are
+  re-run there.
 - `tests / mutation` — predicted red on the **25 sites this diff adds unpinned**
   (`tools/pr/ci_predict.py --base origin/main` lists every one). Answer: the
   cheaper detector exists and ran, at nil standing cost: the same static read
@@ -254,27 +286,28 @@ budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
   `_cert_inputs` builds `profiles.house(two_zone=False)`, which sets a 200 L
   tank and no `mixing_valve_mode`, so `buffer_is_store` is false and neither the
   store's physics nor the credit is live in it.
-- `node tests/card.mjs` — Node's V8 heap aborts at **2045 MB live** (165 s into
-  this head's gate run; 198 s in an earlier one)
+- `node tests/card.mjs` — Node's V8 heap aborts at **2047.0 MB live** (317.8 s
+  into this head's run)
   (`FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed -
   JavaScript heap out of memory`) with **no check failing**: every card check
-  printed before the abort is `ok`, and `card_drift.mjs` runs green in the same
-  gate run.
+  printed before the abort is `ok` (1290 of them), and `node tests/card_drift.mjs`
+  reads `identical in all 45 states` at this head.
   Null control: the same script at this head with
   `NODE_OPTIONS=--max-old-space-size=4096` prints `ALL CARD CHECKS PASSED`
-  (1304 `ok` lines, none failed), so the red is this host's default V8 heap and
+  (1306 `ok` lines, none failed), so the red is this host's default V8 heap and
   not the diff.
 - `tests/stress.py` — `no scenario exceeds its own recorded cost by the budget
   factor` reads the `summer/1z/space/valve` family near its own budget and
   straddles it by run: red at the pre-merge gate (`5.3x` its reference against
   a `4.6x` budget — `1.54x` recorded x the `3.0` factor — confirmed at median
-  5.6x over 3 re-solves, min 5.5x, max 5.9x, at `173b71ba4`), green at this
-  head's gate (`ok`; worst scenario `shoulder/tariff+pv+cycle` at 107.8x of
-  268x). That family is the one this branch re-plans (64 objective evaluations
-  against 40, above), and the solver-work channel exempts it by name; the CPU
-  benchmark prices the store at 2.6–2.9x on the owner shape and the budget
-  channel divides by the run's own reference solve, so the margin is a cost
-  reading, not a check regression. If it recurs, the disposition is a
+  5.6x over 3 re-solves, min 5.5x, max 5.9x, at `173b71ba4`), green in the gate
+  at `5c01e4065` (`ok`; worst scenario `shoulder/tariff+pv+cycle` at 107.8x of
+  268x). No check run exists at `8d0a1c3f7`, so this head's margin is unread
+  until its first gate. That family is the one this branch re-plans (64
+  objective evaluations against 40, above), and the solver-work channel exempts
+  it by name; the CPU benchmark prices the store at 2.6–2.8x on the owner shape
+  and the budget channel divides by the run's own reference solve, so the margin
+  is a cost reading, not a check regression. If it recurs, the disposition is a
   `tests/stress_budgets.json` raise on that scenario's recorded ratio, which is
   the owner's under `budget-raise-gate`, not this seat's.
 - `tests/stress.py` — `shoulder: cheaper than holding the setpoint`
@@ -283,25 +316,25 @@ budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
   `mixing_valve.is_throttling(...) and buffer_tank_volume >=
   BUFFER_STORE_MIN_VOLUME`, false for a `'none'` valve — so neither the store's
   physics nor the terminal credit can reach it. Measured with the same driver
-  at the merge base (`3b4180dcc`), at current `origin/main` (`524c1896b`) and at
+  at the merge base (`3b4180dcc`), at current `origin/main` (`67178dc6a`) and at
   this head: `predicted 4.6716 / thermostat 3.9585` in all three.
 
 ## Forward-carry
 
 - **The 272 s solve outlier (D15 L4) is not reproduced.** On the owner shape the
-  worst solve at this head is 17.3 s in the concurrent pair, and the
-  doubled-resolution mutant reaches 143.9 s, so the instrument responds to state
-  resolution; no input shape here produces 272 s.
+  worst solve at this head is 16.1 s in the wall pair, and the flat-price null
+  reaches 3.1 s; no input shape here produces 272 s.
   Carry: dismissed: measured and not reproduced on every input shape this harness drives; no bound or warm start is owed without the owner-box shape
-- **The live store costs 2.6–2.9x CPU on the owner shape.** Two paired runs of
-  the same seeded 10-solve sequence: 8.560 s → 22.338 s (×2.61, medians
-  0.968 → 2.258) and 8.064 → 23.657 s (×2.93, medians 0.929 → 2.513). The
-  flat no-buffer null reads 1.15x in both (9.611 → 11.014 and 9.164 → 10.519).
-  The two-zone valved families sit at 1.028x/1.029x of the 1.05x call-channel
-  allowance (max 1.0295x), and the single-zone valved family re-plans (64
-  objective evaluations against 40, exempt there). A bound or a warm start on
-  the planner must earn the 2.6–2.9x. Lands in
-  `dev/programme/rosters/wave-r10-groups.json`.
+- **The live store costs 2.6–2.8x CPU on the owner shape.** Two paired runs of
+  the same seeded 10-solve sequence, each end taken at the same moment: against
+  the branch's own base `3b4180dcc` 8.016 s → 22.305 s (×2.78, medians
+  0.888 → 2.313), and against the merge base `67178dc6a` 8.587 → 22.693 s
+  (×2.64, medians 0.969 → 2.317). The flat no-buffer null reads 1.08x and 1.05x
+  (9.325 → 10.034 and 9.675 → 10.171). The two-zone valved families sit at
+  1.028x/1.030x of the 1.05x call-channel allowance (plans unchanged), and the
+  single-zone valved family re-plans (64 objective evaluations against 40,
+  exempt there). A bound or a warm start on the planner must earn the 2.6–2.8x.
+  Lands in `dev/programme/rosters/wave-r10-groups.json`.
   Carry: R10-STORE-RACES (handoff/audit-r10-roster at b5ea7fda7a9e)
 - **The two accuracy biases are separate, and neither is a sign slip.** The live
   bundle reads `power_ratio ≈ 1.31`, `cost_error ≈ -29 %`: reality delivers more
@@ -327,7 +360,7 @@ budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
   (`if c_buf < 1e-6: c_buf = 0.04`). The step's copy sits two lines above the
   call that now also computes it; routing the step through the helper would
   delete those lines and drop `class_excess_loc`, at one more call per
-  two-zone step — the call channel is at 1.0295x of its 1.05x allowance, so it
+  two-zone step — the call channel is at 1.030x of its 1.05x allowance, so it
   is left to the group that next prices that family. Lands in
   `dev/programme/rosters/wave-r10-groups.json`.
   Carry: R10-STORE-RACES (handoff/audit-r10-roster at d6217f814a7c)
@@ -336,17 +369,17 @@ budget (`class_excess_loc` 18019, `recorded_at` 524c1896b).
 
 - `gitignore-global-config: cost`: `.gitignore:28` ignores `config/` at any
   depth, so `git add dev/audit/config/bugclasses.json` (a **tracked** file)
-  prints *"The following paths are ignored"* and exits 1 while still staging the
-  file; `git add -A` skips new files there silently. Both nested `config/`
-  directories in this tree (`dev/audit/config`, `dev/governance/config`) are
-  tracked and visible to `git check-ignore`, so the rule is anchored wrong for a
-  repository with policy config directories. Carry: R10-FLOW-JIDOKA (handoff/audit-r10-roster at 46df1de62)
+  prints *"The following paths are ignored"* and exits 1; `git add -A` skips new
+  files there silently. Both nested `config/` directories in this tree
+  (`dev/audit/config`, `dev/governance/config`) are tracked, and
+  `git check-ignore --no-index -v` names `.gitignore:28` for each, so the rule is
+  anchored wrong for a repository with policy config directories. Carry: R10-FLOW-JIDOKA (handoff/audit-r10-roster at 46df1de62)
 - main-red-invisible: unenforced: `tests/stress.py`'s shoulder economics check
-  is red on the merge base (`3b4180dcc`) and on current main (`524c1896b`) with
+  is red on the merge base (`3b4180dcc`) and on current main (`67178dc6a`) with
   the identical reading (`predicted 4.6716 / thermostat 3.9585`), and no
-  check-run at main's head shows it: at `524c1896b` the `gate` check completed in
-  21 s and `sweep` in 10 s, and of the `tests / ...` jobs only `ci-ratchet` and
-  `coverage-ratchet` ran. A full-suite pass on main is therefore not visible in
+  check-run at main's head shows it: at `67178dc6a` the `gate` check completed in
+  20 s and the push's `sweep` in 19 s, and of the `tests / ...` jobs only
+  `ci-ratchet` and `coverage-ratchet` ran. A full-suite pass on main is therefore not visible in
   that push's checks, so a base red travels unremarked into a branch's gate. Not
   this group's to fix; the after-merge bookkeeping must read main's own suite
   state. Carry: R10-FLOW-POSTMERGE (handoff/audit-r10-roster at c0dbb4585d68)
