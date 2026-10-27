@@ -1,70 +1,69 @@
 # Proposal triage, session s7, batch 37 (P205)
 
-One entry. Numbering continues after `s6-batch36.md` (P204). Facts read at origin/main
-`524c1896b` on 2026-10-27.
+One entry. Numbering continues after `s6-batch36.md` (P204). Facts re-measured on
+2026-10-27 at origin/main `67178dc6a` and against the live refs and logs named below.
 
 ## P205: a STOP result body reads as an orphan handoff on every pass (V125)
-Verdict: ACCEPT narrowed -> a carry of **R10-ORCH-LEDGER** (`carries-open`, L; it owns
-`tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/orchestrator_tick.py`, and
-`tools/audit/seat/ledger.py` is the schema both import). The carried arm exempts, in
-`level()`, a `handoff-body/` ref whose body commit's first non-blank line is a STOP marker,
-matched with an optional markdown heading. Two alternatives are REJECTED: telling seats to
-name result bodies differently (the seat that most needs it did not read its brief), and
-teaching the tick to suppress the line (the strike belongs where the line is computed, and
-the tick only prints what the ledger hands it). A zero-code remedy exists for this instance
-and costs one command: `python3 -I tools/audit/seat/ledger.py dispose <ref> <sha40>`.
+Verdict: DEFER. The item's group is `R10-ORCH-LEDGER` (`carries-open`, L). What would
+change the answer: two or more live STOP result bodies that `dispose` does not heal, or
+a body whose owed text is machine-checkable.
 
 Source: orch s7, 2026-10-27, relayed to this seat with its measurement done; the
-`proposals.md` entry was not yet appended when this ruling was cut.
+`proposals.md` entry was not appended when this ruling was cut (the register ends at
+`## V123`).
 
-Instances: one, measured on the ref the proposal names, and the measurement changes the arm
-the proposal describes.
-- The ref exists: `git ls-remote origin 'refs/heads/handoff-body/r10-flow-jidoka*'` prints
-  `b9b690afb9830a20e046b3515bd18858757d2047 refs/heads/handoff-body/r10-flow-jidoka-p2-body`
-  (and two sibling body refs).
-- Its `BODY.md` first line is `# STOP: r10-flow-jidoka-p2-body — 5ab48352 does not carry the
-  voluptuous fix`, measured byte-exact with `git show b9b690afb:BODY.md | sed -n '1p' | od -c`,
-  whose first bytes are `# S T O P :`. It is an H1, so the proposal's stated test — the first
-  non-blank line *begins* `STOP:` — does not match the one ref it was written for; the arm
-  must accept the heading form.
-- The cost is three board lines per pass, not one: `OWED ... handoff-no-pr
-  refs/heads/handoff-body/r10-flow-jidoka-p2-body ... ct=1793007293`, `DISPATCH: ? ... no code
-  ref (25.6h)` and `OWNER FLAG: ? ... stranded 25.6h (threshold 12h)`, at 11:09:39Z in the
-  board log `tick.txt` in the orchestrator state directory. It is the board's only OWED line,
-  so it is the whole of the OWED channel, and the line cannot heal itself because the ref
-  is correct and will never move.
-- The emitter: `tools/audit/seat/ledger.py` classifies by ref prefix (`ARMS` maps
-  `refs/heads/handoff-body/` and `refs/heads/handoff/` to `handoff-no-pr`), and `level()`'s
-  exemptions today are state-ref, open-pr, disposed and carried. At ruling time the ref was
-  not disposed: the relay state directory's `dispositions.tsv` held two entries and neither
-  was this ref (`grep -c r10-flow-jidoka-p2-body dispositions.tsv` printed 0). The
-  orchestrator applied the manual route after the ruling,
-  `ledger.py dispose refs/heads/handoff-body/r10-flow-jidoka-p2-body b9b690afb9830a20e046b3515bd18858757d2047`,
-  and read it back with `ledger.py disposed <ref> <sha>` (rc=0): the store is written beside
-  the ledger's log path, not in the repository or the relay state directory, so a `grep` of
-  either copy still prints 0 after a successful dispose and reads as a failed write.
+Instances: one, and the existing remedy already heals it.
+- Corpus: `git ls-remote origin 'refs/heads/handoff-body/*' | wc -l` prints `102`, and
+  every one carries a `BODY.md`. Exactly one has a STOP marker on its first non-blank
+  line: `git ls-remote origin 'refs/heads/handoff-body/*' | cut -f1 | while read s; do
+  git show "$s:BODY.md" 2>/dev/null | grep -m1 -v '^[[:space:]]*$' |
+  grep -qE '^#{1,6}[[:space:]]*STOP:' && echo "$s"; done` prints only
+  `b9b690afb9830a20e046b3515bd18858757d2047`, the ref the proposal names.
+- That line is the H1 `# STOP: r10-flow-jidoka-p2-body — 5ab48352 does not carry the
+  voluptuous fix` (`git show b9b690afb:BODY.md | grep -m1 -v '^[[:space:]]*$'`), so the
+  proposal's "begins `STOP:`" test does not reach it; only the heading form can.
+- The existing remedy has healed it with one command and no code: the store row reads
+  `refs/heads/handoff-body/r10-flow-jidoka-p2-body … 2026-10-27T11:28:57Z disposed`
+  (`grep r10-flow-jidoka-p2-body ~/.local/state/hpo/dispositions.tsv`), and
+  `python3 -I tools/audit/seat/ledger.py disposed refs/heads/handoff-body/r10-flow-jidoka-p2-body b9b690afb9830a20e046b3515bd18858757d2047`
+  exits 0.
+- A fresh `level` pass at the default home summarises
+  `ledger: level carried=174 disposed=27 open-pr=20 owed=3 state-ref=4` on stderr, and
+  `grep -c r10-flow-jidoka-p2-body` over its stdout (the OWED lines) prints `0`: the
+  ref is not owed.
+- The arm's effect over today's corpus is therefore zero lines changed. So is the
+  narrower marker-plus-owed-text arm: the one STOP body states its work under
+  `## What is owed`, so requiring the absence of owed text newly exempts `0` of the
+  102 bodies.
 
-Cost: about 6-10 lines in `level()` plus a `result-body` counter in its `why` mapping, and one
-`git show <ref>:BODY.md` per otherwise-owed `handoff-body/` ref per pass — one process spawn
-today, zero on a clean board, against a pass whose `ledger.fetch_world` already asks `git fetch`
-for four refspecs (a plain `main` plus the `handoff/*`, `handoff-body/*` and `fix/*` globs;
-`tools/audit/seat/ledger.py:434-437`) and which runs a `for-each-ref`/`covered` per owed topic.
-`cloud_relay.sh`'s relays are a different count — five `git ls-remote` globs, `probe/*`,
-`review/*`, `handoff/*` plus `handoff-body/*`, and `verdict/*` (lines 270, 306, 401 and 404) —
-so the two are not the same figure. Self-test arms owed with it: one on the real shape
-(the H1 marker) going from owed to exempt, and one null (an ordinary PR body stays owed). The
-pin is the ledger's own `--self-test` (`self_test()` in `tools/audit/seat/ledger.py`), run by
-`.github/workflows/governance.yml:585`, not the tick's:
-`grep -rn 'count("handoff-no-pr")' tools/ tests/` prints exactly one hit,
-`tools/audit/seat/ledger.py:831`, asserting the `level` CLI's stdout carries
-`r.stdout.count("handoff-no-pr") == 4`; and the same `self_test()` at `ledger.py:810` compares
-`dict(why)` exactly against a five-key literal, so a `result-body` key added to `why` breaks
-that exact-dict too. Both assertions move with the counter. No
-GitHub API call, no CI minutes, no new file, and no hot file beyond `ledger.py`.
+Cost: about 6-10 lines in `handoff_level()` plus a `result-body` counter in `why`, one
+`git show <ref>:BODY.md` per otherwise-owed `handoff-body/` ref per pass, and a new
+self-test arm and null. `handoff_level()` is `tools/audit/seat/ledger.py:393`; the four
+exemptions it applies today are the `why` keys `state-ref`, `open-pr`, `disposed`,
+`carried` (`ledger.py:419-427`), against a fifth, `owed`. `ARMS` at `ledger.py:99-101`
+maps `refs/heads/handoff-body/` and `refs/heads/handoff/` to `handoff-no-pr`. The pin
+that moves is the ledger's own `--self-test` (`self_test()` at `ledger.py:592`, run by
+`.github/workflows/governance.yml:585`): `ledger.py:810` compares `dict(why)` against a
+five-key literal and `:831` asserts `r.stdout.count("handoff-no-pr") == 4`.
 
-Binding: the marker must be the one seats actually write — the H1 form measured above — or the
-arm is a no-op on the ref that motivated it; the exemption must be scoped to `handoff-body/`
-so a `handoff/` code ref (which has no `BODY.md`) is never exempted by a missing file; and it
-must test the line's beginning, not a `STOP` anywhere in the text, so a PR body that discusses
-a stop is not exempted. Per `defect-root-cause.md`'s detector rule, the arm owes the failing
-fixture on the real shape and the passing one after, not only the happy path.
+Binding: an unmeasured benefit is DEFER, never ACCEPT (`proposal-triage.md`). The
+benefit is zero for the instance — a one-command remedy already healed it — and the
+class frequency is unmeasured: one STOP body in 102 today. Two constraints bind any
+future arm. A STOP body may state uncarried work and this one does, under
+`## What is owed` (three items), so a marker-only test exempts the only automatic
+signal that the topic is unowned. And `dispatch/` is not an `ARMS` prefix
+(`ledger.py:99-101`), so the test cannot check that a claimed follow-up dispatch
+exists. An arm that survives both is "marker AND no owed text", and owes a null
+control proving a STOP body carrying `## What is owed` stays owed.
+
+Note for that group's `files`: `R10-ORCH-LEDGER` lists
+`tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/orchestrator_tick.py` and omits
+`tools/audit/seat/ledger.py`, which any arm here edits; P79's existing carry already
+asks to add it (`dev/programme/triage/s6-batch10.md#P79`), so this batch opens no
+second carry.
+
+The prior ruling's "the board's only OWED line" is withdrawn as measured: the pass the
+board read finished `2026-10-27T11:09:14Z` and its level line is
+`ledger: level carried=167 disposed=26 open-pr=16 owed=3 state-ref=4`
+(`grep -B1 'TICK-RELAY 2026-10-27T11:09:14Z' ~/hpo-orch/r10s6/tick-loop.log`), so the
+board carried three OWED lines, not one.
