@@ -1,0 +1,46 @@
+=== destination re-derived at the cited ref 32b938f3e ===
+-- group count --
+212
+-- R10-UPDATE-PR-SIGNALS --
+{"stage":"done","files":["tools/audit/seat/update_pr.sh","tools/audit/seat/pr_args.sh","tools/audit/seat/cloud_relay.sh","tools/audit/seat/INSTRUMENTS.md"],"brief_tail":"be deterministic across containers: wait on a condition, never a fixed window. Also covers the ps dependency of the leader check and the holder (carry on R10-ROSTER-OPS)."}
+
+=== carry audit on the PR, this head ===
+CARRY-AUDIT #2886: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+
+=== checks at this head (names, status, conclusion) ===
+   1 COMPLETED SKIPPED arm
+   1 COMPLETED SKIPPED governance / delivery-status-publish
+   1 COMPLETED SKIPPED governance / record
+   1 COMPLETED SKIPPED kernel-points
+   1 COMPLETED SKIPPED tests / closures-autofix
+   1 COMPLETED SKIPPED tests / mutation-autofix
+   1 COMPLETED SKIPPED tests / mutation-pins
+   1 COMPLETED SKIPPED tests / nightly-ha
+   1 COMPLETED SKIPPED tests / replay
+   1 COMPLETED SUCCESS CodeQL
+   1 COMPLETED SUCCESS arch-score / arch-score
+   1 COMPLETED SUCCESS budget-raise-gate / budget-raise-gate
+   2 COMPLETED SUCCESS cancel-superseded
+   1 COMPLETED SUCCESS codeql / Analyze (actions)
+   1 COMPLETED SUCCESS codeql / Analyze (javascript-typescript)
+   1 COMPLETED SUCCESS codeql / Analyze (python)
+   1 COMPLETED SUCCESS governance / delivery-status
+   1 COMPLETED SUCCESS governance / policy-docs
+   1 COMPLETED SUCCESS governance / wave-script
+   1 COMPLETED SUCCESS hassfest / hassfest
+   1 COMPLETED SUCCESS prelude
+   2 COMPLETED SUCCESS refresh
+   1 COMPLETED SUCCESS tests / arch-instrument
+   1 COMPLETED SUCCESS tests / briefs
+   1 COMPLETED SUCCESS tests / browser
+   1 COMPLETED SUCCESS tests / closure-scope
+   1 COMPLETED SUCCESS tests / closures
+   1 COMPLETED SUCCESS tests / mutation
+   1 COMPLETED SUCCESS tests / nightly-status
+   1 COMPLETED SUCCESS tests / typing
+   1 COMPLETED SUCCESS validate / validate-hacs
+   1 IN_PROGRESS  governance / env-matrix
+   1 IN_PROGRESS  governance / instrument-self-tests
+   1 IN_PROGRESS  prelude
+   1 IN_PROGRESS  tests / coverage
+   1 IN_PROGRESS  tests / fast (3.14)
