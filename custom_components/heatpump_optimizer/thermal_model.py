@@ -1766,11 +1766,9 @@ def _single_valve_rates(
 
 
 def _valve_two_zone_delivery(
-    p: ThermalParameters, T_upper: float, T_slab: float, T_buf: float,
-    wood_temp: float | None, thermal_power: float, ext: float,
-    q_buf_loss: float, c_buf: float, rad_fraction: float,
-    valve_target: float | None, outdoor_temp: float, u_eff: float,
-    dt_hours: float, two_tank: bool,
+    p: ThermalParameters, state: ThermalState, thermal_power: float, ext: float,
+    q_buf_loss: float, valve_target: float | None, outdoor_temp: float,
+    u_eff: float, dt_hours: float, two_tank: bool,
 ) -> tuple[float, float, float, float, float]:
     """What the two-zone emitters get from the store behind a valve:
     ``(q_rad, q_floor, wood_draw, q_wood_loss, C_w)``, the last three for the
@@ -1778,8 +1776,17 @@ def _valve_two_zone_delivery(
 
     ``_simulate_step_two_zone``'s throttled branch, called once per step: the
     class it was written in is capped, and this law is the bulk of what the
-    store cost it. The caller owns the tank state; nothing here writes back.
+    store cost it. The caller owns the tank state; nothing here writes back,
+    and the step's own ``state`` travels as it is -- unpacking its four
+    temperatures into parameters would put this signature over the
+    ten-parameter guard for a record the caller already holds.
     """
+    T_upper = state.upper_floor_temperature
+    T_slab = state.slab_temperature
+    T_buf = state.buffer_tank_temperature
+    wood_temp = state.wood_tank_temperature
+    rad_fraction = p.radiator_power_fraction
+    c_buf = _buffer_capacity(p)
     # The emitter UA is backed out of the nameplate output at a design
     # flow-to-zone difference, so when the valve saturates wide open (tank at
     # or below the curve) this reproduces the delivery the unthrottled branch
@@ -3175,8 +3182,7 @@ class ThermalModel:
         if throttled:
             (q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_loss,
              C_w) = _valve_two_zone_delivery(
-                p, T_upper, T_slab, T_buf, wood_temp, thermal_power, ext,
-                q_buf_loss, C_buf, rad_fraction, valve_target,
+                p, state, thermal_power, ext, q_buf_loss, valve_target,
                 outdoor_temp, u_upper + u_lower, dt_hours, two_tank,
             )
         else:
