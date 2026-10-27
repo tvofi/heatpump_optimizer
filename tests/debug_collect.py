@@ -1784,4 +1784,55 @@ R.check(
     "starting a finished collection again clears its self-tests' run time",
     _cleared_at.self_tests_at is None and "self_tests_at" not in _cleared_at.as_dict(),
 )
+from heatpump_optimizer import coordinator as coordinator_mod  # noqa: E402
+
+_limit = coordinator_mod.plan_stale_limit_minutes
+R.check(
+    "a stale limit needs a numeric interval: a bool is no interval, a string is no "
+    "interval, and zero is a number the 90-minute floor still lifts",
+    _limit(types.SimpleNamespace(optimization_interval=True)) is None
+    and _limit(types.SimpleNamespace(optimization_interval="15")) is None
+    and _limit(types.SimpleNamespace(optimization_interval=0)) == 90.0,
+    # Only the bool read is reported: the string read raises under a guard
+    # that admits it, and a detail built from it would hide the check's name.
+    f"{_limit(types.SimpleNamespace(optimization_interval=True))!r}",
+)
+# The coordinator's own predicate, called unbound over the two reads it makes:
+# at three 30-minute cycles the limit is exactly 90 minutes, so an age exactly
+# at it is the boundary the comparison owns.
+_at_limit = types.SimpleNamespace(
+    effective_config=types.SimpleNamespace(optimization_interval=30),
+    _plan_age_minutes=lambda: 90.0,
+)
+_past_limit = types.SimpleNamespace(
+    effective_config=_at_limit.effective_config,
+    _plan_age_minutes=lambda: 90.1,
+)
+_stale = coordinator_mod.HeatPumpOptimizerCoordinator._plan_is_stale
+R.check(
+    "a plan exactly at the limit is not stale, and a tenth of a minute past it is",
+    _stale(_at_limit) is False and _stale(_past_limit) is True,
+    f"{_stale(_at_limit)} {_stale(_past_limit)}",
+)
+# The stored run time and the stored results travel together: a collector
+# holding an instant without the results writes neither, rather than a
+# timestamp with nothing it stamps.
+_only_instant, _ = _collector()
+_only_instant.self_tests, _only_instant.self_tests_at = None, T0
+R.check(
+    "a stored run time with no stored results is left out of the document: the two "
+    "are written together or not at all",
+    "self_tests_at" not in _only_instant.as_dict(),
+    str(sorted(_only_instant.as_dict())),
+)
+R.check(
+    "a plan exactly at the limit is fresh at the export, and one a minute past it "
+    "is stale",
+    diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=90)}, PUBLISHED, 90.0
+    )["plan_stale"] is False
+    and diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=91)}, PUBLISHED, 90.0
+    )["plan_stale"] is True,
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

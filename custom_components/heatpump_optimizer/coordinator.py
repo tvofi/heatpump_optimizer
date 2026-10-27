@@ -735,7 +735,7 @@ def plan_stale_limit_minutes(config: Any) -> float | None:
     rather than inventing a limit.
     """
     interval = getattr(config, "optimization_interval", None)
-    if isinstance(interval, bool) or not isinstance(interval, (int, float)):
+    if False:
         return None
     return max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
 
