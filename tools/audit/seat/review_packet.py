@@ -8,19 +8,26 @@
 
 `bus.sh dispatch` renders it (owner ruling tvofi 2026-10-24, card 8) and names
 its path in the reviewer's brief. The packet holds the three-dot diff against
-the merge base, a digest of the head's check runs AS READ (pending, green or
-red, with each run's id: the owner rejected waiting for the gate, card 5, so the
-reviewer re-reads the live state before a verdict), `carry_audit.py` and
+the merge base, a digest of the head's check runs AS READ (pending, green, red
+or none, with each run's id: the owner rejected waiting for the gate, card 5, so
+the reviewer re-reads the live state before a verdict), `carry_audit.py` and
 `figure_lint.mjs` at the head, the finder's harness output at the base and at
-the head, and the mutation-ledger diff. Nothing in it reads a clock, so a second
-render over the same facts is byte-identical.
+the head when one is named (`none named` and `not run` otherwise), and the
+mutation-ledger diff. Nothing in it reads a clock, so a second render over the
+same facts is byte-identical.
+
+WHICH CHECKOUT. Every git read runs in the checkout the WORKING DIRECTORY is in,
+never in the directory this module is installed under: `bus.sh dispatch` runs
+the renderer where it dispatches (a cloud dispatch does so in a throwaway
+clone), and reading the install resolves the head in the wrong repository. A
+working directory outside a checkout is refused, never silently redirected.
 
 INDEPENDENCE. The harness run is the finder's: a path present at the merge base
 and untouched by the diff, run from the base's bytes at both ends, or a file
 outside the tree cited by its sha1 (`fixer.md` step 3's baseline export). A
 harness the diff adds or edits is the fixer's, and the render refuses it.
 
-REFUSALS (rc 1, nothing written, each named by its signal), all mechanical:
+REFUSALS (rc 1, each named by its signal), all mechanical:
   carry-audit      `carry_audit.py check` returns 1 on the body (unrouted or bad);
   head-note        `## Head` does not name the dispatched head;
   structure        `tests/structure.py` refuses the head merged with main;
@@ -31,6 +38,13 @@ REFUSALS (rc 1, nothing written, each named by its signal), all mechanical:
   hot-file         the diff shares a HOT_FILES path with an open pull request
                    whose merge verdict is at its head and not on the train.
 A pending check never refuses. Every other finding prints as an advisory.
+
+EVIDENCE IS NEVER WITHHELD. A refusal that leaves the packet truthful still
+WRITES it and then exits 1, so whoever holds a refused dispatch reads the same
+facts the reviewer would have: `bus.sh dispatch` dies on the rc and records
+nothing, which is the dispatch gate. `host-path` alone writes nothing -- the
+packet carries the three-dot diff, so writing it copies the host path into a
+file that travels to a reviewer.
 `HPO_BUS_GH` replaces `gh` (the self-test's stub); `HPO_BUS_TRAIN_STATE` is the
 merge train's state dir, read for what is boarded.
 """
@@ -52,6 +66,28 @@ sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
 import proof_watch  # noqa: E402  (the one Python reader of the verdict grammar)
 import ref_privacy  # noqa: E402
 
+_REPO_ROOT: Path | None = None
+
+
+def repo() -> Path:
+    """The checkout this run reads: the one the working directory is in.
+
+    Never the tool's install. `bus.sh dispatch` runs the renderer in the
+    checkout it dispatches for, and that is not always the checkout the tool
+    lives in -- cloud_dispatch's self-test dispatches from a throwaway clone.
+    Reading the install there resolves the head in the wrong repository, and
+    `git merge-base origin/main <head>` dies with `Not a valid commit name
+    <head>` although `origin/main` itself is present.
+    """
+    global _REPO_ROOT
+    if _REPO_ROOT is None:
+        r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+        if r.returncode or not r.stdout.strip():
+            raise SystemExit("review_packet: REFUSED repo: the working directory is not inside a git checkout")
+        _REPO_ROOT = Path(r.stdout.strip())
+    return _REPO_ROOT
+
+
 REPO = os.environ.get("HPO_BUS_REPO", "tvofi/heatpump_optimizer")
 #: `gate` is the one required check (`.github/workflows/ci.yml`).
 REQUIRED = ("gate",)
@@ -64,8 +100,8 @@ LEDGER = "tests/mutation_ledger"
 SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file")
 
 
-def git(*a: str, cwd: Path = ROOT, check: bool = True) -> str:
-    r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
+    r = subprocess.run(["git", *a], cwd=cwd or repo(), capture_output=True, text=True)
     if check and r.returncode:
         raise SystemExit(f"review_packet: REFUSED git {' '.join(a)}: {r.stderr.strip()[:200]}")
     return r.stdout
@@ -87,7 +123,8 @@ def section(body: str, name: str) -> str:
 # ------------------------------------------------------------------- the rules
 def gate_digest(runs: list[dict]) -> tuple[str, list[str], list[str]]:
     """(state, lines, concluded-red names) of the head's check runs as read: the
-    latest run per name decides; pending while any is not completed."""
+    latest run per name decides; pending while any is not completed; `none` when
+    the head has no run at all, which is not green."""
     latest: dict[str, dict] = {}
     for r in sorted(runs, key=lambda r: int(r["id"])):
         latest[r["name"]] = r
@@ -100,7 +137,7 @@ def gate_digest(runs: list[dict]) -> tuple[str, list[str], list[str]]:
         if done and c in RED:
             reds.append(name)
         lines.append(f"{name} id={r['id']} {c}")
-    state = "red" if reds else "pending" if pending else "green"
+    state = "red" if reds else "pending" if pending else "green" if latest else "none"
     return state, lines, reds
 
 
@@ -132,27 +169,30 @@ def verdict_merge_head(sha: str, read=None) -> str | None:
     return v[1] if v and v[0] == "merge" else None
 
 
-def harness_source(harness: str | None, harness_file: str | None, base: str, touched: set[str]) -> tuple[str, bytes]:
+def harness_source(harness: str | None, harness_file: str | None, base: str,
+                   touched: set[str], cwd: Path | None = None) -> tuple[str, bytes]:
     """(label, bytes) of the finder's harness; SystemExit on the fixer's."""
+    root = (cwd or repo()).resolve()
     if harness_file:
         p = Path(harness_file).resolve()
-        if p.is_relative_to(ROOT):
+        if p.is_relative_to(root):
             raise SystemExit("review_packet: REFUSE independence: --harness-file is inside the tree; name it by --harness")
         data = p.read_bytes()
         return f"{p.name} sha1={hashlib.sha1(data).hexdigest()}", data
     if harness in touched:
         raise SystemExit(f"review_packet: REFUSE independence: {harness} is edited by the diff, so it is the fixer's harness")
-    r = subprocess.run(["git", "cat-file", "blob", f"{base}:{harness}"], cwd=ROOT, capture_output=True)
+    r = subprocess.run(["git", "cat-file", "blob", f"{base}:{harness}"], cwd=root, capture_output=True)
     if r.returncode:
         raise SystemExit(f"review_packet: REFUSE independence: {harness} is not at the merge base, so it is not the finder's")
     return f"{harness} at {base}", r.stdout
 
 
 def run_harness(data: bytes, rev: str, args: list[str]) -> str:
+    root = repo()
     with tempfile.TemporaryDirectory() as d:
         tree = Path(d) / "tree"
         tree.mkdir()
-        a = subprocess.run(["git", "archive", rev], cwd=ROOT, capture_output=True, check=True)
+        a = subprocess.run(["git", "archive", rev], cwd=root, capture_output=True, check=True)
         subprocess.run(["tar", "-x", "-C", str(tree)], input=a.stdout, check=True)
         h = Path(d) / "harness.py"
         h.write_bytes(data)
@@ -164,12 +204,13 @@ def run_harness(data: bytes, rev: str, args: list[str]) -> str:
 
 def structure_at_merge(main: str, head: str) -> str | None:
     """Why `tests/structure.py` refuses `head` merged with `main`, or None."""
-    r = subprocess.run(["git", "merge-tree", "--write-tree", main, head], cwd=ROOT, capture_output=True, text=True)
+    root = repo()
+    r = subprocess.run(["git", "merge-tree", "--write-tree", main, head], cwd=root, capture_output=True, text=True)
     if r.returncode:
         return f"head does not merge cleanly with {main}: {r.stdout.splitlines()[1:3]}"
     tree = r.stdout.split()[0]
     with tempfile.TemporaryDirectory() as d:
-        a = subprocess.run(["git", "archive", tree], cwd=ROOT, capture_output=True, check=True)
+        a = subprocess.run(["git", "archive", tree], cwd=root, capture_output=True, check=True)
         subprocess.run(["tar", "-x", "-C", d], input=a.stdout, check=True)
         s = subprocess.run([sys.executable, "tests/structure.py"], cwd=d, capture_output=True, text=True)
         if s.returncode:
@@ -181,10 +222,20 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(body)
     try:
-        r = subprocess.run([a.replace("{BODY}", f.name) for a in argv], cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run([a.replace("{BODY}", f.name) for a in argv], cwd=repo(), capture_output=True, text=True)
         return r.returncode, (r.stdout + r.stderr).replace(f.name, "<body>").strip()
     finally:
         os.unlink(f.name)
+
+
+def writes_packet(refusals: list[str]) -> bool:
+    """How a render treats its own refusals: written unless it is unpublishable.
+
+    Evidence is never withheld -- a refused dispatch leaves the packet on disk
+    for whoever must repair it. `host-path` is the one signal a written packet
+    would defeat, because the packet carries the three-dot diff verbatim.
+    """
+    return not any(r.startswith("host-path:") for r in refusals)
 
 
 # ------------------------------------------------------------------- the packet
@@ -243,7 +294,7 @@ def gather(a) -> dict:
         red_unanswered = sorted(n for n in gate[2] if f"check `{n}` is red and `## Red checks` does not name it" in pout)
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
-    host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head), ident)
+    host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = [], set()
     if touched & set(HOT_FILES):
         for p in gh(f"repos/{REPO}/pulls?state=open&per_page=100"):
@@ -334,6 +385,17 @@ def _self_test() -> int:
     st, lines, reds = gate_digest(running)
     check("a head with checks still running dispatches, digest pending with run ids",
           build({**clean, "gate": (st, lines, reds)})[0] == [] and st == "pending" and "gate id=1 in_progress" in lines)
+    est, elines, _ = gate_digest([])
+    check("a head with no run read is `none`, never `green`",
+          est == "none" and elines == [] and build({**clean, "gate": (est, elines, [])})[0] == [])
+
+    # EVIDENCE IS NEVER WITHHELD: a refusal still writes the packet, except the
+    # one signal a written packet would defeat.
+    check("write-on-refusal null: a clean render writes", writes_packet([]))
+    check("write-on-refusal: a concluded red still writes its packet", writes_packet(["required-red: gate"]))
+    check("write-on-refusal: a host path writes nothing", not writes_packet(["host-path: a home directory"]))
+    check("write-on-refusal: one host path beside other refusals still writes nothing",
+          not writes_packet(["required-red: gate", "host-path: a home directory"]))
 
     prs = [{"number": 9, "head": H, "files": [HOT_FILES[0]], "merge_verdict_head": H}]
     check("hot-file arm: an unboarded merge verdict sharing a hot file refuses",
@@ -346,21 +408,41 @@ def _self_test() -> int:
     check("hot-file reader null: a verdict-ref commit subject is not a verdict",
           verdict_merge_head("d" * 40, read=lambda s: f"verdict 7 {H}\n") is None)
 
-    base = git("rev-parse", "HEAD").strip()
-    try:
-        harness_source("tools/audit/seat/review_packet.py", None, base, {"tools/audit/seat/review_packet.py"})
-        ok = False
-    except SystemExit as e:
-        ok = "fixer's harness" in str(e)
-    check("independence: a harness the diff edits is refused as the fixer's", ok)
-    try:
-        harness_source("dev/audit/harnesses/no_such_harness.py", None, base, set())
-        ok = False
-    except SystemExit as e:
-        ok = "not the finder's" in str(e)
-    check("independence: a harness absent at the base is refused", ok)
-    label, data = harness_source("tools/audit/seat/bus.sh", None, base, set())
-    check("independence null: a base harness the diff leaves alone is the finder's", bool(data) and base in label)
+    # The independence arm reads a base blob, so it is driven over a checkout of
+    # its own: a self-test must not need the tree it happens to be run in.
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+
+        def tgit(*a: str) -> str:
+            return subprocess.run(["git", "-C", str(t), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+                                  capture_output=True, text=True, check=True).stdout
+
+        tgit("init", "-q")
+        (t / "base_harness.py").write_text("# the finder's\n")
+        tgit("add", "-A")
+        tgit("commit", "-q", "-m", "base")
+        base = tgit("rev-parse", "HEAD").strip()
+        try:
+            harness_source("base_harness.py", None, base, {"base_harness.py"}, t)
+            ok = False
+        except SystemExit as e:
+            ok = "fixer's harness" in str(e)
+        check("independence: a harness the diff edits is refused as the fixer's", ok)
+        try:
+            harness_source("no_such_harness.py", None, base, set(), t)
+            ok = False
+        except SystemExit as e:
+            ok = "not the finder's" in str(e)
+        check("independence: a harness absent at the base is refused", ok)
+        label, data = harness_source("base_harness.py", None, base, set(), t)
+        check("independence null: a base harness the diff leaves alone is the finder's",
+              bool(data) and base in label)
+        try:
+            harness_source(None, str(t / "base_harness.py"), base, set(), t)
+            ok = False
+        except SystemExit as e:
+            ok = "inside the tree" in str(e)
+        check("independence: --harness-file inside the checkout is refused", ok)
 
     print(f"review_packet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
@@ -395,14 +477,15 @@ def main(argv: list[str]) -> int:
         print("review_packet: --head takes a 40-hex sha", file=sys.stderr)
         return 2
     refusals, _, text = build(gather(a))
-    if refusals:
-        for x in refusals:
-            print(f"review_packet: REFUSE {x}", file=sys.stderr)
-        return 1
-    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(a.out).write_text(text)
-    print(f"review-packet: {ref_privacy.home_relative(str(Path(a.out).resolve()))}")
-    return 0
+    keep = writes_packet(refusals)
+    if keep:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.out).write_text(text)
+    for x in refusals:
+        print(f"review_packet: REFUSE {x}", file=sys.stderr)
+    if keep:
+        print(f"review-packet: {ref_privacy.home_relative(str(Path(a.out).resolve()))}")
+    return 1 if refusals else 0
 
 
 if __name__ == "__main__":

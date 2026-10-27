@@ -24,8 +24,10 @@ diff re-adding a moved path or citing one: #2554's forward-carry, since
 `prepr.sh` ran it and `body_push.sh`, which runs only this, did not). Two
 more run CI's own command where no local path ran it the way CI does
 (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md): REF PRIVACY
-(`ref_privacy.py --check`, `instrument-self-tests`, which no local path ran)
-and AGREEMENT (`wave-script`'s agreement lane under the base's copy, as the
+(`ref_privacy.py --check`, `instrument-self-tests`, which no local path ran),
+WIRING (`selftest_wiring.py --check`, the same job, which a diff adding a
+self-testing tool to `tools/` left to CI: #2870's `review_packet.py`) and
+AGREEMENT (`wave-script`'s agreement lane under the base's copy, as the
 pull request is graded, where `prepr.sh` step 3f4 runs the head's). One is this predictor's own model, because CI learns the answer by
 running: the import arm resolves imports statically where CI records them at
 run time. (A fourth arm, NO RECORDING, read the `rec tests/...` lines of
@@ -348,6 +350,27 @@ def layout_preds(root: Path, base: str) -> list[tuple[str, str]]:
     return [("fast", f"LAYOUT {f}") for f in found]
 
 
+def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
+    """`instrument-self-tests`'s `selftest_wiring.py --check`: a self-testing
+    file under `tools/` that no workflow `run:` line names.
+
+    The second arm of the class `privacy_preds` closed, in the same CI job and
+    by the same shape of gap: the check runs in CI and no local path runs it,
+    so a new instrument lands unwired under a prediction of no red (#2870:
+    `review_packet.py`, `98 self-testing, 97 wired, 1 unwired`). Scoped to the
+    diff, so a file main already carries unwired is never charged to a branch.
+    """
+    tool = root / "tools" / "audit" / "seat" / "selftest_wiring.py"
+    if not tool.is_file():
+        return []
+    r = subprocess.run([sys.executable, "-I", str(tool), "--check"], cwd=root,
+                       capture_output=True, text=True)
+    unwired = [ln.split()[1].rstrip(":") for ln in r.stdout.splitlines()
+               if ln.startswith("  UNWIRED ")]
+    return [("instrument", f"UNWIRED {p}: no workflow run line names its self-test")
+            for p in unwired if p in changed]
+
+
 def privacy_preds(root: Path) -> list[tuple[str, str]]:
     """`instrument-self-tests`'s `ref_privacy.py --check`, which no local path
     ran (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure B): its own
@@ -526,6 +549,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     preds += orphans(changed, closure)
     preds += layout_preds(root, base)
     preds += privacy_preds(root)
+    preds += wiring_preds(root, changed)
     preds += agreement_preds(root, base_ref, changed)
     preds += no_recording(root, base, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
@@ -753,6 +777,38 @@ def main(argv: list[str] | None = None) -> int:
     return rc
 
 
+def wiring_self_test(root: Path) -> int:
+    """`wiring_preds` over a planted unwired tool, its wired twin and a null."""
+    import shutil
+    import tempfile
+    src = root / "tools" / "audit" / "seat" / "selftest_wiring.py"
+    if not src.is_file():
+        print("  FAIL the wiring arm has no selftest_wiring.py to drive")
+        return 1
+    bad = 0
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+        shutil.copy2(src, t / "tools" / "audit" / "seat" / "selftest_wiring.py")
+        (t / "tools" / "x.py").write_text('if __name__ == "__main__":\n    pass  # --self-test\n')
+        wf = t / ".github" / "workflows"
+        wf.mkdir(parents=True)
+        unwired = "jobs:\n  j:\n    steps:\n      - run: echo nothing\n"
+        wired = "jobs:\n  j:\n    steps:\n      - run: python3 -I tools/x.py --self-test\n"
+        cases = [
+            ("an unwired self-testing tool the diff adds is predicted red",
+             unwired, {"tools/x.py"}, 1),
+            ("the same tool named by a workflow run line is not", wired, {"tools/x.py"}, 0),
+            ("null control: a tool main already carries is not this branch's", unwired, set(), 0),
+        ]
+        for label, body, changed, want in cases:
+            wf.joinpath("w.yml").write_text(body)
+            got = len(wiring_preds(t, changed))
+            print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+            bad += got != want
+    return bad
+
+
 def self_test() -> int:
     """The carry arm over a plant and a null, through carry_audit's own audit."""
     import tempfile
@@ -775,6 +831,7 @@ def self_test() -> int:
         bad += got != want
     bad += plant_self_test(root)
     bad += rekey_self_test()
+    bad += wiring_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
