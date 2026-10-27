@@ -8428,7 +8428,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8465,7 +8465,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8502,7 +8502,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8542,7 +8542,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8584,7 +8584,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8622,7 +8622,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2505
    ],
@@ -8658,7 +8658,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2730
    ],
@@ -9683,7 +9683,7 @@
    "lane": "IN",
    "kind": "instrument",
    "class": "instrument",
-   "size": "XS",
+   "size": "S",
    "issues": [
     2509,
     2802

@@ -9341,6 +9341,16 @@ R.check(
     "while the schedule agrees, so do the baselines",
     np.allclose(_bl_setback[:8], _bl_flat[:8]),
 )
+# A house that needs more than the pump can draw gets the pump's nameplate, the
+# cap a real thermostat runs into, never the demand the pump cannot meet.
+_bl_capped, _ = _PvOpt(_PvModel(_PvParams(max_electrical_power=1.0)), _PvOptCfg(
+    target_temp=21.0))._compute_baseline_power(
+    _WS(_bl_out, _bl_zero, _bl_zero, _bl_zero), _bl_state, 0.25)
+R.check(
+    "a demand past the pump's nameplate holds the reference at max_electrical_power",
+    float(np.max(_bl_capped)) == 1.0 and float(np.min(_bl_capped)) == 1.0,
+    f"reference {np.min(_bl_capped):.3f}..{np.max(_bl_capped):.3f} kW against a 1.0 kW pump",
+)
 
 # --- The foundation mass adjustment must be applied once ------------------
 basement_two_zone = presets.derive(
@@ -13181,6 +13191,30 @@ R.check(
     "and reports no wood trajectory at all",
     _w2t_out_none[6] is None,
     "None rather than a flat line of ambient, so a silent reset is visible",
+)
+
+
+# The savings reference backs its electric demand off by the same wood share,
+# and only where the layout models the wood tank: a single-tank state that
+# carries a wood reading is the thermostat it would be without one.
+def _w2t_reference(params, wood, n=16):
+    _z = np.zeros(n)
+    return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
+        _WS(np.full(n, -5.0), _z, _z, _z), _w2t_state(wood), 0.25)[0]
+
+
+_w2t_ref_hot = _w2t_reference(_w2t_params_two, 80.0)
+_w2t_ref_cold = _w2t_reference(_w2t_params_two, 20.0)
+_w2t_ref_off = _w2t_reference(_w2t_params_off, 80.0)
+_w2t_ref_off_none = _w2t_reference(_w2t_params_off, None)
+R.check(
+    "the savings reference backs off by the wood share on the two-tank layout, "
+    "and a wood reading on any other layout moves it not at all",
+    float(np.sum(_w2t_ref_hot)) < float(np.sum(_w2t_ref_cold)) - 1.0
+    and np.array_equal(_w2t_ref_off, _w2t_ref_off_none),
+    f"two-tank hot {np.sum(_w2t_ref_hot):.2f} vs cold {np.sum(_w2t_ref_cold):.2f} kW-steps; "
+    f"single-tank with a reading {np.sum(_w2t_ref_off):.2f} vs without "
+    f"{np.sum(_w2t_ref_off_none):.2f}",
 )
 
 
@@ -40567,17 +40601,18 @@ R.check(
     [r["month"] for r in _rows] == ["2026-02"],
     repr([r["month"] for r in _rows]),
 )
-# #2255: the row's actual is the month's bill (the spot line, 2.0), the
-# saving is baseline less actual over the covered interval (1.0), and the
-# baseline is the bill plus that saving. With no coverage meta (a month
+# #2492: every cell is on the savings lines' one basis -- the row's actual
+# is the metered energy's cost over the covered interval (1.0), not the
+# month's bill (the spot line, 2.0); the baseline is the thermostat's (2.0)
+# and the saving the one less the other. With no coverage meta (a month
 # booked before it existed) the open month falls back to 28 / 10.
 R.check(
-    "open month scales the bill and the saving by one factor",
+    "open month scales the baseline, the actual and the saving by one factor",
     _rows[0]["estimated"] is True
-    and abs(_rows[0]["actual_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
     and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
-    and abs(_rows[0]["baseline_sek"] - 8.4) < 1e-9
-    and abs(_rows[0]["savings_pct"] - 100.0 / 3.0) < 1e-9,
+    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
     repr(_rows[0]),
 )
 _led.add_savings_settlement(
@@ -40591,10 +40626,10 @@ R.check(
 )
 _closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
 R.check(
-    "a closed month is unscaled; nothing saved reads baseline == actual == bill",
+    "a closed month is unscaled; nothing saved reads baseline == actual on the energy basis",
     _closed["estimated"] is False
-    and abs(_closed["baseline_sek"] - 20.0) < 1e-9
-    and abs(_closed["actual_sek"] - 20.0) < 1e-9
+    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
+    and abs(_closed["actual_sek"] - 1.0) < 1e-9
     and _closed["savings_sek"] == 0.0
     and _closed["savings_pct"] == 0.0,
     repr(_closed),
@@ -40606,9 +40641,12 @@ from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
 from heatpump_optimizer.ledger import month_hours as _sav_month_hours
 from heatpump_optimizer.ledger import SETTLED_HOURS_META as _SAV_SETTLED_META
 
-# Item 5: a closed September with every line the receipt adds -- spot,
-# grid fee, capacity, immersion, wear -- and one interval no plan covered.
-# The receipt's headline and the savings row's actual are the same figure.
+# Item 5, restated by #2492 (the owner's one-basis acceptance): a closed
+# September with every line the receipt adds -- spot, grid fee, capacity,
+# immersion, wear -- and one interval no plan covered. The row's actual is
+# the metered energy of the covered intervals at spot plus fee, the basis
+# its saving is on; capacity, wear and the uncovered interval are the
+# receipt's and in neither column.
 _sep = _SavLedger()
 _sep_t = _SavDT(2026, 9, 12, 3, 0)
 for _i, _base_kw in enumerate((2.0, 2.0, None)):
@@ -40627,9 +40665,9 @@ _sep_receipt = _sav_freeze(
 )
 _sep_row = _sep.savings_months(_SavDT(2026, 10, 3, 12, 0))[0]
 R.check(
-    "the closed month's actual is the receipt's total, not a second sum",
-    _sep_row["actual_sek"] == _sep_receipt["total_sek"]
-    and abs(_sep_row["actual_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
+    "the closed month's actual is the covered metered energy at spot plus fee, not the bill",
+    abs(_sep_row["actual_sek"] - 2 * 1.5 * 1.4) < 1e-9
+    and abs(_sep_receipt["total_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
     f"row {_sep_row} receipt total {_sep_receipt['total_sek']}",
 )
 R.check(
@@ -40657,14 +40695,14 @@ _feb_row = _feb.savings_months(_feb10)[0]
 R.check(
     "the open month scales by the month's hours over the hours it settled",
     _sav_month_hours(_feb10) == 672.0
-    and abs(_feb_row["actual_sek"] - (24.0 * 28.0 + 10.0)) < 1e-9
+    and abs(_feb_row["actual_sek"] - 24.0 * 28.0) < 1e-9
     and abs(_feb_row["savings_sek"] - 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 R.check(
-    "the capacity line is a month figure already and is not extrapolated",
+    "the capacity line is in neither column: baseline less actual is the saving",
     abs(_feb_row["baseline_sek"] - _feb_row["actual_sek"] - _feb_row["savings_sek"]) < 1e-9
-    and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
+    and abs(_feb_row["baseline_sek"] - 2 * 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 _over = _SavLedger()
@@ -40734,12 +40772,113 @@ R.check(
     repr(_none_meta),
 )
 
+# #2492, the owner's baseline specification (2026-10-24): the thermostat
+# runs at the power levels the pump recorded, over the same price profile,
+# and the saving is its cost less the metered cost. The ledger books the
+# plan's own modelled kWh beside the meter's on the same intervals, and the
+# month scales the modelled thermostat by their ratio. Four one-hour
+# intervals, a plan heating in the cheap hours, a thermostat of the same
+# modelled volume spread flat, and a meter reading 1.5x the plan's model.
+from heatpump_optimizer.ledger import (
+    MIN_CALIBRATION_KWH as _SAV_MIN_CAL,
+    SAVINGS_PLAN_LINE as _SAV_PLAN_LINE,
+)
+
+def _sav_cal_month(prices, thermostat, plan, meter_factor, with_plan=True, fee=0.0):
+    led = _SavLedger()
+    for _h, (_p, _b, _q) in enumerate(zip(prices, thermostat, plan)):
+        pend = {"baseline_kw": _b, "grid_fee": fee}
+        if with_plan:
+            pend["power"] = _q
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 1, 12, _h, 0), _p, pend, meter_factor * _q, 1.0
+        )
+    return led.savings_months(_feb10)[0]
+
+_sav_flat, _sav_vary = [2.0] * 4, [1.0, 3.0, 1.0, 3.0]
+_sav_plan, _sav_therm = [2.0, 0.0, 2.0, 0.0], [1.0, 1.0, 1.0, 1.0]
+_cal_flat = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5)
+_cal_flat_model = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5, with_plan=False)
+R.check(
+    "#2492: a meter reading a fixed factor over the model saves 0 at one flat price "
+    "when the thermostat's modelled volume is the plan's",
+    _cal_flat["meter_calibration"] == 1.5
+    and _cal_flat["savings_sek"] == 0.0
+    and _cal_flat["baseline_sek"] == _cal_flat["actual_sek"] == 12.0,
+    repr(_cal_flat),
+)
+R.check(
+    "#2492: and the modelled basis (no plan line) books the model's gap as a loss "
+    "(the control: the calibration is what moved it)",
+    _cal_flat_model["meter_calibration"] is None
+    and _cal_flat_model["savings_sek"] == 8.0 - 12.0,
+    repr(_cal_flat_model),
+)
+_cal_vary = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.5)
+R.check(
+    "#2492: over a varying profile the same month saves its timing, priced alike "
+    "on both sides",
+    _cal_vary["savings_sek"] == round(1.5 * (1 + 3 + 1 + 3) - 1.5 * 2.0 * (1 + 1), 2)
+    and _cal_vary["savings_sek"] > 0.0,
+    repr(_cal_vary),
+)
+_cal_vol = _sav_cal_month(_sav_flat, [2.0] * 4, _sav_plan, 1.5)
+R.check(
+    "#2492: at one flat price the volume difference remains, at the meter's levels",
+    _cal_vol["savings_sek"] == 2.0 * 1.5 * (8.0 - 4.0),
+    repr(_cal_vol),
+)
+_cal_gapless = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, fee=0.4)
+_cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_plan=False, fee=0.4)
+R.check(
+    "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
+    _cal_gapless["meter_calibration"] == 1.0
+    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
+    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    f"{_cal_gapless} / {_cal_gapless_model}",
+)
+# A month whose savings lines began before the plan line existed (an upgrade
+# mid-month) never gains one: its later intervals would calibrate the whole
+# month's thermostat. It stays on the modelled basis; the next month does not.
+_cal_upg = _SavLedger()
+_cal_upg.add_savings_settlement(_SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 1, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 2, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+R.check(
+    "#2492: a month begun without the plan line stays modelled; the next one calibrates",
+    _SAV_PLAN_LINE not in _cal_upg.months["2026-01"]["lines"]
+    and _cal_upg.meter_calibration("2026-01") is None
+    and _cal_upg.meter_calibration("2026-02") == 1.5,
+    repr({k: v["lines"].keys() for k, v in _cal_upg.months.items()}),
+)
+_cal_tiny = _SavLedger()
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=0.99,
+)
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 2, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=1.0,
+)
+R.check(
+    "#2492: a month whose plan booked under one modelled kWh stays modelled "
+    "(at one kWh it calibrates)",
+    _cal_tiny.meter_calibration("2026-01") is None
+    and _cal_tiny.meter_calibration("2026-02") == 3.0 / 1.0 and _SAV_MIN_CAL == 1.0,
+    repr(_cal_tiny.months),
+)
+
 # Item 1: the settlement books the plan's thermostat baseline at the step
 # covering the interval. A thermostat that ran all along does not care where
 # the optimiser left the house, so step 0 must not depend on the plan's start
-# state. Started from that state it was all-or-nothing: the clip (max power)
-# whenever the house sat below target, 0 kW above it -- September's 81 % and
-# October's negative month. Both topologies, the DHW path on the two-zone one.
+# state beyond the comfort the plan delivers (#2492). Started from that state
+# it was all-or-nothing: the clip (max power) whenever the house sat below
+# target, 0 kW above it -- September's 81 % and October's negative month.
+# Both topologies, the DHW path on the two-zone one.
 from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_weather
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer as _HbOpt,
@@ -40849,11 +40988,13 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
             "",
         )
 
-# The start's settlement, at its two limits. A pre-heated start (24 C room,
-# above the 21 C cap the end settlement uses) carries heat the plan coasts
-# on inside the horizon, so it is debited past the caps -- but by no more
-# than the thermostat would have bought: with nothing to buy (a summer house
-# holding passive warmth) the debit stops at the capped gap.
+# The start's settlement, at its limits (#2255, #2492). A pre-heated start
+# (24 C room, above the 21 C cap the end settlement uses) carries heat the plan
+# coasts on inside the horizon, so it is debited -- but by no more than that
+# heat could have bought: the space heat the thermostat buys, plus what of it
+# reaches the end and is credited there. With nothing to buy and nothing
+# credited (a summer house holding passive warmth) the debit is 0, not the
+# capped gap, which read the summer house's saving as a loss.
 from heatpump_optimizer.thermal_model import WeatherSeries as _HbWS
 
 _hs_cfg = _hb_house(two_zone=False, dhw=False)
@@ -40872,17 +41013,17 @@ _hs_held = _hb_held_state(_hs_opt.model, _hs_warm, _hs_ws, 21.0)
 _hs_capped = _hs_opt._deferred_energy_cost(
     _hs_held, _hs_warm, _hs_px, _hb_out, caps=_hs_caps)
 _hs_free = _hs_opt._deferred_energy_cost(_hs_held, _hs_warm, _hs_px, _hb_out, caps=None)
-_hs_gap = lambda cost: _hs_opt._start_gap_cost(  # noqa: E731
-    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost)
+_hs_gap = lambda cost, end=0.0: _hs_opt._start_gap_cost(  # noqa: E731
+    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost, end)
 R.check(
     "precondition: the pre-heated start carries heat above the caps",
     _hs_free < _hs_capped - 0.5,
     f"capped {_hs_capped:.3f} uncapped {_hs_free:.3f}",
 )
 R.check(
-    "with a thermostat that buys nothing, the start is settled at the caps",
-    abs(_hs_gap(0.0) - _hs_capped) < 1e-9,
-    f"{_hs_gap(0.0)!r} vs capped {_hs_capped!r}",
+    "with a thermostat that buys nothing and no end credit, the warm start is debited nothing",
+    _hs_gap(0.0) == 0.0,
+    f"{_hs_gap(0.0)!r} (capped {_hs_capped!r})",
 )
 R.check(
     "with demand to displace, the pre-heated start is debited past the caps",
@@ -40890,14 +41031,19 @@ R.check(
     f"{_hs_gap(1e9)!r} vs uncapped {_hs_free!r}",
 )
 R.check(
-    "between the two, the debit past the caps stops at the thermostat's cost",
-    abs(_hs_gap(1.0) - (_hs_capped - 1.0)) < 1e-9,
-    f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
+    "between the two, the whole debit stops at the thermostat's cost",
+    abs(_hs_gap(1.0) - (-1.0)) < 1e-9,
+    f"{_hs_gap(1.0)!r} vs -1.0",
 )
 R.check(
-    "a negative thermostat cost (negative prices) never turns the debit into a credit",
-    abs(_hs_gap(-5.0) - _hs_capped) < 1e-9,
-    f"{_hs_gap(-5.0)!r} vs capped {_hs_capped!r}",
+    "heat carried to the end and credited there is debited at the start too",
+    abs(_hs_gap(0.0, -0.75) - (-0.75)) < 1e-9 and abs(_hs_gap(1.0, -0.75) - (-1.75)) < 1e-9,
+    f"{_hs_gap(0.0, -0.75)!r} {_hs_gap(1.0, -0.75)!r}",
+)
+R.check(
+    "an end charge or a negative thermostat cost (negative prices) never widens the bound",
+    _hs_gap(-5.0) == 0.0 and _hs_gap(0.0, 3.0) == 0.0 and abs(_hs_gap(1.0, 3.0) - (-1.0)) < 1e-9,
+    f"{_hs_gap(-5.0)!r} {_hs_gap(0.0, 3.0)!r} {_hs_gap(1.0, 3.0)!r}",
 )
 _hs_cold = _HbState(room_temperature=19.0, slab_temperature=20.0,
                     outdoor_temperature=float(_hb_out[0]))
@@ -40911,7 +41057,7 @@ _hs_cold_capped = _hs_opt._deferred_energy_cost(
 R.check(
     "a start colder than the held house is settled at the caps, with no surplus to debit",
     _hs_cold_held.slab_temperature > 21.5
-    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 1e9)
+    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 0.0, 0.0)
             - _hs_cold_capped) < 1e-9,
     f"held slab {_hs_cold_held.slab_temperature!r} capped {_hs_cold_capped!r}",
 )
@@ -40937,16 +41083,27 @@ _hd_par.dhw_enabled = True
 _hd_opt = _HbOpt(_HbModel(_hd_par), _HbCfg(
     horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
 ))
-_hd_bounds = []
+_hd_bounds, _hd_ends, _hd_settled = [], [], []
 _hd_real = _hd_opt._start_gap_cost
+_hd_real_def = _hd_opt._deferred_energy_cost
 
 
 def _hd_record(*a):
-    _hd_bounds.append(a[-1])
+    _hd_bounds.append(a[-2])
+    _hd_ends.append((a[-1], list(_hd_settled)))
     return _hd_real(*a)
 
 
-with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record):
+def _hd_record_def(*a, **k):
+    # The tank-inclusive settlement marked one SEK off, so the two ends
+    # differ whatever the tank did and the check below can tell which went.
+    v = _hd_real_def(*a, **k) + (1.0 if k.get("include_dhw") else 0.0)
+    _hd_settled.append((bool(k.get("include_dhw")), v))
+    return v
+
+
+with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record), \
+        _hs_mock.patch.object(_hd_opt, "_deferred_energy_cost", _hd_record_def):
     _hd_plan = _hd_opt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
             room_temperature=21.0, slab_temperature=22.0,
@@ -40961,6 +41118,43 @@ R.check(
     "the hot-water path bounds the start debit by the space reference's cost, not the tank's",
     len(_hd_bounds) == 1 and 0.0 < _hd_bounds[0] < float(_hd_plan.baseline_cost) - 0.01,
     f"bounds {_hd_bounds} baseline_cost {_hd_plan.baseline_cost!r}",
+)
+# Its end credit is the house's alone: the start gap holds the tanks as
+# measured, so a tank the plan ends warmer must not widen the house's bound.
+_hd_end, _hd_before = _hd_ends[0] if len(_hd_ends) == 1 else (None, [])
+R.check(
+    "the hot-water path hands the start the house's end settlement, not the tank-inclusive one",
+    [v for dhw, v in _hd_before if not dhw] == [_hd_end]
+    and [v for dhw, v in _hd_before if dhw] != [_hd_end],
+    f"end handed {_hd_end!r}, settled before it {_hd_before!r}",
+)
+
+# #2492 (2): a summer house that starts above its comfort and ends above its
+# caps saves on hot water and spends nothing on space; its warm start
+# displaced at most what the thermostat bought for space, so the predicted
+# saving is the hot-water one and not negative (golden summer_dhw_only read
+# -7.62 % at 50af6174, the start debited 1.69 SEK on a 1.38 SEK space reference).
+_su_t0 = _SavDT(2026, 7, 15, 0, 0)
+_su_out, _su_wind, _su_rain, _su_sol = _hb_weather("summer_warm", _su_t0)
+_su_cfg = _hb_house(two_zone=False, dhw=True)
+_su_par = _HbParams.from_config(_su_cfg)
+_su_par.dhw_enabled = True
+_su_opt = _HbOpt(_HbModel(_su_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=_su_cfg["target_temperature"],
+    min_temp=_su_cfg["min_temperature"], max_temp=_su_cfg["max_temperature"],
+))
+_su_plan = _su_opt.optimize(inputs=solve_inputs(
+    initial_state=_HbState(
+        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(_su_out[0]),
+        dhw_temperature=52.0, dhw_hours_since_legionella=20.0,
+    ),
+    prices=_hb_prices("summer_typical", _su_t0), outdoor_temps=_su_out, wind_speeds=_su_wind,
+    precipitation=_su_rain, solar_radiation=_su_sol, start_time=_su_t0,
+))
+R.check(
+    "a summer house holding passive warmth reads its hot-water saving, not a loss",
+    float(_su_plan.predicted_savings) >= 0.0 and float(_su_plan.savings_percentage) >= 0.0,
+    f"saving {_su_plan.predicted_savings!r} ({_su_plan.savings_percentage!r} %)",
 )
 
 import inspect as _sav_inspect
@@ -69646,7 +69840,7 @@ R.check(
 # move the count off zero or the comparison is not reading anything.
 def _rp_ledger_key(now, src_floor):
     held = _rp_pa.ArbiterState()
-    inp = _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
+    inp = _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
     _rp_pa._observe(held, inp, None, now)
     key = held.step["start"] if held.step else None
     ref = src_floor(now)
@@ -69708,7 +69902,7 @@ try:
         _rp_held = _rp_pa.ArbiterState()
         _rp_pa._observe(
             _rp_held,
-            _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
+            _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
             None, _rp_now,
         )
         _rp_widths.append((
@@ -69742,6 +69936,41 @@ R.check(
     "step) -- live a microsecond before the edge, expired at it",
     _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
     f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
+)
+
+# --- #2492 (carry 5, seam 1): a step is scored against the plan that actuated it --
+# The cycle's re-solve can move a hot-water slot onto the current step, and
+# the switch is written from that new plan. The row froze `planned` at the
+# step's first tick, so a step whose plan changed mid-step was scored
+# against the plan before the solve. Null arm: a duty that changes with the
+# SAME plan in force (a lease or boost moving) keeps the adoption's freeze.
+from heatpump_optimizer.thermal_model import ThermalParameters as _RpRefreezeParams  # noqa: E402
+
+_rp_refreeze_params = _RpRefreezeParams()
+
+
+def _rp_refreeze(second_plan):
+    held = _rp_pa.ArbiterState()
+    first = object()
+    t0 = datetime(2026, 1, 15, 13, 0, tzinfo=timezone.utc)
+    for when, plan, duty, kw in (
+        (t0, first, "dhw", 0.0),
+        (t0 + timedelta(minutes=13), second_plan or first, "space", 0.6),
+        (t0 + timedelta(minutes=15), second_plan or first, "idle", 0.0),
+    ):
+        _rp_pa._observe(held, _RP_NS(config={}, plan=plan, state=_RP_NS(dhw_temperature=None),
+                                     thermal=_RP_NS(params=_rp_refreeze_params),
+                                     measured_power_kw=kw), duty, when)
+    return held.log[-1]
+
+
+_rp_moved, _rp_kept = _rp_refreeze(object()), _rp_refreeze(None)
+R.check(
+    "#2492: a plan adopted mid-step re-freezes the step's planned duty; the same "
+    "plan's later duty does not",
+    _rp_moved["planned"] == "space" and _rp_moved["verdict"] == "delivered"
+    and _rp_kept["planned"] == "dhw" and _rp_kept["verdict"] == "space-instead",
+    f"re-solved {_rp_moved}; same plan {_rp_kept}",
 )
 
 # --- R10-SAV-REASONS (#2256): a cost is booked under the cause that drew it ----
