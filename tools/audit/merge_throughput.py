@@ -530,6 +530,130 @@ def flow_self_test() -> int:
         text = render_board(board(replace(ctx, tree="refs/heads/absent"), until))
         check_true("flow: an unreadable tree is UNAVAILABLE, never zero",
                    "UNAVAILABLE" in text, text[:400])
+
+        # --- #2883: every way a source can fail to be read -------------------
+        # The rule is the module's last line. Each arm below failed at the
+        # reviewed head: a crash, or a numeric zero where a reader had nothing.
+        import contextlib
+        import io
+
+        def run_flow(argv: list) -> tuple:
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                rc = flow_main(argv)
+            return rc, out.getvalue(), err.getvalue()
+
+        # B1: the CLI shape `state_docs` runs. A ref whose roster is malformed
+        # JSON raised json.JSONDecodeError out of flow_main: rc 1, no
+        # UNAVAILABLE, and state_docs' Refuse then dropped the plan table.
+        bad = mk(m0, {ROSTER: "{not json"}, "roster: broken", T(3, 40))
+        g("update-ref", "refs/remotes/origin/roster-bad", bad)
+        rc, out, err = run_flow(["--repo", d,
+                                 "--tree", "refs/remotes/origin/main",
+                                 "--roster-ref", "refs/remotes/origin/roster-bad",
+                                 "--until", T(5)])
+        check("flow: an unparseable roster at --roster-ref exits 0 with "
+              "UNAVAILABLE, never a traceback",
+              (rc, "UNAVAILABLE" in out), (0, True))
+        check_true("flow: ...and the reason names the JSON",
+                   "JSON" in out, out[:300])
+
+        # B1b: a roster that parses but is not a roster. `groups_of` indexed
+        # it and raised AttributeError out of the same CLI.
+        shaped = mk(m0, {ROSTER: json.dumps([])}, "roster: a list", T(3, 45))
+        g("update-ref", "refs/remotes/origin/roster-shaped", shaped)
+        rc, out, err = run_flow(["--repo", d,
+                                 "--tree", "refs/remotes/origin/main",
+                                 "--roster-ref", "refs/remotes/origin/roster-shaped",
+                                 "--until", T(5)])
+        check("flow: a roster that parses but is not one reads UNAVAILABLE",
+              (rc, "UNAVAILABLE" in out), (0, True))
+
+        # B1c: no window end at all -- the second way the board refused before
+        # reading anything, and took the plan table down with it.
+        roster_file = R / "roster-on-disk.json"
+        roster_file.write_text(ros("done"), encoding="utf-8")
+        rc, out, err = run_flow(["--repo", d,
+                                 "--tree", "refs/heads/absent",
+                                 "--roster-file", str(roster_file)])
+        check("flow: no readable window end renders UNAVAILABLE, never a "
+              "refusal", (rc, "UNAVAILABLE" in out), (0, True))
+
+        # B2: a roster commit that will not parse is UNAVAILABLE, not a zero
+        # with an empty reason on the takt headline.
+        bad_ctx = replace(ctx, roster_ref="refs/remotes/origin/roster-bad",
+                          roster_path=ROSTER)
+        r = period(bad_ctx, rs.when(T(3, 30)), rs.when(T(4)))
+        check_true("flow: a malformed roster commit is UNAVAILABLE, never a "
+                   "zero with an empty reason",
+                   r["closed"][0] is None and bool(r["closed"][1]),
+                   r["closed"])
+
+        # B3: the critical-path source. A ref that publishes no file puts no
+        # group on the critical path (a measurement); a file that is there and
+        # cannot be read is UNAVAILABLE, or lane A reads 0 and lane B absorbs
+        # its groups.
+        nc = mk("", {ROSTER: ros("done")}, "roster only", T(0))
+        bc = mk("", {ROSTER: ros("done"), CRIT: "{not json"}, "broken", T(0))
+        g("update-ref", "refs/remotes/origin/roster-nocrit", nc)
+        g("update-ref", "refs/remotes/origin/roster-badcrit", bc)
+        crit_nc, why_nc = critical_read(R, "refs/remotes/origin/roster-nocrit",
+                                        roster)
+        check("flow: a ref publishing no critical path reads (set, '')",
+              (crit_nc, why_nc), (set(), ""))
+        crit_bc, why_bc = critical_read(R, "refs/remotes/origin/roster-badcrit",
+                                        roster)
+        check_true("flow: an unreadable critical path is UNAVAILABLE with its "
+                   "reason", crit_bc is None and "not JSON" in why_bc, why_bc)
+        # `critical_of` is the lossy accessor (the reviewer's harness and any
+        # caller that only needs the membership test): a file source has no
+        # reason to carry, so it reads the computed chain as a plain set. The
+        # fixture's open groups have no after-edges, so the chain is its first
+        # open group.
+        check("flow: critical_of reads a file source's computed chain",
+              critical_of(R, None, json.loads(ros())), {"r1-a"})
+        b_nc = board(replace(ctx, roster_ref="refs/remotes/origin/roster-nocrit",
+                             critical=crit_nc, critical_unavailable=why_nc), until)
+        b_bc = board(replace(ctx, roster_ref="refs/remotes/origin/roster-badcrit",
+                             critical=crit_bc, critical_unavailable=why_bc), until)
+        check("flow: no published critical path puts every open group in B",
+              b_nc["wip"], ({"A": 0, "B": 1, "C": 0, "F": 1}, ""),
+              )
+        check("flow: WIP refuses to answer without a readable critical set, "
+              "never guesses lane A 0", flow_wip(roster, None), None)
+        check_true("flow: an unreadable critical path makes the WIP row "
+                   "UNAVAILABLE, never A 0",
+                   b_bc["wip"][0] is None
+                   and "UNAVAILABLE" in render_board(b_bc).split("### WIP")[1],
+                   b_bc["wip"])
+
+        # B4: the window is closed at both ends, so the default window -- whose
+        # end is a ref tip's own committer time -- counts the tip's merge.
+        r = period(ctx, a, rs.when(T(2, 30)))
+        check("flow: a record merge exactly at the window's end is counted",
+              r["moves"][0]["counts"]["record"], 1)
+        u = flow_default_until(R, "refs/remotes/origin/main",
+                               "refs/remotes/origin/roster")
+        r = period(ctx, u - timedelta(hours=24), u)
+        check("flow: the default window counts the tip merge at exactly its "
+              "end", (r["moves"][0]["counts"]["flyin"],
+                      r["moves"][0]["counts"]["record"]), (1, 1))
+        # B4b: the third measure's window. #1's first verdict -- the blocked
+        # one -- is committed at 01:10; a window ending exactly there must
+        # count it, or the 1 h row's yield is a zero for the verdict that
+        # opened the window's last event.
+        r = period(ctx, a, rs.when(T(1, 10)))
+        check("flow: a verdict at exactly the window's end is counted",
+              (r["yield"][0], dict(r["classes"][0])), ((0, 1), {"harness": 1}))
+        # ...and the roster measure's: the roster ref's tip is the merge that
+        # carries the closing stage at 01:15 (the first-parent walk sees the
+        # closing when it lands on the roster branch, not on the work commit
+        # it came from). A window ending exactly at that tip is the shape the
+        # default window takes when the roster is the later ref -- the closing
+        # commit must be in it.
+        r = period(ctx, a, rs.when(T(1, 15)))
+        check("flow: a roster commit at exactly the window's end closes in it",
+              r["closed"][0], 1)
     return failures
 
 
@@ -551,7 +675,9 @@ PROCESS_LANES = frozenset({"C", "tooling"})
 @dataclass(frozen=True)
 class FlowCtx:
     """One run's inputs. `roster` is None exactly when `roster_unavailable`
-    says why -- the two are set together, so a caller cannot forget one."""
+    says why -- the two are set together, so a caller cannot forget one. The
+    same holds for `critical` and `critical_unavailable`: None is UNAVAILABLE,
+    never "nothing is critical" (which is the empty set)."""
     repo: Path
     tree: str
     remote: str
@@ -562,6 +688,7 @@ class FlowCtx:
     prefix: str
     record_prefix: str
     critical: set | None
+    critical_unavailable: str = ""
 
 
 def _ok(value):
@@ -625,7 +752,13 @@ def move_kind(branch: str, files: list[str] | None, roster: dict | None,
 
 
 def flow_moves(ctx: FlowCtx, a: datetime, b: datetime):
-    """The first-parent PR merges of the tree in [a, b), classified."""
+    """The first-parent PR merges of the tree in [a, b], classified.
+
+    The window is CLOSED at both ends. Its end is a ref tip's own committer
+    time (`flow_default_until`), so a half-open window would drop the newest
+    merge -- the tip of whichever ref is later -- from every column, including
+    the 1 h column whose whole job is the last hour (#2883).
+    """
     r = _git_ro(ctx.repo, "log", "--first-parent",
                 "--format=%H%x09%P%x09%cI%x09%s", ctx.tree)
     if r.returncode:
@@ -642,7 +775,7 @@ def flow_moves(ctx: FlowCtx, a: datetime, b: datetime):
         if not m or len(ps) != 2:
             continue
         when = rs.when(stamp)
-        if not a <= when < b:
+        if not a <= when <= b:
             continue
         kind = move_kind(m.group(2), _merge_files(ctx.repo, ps[0], sha),
                          ctx.roster, ctx.record_prefix)
@@ -654,11 +787,15 @@ def flow_moves(ctx: FlowCtx, a: datetime, b: datetime):
 
 
 def flow_closed(ctx: FlowCtx, a: datetime, b: datetime):
-    """Prefix roster groups whose stage enters DONE_STAGES in [a, b).
+    """Prefix roster groups whose stage enters DONE_STAGES in [a, b].
 
     Every first-parent commit of the roster ref touching the roster path is
     compared with the one before it, so a group re-opened and re-closed counts
-    twice. A file source has no history to walk and is UNAVAILABLE.
+    twice. A file source has no history to walk and is UNAVAILABLE. A commit
+    whose roster cannot be read -- git's own failure, invalid JSON, or JSON
+    that is not a roster -- is UNAVAILABLE too: `{}` would read as a commit
+    that closed nothing (#2883). A commit that carries no roster yet closes
+    nothing, and is that measurement.
     """
     if ctx.roster is None:
         return _na(ctx.roster_unavailable or "roster unreadable")
@@ -671,16 +808,24 @@ def flow_closed(ctx: FlowCtx, a: datetime, b: datetime):
         except roster_lib.RosterNotFound as e:
             return _na(f"roster path unreadable: {e}")
 
-    def state(sha: str) -> dict:
+    def state(sha: str) -> tuple[dict | None, str]:
+        """The done-flag map at one commit, or None and why it is unreadable."""
+        if _git_ro(ctx.repo, "cat-file", "-e", f"{sha}:{path}").returncode:
+            return {}, ""                      # no roster at this commit yet
         rr = _git_ro(ctx.repo, "show", f"{sha}:{path}")
         if rr.returncode:
-            return {}
+            return None, (f"cannot read {path} at {sha[:12]}: "
+                          f"{(rr.stderr or rr.stdout).strip()[:120]}")
         try:
-            groups = roster_lib.groups_of(json.loads(rr.stdout))
-        except ValueError:
-            return {}
+            roster = json.loads(rr.stdout)
+        except ValueError as e:
+            return None, f"{path} at {sha[:12]} is not JSON: {e}"
+        why = roster_lib.roster_shape(roster)
+        if why:
+            return None, f"{path} at {sha[:12]} is not a roster: {why}"
+        groups = roster_lib.groups_of(roster)
         return {k: (v.get("resume") or {}).get("stage") in roster_lib.DONE_STAGES
-                for k, v in groups.items() if k.startswith(ctx.prefix)}
+                for k, v in groups.items() if k.startswith(ctx.prefix)}, ""
 
     log = _git_ro(ctx.repo, "log", "--first-parent", "--format=%H%x09%cI",
                   ctx.roster_ref, "--", path)
@@ -689,13 +834,17 @@ def flow_closed(ctx: FlowCtx, a: datetime, b: datetime):
                    f"{(log.stderr or log.stdout).strip()[:120]}")
     before = _git_ro(ctx.repo, "rev-list", "-1", "--first-parent",
                      f"--before={a.isoformat()}", ctx.roster_ref).stdout.strip()
-    prev = state(before) if before else {}
+    prev, why = state(before) if before else ({}, "")
+    if prev is None:
+        return _na(f"roster unreadable before the window: {why}")
     closed = 0
     for line in reversed(log.stdout.splitlines()):
         sha, stamp = line.split("\t")
-        if not a <= rs.when(stamp) < b:
+        if not a <= rs.when(stamp) <= b:
             continue
-        cur = state(sha)
+        cur, why = state(sha)
+        if cur is None:
+            return _na(why)
         closed += sum(done and not prev.get(k, False)
                       for k, done in cur.items())
         prev = cur
@@ -754,7 +903,10 @@ def flow_verdicts(ctx: FlowCtx, a: datetime, b: datetime):
     Yield counts only PRs whose FIRST verdict falls in the period, so a PR
     reviewed earlier and re-reviewed now is not counted as a first pass. No
     review ref at all is UNAVAILABLE; refs present with no verdict in the
-    window is a real 0/0.
+    window is a real 0/0. The window is CLOSED at both ends, like the other
+    two measures: a verdict committed at exactly the window's end is in it,
+    which matters because the default end is a ref tip's own committer time
+    (#2883).
     """
     try:
         verdicts = _bus_verdicts(ctx)
@@ -763,7 +915,7 @@ def flow_verdicts(ctx: FlowCtx, a: datetime, b: datetime):
         return _na(why), _na(why)
     if verdicts is None:
         return _na("no review/verdict bus refs"), _na("no review/verdict bus refs")
-    window = [v for v in verdicts if a <= v[1] < b]
+    window = [v for v in verdicts if a <= v[1] <= b]
     first = {}
     for v in verdicts:
         first.setdefault(v[0], v)
@@ -825,8 +977,14 @@ def _lane_of(gid: str, group: dict, critical: set | None) -> str:
 
 
 def flow_wip(roster: dict | None, critical: set | None) -> dict | None:
-    """Open groups by flow lane, a snapshot at the window's end."""
-    if roster is None:
+    """Open groups by flow lane, a snapshot at the window's end.
+
+    None when the roster cannot be read, and None when the critical-path set
+    could not be either: a None `critical` is UNAVAILABLE, not an empty set,
+    and answering it as one would print lane A 0 while lane B swallowed A's
+    groups (#2883). "No group is critical" is `set()`.
+    """
+    if roster is None or critical is None:
         return None
     out = {"A": 0, "B": 0, "C": 0, "F": 0}
     for gid, group in roster_lib.groups_of(roster).items():
@@ -835,18 +993,38 @@ def flow_wip(roster: dict | None, critical: set | None) -> dict | None:
     return out
 
 
-def critical_of(repo: Path, roster_ref: str | None, roster: dict | None) -> set | None:
-    """The critical-path set: the published file at the roster ref, else (a
-    file source has no ref) the computed longest after-edge chain."""
+def critical_read(repo: Path, roster_ref: str | None,
+                  roster: dict | None) -> tuple[set | None, str]:
+    """The critical-path set and, when it cannot be read, the reason.
+
+    `(set, "")` when the source answered -- `set()` is the measurement "the
+    ref publishes no critical path, so no group is on it". `(None, why)` when
+    a file is there and cannot be read: a board must print that, because lane
+    A would otherwise read 0 and lane B absorb the groups that belong to it
+    (#2883). A roster that is already UNAVAILABLE is None with no reason of
+    its own; the roster carries the reason.
+    """
     if roster is None:
-        return None
+        return None, ""
     if roster_ref:
-        return roster_lib.critical_path_groups(str(repo), roster_ref)
-    return {roster_lib.norm_group(g) for g in roster_lib.critical_path(roster)}
+        return roster_lib.critical_path_read(str(repo), roster_ref)
+    return {roster_lib.norm_group(g) for g in roster_lib.critical_path(roster)}, ""
+
+
+def critical_of(repo: Path, roster_ref: str | None, roster: dict | None) -> set | None:
+    """The critical-path set alone, or None.
+
+    The lossy accessor of `critical_read`, for callers that only need the
+    membership test. It keeps the reviewed head's contract exactly -- None is
+    both "unreadable" and "no file", and an empty set reads as None too --
+    so the control that distinguishes them is the board's, which reads
+    `critical_read`.
+    """
+    return critical_read(repo, roster_ref, roster)[0] or None
 
 
 def period(ctx: FlowCtx, a: datetime, b: datetime) -> dict:
-    """Every per-period measure over [a, b); each value is `(value, reason)`."""
+    """Every per-period measure over [a, b]; each value is `(value, reason)`."""
     if ctx.roster is None:
         # group vs fly-in is not answerable without the roster, so the split
         # is unavailable rather than a wrong fly-in count.
@@ -866,16 +1044,34 @@ def period(ctx: FlowCtx, a: datetime, b: datetime) -> dict:
             "yield": yield_, "classes": classes}
 
 
-def board(ctx: FlowCtx, until: datetime) -> dict:
-    """The whole board: both rolling periods plus the WIP snapshot."""
-    return {"until": until,
-            "periods": [(label, hours, period(
-                ctx, until - timedelta(hours=hours), until))
-                for label, hours in FLOW_PERIODS],
-            "wip": (_na(ctx.roster_unavailable or "roster unreadable")
-                    if ctx.roster is None
-                    else _ok(flow_wip(ctx.roster, ctx.critical))),
-            "ctx": ctx}
+def board(ctx: FlowCtx, until: datetime | None) -> dict:
+    """The whole board: both rolling periods plus the WIP snapshot.
+
+    `until` is None when neither watched ref yields a commit time. There is
+    then no window, so every per-period measure is UNAVAILABLE with that
+    reason rather than a zero -- the board's own last rule -- and the board is
+    still rendered, so a state beat that cannot read a ref publishes the
+    reason instead of refusing and dropping the documents generated before it
+    (#2883).
+    """
+    if until is None:
+        why = (f"no window end: neither {ctx.tree} nor "
+               f"{ctx.roster_ref or 'the roster file'} has a readable "
+               "commit time")
+        blank = {key: (None, why) for key in
+                 ("moves", "flyins", "lead", "closed", "yield", "classes")}
+        periods = [(label, hours, dict(blank)) for label, hours in FLOW_PERIODS]
+    else:
+        periods = [(label, hours, period(
+            ctx, until - timedelta(hours=hours), until))
+            for label, hours in FLOW_PERIODS]
+    if ctx.roster is None:
+        wip = _na(ctx.roster_unavailable or "roster unreadable")
+    elif ctx.critical is None:
+        wip = _na(ctx.critical_unavailable or "critical path unreadable")
+    else:
+        wip = _ok(flow_wip(ctx.roster, ctx.critical))
+    return {"until": until, "periods": periods, "wip": wip, "ctx": ctx}
 
 
 def _cell(measure) -> str:
@@ -935,6 +1131,9 @@ def _lead_cell(measure) -> str:
 
 
 FLOW_RULES = (
+    "every period is CLOSED at both ends: an event at exactly the window's "
+    "start or end is counted, so the default window -- which ends at a ref "
+    "tip's own committer time -- includes the tip's merge.",
     "roster groups closed: a group whose resume.stage enters roster_lib's "
     "DONE_STAGES in the period, counted per first-parent commit of the roster "
     "ref; takt is 1.0 group per hour, so the period's demand is its hours.",
@@ -954,7 +1153,8 @@ FLOW_RULES = (
     "size; n, p50 and max hours.",
     "WIP by lane: open roster groups at the window's end -- A when in the "
     "published critical-path set, F for roster lanes F/FLY, C for C/tooling, "
-    "B otherwise.",
+    "B otherwise. A ref that publishes no critical-path file puts no group on "
+    "it; a file that is there and cannot be read is UNAVAILABLE.",
     "A source that cannot be read prints UNAVAILABLE with its reason; it is "
     "never a zero.",
 )
@@ -964,9 +1164,13 @@ def render_board(b: dict) -> str:
     """The markdown document the state beat publishes beside the plan table."""
     ctx: FlowCtx = b["ctx"]
     labels = [label for label, _, _ in b["periods"]]
-    lines = ["# Flow board", "",
-             f"Window ends {b['until'].isoformat()} (a function of the refs, "
-             "not of when this ran). Takt 1.0 roster group per hour.",
+    if b["until"] is None:
+        ends = ("Window ends UNAVAILABLE (no readable ref time; each measure "
+                "below carries its reason)")
+    else:
+        ends = (f"Window ends {b['until'].isoformat()} (a function of the "
+                "refs, not of when this ran)")
+    lines = ["# Flow board", "", f"{ends}. Takt 1.0 roster group per hour.",
              "", "Sources: tree `" + ctx.tree + "`, roster "
              + (f"`{ctx.roster_ref}`" if ctx.roster_ref else "`--roster-file`")
              + f", bus `{ctx.remote}/review/*`"
@@ -1048,7 +1252,9 @@ def flow_main(argv: list[str]) -> int:
         except (OSError, ValueError) as e:
             roster, why = None, f"cannot read {a.roster_file}: {type(e).__name__}"
         else:
-            why = ""
+            why = roster_lib.roster_shape(roster)
+            if why:                     # parses, but not a roster (#2883)
+                roster, why = None, f"cannot read {a.roster_file}: {why}"
         roster_path = None
     else:
         roster_ref = roster_lib.reader_ref(str(repo), a.roster_ref)
@@ -1056,8 +1262,14 @@ def flow_main(argv: list[str]) -> int:
             roster = roster_lib.show_roster(str(repo), roster_ref, a.roster_path)
         except roster_lib.RosterNotFound as e:
             roster, why = None, f"roster unreadable: {e}"
+        except ValueError as e:         # json.loads: malformed JSON, not a crash
+            roster, why = None, (f"roster unreadable: {roster_ref} is not "
+                                 f"JSON: {e}")
         else:
-            why = ""
+            why = roster_lib.roster_shape(roster)
+            if why:                     # parses, but not a roster (#2883)
+                roster, why = None, (f"roster unreadable: {roster_ref} is not "
+                                     f"a roster: {why}")
         roster_path = a.roster_path
         if roster is not None and not roster_path:
             try:
@@ -1065,17 +1277,15 @@ def flow_main(argv: list[str]) -> int:
             except roster_lib.RosterNotFound:
                 roster_path = None
 
+    critical, critical_why = critical_read(repo, roster_ref, roster)
     ctx = FlowCtx(repo=repo, tree=a.tree, remote=a.remote, roster=roster,
                   roster_unavailable=why, roster_ref=roster_ref,
                   roster_path=roster_path, prefix=a.prefix,
-                  record_prefix=a.record_prefix,
-                  critical=critical_of(repo, roster_ref, roster))
+                  record_prefix=a.record_prefix, critical=critical,
+                  critical_unavailable=critical_why)
     until = parse_iso(a.until) if a.until else flow_default_until(
         repo, a.tree, roster_ref)
-    if until is None:
-        ap.error("--until is required: neither the tree nor the roster ref has "
-                 "a readable commit time")
-    if until.tzinfo is None:
+    if until is not None and until.tzinfo is None:
         until = until.replace(tzinfo=timezone.utc)
 
     text = render_board(board(ctx, until))

@@ -1611,6 +1611,7 @@
    "tools/audit/archscore/vector.py",
    "tools/audit/carry_audit.py",
    "tools/audit/judge_batch.py",
+   "tools/audit/merge_throughput.py",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/seat/gh_read.py",
