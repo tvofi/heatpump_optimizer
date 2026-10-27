@@ -136,7 +136,7 @@ from heatpump_optimizer.wood_fuel import cheaper_hour_count
 try:
     _zero_cop = cheaper_hour_count(
         wood_sek=1.0, prices=[1.0], cops=[0.0],
-        space_kw=[5.0], dhw_kw=[0.0], threshold=1.0,
+        runs=[True],
     )
 except ZeroDivisionError as _zero_cop_err:
     _zero_cop = _zero_cop_err
@@ -149,7 +149,7 @@ R.check(
     "and a usable COP still counts the hour when wood is cheaper",
     cheaper_hour_count(
         wood_sek=1.0, prices=[10.0], cops=[3.0],
-        space_kw=[5.0], dhw_kw=[0.0], threshold=1.0,
+        runs=[True],
     )
     == 1,
     "a guard that skipped every hour would hide the real comparison",
