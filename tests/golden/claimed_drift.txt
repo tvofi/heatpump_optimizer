@@ -59,8 +59,6 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-negative_prices  # R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -13.19 -> 16.17; no plan key moves
-summer_dhw_only  # R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -7.62 -> 5.88; no plan key moves
 coord_all_features  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
 coord_dhw  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
 coord_grid_fee  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
@@ -749,4 +747,4 @@ coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fi
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
-config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
+config_flow # R10-HEAT-METER (#2261): the heat_pump_heat_energy_entity field is published on the meters group and seeded; keys added (3 leaves), no value moved
