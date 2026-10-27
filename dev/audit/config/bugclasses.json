@@ -4938,5 +4938,43 @@
       "barriered_any": false,
       "class_rca_on_record": false
     }
+  },
+  "N-vocabulary-drift": {
+    "kind": "instrument",
+    "mechanism": "A record's writer holds one vocabulary and its reader holds another, so the writer accepts a word no read can close: roster_edit.py wrote stages as free strings (`459ef684a` appended a group in `in-review`; `94ece3d08` set R10-HOUSE-GRADE to `in-review` again) while roster_sync.py had no rule for that word, and the same writer accepted a `size` the duration model does not key (`d6308d77c`'s eight `XS` groups, where replan.build_plan:325's size_hours[...] raised KeyError 'XS'; tools/plan/ is INERT at tests/closure.py:336, so no gate read it). roster_edit.py:883 pinned the unclassified word in its own self-test, so the drift was asserted as the contract",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 459ef684a (roster_edit append-group wrote in-review; CI job 119785082787 failed)",
+      "R10 94ece3d08 (set-stage wrote in-review on R10-HOUSE-GRADE; CI job 122016117273 step 59 failed)",
+      "R10 d6308d77c (eight XS roster groups; durations.json has no XS; replan.build_plan:325 KeyError)"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "roster_sync.py --self-test's two vocabulary scans (every stage a roster carries is classified; every size a roster carries is in the durations model, driven first on a planted roster so a green is a measurement) and roster_edit.py --self-test's refusal arms, each with a null control; measured red on main's writer at 21b1ed140 (roster_sync 4 FAIL, roster_edit 4 FAIL) and green at the fix head, where every plant of tools/audit/seat/r10_roster_ops_mutants.py (S1-S7) and r10_roster_sync_mutants.py (M21-M24) turns its own arm red",
+    "detector_idea": null,
+    "barrier": "roster_lib.py's one registry: STAGE_KIND pairs each word with what may move it (derivable, live-claim, done, disposition) and DERIVABLE/LIVE_CLAIM/DONE_STAGES/DISPOSITION are derived views (LIVE is exactly the planner's four live stages, so the schedule does not move), and sizes(durations) returns the model's keys, so the measured model is the size vocabulary; roster_sync imports the views and closes a live claim on its merge, so a claim cannot strand a merged group open; roster_edit refuses an unclassified stage at set-stage, set-resume --field stage and append-group, and an unmodelled size at append-group, naming the roster path, the group and the value. Both self-tests run in .github/workflows/governance.yml, so a word or size with no registry entry is red in the pull request that writes it",
+    "status": "barriered",
+    "nearest_existing": "I4",
+    "mechanism_difference": "I4 is two definitions of one concept disagreeing while both exist; here the reader has no definition at all -- an unclassified word is skipped and a size is unkeyed -- so the writer's acceptance is the whole failure, and the crash lands in a third consumer (the planner) that no gate reads",
+    "aliases": [
+      "new: a writer accepts a stage or size word no reader closes"
+    ],
+    "non_round_note": "Process defect recorded beside the class (R10-ORCH-ROSTER-SCHEMA's body): a triage verdict deferred the size check by citing carry 6 of R10-FLOW-TOOLKIT-MODEL as an existing control while that carry was not-started, so a pending carry was read as a landed one. Not an audit finding and not counted",
+    "non_round_instances": [],
+    "rca": [
+      "R10-N-vocabulary-drift"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
   }
 }
