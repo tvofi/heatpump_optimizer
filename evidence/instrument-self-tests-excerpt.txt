@@ -1,0 +1,6 @@
+governance / instrument-self-tests id=121985023161 excerpt:
+2026-10-27T03:12:14.8019104Z   UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test
+2026-10-27T03:12:14.8019961Z selftest_wiring: 98 self-testing, 97 wired, 1 unwired
+2026-10-27T03:12:14.8075072Z ##[error]Process completed with exit code 1.
+2026-10-27T03:12:50.1852493Z Refusal: bus.sh dispatch refused: review_packet: REFUSED git merge-base origin/main c1d9a307ff86b25628ed7ff26e091c7d7468d052: fatal: Not a valid commit name c1d9a307ff86b25628ed7ff26e091c7d7468d052
+2026-10-27T03:12:50.2037489Z ##[error]Process completed with exit code 1.

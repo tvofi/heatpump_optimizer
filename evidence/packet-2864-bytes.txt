@@ -1,0 +1,9 @@
+packet #2864 at 30c940e5b5e009ebe95004235cbab8536ea14799, two renders, cmp:
+      87    3591 /tmp/pk-a.md
+BYTE-IDENTICAL
+## Refusals
+none
+## Gate digest: green
+## Finder's harness: none named
+### at the base
+not run

@@ -1,0 +1,16 @@
+bus.sh dispatch record write and packet print (lines 458-468):
+    [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch: could not mint a nonce"
+  fi
+  mkdir -p "$S" && printf '%s %s %s %s %s %s\n' "$pr" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
+    || die "dispatch: cannot record in $S"
+  [ -z "$p3" ] || printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$pr" "$h" "$r" "$p3" >> "$S/past-three" \
+    || die "dispatch: cannot log --past-three in $S"
+  python3 -I "$ROOT/tools/audit/seat/ledger.py" ${HPO_BUS_LEDGER:+--log "$HPO_BUS_LEDGER"} \
+    close reviewer-fire "$pr" "$h" "dispatched $r nonce=${n:0:8}" >&2 \
+    || printf 'bus: the ledger refused the reviewer-fire close for #%s at %s; close it by hand\n' "$pr" "$h" >&2
+  printf 'review-packet: %s\n' "$(home_rel "$pk")"
+  printf 'bus-nonce: %s\n' "$n"
+
+cloud_dispatch packet references: 0
+standing-dispatch.md packet references: 0
+cloud_relay.sh packet references: 0
