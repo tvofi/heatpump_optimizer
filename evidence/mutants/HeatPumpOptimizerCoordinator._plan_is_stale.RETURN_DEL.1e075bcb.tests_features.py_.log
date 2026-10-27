@@ -1,0 +1,8 @@
+  3814 unpinned site(s) of 6398 candidate sites, 3818 at the ratchet base 524c1896b6943b3da03d6cad61420ced31e14c9c; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._plan_is_stale RETURN_DEL 1e075bcb
+  1 mutant(s) over 1 file(s); drivers in play: tests/features.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/features.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)

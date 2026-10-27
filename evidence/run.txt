@@ -1,0 +1,14 @@
+# Reviewer harness, both ends (PR 2873, round 1)
+# Merge base 524c1896b6943b3da03d6cad61420ced31e14c9c, head 3fce22f6a1313e439d6ff880f85bd2fa72731a9f.
+# Each runs from the tree measured; the harness resolves nothing from the branch.
+
+cd /Users/timmalmstrom/hpo-seats/r10s6/review-2873-r1/base-wt
+PYTHONPATH=tests/hastub python3 ../evidence/harness.py > ../evidence/base.txt 2>&1
+
+cd /Users/timmalmstrom/hpo-seats/r10s6/review-2873-r1/wt
+PYTHONPATH=tests/hastub python3 ../evidence/harness.py > ../evidence/head.txt 2>&1
+
+# The head's own new suite, for the record (not evidence for 1-6):
+#   PYTHONPATH=tests/hastub python3 tests/debug_collect.py  -> ALL 148 CHECKS PASSED
+# Pins: bash evidence/run_pins.sh then bash evidence/run_pins2.sh (mutation_table --anchor ... --jobs 1)
+# Merge-tree: git merge-tree --write-tree origin/main HEAD -> exit 0, ff3c1a7dd...

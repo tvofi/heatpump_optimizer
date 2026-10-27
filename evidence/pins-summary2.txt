@@ -1,0 +1,74 @@
+===== [custom_components/heatpump_optimizer/coordinator.py:plan_stale_limit_minutes CLAMP_DROP 8ee35b1a]  driver=tests/structure.py
+rc=0
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
+  baseline tests/structure.py: rc=0 failed=0 118s
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived tests/structure.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/structure.py: custom_components/heatpump_optimizer/coordinator.py:740 CLAMP_DROP
+===== [custom_components/heatpump_optimizer/coordinator.py:plan_stale_limit_minutes RETURN_DEL 8ee35b1a]  driver=tests/structure.py
+rc=0
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
+  baseline tests/structure.py: rc=0 failed=0 72s
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived tests/structure.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/structure.py: custom_components/heatpump_optimizer/coordinator.py:740 RETURN_DEL
+===== [custom_components/heatpump_optimizer/coordinator.py:plan_stale_limit_minutes GUARD_OFF 482b8551]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 5s
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/coordinator.py:738 GUARD_OFF
+===== [custom_components/heatpump_optimizer/debugger.py:DebugCollector.as_dict BOOLOP 81d62bfa]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/debugger.py:569 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 4s
+  null control custom_components/heatpump_optimizer/debugger.py:569 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/debugger.py:511 BOOLOP
+===== [custom_components/heatpump_optimizer/debugger.py:DebugCollector.as_dict GUARD_OFF 81d62bfa]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/debugger.py:569 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 5s
+  null control custom_components/heatpump_optimizer/debugger.py:569 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/debugger.py:511 GUARD_OFF
+===== [custom_components/heatpump_optimizer/diagnostics.py:_inputs_at GUARD_OFF 305ddbe3]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 8s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:170 GUARD_OFF
+===== [custom_components/heatpump_optimizer/diagnostics.py:_inputs_at GUARD_OFF 4a6254b3]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 3s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:172 GUARD_OFF
+===== [custom_components/heatpump_optimizer/diagnostics.py:_inputs_at GUARD_OFF 79397f15]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 7s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:164 GUARD_OFF
+===== [custom_components/heatpump_optimizer/diagnostics.py:_inputs_at RETURN_DEL 02e1c03c]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 4s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:178 RETURN_DEL
+===== [custom_components/heatpump_optimizer/diagnostics.py:_plan_summary CMP_BOUND 7abd2715]  driver=tests/debug_collect.py
+rc=0
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  baseline tests/debug_collect.py: rc=0 failed=0 3s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:193 CMP_BOUND
+===== [custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._plan_is_stale RETURN_DEL 1e075bcb]  driver=tests/features.py
+rc=124
+  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
+DONE

@@ -1,0 +1,13 @@
+  3814 unpinned site(s) of 6398 candidate sites, 3818 at the ratchet base 524c1896b6943b3da03d6cad61420ced31e14c9c; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/diagnostics.py:_inputs_at GUARD_OFF 4a6254b3
+  1 mutant(s) over 1 file(s); drivers in play: tests/debug_collect.py
+  null control: custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/debug_collect.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/debug_collect.py: rc=0 failed=0 3s
+  null control custom_components/heatpump_optimizer/diagnostics.py:99 NULL_COMMENT survived tests/debug_collect.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/diagnostics.py:172 GUARD_OFF
