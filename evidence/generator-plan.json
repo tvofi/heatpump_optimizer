@@ -1,0 +1,50 @@
+[
+  {
+    "number": 2834,
+    "path": "dev/programme/delivery/2834.md",
+    "line": "- [#2834](https://github.com/tvofi/heatpump_optimizer/pull/2834) \u2014 **merged `0137c4c`**, R10-ADVISOR-RESIDUE: the residue of #2257 that R10-ADVISOR recorded and left (R10-ADVISOR-RESIDUE).",
+    "title": "R10-ADVISOR-RESIDUE: the residue of #2257 that R10-ADVISOR recorded and left",
+    "merge_sha": "0137c4cb052e134c953f31054907c01393d55ad7",
+    "group": "R10-ADVISOR-RESIDUE"
+  },
+  {
+    "number": 2858,
+    "path": "dev/programme/delivery/2858.md",
+    "line": "- [#2858](https://github.com/tvofi/heatpump_optimizer/pull/2858) \u2014 **merged `3b4180d`**, R10-FLY-OPENPR-ATOMIC: open_pr releases its worktree and pushes the row row-only (R10-FLY-OPENPR-ATOMIC).",
+    "title": "R10-FLY-OPENPR-ATOMIC: open_pr releases its worktree and pushes the row row-only",
+    "merge_sha": "3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f",
+    "group": "R10-FLY-OPENPR-ATOMIC"
+  },
+  {
+    "number": 2862,
+    "path": "dev/programme/delivery/2862.md",
+    "line": "- [#2862](https://github.com/tvofi/heatpump_optimizer/pull/2862) \u2014 **merged `149ce54`**, triage: s6 batch 34 (P195-P198).",
+    "title": "triage: s6 batch 34 (P195-P198)",
+    "merge_sha": "149ce54a36bcf9e794d357e0ef69dc8af62f8eb8",
+    "group": null
+  },
+  {
+    "number": 2864,
+    "path": "dev/programme/delivery/2864.md",
+    "line": "- [#2864](https://github.com/tvofi/heatpump_optimizer/pull/2864) \u2014 **merged `6fe5170`**, roster: round-10 batch 21.",
+    "title": "roster: round-10 batch 21",
+    "merge_sha": "6fe5170cd7ce01e60ffebfc93e598c216e628fa3",
+    "group": null
+  },
+  {
+    "number": 2865,
+    "path": "dev/programme/delivery/2865.md",
+    "line": "- [#2865](https://github.com/tvofi/heatpump_optimizer/pull/2865) \u2014 **merged `bfc4a1e`**, R10-ORCH-DISPATCH-REG: one dispatch registry, replay-safe confirm, the three-round re-cut (R10-ORCH-DISPATCH-REG).",
+    "title": "R10-ORCH-DISPATCH-REG: one dispatch registry, replay-safe confirm, the three-round re-cut",
+    "merge_sha": "bfc4a1e297fb2899be1c4643ae9d75b8a5829208",
+    "group": "R10-ORCH-DISPATCH-REG"
+  },
+  {
+    "number": 2866,
+    "path": "dev/programme/delivery/2866.md",
+    "line": "- [#2866](https://github.com/tvofi/heatpump_optimizer/pull/2866) \u2014 **merged `484d990`**, roster: round-10 batch 22.",
+    "title": "roster: round-10 batch 22",
+    "merge_sha": "484d9902222031f8e081df9f53b52ffd50fcc0af",
+    "group": null
+  }
+]
