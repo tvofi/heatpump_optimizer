@@ -1,3 +1,29 @@
+## v7.0.5
+
+**Round-10 stamp: model-state fixes, planner and input hardening, and a large batch of delivery-process work.** This stamp covers everything merged since v7.0.4.
+
+User-visible changes:
+
+- Every optimiser run now takes its value from the gradient's batch, which makes solver results consistent (#2612).
+- The plan narrative prices amounts in the price feed's currency (#2620).
+- The away-recovery estimate and interval replay run off the event loop, so Home Assistant stays responsive (#2632).
+- One rule scores every score, and the house is graded as measured (README and dashboard card docs updated) (#2647).
+- The coordinator owns its live state per cycle; races between restore and awaited calls are closed (#2675).
+- Stale power and mode readings now expire per source instead of being trusted indefinitely (#2683).
+- Learned heat-loss values are re-anchored when the configured heat-loss or power basis changes, instead of carrying a correction fitted against the old setting (#2698).
+- The planner no longer books heat the house does not need (demand overbook, part of #2499) (#2712).
+- The four standing configuration notices now have one owner (#2762).
+- While a learner is still settling, the learner shows a progress payload instead of misleading day-count estimates (#2775).
+- The thermal parameters now have a single owner that is updated as a whole, so a user command or a cycle write can no longer act on a half-restored model (#2817).
+
+Engineering and audit programme (round 10):
+
+- CI, tooling and policy: CI layout and gate changes, merge train and relay upgrades, policy and role contracts, mutation and ratchet fixes, and root-cause groups (#2524, #2528, #2579, #2580, #2584, #2589, #2605, #2606, #2622, #2625, #2627, #2628, #2631, #2633, #2636, #2638, #2639, #2643, #2645, #2652, #2659, #2664, #2665, #2666, #2668, #2669, #2670, #2671, #2672, #2673, #2681, #2688, #2689, #2690, #2691, #2692, #2693, #2696, #2697, #2700, #2704, #2706, #2707, #2708, #2709, #2711, #2736, #2737, #2739, #2749, #2753, #2756, #2765, #2766, #2770, #2772, #2780, #2798, #2807, #2811, #2813, #2820, #2821, #2822, #2824, #2825, #2833, #2836, #2837, #2838, #2839, #2848).
+- Roster: registrations, carries and queued operations (#2613, #2619, #2626, #2635, #2637, #2641, #2646, #2651, #2655, #2661, #2663, #2667, #2710, #2714, #2742, #2764, #2767, #2771, #2779, #2787, #2792, #2793, #2797, #2799, #2812, #2823, #2842, #2844, #2850, #2851).
+- Triage: proposal-triage batches (#2734, #2735, #2738, #2741, #2743, #2744, #2747, #2748, #2750, #2752, #2755, #2758, #2759, #2761, #2763, #2782, #2790, #2804, #2818, #2827, #2828, #2829, #2830, #2831, #2846).
+- Delivery record: delivery-status rows recorded by the record autofix job (#2610, #2611, #2614, #2616, #2618, #2623, #2624, #2629, #2630, #2634, #2640, #2642, #2644, #2648, #2650, #2653, #2676, #2679, #2680, #2682, #2684, #2685, #2686, #2687, #2694, #2695, #2699, #2701, #2702, #2703, #2705, #2713, #2740, #2751, #2754, #2757, #2760, #2769, #2776, #2781, #2786, #2788, #2789, #2791, #2794, #2795, #2845, #2847).
+- Dependencies: tooling and docs-site dependency bumps (#2617, #2773, #2774).
+
 ## v7.0.4
 
 **Round-10 docs stamp: the architecture, CI shape and development shape at programme end.** This is the stamp the owner asked for right after the docs delivery merges.
