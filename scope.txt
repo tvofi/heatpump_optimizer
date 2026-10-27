@@ -1,0 +1,94 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+  changed files (51), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/ledger.py
+      custom_components/heatpump_optimizer/optimizer.py
+      custom_components/heatpump_optimizer/payload.py
+      custom_components/heatpump_optimizer/pump_arbiter.py
+      dev/audit/harnesses/r10_sav_baseline_mutants.py
+      dev/audit/harnesses/r10_sav_volume.py
+      dev/audit/harnesses/r10_savings_upgrade_month.py
+      dev/programme/delivery/2745.md
+      docs/dashboard-card.md
+      tests/card.mjs
+      tests/closures.json
+      tests/features.py
+      tests/golden/claimed_drift.txt
+      tests/mutation_ledger/killed_by/ledger.py/@module.CONST.7dc7eda1.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CLAMP_DROP.fa57ad15.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.0966076a.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.0966076a.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.RETURN_DEL.9d94391a.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.add_savings_settlement.GUARD_OFF.336eb9f3.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.add_savings_settlement.GUARD_OFF.dce68de8.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.meter_calibration.CMP_BOUND.66109ecf.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.meter_calibration.GUARD_OFF.66109ecf.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.meter_calibration.RETURN_DEL.fbe6bc9f.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.month_cost.RETURN_DEL.db51d98c.json
+      tests/mutation_ledger/killed_by/ledger.py/coverage_factor.BOOLOP.19542f25.json
+      tests/mutation_ledger/killed_by/ledger.py/coverage_factor.CLAMP_DROP.fa52ec19.json
+      tests/mutation_ledger/killed_by/ledger.py/coverage_factor.CMP_BOUND.19542f25.json
+      tests/mutation_ledger/killed_by/ledger.py/coverage_factor.GUARD_OFF.19542f25.json
+      tests/mutation_ledger/killed_by/ledger.py/coverage_factor.RETURN_DEL.04ec4dfd.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CLAMP_DROP.2bd515d1.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._deferred_energy_cost.GUARD_OFF.d11cb401.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._optimize_space_only.GUARD_OFF.77ab8056.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.CLAMP_DROP.034eeda1.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.CLAMP_DROP.31b40b21.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.CLAMP_DROP.51a50741.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.CLAMP_DROP.83697c20.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.RETURN_DEL.034eeda1.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._start_gap_cost.RETURN_DEL.83697c20.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.BOOLOP.f603ef97.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.CMP_BOUND.f603ef97.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.GUARD_OFF.f603ef97.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.RETURN_DEL.26d08f36.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_target.RETURN_DEL.3b5a6813.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.GUARD_OFF.7df02561.json
+      tests/mutation_ledger/killed_by/optimizer.py/_baseline_targets.RETURN_DEL.e3ab3cc7.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_observe.GUARD_OFF.f2ad4d4c.json
+      tests/plan_view.py
+      tests/structure_budgets.json
+
+      RUN   tests/arch_score_head.py
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py
+      RUN   tests/boost_drift_replay.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/debug_collect.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/md_tables.mjs
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py (its tests/closures.json entry changed)
+      RUN   tests/card.mjs (its tests/closures.json entry changed)
+      RUN   tests/card_drift.mjs (its tests/closures.json entry changed)
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
