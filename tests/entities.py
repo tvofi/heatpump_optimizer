@@ -18053,8 +18053,13 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
     with tempfile.TemporaryDirectory() as tmp:
         calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
         cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        # `wc` pads its count when it prints no filename column: BSD says
+        # "       1", GNU "1". The case arms need the bare number, or on a BSD
+        # host every call takes the last answer and the multi-answer fixtures
+        # below test nothing.
         stub.write_text(
-            f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}") in\n{cases}'
+            f'#!/bin/sh\necho >> "{calls}"\n'
+            f'case $(wc -l < "{calls}" | tr -d " ") in\n{cases}'
             f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
         )
         stub.chmod(0o755)
