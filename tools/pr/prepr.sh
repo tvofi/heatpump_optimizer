@@ -300,11 +300,16 @@ CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
 # `claims.py`, not a guess: the files and docs it parses, the package it
 # imports and scans, the `tests` modules it puts on `sys.path`, its own
 # directory (which holds the committed register it is compared against), and
-# the six targets outside `docs/` that its C108/C110 arms `exists()`-test
-# (NOTICE, dev/README.md, dev/archive/README.md, dev/archive/backlog.md,
-# tests/README.md, tools/audit/archscore/ABOUT.md). A renamed entry makes
-# `git archive` refuse the whole pathspec, so a short copy fails the step
-# loudly: it never grades a tree the generator did not read.
+# the targets outside `docs/` that its C108/C110 arms `exists()`-test. A
+# renamed entry makes `git archive` refuse the whole pathspec, so a short copy
+# fails the step loudly: it never grades a tree the generator did not read.
+# THIS LIST IS NOT THE GENERATOR'S WHOLE READ SET, and treating it as one was
+# #2853's review: C108 resolves every relative link in the docs against the
+# copy root, and that set is data -- whatever path a documentation edit names.
+# `claims_reg_line` therefore also copies the link targets the generator
+# itself reports (`--print-link-targets`), so a link to an in-tree file this
+# list does not name still resolves in the copy. Keep this list to the
+# generator's own imports and parses; the link targets are derived.
 CLAIMS_INPUTS='README.md
 DISCLAIMER.md
 LICENSE
@@ -336,6 +341,31 @@ claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1
   # against nothing and read as stale, so it is named instead.
   [ -f "$d/claims.json" ] && [ -f "$d/claims.md" ] \
     || { echo "the copy has no committed $d/claims.json and claims.md beside $CLAIMS_GEN, so nothing was compared"; return 1; }
+  # THE COPY HOLDS EVERY TARGET THE DOCS LINK TO, not only the generator's
+  # enumerated inputs. C108 resolves each relative link with `.exists()`
+  # against the copy root, so a documentation edit that links an in-tree file
+  # the enumeration does not name was graded broken in the copy though the
+  # repository held it -- and the refusal's own remedy re-records the tree,
+  # which changes nothing (#2853's review). The target list comes from the
+  # generator's own extractor (`--print-link-targets`, run before its heavy
+  # imports), so the copy step cannot drift from what C108 resolves; each
+  # missing target is taken from HEAD, so the copy resolves exactly as a
+  # whole-tree `git archive HEAD` copy does, and a target the repository lacks
+  # is still graded broken. Today's targets are all in CLAIMS_INPUTS, so an
+  # ordinary docs diff adds no archive here.
+  local repo=$PWD t rel
+  if [ -f "$repo/$CLAIMS_GEN" ] && grep -q -e '--print-link-targets' "$2/$CLAIMS_GEN" 2>/dev/null; then
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      rel=$(python3 -I -c 'import os, sys
+p = os.path.normpath(sys.argv[1])
+print("" if os.path.isabs(p) or p == ".." or p.startswith("../") else p)' "$t") || continue
+      [ -n "$rel" ] || continue
+      [ -e "$2/$rel" ] && continue
+      [ -n "$(git -C "$repo" ls-tree --name-only HEAD -- "$rel" 2>/dev/null)" ] || continue
+      { git -C "$repo" archive HEAD -- "$rel" 2>/dev/null | tar -x -C "$2" 2>/dev/null; } || true
+    done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)
+  fi
   mkdir -p "$2/.was"
   cp "$d/claims.json" "$d/claims.md" "$2/.was/"
   out=$(cd "$2" && PYTHONPATH=tests/hastub python3 "$CLAIMS_GEN" 2>&1); r=$?
@@ -3000,6 +3030,65 @@ h.expected_from, h.printed_from' >/dev/null 2>&1
     grep -q -e "^$p\$" -e "^$p/" "$WF/arch" || miss="$miss $p"
   done
   st "$miss" "" "6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short)"
+  # THE CLASS #2853's REVIEW FOUND: a documentation link to an in-tree file the
+  # enumeration does not name. The copy below is narrow (the generator and the
+  # doc, no tools/), the target is tracked in the repository, and the register
+  # is the one a whole-tree run records (one link, none broken). claims_reg_line
+  # must take the target from the generator's own --print-link-targets and
+  # reproduce that register; prepr-13 drops the loop and this arm reds.
+  QT=$(mktemp -d); QC=$(mktemp -d)
+  throwaway_git_init "$QT" -q -b main
+  mkdir -p "$QT/dev/audit/rounds/round4/D6" "$QT/docs" "$QT/tools/x"
+  cat >"$QT/dev/audit/rounds/round4/D6/claims.py" <<'STUB'
+"""Fixture for step 6g's link targets: C108 resolves each relative link.
+    RESULT links=1
+    RESULT broken=0
+"""
+import pathlib, re, sys
+root = pathlib.Path(".")
+def links():
+    out = []
+    for f in ["README.md"] + [str(p) for p in sorted(root.glob("docs/*.md"))]:
+        if not (root / f).is_file():
+            continue
+        for m in re.finditer(r"\[[^\]]*\]\(([^)\s]+)\)", (root / f).read_text()):
+            t = m.group(1)
+            if t.startswith("http") or t.startswith("#"):
+                continue
+            b = t.split("#")[0]
+            if b:
+                out.append((f, pathlib.Path(f).parent / b))
+    return out
+if "--print-link-targets" in sys.argv:
+    for _f, _p in links():
+        print(_p)
+    raise SystemExit(0)
+_ls = links()
+_broken = [str(p) for _f, p in _ls if not p.exists()]
+_d = pathlib.Path("dev/audit/rounds/round4/D6")
+(_d / "claims.json").write_text(f"{len(_ls)} {len(_broken)}\n")
+(_d / "claims.md").write_text(f"| C108 | {len(_ls)} {_broken} |\n")
+print(f"RESULT links={len(_ls)}")
+print(f"RESULT broken={len(_broken)}")
+STUB
+  printf '[i](../tools/x/UNLISTED.md)\n' >"$QT/docs/x.md"
+  printf 'the target the enumeration never named\n' >"$QT/tools/x/UNLISTED.md"
+  ( cd "$QT" && throwaway_git_env && git add -A && git commit -qm fixture ) >/dev/null 2>&1
+  mkdir -p "$QC/dev/audit/rounds/round4/D6" "$QC/docs"
+  cp "$QT/dev/audit/rounds/round4/D6/claims.py" "$QC/dev/audit/rounds/round4/D6/"
+  cp "$QT/docs/x.md" "$QC/docs/"
+  printf '1 0\n' >"$QC/dev/audit/rounds/round4/D6/claims.json"
+  printf '| C108 | 1 [] |\n' >"$QC/dev/audit/rounds/round4/D6/claims.md"
+  # The header comparison imports the real parsers from `tests/` under the
+  # caller's cwd; the throwaway repository borrows them read-only.
+  ln -s "$PWD/tests" "$QT/tests"
+  printf '%s\n' docs/x.md >"$WF/changed"
+  ( cd "$QT" && claims_reg_line "$WF/changed" "$QC" ) >/dev/null 2>&1
+  st $? 0 "6g copies a link target the enumeration does not name, so an unlisted link passes (#2853)"
+  printf '[i](../tools/x/GONE.md)\n' >"$QC/docs/x.md"
+  ( cd "$QT" && claims_reg_line "$WF/changed" "$QC" ) >/dev/null 2>&1
+  st $? 1 "and a target the repository lacks is not copied, so the register is refused (null control)"
+  rm -rf "$QT" "$QC"
   rm -rf "$CG"
   rm -rf "${WF:?}"
 

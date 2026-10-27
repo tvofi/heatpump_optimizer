@@ -223,6 +223,13 @@ MUTANTS = [
     ("prepr-12", "tools/pr/ci_predict.py",
      '"under-scoped", "inert-siblings", "left-inert", "mutation")',
      '"under-scoped", "inert-siblings", "left-inert")'),
+    # #2853's review: the class the copy enumeration missed is a link to an
+    # in-tree file it does not name. prepr-11 renames a LISTED entry (the
+    # pathspec arm); prepr-13 stops the copy taking the generator's own link
+    # targets, which the unlisted-target arm grades.
+    ("prepr-13", "tools/pr/prepr.sh",
+     '    done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)\n',
+     '    done < /dev/null\n'),
     # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
     ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
     ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
