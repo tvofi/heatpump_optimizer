@@ -627,6 +627,7 @@ heavy_deadline=${HPO_HEAVY_DEADLINE:-1800}
 case $heavy_deadline in ''|*[!0-9]*) heavy_deadline=1800 ;; esac
 heavy_run() { # log file, command... -> the command's rc, 124 when the deadline fired
   local log=$1 hpid wpid r m="" d=""
+  heavy_deadline=0
   shift
   case $- in *m*) m=1 ;; esac
   rm -f "$log.deadline"
