@@ -10632,12 +10632,13 @@
     "Registered by the orchestrator 2026-10-27 under the owner's ruling that a delivery gap with no owning group gets folded into the roster rather than left as an orphan handoff. This group exists because the triage s6 batch 36 pull request carried a handoff ref that no group named, so the drain, the plan count and the board's OWED handoffs line all saw it as uncovered work with no seat."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "fix/triage-s6-batch36",
     "commit": null,
     "last_step": "registered",
     "next_step": "advance the head over the gap repair, then review it",
-    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2877
    },
    "brief": "Own the triage s6 batch 36 pull request to a merge-ready head. The batch file and the pull request's own Figures section must agree on every deferred item: the repair that reopened this group was one place saying a proposal was already carried while the enumerator printed zero for it. Re-derive the enumerator's output at your merge base rather than quoting the body's, and when the two disagree, the enumerator wins and the prose is the defect. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Do not add a survivor-triage record; a survivor list is repaired by killing the mutant or by an equivalent assertion, not by recording it."
   },
@@ -10675,12 +10676,13 @@
     "Registered by the orchestrator 2026-10-27: the round-10 roster batch 24 pull request was advancing a handoff ref that no roster group named, so the board read it as an orphan handoff with no pull request even while the pull request was open. A record-only change still needs an owning group, or the drain cannot see it finish."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "fix/audit-r10-roster-pr",
     "commit": null,
     "last_step": "registered",
     "next_step": "bring the pull request head up to the roster handoff, then review it",
-    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered"
+    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered",
+    "pr": 2878
    },
    "brief": "Own the round-10 roster batch 24 pull request to a merge-ready head. It is a record change, so the review is about whether the recorded state is true, not about code: re-derive each row from the tree and from the open pull requests rather than trusting the previous batch's claim, and correct any row that has gone stale since it was written. Keep the roster's own formatting byte-identical where no row changes -- the round-trip rule in tools/audit/seat/roster_edit.py is the constraint that stops a one-row edit rewriting the whole file. Read dev/governance/rules/delivery-status-tracking.md before touching a status row: the record outranks any wave body."
   }
