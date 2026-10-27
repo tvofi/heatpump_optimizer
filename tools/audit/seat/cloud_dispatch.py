@@ -118,6 +118,11 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
             f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
+            "Start from the review packet, which you render here rather than read from the "
+            "dispatcher, whose copy is a path on its own machine: "
+            f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
+            "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+            "written unless the signal is `host-path`; re-read the live checks either way. "
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
@@ -434,6 +439,18 @@ def _group_checks(check) -> None:
         # delivery rows, the bus state and the ledger in the scratch directory.
         bus_state, ledger_log = Path(td) / "bus", Path(td) / "ledger" / "cloud-relay.log"
         env.update(HPO_BUS_STATE=str(bus_state), HPO_BUS_LEDGER=str(ledger_log))
+        # The packet renderer is stubbed for the same reason `bus.sh --self-test`
+        # stubs it: the real one reads a pull request's body and check runs over
+        # `gh`, and this arm measures the dispatch path, not the renderer. The
+        # renderer's own seam is driven by its --self-test and by bus.sh's.
+        packer = Path(td) / "packer"
+        packer.write_text(
+            "#!/bin/sh\n"
+            '[ -z "${BUS_PACK_REFUSE:-}" ] || { echo "review_packet: REFUSE head-note: planted" >&2; exit 1; }\n'
+            'while [ $# -gt 0 ]; do case $1 in --head) h=$2; shift 2 ;; --out) o=$2; shift 2 ;; *) shift ;; esac; done\n'
+            'mkdir -p "$(dirname "$o")" && printf "# Review packet\\nhead: %s\\n" "$h" > "$o"\n')
+        packer.chmod(0o755)
+        env["HPO_BUS_PACKER"] = f"sh {packer}"
         (work / "dev/programme/delivery").mkdir(parents=True)
         for n in (7, 81):
             (work / f"dev/programme/delivery/{n}.md").write_text(f"- [#{n}](x) **open**\n")
@@ -462,8 +479,26 @@ def _group_checks(check) -> None:
         check("a reviewer is dispatched at the PR head passed, not at a ref's tip",
               rhead in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
               and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        check("the reviewer's brief carries the packet render at the dispatched head for the seat's own machine",
+              f"review_packet.py render --pr 7 --head {rhead} " in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
         check("a nonce no dispatch minted is refused by the bus, and records nothing",
               refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
+        check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
+              refused(role="reviewer", head=rhead, pr="7", environ={**env, "BUS_PACK_REFUSE": "1"})
+              and len(registry()) == 1)
+        # A SEAT THAT CANNOT RENDER ONE STILL DISPATCHES (#2870). The REAL renderer,
+        # not the stub, in the throwaway clone this dispatch runs in; its `gh` is
+        # made to fail, so it exits 3 (UNAVAILABLE) and bus.sh names no packet and
+        # proceeds. The alternative -- a render failure refusing the dispatch, which
+        # #2870's first head did -- breaks every caller whose clone has no token.
+        before = len(registry())
+        try:
+            rendered = dispatch(role="reviewer", head=rhead, pr="7",
+                                environ={**env, "HPO_BUS_PACKER": "", "HPO_BUS_GH": "false"})
+        except Refusal:  # a refusal, not a crash, is the regression: report it as one
+            rendered = ""
+        check("a packet the seat cannot render dispatches anyway, records, and says why (the #2870 regression)",
+              rendered == "dispatch/reviewer-r10-x" and len(registry()) == before + 1)
         real_publish = globals()["_publish"]
         globals()["_publish"] = lambda *a, **k: (_ for _ in ()).throw(Refusal("the push was refused"))
         try:
@@ -518,7 +553,11 @@ def _group_checks(check) -> None:
         git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
         relay = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", "81", rhead, "cloud"], cwd=work,
                                env={**os.environ, **env}, capture_output=True, text=True).stdout
-        nonce81 = relay.removeprefix("bus-nonce: ").strip()
+        # Search, never strip a prefix: `dispatch` prints its `review-packet:` line
+        # above the nonce, and `_bus_dispatch` reads it the same way.
+        _m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", relay, re.M)
+        nonce81 = _m.group(1) if _m else ""
+        check("a relay dispatch at a second pull request mints its nonce", len(nonce81) == 32)
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()), \
                 _env(env):

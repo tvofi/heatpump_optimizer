@@ -1064,6 +1064,7 @@
   "heat_pump_dhw_booster_entity": "sensor.seed_heat_pump_dhw_booster_entity",
   "heat_pump_energy_entity": "sensor.seed_heat_pump_energy_entity",
   "heat_pump_fault_entity": "sensor.seed_heat_pump_fault_entity",
+  "heat_pump_heat_energy_entity": "sensor.seed_heat_pump_heat_energy_entity",
   "heat_pump_mode_entity": "sensor.seed_heat_pump_mode_entity",
   "heat_pump_online_entity": "sensor.seed_heat_pump_online_entity",
   "heat_pump_power_entity": "sensor.seed_heat_pump_power_entity",
@@ -2125,6 +2126,14 @@
        "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
       },
       "default": "'sensor.seed_heat_pump_energy_entity'",
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_heat_energy_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
+      },
+      "default": "'sensor.seed_heat_pump_heat_energy_entity'",
       "required": "Optional",
       "selector": "EntitySelector"
      },
@@ -4675,6 +4684,14 @@
    "default": null,
    "fields": {
     "heat_pump_energy_entity": {
+     "config": {
+      "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
+     },
+     "default": null,
+     "required": "Optional",
+     "selector": "EntitySelector"
+    },
+    "heat_pump_heat_energy_entity": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
      },
