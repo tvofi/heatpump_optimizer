@@ -1,0 +1,2 @@
+selftest_wiring: 97 self-testing, 97 wired, 0 unwired
+base rc=0

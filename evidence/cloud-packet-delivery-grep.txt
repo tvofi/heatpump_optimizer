@@ -1,0 +1,11 @@
+cloud_dispatch.py references to the packet:
+0
+_bus_dispatch stdout parse:
+127:            f"then a blank line, then `bus-nonce: {nonce}`, then the body in sections. A blocked verdict's "
+320:    m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", r.stdout, re.M)
+521:        nonce81 = relay.removeprefix("bus-nonce: ").strip()
+618:          head in msg and "abc123" in msg and "probe/rev-7-abc123" in msg and "bus-nonce: abc123" in msg)
+bus.sh dispatch record fields:
+833:  [[ $N1 =~ ^[0-9a-f]{32}$ ]] && grep -qE "^7 $h1 cmsg_R $N1 [0-9]{4}-[0-9-]{5}T[0-9:]{8}Z -\$" "$W/state/dispatched"
+packet path printed:
+467:  printf 'review-packet: %s\n' "$(home_rel "$pk")"
