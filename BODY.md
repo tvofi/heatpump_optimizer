@@ -58,6 +58,10 @@ Part of #2258, #2816. Neither closes here: the roster gives this group
 
 ## Head
 
+`94c3f98a42071860ce4670136a43d8b8705ae5de` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`d9ac1497cf7a8d3ea3f74531e49ff456c00019de` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `34bb859d701a13fdfba3eb1721c4f4e2fac4422f` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 f1f67bec2420ab603de2ee39dcb69649498ea988
@@ -164,7 +168,15 @@ split's, not a scale-only drift.
   ledger rows, the same mode line and the same 27 scripts: `ALL 4454 FEATURE
   CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, the same four host reds at the
   same counts, and `tests/card.mjs` added to the red set by this host's V8 heap
-  limit (its merge-base control is in `## Red checks`). The drift lane,
+  limit (its merge-base control is in `## Red checks`). The gate has **not**
+  been re-run at this head: the last completed run is 65ac142 above, and the
+  change since is the five golden fixtures, the claim block and the delivery
+  row. The prepr at this head reached `pinned graders` with every policy step
+  `ok` and was then reaped inside `prepr.sh --self-test` by the pre-pr
+  livelock (four outers holding the four slots); its `app_push` line says the
+  body did not pass, and no red check sits above it. No line from that run is
+  quoted here as a pass -- the drift lane, the fixture staleness check and the
+  mutation table are the measurements taken at this head. The drift lane,
   `python3 tests/env_drift.py --all origin/main` (that ref is `524c1896b`, the
   one the pull request's first `tests / fast` compared against), reads its
   whole run at this head: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against
