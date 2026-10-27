@@ -1,0 +1,19 @@
+B4 roster_edit --self-test:
+pushed edit-r9 at 91fc2633c4b729c7b5b60ae37f0c078f742ef4e4
+roster_edit self-test: 124 checks, 0 failed
+B4 roster_sync --self-test:
+roster_sync self-test: 64 checks, 0 failed
+B4 independent dump round-trip (roster_edit.dump(json.load(file)) == file bytes):
+bytes equal: True | bytes: 1086504
+B4 duplicate group names / group count:
+groups: 212 | dupes: {}
+stage: not-started | branch: None | commit: None
+next_step: fixer lands the helper and the two contract sentences; review at the head
+after: []
+files: [('dev/governance/roles/fix-review.md', True), ('dev/governance/roles/orchestrator.md', True), ('tools/audit/seat/', True)]
+hot_files: [('dev/governance/roles/fix-review.md', True), ('dev/governance/roles/orchestrator.md', True), ('tools/audit/seat/bus.sh', True)]
+B4 brief self-claim checks:
+  helper present (grep FRESH-REVIEW under tools/ at head):        0
+  bus.sh carries the range refusal (grep CARRY/FRESH in bus.sh): 0
+TOTAL: 0 error(s) across 1 file(s)
+B4 brief_lint at head: TOTAL: 0 error(s) across 1 file(s)

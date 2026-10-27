@@ -1,0 +1,13 @@
+B4 body: does the PR body cite the owner's 2026-10-27 ruling verbatim?
+  grep -F 'if there are no code changes' body.md -> 0
+  grep -i 'review can be carried' body.md -> 0
+  grep -c 'ruling' body.md -> 0
+  grep -c '2026-10-27' body.md -> 0
+  grep -c 'R10-REVIEW-CARRY' body.md -> 1
+--- the one body line naming the group:
+13:Against `origin/main`, the roster tip has four more groups (`R10-ROSTER-BATCH24`, `R10-TRIAGE-B36`, `R10-TRIAGE-B37`, `R10-REVIEW-CARRY`) and 30 changed groups. Net over `origin/main`, the merged head has 212 groups against main's 208, and 22 groups change:
+--- the registered brief's own requirement:
+   Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are.
+   Both are policy: dev/governance/roles/ changes merge on the owner's approving review, and the pull request body cites this group and the ruling verbatim.
+--- the registration quotes the ruling in carry[0]:
+   Owner ruling, 2026-10-27, verbatim: "if there are no code changes, the previous review can be carried". Registered by the orchestrator in the hour it was given, because the programme had no entry for 

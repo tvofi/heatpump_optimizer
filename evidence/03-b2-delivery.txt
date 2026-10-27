@@ -1,0 +1,10 @@
+B2 diff --stat origin/main...HEAD:
+ dev/programme/delivery/2878.md             |   1 +
+ dev/programme/rosters/wave-r10-groups.json | 296 ++++++++++++++++++++++++-----
+ 2 files changed, 252 insertions(+), 45 deletions(-)
+B2 diff --name-status origin/main...HEAD -- dev/programme/delivery/:
+A	dev/programme/delivery/2878.md
+B2 diff --numstat origin/main...HEAD -- dev/programme/delivery/:
+1	0	dev/programme/delivery/2878.md
+--- row content
+- [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) — **open**, roster: round-10 batch 24 (R10-ORCH-ROSTER)
