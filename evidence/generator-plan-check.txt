@@ -1,7 +1,0 @@
-=== generator plan (re-derived at base 6fe5170cd with the API's merge facts) vs head rows ===
-2834 planned==head: True
-2858 planned==head: True
-2862 planned==head: True
-2864 planned==head: True
-2865 planned==head: True
-2866 planned==head: True

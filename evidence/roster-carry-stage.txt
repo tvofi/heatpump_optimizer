@@ -1,0 +1,15 @@
+HEAD blob: 91933dbd260329feb541e4a6e4ada15087dfedb0
+byte_identical canonical dump: True | groups: 208
+
+=== CARRY COUNTS (head) ===
+R10-FLOW-WIP: stage='not-started' carry_count=8
+   MATCH: "Triage P199 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P199): dead merge trains go unnoticed. ACCEPT narrowed to the tick arm only; the train.sh undetached-launch guard is REJECTED because train.sh is foreground by design (its caller detaches and owns the schedule) and a shell cannot honestly test whether its caller detached, while the detector covers every cause of a dead train (cr
+R10-ORCH-REVIEW-PACKET: stage='in-progress' carry_count=10
+   MATCH: "Triage P200 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P200): the reviewer verdict relay format is unstated where reviewers read. ACCEPT narrowed to stating the four checked items in fix-review.md; a bus.sh verdict-template verb is REJECTED because the reviewer reads the role file and never runs bus.sh, and a template verb would be a second statement of cloud_relay.sh's probe-accept
+R10-ORCH-ROSTER-SCHEMA: stage='not-started' carry_count=23
+   MATCH: "Triage P203 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P203): the tick marks mandate-approved owner gates as blocked. ACCEPT narrowed to a gate-kind classifier in roster_lib that the tick calls; a tick-only string heuristic is REJECTED because the gate's meaning belongs to the roster schema (the tick already imports roster_lib for its group and open-group reads) and a regex in the t
+
+=== s6-batch35 mentions per target group ===
+R10-FLOW-WIP s6-batch35 count: 1
+R10-ORCH-REVIEW-PACKET s6-batch35 count: 1
+R10-ORCH-ROSTER-SCHEMA s6-batch35 count: 1

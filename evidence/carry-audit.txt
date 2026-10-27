@@ -1,6 +1,8 @@
-NOTE #2871 body item 2f1d1b2d: R10-FLOW-WIP
-NOTE #2871 body item 2f1d1b2d: R10-ORCH-REVIEW-PACKET
-NOTE #2871 body item 2f1d1b2d: R10-ORCH-ROSTER-SCHEMA
-NOTE #2871 body item f51846f0: R10-ORCH-ROSTER-SCHEMA
-NOTE #2871 body item 82c86bc5: R10-ORCH-ROSTER-SCHEMA
-CARRY-AUDIT #2871: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+NOTE #2871 body item a5eed839: R10-FLOW-WIP
+NOTE #2871 body item bc3450c7: R10-ORCH-REVIEW-PACKET
+NOTE #2871 body item 2c541c50: R10-ORCH-ROSTER-SCHEMA
+NOTE #2871 body item 07238109: R10-FLOW-WIP
+NOTE #2871 body item daf91f14: dismissed:the orchestrator files this as a triage proposal; this body records the second witness.
+UNROUTED #2871 review 6433909277 item cad1feb9 (## 4. Non-blocking note — pre-existing ledger rot outside the record window) [section]: 'Fifteen rows read `**open**` at this head. One is #2871 itself (correct). Nine are record-class merges whose o'
+NOTE #2871 review 6433909277 item 51fef689: dismissed:pre-existing before the v7.0.4 record window, outside this PR's diff; the row is graded by the API, not the word
+CARRY-AUDIT #2871: 7 finding item(s): 6 routed, 1 unrouted, 0 bad destination(s)

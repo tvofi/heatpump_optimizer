@@ -1,0 +1,24 @@
+head: 4d4b3a5b3aa235311b596938e2041acefc0c4380
+merge-base with origin/main: 4f3c7302046eccd1f869724a6de2cbf6f8183418
+origin/main: 6f44346080d2630563a2cda08bd158ca50a1d23e
+HEAD tree: 0f26573d0d9a31781c65e53fdb80c9787988f65d
+--- three-dot diff (origin/main...HEAD) numstat ---
+1	0	dev/programme/delivery/2871.md
+37	25	dev/programme/rosters/wave-r10-groups.json
+--- name-status ---
+A	dev/programme/delivery/2871.md
+M	dev/programme/rosters/wave-r10-groups.json
+--- origin/main..HEAD numstat (body's figure) ---
+0	188	.claude/workflows/audit-plan.js
+0	13	.github/workflows/governance.yml
+0	1	dev/programme/delivery/2869.md
+1	0	dev/programme/delivery/2871.md
+37	25	dev/programme/rosters/wave-r10-groups.json
+0	6	tests/closure.py
+0	2	tests/closures.json
+1	1	tests/entities.py
+0	17	tools/audit/seat/INSTRUMENTS.md
+0	692	tools/audit/seat/plan_audit.py
+0	6	tools/audit/seat/ref_privacy.py
+0	101	tools/policy/check-wave-script.mjs
+--- policy/version/claim files touched (empty = none) ---

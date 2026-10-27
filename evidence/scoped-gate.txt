@@ -1,0 +1,18 @@
+=== select in a CLEAN workdir (first run) ===
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  changed files (2), measured against the recorded closures in tests/closures.json:
+      dev/programme/delivery/2871.md
+      dev/programme/rosters/wave-r10-groups.json
+
+      RUN   tests/doc_claims.py
+
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 125 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 92 files, no changed file is in its measured closure)
+=== scope.run ===
+tests/doc_claims.py
+=== named script run ===
+
+ALL 203 checks PASSED

@@ -1,0 +1,8 @@
+--- triage file P199 verdict line ---
+15:Verdict: ACCEPT narrowed -> a carry of **R10-FLOW-WIP** (stage `not-started`,
+406:1. **R10-FLY-WIP**: apply P199's carry before its dispatch (it is `not-started`,
+--- R10-FLY-WIP group present in roster? ---
+head roster R10-FLY-WIP as a group name:
+ABSENT
+origin/main roster R10-FLY-WIP group:
+ABSENT

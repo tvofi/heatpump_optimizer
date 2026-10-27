@@ -1,0 +1,31 @@
+=== changed_files includes untracked (closure.py:2743-2758) ===
+        raise SystemExit(f"closure: cannot diff against {diff_ref}: {e}") from None
+    # Uncommitted work counts too, so a local `run.sh` scopes to what is
+    # actually on disk.
+    for extra in (["git", "diff", "--no-renames", "--name-only", "HEAD"],
+                  ["git", "ls-files", "--others", "--exclude-standard"]):
+        o = subprocess.run(extra, cwd=ROOT, capture_output=True, text=True)
+        files += [l.strip() for l in o.stdout.splitlines() if l.strip()]
+    return sorted(set(files))
+
+
+=== TEST A: --workdir INSIDE repo, two runs (poison) ===
+run1:
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+run2:
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no recorded closure mentions .scope-ev/scope.json, .scope-ev/scope.run, .scope-ev/scope.skip, .scope-ev/scope.txt -- an unmeasured file is not a safe skip
+
+=== TEST B: --workdir OUTSIDE repo, two runs (no poison) ===
+run1:
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+run2:
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+
+=== TEST C: prepr.sh:3167 call (no --workdir) ===
+MODE=$(python3 tests/closure.py select --diff "$BASE" 2>/dev/null | grep -oE 'MODE: [A-Z]+' | head -1)
+prints: MODE: SCOPED; writes nothing
+
+=== TEST D: gate WORKDIR is mktemp outside repo ===
+WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-gate-XXXXXX")
+git status after tests (clean):

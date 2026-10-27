@@ -1,0 +1,2 @@
+--- dev/programme/delivery/2871.md at head ---
+- [#2871](https://github.com/tvofi/heatpump_optimizer/pull/2871) — **open**, roster: round-10 batch 23 (R10-ORCH-ROSTER)
