@@ -4868,7 +4868,7 @@
    "resume": {
     "stage": "in-review",
     "branch": "handoff/r10-buffer-store",
-    "commit": "173b71ba44480b6992f8f91021109c8eecc16582",
+    "commit": "5c01e40658af339371b22b1b7c141ae3e539deb9",
     "last_step": "handoff pushed at 173b71ba4; 11 mutants KILLED at the tip",
     "next_step": "review the handoff at 173b71ba4 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store",
     "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md (process state (c), census countermeasure). Gate reds: the stress_budgets raise on summer/1z/space/valve is the owner's; the shoulder economics red reads the same at base, main and head; the optimality claim closed; card.mjs OOM on this host."
