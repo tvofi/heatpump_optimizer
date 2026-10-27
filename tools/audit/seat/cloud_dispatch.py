@@ -121,7 +121,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "Start from the review packet, which you render here rather than read from the "
             "dispatcher, whose copy is a path on its own machine: "
             f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
-            "--out /tmp/review-packet.md`. A refusal names its signal and the packet is still "
+            "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
             "written unless the signal is `host-path`; re-read the live checks either way. "
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
