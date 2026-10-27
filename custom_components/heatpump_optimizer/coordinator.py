@@ -7544,7 +7544,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """True when the plan is older than three solve cycles (min 90 min)."""
         age = self._plan_age_minutes()
         limit = plan_stale_limit_minutes(self.effective_config)
-        return age is not None and limit is not None and age > limit
+        return age is not None and limit is not None and age >= limit
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
