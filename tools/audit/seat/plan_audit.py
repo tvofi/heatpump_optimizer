@@ -311,8 +311,19 @@ def coupling(ref: str, window: int, repo: Path = ROOT) -> dict:
             continue  # a direct commit on main is not a merged pull request
         sha, parent = parts[0], parts[1]
         merges += 1
-        changed = [p for p in git("diff", "--name-only", parent, sha, "--", PKG, cwd=repo).splitlines()
-                   if p.endswith(".py")]
+        # `--name-status -M`, not `--name-only`: `tests/closure.py`'s census
+        # refuses a rename-collapsing `--name-only` diff under RENAME_SITES,
+        # because a collapse hides a deleted path from a list the gate scopes
+        # on (`closure.py`'s own `changed_between` reads both sides). The
+        # question here is module identity, so detection is kept and the
+        # destination taken: one rename is one module, never a false pair --
+        # `--no-renames` would split it into a deleted plus an added module and
+        # count a co-change that no one made.
+        changed = []
+        for row in git("diff", "--name-status", "-M", parent, sha, "--", PKG, cwd=repo).splitlines():
+            path = row.split("\t")[-1]
+            if path.endswith(".py"):
+                changed.append(path)
         modules = sorted({str(Path(p).relative_to(PKG)) for p in changed})
         if len(modules) < 2:
             continue
@@ -544,10 +555,19 @@ def self_test() -> int:
     # Change coupling from a real (throwaway) history: the same two modules
     # changing together is coupling, each changing alone is none.
     sys.path.insert(0, str(ROOT / "tests"))
-    from throwaway_git import throwaway_git_env, throwaway_git_init
-    with tempfile.TemporaryDirectory(prefix="plan-audit-couple-") as tmp:
+    from throwaway_git import throwaway_git_environ, throwaway_git_init
+    # The harness owns its git identity for this block (`throwaway_git_environ`,
+    # the tree's mechanism for a self-test that drives production code making
+    # its own git calls): `coupling()` runs `git` itself, so threading an `env`
+    # argument through it would put a test-only parameter on the production
+    # signature. Without this the fixture inherits whatever identity the box
+    # has, and a box without one fails at the first `git commit` (exit 128).
+    with throwaway_git_environ(), tempfile.TemporaryDirectory(prefix="plan-audit-couple-") as tmp:
         repo = Path(tmp)
-        env = throwaway_git_init(repo, "-q", "-b", "main")
+        throwaway_git_init(repo, "-q", "-b", "main")
+        t("the fixture commits under the harness's own identity, not the box's",
+          git("var", "GIT_AUTHOR_IDENT", cwd=repo).startswith("t <t@t>"),
+          git("var", "GIT_AUTHOR_IDENT", cwd=repo))
         (repo / PKG).mkdir(parents=True)
         (repo / PKG / "a.py").write_text("a = 1\n")
         git("add", "-A", cwd=repo); git("commit", "-qm", "a", cwd=repo)
@@ -571,6 +591,18 @@ def self_test() -> int:
         both = coupling("main", 50, repo)
         t("the null control: a later merge of one module alone lowers the rate",
           both["merges"] == 2 and both["cochange_per_100"] == 50.0, repr(both))
+        # The rename arm: `--no-renames` would read this as a.py deleted and
+        # d.py added in one merge, a pair nobody made; detection reads one
+        # module. The rate therefore falls with the third merge and no pair.
+        git("checkout", "-qb", "renamed", "HEAD", cwd=repo)
+        git("mv", f"{PKG}/a.py", f"{PKG}/d.py", cwd=repo)
+        git("commit", "-qm", "rename a", cwd=repo)
+        git("checkout", "-q", "main", cwd=repo)
+        git("merge", "-q", "--no-ff", "-m", "merge rename", "renamed", cwd=repo)
+        renamed = coupling("main", 50, repo)
+        t("a rename alone is one module, so it adds no co-change pair",
+          renamed["merges"] == 3 and renamed["cochange_per_100"] == round(100 / 3, 4),
+          repr(renamed))
 
     print(f"plan_audit self-test: {checks} checks, {failures} failed")
     return 1 if failures else 0
