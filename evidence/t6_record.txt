@@ -1,0 +1,22 @@
+== delivery row at this head ==
+- [#2886](https://github.com/tvofi/heatpump_optimizer/pull/2886) — **open**, triage: batch 40 -- rule V124 as P211/V131 (the push-stuck guard's CPU-advance arm) (R10-UPDATE-PR-SIGNALS)
+== PR state ==
+OPEN f2ac08446177e47caec306e9975b063a123c5501
+== V124 header stamp (proposals.md, out of tree) ==
+601:## V124 (orchestrator s7, 2026-10-27T18:53Z): the push-stuck guard's threshold sits below the work it is guarding
+== proposals.md mtime and box clock ==
+2026-10-27T19:23:44 local
+2026-10-27T18:58:50Z
+== seat ledger: push time, source note, correction ==
+triage s7: 2026-10-27T18:43:35Z batch 40 pushed: handoff/triage-s6-batch40 5ecdd96a417744bdce5c2a6c6f7352c4243eefb3 (s6-batch40.md only, base 6eb552157); handoff-body/triage-s6-batch40 bad5eae337a5fbcca2aea1183bbac19e597334b5 byte-identical; --body-check pr-body ok/carry ok/preflight ok; queue op appended and HELD until the file is on main
+triage s7: 2026-10-27T18:43:35Z source note: proposals.md gained V124 at 18:53Z (newest entry was V123); the file's V-numbers and this seat's ruling numbers are separate sequences, so V124 rules as P211/V131
+triage s7: 2026-10-27T18:43:40Z correction to the line above: 18:53Z is V124's own header stamp, not its arrival -- proposals.md's mtime is 2026-10-27T18:23Z on this box (19:23 local), so the entry's stamp runs 10 min ahead of this seat's clock; the ruling uses the mtime as arrival.
+== the ruling's provenance sentence ==
+One entry, the first from `proposals.md` since V123: V124, relayed by the orchestrator at
+2026-10-27T18:53Z. Facts read at origin/main `6eb552157`; roster at
+`origin/handoff/audit-r10-roster` `32b938f3e` (212 groups).
+== grep the file for the two caveats ==
+0
+== diff ==
+A	dev/programme/delivery/2886.md
+A	dev/programme/triage/s6-batch40.md
