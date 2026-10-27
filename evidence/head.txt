@@ -1,0 +1,6 @@
+PR #2877 review evidence
+Head reviewed (full 40-hex): 6d58fa0bc404485ca96f543b0c894d6ea8e72a59
+Merge base: 524c1896b6943b3da03d6cad61420ced31e14c9c
+Authored-code head: 1b84be415587523f0e26ebbbf274b2e871ef2334
+Reviewer worktree: /tmp/rev-2877-1 (detached at the head)
+Dispatch nonce: f5ca16fa7384a88e59e0b3877c49e680
