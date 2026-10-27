@@ -4911,7 +4911,7 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "wip-sync/ext-wt-a58e58ff",
     "commit": "50ef300f72a96fe467467deec6f4877bdadb8221",
     "last_step": null,
