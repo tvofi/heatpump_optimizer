@@ -58,6 +58,8 @@ Part of #2258, #2816. Neither closes here: the roster gives this group
 
 ## Head
 
+`34bb859d701a13fdfba3eb1721c4f4e2fac4422f` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 f1f67bec2420ab603de2ee39dcb69649498ea988
 
 ## Mutation proof
@@ -239,7 +241,7 @@ here, and each fix carries its own mutant above.
   sampled pool and never re-drives a pin, and a `killed_by` row is re-driven by
   the nightly drain or by `mutation_table.py --anchor`.
 
-- `tests / fast`: red at the pull request's first head `8b37c0a5`, on
+- `tests / fast (3.14)`: red at the pull request's first head `8b37c0a5`, on
   `python3 tests/env_drift.py --all 524c1896`: `5 COMMITTED FIXTURE(S) ARE
   STALE`, each of the five coord fixtures with `2 path(s) differ in STRUCTURE
   from the committed file` -- `data.insight.scores.envelope_drivers` and
