@@ -1997,6 +1997,21 @@ def _energy_totals_view(totals: dict[str, float]) -> EnergyTotals:
     }
 
 
+def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float:
+    """The price level the setpoint sweep is priced at: ``kwh_price`` (the
+    grid view's recent kWh price), else the price feed's window mean.
+
+    The sweep ranks candidates by cost, and ranking needs a positive
+    price level: a negative mean flips every ``cost_day`` negative and
+    min-cost then crowns the candidate using the MOST energy. The
+    sweep is a relative comparison, so on a worthless-energy day a
+    floored positive level keeps the ranking meaningful — better than
+    the advisor entity vanishing, which would look like a bug.
+    """
+    level = kwh_price or float(np.mean([p.get("total", 0.0) for p in prices]))
+    return level if level > 1e-6 else max(abs(level), 0.1)
+
+
 def _whatif_banded(state: Any) -> bool:
     """Whether the card's what-if plans with the away setback (R9-UX-5).
 
@@ -3923,7 +3938,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if flow > 0:
             out["shower_minutes"] = round(litres / flow, 1)
         return out
-    def _dhw_setpoint_sweep(self) -> DhwAdvisor:
+    def _dhw_setpoint_sweep(self, kwh_price: float | None = None) -> DhwAdvisor:
         """#9: replay candidate setpoints against everything learned.
 
         Read-only. For each candidate: a day of standby loss at that
@@ -3932,6 +3947,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         priced at the learned COP for that tank temperature and the recent
         mean price. The recommendation is the cheapest candidate that
         still covers the heaviest learned window demand.
+
+        ``kwh_price`` is the grid view's recent kWh price: the card scales a
+        day of this sweep to a month, so the price feed's own window made the
+        row swing with each day's price level (#2257 item 6). That window
+        prices a fresh install, which has none.
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
@@ -3939,15 +3959,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return {}
         c_dhw = params.dhw_tank_thermal_mass
         outdoor = float(ctx._current_state.outdoor_temperature)
-        mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
-        # The sweep ranks candidates by cost, and ranking needs a positive
-        # price level: a negative mean flips every ``cost_day`` negative and
-        # min-cost then crowns the candidate using the MOST energy. The
-        # sweep is a relative comparison, so on a worthless-energy day a
-        # floored positive level keeps the ranking meaningful — better than
-        # the advisor entity vanishing, which would look like a bug.
-        if mean_price <= 1e-6:
-            mean_price = max(abs(mean_price), 0.1)
+        mean_price = _sweep_price(kwh_price, self._prices)
         # The heaviest ready energy any window needs, learned where
         # evidence exists, profile-mean otherwise. Without the fallback a
         # fresh install has a 0 kWh "heaviest window", every candidate
@@ -7663,11 +7675,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms
-            # (#28), the setpoint sweep (#9) and the learned heavy-day
-            # statistics (#32/#20).
+            # (#28) and the learned heavy-day statistics (#32/#20); the
+            # setpoint sweep (#9) is priced in ``_build_data_dict``.
             "dhw_inlet_temperature": round(params.dhw_inlet_reference, 1),
             "dhw_mixed": self._dhw_mixed_water(),
-            "dhw_advisor": self._dhw_setpoint_sweep(),
             "dhw_draw_stats": {
                 label: {
                     "events": self._dhw_learner.draw_stats.count(label),
@@ -7795,6 +7806,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         forecast = self._weather_forecast
         return {
             "current_price": self._get_current_price(),
+            # The level the advisors' monthly figures are priced at (#2257).
+            "recent_kwh_price": self._ledger.recent_kwh_price(dt_util.now()),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(forecast),
             # The outdoor temperature the horizon starts on, beside the
@@ -7969,6 +7982,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._energy_totals_since is None:
             self._energy_totals_since = dt_util.now().date().isoformat()
         data["energy_totals_counting_since"] = self._energy_totals_since
+        data["dhw_advisor"] = self._dhw_setpoint_sweep(data.get("recent_kwh_price"))
         # Which of the battery's stores stand on a thermometer. Labelled
         # here rather than inside the view because this is where the
         # reading map is already assembled (#282).
@@ -8771,7 +8785,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "feasible": breach <= 0.05,
             "comfort_shortfall_c": round(breach, 2),
             "worst_margin_kw": round(candidate_kw - peak, 2),
-            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
         }
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
@@ -11193,11 +11207,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
-            # The same choice held from a steady start (the price tiles'
-            # degree, price_tiles.py): no one-off coast or heat-up in it.
-            "monthly_held_cost_delta": round(price_tiles.per_month(
-                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
+            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(

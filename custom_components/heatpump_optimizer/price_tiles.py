@@ -17,6 +17,16 @@ null: at a flat price and a constant outdoor temperature, where the plan has
 no timing to buy, its closed-loop cost per degree it delivers is the held
 figure up to the loop's own settlement error.
 
+THE CAP TILE PRICES THE PLAN, SETTLED. A cap keeps the comfort schedule, so
+both plans answer to one thermostat, and each plan's spend plus the heat it
+left unstored (``deferred_energy_cost``) differences the same question: the
+fuse advisor reads the same figure. Unsettled, a cap that left the house
+colder at the horizon's end read as a saving, and the figure moved with
+where the house started. Across two schedules the settlement is not
+comparable (each side is bought back against its own thermostat), which is
+why the degree tiles read the held figure instead.
+``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures all three.
+
 THE HORIZON. One solve prices one day of weather and prices, so a tile is
 published as the mean of its daily means over the last ``HORIZON_DAYS`` local
 days: one unusual day moves it by a thirtieth. The days are kept on the tile
@@ -81,6 +91,24 @@ def per_month(delta: float, horizon_hours: float) -> float:
     return delta * MONTH_HOURS / horizon_hours
 
 
+def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> dict[str, float]:
+    """A what-if's three monthly figures against the plan it shadows.
+
+    ``live`` and ``sim`` are the two solves' results, ``extra`` the what-if's
+    spend outside its solve (wood). The plan's spend; the same choice held from
+    a steady start, the thermostats' (the degree tiles'); and the plan's spend
+    with the heat each plan left unstored bought back (the cap tile's and the
+    fuse advisor's). Only the first carries the one-off coast or heat-up.
+    """
+    spend = sim.predicted_cost + extra - live.predicted_cost
+    return {
+        "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
+        "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
+        "monthly_settled_cost_delta": round(per_month(
+            spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
+    }
+
+
 def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
     """#39's fixed perturbation set, from the configuration ONE solve planned with.
 
@@ -110,9 +138,16 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
 
 
 def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
+<<<<<<< HEAD
     """The monthly figure a tile averages: a degree held, or the plan under a cap."""
     key = "monthly_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
     return finite_float(answer.get(key))
+=======
+    """The monthly figure a tile averages: a degree held, or the plan under a cap, settled."""
+    key = "monthly_settled_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
+    value = answer.get(key)
+    return float(value) if isinstance(value, (int, float)) else None
+>>>>>>> origin/main
 
 
 def _within(days: list[TileDay], today: date) -> list[TileDay]:
