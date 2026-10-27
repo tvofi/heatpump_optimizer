@@ -26,6 +26,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
+from .const import finite_float
 from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,12 +95,13 @@ def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
     would scale (#2255's coverage under v7.0.1: months of bookings over
     minutes of hours). That month, like one with no coverage, falls back
     to the calendar-day ratio. Every estimated figure takes this one
-    factor.
+    factor. A meta entry that is not a dict, or one whose ``sum`` or
+    ``count`` is missing or not a finite number, reads as no coverage.
     """
     entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
-    settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
-    folds = int(entry["count"]) if isinstance(entry, dict) else 0
-    spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
+    settled = finite_float(entry.get("sum"), 0.0) if isinstance(entry, dict) else 0.0
+    folds = int(finite_float(entry.get("count"), 0.0)) if isinstance(entry, dict) else 0
+    spot_folds = int(finite_float(spot.get("count"), 0.0)) if isinstance(spot, dict) else 0
     if settled > 0 and folds >= spot_folds:
         return max(1.0, month_hours(now) / settled)
     return pro_rata_factor(now)

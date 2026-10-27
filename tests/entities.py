@@ -18177,7 +18177,7 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
         calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
         cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
         stub.write_text(
-            f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}") in\n{cases}'
+            f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}" | tr -d " ") in\n{cases}'
             f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
         )
         stub.chmod(0o755)
