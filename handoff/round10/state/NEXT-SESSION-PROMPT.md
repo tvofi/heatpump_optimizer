@@ -24,7 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-TRAIN-OVERLAP-GRADE (stage in-progress, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-ROSTER-SCHEMA (stage in-review, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
