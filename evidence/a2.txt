@@ -1,0 +1,28 @@
+### A2: the fields config_flow publishes on the meters group at HEAD
+  count: 5
+    heat_pump_energy_entity
+    heat_pump_heat_energy_entity
+    heat_pump_power_entity
+    heat_pump_thermal_power_entity
+    house_power_entity
+
+### A2: the config_flow claim line, HEAD then origin/main
+  HEAD: config_flow # R10-HEAT-METER (#2261): the heat_pump_heat_energy_entity field is published on the meters group and seeded; keys added (3 leaves), no value moved
+  origin/main: config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
+
+### A2: re-derive "3 leaves" with env_drift._diff_leaves
+  leaf-diff lines: 3
+    config_flow._seed.heat_pump_heat_energy_entity: present on one side only
+    config_flow._seeded.entities_metering.meters.fields.heat_pump_heat_energy_entity: present on one side only
+    config_flow.entities_metering.meters.fields.heat_pump_heat_energy_entity: present on one side only
+
+### A2: claims-for, VERSION, fixture presence, claim/may-drift overlap
+  # claims-for: 7.0.4
+  VERSION=7.0.4
+  claimed and may-drift share a name: False
+  fixture present: coord_all_features
+  fixture present: coord_dhw
+  fixture present: coord_grid_fee
+  fixture present: coord_minimal
+  fixture present: coord_two_zone
+  fixture present: config_flow

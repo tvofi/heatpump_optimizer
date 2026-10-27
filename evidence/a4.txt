@@ -1,0 +1,72 @@
+### A4: every mutant site in _fold_measured_cop/_fold_cop_evidence, at HEAD and at origin/main
+   (python3 tests/mutation_table.py --list <kind>, all 7 kinds, grepped by line range)
+  --- origin/main _fold_measured_cop 5024-5145: 16 site(s), 2 unpinned
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5083 CLAMP_DROP: ratio = float(self._measured_power) / (commanded)
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5038 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5040 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5045 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5061 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5063 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5069 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5089 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5098 GUARD_OFF: if False:
+      UNPINNED custom_components/heatpump_optimizer/coordinator.py:5103 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5113 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5095 RETURN_DEL: pass
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5145 RETURN_DEL: pass
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5089 BOOLOP: if heat_kw is None or (refusal := MeasuredCop.judge_ratio(ratio, ewma, c
+      UNPINNED custom_components/heatpump_optimizer/coordinator.py:5103 CMP_BOUND: if modelled_cop < 0.1:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5113 CMP_BOUND: if not np.isfinite(observed_cop) or observed_cop < 0.1:
+  --- HEAD _fold_measured_cop 5059-5123: 14 site(s), 0 unpinned
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5109 CLAMP_DROP: ratio = float(cast(float, self._measured_power)) / (commanded)  # the tw
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5075 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5077 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5082 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5090 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5092 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5098 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5100 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5115 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5121 RETURN_DEL: pass
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5122 RETURN_DEL: pass
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5075 BOOLOP: if self._measured_power is None or not heat_energy.meter_of(self).counte
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5082 BOOLOP: if self._measured_power is not None or (refusal := MeasuredCop.judge_flo
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5115 BOOLOP: if heat_kw is None or (refusal := MeasuredCop.judge_ratio(ratio, ewma, c
+  --- HEAD _fold_cop_evidence 5124-5172: 6 site(s), 2 unpinned
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5130 GUARD_OFF: if False:
+      UNPINNED custom_components/heatpump_optimizer/coordinator.py:5135 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5145 GUARD_OFF: if False:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5172 RETURN_DEL: pass
+      UNPINNED custom_components/heatpump_optimizer/coordinator.py:5135 CMP_BOUND: if modelled_cop < 0.1:
+      pinned   custom_components/heatpump_optimizer/coordinator.py:5145 CMP_BOUND: if not np.isfinite(observed_cop) or observed_cop < 0.1:
+
+### A4: global unpinned count, main vs head
+  origin/main: 3814 unpinned site(s)
+  HEAD: 3802 unpinned site(s)
+
+### A4: the six deleted pins and where each mutant now sits
+  _fold_measured_cop.GUARD_OFF.c31691cd  old='if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):'
+  _fold_measured_cop.GUARD_OFF.ca278eff  old='if self._measured_power is None:'
+  _fold_measured_cop.GUARD_OFF.fb4de4b6  old='if modelled_cop is None:'
+  _fold_measured_cop.CMP_BOUND.a3cd4cc3  old='if not np.isfinite(observed_cop) or observed_cop <= 0.1:'
+  _fold_measured_cop.GUARD_OFF.a3cd4cc3  old='if not np.isfinite(observed_cop) or observed_cop <= 0.1:'
+  _fold_measured_cop.RETURN_DEL.d7923b87  old='        return None'
+
+### A4: reading of the six deleted pins (each mutant's home at HEAD)
+  GUARD_OFF.c31691cd  old 'if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):'
+       -> the line still exists, rewritten to 'if self._measured_power is not None and (refusal := ...)'
+          at coordinator.py:5082, and 5082 is PINNED (GUARD_OFF.02c2e9f7 recorded in killed_by).
+  GUARD_OFF.ca278eff  old 'if self._measured_power is None:'
+       -> rewritten to '... is None and not heat_energy.meter_of(self).counter:' at :5075, PINNED
+          (GUARD_OFF + BOOLOP both pinned there).
+  GUARD_OFF.fb4de4b6  old 'if modelled_cop is None:'
+       -> moved with the tail to _fold_cop_evidence:5130, re-pinned as
+          _fold_cop_evidence.GUARD_OFF.fb4de4b6 (killed_by tests/features.py).
+  CMP_BOUND.a3cd4cc3  old 'if not np.isfinite(observed_cop) or observed_cop <= 0.1:'
+       -> moved to _fold_cop_evidence:5145, re-pinned with the same verdict (survivor_triage, gap).
+  GUARD_OFF.a3cd4cc3  same line -> same move, re-pinned (survivor_triage, gap).
+  RETURN_DEL.d7923b87 old 'return None'
+       -> _fold_cop_evidence:5172, re-pinned (survivor_triage, equivalent).
+  CLAMP_DROP 2a1bdb6a -> bc5272bf is the one pure rename (R081), old text the cast() line at :5109.
+  NONE of the six left an unpinned equivalent: the only unpinned sites in the family are the
+  same two (`if modelled_cop <= 0.1:`) at main:5103 and head:5135 -- the same line, moved.
