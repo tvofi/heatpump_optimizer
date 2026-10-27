@@ -46,7 +46,9 @@ are in the roster's list. The rest of the diff is tests and evidence:
 two harnesses (one new, registered in `tests/closures.json`), the three
 mutation-ledger rows the removed `envelope_score` and `envelope_band_hours`
 lines owned (deleted with them) and the four the grade's own lines add
-(recorded below), the group's delivery row, and the two claim files. The
+(recorded below), the group's delivery row, the two claim files, and the five
+coord fixtures that carry the new key (patched in those two paths alone, in
+`## Red checks`). The
 delivery row is inert to the gate: `tests/closure.py select` at this head reads
 the same `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` as the gate on the
 pin head.
@@ -56,7 +58,7 @@ Part of #2258, #2816. Neither closes here: the roster gives this group
 
 ## Head
 
-b1134fa8bf984881df7d292d4dbcaa29b1a403c2
+f1f67bec2420ab603de2ee39dcb69649498ea988
 
 ## Mutation proof
 
@@ -161,9 +163,12 @@ split's, not a scale-only drift.
   CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, the same four host reds at the
   same counts, and `tests/card.mjs` added to the red set by this host's V8 heap
   limit (its merge-base control is in `## Red checks`). The drift lane,
-  `python3 tests/env_drift.py --all origin/main`, reads its whole run: 5
-  committed fixtures stale and all 5 `CLAIMED`, 0 `UNCLAIMED`, every backtest
-  scenario `byte-identical to origin/main here`.
+  `python3 tests/env_drift.py --all origin/main` (that ref is `524c1896b`, the
+  one the pull request's first `tests / fast` compared against), reads its
+  whole run at this head: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against
+  origin/main` and `NO STALE FIXTURE: 56 committed fixture(s) still match what
+  this tree computes`, with all 5 `CLAIMED`; before the fixture patch on
+  `8b37c0a5` the same run printed `5 COMMITTED FIXTURE(S) ARE STALE`.
 - `tests/structure.py`: `STRUCTURE RATCHET PASSED`, every metric at or under
   its budget.
 
@@ -234,6 +239,25 @@ here, and each fix carries its own mutant above.
   sampled pool and never re-drives a pin, and a `killed_by` row is re-driven by
   the nightly drain or by `mutation_table.py --anchor`.
 
+- `tests / fast`: red at the pull request's first head `8b37c0a5`, on
+  `python3 tests/env_drift.py --all 524c1896`: `5 COMMITTED FIXTURE(S) ARE
+  STALE`, each of the five coord fixtures with `2 path(s) differ in STRUCTURE
+  from the committed file` -- `data.insight.scores.envelope_drivers` and
+  `sensors.optimization_score.extra_state_attributes.envelope_drivers`,
+  "present on one side only (the code produces it)". A claim line excuses
+  drift between two captures; it does not excuse a committed fixture that no
+  longer matches the code (`env_drift`'s own `rot.failed`), so the fixtures
+  must carry the keys. Answered by patching those two paths in the five, each
+  an empty list because a coord fixture publishes no grade
+  (`envelope_score: null`), and re-recording no other leaf (`git diff
+  --numstat`: 2 insertions, 0 deletions in each file). Measured on this host
+  at both ends, `python3 tests/env_drift.py --fixtures`: `5 COMMITTED
+  FIXTURE(S) ARE STALE` at `8b37c0a5`, `no committed fixture is stale` over
+  the same 56 fixtures at this head. The cheaper detector the branch should
+  have run before its handoff is that same `--fixtures` form -- one capture,
+  no baseline compare -- and it is now the form its drift figure is taken
+  with; the standing cost is one capture per head, not a gate run.
+
 - `governance / delivery-status`: the first CI pass over a freshly opened pull
   request is expected to read red because `dev/programme/delivery/<N>.md` does
   not exist until the opener has created the pull request; `open_pr.sh` writes
@@ -295,10 +319,12 @@ same claim; `tests/stress.py` `1 of 113` at both, `4.67 vs 3.96` at both;
 `tests/golden.py` in strict mode `55 of 56 GOLDEN SCENARIOS CHANGED` at both;
 and `node tests/card.mjs` dies with the same `FATAL ERROR: ... JavaScript heap
 out of memory` line right after the same census check at both.
-The drift lane at both ends prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked
+The drift lane at the merge base prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked
 against origin/main` and `NO STALE FIXTURE: 56 committed fixture(s) still match
-what this tree computes`; at this head the five fixtures this branch's claim
-lines name read `CLAIMED`.
+what this tree computes`; at this head it prints both again, with the five
+fixtures this branch's claim lines name reading `CLAIMED`. Between them the
+head `8b37c0a5` printed `5 COMMITTED FIXTURE(S) ARE STALE` instead -- the
+`tests / fast` red, measured in `## Red checks`.
 
 ## Forward-carry
 
