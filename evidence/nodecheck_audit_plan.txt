@@ -1,0 +1,3 @@
+=== .claude/workflows/audit-plan.js must be unparseable under BOTH grammars (entities.py's codeql ignore check) ===
+node --input-type=module  --check < .claude/workflows/audit-plan.js  -> rc=1 ([stdin]:181 return {)
+node --input-type=commonjs --check < .claude/workflows/audit-plan.js -> rc=1

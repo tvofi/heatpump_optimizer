@@ -1,0 +1,8 @@
+=== the six red checks at base 2f15a24cd: per-step conclusions (Actions API) ===
+121982854726 governance / instrument-self-tests: failure, step 23 "Show the P3 move ledger and holdout check refusing their own fixtures": failure
+121983008811 tests / closures: failure, step 10 "Fail if tests/closures.json under-approximates": failure
+121990578626 tests / closures-autofix: failure, step 9 "Report whether the repair happened": failure
+121983008846 tests / fast (3.14): failure, step 11 "Run the suite": failure
+121993018230 pr-contract / pr-contract: failure, step 10 "Check the body against the contract": failure
+121993189412 gate: failure, step 4 "Judge this head": failure
+All six match the body's ## Red checks names/steps.

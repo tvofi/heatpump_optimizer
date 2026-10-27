@@ -1,0 +1,16 @@
+(node:54425) Warning: Failed to load the ES module: [stdin]. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[stdin]:31
+export const meta = {
+^^^^^^
+
+SyntaxError: Unexpected token 'export'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at checkSyntax (node:internal/main/check_syntax:88:3)
+    at node:internal/main/check_syntax:45:5
+    at ReadStream.<anonymous> (node:internal/process/execution:205:5)
+    at ReadStream.emit (node:events:514:28)
+    at endReadableNT (node:internal/streams/readable:1783:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+Node.js v24.22.1

@@ -1,0 +1,3 @@
+closure: files on the INERT list are inside a recorded closure (committed tests/closures.json):
+  .claude/workflows/audit-plan.js
+  A file cannot be declared unread (INERT) and recorded as read (in a closure) at the same time. Either it genuinely affects that script's output and must leave INERT, or the recorder over-approximated and should stop recording it (#357).

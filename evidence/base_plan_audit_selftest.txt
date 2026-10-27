@@ -1,0 +1,41 @@
+  ok   a score block parses its dS, verdict and two moving metrics
+  ok   a body with no score block is refused
+  ok   a plan the merged bodies account for reconciles with no failure
+  ok   a merged metric no planned move names is refused
+  ok   and its flagged run exits non-zero on the same input the passing run exits 0
+  ok   a planned move with no merged body is OWED
+  ok   a merged group the plan never names is refused
+  ok   an inadmissible end-to-end reading fails the round
+  ok   a WORSENS end-to-end reading fails even with no named regression
+  ok   a dS the moves do not account for is refused
+  ok   and a residual inside the tolerance is not
+  ok   the inventory reads entities, services, options and the card's pages
+  ok   a removed card page is a holdout regression
+  ok   and the plan's approved removal (--allow) suppresses it
+  ok   a raised structure metric is a regression
+  ok   a raised gate-only tripwire is a regression
+  ok   the plan's declared structure exception allows that one rise
+  ok   and an unrelated declaration leaves the rise (the null control)
+  ok   a falling mutation kill rate is a regression
+  ok   a rising change coupling is a regression
+  ok   the null control: identical snapshots regress on nothing
+  ok   a target measured against itself uses its own file (the null control)
+  ok   the structure metrics are the instrument's code, not the target's
+Traceback (most recent call last):
+  File "/private/tmp/wt-base-2869/tools/audit/seat/plan_audit.py", line 660, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/private/tmp/wt-base-2869/tools/audit/seat/plan_audit.py", line 606, in main
+    return self_test()
+  File "/private/tmp/wt-base-2869/tools/audit/seat/plan_audit.py", line 553, in self_test
+    git("add", "-A", cwd=repo); git("commit", "-qm", "a", cwd=repo)
+                                ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/wt-base-2869/tools/audit/seat/plan_audit.py", line 77, in git
+    return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True,
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          check=True).stdout.strip()
+                          ^^^^^^^^^^^
+  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['git', '-C', '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/plan-audit-couple-k29huwae', 'commit', '-qm', 'a']' returned non-zero exit status 128.
