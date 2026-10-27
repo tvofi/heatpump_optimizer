@@ -8957,7 +8957,7 @@
     "**R10-ORCH-REVIEW-PACKET: carry [11], dispatch at the handoff ref,** with its controls as stated above; `dispatch --nonce` and the REVIEW OWED carry filter are already in place. Carry: R10-ORCH-REVIEW-PACKET"
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "wip-sync/ext-wt-2b362865",
     "commit": "9c35ddd23bca6d7281d74ff7c6b6d854f8953bbf",
     "last_step": null,
