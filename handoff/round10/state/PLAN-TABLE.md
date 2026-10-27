@@ -300,7 +300,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-TRAIN-UPGRADE | IN | 1 | done | - | opus/opus | yes: mandated approval under 6329234399 | Owner-ordered (tvofi 2026-10-24, prioritized): upgrade tools/audit/seat/merge_train.py so that (1) policy and triage-record heads batch with code under a val... |  |
 | R10-FLY-LEDGER-SAMPLE | IN | 1 | not-started | #2509, #2802 | sonnet/opus | - | triage: dev/programme/triage/s6-batch16.md#P85. |  |
 | R10-MERGE-SUBJECT-CASEARM | IN | 1 | not-started | #2494, #2803 | opus/opus | yes: policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate | Split from #2697 under the three-round rule (orchestrator ruling 2026-10-25, mandate 6329234399). |  |
-| R10-HOUSE-GRADE | IN | 1 | in-progress | #2258, #2816 | opus/opus | - | From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). |  |
+| R10-HOUSE-GRADE | IN | 1 | handoff | #2258, #2816 | opus/opus | - | From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). |  |
 | R10-LEGIONELLA-COMPLETION | IN | 1 | done | - | opus/opus | - | GROUP R10-LEGIONELLA-COMPLETION (new, size S, triage: dev/programme/triage/s6-batch24.md#P120). |  |
 | R10-PLAN-ISSUES-CHART | IN | 1 | done | - | sonnet/sonnet | - | GROUP R10-PLAN-ISSUES-CHART (new, size S, owner request tvofi 2026-10-25 in the orchestrator session: 'fold the issues chart into tools/audit/seat/plan_page.... |  |
 | R10-PROOF-CODEQL | IN | 1 | done | - | opus/opus | - | GROUP R10-PROOF-CODEQL (new, size S, orchestrator-sourced under mandate 6329234399; triage ruling P158 in PR #2829). |  |
