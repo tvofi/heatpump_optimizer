@@ -16,7 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HEAT-METER (stage in-progress, branch `fix/r10-heat-meter-pr`): `git fetch origin fix/r10-heat-meter-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage in-progress, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-BUFFER-STORE (stage fixing, branch `wip-sync/ext-mut-297fc65b`): `git fetch origin wip-sync/ext-mut-297fc65b && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BUFFER-STORE (stage in-progress, branch `handoff/r10-buffer-store`): `git fetch origin handoff/r10-buffer-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLOW-JIDOKA (stage in-progress, branch `fix/r10-flow-jidoka-p2`): `git fetch origin fix/r10-flow-jidoka-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
