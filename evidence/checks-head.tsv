@@ -1,0 +1,58 @@
+cancel-superseded	completed	skipped
+refresh	queued	null
+prelude	queued	null
+gate	completed	success
+pr-contract / pr-contract	completed	success
+codeql	completed	skipped
+tests	completed	skipped
+validate	completed	skipped
+hassfest	completed	skipped
+governance	completed	skipped
+kernel-points	completed	skipped
+arch-score / arch-score	completed	success
+budget-raise-gate / budget-raise-gate	completed	success
+gate	completed	success
+pr-contract / pr-contract	completed	success
+tests / ci-ratchet	completed	skipped
+tests / closures-autofix	completed	skipped
+tests / claims-autofix	completed	skipped
+tests / lane-proofs	completed	success
+tests / mutation-autofix	completed	skipped
+tests / mutation-pins	completed	skipped
+tests / nightly-ha	completed	skipped
+tests / coverage-ratchet	completed	skipped
+tests / coverage	completed	skipped
+tests / replay	completed	skipped
+tests / graders-head-copy	completed	success
+tests / fast (3.14)	completed	success
+tests / typing	completed	success
+tests / closures	completed	success
+tests / browser	completed	success
+tests / arch-instrument	completed	success
+CodeQL	completed	success
+governance / delivery-status-publish	completed	skipped
+governance / record	completed	skipped
+kernel-points	completed	skipped
+governance / delivery-status	completed	success
+governance / wave-script	completed	success
+budget-raise-gate / budget-raise-gate	completed	success
+governance / policy-docs	completed	success
+governance / instrument-self-tests	completed	success
+tests / mutation	completed	success
+tests / closure-scope	completed	success
+arch-score / arch-score	completed	success
+tests / briefs	completed	success
+governance / env-matrix	completed	success
+tests / nightly-status	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+hassfest / hassfest	completed	success
+codeql / Analyze (python)	completed	success
+validate / validate-hacs	completed	success
+codeql / Analyze (actions)	completed	success
+arm	completed	skipped
+cancel-superseded	completed	success
+prelude	completed	success
+refresh	completed	success
+prelude	completed	success
+refresh	completed	success
+cancel-superseded	completed	success

@@ -1,0 +1,18 @@
+# R1 -- three-dot diff origin/main...0e3b89f23c35a89f605e9611d5d074d800783b5b
+command: git diff --name-status origin/main...0e3b89f23c35a89f605e9611d5d074d800783b5b
+M	dev/programme/delivery/2745.md
+M	dev/programme/delivery/2819.md
+M	dev/programme/delivery/2869.md
+M	dev/programme/delivery/2871.md
+M	dev/programme/delivery/2874.md
+M	dev/programme/delivery/2880.md
+M	dev/programme/delivery/2881.md
+M	dev/programme/delivery/2882.md
+A	dev/programme/delivery/2885.md
+
+file count: 9
+outside dev/programme/delivery/<N>.md:
+(none)
+
+diffstat:
+ 9 files changed, 9 insertions(+), 8 deletions(-)

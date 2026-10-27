@@ -1,0 +1,4 @@
+# R3 -- the new self-row at 0e3b89f23c35a89f605e9611d5d074d800783b5b
+- [#2885](https://github.com/tvofi/heatpump_optimizer/pull/2885) — **open**, record: delivery rows (autofix)
+PR 2885 live: OPEN head=0e3b89f23c35a89f605e9611d5d074d800783b5b
+row states **open** and cites no head SHA; the pre-merge title is record_row.OPEN_ROW_TITLE.
