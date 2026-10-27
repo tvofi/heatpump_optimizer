@@ -58,12 +58,6 @@ Part of #2258, #2816. Neither closes here: the roster gives this group
 
 ## Head
 
-`94c3f98a42071860ce4670136a43d8b8705ae5de` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-`d9ac1497cf7a8d3ea3f74531e49ff456c00019de` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-`34bb859d701a13fdfba3eb1721c4f4e2fac4422f` merges the authored code head `f1f67bec2420ab603de2ee39dcb69649498ea988` and then merges origin/main `524c1896b` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
 f1f67bec2420ab603de2ee39dcb69649498ea988
 
 ## Mutation proof
