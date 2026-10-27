@@ -1,0 +1,38 @@
+head measured: b00a5d3ef97bc343a09116217b74a82b2c4190c9
+worktree: ~/hpo-seats/r10s6/review-2888/wt (detached at the head)
+base: a0e7664ea (draft PR, base main)
+
+-- triage_refusal mutation proof (driver: ./drive_triage_refusal.py, mine) --
+RESULT arm 1 corrected file (ACCEPT): None
+RESULT arm 2 verdict -> DEFER: 'dev/programme/triage/s6-batch40.md#P211 is not an ACCEPT ruling (DEFER)'
+RESULT arm 3 heading renamed: 'dev/programme/triage/s6-batch40.md#P211 is not an ACCEPT ruling (no such entry)'
+RESULT arm 4 null control (no proposal): None
+RESULT arm 5 unmodified main (pre-fix): None
+
+-- citations, measured at the head --
+tests/gate_lock.py:577          raise RuntimeError("no live gate lease to renew")
+tests/gate_lock.py:1119-1124    def _cmd_flock_wrap / print at 1123 / return 1 at 1124
+tests/gate_lock.py:53-56        pool-slot paragraph; quoted sentence at 55-56
+tests/gate_lock.py:861-877      def flock_wrap (865) / except RenewRefused (873)
+
+-- #2854 body, live --
+present, verbatim: "were refused by `tests/gate_lock.py` when the 30-minute lease lapsed inside the 85-minute run"
+present, verbatim: "gate_lock: flock-wrap refused, fix-2854-conflict holds no lease: no live gate lease to renew"
+updatedAt count in dev/programme/triage/s6-batch40.md: 0
+
+-- figures --
+git diff --stat origin/main...1ca755414 -> 1 file changed, 47 insertions(+), 14 deletions(-)
+git log --no-merges --oneline origin/main..1ca755414 -> three commits
+git diff --stat 1a6365f16:<file> a0e7664ea:<file> -> empty
+grep -c R10-PREPR-CAP: main 0, head 2
+
+-- roster at origin/handoff/audit-r10-roster tip 8f7e252fe --
+R10-PREPR-CAP: resume.stage fixing; files include tests/gate_lock.py; carry holds P206/V126
+R10-UPDATE-PR-SIGNALS: resume.stage fixing; files include cloud_relay.sh and pr_args.sh
+grep -c P211 in that branch's roster: 0 (the new carry is not yet appended)
+
+-- mergeability --
+git merge-tree --write-tree origin/main b00a5d3ef -> exit 0, no conflict
+VERSION / pyproject manifest / RELEASE_NOTES untouched
+touched paths match no .github/CODEOWNERS rule
+red checks at the head: none
