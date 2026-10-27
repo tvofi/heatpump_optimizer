@@ -13,7 +13,12 @@ from typing import Any, Callable
 from .const import MIXING_VALVE_WRITE_EPSILON
 from .entry_config import EntryConfig
 from .issues import clear_issue, set_issue
-from .inputs import read_setpoint, setpoint_and_unit, temperature_from_c
+from .inputs import (
+    quantise_setpoint_c,
+    read_setpoint,
+    setpoint_and_unit,
+    temperature_from_c,
+)
 from .quiet_windows import silent_unenforceable
 
 _LOGGER = logging.getLogger(__name__)
@@ -129,9 +134,14 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
         and not (gated and gated(pump))
     )
     # ``target`` is degC for the notice's text; ``value`` is what Fix writes,
-    # in the entity's own unit (#1513).
-    value = round(temperature_from_c(floor, unit), 1)
-    data = {"entity_id": entity_id, "target": floor, "value": value} if active else None
+    # in the entity's own unit (#1513) and on the entity's step rounded UP
+    # (#2805): a floor written below itself is snapped down by the entity and
+    # re-raises this notice. An on-step floor is unchanged.
+    data = None
+    if active:
+        on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up")
+        value = round(temperature_from_c(on_step_c, unit), 6)
+        data = {"entity_id": entity_id, "target": floor, "value": value}
     placeholders = {
         "pump": f"{pump:.1f}" if pump is not None else "",
         "target": f"{floor:.0f}",
