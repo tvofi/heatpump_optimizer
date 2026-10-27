@@ -1,2 +1,0 @@
-RESULT coercers=1
-   const.py::finite_float
