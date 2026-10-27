@@ -8422,8 +8422,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "branch": "handoff/r10-roster-schema"
+    "stage": "in-review",
+    "branch": "handoff/r10-roster-schema",
+    "commit": "0f2541d692f6d2fc9d1ba98643bb157d3caea407"
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern D, the roster schema: owner_gate structure, absorbed-edge closure, the brief pin and the stage set (note section 3 row D). DONE_STAGES changes, and pr_cap.py, prune_refs.py, handover_prompt.py and the tick all read it (carry 24). Independent of the ledger, beat and page. It is policy: rows vii and viii of the design's section 8 table need tvofi's approval before merge. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
