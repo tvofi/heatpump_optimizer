@@ -1,0 +1,54 @@
+# the note's own probes, re-run at 6fe5170cd (design seat's round-4 probes)
+## probe_feed.py
+## A1: one probe run, the live pairing (the defect at main)
+  2.0 h step (4 cycles): folded=5 stored=4 values=[1.5, 3.0, 3.0, 3.0]
+  1.0 h step (2 cycles): folded=3 stored=2 values=[1.5, 3.0]
+  control: gate-held pre-step draw is idle (0.0 kW)
+  2.0 h: folded=5 stored=3 values=[3.0, 3.0, 3.0]
+  1.0 h: folded=3 stored=1 values=[3.0]
+
+## A2: one probe run, the interval-owned pairing (the re-cut)
+  2.0 h step (4 cycles): folded=5 stored=4 values=[3.0, 3.0, 3.0, 3.0]
+  1.0 h step (2 cycles): folded=3 stored=2 values=[3.0, 3.0]
+  control: a gate-held pre-step draw above idle (1.4 kW, command at the gate)
+  2.0 h: folded=5 stored=4 values=[3.0, 3.0, 3.0, 3.0]
+  1.0 h: folded=3 stored=2 values=[3.0, 3.0]
+  control: outside the probe the plan runs (1.5 kW, plan command)
+  plan-only intervals: folded=12 stored=0 values=[]
+
+## A3: twelve store samples
+  live 2.0 h: 12 samples from 3 runs -> median 3.0 adopted=True (bar 4.25)
+  live 1.0 h: 12 samples from 6 runs -> median 2.25 adopted=True (bar 4.25)
+  own 2.0 h: 12 samples from 3 runs -> median 3.0 adopted=True (bar 4.25)
+  own 1.0 h: 12 samples from 6 runs -> median 3.0 adopted=True (bar 4.25)
+  control: twelve true ceiling draws -> (3.0, 12, True)
+  control: twelve draws at 90% of configured -> (4.5, 12, False)
+
+## A4: idle discrimination the store inherits
+  no idle learned: idle_kw=None floor=RUNNING_FLOOR_KW only
+  after 12 idle readings at 1.1 kW: idle_kw=1.100 margin=1.375
+  a 1.4 kW gate-held draw above the idle is a running sample by is_running_space: True | admitted by the store: False
+  control: the same draw with the ceiling written is admitted: True
+
+## probe_reader.py
+## B1: the reader chain at main
+  the note's F6 case: 48 ceiling in a full 336 window: observed=(1.5, 3.0) engaged=False planned=None high=3.0 effective_max_kw=None
+  F6 control: 47 ceiling in a full 336 window: observed=(1.5, None) engaged=False planned=None high=None effective_max_kw=None
+  twelve ceiling samples in the window: observed=(1.5, None) engaged=False planned=None high=None effective_max_kw=None
+  a 48-sample window, all ceiling: observed=(3.0, 3.0) engaged=True planned=(3.0, 3.0) high=3.0 effective_max_kw=3.0
+  null control: no ceiling sample: observed=(1.5, None) engaged=False planned=None high=None effective_max_kw=None
+  store-only, twelve samples on an otherwise empty window:
+    observed=None engaged=False planned=None effective_max_kw=None (no accessor reaches a store)
+
+## B2: the latch under incremental evaluation (sticky, after every append)
+  48 ceiling samples first on an empty window: engaged at append 48, final share 0.1429 at 336
+  48 ceiling samples last on a full window: engaged at append None
+  static shares only (they never decide the latch): 48/336=0.1429 48/192=0.2500 48/193=0.2487
+
+## B3: the design's spike -- a second deque, no window write
+  eleven ceiling samples: learned_max_kw=None observed=None engaged=False
+  twelve: learned_max_kw=3.0 observed=None engaged=False
+  48 ceiling samples in the store: learned_max_kw=3.0 engaged=False observed=None effective_max_kw=None
+  lapse control: at day 46 -> None
+  agree control: twelve at 4.5 kW (90% of configured) -> None
+  MIN_SAMPLES still gates the window: 48 running samples; the store needs 12

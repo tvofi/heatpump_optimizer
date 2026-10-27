@@ -1,0 +1,25 @@
+# reviewed
+note:   dev/programme/designs/R10-CEILING-PROBE.md
+design ref: refs/heads/design/r10-ceiling-probe
+note sha: 2212054e93c344d62762ac52e3b891bcce93d31d
+note parent: 1cd93ca6e6fdcfebebb481fea370a139c8e41eb9
+note blob: db2e9493b5e7fd22286add1058dacf5fa80ae5e7
+reviewed base: origin/main 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+
+# prior verdict (parent of this commit)
+ref: refs/heads/design-verdict/R10-CEILING-PROBE at 3a261d86473f226f17fc6adfbf5b8f0d18b2fab7
+
+# live ref tips
+3a261d86473f226f17fc6adfbf5b8f0d18b2fab7	refs/heads/design-verdict/R10-CEILING-PROBE
+2212054e93c344d62762ac52e3b891bcce93d31d	refs/heads/design/r10-ceiling-probe
+
+# diff since the prior note (one file)
+ dev/programme/designs/R10-CEILING-PROBE.md | 46 +++++++++++++++++++-----------
+ 1 file changed, 30 insertions(+), 16 deletions(-)
+
+# three-dot diff against the reviewed base
+ dev/programme/designs/R10-CEILING-PROBE.md | 96 ++++++++++++++++++++++++++++++
+ 1 file changed, 96 insertions(+)
+
+# the note's code base equals the reviewed base for every cited module
+(empty above = identical)

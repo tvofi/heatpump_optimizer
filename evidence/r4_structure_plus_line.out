@@ -1,0 +1,8 @@
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  class_excess_loc = 18080 (every class's span past 300, summed; the coordinator's 449 helper lines count in its span)
+RESULT class_excess_loc=18080 count
+RESULT coordinator_attrs=143 count
+RESULT max_class_loc=8237 count
+FAIL class_excess_loc 18080 > 18079 (+1)
+  ok   coordinator_attrs 143 <= 143
+FAIL max_class_loc 8237 > 8236 (+1)

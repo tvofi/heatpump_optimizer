@@ -1,0 +1,22 @@
+## the note as written: the kind read at the fold (the NEXT interval's action)
+  2.0 h step: store=3 samples [3.0, 3.0, 3.0]; window=3 samples
+  1.0 h step: store=1 samples [3.0]; window=3 samples
+  per twelve store samples: 4 runs at 2.0 h, 12 runs at 1.0 h
+  the note's Evidence plan states: four samples for a 2.0 h step, two for a 1.0 h step
+
+## control: the kind carried with the captured pair (THIS interval's action)
+  2.0 h step: store=4 samples [3.0, 3.0, 3.0, 3.0]; window=2 samples
+  1.0 h step: store=2 samples [3.0, 3.0]; window=2 samples
+  per twelve store samples: 3 runs at 2.0 h, 6 runs at 1.0 h
+  the note's Evidence plan states: four samples for a 2.0 h step, two for a 1.0 h step
+
+## what moves: the kind read one interval late drops each run's LAST step
+## interval out of the store and into the window (one probe sample per run
+## reaches `observe`, which re-cut B says cannot happen), so the store gets
+## 3 and 1 samples per run, not the note's 4 and 2.
+
+## F6's premise: the settling interval is a plan at p_max (cmd = ceiling, 2.6 kW)
+  read at the fold: store=[2.6, 3.0, 3.0, 3.0]; window=2 samples
+  control (kind captured): store=[3.0, 3.0, 3.0, 3.0]; window=2 samples
+  read at the fold: store=[2.6, 3.0]; window=2 samples
+  control (kind captured): store=[3.0, 3.0]; window=2 samples

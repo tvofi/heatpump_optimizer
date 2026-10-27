@@ -1,0 +1,128 @@
+# tree checks at origin/main 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+
+## structure.py, the base run (all budgets at their values)
+  ok   73 counting rules hold
+  ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
+  ok   custom_components/heatpump_optimizer/const.py  CONF_HOUSE_HEAT_LOSS_SCALE
+  ok   custom_components/heatpump_optimizer/const.py  CONF_LOWER_FLOOR_LOSS_RATIO
+  ok   custom_components/heatpump_optimizer/const.py  CONF_SOLAR_UPPER_FRACTION
+  ok   class_excess_loc 18079 <= 18079
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 143 <= 143
+  ok   coordinator_multiassigned_attrs 110 <= 110
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 16 <= 16
+  ok   functions_cc_over_15 29 <= 29
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 8236 <= 8236
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 16 <= 16
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 424 <= 424
+STRUCTURE RATCHET PASSED
+
+## class spans by ast
+  draw_range.py:91-284 DrawRange span=194
+  sysid.py:1283-2347 SystemIdentification span=1065
+  coordinator.py:3054-11289 HeatPumpOptimizerCoordinator span=8236
+
+## the ratchet payment claim: one added line inside the coordinator class
+   (a comment line inserted before _commanded_split; reverted after)
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  class_excess_loc = 18080 (every class's span past 300, summed; the coordinator's 449 helper lines count in its span)
+RESULT class_excess_loc=18080 count
+RESULT coordinator_attrs=143 count
+RESULT max_class_loc=8237 count
+FAIL class_excess_loc 18080 > 18079 (+1)
+  ok   coordinator_attrs 143 <= 143
+FAIL max_class_loc 8237 > 8236 (+1)
+
+## tests/structure.py:2904-2911 (the rule the payment rests on)
+    prices growth wherever it lands, and a class under the limit costs
+    nothing, so a new small class is free. The coordinator's span counts its
+    helpers (``coordinator_helpers``, #1686): a method moved verbatim into
+    ``_helper(self, ...)`` is the same code with the same reach, so the move
+    leaves this row where it was, and only lines that go -- copies merged,
+    dead code deleted -- lower it. A move to another module is priced by
+    ``coordinator_private_reach`` and ``seam_cut_total`` instead.
+    """
+
+## tests/structure.py:28-33 (class_excess_loc's own definition)
+  class_excess_loc            every class's span past GOD_CLASS_LOC_LIMIT,
+                              summed, the coordinator's span counting its
+                              coordinator.py helpers (#1686's units). Growth
+                              in ANY class over the limit moves it (D7-s1-01:
+                              1201 lines into the second-largest class moved
+                              no row); a method cut verbatim into a helper
+
+## planned_range consumers in the package
+custom_components/heatpump_optimizer/draw_range.py:438:def planned_range(
+custom_components/heatpump_optimizer/draw_range.py:469:    effective = planned_range(draw, params, cap)
+
+## the fold's cycle position (coordinator)
+custom_components/heatpump_optimizer/coordinator.py:5826:                await self.async_run_optimization()
+custom_components/heatpump_optimizer/coordinator.py:5845:            await self._apply_action()
+custom_components/heatpump_optimizer/coordinator.py:5861:                self._record_accuracy, "Accuracy pairing skipped: %s"
+custom_components/heatpump_optimizer/coordinator.py:6270:                    await self.async_run_optimization()
+custom_components/heatpump_optimizer/coordinator.py:9829:        defrost_window = self._defrost_window.close(now)
+custom_components/heatpump_optimizer/coordinator.py:9841:        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
+
+## _current_action's one assignment site
+custom_components/heatpump_optimizer/coordinator.py:3678:        self._current_action = action
+
+## CEILING_MIN_SAMPLES / CEILING_LAPSE_DAYS at the base (absent = the note introduces them)
+  (none)
+
+## the note's sibling-site command and what it returns
+  git grep -n '_sysid_step_off_loop\|learner_samples=' custom_components/heatpump_optimizer/
+custom_components/heatpump_optimizer/coordinator.py:1772:async def _sysid_step_off_loop(
+custom_components/heatpump_optimizer/coordinator.py:10966:        override = await _sysid_step_off_loop(self.hass, self._sysid,
+custom_components/heatpump_optimizer/coordinator.py:10972:            learner_samples=self._house_heat_loss_samples,
+
+## every package file naming system_identification (the class, independently)
+  custom_components/heatpump_optimizer/boost.py
+  custom_components/heatpump_optimizer/button.py
+  custom_components/heatpump_optimizer/const.py
+  custom_components/heatpump_optimizer/coordinator.py
+  custom_components/heatpump_optimizer/entry_config.py
+  custom_components/heatpump_optimizer/icons.json
+  custom_components/heatpump_optimizer/payload.py
+  custom_components/heatpump_optimizer/pump_arbiter.py
+  custom_components/heatpump_optimizer/sensor.py
+  custom_components/heatpump_optimizer/strings.json
+  custom_components/heatpump_optimizer/sysid.py
+  custom_components/heatpump_optimizer/translations/en.json
+  custom_components/heatpump_optimizer/translations/sv.json
+  custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+
+## _unrecorded_attributes pin (tests/entities.py)
+_ux7_unrec = getattr(_ux7_status_cls, "_unrecorded_attributes", frozenset())
+R.check(
+    "UX-7: the bulky learner state stays out of the recorder; the compact rows are recorded",
+    {"internal_gains_kw", "capacity_envelope", "system_identification"} <= _ux7_unrec
+    and not ({"heat_loss", "heat_loss_w_per_k", "cop"} & _ux7_unrec),
+    f"unrecorded={sorted(_ux7_unrec)!r}",
+)
+
+## the fold feature test the note says does not move (tests/features.py)
+
+def _cf_feed(pairs, true=None):
+    """The cycle's order: #2065's running-draw fold, then the COP learner on its evidence."""
+    from heatpump_optimizer import draw_range as _cf_dr
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    for asked, drawn in pairs:
+        coord._current_action = {"power": asked, "dhw_power": 0.0}
+        coord._measured_power = asked * coord._cop_scale / true if true else drawn
+        _cf_dr.fold(coord._accuracy.draw, coord._measured_power, coord._commanded_split(),
+                    coord._thermal_params, frozen=False, distorted=False, defrost=False)
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+## sibling design: R10-HEAT-METER puts draw_range.fold out of scope
+  156:  - `draw_range.fold` and `draw_range.space_share`'s own use in `space_draw_kw`: the draw evidence, which belongs to COP-GATE.

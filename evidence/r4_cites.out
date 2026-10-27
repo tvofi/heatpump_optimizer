@@ -1,0 +1,64 @@
+OK sysid.py:1547 | sized = None if why else self._size_step_power(
+OK sysid.py:1564 | self._step_power = sized
+OK sysid.py:1469-1470 | if fits(q_max, bound): ... return max_power_kw
+OK const.py:1423 | DEFAULT_OPTIMIZATION_INTERVAL: Final = 30  # minutes
+OK sysid.py:1564-1566 | self._step_power = sized ... if unadoptable:
+OK coordinator.py:10989 | "heat_pump_on": override > 0.05,
+OK pump_arbiter.py:613-623 | if duty in ("space", "both"): ... hi=heat_c,
+OK pump_arbiter.py:325-359 | def step_duty(result: Any, now: datetime) -> str | None: ... )
+OK sysid.py:1698 | return self._step_power
+OK coordinator.py:10985-10991 | "power": float(override), ... # T6: the experiment's draw is not the plan's -- booking it under
+OK sysid.py:1365-1374 | if self.last_run is not None: ... return False
+OK pump_arbiter.py:563-581 | def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None: ... return None
+OK sysid.py:1340 | self.result = SysIdResult(completed=False, reason=why)
+OK sysid.py:1401 | if learner_samples >= cfg.converged_samples:
+OK coordinator.py:10956-10963 | why = ( ... return
+OK sensor.py:1995-1997 | _unrecorded_attributes = frozenset( ... )
+OK tests/entities.py:5854-5861 | _ux7_unrec = getattr(_ux7_status_cls, "_unrecorded_attributes", frozenset()) ... _ux7_nodhw = _ux7_attrs(_ux7_status({**DATA, "dhw_enabled": False}))
+OK payload.py:530-535 | class SysIdView(TypedDict, total=False): ... result: SysIdResultView
+OK coordinator.py:11004-11009 | result = self._sysid.result ... self._sysid.result = replace(result, completed=False, reason=decision.reason)
+OK button.py:146-152 | @property ... async def async_press(self) -> None:
+OK payload.py:115 | REASON_SYSTEM_IDENTIFICATION = "system_identification"
+OK coordinator.py:5861 | self._record_accuracy, "Accuracy pairing skipped: %s"
+OK coordinator.py:5430-5433 | The action that governed the elapsed interval is the one in ... the previous cycle -- exactly the interval being replayed. The old
+OK coordinator.py:9829 | defrost_window = self._defrost_window.close(now)
+OK tests/features.py:65457-65490 | def _cf_feed(pairs, true=None): ... # samples asked at or above the floor, none while the asks never moved, then
+OK coordinator.py:10990 | "mode": "system_identification",
+OK draw_range.py:138 | (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)
+OK draw_range.py:372 | def is_running_space(
+OK draw_range.py:125-145 | def _evidence(self) -> list[tuple[float, float, bool]]: ... return cmds if len(cmds) == len(self.samples) else [None] * len(self.samples)
+OK draw_range.py:190-211 | def observe( ... self.engaged = True
+OK draw_range.py:464-470 | def diagnostics_view( ... view["effective_min_kw"] = None if effective is None else round(effective[0], 3)
+OK draw_range.py:162-172 | def _metered_range( ... return min(bottom, top), top
+OK draw_range.py:217-226 | def planned( ... return metered
+OK draw_range.py:438 | def planned_range(
+OK draw_range.py:159 | high = float(np.percentile(full, HIGH_PERCENTILE)) if full.size >= MIN_SAMPLES else None
+OK draw_range.py:469 | effective = planned_range(draw, params, cap)
+OK pump_arbiter.py:462-466 | def _step_kw(result: Any, now: datetime) -> float | None: ... )
+OK coordinator.py:11009 | self._sysid.result = replace(result, completed=False, reason=decision.reason)
+OK coordinator.py:3599 | self._sysid = SystemIdentification(
+OK coordinator.py:7769 | "system_identification": self._sysid.as_dict(),
+OK sensor.py:2042 | "system_identification": data.get("system_identification"),
+OK button.py:143 | coordinator, entry, "system_identification", "learning_run_system_identification"
+OK const.py:1492 | "system_identification",
+OK boost.py:647 | if action.get("mode") == "system_identification":
+OK sysid.py:1423-1512 | def _size_step_power( ... return best
+OK sysid.py:1457-1462 | def fits(q: float, bound: float) -> bool: ... return peak <= bound and final <= bound
+OK thermal_model.py:1517 | def flow_setpoint_for_level(
+OK sysid.py:1316-1378 | def arm(self, now: datetime, plant: ThermalParameters | None = None) -> bool: ... return True
+OK sysid.py:1609-1705 | def step( ... return None
+OK draw_range.py:147-160 | def observed(self) -> tuple[float, float | None] | None: ... return low, high
+OK draw_range.py:174-211 | def _disagrees(self, cfg_min: float) -> bool: ... self.engaged = True
+OK coordinator.py:9861 | # v5.2.0: and the same settlement for the hot-water tank, against
+OK sysid.py:1694 | self.samples[-1].power_kw = self._step_power * thermal_cop
+OK tests/structure.py:26 | moves out verbatim: class_excess_loc is the row
+OK coordinator.py:6453 | self._measured_power = power_reading.value if power_reading.ok else None
+OK sysid.py:1448-1450 | full = cfg.max_excursion_c - ( ... )
+OK sysid.py:1468 | for bound in (full - SIZING_NOISE_HEADROOM_C, full):
+OK sysid.py:85 | SIZING_NOISE_HEADROOM_C = 0.15
+OK sysid.py:1695 | if elapsed >= cfg.step_hours:
+OK pump_arbiter.py:620 | flow_setpoint_for_level(_step_kw(inp.plan, now), p_min, p_max, heat_c, floor_c),
+OK coordinator.py:10984 | **self._current_action,
+OK thermal_model.py:1324 | def probe_install(config: Any) -> InstallCapability:
+
+62 citations, 0 unresolved
