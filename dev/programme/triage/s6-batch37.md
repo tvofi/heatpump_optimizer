@@ -1,7 +1,7 @@
 # Proposal triage, session s7, batch 37 (P205)
 
 One entry. Numbering continues after `s6-batch36.md` (P204). Facts re-measured on
-2026-10-27 at origin/main `67178dc6a` and against the live refs and logs named below.
+2026-10-27 at origin/main `2b45d098c` and against the live refs and logs named below.
 
 ## P205: a STOP result body reads as an orphan handoff on every pass (V125)
 Verdict: DEFER. The item's group is `R10-ORCH-LEDGER` (`carries-open`, L). What would
@@ -13,9 +13,10 @@ Source: orch s7, 2026-10-27, relayed to this seat with its measurement done; the
 `## V123`).
 
 Instances: one, and the existing remedy already heals it.
-- Corpus: `git ls-remote origin 'refs/heads/handoff-body/*' | wc -l` prints `102`, and
-  every one carries a `BODY.md`. Exactly one has a STOP marker on its first non-blank
-  line: `git ls-remote origin 'refs/heads/handoff-body/*' | cut -f1 | while read s; do
+- Corpus: `git ls-remote origin 'refs/heads/handoff-body/*' | wc -l` prints `104` at
+  2026-10-27T17:47Z, and every one carries a `BODY.md`. Exactly one has a STOP marker on
+  its first non-blank line:
+  `git ls-remote origin 'refs/heads/handoff-body/*' | cut -f1 | while read s; do
   git show "$s:BODY.md" 2>/dev/null | grep -m1 -v '^[[:space:]]*$' |
   grep -qE '^#{1,6}[[:space:]]*STOP:' && echo "$s"; done` prints only
   `b9b690afb9830a20e046b3515bd18858757d2047`, the ref the proposal names.
@@ -27,14 +28,15 @@ Instances: one, and the existing remedy already heals it.
   (`grep r10-flow-jidoka-p2-body ~/.local/state/hpo/dispositions.tsv`), and
   `python3 -I tools/audit/seat/ledger.py disposed refs/heads/handoff-body/r10-flow-jidoka-p2-body b9b690afb9830a20e046b3515bd18858757d2047`
   exits 0.
-- A fresh `level` pass at the default home summarises
-  `ledger: level carried=174 disposed=27 open-pr=20 owed=3 state-ref=4` on stderr, and
-  `grep -c r10-flow-jidoka-p2-body` over its stdout (the OWED lines) prints `0`: the
-  ref is not owed.
+- A fresh `level` pass at the default home (`python3 -I tools/audit/seat/ledger.py level
+  <hrefs> <topics>`, hrefs from `git ls-remote origin 'refs/heads/handoff/*'
+  'refs/heads/handoff-body/*'`, topics from the open PRs' `fix/<topic>` heads) owes no
+  line for the ref: `grep -c r10-flow-jidoka-p2-body` over its stdout (the OWED lines)
+  prints `0`, so the ref is not owed.
 - The arm's effect over today's corpus is therefore zero lines changed. So is the
   narrower marker-plus-owed-text arm: the one STOP body states its work under
   `## What is owed`, so requiring the absence of owed text newly exempts `0` of the
-  102 bodies.
+  104 bodies.
 
 Cost: about 6-10 lines in `handoff_level()` plus a `result-body` counter in `why`, one
 `git show <ref>:BODY.md` per otherwise-owed `handoff-body/` ref per pass, and a new
@@ -48,13 +50,13 @@ five-key literal and `:831` asserts `r.stdout.count("handoff-no-pr") == 4`.
 
 Binding: an unmeasured benefit is DEFER, never ACCEPT (`proposal-triage.md`). The
 benefit is zero for the instance — a one-command remedy already healed it — and the
-class frequency is unmeasured: one STOP body in 102 today. Two constraints bind any
+class frequency is unmeasured: one STOP body in 104 today. Two constraints bind any
 future arm. A STOP body may state uncarried work and this one does, under
 `## What is owed` (three items), so a marker-only test exempts the only automatic
 signal that the topic is unowned. And `dispatch/` is not an `ARMS` prefix
 (`ledger.py:99-101`), so the test cannot check that a claimed follow-up dispatch
-exists. An arm that survives both is "marker AND no owed text", and owes a null
-control proving a STOP body carrying `## What is owed` stays owed.
+exists. The narrowed test that survives both is "marker AND no owed text", and it owes
+a null control proving a STOP body carrying `## What is owed` stays owed.
 
 Note for that group's `files`: `R10-ORCH-LEDGER` lists
 `tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/orchestrator_tick.py` and omits
@@ -62,8 +64,15 @@ Note for that group's `files`: `R10-ORCH-LEDGER` lists
 asks to add it (`dev/programme/triage/s6-batch10.md#P79`), so this batch opens no
 second carry.
 
-The prior ruling's "the board's only OWED line" is withdrawn as measured: the pass the
-board read finished `2026-10-27T11:09:14Z` and its level line is
+The prior ruling's "the board's only OWED line" is false and is replaced by the
+measurement: the pass the board read finished `2026-10-27T11:09:14Z` with the level line
 `ledger: level carried=167 disposed=26 open-pr=16 owed=3 state-ref=4`
 (`grep -B1 'TICK-RELAY 2026-10-27T11:09:14Z' ~/hpo-orch/r10s6/tick-loop.log`), so the
-board carried three OWED lines, not one.
+OWED channel carried three lines and the jidoka ref was one of them — it was not
+disposed until `2026-10-27T11:28:57Z` (the store row above), and no open PR or
+`handoff/` code ref holds its topic `r10-flow-jidoka-p2-body` (the open
+`fix/r10-flow-jidoka-p2` and the `handoff/r10-flow-jidoka-p2` ref carry the sibling
+topic). The three-line cost shape — the OWED line plus the DISPATCH and OWNER FLAG lines
+`ledger.escalate` adds for a `ct=1793007293` topic at 25.6h against
+`AGING_DEFAULT = (4.0, 12.0)` — still reproduces from `ledger.escalate`
+(`ledger.py:458`).
