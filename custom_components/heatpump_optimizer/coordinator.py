@@ -1097,8 +1097,8 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
     if close.house:
         await coord._async_learn_house_heat_loss(close.interval, close.space_kw)
     if close.cop:
-        refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params))
-        coord._measured_cop.refusal = refusal or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
+        # With no power entity there is no per-cycle draw, so the span judges the floor.
+        coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params)) or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
 
 
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:

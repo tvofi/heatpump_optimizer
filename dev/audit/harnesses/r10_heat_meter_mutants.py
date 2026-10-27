@@ -74,9 +74,10 @@ MUTANTS = {
         CO, "if self._measured_power is None and not heat_energy.meter_of(self).counter:",
         "if self._measured_power is None:"),
     "T the span close's duty floor dropped on a counter install": (
-        CO, "        refusal = close.refusal or (None if coord._measured_power is not None "
-            "else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params))",
-        "        refusal = close.refusal"),
+        CO, "        coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None "
+            "else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params)) "
+            "or coord._fold_cop_evidence(",
+        "        coord._measured_cop.refusal = close.refusal or coord._fold_cop_evidence("),
 }
 
 ARCHIVE_FAIL = "and the path that proceeds still stamps a resolvable recorded_at (#363)"
