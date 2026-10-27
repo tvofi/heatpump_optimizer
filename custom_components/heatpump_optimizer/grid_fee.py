@@ -54,7 +54,9 @@ from .const import (
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
 )
 from .currency import money_scale
-from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
+from .dhw_schedule import (
+    DHWWindowError, Window, cyclic_span, hour_in_windows, parse_windows,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,9 +129,7 @@ def _parse_cyclic_range(
         end = names.get(end_token.strip())
         if start is None or end is None:
             raise GridFeeError(f"Unknown {what} in '{token}'")
-        return frozenset(
-            first + (start - first + k) % size for k in range((end - start) % size + 1)
-        )
+        return frozenset(cyclic_span(start, end, size, first))
     value = names.get(token)
     if value is None:
         raise GridFeeError(f"Unknown {what} '{token}'")

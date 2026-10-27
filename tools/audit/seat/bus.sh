@@ -5,7 +5,7 @@
 #
 #   bus.sh push-verdict <pr> <VERDICT.md> <evidence dir>       (reviewer)
 #   bus.sh watch [--once] [--post] [--every <seconds>]          (orchestrator)
-#   bus.sh dispatch <pr> <head> <reviewer>                      (orchestrator)
+#   bus.sh dispatch <pr> <head> <reviewer> [--nonce N] [--model M] [--past-three <reason>]
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
 #   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] [--no-content]
@@ -379,8 +379,50 @@ train_add() { # pr first-line -> one `BUS train-add <pr> rc=<rc> <add's last lin
   printf 'BUS train-add %s rc=%s %s\n' "$1" "$rc" "$(tail -n 1 "$log")"
 }
 
-dispatch() { # pr head reviewer -> records the dispatch, prints the nonce line for the brief
-  local pr=${1:-} h=${2:-} r=${3:-} n row
+blocked_rounds() { # pr -> the count of blocked verdict commits in verdict/<pr>'s history; rc 1 unreadable
+  local tip subj
+  tip=$(git ls-remote "$REMOTE" "refs/heads/verdict/$1") || return 1
+  tip=${tip%%[[:space:]]*}
+  [ -n "$tip" ] || { echo 0; return 0; }
+  git fetch -q "$REMOTE" "refs/heads/verdict/$1" 2>/dev/null && git cat-file -e "$tip^{commit}" 2>/dev/null || return 1
+  subj=$(git log --format=%s "$tip") || return 1
+  printf '%s\n' "$subj" | grep -c "^verdict: #$1 Fix review: blocked " || :
+}
+
+# THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
+# verdict/<pr>'s history, so its blocked commits are the rounds already reviewed. After three,
+# a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
+# `--past-three <reason>`, logged in $S/past-three; after a fourth -- a re-cut blocked again --
+# only `--past-three`: the split-or-close is the orchestrator's, never a silent re-dispatch.
+three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
+  local k body
+  k=$(blocked_rounds "$1") || { printf 'cannot read verdict/%s to count its review rounds' "$1"; return 1; }
+  [ "$k" -ge 3 ] && [ -z "$2" ] || return 0
+  [ "$k" -lt 4 ] || { printf '#%s has %s blocked rounds: its re-cut was blocked again, so split or close it (the orchestrator), or pass --past-three <reason>' "$1" "$k"; return 1; }
+  body=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq .body) \
+    || { printf 'cannot read #%s'"'"'s body to find its ## Re-cut note' "$1"; return 1; }
+  printf '%s\n' "$body" | grep -q '^## Re-cut[[:space:]]*$' && return 0
+  printf '#%s has %s blocked round(s): a fourth needs the body replaced under a ## Re-cut note (fixer.md), or --past-three <reason>' "$1" "$k"
+  return 1
+}
+
+# THE WORKER REGISTRY is $S/dispatched, one line per dispatch, `<pr> <head> <reviewer> <nonce>
+# <utc> <model|->` (lines before R10-ORCH-DISPATCH-REG stop at the nonce). Every reader keys on
+# the first four fields. `--nonce` re-records a nonce minted earlier at the same pr and head --
+# the relay mints at a cloud head and the seat is fired later -- with the seat's own name and
+# model. Each dispatch closes `reviewer-fire <pr> <head>` in the obligations ledger
+# (ledger.py, beside $HPO_BUS_LEDGER else its default log): a seat started at that head.
+dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] -> records, closes, prints the nonce line
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why
+  shift 3 2>/dev/null || shift $#
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --nonce) [[ ${2:-} =~ ^[0-9a-f]{32}$ ]] || die "dispatch: --nonce takes a 32-hex nonce"; n=$2; shift 2 ;;
+      --model) [[ ${2:-} =~ ^[A-Za-z0-9._-]+$ ]] || die "dispatch: --model takes one token"; m=$2; shift 2 ;;
+      --past-three) [ -n "${2:-}" ] && [ "${2#--}" = "$2" ] || die "dispatch: --past-three needs a reason"; p3=$2; shift 2 ;;
+      *) die "dispatch: unknown argument '$1'" ;;
+    esac
+  done
   numeric "$pr" || die "dispatch: the pull request '$pr' is not a number"
   [[ $h =~ ^[0-9a-f]{40}$ ]] || die "dispatch: '$h' is not a 40-hex head"
   [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch: name the reviewer's thread or session as one token"
@@ -397,14 +439,25 @@ dispatch() { # pr head reviewer -> records the dispatch, prints the nonce line f
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
   git cat-file -e "$h:$row" 2>/dev/null \
     || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
-  n=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
-  [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch: could not mint a nonce"
-  mkdir -p "$S" && printf '%s %s %s %s\n' "$pr" "$h" "$r" "$n" >> "$S/dispatched" || die "dispatch: cannot record in $S"
+  why=$(three_rounds "$pr" "$p3") || die "dispatch: $why"
+  if [ -n "$n" ]; then
+    why=$(dispatch_binding <(printf 'bus-nonce: %s\n' "$n") "$pr" "$h") || die "dispatch: $why"
+  else
+    n=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+    [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch: could not mint a nonce"
+  fi
+  mkdir -p "$S" && printf '%s %s %s %s %s %s\n' "$pr" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
+    || die "dispatch: cannot record in $S"
+  [ -z "$p3" ] || printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$pr" "$h" "$r" "$p3" >> "$S/past-three" \
+    || die "dispatch: cannot log --past-three in $S"
+  python3 -I "$ROOT/tools/audit/seat/ledger.py" ${HPO_BUS_LEDGER:+--log "$HPO_BUS_LEDGER"} \
+    close reviewer-fire "$pr" "$h" "dispatched $r nonce=${n:0:8}" >&2 \
+    || printf 'bus: the ledger refused the reviewer-fire close for #%s at %s; close it by hand\n' "$pr" "$h" >&2
   printf 'bus-nonce: %s\n' "$n"
 }
 
 confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr>, then posts it
-  local pr c d first hsha thread key tree sig msg line v
+  local pr c d first hsha thread key tree sig msg line v model
   numeric "${1:-}" || die "confirm: the pull request '${1:-}' is not a number"
   [[ ${2:-} =~ ^[0-9a-f]{40}$ ]] || die "confirm: '${2:-}' is not a 40-hex review commit"
   key=$(approver_key) || die "confirm: no hpo-approver key on this machine; confirm where it is kept"
@@ -412,9 +465,19 @@ confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr
   unpack review "$1" "$2" || return 1
   dispatched_to || return 1
   tree=$(git rev-parse "$c^{tree}")
+  # post_verdict refuses this too, but only after append_commit has moved verdict/<pr> off the
+  # posted commit (#2753, 2026-10-25), so a replay is refused here, before any push.
+  if grep -qxF -- "$pr $tree" "$S/posted-signed" 2>/dev/null; then
+    printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
+  fi
   sig=$(printf 'hpo-bus verdict %s %s\n' "$pr" "$tree" | openssl dgst -sha256 -sign "$key" | openssl base64 -A) \
     && [ -n "$sig" ] || die "confirm: signing with $key failed"
-  msg=$(printf 'verdict: #%s %s\n\nbus-confirmed: %s (review/%s at %s)\nbus-signature: %s' "$pr" "$first" "$thread" "$pr" "$c" "$sig")
+  # The reviewer's model, only as its dispatch recorded it: never inferred (review_strength.py reads it).
+  model=$(awk -v k="$pr $hsha " -v n="$(verdict_nonce "$d/VERDICT.md")" \
+    'index($0, k) == 1 && $4 == n && NF >= 6 && $6 != "-" { m = $6 } END { print m }' "$S/dispatched" 2>/dev/null)
+  msg=$(printf 'verdict: #%s %s\n\nbus-confirmed: %s (review/%s at %s)\n%sbus-signature: %s' "$pr" "$first" "$thread" "$pr" "$c" \
+        "${model:+bus-model: $model
+}" "$sig")
   line=$(append_commit verdict "$pr" "$tree" "$msg") || return 1
   v=${line#* }
   post_verdict "$pr" "$v"
@@ -635,7 +698,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24; do
+  for n in 7 9 12 21 22 24 31; do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -673,6 +736,7 @@ P
   # the state dir it had, which its shim resolves under the real home.
   RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
+           HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="bash $W/ghstub" \
            HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
@@ -741,11 +805,27 @@ P
   echo "$out" | grep -q "^BUS unsigned 13 $t" && [ "$(calls)" = 0 ]
   expect "a verdict signed with a key that is not the approver's does not post" $?
 
+  # THE REGISTRY'S CLOSE (R10-ORCH-DISPATCH-REG): a reviewer-fire the relay opened at a head is
+  # closed by the dispatch at that head, and one at another head stays open (its null control).
+  lg() { python3 -I "$ROOT/tools/audit/seat/ledger.py" --log "$W/ledger/cloud-relay.log" "$@"; }
+  lg open reviewer-fire 7 "$h1" nonce=relay && lg open reviewer-fire 12 "$h2" nonce=relay
   N1=$(run dispatch 7 "$h1" cmsg_R | sed -n 's/^bus-nonce: //p')
-  [[ $N1 =~ ^[0-9a-f]{32}$ ]] && grep -qx "7 $h1 cmsg_R $N1" "$W/state/dispatched"
-  expect "dispatch records pr, head and reviewer and prints a fresh nonce" $?
+  [[ $N1 =~ ^[0-9a-f]{32}$ ]] && grep -qE "^7 $h1 cmsg_R $N1 [0-9]{4}-[0-9-]{5}T[0-9:]{8}Z -\$" "$W/state/dispatched"
+  expect "dispatch records pr, head, reviewer, nonce, time and no model, and prints a fresh nonce" $?
+  out=$(lg board)
+  awk -F'\t' -v h="$h1" -v w="dispatched cmsg_R nonce=${N1:0:8}" \
+      '$1 == "close" && $3 == "reviewer-fire" && $4 == "7" && $5 == h && $6 == w { f = 1 } END { exit !f }' "$W/ledger/events.tsv" \
+    && ! echo "$out" | grep -q "reviewer-fire 7 " && echo "$out" | grep -q "reviewer-fire 12 $h2"
+  expect "dispatch closes reviewer-fire at its pr and head in the ledger; another head's stays open" $?
   N1b=$(run dispatch 12 "$h1" cmsg_Q | sed -n 's/^bus-nonce: //p')
   [ "$N1" != "$N1b" ]; expect "two dispatches mint two nonces" $?
+  out=$(run dispatch 12 "$h1" cmsg_Q2 --nonce "$N1b" --model opus); rc=$?
+  [ $rc = 0 ] && [ "$out" = "bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+    && tail -n 1 "$W/state/dispatched" | grep -qE "^12 $h1 cmsg_Q2 $N1b [^ ]+Z opus\$"
+  expect "dispatch --nonce re-records a minted nonce at its own head with the seat's model, minting none" $?
+  out=$(run dispatch 7 "$h1" cmsg_Q3 --nonce "$N1b"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12" && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ]
+  expect "dispatch --nonce refuses a nonce minted for another pull request, and records nothing" $?
   # #1990 class E, the ordering. A row written after the verdict moves the head
   # off the one the reviewer measured and costs a re-review (the carry refuses a
   # branch-own commit). dispatch reads the head's own delivery row, so a head
@@ -773,7 +853,7 @@ P
   out=$(seat push-verdict 7 "$W/merge.md" "$W/ev1"); rc=$?
   ra=$(tip review/7)
   [ $rc = 0 ]; expect "push-verdict proposes a verdict its own dispatch minted the nonce for" $?
-  N1c=$(run dispatch 7 "$h1" cmsg_R | sed -n 's/^bus-nonce: //p')
+  N1c=$(run dispatch 7 "$h1" cmsg_R --model opus | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1c" > "$W/merge-ff.md"
   out=$(seat push-verdict 7 "$W/merge-ff.md" "$W/ev1"); rc=$?
   r1=$(tip review/7)
@@ -799,6 +879,8 @@ P
     && [ "$(cat "$W/train-argv")" = "add|7|$h1|--repo|o/r|--state-dir|$W/train|--mandate|M1|--auto|" ]
   expect "a posted merge verdict is added to the train at its head, after the post (the event add)" $?
   [ "$(tip "verdict/7^{tree}")" = "$(tip "review/7^{tree}")" ]; expect "the signed verdict carries the reviewer's tree unchanged" $?
+  git -C "$W/origin.git" log -1 --format=%B "$v1" | grep -qx "bus-model: opus"
+  expect "the signed verdict names the model its dispatch recorded (bus-model:)" $?
   grep -q "^bus: verdict/7 at $v1, confirmed from cmsg_R (review/7 at $r1);" "$W/last"; expect "the posted body names the reviewer and the proposal" $?
   [ "$(head -n 1 "$W/last")" = "Fix review: merge $h1" ]; expect "the posted body keeps the reviewer's first line" $?
   ev=$(sed -n 's/^bus: .*; evidence: //p' "$W/last")
@@ -812,6 +894,12 @@ P
   [ $rc = 0 ] && [ -z "$out" ]; expect "an unchanged pass reports and posts nothing" $?
   out=$(run post 7); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "already posted" && [ "$(calls)" = 1 ]; expect "post refuses a commit already posted" $?
+  # A double confirm (#2753 at r2, 2026-10-25) pushed a second signed commit over a posted tree,
+  # so the ref's tip no longer matched the comment: the replay is refused before the push.
+  out=$(run confirm 7 "$r1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "^BUS refused 7 $r1: this signed verdict was already posted on #7 (a replay)" \
+    && [ "$(tip verdict/7)" = "$v1" ] && [ "$(calls)" = 1 ]
+  expect "a second confirm of a posted tree is refused and verdict/<pr> stays at the first commit" $?
 
   # A signed verdict copied to another pull request, or re-used over another tree.
   git -C "$W/seat" fetch -q origin verdict/7
@@ -840,6 +928,8 @@ P
   echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
     && [ "$(tip verdict/7^)" = "$tt" ]
   expect "a later round fast-forwards the verdict ref and is posted" $?
+  ! git -C "$W/origin.git" log -1 --format=%B "$v2" | grep -q "^bus-model:"
+  expect "null control: a verdict whose dispatch recorded no model names none (never a guess)" $?
   ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
   expect "a posted blocked verdict adds nothing to the train" $?
   # The replay the round-2 review drove: round 1's signed merge re-committed
@@ -1129,6 +1219,36 @@ B
   out=$(seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" 2>&1); rc=$?
   [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
   expect "and proposes the same verdict with a clean first line (the null control)" $?
+
+  # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
+  # round, so the blocked commits on it are the rounds a dispatch would follow.
+  blk() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
+            -m "verdict: #31 Fix review: blocked $h1 harness: round $1"; }
+  printf '#!/bin/bash\nprintf "%%s|" "$@" >> "%s/gh-argv"; echo >> "%s/gh-argv"; cat "%s/body31"\n' "$W" "$W" "$W" > "$W/ghstub"
+  printf '## Summary\nround four, repaired\n' > "$W/body31"
+  f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
+  out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ ! -s "$W/gh-argv" ]
+  expect "null control: two blocked rounds dispatch, reading no pull-request body" $?
+  f1=$(blk 3 "$f2"); git -C "$W/seat" push -q origin "$f1:refs/heads/verdict/31"; n=$(grep -c . "$W/state/dispatched")
+  out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] \
+    && grep -qx "api|repos/o/r/pulls/31|--jq|.body|" "$W/gh-argv"
+  expect "a fourth round with no ## Re-cut note in the body is refused, and records nothing" $?
+  printf '## Summary\nx\n\n## Re-cut\nreplaced at round four\n' > "$W/body31"
+  out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "the same fourth round dispatches once the body carries ## Re-cut" $?
+  printf '## Summary\nno note\n' > "$W/body31"
+  out=$(run dispatch 31 "$h1" cmsg_T --past-three "owner ruled one more round"); rc=$?
+  [ $rc = 0 ] && grep -qE "^[^ ]+Z 31 $h1 cmsg_T owner ruled one more round\$" "$W/state/past-three"
+  expect "--past-three dispatches the fourth round and logs its reason" $?
+  f2=$(blk 4 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
+  printf '## Re-cut\nreplaced\n' > "$W/body31"
+  out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "re-cut.*blocked again.*split or close"
+  expect "a re-cut body blocked again is refused for the orchestrator's split-or-close" $?
+  out=$(run dispatch 31 "$h1" cmsg_T --past-three); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "past-three needs a reason"; expect "--past-three without a reason is refused" $?
 
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
