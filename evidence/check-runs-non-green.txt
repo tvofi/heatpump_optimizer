@@ -1,0 +1,8 @@
+$ gh api --paginate --slurp repos/tvofi/heatpump_optimizer/commits/2f15a24cd6d64945fab6bbcfef5b443c5b78df77/check-runs | jq ...
+
+gate=failure
+governance / instrument-self-tests=failure
+pr-contract / pr-contract=failure
+tests / closures=failure
+tests / closures-autofix=failure
+tests / fast (3.14)=failure

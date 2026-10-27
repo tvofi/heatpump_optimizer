@@ -1,0 +1,18 @@
+$ python3 -c "import sys; sys.path.insert(0,\"tests\"); import closure; print(closure.is_inert(\".claude/workflows/audit-plan.js\"))"
+.claude/workflows/audit-plan.js is_inert= True
+.claude/workflows/web-fix-wave.js is_inert= False
+.claude/workflows/audit-find.js is_inert= False
+
+# tests / closures (job 121983008811) printed:
+INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+  committed `inert_reads` does not list for it; the merge fast path
+  would treat a change to it as unread (R9-F10.9d). Re-derive:
+  ./tests/derive_closures.sh --single <script>
+    tests/entities.py: .claude/workflows/audit-plan.js
+
+# tests / closures-autofix (job 121990578626) refused with:
+closure: files on the INERT list are actually read by tests:
+  .claude/workflows/audit-plan.js
+  remove them from INERT in tests/closure.py, or except them,
+  then re-run this merge -- check refuses this pair on CI.
+AUTOFIX: skip-merge-failed

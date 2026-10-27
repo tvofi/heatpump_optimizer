@@ -1,0 +1,20 @@
+$ python3 tests/structure.py   (tail)
+  ok   seam_cut_total 424 <= 424
+
+STRUCTURE RATCHET PASSED
+
+$ node tools/policy/check-wave-script.mjs   (tail)
+
+224 passed, 0 failed
+
+$ python3 tools/audit/seat/ref_privacy.py --check
+ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 966 line(s) added since 484d99022220 judged, 0 refused
+
+$ python3 tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 98 self-testing, 98 wired, 0 unwired
+
+$ git merge-tree --write-tree origin/main HEAD ; echo rc=\$?
+b41bf7b00ff5c32a3120c3f52a0b9a2f5dae1c80
+rc=0
+
+# CI tests/fast(3.14) log line: ALL 2463 ENTITY CHECKS PASSED

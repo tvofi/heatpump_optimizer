@@ -1,0 +1,33 @@
+# body claims: python3 tests/closure.py select --diff 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+#              -> MODE: SCOPED -- 2 script(s) run, 31 scoped out
+$ python3 tests/closure.py select --diff 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+########## scoped gate ##########
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  changed files (18), measured against the recorded closures in tests/closures.json:
+      .claude/workflows/audit-plan.js
+      .github/workflows/governance.yml
+      dev/programme/delivery/2834.md
+      dev/programme/delivery/2858.md
+      dev/programme/delivery/2862.md
+      dev/programme/delivery/2864.md
+      dev/programme/delivery/2865.md
+      dev/programme/delivery/2866.md
+      dev/programme/delivery/2867.md
+      dev/programme/delivery/2869.md
+      dev/programme/rosters/wave-r10-groups.json
+      dev/programme/triage/s6-batch35.md
+      tests/closures.json
+      tests/entities.py
+      tools/audit/seat/INSTRUMENTS.md
+      tools/audit/seat/plan_audit.py
+      tools/audit/seat/ref_privacy.py
+      tools/policy/check-wave-script.mjs
+
+      RUN   tests/doc_claims.py
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
+
+# the changed-file list above contains dev/programme/delivery/2834.md .. 2867.md,
+# dev/programme/rosters/wave-r10-groups.json and dev/programme/triage/s6-batch35.md:
+# none is in this PR (three-dot name list below), so --diff 6fe5170cd is a
+# two-dot range through main, not this branch against its merge base.
