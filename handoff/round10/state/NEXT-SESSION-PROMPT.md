@@ -18,10 +18,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-COMFORT (stage in-progress, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BUFFER-STORE (stage fixing, branch `wip-sync/ext-mut-297fc65b`): `git fetch origin wip-sync/ext-mut-297fc65b && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-PARTLOAD (stage fixing, branch `wip-sync/ext-wt-a58e58ff`): `git fetch origin wip-sync/ext-wt-a58e58ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLOW-JIDOKA (stage in-progress, branch `fix/r10-flow-jidoka-p2`): `git fetch origin fix/r10-flow-jidoka-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-ROSTER-FREEZE (stage carries-open, branch `handoff/r10-flow-roster-freeze`): `git fetch origin handoff/r10-flow-roster-freeze && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-AUDIT-PLAN (stage in-progress, branch `handoff/r10-flow-audit-plan`): `git fetch origin handoff/r10-flow-audit-plan && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
