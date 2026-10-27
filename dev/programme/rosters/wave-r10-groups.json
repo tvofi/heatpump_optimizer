@@ -10742,6 +10742,57 @@
     "pr": 2879
    },
    "brief": "Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. The batch is a ruling on one proposal plus the corrections the ruling took from the seats that measured it, so re-derive each stated fact from the tree or from the remote rather than repeating it: a ruling that quotes a figure the tree no longer answers is the defect this group exists to catch. Read dev/governance/roles/proposal-triage.md for what a batch may and may not rule, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Keep batch 37 off batch 36's branch: a pending review must not be moved under."
+  },
+  {
+   "group": "R10-REVIEW-CARRY",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/orchestrator.md",
+    "tools/audit/seat/bus.sh"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/orchestrator.md",
+    "tools/audit/seat/"
+   ],
+   "carry": [
+    "Owner ruling, 2026-10-27, verbatim: \"if there are no code changes, the previous review can be carried\". Registered by the orchestrator in the hour it was given, because the programme had no entry for it: R10-TICK-TRAIN (done) covers the merge TRAIN carrying an owner approval across a main-only delta, and nothing covered the orchestrator's own habit of dispatching a second reviewer at a head whose only change was a merge of origin/main.",
+    "Measured instances, each a full reviewer seat spent re-deriving a proof that had not moved: #2876 at 253dc4867 -> e0237e6d0, where git rev-list --count 253dc4867..e0237e6d0 --not origin/main is 1 and that one is the merge itself, so the round-4 merge verdict carried; and #2854 at fccb88371 -> 9f424cf74, which reads 41 branch-only commits including ce277f1d6's two cast lines, so that head takes a fresh review. The two heads together are the null control: one command, opposite answers.",
+    "This group exists to make the test non-judgeable. A seat that has to decide whether a move carried code will eventually decide wrong in the direction that merges unreviewed code, so the work is a helper plus two contract sentences, not a rule the orchestrator is trusted to apply by eye."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "fixer lands the helper and the two contract sentences; review at the head",
+    "note": "orchestrator registration 2026-10-27 under the owner's ruling; the orchestrator applies the test by hand until this lands"
+   },
+   "brief": "Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are. THE RULE. The test is a commit range, not an opinion: git rev-list --count <reviewed-head>..<new-head> --not origin/main. Zero, or a count whose commits are all merges of origin/main, means no branch-authored change and the prior merge verdict carries. Any non-merge commit in that range means the head carries code and takes a fresh review. A body rewrite never by itself voids a verdict. A claim-file resolution inside a merge IS a change, so the range is read before the merge is trusted. THE WORK. (1) A helper beside the other seat instruments that answers the question from two shas and prints a line a seat can paste: the count, the branch-only commit subjects, and exactly one of CARRY or FRESH-REVIEW, with the null control that a merge-only move and a code move give opposite lines from the same command. (2) bus.sh dispatch refuses to mint a nonce for a head whose range is empty against the reviewed head the caller names, and says so in one line -- a refusal, not a warning, because a warning is what let a second reviewer be dispatched anyway. (3) The two contract sentences: fix-review.md states which head a verdict attaches to and that it carries while the range is clean; orchestrator.md states that dispatching a second reviewer over a clean range is the error, not diligence. Both are policy: dev/governance/roles/ changes merge on the owner's approving review, and the pull request body cites this group and the ruling verbatim. Do not touch merge_train.py's existing owner-approval carry, which answers a different question -- the owner's approval, not the reviewer's verdict -- and is already covered by R10-TICK-TRAIN. The self-test for each arm goes in the same pull request and is demonstrated failing before the helper exists."
   }
  ]
 }
