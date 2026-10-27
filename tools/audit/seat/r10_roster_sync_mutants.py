@@ -73,15 +73,13 @@ PLANTS = {
         (SRC, "        if stage not in DERIVABLE_STAGES:",
               "        if False:  # M1")],
     "M2_open_not_in_progress": [
-        (SRC, "        if pr.state == OPEN:\n"
-              "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
-              "        if pr.state == OPEN:\n"
+        (SRC, "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
               "            if False:  # M2")],
     "M3_merged_without_commit": [
-        (SRC, "            changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
-              "                                  stage, pr.state))",
-              "            changes.append(Change(gid, \"done\", pr.number, None,\n"
-              "                                  stage, pr.state))  # M3")],
+        (SRC, "        changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
+              "                              stage, pr.state))",
+              "        changes.append(Change(gid, \"done\", pr.number, None,\n"
+              "                              stage, pr.state))  # M3")],
     "M4_carry_to_done_appended": [
         (SRC, "                elif not roster_lib.is_open(g):",
               "                elif False:  # M4")],
