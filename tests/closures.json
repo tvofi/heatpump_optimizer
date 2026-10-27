@@ -3531,6 +3531,7 @@
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/orchestrator_tick.py",
+   "tools/audit/seat/plan_audit.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
