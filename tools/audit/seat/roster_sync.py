@@ -647,6 +647,63 @@ def self_test() -> int:
     LINT_BAD = ("console.log('TOTAL: 1 error(s) across 1 file(s)');\n")
     ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
 
+    # THE LIVE-CLAIM CLOSE (R10-ORCH-ROSTER-SCHEMA). `review` and `in-review`
+    # are a seat's claim that the work is live: the reconciler leaves the claim
+    # alone while its pull request is open and closes it to `done` on the merge,
+    # so a live claim can never strand a merged group open. A done group is a
+    # settled record in both arms.
+    #
+    # First, before any git fixture: these arms are pure, and a mutant on the
+    # done guard breaks the fixtures below in ways that abort them -- a plant
+    # must turn its OWN arm red, not die in a later block first.
+    live = {"groups": [
+        {"group": "L-OPEN", "resume": {"stage": "in-review",
+                                       "branch": "handoff/l-open"}},
+        {"group": "L-MERGED", "resume": {"stage": "review",
+                                         "branch": "handoff/l-merged"}},
+        {"group": "L-GONE", "resume": {"stage": "done",
+                                       "branch": "handoff/l-gone"}},
+    ]}
+    got_changes, got_skips, _ = derive(live, [
+        PR(31, OPEN, "handoff/l-open", None, ""),
+        PR(32, MERGED, "handoff/l-merged", "3" * 40, "## Friction\n\n- none\n"),
+        PR(33, OPEN, "handoff/l-gone", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    check("a live claim survives its open pull request (no change)",
+          "L-OPEN" not in by and not [s for s in got_skips if s[0] == "L-OPEN"],
+          (by, got_skips))
+    check("a live claim is closed to done by its merge",
+          "L-MERGED" in by and by["L-MERGED"].stage == "done"
+          and by["L-MERGED"].merge_commit == "3" * 40, by)
+    check("a done group stays settled under a matching open pull request",
+          "L-GONE" not in by, by)
+
+    # The reader half of the vocabulary barrier: a word the registry does not
+    # classify is skipped with that reason and never derived, while a
+    # classified word in the same fixture still derives -- so the skip is the
+    # word's, not the fixture's shape.
+    odd = {"groups": [
+        {"group": "L-ODD", "resume": {"stage": "reviewed",
+                                      "branch": "handoff/l-odd"}},
+        {"group": "L-OK", "resume": {"stage": "not-started",
+                                     "branch": "handoff/l-ok"}},
+    ]}
+    got_changes, got_skips, _ = derive(odd, [
+        PR(34, OPEN, "handoff/l-odd", None, ""),
+        PR(35, OPEN, "handoff/l-ok", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    skip = {s[0]: s[3] for s in got_skips}
+    check("an unclassified stage is skipped, named as unclassified, and not "
+          "derived", "L-ODD" not in by and "unclassified" in skip.get("L-ODD", ""),
+          (by, skip))
+    check("a classified stage beside it still derives (null control)",
+          by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
+          by)
+
+
+
     def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:
         """(bare origin, driver clone, fixture roster path at the driver)."""
         tmp.mkdir(parents=True, exist_ok=True)
@@ -984,57 +1041,6 @@ def self_test() -> int:
         check("and the retried roster carries the derived stage",
               roster_lib.groups_of(roster_at(bare3, branch))["R9-LIVE"]
               ["resume"]["stage"] == "done")
-
-    # THE LIVE-CLAIM CLOSE (R10-ORCH-ROSTER-SCHEMA). `review` and `in-review`
-    # are a seat's claim that the work is live: the reconciler leaves the claim
-    # alone while its pull request is open and closes it to `done` on the merge,
-    # so a live claim can never strand a merged group open. A done group is a
-    # settled record in both arms.
-    live = {"groups": [
-        {"group": "L-OPEN", "resume": {"stage": "in-review",
-                                       "branch": "handoff/l-open"}},
-        {"group": "L-MERGED", "resume": {"stage": "review",
-                                         "branch": "handoff/l-merged"}},
-        {"group": "L-GONE", "resume": {"stage": "done",
-                                       "branch": "handoff/l-gone"}},
-    ]}
-    got_changes, got_skips, _ = derive(live, [
-        PR(31, OPEN, "handoff/l-open", None, ""),
-        PR(32, MERGED, "handoff/l-merged", "3" * 40, "## Friction\n\n- none\n"),
-        PR(33, OPEN, "handoff/l-gone", None, ""),
-    ])
-    by = {c.group: c for c in got_changes}
-    check("a live claim survives its open pull request (no change)",
-          "L-OPEN" not in by and not [s for s in got_skips if s[0] == "L-OPEN"],
-          (by, got_skips))
-    check("a live claim is closed to done by its merge",
-          "L-MERGED" in by and by["L-MERGED"].stage == "done"
-          and by["L-MERGED"].merge_commit == "3" * 40, by)
-    check("a done group stays settled under a matching open pull request",
-          "L-GONE" not in by, by)
-
-    # The reader half of the vocabulary barrier: a word the registry does not
-    # classify is skipped with that reason and never derived, while a
-    # classified word in the same fixture still derives -- so the skip is the
-    # word's, not the fixture's shape.
-    odd = {"groups": [
-        {"group": "L-ODD", "resume": {"stage": "reviewed",
-                                      "branch": "handoff/l-odd"}},
-        {"group": "L-OK", "resume": {"stage": "not-started",
-                                     "branch": "handoff/l-ok"}},
-    ]}
-    got_changes, got_skips, _ = derive(odd, [
-        PR(34, OPEN, "handoff/l-odd", None, ""),
-        PR(35, OPEN, "handoff/l-ok", None, ""),
-    ])
-    by = {c.group: c for c in got_changes}
-    skip = {s[0]: s[3] for s in got_skips}
-    check("an unclassified stage is skipped, named as unclassified, and not "
-          "derived", "L-ODD" not in by and "unclassified" in skip.get("L-ODD", ""),
-          (by, skip))
-    check("a classified stage beside it still derives (null control)",
-          by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
-          by)
 
     # The live roster's own words: every stage a round's roster carries is
     # classified, so a new wording cannot be silently overwritten.
