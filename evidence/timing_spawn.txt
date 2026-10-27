@@ -1,0 +1,6 @@
+spawn run1 rc=0 copy_cpu=0.27 fn_cpu=7.08 total_cpu=7.35 copy_wall=0.44 fn_wall=11.07 load=137.63
+   line: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+spawn run2 rc=0 copy_cpu=0.28 fn_cpu=7.28 total_cpu=7.56 copy_wall=0.46 fn_wall=12.27 load=139.01
+   line: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+spawn run3 rc=0 copy_cpu=0.26 fn_cpu=7.14 total_cpu=7.40 copy_wall=0.49 fn_wall=12.18 load=139.63
+   line: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold

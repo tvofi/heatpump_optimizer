@@ -1,0 +1,3 @@
+#!/bin/bash
+{ printf 'python3'; printf ' %s' "$@"; printf '\n'; } >> "/Users/timmalmstrom/hpo-seats/r10s6/review-2853-r4-ev/spawns.log"
+exec "/Users/timmalmstrom/.local/state/hpo/bin/python3" "$@"
