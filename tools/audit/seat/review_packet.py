@@ -411,7 +411,7 @@ def _self_test() -> int:
     # The independence arm reads a base blob, so it is driven over a checkout of
     # its own: a self-test must not need the tree it happens to be run in.
     with tempfile.TemporaryDirectory() as td:
-        t = Path(td)
+        t = Path(td).resolve()
 
         def tgit(*a: str) -> str:
             return subprocess.run(["git", "-C", str(t), "-c", "user.name=t", "-c", "user.email=t@t", *a],
@@ -443,6 +443,23 @@ def _self_test() -> int:
         except SystemExit as e:
             ok = "inside the tree" in str(e)
         check("independence: --harness-file inside the checkout is refused", ok)
+
+        # WHICH CHECKOUT, pinned by a read, not by a comment: every git read
+        # goes through `repo()`, and `repo()` is the working directory's
+        # checkout. Read from this self-test's own checkout instead and the
+        # red is the one #2870's first head carried -- `git merge-base
+        # origin/main <head>` dying with `Not a valid commit name <head>` on a
+        # dispatch from a clone while `origin/main` was there all along.
+        global _REPO_ROOT
+        here, _REPO_ROOT = os.getcwd(), None
+        try:
+            os.chdir(t)
+            got = git("rev-parse", "--show-toplevel").strip()
+        finally:
+            os.chdir(here)
+            _REPO_ROOT = None
+        check("repo(): a git read runs in the checkout the working directory is in, not the tool's install",
+              Path(got) == t)
 
     print(f"review_packet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
