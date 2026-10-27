@@ -1,4 +1,0 @@
-non-merge PR commits after e11b67b61 touching custom_components or tests/features.py:
-(end)
-e11b67b61 merged onto main tree: e0a8ddef4bab03267fcc54afc4a22789616942df
-custom_components+features.py: HEAD == merge(main,e11b67b61) IDENTICAL

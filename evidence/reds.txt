@@ -1,0 +1,19 @@
+### Red checks over the branch range (merge-base 2b45d098c .. 89be0e8b1), check-runs API, all pages
+  distinct failing names:
+    gate
+    governance / wave-script
+    pr-contract / pr-contract
+    prelude
+    tests / closures
+    tests / mutation
+    tests / typing
+
+### the pivotal answer, verified from CI log (job 122219279931 at 8c4bec5c2)
+  [13:43:31] ok     python3 tests/optimality.py (149s)
+ALL 84 OPTIMALITY CHECKS PASSED
+
+### HEAD check-run conclusions at review time (89be0e8b1), by conclusion
+  (tests/typing: success; the remaining lanes still in_progress at this review)
+
+### merge-tree vs origin/main
+  rc=0, no conflict
