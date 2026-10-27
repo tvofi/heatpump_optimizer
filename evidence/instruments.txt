@@ -1,0 +1,20 @@
+# instrument runs at head 5c7375001
+## roster_sync --self-test
+roster_sync self-test: 64 checks, 0 failed
+## roster_edit --self-test (sandboxed throwaway repo)
+roster_edit self-test: 124 checks, 0 failed
+## brief_lint
+TOTAL: 0 error(s) across 1 file(s)
+## merge-tree origin/main HEAD
+db8d86945d25fc0ce063c19e6940b8cbec9dece2
+exit=0
+## body diff vs PR 2866
+hunks=1 removed=156 added=34
+shared non-heading lines:
+## Figures
+## Forward-carry
+## Friction
+## Head
+## Mutation proof
+## Null control
+## Red checks
