@@ -1,0 +1,14 @@
+DELIVERY STATUS OVERDUE — 182 rowed, 10 pending, 1 overdue (overdue at 12 commits)
+  pending  #2843 bb8addd 0 commit(s) since — R10-996-RUNNER-CLAIMS: a golden-drift claim keyed on the
+  pending  #2857 2563e29 1 commit(s) since — roster: round-10 batch 19 (10 ops)
+  pending  #2841 75ac453 2 commit(s) since — R10-CARD-VOICE: the card's setup page in the type-badge 
+  pending  #2832 510787b 3 commit(s) since — R10-LEGIONELLA-COMPLETION: an overdue legionella cycle i
+  pending  #2851 5fb8339 4 commit(s) since — roster: round-10 batch 18 (9 ops)
+  pending  #2825 ed1c904 5 commit(s) since — R10-UPDATE-PR-SIGNALS: a stopped update_pr.sh keeps its 
+  pending  #2848 e0ffb12 6 commit(s) since — R10-HOTFIX-BATCH-ERREXIT: hotfix for the batch errexit c
+  pending  #2850 11b7a9d 7 commit(s) since — roster: round-10 batch 17 (8 ops)
+  pending  #2838 bdf69a5 10 commit(s) since — R10-FLOW-JIDOKA: error-proofing in tools/pr/prepr.sh bef
+  pending  #2846 0dfc063 11 commit(s) since — triage: batch 32, P191 (V111 record PR swept on a refuse
+  overdue  #2844 21b4552 12 commit(s) since — roster: round-10 batch 16 (5 ops)
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+##[error]Process completed with exit code 1.
