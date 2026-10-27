@@ -30,7 +30,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-ORCH-REVIEW-PACKET (stage fixing, branch `wip-sync/ext-wt-2b362865`): `git fetch origin wip-sync/ext-wt-2b362865 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ORCH-REVIEW-PACKET (stage in-progress, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-IMMERSION-LATCH (stage queued): no branch pushed yet, so nothing to fetch
 - R10-ROUTING-INVARIANTS (stage absorbed, branch `handoff/r10-routing-invariants`): `git fetch origin handoff/r10-routing-invariants && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-POOL-INSTRUMENT (stage absorbed, branch `handoff/r10-fly-pool-instrument`): `git fetch origin handoff/r10-fly-pool-instrument && git worktree add --detach $SEAT/wt FETCH_HEAD`
