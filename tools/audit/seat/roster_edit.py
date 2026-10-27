@@ -410,7 +410,7 @@ def _size_why(size, sizes, rel, group):
     """Why `size` may not be written for `group`, or None. The duration model
     IS the size vocabulary: a size it lacks makes `replan.build_plan` raise
     KeyError at `size_hours[...]`, which no gate reads."""
-    if True:  # S6
+    if size is None or size in sizes:
         return None
     return (f"size {size!r} for {group} is not in the durations model "
             f"({', '.join(sizes) or 'no sizes'}) at {roster_lib.DURATIONS} in "
