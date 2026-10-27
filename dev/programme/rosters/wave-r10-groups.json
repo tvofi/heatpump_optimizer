@@ -10685,6 +10685,49 @@
     "pr": 2878
    },
    "brief": "Own the round-10 roster batch 24 pull request to a merge-ready head. It is a record change, so the review is about whether the recorded state is true, not about code: re-derive each row from the tree and from the open pull requests rather than trusting the previous batch's claim, and correct any row that has gone stale since it was written. Keep the roster's own formatting byte-identical where no row changes -- the round-trip rule in tools/audit/seat/roster_edit.py is the constraint that stops a one-row edit rewriting the whole file. Read dev/governance/rules/delivery-status-tracking.md before touching a status row: the record outranks any wave body."
+  },
+  {
+   "group": "R10-TRIAGE-B37",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27 because the triage s6 batch 37 handoff was pushed with no pull request and no group: an orphan handoff is a gap the board's OWED line names and no seat owns. Batch 37 is cut as its own branch rather than folded into batch 36 so that a pending review on that pull request is not moved under."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "fix/triage-s6-batch37",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "advance the head over the gap repair, then review it",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it"
+   },
+   "brief": "Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. The batch is a ruling on one proposal plus the corrections the ruling took from the seats that measured it, so re-derive each stated fact from the tree or from the remote rather than repeating it: a ruling that quotes a figure the tree no longer answers is the defect this group exists to catch. Read dev/governance/roles/proposal-triage.md for what a batch may and may not rule, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Keep batch 37 off batch 36's branch: a pending review must not be moved under."
   }
  ]
 }
