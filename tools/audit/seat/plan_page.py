@@ -226,6 +226,9 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         fixes = set(entry.get("fixes") or [])
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
+            # The tier is the plan's computed dispatch priority (0 critical
+            # path, 1 production, 2 savings-ranked); a done group has none.
+            "tier": pg.get("tier"),
             "issues": [(n, n in fixes, (state.get(n) or {}).get("state") != "CLOSED",
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
@@ -468,6 +471,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
         f'<td class="d">{e(r["desc"])}</td>'
         f'<td><span class="pill {r["st"]}">{e(r["label"])}</span></td>'
+        f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
         f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
@@ -736,6 +740,17 @@ def _self_test() -> int:
         check("critical-path groups carry the mark",
               all(rows[g]["crit"] for g in plan["critical_path"])
               and page.count('class="critmark"') == len(plan["critical_path"]))
+        check("every open group's tier is shown, and a merged group's is not",
+              all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
+                  for g in rows if rows[g]["tier"] is not None)
+              and all(rows[g]["tier"] is None for g in rows if rows[g]["st"] == "done")
+              and '<td class="tier">—</td>' in page
+              and '<th title="dispatch tier' in page,
+              {g: rows[g]["tier"] for g in rows})
+        check("the critical path is tier 0 and production tier 1",
+              all(rows[g]["tier"] == 0 for g in plan["critical_path"])
+              and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
+              {g: rows[g]["tier"] for g in rows})
         check("a planned stamp is drawn", 'class="stampline"' in page)
         check("the filter and hide-merged controls ship",
               'id="hide-done"' in page and 'data-f="blocked"' in page)
@@ -957,10 +972,10 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 0 critical path, 1 production, 2 savings-ranked">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
-  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
 </section>
 
 <section>
