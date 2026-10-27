@@ -1700,7 +1700,9 @@ async def _published_download(after, solved_before, interval=None):
         dt_util.freeze(None)
 
 
-from heatpump_optimizer.inputs import InputReader  # noqa: E402
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputHealth, InputReader, InputReading, stale_summary,
+)
 
 R.check(
     "an input reader stamps its health with the instant its ages are measured from",
@@ -1733,6 +1735,126 @@ R.check(
     and diagnostics_mod._inputs_at(
         {"input_ages_minutes": {"x": 1.0}, "input_ages_at": PUBLISHED},
         PUBLISHED - timedelta(minutes=1))["input_ages_minutes"] == {"x": 1.0},
+)
+
+# One age, one input: the message is an age-bearing field too, and the two
+# verdicts beside it are judged at the same instant as the numbers. A payload
+# that said "20 min" and, exported 40 minutes later, reports a 60-minute age
+# beside it states two ages for one input (#2873's fix review, R8b).
+
+_WATCHDOG = {
+    "input_ages_minutes": {"indoor": 20.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "indoor", "entity_id": "sensor.indoor",
+                        "problem": "stale", "age_minutes": 20.0,
+                        "max_age_minutes": 30.0}],
+    "problem_inputs": [],
+    "problem_messages": ["sensor.indoor: stale (last report 20 min)"],
+    "input_health": "ok",
+    "stale_inputs": [],
+}
+
+
+async def _watchdog_download(after):
+    coord = FakeCoordinator(dict(_WATCHDOG))
+    entry = FakeEntry(entry_id="watchdog", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+def _message_age(message):
+    """The age a ``(last report N min)`` problem message states."""
+    return float(message.rsplit("last report ", 1)[1].split(" min", 1)[0])
+
+
+_crossed = asyncio.run(_watchdog_download(timedelta(minutes=40)))
+_at_read = asyncio.run(_watchdog_download(timedelta(0)))
+R.check(
+    "one export states one age for one input: the problem message, the problem's "
+    "age_minutes and input_ages_minutes all read 60 after a 40-minute-late "
+    "export, and both verdicts are judged at that same instant",
+    _message_age(_crossed["inputs"]["problem_messages"][0]) == 60.0
+    and _crossed["inputs"]["input_problems"][0]["age_minutes"] == 60.0
+    and _crossed["inputs"]["input_ages_minutes"] == {"indoor": 60.0}
+    and _crossed["inputs"]["stale_inputs"] == ["indoor"]
+    and _crossed["inputs"]["input_health"] == "1 stale",
+    str(_crossed["inputs"]),
+)
+R.check(
+    "the null control for the same payload: exported at the publish instant, the "
+    "message reads the published 20 minutes, the ages do not move, and the "
+    "verdicts stay as published",
+    _message_age(_at_read["inputs"]["problem_messages"][0]) == 20.0
+    and _at_read["inputs"]["input_problems"][0]["age_minutes"] == 20.0
+    and _at_read["inputs"]["input_ages_minutes"] == {"indoor": 20.0}
+    and _at_read["inputs"]["stale_inputs"] == []
+    and _at_read["inputs"]["input_health"] == "ok",
+    str(_at_read["inputs"]),
+)
+# The other direction: a reading that was a problem but not stale at publication
+# crosses its own limit as the export slides away from it, so it becomes stale
+# there and both its message and the verdicts follow. The boundary is the
+# input's own limit exactly: at it the reading is fresh, a minute past it stale.
+_UNIT_PROBLEM = {
+    "input_ages_minutes": {"power": 29.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "power", "entity_id": "sensor.power",
+                        "problem": "unknown_unit", "age_minutes": 29.0,
+                        "max_age_minutes": 30.0}],
+    "problem_messages": ["sensor.power: unknown unit"],
+    "input_health": "1 missing",
+    "stale_inputs": [],
+}
+
+
+async def _unit_download(after):
+    coord = FakeCoordinator(dict(_UNIT_PROBLEM))
+    entry = FakeEntry(entry_id="unit", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+_at_limit = asyncio.run(_unit_download(timedelta(minutes=1)))
+_past_limit = asyncio.run(_unit_download(timedelta(minutes=2)))
+R.check(
+    "an input's own limit is the boundary: at it the reading is not stale, a "
+    "minute past it the export makes it stale and its verdicts follow the age",
+    _at_limit["inputs"]["input_problems"][0]["age_minutes"] == 30.0
+    and _at_limit["inputs"]["stale_inputs"] == []
+    and _at_limit["inputs"]["input_health"] == "1 missing"
+    and _at_limit["inputs"]["problem_messages"] == ["sensor.power: unknown unit"]
+    and _past_limit["inputs"]["input_problems"][0]["age_minutes"] == 31.0
+    and _past_limit["inputs"]["input_problems"][0]["problem"] == "stale"
+    and _past_limit["inputs"]["stale_inputs"] == ["power"]
+    and _past_limit["inputs"]["input_health"] == "1 stale"
+    and _past_limit["inputs"]["problem_messages"] == ["sensor.power: stale (last report 31 min)"],
+    str([_at_limit["inputs"], _past_limit["inputs"]]),
+)
+# The verdict the export publishes is this summary, so its two classes and its
+# empty case are pinned here too: the cheap driver for a shared function.
+_health = InputHealth(readings={
+    "a": InputReading(key="a", entity_id="sensor.a", problem="stale"),
+    "b": InputReading(key="b", entity_id="sensor.b", problem="unavailable"),
+})
+_only_missing = InputHealth(readings={
+    "b": InputReading(key="b", entity_id="sensor.b", problem="unavailable"),
+})
+R.check(
+    "the diagnostic entity's summary counts each failure class, and reads ok with "
+    "neither",
+    stale_summary(_health) == "1 stale, 1 missing"
+    and stale_summary(_only_missing) == "1 missing"
+    and stale_summary(InputHealth()) == "ok",
+    str([stale_summary(_health), stale_summary(_only_missing),
+         stale_summary(InputHealth())]),
 )
 R.check(
     "the download judges plan_stale at the export with the coordinator's limit: at "

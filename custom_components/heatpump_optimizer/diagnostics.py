@@ -50,8 +50,9 @@ summary's ``plan_age_minutes`` is measured at that instant from
 built, up to one optimisation interval earlier, so a 14-minute-old plan read
 0.8 in the owner's bundle.
 
-Its residue: the input ages are re-based from ``input_ages_at``, the instant
-the inputs were read, to the export; ``plan_stale`` is judged at the export by
+Its residue: the input watchdog's view is judged at the export -- every age,
+including the age its problem messages render, and both verdicts beside them,
+``input_health`` and ``stale_inputs``; ``plan_stale`` is judged at the export by
 the coordinator's own limit; and the debug manifest states when the stored
 self-tests ran.
 """
@@ -70,6 +71,7 @@ from homeassistant.util import dt as dt_util
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
+from .inputs import describe_problem, health_summary
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -154,10 +156,47 @@ def _without_values(value: Any, private: frozenset[str]) -> Any:
     return REDACTED if str(value) in private else value
 
 
+def _over_age(problem: Any) -> bool:
+    """Whether this problem's re-based age has passed its own published limit.
+
+    A fault code is not a measurement at any age: ``InputReader.read`` sets
+    ``implausible`` after the age gate, so it already outranks staleness and
+    the export does not relabel it.
+    """
+    age = problem.get("age_minutes")
+    limit = problem.get("max_age_minutes")
+    return (
+        problem.get("problem") != "implausible"
+        and isinstance(age, (int, float))
+        and isinstance(limit, (int, float))
+        and age > limit
+    )
+
+
+def _aged_problem(problem: Mapping[str, Any], aged: Callable[[Any], Any]) -> dict[str, Any]:
+    """One published problem, its age re-based and its staleness re-judged at the export.
+
+    An input the publication called stale stays stale, its age only grows; one
+    whose age now passes its own limit joins it.
+    """
+    entry = {**problem, "age_minutes": aged(problem.get("age_minutes"))}
+    return {**entry, "problem": "stale"} if _over_age(entry) else entry
+
+
 def _inputs_at(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
-    """The input watchdog's keys, each input age re-based from ``input_ages_at`` to ``now``.
+    """The input watchdog's keys, each age re-based from ``input_ages_at`` to ``now``.
 
     With no read instant, or one ahead of ``now``, the ages stay as published.
+
+    An age is half a field. ``problem_messages`` renders a second, and
+    ``input_health`` / ``stale_inputs`` are verdicts about a third. Re-basing
+    only the numbers let one payload state a 20-minute age in the message and
+    a 60-minute age beside it, with an age twice its own ``max_age_minutes``
+    still reported healthy (#2873's fix review). So every age-bearing field
+    and both verdicts are judged at ``now`` -- the export the rest of this
+    module dates its ages at (the module docstring) -- and no third time base
+    is invented. Staleness is the one class the export can re-judge, being
+    this age against this limit with both published (:func:`_over_age`).
     """
     inputs = {key: data[key] for key in INPUT_KEYS if key in data}
     elapsed = stored_age_seconds(data.get("input_ages_at"), now)
@@ -170,11 +209,27 @@ def _inputs_at(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
     if isinstance(ages := inputs.get("input_ages_minutes"), Mapping):
         inputs["input_ages_minutes"] = {key: aged(age) for key, age in ages.items()}
     if isinstance(problems := inputs.get("input_problems"), list):
-        inputs["input_problems"] = [
-            {**problem, "age_minutes": aged(problem.get("age_minutes"))}
-            if isinstance(problem, Mapping) else problem
+        entries = [
+            _aged_problem(problem, aged) if isinstance(problem, Mapping) else problem
             for problem in problems
         ]
+        over_age = {entry.get("input") for entry in entries if _over_age(entry)}
+        stale = {key for key in (inputs.get("stale_inputs") or []) if isinstance(key, str)}
+        stale.update(over_age)
+        missing = {
+            entry.get("input") for entry in entries
+            if entry.get("entity_id") and entry.get("input") not in stale
+            and entry.get("problem") != "stale"
+        }
+        inputs.update({
+            key: value for key, value in (
+                ("input_problems", entries),
+                ("stale_inputs", sorted(stale)),
+                ("problem_messages",
+                 [describe_problem(entry) for entry in entries if entry.get("entity_id")]),
+                ("input_health", health_summary(stale, missing)),
+            ) if key in inputs
+        })
     return inputs
 
 
