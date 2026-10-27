@@ -4921,7 +4921,8 @@
     "commit": "775ae0340b1735db77bafe3d6a5d79e992706171",
     "last_step": "Handoff pushed at 775ae0340: the term at the seven priced forward sites and the two hot-water sites, the structure re-record (class_excess_loc 18082; the naive shape measures 18111, so the shape pays 29 lines and the rise over the base is 3), the golden config_flow re-record and its claim, the buffer-ceiling triage re-anchor, the harness INERT read, the RCA at dev/audit/rca/R10-RCA-COP-PARTLOAD.md, and the two audit header blocks. Scoped gate MODE: SCOPED -- 30 script(s) run, 3 scoped out; its reds are classified against 3b4180dcc in the body's ## Red checks -- golden 55/56, the stress shoulder economics and the card.mjs V8 OOM reproduce at the base, harness_headers was fixed in dc67636b2 and re-runs green, and the stress production-call channel is this branch's, named there for the owner's pass.",
     "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder's harness). Body on handoff-body/r10-cop-partload; open the PR after the verdict. The RCA the group's rca step owed is in the diff (dev/audit/rca/R10-RCA-COP-PARTLOAD.md), and the two carries are on this group's carry list.",
-    "note": null
+    "note": null,
+    "pr": 2872
    },
    "class": "production",
    "group": "R10-COP-PARTLOAD",
@@ -9817,11 +9818,11 @@
    "architect_note": "",
    "brief": "From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). The house grade should measure envelope loss in W/K, corrected for thermal mass, and normalized by the configured house type and/or building period. At main, and in R10-PARAMS-OWNER, `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py` grades a time constant against one all-era band, and the configured era, structure and area never enter it. The owner's specification: a 100-year-old house with new windows and added insulation should score at least 30-40. Seams: `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py`, the era and structure presets in `custom_components/heatpump_optimizer/presets.py`, and the score strings in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`. Build it measure-first: derive the loss in W/K from the learned parameters, show on a null control that two houses of equal envelope but different era score the same after normalization and that the old-house example above reaches the stated floor, then change the grade. Edge: after R10-PARAMS-OWNER, which reshapes the same function.",
    "resume": {
-    "stage": "fixing",
-    "branch": "wip-sync/ext-mut-3efc9ad7",
-    "commit": "516d47fd7517da801802c2e73db97f17251ef090",
+    "stage": "in-review",
+    "branch": "handoff/r10-house-grade",
+    "commit": "c89e5b5db1a8c2bfddbb9a9259f8dc319187eee9",
     "last_step": null,
-    "next_step": "fixer live; 516d47fd7 grades the house against its configured type and era. No handoff branch and no PR yet: the work is reachable only at wip-sync/ext-mut-3efc9ad7 (snapshot, moves every sync). Push handoff/r10-house-grade from it, then open the PR.",
+    "next_step": "dispatch the fix reviewer at the PR head; the R10-COP-GATE carry landed at a4a348a6",
     "note": null
    }
   },
