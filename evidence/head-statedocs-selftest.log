@@ -1,0 +1,114 @@
+state_docs: REFUSED: host-path in the message would publish this host (#2310); nothing committed
+state_docs: REFUSED: git push -q origin 8e63075e77e5d2113caa86ebb4087e9cba815c82:refs/heads/handoff/audit-r9-plan (in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-drv) failed: To /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/origin.git
+ ! [remote rejected] 8e63075e77e5d2113caa86ebb4087e9cba815c82 -> handoff/audit-r9-plan (pre-receive hook declined)
+error: failed to push some refs to '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/origin.git'
+beat: refs/heads/main at 8d32d916531e not recorded (rc 2); the next pass retries
+state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpi2uby4ks/two; pass --roster-path or --roster-ref
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2477 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1126 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 606 bytes
+ready: would push handoff/audit-r9-plan at e2c0204b971ef37a8f4b1f4c109fad4c98fcf868 (no --push)
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2477 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1126 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 606 bytes
+pushed handoff/audit-r9-plan at adee7476e14fc1d4d9daf97ca3a2e92468878cc3
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2477 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1126 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 606 bytes
+already current: handoff/audit-r9-plan at adee7476e14f carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2260 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1045 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 598 bytes
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2260 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1045 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 598 bytes
+pushed handoff/audit-r9-plan at 07ad867b108a65209ed7c549b08674dda9c29720
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3gh26d7s/mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2045 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 817 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 536 bytes
+pushed handoff/audit-r9-plan at 26845d7e9fab942ba688fd966cf855629a22ec19
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/RESUME-CURRENT.md
+beat: refs/heads/main at f0065c76148c and origin/handoff/audit-r9-fixplan at 1b71bdef362b unchanged; nothing written
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2261 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 911 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 525 bytes
+pushed handoff/audit-r9-plan at ce98e7cbee0d4b0f221195b1b3b60b4bf8dc8896
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+pushed handoff/audit-r9-plan at 154f4d54997a8e5d300eecbf83982f2a9c30aaec
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpihik0m_t/beat-mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2436 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1150 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 717 bytes
+pushed handoff/audit-r9-plan at 8d4c8584e1cd0df81c0585ab852fd3cfacc43123
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: R9-MERGED: stage not-started -> done at ffffffffffff (PR #41 MERGED)
+roster_sync: R9-OPEN: stage queued -> in-progress (PR #42 OPEN)
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+roster: dev/programme/rosters/wave-r9-groups.json on handoff/audit-r9-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r9-roster at 39ab3b0180bff479d1f36a09286593acc38df723
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2430 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1093 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 673 bytes
+pushed handoff/audit-r9-plan at 44f2ebe56026c1fca8f90f9ccb689650611b9c7f
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: RECORD-INVALID R9-MERGED ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r9-roster; nothing written
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2430 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1093 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 673 bytes
+already current: handoff/audit-r9-plan at 44f2ebe56026 carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdri8de6x/sync-mirror/RESUME-CURRENT.md
+state_docs self-test: all checks passed

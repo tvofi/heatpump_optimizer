@@ -1,0 +1,14 @@
+RESULT baseline set-stage-shipped-written: ok=True detail='shipped'
+RESULT baseline set-stage-review-written: ok=True detail='review'
+RESULT baseline set-resume-stage-shipped-written: ok=True detail='shipped'
+RESULT baseline set-resume-stage-fixing-written: ok=True detail='fixing'
+RESULT baseline append-group-XS-written: ok=True detail=('not-started', 'XS')
+RESULT baseline append-group-S-written: ok=True detail=('not-started', 'S')
+RESULT baseline append-group-shipped-written: ok=True detail=('shipped', None)
+RESULT baseline set-stage-shipped-written: ok=True detail='shipped'
+RESULT baseline set-stage-review-written: ok=True detail='review'
+RESULT baseline set-resume-stage-shipped-written: ok=True detail='shipped'
+RESULT baseline set-resume-stage-fixing-written: ok=True detail='fixing'
+RESULT baseline append-group-XS-written: ok=True detail=('not-started', 'XS')
+RESULT baseline append-group-S-written: ok=True detail=('not-started', 'S')
+RESULT baseline append-group-shipped-written: ok=True detail=('shipped', None)

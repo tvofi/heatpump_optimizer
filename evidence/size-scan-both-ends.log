@@ -1,0 +1,3 @@
+RESULT model: ('L', 'M', 'S', 'XL')
+RESULT roster-main: seen=['L', 'M', 'S', 'XL', 'XS'] unmodelled={'XS': 'wave-r10-groups.json'}
+RESULT roster-head: seen=['L', 'M', 'S', 'XL'] unmodelled={}
