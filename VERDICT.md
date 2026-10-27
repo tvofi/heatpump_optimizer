@@ -1,79 +1,39 @@
-Fix review: blocked d606ade6db7775606e3f31f8df45032a183c5e1a claim: s6-batch38.md:76-77 still says needs_lease "answers `lease` only for `MACHINE_MEASURING`, an empty scope, or an unreadable table" but tests/gate_lock.py:940-942 returns lease for an unreadable scope (needs-lease /nonexistent -> lease); :81-82 says only gate_lock.py's own self-tests pass wait=False, but tests/entities.py's executed _gl_* tests do too; and the cited grep B | grep -v gate_lock.py prints nothing
-bus-nonce: e3ec61dd78564740a84bd930b21cf6fb
+Fix review: merge 8cdfc0ce950393f3709387a98dc94713f389ed5a
+bus-nonce: deba7a7e931d778f23ec6da34b9389ff
 
-Measured head: d606ade6db7775606e3f31f8df45032a183c5e1a (git ls-remote refs/heads/fix/triage-s6-batch38 and refs/pull/2881/head both answered it; re-read before writing this file).
-Merge base: 34cd75bf1fe506334611ba6c074c223317370e67 = origin/main at review time.
-Diff: 2 files, +115 (dev/programme/triage/s6-batch38.md +114, dev/programme/delivery/2881.md +1).
-See EVIDENCE.md for every command and result.
+Verdict: approve — every figure in s6-batch38.md re-derives at 8cdfc0ce, the narrowed `lock_dir` sentence is exactly true with both sets enumerated, all prior findings are answered, and the ACCEPT-narrowed carry ruling is sound.
 
-The repaired sentence holds (s6-batch38.md:42-46)
-- "the `gate_lock.take`/`_gate_lock.take` matches in `tests/gate_lock.py` and
-  `tests/entities.py` are self-tests against a temp `lock_dir=d`; the CLI is not one of
-  those matches" -- TRUE. The matches are gate_lock.py:1855,1923 (holder-script strings
-  against temp d3/d6) and entities.py:15395-16073 (_gl_* tests under TemporaryDirectory
-  d/d1/d2/lock, executed at import). `_cmd_take` at 1008 calls `take(args.label,
-  lock_dir=args.lock_dir, ...)` at 1009, and `--lock-dir` defaults to DEFAULT_LOCK_DIR
-  (/tmp/hpo-gate.lock) at 1139-1145 -- the by-hand route. The earlier contradiction is gone.
+Measured head: 8cdfc0ce950393f3709387a98dc94713f389ed5a (`git ls-remote origin refs/pull/2881/head refs/heads/fix/triage-s6-batch38` answered it on both refs; the detached worktree is at it).
+Merge base: 67178dc6a589cf95d2ce7cff36d8bbf17343e8dc = origin/main.
+Diff: 2 files, +109 — `dev/programme/triage/s6-batch38.md` +108 and `dev/programme/delivery/2881.md` +1. Nothing outside the seam; no production code.
+Every command and result: EVIDENCE.md.
 
-Findings (claim / evidence / harness / metric / perturbation)
-F1 (blocking, same class). s6-batch38.md:76-77, "needs_lease answers `lease` only for
-  `MACHINE_MEASURING`, an empty scope, or an unreadable table (lines 918-954)".
-  Evidence: tests/gate_lock.py:918-954 has FOUR lease-returning arms; 940-942
-  (`except OSError: return "lease"`, an unreadable scope file) is missing from the list.
-  Harness: `python3 tests/gate_lock.py needs-lease /nonexistent/scope.scope`.
-  Metric: 1 of 4 arms unlisted, inside the cited range. Perturbation: an unreadable scope
-  answers `lease`, which the enumeration does not contain -- the file contradicts its own
-  citation. (The empty-scope and unreadable-table arms it does list are real.)
-F2 (blocking, same class). s6-batch38.md:81-82, "only `gate_lock.py`'s own self-tests pass
-  it [wait=False]". Evidence: `wait=False` take/take_slot arguments also occur throughout
-  tests/entities.py:15395-16073, and those _gl_* self-tests execute at import (15500, 15892,
-  16085). The batch's own repaired sentence names tests/entities.py as holding gate_lock
-  self-tests. Harness/metric: `grep -rn wait=False` -> 2 files pass it as a take argument,
-  not 1. Perturbation: the entities.py block runs `_gate_lock.take(..., wait=False)`.
-  What holds: no production caller passes wait=False.
-F3 (blocking, support). s6-batch38.md:49-50, grep B "piped to `grep -v gate_lock.py`, which
-  adds `mutation_table.py`, `prepr.sh`, `run.sh` and `derive_closures.sh`, plus
-  `prepare_baseline.sh`". Harness: run the exact pipeline -- it prints 0 lines (exit 1),
-  because every line grep B matches contains the literal gate_lock.py, so `grep -v
-  gate_lock.py` removes them all. Metric: 0 vs 5 claimed; the un-piped grep does produce
-  prepr.sh:3142, prepare_baseline.sh:322, mutation_table.py:1987, derive_closures.sh:128,
-  run.sh:343/347/350 (and two docstring mentions it omits). Perturbation: drop the pipe and
-  the claim reproduces; as written it cannot. The fix is an anchored filter
-  (`grep -v '^tests/gate_lock.py:'`) or no pipe.
-F4 (finding, body, same class). PR body `## Figures`: "`needs_lease` (lines 918-954) answers
-  `lease` only for `MACHINE_MEASURING`." False as an answer-set claim: `needs_lease('')`,
-  `needs_lease('/nonexistent')` and an unreadable closures table all answer `lease`. True
-  only if silently read as script classification, which the sentence does not say;
-  preflight.sh:109-111 states the rule ("Unqualified quantifiers ... enumerate the SET").
+Prior rounds, answered at this head
+- Round 1 F1 (the "only scripts that take the lease" universal): gone. The record enumerates run.sh's `leased()`, mutation_table.py's `_leased_if_exclusive`, judge_batch.py's `Lease`, and the by-hand route, each with a grep that reproduces (1986/2001/2342; 185/196/268/378).
+- Round 1 F2 (cites `s6-batch37.md`, absent from the tree): gone. The record now says "One entry." with no sibling citation.
+- Round 2 F1 (`needs_lease` omitted the unreadable-scope arm): fixed. "exactly four cases ... (lines 937-949)" names all four `lease` returns at 938/942/944/949, and `needs-lease /nonexistent/scope.scope` prints `lease`.
+- Round 2 F2 (`wait=False` claimed only in test/gate_lock.py's self-tests): fixed. The record now says "in `tests/gate_lock.py` and `tests/entities.py`", and the cited `grep -rln ... wait=False tools/ tests/` prints exactly those two files.
+- Round 2 F3 (`grep -v gate_lock.py` printed nothing): fixed. The anchored `grep -v '^tests/gate_lock.py:'` prints exactly the eight lines the record lists.
+- Round 2 F4 (the body's Figures line said "only for MACHINE_MEASURING"): fixed. The body now states the same four cases with lines 937-949.
 
-Everything else holds
-- closures 936.3 s / 241.1 s (recorded table); 2 x 936.3 = 1872.6 s = 31.21 min.
-- LEASE_SECONDS=1800:78; RENEW_REFUSED_RC=75:120 (dispatched at 1973-1975); renew():568;
-  SLOT_MIN_SECONDS=69:116; MACHINE_MEASURING:117; take() 511-566 unbounded; the only
-  timeout/deadline/max_wait hits (895, 1867, 1934) are subprocess waits.
-- run.sh 317 comment, leased() 329-353, needs-lease 335, slot-auto-lease 343, flock-wrap
-  347, auto-lease 350; no other lease mechanics in the file.
-- mutation_table.py 1986-1998 and LEASED:2342; judge_batch.py take:185, Lease entered:378,
-  renew per command (196-198, called at 268); prepr.sh slot-take:3142, needs-lease asked:344;
-  derive_closures.sh:128; gate-scoping.md:28-33; audit-verify.js:192.
-- 208 roster groups; R10-PREPR-CAP owns prepr.sh + gate_lock.py, stage done, carry [];
-  tests/run.sh in no group's files; `grep -rn judge_batch .github/` empty.
-- stress.py / harness_headers.py take no lease themselves (no gate_lock reference).
-- Mutation proof + null control reproduced with roster_edit.triage_refusal (ACCEPT / None /
-  P999 None / DEFER refused / missing-file refused).
-- Red checks "none": 38 head check-runs = 26 success, 10 skipped, 3 in_progress, 0 failed.
-- Diff scope: the batch plus the PR's own delivery row; nothing outside the seam.
+The narrowed sentence (record :38-42) is exactly true
+- I enumerated the calls and compared sets, not totals. `tests/gate_lock.py` has 2 matches (1855, 1923), lock_dir value set `{lock_dir}`, both generated subprocess source over `Path('{d3}')` / `Path('{d6}')`. `tests/entities.py` has 36 matches, lock_dir value set `{d, d1, d2, lock}`, every one inside a `_gl_*` self-test under a `TemporaryDirectory`. Those are precisely the two lists the sentence gives.
+- The CLI is not one of those matches: `_cmd_take` is at 1008, `take(args.label, lock_dir=args.lock_dir, ...)` at 1009-1014, and `--lock-dir` defaults to `DEFAULT_LOCK_DIR` in the block at 1140-1145. No `gate_lock.take` match occurs on the CLI path.
+
+Everything else re-derives (outputs in EVIDENCE.md)
+- 78/120/568; renew refuses a waiting label at 582-586; fcntl.flock 291/300; lines 6 and 138 verbatim; gate_lock.py:44-45 quote.
+- SLOT_MIN_SECONDS 116, MACHINE_MEASURING 117; neither measuring script references gate_lock.
+- run.sh 317/325-326/329-353/335/343/347/350; mutation_table.py 1986/2001/2342; judge_batch.py 185/196/268/378, line 374 quote, `_take` 184-186 with no `wait=False`.
+- prepr.sh slot-take 3142 (comment: the WHOLE run), needs-lease ask 344; derive_closures.sh 128; gate-scoping.md 28-33; audit-verify.js 192; prepare_baseline.sh 322 is a usage line it prints, not an invocation.
+- take() 511-566: `while True:` at 531, `time.sleep(WAIT_POLL_SECS)` at 562, no deadline; `grep timeout|deadline|max_wait` returns only 895/1867/1934, all subprocess waits.
+- closures 936.3 / 241.1; 2 x 936.3 = 1872.6 s = 31.2 min.
+- roster command prints `208 ['tools/pr/prepr.sh', 'tests/gate_lock.py'] done [] []`; `grep -rn judge_batch .github/` prints nothing.
+- Mutation proof and null control reproduce: ACCEPT / None / P999 None / DEFER refused / missing-file refused.
+
+Ruling
+The disposition is right and the record is honest. Arm 1 is already the mechanism — a bounded lease that refuses extension past a waiter, with flock held for the run — so no expiry can preempt an fcntl wait; arm 3 only lengthens a wedged holder's window; arm 2 would move measuring scripts into a loaded pool. The carried arm puts the bound on the waiter, where the unbounded path is (`take()`'s while-True loop), and exits through the named-unrun CI line. R10-PREPR-CAP owns `tests/gate_lock.py` and `tools/pr/prepr.sh`, stage `done`, carry `[]`; `tests/run.sh` is in no group, and the carry names it.
 
 Could not establish
-- The 38-minute wait: /tmp/hpo-gate.lock/owner is gone; the batch declares it the
-  orchestrator's measurement, not re-derived. Arithmetic is consistent with two runs.
-- s6-batch37.md (cited line 3) is absent at the head and on origin/main; it exists only on
-  unmerged fix/triage-s6-batch37 (a63c6bfd). The r2 fix brief records the orchestrator's
-  disposition ("resolves by merge order"), so noted, not re-raised.
-- "Every holder above is a measurement context": enumerated for run.sh/mutation_table/
-  judge_batch; for the by-hand route true by gate-scoping.md's definition, not by an
-  enumerated runtime instance.
-
-What unblocks: name all four needs_lease arms (add the unreadable scope) at s6-batch38.md:
-76-77; say "only self-tests, in gate_lock.py and tests/entities.py" at :81-82; anchor or drop
-the filter at :49-50; and bring the body's Figures line to the same enumeration.
+- The 38-minute wait and its timestamps: `/tmp/hpo-gate.lock/owner` is gone. The record declares it the orchestrator's measurement, not re-derived; `tools/audit/seat/update_pr.sh` exists, and 2 x 936.3 s plus tail/queueing is consistent, but that is arithmetic, not a second measurement.
+- The proposal's own text (P206/V126): `proposals.md` is not a tree path (batches 33-35 cite it the same way); the record says the entry was not yet appended when the ruling was cut.
+- "with a two-ordinary-script file it prints `slot`": the record names no file. It reproduces for a file whose scripts are multi-minute (entities.py + structure.py -> `slot`); two sub-69 s scripts answer `none`. Read existentially it holds; it is not a claim about every two-script file.
