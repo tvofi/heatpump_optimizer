@@ -12,5 +12,5 @@ dhw reasons  : ['dhw_preheat', 'dhw_ready', 'dhw_window', 'idle', 'idle_coasting
 raw space kWh 34.39 raw dhw kWh 7.08
 slot-sum space kWh 34.39
 slot-sum dhw kWh 7.08
-wrote /private/tmp/plandata-11a326e8c6e7.json
+wrote /private/tmp/plandata-dedf79b6a5bc.json
 plan reason codes, price provenance and slot energy OK
