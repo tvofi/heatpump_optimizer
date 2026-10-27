@@ -1,5 +1,5 @@
 Fix review: merge 253dc4867cf39f2aa9875f5f2540c5b67b7c1018
-bus-nonce: 6150a6ac8c990cf81902b46e7758974c
+bus-nonce: 4a8881260b33bb3af3fb54ea694564e5
 
 # Fix review -- PR #2876, R10-HOUSE-GRADE
 
@@ -64,6 +64,8 @@ both the base tree's harness and the head's harness against the base tree
 50.0; the base spread is real, so only the stated endpoints are wrong. The
 qualitative claim (uniform at head, spread at base) survives.
 
+Carry: R10-HOUSE-GRADE (item ea167ba8)
+
 ### F2 -- the roster's `files` under-specifies the seam (non-blocking)
 
 Claim: a commit outside the group's `files` is a finding even if correct.
@@ -75,6 +77,8 @@ and the body discloses them. Harness: `git show --name-only c89e5b5db` against
 the roster entry in dev/programme/rosters/wave-r10-groups.json. Metric: two
 production files touched and not listed. Perturbation: none needed; the roster
 and the diff disagree on the set. Record them at the next roster edit.
+
+Carry: R10-HOUSE-GRADE (item 966df279)
 
 ### F3 -- the body's drift-lane command is now two-dot (observation for the orchestrator)
 
