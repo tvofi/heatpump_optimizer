@@ -750,6 +750,12 @@ INERT_EXCEPT = (
     # to pin that only unparseable files are ignored -- read, so not inert.
     ".claude/workflows/audit-find.js",
     ".claude/workflows/audit-fix.js",
+    # R10-FLOW-AUDIT-PLAN: the P3 workflow is a new member of the same glob, so
+    # the same `node --check` sweep opens it. CI's closures job named the pair
+    # at 2f15a24cd -- "INERT READS UNDER-APPROXIMATED: tests/entities.py:
+    # .claude/workflows/audit-plan.js" -- and `closures-autofix` answered
+    # skip-merge-failed: the file is read, so calling it inert is the defect.
+    ".claude/workflows/audit-plan.js",
     ".claude/workflows/audit-verify.js",
     ".claude/workflows/audit-wave.js",
     ".claude/workflows/web-decomp-stage.js",
