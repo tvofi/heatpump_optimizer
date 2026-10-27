@@ -1,0 +1,32 @@
+===== until=2026-10-27T18:12:43+01:00 =====
+| roster groups closed vs takt | 0 / 1.0 | 8 / 24.0 |
+| fly-ins closed | 0 | 3 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 1 / 0 | 4 / 1 / 4 / 3 |
+| first-pass fix-review yield | 1/1 (1.00) | 7/16 (0.44) |
+- roster groups closed: a group whose resume.stage enters roster_lib's DONE_STAGES in the period, counted per first-parent commit of the roster ref; takt is 1.0 group per hour, so the period's demand is its hours.
+- fly-ins closed: a first-parent PR merge of the tree in the period whose branch maps to no roster group and is neither a record nor a roster edit.
+- main moves: each first-parent PR merge of the tree in the period, by kind -- group-carrying (roster_lib's branch-to-group answer), record (--record-prefix), roster-edit (the merge's diff touches the roster directory), fly-in (the rest).
+===== until=2026-10-27T18:12:44+01:00 =====
+| roster groups closed vs takt | 0 / 1.0 | 8 / 24.0 |
+| fly-ins closed | 1 | 4 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 1 / 1 | 4 / 1 / 4 / 4 |
+| first-pass fix-review yield | 1/1 (1.00) | 7/16 (0.44) |
+- roster groups closed: a group whose resume.stage enters roster_lib's DONE_STAGES in the period, counted per first-parent commit of the roster ref; takt is 1.0 group per hour, so the period's demand is its hours.
+- fly-ins closed: a first-parent PR merge of the tree in the period whose branch maps to no roster group and is neither a record nor a roster edit.
+- main moves: each first-parent PR merge of the tree in the period, by kind -- group-carrying (roster_lib's branch-to-group answer), record (--record-prefix), roster-edit (the merge's diff touches the roster directory), fly-in (the rest).
+===== until=2026-10-27T18:37:49+01:00 =====
+| roster groups closed vs takt | 1 / 1.0 | 9 / 24.0 |
+| fly-ins closed | 1 | 4 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 4 / 1 / 4 / 4 |
+| first-pass fix-review yield | 1/1 (1.00) | 7/16 (0.44) |
+- roster groups closed: a group whose resume.stage enters roster_lib's DONE_STAGES in the period, counted per first-parent commit of the roster ref; takt is 1.0 group per hour, so the period's demand is its hours.
+- fly-ins closed: a first-parent PR merge of the tree in the period whose branch maps to no roster group and is neither a record nor a roster edit.
+- main moves: each first-parent PR merge of the tree in the period, by kind -- group-carrying (roster_lib's branch-to-group answer), record (--record-prefix), roster-edit (the merge's diff touches the roster directory), fly-in (the rest).
+===== until=2026-10-27T18:37:50+01:00 =====
+| roster groups closed vs takt | 1 / 1.0 | 9 / 24.0 |
+| fly-ins closed | 1 | 4 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 4 / 1 / 4 / 4 |
+| first-pass fix-review yield | 1/1 (1.00) | 7/16 (0.44) |
+- roster groups closed: a group whose resume.stage enters roster_lib's DONE_STAGES in the period, counted per first-parent commit of the roster ref; takt is 1.0 group per hour, so the period's demand is its hours.
+- fly-ins closed: a first-parent PR merge of the tree in the period whose branch maps to no roster group and is neither a record nor a roster edit.
+- main moves: each first-parent PR merge of the tree in the period, by kind -- group-carrying (roster_lib's branch-to-group answer), record (--record-prefix), roster-edit (the merge's diff touches the roster directory), fly-in (the rest).

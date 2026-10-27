@@ -1,0 +1,7 @@
+# state_docs' shape: no --repo (cwd checkout), no --tree, no --until;
+# roster from --roster-file; this fixture has no origin/main ref.
+RESULT no_until rc = 2
+RESULT no_until stderr_tail = merge_throughput.py flow: error: --until is required: neither the tree nor the roster ref has a readable commit time
+RESULT no_until stdout_empty = True
+RESULT with_until rc = 0
+RESULT with_until board_head = # Flow board

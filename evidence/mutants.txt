@@ -1,0 +1,19 @@
+RESULT null_control rc=0
+RESULT null_control ok_lines=44
+RESULT null_control tail=['ok: merge_throughput.py self-test']
+RESULT null_control_pass = True
+RESULT mutant_A_unreadable_roster_zero rc=1
+RESULT fail: FAIL flow: an unreadable roster is UNAVAILABLE, never zero: '# Flow board\n\nWindow ends 2026-10-01T05:00:00+00:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.\n\nSo
+RESULT fail: FAILED: merge_throughput.py self-test
+RESULT mutant_A_unreadable_roster_zero ok_lines=43
+RESULT mutant_A_unreadable_roster_zero tail=['FAILED: merge_throughput.py self-test']
+RESULT mutant_A_kills_arm = True
+RESULT restored_A_clean = True
+RESULT mutant_B_judge_every_verdict rc=1
+RESULT fail: FAIL flow: first-pass yield is the first verdict's kind: got (1, 2), want (0, 1)
+RESULT fail: FAILED: merge_throughput.py self-test
+RESULT mutant_B_judge_every_verdict ok_lines=43
+RESULT mutant_B_judge_every_verdict tail=['FAILED: merge_throughput.py self-test']
+RESULT mutant_B_kills_arm = True
+RESULT restored_B_clean = True
+RESULT final_clean = True

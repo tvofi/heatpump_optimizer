@@ -1,0 +1,29 @@
+RESULT ok   moves split group/record/roster/flyin: got=(1, 1, 0, 1) want=(1, 1, 0, 1)
+RESULT ok   groups closed once each (A and B): got=(2, '') want=(2, '')
+RESULT ok   fly-ins: got=(1, '') want=(1, '')
+RESULT ok   lead per size: got=(({'M': [0.5]}, 0), '') want=(({'M': [0.5]}, 0), '')
+RESULT ok   merge exactly at window start counted: got=1 want=1
+RESULT ok   merge exactly at window end excluded (fly-in): got=0 want=0
+RESULT ok   the same fly-in counted one second past the end: got=1 want=1
+RESULT ok   record merge exactly at start counted: got=1 want=1
+RESULT ok   empty hour: nothing counted, no UNAVAILABLE: got=(0, 0, (0, 0), '') want=(0, 0, (0, 0), '')
+RESULT ok   a later window does not re-count A (closed at 01:30): got=(1, '') want=(1, '')
+RESULT ok   a window after both closures counts 0 (not a re-count): got=(0, '') want=(0, '')
+RESULT ok   same-head and moved-head PRs each contribute ONE judgement: got=((0, 2), '') want=((0, 2), '')
+RESULT ok   same-head block then merge: first pass is the blocked one only: got=((0, 1), '') want=((0, 1), '')
+RESULT ok   moved-head block then merge: the merge is not a second judgement: got=((0, 1), '') want=((0, 1), '')
+RESULT ok   blocked-class mix over both: got={'regression': 1} want={'regression': 1}
+RESULT ok   critical-path with the file present: got={'r1-a'} want={'r1-a'}
+RESULT ok   critical-path with the file absent reads None (no failure signal): got=None want=None
+RESULT ok   WIP lanes with the critical file present: got={'A': 1, 'B': 1, 'C': 1, 'F': 1} want={'A': 1, 'B': 1, 'C': 1, 'F': 1}
+RESULT ok   WIP lanes with the file UNREADABLE: A prints 0, not UNAVAILABLE: got={'A': 0, 'B': 2, 'C': 1, 'F': 1} want={'A': 0, 'B': 2, 'C': 1, 'F': 1}
+RESULT ok   the rendered board says nothing about the unreadable critical file: got=False want=False
+RESULT ok   critical-path INVALID JSON reads None, indistinguishable from absent: got=None want=None
+RESULT ok   WIP lanes with INVALID critical JSON: A prints 0: got={'A': 0, 'B': 2, 'C': 1, 'F': 1} want={'A': 0, 'B': 2, 'C': 1, 'F': 1}
+RESULT ok   the board renders the invalid critical file as a numeric zero: got=False want=False
+RESULT ok   a malformed roster at the only in-window commit reads 0, not UNAVAILABLE: got=(0, '') want=(0, '')
+RESULT ok   default until is the tree tip time: got='2026-10-01T04:00:00+00:00' want='2026-10-01T04:00:00+00:00'
+RESULT ok   the tip merge at exactly until is EXCLUDED from the board: got=0 want=0
+RESULT ok   the same tip merge is counted one second later: got=1 want=1
+RESULT self_test_reads_no_review_refs_arm= True
+RESULT failures= 0 []
