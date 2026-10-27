@@ -2359,10 +2359,10 @@ class Train:
         # a tree another car was graded on with a selection that DID reach the
         # ratchet is graded, never handed the earlier car's narrower green.
         structure = self.structure_reaches(tree, touched)
-        red = self.graded.get((tree, structure))
+        red = self.graded.get(tree)
         if red is None:
             red = self.grade_tree(tree, tip, h, touched, structure)
-            self.graded[(tree, structure)] = red
+            self.graded[tree] = red
         if not red:
             self.log(f"#{item['pr']} grade: merge tree {tree[:8]} green")
             return
