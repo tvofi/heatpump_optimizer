@@ -1,0 +1,22 @@
+restricted flag-text scan (the body's claim, re-measured), over every roster and
+carry file at the head: 12 files, 3013 identifier values, 0 hits.
+
+fields read, per group: resume.stage, resume.branch, resume.commit, resume.pr,
+and every `files`, `after`, `issues` value. A hit is a value holding a
+command-line flag (`--flag`) or leading/trailing whitespace.
+
+restriction note: read literally, "every `resume` value" would include
+`resume.next_step` and the r9 roster's `resume.pickup_cloud`, which hold prose
+and command lines by design (e.g. R10-ORCH-REVIEW-PACKET's next_step names
+`--no-renames`, and every r9 group's pickup_cloud is a git command). Neither is
+an identifier field, neither is changed by this diff, and the batch's own scan
+names "stage vocabulary" first, so the identifier reading is the one measured.
+
+structural checks over the same 12 files
+  stages in use: absorbed, carries-open, deferred, done, fixing, handoff,
+    in-progress, not-started, queued, rca-done, refuted
+  no stage holds whitespace or command-line text
+  at the previous head 6f42fc12b the roster DID carry one:
+    line 8207  "stage": "done --at-sha bfc4a1e297fb2899be1c4643ae9d75b8a5829208"
+  that value is absent at the head, and the commit it named is in
+  resume.commit where the tool means it.

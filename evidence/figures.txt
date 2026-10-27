@@ -1,0 +1,41 @@
+re-derived figures (fix-review step 8: a quoted number I cannot re-derive is
+not verified)
+
+roster blob, `git show <rev>:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin`
+  6fe5170cd (merge base)  53414799bdd5549578172f1c101f0ecd4807aed4
+  b15f26339 (batch 22)    0886357f4d90a6fe489b4212d1e5b8cc1db047b5
+  eb97437ef (head)        852ec7bdd3d719395863d021e4f0df17fb1b44f7
+  -- all three reproduce.
+
+commit counts, `git log --no-merges --format=%s 6fe5170c..1e9180dc9`
+  subjects 95; ^roster: wire 6; ^roster: append-group 6; ^roster: 60;
+  ^roster_edit 27; ^roster_sync 6; ^record: 2
+  -- all reproduce.
+
+the eight "carries forward item N of batch 23" commits: exactly 8, each adding
+one carry to the group its subject names (items 1 REPLAY-REAL-DAY, 2 DIAG-AGES,
+3-6 FLOW-JIDOKA, 7 IMMERSION-LATCH, 8 UX-HEALTH).
+
+head check-runs, `commits/eb97437ef.../check-runs` (all concluded)
+  gate success; pr-contract / pr-contract success (two runs);
+  governance / instrument-self-tests success; governance / delivery-status
+  success; governance / env-matrix success; governance / policy-docs success;
+  governance / wave-script success; tests / * success or skipped;
+  hassfest success; validate / validate-hacs success; codeql success;
+  arch-score success; budget-raise-gate success; CodeQL success.
+  No concluded run is a failure, a cancelled or a timed-out run.
+
+previous head 6f42fc12b, 55 runs, exactly three red:
+  gate | failure
+  governance / instrument-self-tests | failure
+  pr-contract / pr-contract | failure
+  -- the set the body's `## Red checks` names and answers; the head's
+  `governance / instrument-self-tests` is green, so the stage repair did what
+  the body says it did.
+
+PR body shape
+  every heading `.github/PULL_REQUEST_TEMPLATE.md` requires is present --
+  `## Head`, `## Mutation proof`, `## Null control`, `## Figures`,
+  `## Red checks`, `## Forward-carry`, `## Friction` -- plus one extra
+  `### The ops, oldest first, by kind`. `pr-contract / pr-contract` concluded
+  success at the head after the last red.

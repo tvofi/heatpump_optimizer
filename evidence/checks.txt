@@ -1,0 +1,51 @@
+run at head eb97437efd6c273745352ee2cdb5c65c970c3c74, seat venv first on PATH.
+
+$ env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test
+roster_sync self-test: 55 checks, 0 failed
+rc=0
+
+$ node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  -- 0 error(s), 0 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)
+rc=0
+
+$ python3 tests/structure.py   (tail)
+  ok   class_excess_loc 18079 <= 18079
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 143 <= 143
+  ok   coordinator_multiassigned_attrs 110 <= 110
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 16 <= 16
+  ok   functions_cc_over_15 29 <= 29
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 8236 <= 8236
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 16 <= 16
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 424 <= 424
+
+STRUCTURE RATCHET PASSED
+rc=0
+
+$ python3 tests/delivery_status.py --check
+DELIVERY STATUS OK — 204 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  every merge in the window carries a row
+
+This check is NOT a required context and a red here blocks no merge. Pending is
+the ordinary state: the protocol writes rows in batches, and only OVERDUE means a
+batch has stopped being drained.
+rc=0
+
+NOT re-run: the scoped gate and the mutation table (CI owns them). The head's
+`tests / mutation` run is green but drew no mutant -- the diff writes no
+production line -- so that green is vacuous by construction, not evidence.
