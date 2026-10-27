@@ -2348,7 +2348,10 @@ class Train:
             raise MainMoved("grade", why + "; recarry and wait CI")
         touched = files
         if rb is not None:
-            touched = files + self.git("diff", "--name-only", rb, tip).split()
+            # --no-renames: a rename lists both paths, so a file the batch's own
+            # merges moved still names the path it left (the grade's own docstring
+            # says "every file that differs"; closure.py's census enforces it).
+            touched = files + self.git("diff", "--no-renames", "--name-only", rb, tip).split()
             self.log(f"#{item['pr']} grade: origin/{self.base} moved {rb[:8]} -> {tip[:8]} by the batch's "
                      f"own merges since the recarry; grading the merge tree {tree[:8]}")
         # The grade's ANSWER is a function of two things and nothing else: the
