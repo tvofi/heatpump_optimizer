@@ -1705,9 +1705,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-arch-shapes",
-    "commit": null,
+    "commit": "04669d82fd8e079172024702b23750ebe889690c",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "PR #2819 is open at af7ec86f4, which is an ancestor of this ref: the handoff branch has main merged in (1f82fee49, #2856) and the PR head does not. Update the PR head to 04669d82f, or resolve the conflict on the PR, then review.",
     "note": null,
     "pr": 2819
    },
@@ -1833,10 +1833,10 @@
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (seam-ordered; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION; after you: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-RATIO-ANCHOR, R10-THERMAL-POWER-OPTION if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-heat-meter",
-    "commit": null,
+    "branch": "fix/r10-heat-meter-pr",
+    "commit": "7e9fea6acb929bf8eecd279096d99fafb208ac56",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "PR #2854 is open at 7e9fea6ac (pin killed mutants); handoff/r10-heat-meter db4493c3e is its ancestor. Review owed, then land.",
     "note": null,
     "pr": 2854
    },
@@ -1892,7 +1892,8 @@
     "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): \"has a heat meter\" becomes probe_install(...).measured_heat, covering both heat keys (heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity). COP-GATE renders the new refusal codes (unaligned_meters and the counter refusals) and never overrides them. Control: a counter install with no electric counter shows unaligned_meters, not a COP gate pass.",
     "D15 live-bundle lead L1 (owner install, 2026-10-25; unverified, from REPORT.md): the vent detector still trips after #2391, 3 trips in about 30 h on 24-25 October (2 at night) and 4 of 7 daily snapshots 9-12 October frozen on `ventilation`, and `_learning_frozen` (`coordinator.py:6610-6690`) returns `ventilation` for every caller's keys, so the COP (`:4937`), DHW (`:9992`), buffer (`:5249`) and sysid (`:10930`) learners freeze with the house heat-loss learner the detector was built for (#26). VERIFY FIRST, at main: (1) replay the detector's CUSUM over a synthetic residual series with and without an open window and report the trip rate on each (the owner's residual series is not in the bundle; a fresh debug collection via `debug_collect start` would capture it, ask the owner for it only if the synthetic arms cannot separate window from bias). (2) Per learner, call `_learning_frozen` with the vent latch set and report which of the four stops learning and what each loses. (3) Test the model-bias reading: the learned heat-loss scale was 2.09, and a detector that trips on bias, not on windows, is the shape #2241 described. THEN a design note (designer.md; whether COP, DHW, buffer and sysid should freeze on a suspected open window is a design call, not a fix), reviewed before any code. Controls: a series with a real window trips and freezes only the house learner; a flat-price, no-window series trips nothing (null); one mutant per learner gate. The owner install also shows the COP side: REPORT.md Follow-up C counts 15 accepted COP folds in its lifetime across 6 buckets, the largest holding 5, against `COP_BASELINE_MIN_SAMPLES` of 20, and says a freeze, the vent latch included, refuses a fold; that is #2262 / this group. Coordinate with R10-CEILING-PROBE, whose F1 (#2808) is the sysid freeze-aborts-the-experiment half of the same latch. (triage: dev/programme/triage/s6-batch24.md#P113)",
     "D15 live-bundle lead L2 (owner install; unverified): on 2026-10-08 the snapshot shows `learner_freeze_reason: ventilation` while `ventilation_active: false`, so the freeze reason may be sticky. Writers per the report: `coordinator.py:5251,5368,5430,5521,6509,6526`. VERIFY beside the L1 carry: drive the latch on then off and read the reason at each learner's next tick. Fix only if a reason outlives its cause. Controls: latch on then off clears the reason by the next tick (the expected arm); a reason set by a different cause survives the vent latch clearing (null); one mutant that stops clearing. (triage: dev/programme/triage/s6-batch24.md#P114)",
-    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). On a counter install (`heat_pump_heat_energy_entity` configured) the per-cycle COP fold returns `COP_REFUSED_SPAN_OPEN` (`span_open`) on every cycle that passed its gates: the COP folds at the span's close in `_async_learn_heat_span`, through `_fold_cop_evidence`. Render `span_open` as a span still open, never as a refusal or a not-measurable state, and the span refusals `counter_reset`, `counter_rollover`, `counter_resolution` and `span_too_long` (`heat_energy.SPAN_REFUSED_*`) and `unaligned_meters` as their own codes. Control: a counter install whose span folds shows its COP as measured while every cycle in between reads `span_open`."
+    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). On a counter install (`heat_pump_heat_energy_entity` configured) the per-cycle COP fold returns `COP_REFUSED_SPAN_OPEN` (`span_open`) on every cycle that passed its gates: the COP folds at the span's close in `_async_learn_heat_span`, through `_fold_cop_evidence`. Render `span_open` as a span still open, never as a refusal or a not-measurable state, and the span refusals `counter_reset`, `counter_rollover`, `counter_resolution` and `span_too_long` (`heat_energy.SPAN_REFUSED_*`) and `unaligned_meters` as their own codes. Control: a counter install whose span folds shows its COP as measured while every cycle in between reads `span_open`.",
+    "The learned top's consumer is this group's, not R10-CEILING-PROBE's (orchestrator ruling 2026-10-26, design-verdict/R10-CEILING-PROBE 3a261d86473f). The design review measured that `draw_range.planned_range` is read only from `diagnostics_view` (`draw_range.py:438-469`), that `_metered_range` is reachable only through `planned` (`:223`), which returns `None` unless `engaged` (`:221`), and that with twelve stored samples the observed window reads `(1.5, None)` while `planned` and `effective_max_kw` stay `None`. So a learned maximum with no reader is a value the plan cannot see: whichever group owns the COP gate must make the reference's learned top reach the surfaces that publish and use it, and assert it at eleven and twelve samples. Controls owed by that work: a synthetic pump with a known maximum (the control that separates a real learned top from a plan echo \u2014 a 1.0 h / 2-cycle run biases the store's median to 2.25 kW for a 3.0 kW pump, 25 % low, and still passes the 0.85 p_max gate), and a gate-held draw above idle. Re-measure at that group's merge base; the figures above are a snapshot at origin/main 6fe5170cd."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1911,6 +1912,7 @@
    "kind": "owner",
    "issues": [
     2253,
+    2260,
     2263,
     2809,
     2815
@@ -1947,7 +1949,8 @@
    "after": [
     "R10-SCORES",
     "R10-COP-GATE",
-    "R10-HEAT-METER"
+    "R10-HEAT-METER",
+    "R10-SAV-COMFORT"
    ],
    "carry": [
     "Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact.",
@@ -1965,7 +1968,8 @@
     "#2815 [D15]: no UI control starts a new debug collection; only the debug_collect action with start does, and toggling the option off deletes the collection.",
     "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building.",
     "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): two new input rows, heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity, labelled from strings.json's entities_metering section, and a Health string for the refusal code unaligned_meters. Control: the Health panel on an install with the code renders the string, never the raw code.",
-    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). Beyond `unaligned_meters`, the COP refusal on a counter install is `span_open` on each cycle between span closes, and a closed span can be refused as `counter_reset`, `counter_rollover`, `counter_resolution` or `span_too_long` (`heat_energy.SPAN_REFUSED_*`). Give each a Health string, `span_open` reading as waiting for the span, not a fault. Control: the Health panel on a counter install mid-span renders the string, never the raw code."
+    "From #2854 (R10-HEAT-METER), review probe/rev-2854-084d74e7: From R10-HEAT-METER (#2261; finding-propagation.md). Beyond `unaligned_meters`, the COP refusal on a counter install is `span_open` on each cycle between span closes, and a closed span can be refused as `counter_reset`, `counter_rollover`, `counter_resolution` or `span_too_long` (`heat_energy.SPAN_REFUSED_*`). Give each a Health string, `span_open` reading as waiting for the span, not a fault. Control: the Health panel on a counter install mid-span renders the string, never the raw code.",
+    "From R10-CARD-VOICE (#2841): the P9 grid's states leak into one another. p9Grid mounts every state of a cell in one browser context, so hidden_series's localStorage choice holds for later states; with a reset after each page.goto, 30 base-owned tile pairs in wood_alert and wood_lane at 375 read red at the base and the head alike. The next card seat that runs the grid owns the reset and that collision."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -3692,10 +3696,10 @@
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-sav-comfort",
-    "commit": null,
+    "branch": "fix/r10-sav-comfort",
+    "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
     "last_step": null,
-    "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
+    "next_step": "PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land.",
     "note": null,
     "pr": 2745
    },
@@ -4708,7 +4712,9 @@
    ],
    "carry": [
     "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle.",
-    "#2808 [D15]: Run System Identification arms an experiment that can never run (the house learner is past its sample limit), aborts on any learning freeze, and records no visible outcome. Settle the gate and the user-visible outcome here."
+    "#2808 [D15]: Run System Identification arms an experiment that can never run (the house learner is past its sample limit), aborts on any learning freeze, and records no visible outcome. Settle the gate and the user-visible outcome here.",
+    "Fixer seat 2026-10-26 (no code) measured three blockers; design owed before a fixer (designer.md). (1) A system_identification action is never actuated on a flow set-point install: pump_arbiter._planned_duty returns None (baseline row, curve or FLOW_HOLD_C); _flow_target and _step_kw read only the plan's power_schedule. Control: sysid step 5.0 kW -> duty None; plan action 5.0 kW -> plan duty 'idle'. The fit records step_power x COP as delivered heat never commanded. Mapping action power through flow_setpoint_for_level fixes ceiling and gate but leaves intermediate levels uncalibrated (#2465 carry 1). (2) conditions_met refuses at learner_samples >= converged_samples (200); owner house holds 482 (#2808), so the in-experiment probe never runs where ordered; a probe-only run for converged houses (cadence, outcome) is #2808's settle-the-gate decision. (3) draw_range cannot learn the top from probes: one run = 4 ceiling samples (2 h at 30 min), runs >= 30 days apart; observed() -> (1.5, None), planned() None. Control 48 samples -> top (1.5, 3.0) but clamp unengaged (48/336 = 14% < DISAGREE_SHARE 25%). Trap: a probe-learned top that clamps the plan self-censors until the next mild-weather probe; risk under-booking in a cold snap. Design must decide: actuation via flow set-point; probe-only run on converged houses and cadence; minimum probe samples to set the top and how a probe-learned top is re-tested. Cross-impact: sysid results adopted on set-point installs rest on an uncommanded step (the D15 ventilation-detector lead citing #2808).",
+    "Design approved r2 (design-review 2026-10-26) at design/r10-ceiling-probe 9ef3325660916ef055f8b9a39713e3f2a98d0afe; architect note dev/programme/designs/R10-CEILING-PROBE.md. Files widen to pump_arbiter.py and coordinator.py (R10-LIVESTATE is done, no ordering hold). Item 7: last_run is not persisted (written sysid.py:1291 and 1709 only; as_dict at 2345 is a view) - derive the probe clock from the persisted DrawRange probe-store run timestamps so a restart cannot reset the 7/30-day interval; pin with a restart test. Item 8: overdraw-drop test uses a synthetic pump with top learned at 5 C and +20% ceiling draw at -10 C; store must drop after the counted samples. Ruling rationale corrected: draw_range learns electrical draw, which at full speed is equal or higher in cold, so a mild-band top can under-state cold draw; outcome stands because the planner clamps min(learned, configured), the overdraw drop (item 4) and the 45-day lapse reset it; cost is extra booked hours, not comfort. Note length (1519 words) accepted, not trimmed."
    ],
    "architect_note": null,
    "group": "R10-CEILING-PROBE",
@@ -4716,15 +4722,20 @@
    "wave": 6,
    "files": [
     "custom_components/heatpump_optimizer/sysid.py",
-    "custom_components/heatpump_optimizer/draw_range.py"
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/payload.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
    ],
    "brief": "Ordered by tvofi 2026-10-19: fold a deliberate ceiling-set-point probe into the cheap-night system-identification experiment (sysid.py, gated on mild outdoor temperature, cheap price, night window). Purpose: set-point-driven installs never command the ceiling, so the metered draw window is censored at the top and the plugin cannot learn the pump's real maximum (owner: configured 5 kW, a Rotenso Windmi 14 kW whose real electrical maximum is believed near 3 kW). The probe writes the ceiling flow set-point for a bounded step inside the experiment window, records drawn power against the written set-point into draw_range's ceiling-commanded evidence (R10-SETPOINT-BOOST fix B), and lets the band top be learned from uncensored samples. Controls: the experiment's existing comfort and price gates hold; a probe never runs outside them; a synthetic pump with a known maximum is recovered within tolerance; duty-cycling installs unchanged; flat-price null.",
    "resume": {
-    "stage": "not-started",
-    "branch": "handoff/r10-ceiling-probe",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer",
+    "stage": "in-progress",
+    "branch": "design/r10-ceiling-probe",
+    "commit": "9ef3325660916ef055f8b9a39713e3f2a98d0afe",
+    "last_step": "design rev 2 at 9ef332566 (comfort bound, cadence state, sibling sites, adoption refusal dropped); design review returned revise, verdict at design-verdict/R10-CEILING-PROBE de63c5b0d.",
+    "next_step": "design rev 3 is being re-cut by the designer; on an approve verdict set architect_note and add pump_arbiter.py and coordinator.py to the group's files. No production code before that approve.",
     "note": null
    }
   },
@@ -4824,6 +4835,7 @@
    "lane": "IN",
    "kind": "production",
    "issues": [
+    2499,
     2500
    ],
    "fixes": [],
@@ -4852,11 +4864,11 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "queued",
-    "branch": null,
-    "commit": null,
+    "stage": "fixing",
+    "branch": "wip-sync/ext-mut-297fc65b",
+    "commit": "eb46ec47ad6add449c46d1f0d3bfae4694355e67",
     "last_step": null,
-    "next_step": "rca",
+    "next_step": "fixer live; eb46ec47a models the valved buffer tank in the single-zone step. No handoff branch and no PR yet: reachable at wip-sync/ext-mut-297fc65b (snapshot) and wip-sync/ext-wt-e3556a49. Push handoff/r10-buffer-store, then open the PR.",
     "note": null
    },
    "class": "production",
@@ -4899,11 +4911,11 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "queued",
-    "branch": null,
-    "commit": null,
+    "stage": "fixing",
+    "branch": "wip-sync/ext-wt-a58e58ff",
+    "commit": "50ef300f72a96fe467467deec6f4877bdadb8221",
     "last_step": null,
-    "next_step": "rca",
+    "next_step": "fixer live; the fix is 5eb2891aa, price COP's fall with compressor power, off by default, and 50ef300f7 re-records class_excess_loc for it in the structure ratchet. No handoff branch and no PR yet: reachable at wip-sync/ext-wt-a58e58ff (snapshot). Push handoff/r10-cop-partload, then open the PR.",
     "note": null
    },
    "class": "production",
@@ -6050,16 +6062,20 @@
     "From #2609's red at ff83a3d7 (fast (3.14), check-run 119826108493): a docs PR whose README.md or docs/*.md change moved the round-4 D6 claims counts (dev/audit/rounds/round4/D6/claims.py, rows C108 links and C110 images) reached CI with the committed claims.json and claims.md stale, because its seats ran prepr with PREPR_SKIP_CLOSURES=1 and nothing else runs tests/harness_headers.py' byte-identical check before the push. Owed: prepr runs the executed-harness byte-identity check (or claims.py alone, a few seconds) whenever the diff touches README.md or docs/*.md, even with closures skipped. Null control: a README link added without re-recording goes red in prepr. (moved from R10-PREPR-UNPINNED-RED, appended after done; seam: prepr error-proofing before handoff. Re-measured at origin/main: tools/pr/prepr.sh has no claims.py or harness_headers byte-identity step for README.md/docs diffs.)",
     "Re-homed from #2772 body item 0a016c98 (R10-TRAIN-UPGRADE is done; orchestrator ruling 2026-10-25). The cheaper detector for the `tests / fast (3.14)` red: prepr should predict that red before handoff, so it no longer reaches CI first. Answer it as a jidoka stop at prepr, or record why no cheaper detector exists (defect-root-cause.md cost test).",
     "Measure first (#2835, main ruling under mandate 6329234399, 2026-10-26): recurring friction on .claude/rules/gate-scoping.md across 6 distinct PRs over v7.0.4..main. Name the 6 PRs and the rule hit each made (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, with a token), then decide whether the keying rule or the gate changes. Fix the cause in this group or record a decision not to, with the numbers. Part of #2835.",
-    "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant."
+    "tvofi 2026-10-24 recommendation (a) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): quiet output by default for tools/audit/seat/update_pr.sh, tools/audit/seat/open_pr.sh and the per-car progress of tools/audit/seat/merge_train.py, with the same convention as tools/pr/prepr.sh (R10-FLOW-JIDOKA owns that script): one result line per step, the failing step's tail, the full output in a printed log, a verbose switch to restore the stream, and every key line kept (mode, the failing check names, the final summary). merge_train.py is also edited by R10-FLOW-AUTOTRAIN: touch only its output calls and merge the other group's branch before yours. Control: a seeded failure shows its tail in quiet mode; the exit codes agree across quiet and verbose; each rule has a mutant.",
+    "From R10-UPDATE-PR-SIGNALS (#2825, carry 4): quiet output is not built in that pull request and remains owed on this group.",
+    "From R10-UPDATE-PR-SIGNALS (#2825): the 12 seat self-tests outside that group's files that do not enter through pr_bounded -- body_patch, bus, ci-watch, cloud-setup, delivery_row, failure_logs, handoff_push, heartbeat, merge_pr, seat_venv, tick_loop and train -- must adopt the bound, a bound that survives a group KILL.",
+    "From R10-FLOW-JIDOKA (#2838): the rest of this group's roster carries are not built by the p1 slice -- the parity test G1 and G2, one grammar owner for Forward-carry (G3), the P-N body-check extensions, the base-pinned replay P3, ref_privacy and figure_lint at body push, quiet output, --fill-red, the wave-script trigger glob P75, the claims.py byte-identity check, predicting fast (3.14), and instrument-self-tests. The S size cap cannot hold them.",
+    "From R10-FLOW-JIDOKA (#2838): the round-1 census's HEAD-ONLY class needs a predicting detector, not a reading one; step 7c can only read reds on commits already pushed."
    ],
    "architect_note": "",
    "brief": "Error-proofing before handoff (Lean study K2). Of 133 blocked fix reviews in round 10, 25 were carry-missing: a finding with no destination, a fact tools/audit/carry_audit.py checks offline with its check subcommand and --body, and which pr-contract.yml already runs after the push. Add one prepr step that runs that same check on the body the fixer hands off, so the refusal lands before review instead of after it. Run the existing checker; add no new rule (decision 0012). Also report why the red-check answer arm of prepr (reds_line, gated before its call site) did not fire on the round's root-cause-unanswered and ci-red blocks, and fix the gate if it is a defect. Revision 8: pass carry_audit.py --roster-ref with the freshly fetched round roster branch (roster_lib.round_ref); the worktree's roster is not where fix-review step 10 looks, so an offline check passes a carry that is not on the roster branch. Controls: a fixture body whose carry exists only in the worktree roster is refused; a fixture body with an unrouted Forward-carry item is refused at the new step and passes once routed; the prepr self-test count rises by exactly the new arms; the step's mutant (step deleted) fails the self-test. Carry from #2528 (R10-PREPR-CAP): tools/pr/prepr.sh steps 3 to 3h run heavy work in the foreground, so a KILL or TERM to prepr during step 3h leaves the self-test or mutants drive running or deferred; the fix shape is closures-step-style background-and-trap for each heavy step.",
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-flow-jidoka",
-    "commit": null,
+    "branch": "fix/r10-flow-jidoka-p2",
+    "commit": "fa18c13d206e312e2fe959d825ffa04ed77025e3",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "p1 landed (#2838, 2026-10-26T04:40Z). PR #2853 is open at fa18c13d2 for the p2 slice (error-proofing second slice); handoff/r10-flow-jidoka-p2 1fc98acd is its ancestor. Review owed, then land; the carries #2825 and #2838 routed here are on this group's carry list.",
     "note": "Decision 0012 (moratorium) was revoked by decision 0014 on 2026-10-21; the brief's 0012 reference binds nothing.",
     "pr": 2853
    }
@@ -6163,6 +6179,7 @@
    "class": "instrument",
    "issues": [
     2715,
+    2719,
     2801
    ],
    "fixes": [],
@@ -6457,7 +6474,7 @@
    "architect_note": "",
    "brief": "The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). Every roster_edit.py push lands on handoff/audit-r10-roster and the relay carries it into the open roster pull request, so a review of that pull request comes back head-moved or body-stale: #2559 lost five reviewer rounds that way on 2026-10-21. And carry_audit.py check resolves carry destinations against main's roster only, so a carry to a group that exists only on the handoff roster fails as a bad destination until the roster pull request merges: #2529, #2547 and #2561 were blocked by it. Change: (a) the relay does not move an open roster pull request's head while a review of it is in flight (a review worktree or an undisposed review dispatch for that number), the freeze fixer.md already gives a fix head; roster edits accumulate on the handoff ref and land between reviews; (b) carry_audit.py also reads the round's handoff roster ref (roster_lib.round_ref) as a destination source, naming which ref resolved each carry, so a destination on the handoff roster passes and one on neither still fails. carry_audit.py is code-owned: tvofi's review under the mandate. Controls: a fixture carry to a handoff-only group passes and names the handoff ref; a carry to a group on neither fails; the relay fixture with a review in flight leaves the roster head unchanged and moves it once the review posts; mutants for both arms.",
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "handoff/r10-flow-roster-freeze",
     "commit": null,
     "last_step": null,
@@ -6714,7 +6731,8 @@
    "rca": [],
    "after": [
     "R10-UPDATE-PR-SIGNALS",
-    "R10-FLOW-BODY-PATCH"
+    "R10-FLOW-BODY-PATCH",
+    "R10-FLY-OPENPR-ATOMIC"
    ],
    "carry": [
     "Pre-study: the Lean flow pre-study, section K12.",
@@ -6726,7 +6744,10 @@
     "- The contract arm runs `carry_audit.py check --body` without `--roster-ref` (body_patch.sh:98), against the group brief's revision 8. Round 3 carried this to R10-FLOW-BODY-ONLY, but that group's brief and carries at 5620151813e0 contain no `roster-ref` (ev/roster_carries.txt). It is still owed, as one argument naming the freshly fetched round roster branch. Its control is a fixture whose worktree roster holds a carry the roster ref lacks, which must refuse. Carry: R10-FLOW-BODY-ONLY",
     "tvofi 2026-10-24 card 7 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)), after parts (b) and (c) give body-only transport: every figure a pull request body states comes from a generated block. tools/audit/seat/features_block.py and the figure lint render the block at the head; body_push.sh and the pr-contract refresh it on each synchronize; a hand-typed figure fails the body check, so a stale figure is structurally impossible. Touches the pull request template and checkPrBody (the template and contract are one file), so the owner's review at merge. Controls: a body with a hand-typed figure fails; a head that moves re-renders the block with no agent turn; each rule has a mutant. The generated block must tolerate the body-only path (no push), so render in the body-only job, not only on synchronize.",
     "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them.",
-    "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted."
+    "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted.",
+    "Body contract at the head (V115), built only with this group's dispatch and closed with it. `body_patch.sh`'s contract arm resolves a body's cited paths in the caller's checkout: `policy_lint.mjs`'s Forward-carry check calls `resolvePathToken`, which reads `brief_lint.mjs`'s `trackedFiles()`, a `git ls-files` at the lint's own ROOT. `pr-contract` resolves at the PR head. So a body citing a file the PR adds is refused offline from any checkout that lacks it. The instance: #2852, body fa8458d7 at head 6353b624, refused from a checkout of main with three \"not in the tree\" errors on files the PR adds, and passed from a detached worktree at 6353b624 (2026-10-26, about 20 min of diagnosis). Change: `trackedFiles()` honours an explicit revision (an argument or environment value, listing the tree with `git ls-tree -r --name-only <rev>` as `refFiles(ref)` already does), and `body_patch.sh` sets it to `<expected-head-sha>`, so every path the offline contract checks resolves at the head it gates. A per-path `git show <head>:<path>` inside `body_patch.sh` is REJECTED: it would be a second resolver that disagrees with the lint's. Controls: a body citing a file the head adds, gated from a checkout that lacks it, passes with the revision set and refuses without it (the 6353b624 shape); a body citing a file the head deletes refuses with the revision set (null control for the opposite direction); one mutant that drops the revision fails the first control. Until the group lands, run `body_patch.sh` from a detached worktree at the expected head. Files: the change edits `tools/policy/brief_lint.mjs` and `tools/audit/seat/body_patch.sh`, both outside this group's declared files; the dispatch widens that set to both (#2862 fix review). triage: dev/programme/triage/s6-batch34.md#P195",
+    "From #2858's fix review (blocked at 52f7d33a, probe/rev-2858-7540ca11 31033ab8): V64, auto-open on handoff in `cloud_relay.sh`: **not built here.** The carry says it is built on this group's atomic open, so it can only be built once that is merged. It also edits the handoff arm of `cloud_relay.sh`, whose update arm is R10-FLOW-BODY-ONLY's. Its controls (one PR per topic, the second concurrent pass exits 75, handoff-to-open latency before and after) need this head as their \"before\".",
+    "Auto-open on handoff (carry 11, V64), built on `open_pr.sh` at this head: `cloud_relay.sh`'s handoff arm runs `open_pr.sh` for a `handoff-no-pr` topic with a body ref, under `pr_branch_lock`. Carried into `dev/programme/rosters/wave-r10-groups.json`, stage R10-FLOW-BODY-ONLY (carry index 11), on handoff/audit-r10-roster at 2adcc52871409939e3c9adcc880966845b6f6332. Carry: R10-FLOW-BODY-ONLY"
    ],
    "architect_note": "",
    "brief": "Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into the head unconditionally, in the step after it takes the handoff code head, and has no flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: observed 2026-10-21 on #2513, #2544, #2548, #2529 and #2549, each then carried by app_approve.sh --carry or re-reviewed. Change: (a) merge origin/main only when the pull request is DIRTY or git merge-tree --write-tree origin/main HEAD reports a conflict; (b) a body-only mode, taken when the code sha argument is the dash and the pull request head already contains the handoff tip: no worktree commit, no delivery-row commit when the row exists, and the body handed to R10-FLOW-BODY-PATCH's instrument, which runs the body contract at the unchanged head and PATCHes without a push; (c) cloud_relay.sh's handoff arm, which today skips any topic whose code tip the head already contains and so never propagates a body-only move, calls the body-only mode when the handoff-body tip changed. pr-contract re-runs on the edited event, so the body is re-gated without a push. Controls: with main ahead and a clean merge-tree, the head sha is identical before and after; a DIRTY fixture still absorbs; a body-only run on a moved head refuses; the relay fixture calls body-only exactly once per body move; each rule has a mutant. Sequence with the open row-only change #2567 and #2560 (update_pr lock), which touch the same script.",
@@ -6735,7 +6756,7 @@
     "branch": "handoff/r10-flow-body-only",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "Re-size or split before dispatch: 12 carries, carry 7 needs owner review, V115/V64 reach outside declared files (stopped seat 2026-10-26, scratch NOTES.md)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
@@ -6831,9 +6852,9 @@
    "architect_note": "",
    "brief": "open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: read main's nightly-status before the first push. P13 fold: the stuck row commit lives in open_pr.sh's own worktree ($HPO_STATE_DIR/pr/<topic>/wt) after a refused second push (29 of 98 open_pr runs refused); fix there, NOT an update_pr.sh auto-reset, which would drop the row's group.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-openpr-atomic",
-    "commit": null,
+    "commit": "3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
@@ -7614,7 +7635,8 @@
     2593,
     2597,
     2660,
-    2784
+    2784,
+    2855
    ],
    "fixes": [],
    "findings": [],
@@ -8193,8 +8215,10 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "done",
+    "branch": null,
+    "pr": 2865,
+    "commit": "bfc4a1e297fb2899be1c4643ae9d75b8a5829208"
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern E, dispatch and the worker registry in bus.sh dispatch (note section 3 row E). The ledger's reviewer-fire close is written by this group's dispatch (carry 17), so it follows R10-ORCH-LEDGER. Carry 13 is copied here whole; part (4) is this group's. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
@@ -8246,7 +8270,13 @@
     "Carry from R10-FLOW-RECORD-PITCH (#2836, merged 28800999b): the roster carry asks for a post-merge measurement. Count one full UTC day of record merges after 28800999b and compare it with 2026-10-24's 19. Record the number and the comparison in this group's PR body. Run it as a script over `git log --merges`, with a flat-day null control. This is not a PR of its own. Ruling: orchestrator, 2026-10-26, under mandate 6329234399. The group closes as done, and this measurement moves here so it is not lost (zero leftover carries).",
     "Sweep step (5) reads the whole tick board (V110). In `tools/audit/seat/sweep_template.md` step (5), replace 'Act on the newest actionable lines of {{tick_log}}' with: act on every `-> ` line of {{tick_log}}, the board `tick_loop.sh --out` writes. OWED lines are a level re-printed every pass, not a diff. Print `grep -c '^-> ' {{tick_log}}` and `grep -c 'OWED' {{tick_log}}` beside the actions taken, and read the file untruncated. A disposition that defers an OWED line to a seat names that seat's ledger id or PID, and the next sweep re-checks it; one naming no seat is not a disposition. Document `tick_log` in the template's placeholder table as that board, never the retired tick seat's `tick-owed.txt`. Observed 2026-10-25/26: the overlay's tick_log named `tick-owed.txt`, frozen since 15:33 local. `reviewer-fire 2836` was line 107 of 131 on `tick.txt` and went unrendered 1 h 53 min. mq-probe was disposed at 18:12Z as 'local seat covers' with no seat named, and sat 4.5 h. Controls: `sweep_render.py` over a fixture overlay renders step (5) naming the board path and both counts; a mutant restoring 'newest actionable lines' fails the render check; the rendered text names no `tick-owed` (null: other steps unchanged). triage: dev/programme/triage/s6-batch32.md#P190",
     "From R10-RCA-ORCH-CONTINUITY (rerouted to R10-ORCH-BEATD, orchestrator ruling 2026-10-26): Lean flow study: R10-FLOW-ANDON (a pushed heartbeat ref and an off-host watcher, 20-minute bound) is a ready countermeasure candidate; run the cost test against it rather than designing a second one, and record the decision.",
-    "Recurrence evidence (2026-10-26): two orchestrator record loops died without anyone noticing. The state beat (state_docs.py beat --apply --push) died 2026-10-25T17:41Z on a fetch ref-lock race (\"cannot lock ref refs/remotes/origin/...\") in the shared orch checkout. The wt_sync loop died 2026-10-25T11:49Z. Neither was detected for ~16 h; it surfaced only when the owner asked whether the state docs were current. Both were restarted 2026-10-26 ~10:10Z under daemonize.py. A liveness check for both was added to the sweep (step 5c, log age > 20 min). Owner decision pending on detection: (A) hourly cloud probe (recommended; default under silence), or (B) CI cron. The ref-lock race itself is R10-ORCH-BEATD concern B (single-instance locks per job).\n\n\nSource: orchestrator recurrence evidence for R10-RCA-ORCH-CONTINUITY, 2026-10-26 (seat-ledger)"
+    "Recurrence evidence (2026-10-26): two orchestrator record loops died without anyone noticing. The state beat (state_docs.py beat --apply --push) died 2026-10-25T17:41Z on a fetch ref-lock race (\"cannot lock ref refs/remotes/origin/...\") in the shared orch checkout. The wt_sync loop died 2026-10-25T11:49Z. Neither was detected for ~16 h; it surfaced only when the owner asked whether the state docs were current. Both were restarted 2026-10-26 ~10:10Z under daemonize.py. A liveness check for both was added to the sweep (step 5c, log age > 20 min). Owner decision pending on detection: (A) hourly cloud probe (recommended; default under silence), or (B) CI cron. The ref-lock race itself is R10-ORCH-BEATD concern B (single-instance locks per job).\n\n\nSource: orchestrator recurrence evidence for R10-RCA-ORCH-CONTINUITY, 2026-10-26 (seat-ledger)",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **The dispatch half of standing-dispatch.md becomes a beat job owned by this registry.** Not built here: the beat and its job table are R10-ORCH-BEATD's (concern B), which is after this group. What it needs from here exists: one writer (`bus.sh dispatch`), a registry with time and model, a reopen on a failed publish. The standing dispatch seat stays until the job has run beside it for one full cycle.",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **A guardrail trip dispatches a planted-defect audit.** Not built: behind the owner's ruling in `dev/programme/carries/carry-201.json` (the R10-FLY-YIELD-GUARD entry), which has not been made. The precondition holds at this head: the live `--guardrail` run under Figures prints `would-trip` on the `local` arm and exits 0 at both base and head, and this PR adds no dispatch on it. The dispatching job is the beat's dispatch half ([5]). Control to carry: a `would-trip` arm line dispatches one audit seat per tripped arm, keyed arm and cut, and a repeat of the same line dispatches none; an `ok` or `insufficient` line dispatches nothing.",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **K17 alignment.** Part (4) is this group's: the dispatch record is now the registry the seats job reads, with time and model, which is the backing state the round-3 review's N11-R found missing for the folded dispatch reason. Part (4b), the read-back close of `verdict-unposted`, is already on main (R10-ORCH-LEDGER) and unchanged here. Parts (0)-(3) and (5)-(7) are other groups' (the brief copies the carry whole): carried to R10-ORCH-BEATD below; part (3)'s live reviewer in the workers JSON file reads as the live record in `$S/dispatched` (Decision above).",
+    "**R10-ORCH-BEATD: the seats job reads this registry.** The worker registry is `$HPO_BUS_STATE/dispatched`, one line per reviewer dispatch, `<pr> <head> <reviewer> <nonce> <utc> <model|->` (older 4-field lines stay readable); the design's workers JSON file is not built, by decision. The seats job and the WORKERS section read it, and fixer seats (not dispatched through the bus) need their own record or none. Control: a reviewer dispatched through `cloud_dispatch.dispatch_group` appears as a live seat with its dispatch time; a line at a head the PR has moved past reads `DONE?`, not live. Carry: R10-ORCH-BEATD",
+    "**R10-ORCH-BEATD: carry [5], the dispatch beat job.** It calls `bus.sh dispatch` (or `dispatch_group`), never a second writer of the registry or of the `reviewer-fire` close; the standing dispatch seat stays until the job has run beside it for one full cycle. Control: one beat pass over a handoff with no live dispatch leaves one registry line and one `close reviewer-fire` in `events.tsv`, and a second pass adds neither. Carry: R10-ORCH-BEATD",
+    "**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD"
    ],
    "model": {
     "fixer": "opus",
@@ -8621,7 +8651,9 @@
     2730
    ],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R10-SAV-COMFORT"
+   ],
    "files": [
     "tests/features.py",
     "tests/entities.py",
@@ -8631,7 +8663,8 @@
     "From the #2632 (R10-LOOP-CPU) fix review (probe/rev-2632-a4ff6382, verdict.md ## Findings), reviewer-dismissed, routed here because no finding is deferred: With `HASTUB_TZ=Europe/Stockholm` set, `tests/features.py` fails at the merge base fef4a135 as well as at this head: 5 of 4299 fail at the base, 4 of 4300 at the head. Two of the failures are the R9-F1.1 N-shared-config pair (\"published mid-solve []\"), and one is the naive/aware timestamp check (ev/features_base_TZ.txt, ev/mutants.txt \"=== null\"). It does not reproduce without that variable: the head prints `ALL 4307 FEATURE CHECKS PASSED`. No workflow under .github/workflows sets HASTUB_TZ. So this is a wall-clock or zone dependence in the suite that predates this branch, outside this group's seam.",
     "From #2632 (R10-LOOP-CPU), run 39874068348 (job 120155413953), head ab6216cee6b6: fast (3.14) failed on tests/entities.py with 1 of 2401 checks failed, and coverage-ratchet failed after it (package coverage 85.89 % against 96.0 %, 45 modules below the 95.0 % floor), while the sibling run 39874062299 on the same head passed both. Diffing the two logs' FAIL lines, the one extra failure in the red run is the gate-lease check \"concurrency control: two waiters released in one poll, exactly one holds the slot\" ([queued=True overlaps=1 order=['b', 'a']]); the other FAIL lines (hb:positive_control, a8:register_once) differ only in measured figures and are planted controls. The check is timing-dependent under runner load, and this diff does not touch gate_lock or the entities check. Make the check deterministic (wait on a condition, never a fixed window), then re-measure the pair of runs.",
     "From #2632 (R10-LOOP-CPU) round 3, correcting the carry above: coverage-ratchet's red in run 39874068348 (package 85.89 % against 96.0 %, 45 modules below 95.0 %) was neither the entities flake nor a flake. It was #2632's own defect, fixed in that PR: tests/features.py left 740 live process-worker children at its exit, and their coverage data files landed after the script's own process exited. tools/coverage/coverage_tree.sh's `measure()` checks `ls \"$WORK/data/$s\"/.coverage.*` the moment `tests/$s.py` returns, so it recorded `features.nodata` with no error, and the ratchet read a package-wide drop. A local run at ab6216ce reproduced the red: `features.nodata` and 85.88 % (18987/22108). A second run printed \"could not combine tests/features.py's data\" instead. The control at fef4a135 read 98.66 % (21801/22097). The seam left here is the instrument's: any measured script whose descendants outlive it loses its whole measurement silently. Make `coverage_tree.sh` refuse a measured script that exited 0 and left no data, or wait for the script's process group before the check, so a red names the script rather than 45 modules. Plant a script that leaves one child writing coverage after its exit; it must read red. Files: tools/coverage/coverage_tree.sh. Re-measure at your merge base.",
-    "From #2632 review (item 325975e1): under HASTUB_TZ=Europe/Stockholm, 4 features.py checks fail at base a6620c30 and at the head alike: the house-meter preference check (new since round 1), the naive/aware timestamp check, and the R9-F1.1 N-shared-config pair."
+    "From #2632 review (item 325975e1): under HASTUB_TZ=Europe/Stockholm, 4 features.py checks fail at base a6620c30 and at the head alike: the house-meter preference check (new since round 1), the naive/aware timestamp check, and the R9-F1.1 N-shared-config pair.",
+    "gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `df478d40b`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES"
    ],
    "model": {
     "fixer": "sonnet",
@@ -8916,14 +8949,19 @@
     "tvofi 2026-10-24 card 8 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): placed after R10-ORCH-DISPATCH-REG, because bus.sh dispatch renders the packet, and before R10-ORCH-BEATD. R10-POLICY-FIXER-MD is also an after-edge because it edits fix-review.md at zero headroom and this group edits the same file.",
     "Card 5 (dispatch reviewers only once the gate has settled) was rejected by the owner: reviewers are still dispatched when the fixer pushes. The packet is therefore rendered at the frozen head while the gate may still be running. Its gate digest must say pending, green or red as of the render time with the check-run ids read, and the reviewer re-reads the live state before a verdict. Nothing in this group may depend on the gate having concluded.",
     "Independence: the packet holds the finder's harness output at base and head, run by a tool; it never holds the fixer's harness. The reviewer still re-runs whatever it doubts. fix-review.md step text changes by cutting text elsewhere in the file.",
-    "Refuse a reviewer dispatch on exact mechanical signals, naming each to the opener or fixer. The signals: `carry_audit.py` unrouted or bad items at the body (it returns 1, lines 414-418); a `## Head` note that does not name the dispatched head; a `tests/structure.py` refusal at the head merged with main; a CONCLUDED red check that the body does not answer (`policy_lint.mjs --pr-body --red`); a host path in the body or diff (`ref_privacy.py`). A pending check is never a refusal (the owner's card 5 rejection stands), and every other finding prints as advisory in the packet. Controls: one fixture per signal refuses and names it (null: a clean head dispatches); a head with checks still running dispatches; one mutant per signal. (triage: dev/programme/triage/s6-batch26.md#P135)"
+    "Refuse a reviewer dispatch on exact mechanical signals, naming each to the opener or fixer. The signals: `carry_audit.py` unrouted or bad items at the body (it returns 1, lines 414-418); a `## Head` note that does not name the dispatched head; a `tests/structure.py` refusal at the head merged with main; a CONCLUDED red check that the body does not answer (`policy_lint.mjs --pr-body --red`); a host path in the body or diff (`ref_privacy.py`). A pending check is never a refusal (the owner's card 5 rejection stands), and every other finding prints as advisory in the packet. Controls: one fixture per signal refuses and names it (null: a clean head dispatches); a head with checks still running dispatches; one mutant per signal. (triage: dev/programme/triage/s6-batch26.md#P135)",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **Reviewer dispatch refuses at a head whose required context concluded failure.** Not built here. R10-ORCH-REVIEW-PACKET's roster carry already lists the reviewer-dispatch refusal signals (\"a CONCLUDED red check that the body does not answer\"), rendered by the same `bus.sh dispatch` this PR makes the one entry point, so the arm belongs beside them rather than a second refusal list here. Control to carry: a reviewer dispatch at a head whose required context's latest run concluded failure refuses and pushes nothing, and the same head with that run green renders.",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **Hot-file reviewer refusal arm (b).** Not built here, same owner as [6]: refuse a reviewer at a head that shares `pr_args.sh`, `update_pr.sh`, `cloud_relay.sh`, `orchestrator_tick.py` or `r10_seat_selftests_mutants.py` with an open pull request holding an unboarded merge verdict. Control to carry: a reviewer dispatch at a head sharing a hot file with an open PR that holds an unboarded merge verdict refuses, and the same dispatch with the verdict boarded passes.",
+    "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **Dispatch the reviewer at the handoff ref.** Not built here. It moves the dispatch moment: a topic-keyed record re-keyed by `open_pr.sh`, a relay that posts a held verdict, and policy text in `standing-dispatch.md` and `fix-review.md` step 7. `fix-review.md` is edited by R10-ORCH-REVIEW-PACKET (after this group, at zero headroom), and the packet is rendered at the same dispatch moment, so the moment and its policy text land together there. This PR's pieces it builds on: `dispatch --nonce` re-records a minted nonce, and REVIEW OWED already applies `app_approve.sh --carry`. Controls to carry: a handoff-dispatched verdict whose PR head is the handoff tip plus a clean main merge carries and posts (null: a PR head with a conflict resolution refuses the carry and the PR is re-dispatched at its head); a verdict for a topic that never opens a PR is reported, never posted; one mutant that posts without the carry check fails the conflict arm.",
+    "**R10-ORCH-REVIEW-PACKET: carries [6] and [7], the two reviewer-dispatch refusal arms,** with the controls stated in the items above, beside its own refusal-signal list in `bus.sh dispatch`. Carry: R10-ORCH-REVIEW-PACKET",
+    "**R10-ORCH-REVIEW-PACKET: carry [11], dispatch at the handoff ref,** with its controls as stated above; `dispatch --nonce` and the REVIEW OWED carry filter are already in place. Carry: R10-ORCH-REVIEW-PACKET"
    ],
    "resume": {
-    "stage": "not-started",
-    "branch": "handoff/r10-orch-review-packet",
-    "commit": null,
+    "stage": "fixing",
+    "branch": "wip-sync/ext-wt-2b362865",
+    "commit": "9c35ddd23bca6d7281d74ff7c6b6d854f8953bbf",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "fixer live, so its after-edges are satisfied; 2ca9b4a0b has bus.sh dispatch render the reviewer's packet and refuse on its mechanical signals, and 9c35ddd2 puts --no-renames on the touched-paths diff for closure.py's RENAME_SITES pin. No handoff branch and no PR yet: reachable at wip-sync/ext-wt-2b362865 (snapshot). Push handoff/r10-orch-review-packet, then open the PR.",
     "note": "owner card 8, 2026-10-24"
    },
    "brief": "Reviewer reads a script-built review packet (owner ruling tvofi 2026-10-24, card 8). A fix reviewer spends much of its run gathering the same facts with gh reads, file reads, gate output and waits. Change: bus.sh dispatch renders, at the frozen head, a packet file (a new module beside bus.sh) holding: the three-dot diff against the merge base; a digest of the gate jobs as of the render time (see the carry on card 5); the carry_audit and figure_lint results at the head; the finder's harness output at the base and at the head (the finder's, never the fixer's); and the mutation-ledger diff. dispatch names the packet path in the reviewer's brief, and fix-review.md says to start from it. Measure first: what the reviewer's gather steps cost at the base, from the local transcripts of a sample of review seats (the token section of R10-FLOW-BOARD is the reader if landed); the saving claimed is the gather share the packet removes, with the packet's own size beside it. Controls: a packet at a head carries the harness output of that head, and at a moved head dispatch refuses to name a stale packet; the packet is byte-identical for the same head on a second render; a packet built from the fixer's harness fails the independence check; each rule has a mutant. A reviewer verdict still names its own evidence directory (app_approve needs an absolute Evidence path)."
@@ -9061,9 +9099,12 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
    "carry": [
-    "Re-homed from R10-FAHRENHEIT (done; the carry was appended after it was done, from #2465 fix review 6291407983); issue #2805. A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low, and custom_components/heatpump_optimizer/setpoint_check.py re-raises the issue. Round the written floor UP to the entity's step, so it is never below the requested value. Failing test first across \u00b0C and \u00b0F steps, a mutation proof, and a null control: an on-step floor writes unchanged. This adds setpoint_check.py to this group's files; the seam is the disinfection-floor write path only."
+    "Re-homed from R10-FAHRENHEIT (done; the carry was appended after it was done, from #2465 fix review 6291407983); issue #2805. A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 \u00b0C on a \u00b0F install) is written 0.27 K low, and custom_components/heatpump_optimizer/setpoint_check.py re-raises the issue. Round the written floor UP to the entity's step, so it is never below the requested value. Failing test first across \u00b0C and \u00b0F steps, a mutation proof, and a null control: an on-step floor writes unchanged. This adds setpoint_check.py to this group's files; the seam is the disinfection-floor write path only.",
+    "From R10-LEGIONELLA-COMPLETION (#2832): the step-0/step-1 flap stands. The plan's legionella step alternates between step 0 and step 1 on consecutive solves, and in control mode the disinfection switch is still turned on and off with each window, now daily rather than weekly on a pump that cannot reach the target. The debounce alternative changes the per-boost switch contract docs/configuration.md documents."
    ],
    "architect_note": null,
    "brief": "Proposed new fly-in group R10-IMMERSION-LATCH (size S). No roster group mentions immersion, booster or resistive heat. From D15 triage (2026-10-24; derived ratios only). The owner has no immersion element, yet October books an immersion line equal to 3.9 % of the month's metered kWh (absent in August and September), with 7 latch events in the thermal store between 10-18 and 10-20, all at DHW times. Seams. (1) `_detect_immersion` (custom_components/heatpump_optimizer/coordinator.py:8838-8895) latches on two samples where the measured draw exceeds `max_electrical_power` x `IMMERSION_FACTOR` (1.15, const.py:1149) while the plan commands heat. On this install that is the pump's own meter, which also carries its built-in DHW booster or backup heater (both entities are configured), or a compressor drawing above the configured 4.0 kW nameplate. Either way it is not an immersion element, and nothing checks that one is configured: `immersion_feedback_enabled` is False. (2) While latched, `_accumulate_energy` (coordinator.py:10201-10214) books as immersion everything the meter drew above the PLAN's ask (`actual_power_kw - planned_total`), not above the nameplate threshold that tripped the latch. The plan under-reads this pump's draw 1.28x on running steps, so ordinary compressor draw is carved out as resistive heat for every interval of the latch, including the two clear samples needed to release it. Effect on savings: none in total. `savings_actual` is the full metered energy and the carve-out only relabels the spot line. Correction to carry-d15-sav-volume-2: the immersion kWh is not a separate appliance missing from the baseline; it is part of the same metered-versus-modelled volume gap. Fix: label the excess by its source (the pump's booster or backup flag when configured; immersion only when an element is configured); measure the excess over the latch threshold, not over the plan; and refuse the line on an install with no resistive element configured. Controls: a synthetic install without an element that draws 2x its ask books no immersion; one with a configured booster books only the excess over nameplate while the flag is on; the null of flat draw at or below nameplate books zero; one mutant.",
@@ -9170,9 +9211,10 @@
     "Follow-on sub-PR, after the handoff 367afeb85 merges (not part of that head): move `_plan_slots` out of `coordinator.py`. It is a `@staticmethod` (`coordinator.py:4304-4305`) that collapses a per-step power schedule into `PlanSlot` dicts (`payload.py:626`) and reads no coordinator state. Its callers are lines 4477, 4485, 11234 and 11242. Put it beside `PlanSlot` in `payload.py`, or in a small plan-view module if `tools/audit/archscore/` reads that as sounder, and keep the call sites' behaviour byte-identical. Source: R10-ARCH-SHAPES #2819 round 2 added a second heating mask and moved archscore `coord_footprint` 2436 -> 2437 against round 1 (2446 at the merge base); moving the function out is the payment, routed here because a follow-on on ARCH-SHAPES would hold R10-HEAT-METER (critical path) behind it. Controls: archscore `coord_footprint` before and after, with its null control (a whitespace-only move of the same function inside `coordinator.py` does not move the metric); the published `slots` lists of the fixture captures (`coordinator.py:4541`, the space plan, and `4558`, the hot-water plan) are byte-identical before and after; one mutant that drops `shared_kwh` from the moved function fails the capture comparison. triage: dev/programme/triage/s6-batch27.md#P141"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-advisor-residue",
-    "pr": 2834
+    "pr": 2834,
+    "commit": "0137c4cb052e134c953f31054907c01393d55ad7"
    },
    "brief": "Residue of #2257 that R10-ADVISOR (#2572, merged f24895c) recorded and left: its body's open seams (a) the what-if's single-solve monthly_cost_delta that the fuse advisor and the Advisor's 'Try in what-if' read, (b) the inbox sensor-gap and hot-water rows that scale one day to a month and swing, (c) the held estimator's per-solve asymmetry; and its reviews' notes: mutant MX4 (a pooled mean in price_tiles.published) survives because tests/features.py folds exactly two samples into every day, the degree tile prices a degree held while the plan delivers -0.514 K / +0.327 K per degree of setting (roughly 1.8x and 3x overstated), and a 30-day mean mixes days priced at different schedules. Each carry holds its source and evidence (routing audit 1). Fix MX4 with a fixture of unequal daily counts, decide the per-degree copy with the owner's screenshot as the finder harness, and size (a)-(c) with the null arm of r10_sav_null_terms.py before any change; a seam that does not move under its own perturbation is recorded, not fixed. Last group on #2257: closes it."
   },
@@ -9227,6 +9269,7 @@
    "severity": "medium",
    "size": "M",
    "issues": [
+    2271,
     2272,
     2810
    ],
@@ -9264,7 +9307,8 @@
     "From #2514 (R10-REPLAY-LANE, merged 0280e6e), body: the group's headline item, a real recorded day, is not in the tree; tests/replay/ holds only synthetic-dhw-only.json (git ls-tree origin/main tests/replay/). It must be produced on the owner's Home Assistant box with `python3 tools/replay/export.py --config-dir /config --days 1 --out /config/hpo-replay-<day>.json`, checked with `export.py --check`, then committed as tests/replay/<day>.json.",
     "From #2514, body: the new fixture is a new tracked file and owes a deliberate classification: add it to the tests/closures.json sets that list synthetic-dhw-only.json (tests/entities.py and tests/features.py) and to COST_BUDGETS in tests/replay.py, or tests/entities.py refuses it.",
     "#2810 [D15]: a non-credential string collision refuses the whole replay half, and the refusal names nothing.",
-    "From R10-HEAT-METER (#2261; D15 lead L9, finding-propagation.md). Each weekly learner snapshot now records `unhealthy_input`. It holds the first reason `_inputs_unhealthy` gave on that day: the rule over the indoor, outdoor and power inputs that marks a snapshot unhealthy. The house meter is not one of its inputs. On a healthy day it holds None. Read it in the next live bundle. Name which input marked each unhealthy weekly snapshot, and say whether that input was genuinely silent or whether outdoor's 180 min on-change limit flagged a quiet, healthy sensor. Change that limit only on that evidence. Controls: a week with every input reporting marks the snapshot healthy and names none (null); a week with one input silent all day names that input."
+    "From R10-HEAT-METER (#2261; D15 lead L9, finding-propagation.md). Each weekly learner snapshot now records `unhealthy_input`. It holds the first reason `_inputs_unhealthy` gave on that day: the rule over the indoor, outdoor and power inputs that marks a snapshot unhealthy. The house meter is not one of its inputs. On a healthy day it holds None. Read it in the next live bundle. Name which input marked each unhealthy weekly snapshot, and say whether that input was genuinely silent or whether outdoor's 180 min on-change limit flagged a quiet, healthy sensor. Change that limit only on that evidence. Controls: a week with every input reporting marks the snapshot healthy and names none (null); a week with one input silent all day names that input.",
+    "From R10-DIAG-REDACT (#2824): this group's precondition, that R10-DIAG-REDACT's redaction holds on the exported document, is met only by running export.check_file and seal on the owner's own exported day. The owner bundle and the triage record are not in the tree, so the two values the triage named were not reproduced; that run is this group's first step."
    ],
    "resume": {
     "stage": "not-started",
@@ -9627,11 +9671,13 @@
    "class": "instrument",
    "size": "XS",
    "issues": [
+    2509,
     2802
    ],
    "fixes": [],
    "after": [
-    "R10-MUTATION-ANCHOR"
+    "R10-MUTATION-ANCHOR",
+    "R10-ARCH-SHAPES"
    ],
    "files": [
     "tests/mutation_table.py"
@@ -9666,6 +9712,7 @@
    "lane": "IN",
    "kind": "instrument",
    "issues": [
+    2494,
     2803
    ],
    "fixes": [],
@@ -9720,6 +9767,7 @@
    "lane": "IN",
    "kind": "defect",
    "issues": [
+    2258,
     2816
    ],
    "fixes": [],
@@ -9750,7 +9798,8 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-PARAMS-OWNER"
+    "R10-PARAMS-OWNER",
+    "R10-ARCH-SHAPES"
    ],
    "carry": [
     "Owner's spec (tvofi, 2026-10-25, #2816): the house grade is normalized by building TYPE and ERA (configured), as measured envelope loss (W/K, thermal-mass corrected) relative to typical for that type and era. A house losing more than typical for its type and era scores below typical, but never 0: 0 is reserved for no data. Typical for its type and era scores mid-scale, and better than typical scores above. The owner's case (about 100 years old, new windows and added insulation in the last 20 years), with learned loss about 1.5x typical pre-1960, must land low but clearly nonzero. Acceptance: a monotone, continuous map from loss ratio to grade, with a null control at loss ratio 1.0 giving mid-scale for each era.",
@@ -9760,11 +9809,11 @@
    "architect_note": "",
    "brief": "From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). The house grade should measure envelope loss in W/K, corrected for thermal mass, and normalized by the configured house type and/or building period. At main, and in R10-PARAMS-OWNER, `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py` grades a time constant against one all-era band, and the configured era, structure and area never enter it. The owner's specification: a 100-year-old house with new windows and added insulation should score at least 30-40. Seams: `envelope_score` in `custom_components/heatpump_optimizer/coordinator.py`, the era and structure presets in `custom_components/heatpump_optimizer/presets.py`, and the score strings in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`. Build it measure-first: derive the loss in W/K from the learned parameters, show on a null control that two houses of equal envelope but different era score the same after normalization and that the old-house example above reaches the stated floor, then change the grade. Edge: after R10-PARAMS-OWNER, which reshapes the same function.",
    "resume": {
-    "stage": "not-started",
-    "branch": null,
-    "commit": null,
+    "stage": "fixing",
+    "branch": "wip-sync/ext-mut-3efc9ad7",
+    "commit": "516d47fd7517da801802c2e73db97f17251ef090",
     "last_step": null,
-    "next_step": null,
+    "next_step": "fixer live; 516d47fd7 grades the house against its configured type and era. No handoff branch and no PR yet: the work is reachable only at wip-sync/ext-mut-3efc9ad7 (snapshot, moves every sync). Push handoff/r10-house-grade from it, then open the PR.",
     "note": null
    }
   },
@@ -9923,11 +9972,13 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Per-scenario three-way merge in the claimnotes driver (V116), S-sized, independent of the claim-grammar design, and this group's SECOND PR: #2843 (merged as bb8addd89) was its first and landed the move-keyed claim grammar. In `tests/env_drift.py`, `merge_claim_file` now returns None whenever both sides changed the bare claim list. Instead, merge that list per scenario, given `claims-for:` equal on base, ours and theirs (else refuse, as now). A scenario whose claim lines changed on one side only takes that side's lines. A scenario neither side changed keeps its lines. A scenario deleted on one side and untouched on the other stays deleted. A scenario whose lines BOTH sides changed still refuses (`merge_claim_refusal` names it). `merge_claim_defect` then checks the merged map against that per-scenario decision rather than against one side's list. Measured: of seven driver refusals since 2026-10-17 (#2841 at 11e8075d, #2745 at 8d0572dc and at cc679118, #2834 at c38903518; and main's hand-resolved merges 3a07c2eaa, e438816e3, 5bf232eac), five are disjoint and resolve under this rule. #2834 (the five coord_* scenarios on both sides) and 5bf232eac (overlap 42) still refuse. A line union for scenarios both sides changed is REJECTED. The rule lives in the driver and not in a separate train resolver: the train's recarry (`remerge_main.sh`'s `git merge`) and the merge-main bot already call the driver, so this is the train's resolver with no train code added (re-ruled at tvofi's request, P196 (a)). Controls: the three disjoint shapes resolve and the env_drift gate passes at the merged tree; the #2834 shape refuses; a scenario one side deleted and the other kept stays deleted (the reinstatement control the current docstring measures); a claims-for mismatch refuses (null); one mutant per rule fails its control. Policy, under the mandate: claim-files.md changes \"both sides rewrote the bare claim list\" to \"both sides rewrote the same scenario's claims\"; say so in the body. GitHub's DIRTY flag is unchanged (#570); the merge-main bot and the train's recarry resolve instead of parking. triage: dev/programme/triage/s6-batch34.md#P196"
+   ],
    "architect_note": null,
    "brief": "GROUP R10-996-RUNNER-CLAIMS (new, size M, orchestrator-sourced under mandate 6329234399, 2026-10-25; reopens the claim-grammar decision of issue #996, whose runner-conditional instance count crosses its reopen threshold with the two R10-ARCH-SHAPES instances). Problem, measured by the R10-ARCH-SHAPES round-4 fixer's band census at d710a5af5 (harness committed by #2819 under dev/audit/harnesses/, cite its sha1): a behaviour change whose golden drift has one direction everywhere but lands on a host-dependent SET of scenarios (the solve's basin moves a planned share in or out of a band) cannot be claimed by any fixed per-fixture claim list: each CI runner host (numeric_probe and numpy_build differ between runs of one PR) reports a different set, so claims go STALE or UNCLAIMED and no state is green on every runner. Design and land a claim grammar in tests/env_drift.py for this class: a claim keyed on the drift's shape (the leaf path pattern and the from/to values), valid across any fixture set, that still refuses any drift outside that shape and any claim that matches nothing on every host the census covers. Fail closed. Controls: the parked R10-ARCH-SHAPES-CLASSIFIER arm passes on the macOS, cloud and both runner readings; a mutant drift of another shape (a value leaf, another reason pair) is refused; an unchanged tree with the claim present is refused as stale (null). Policy: the claim-files.md rule changes, so this is policy under the mandate; say so in the body. Record the decision as a comment on #996 and close the decision there.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": null,
     "commit": "bb8addd89b024beefab970573a6cac0ccbe88de6",
     "last_step": null,
@@ -10027,7 +10078,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-hotfix-batch-errexit",
-    "commit": null,
+    "commit": "fe47636fbd03d5384880badca8691f9bb4add715",
     "last_step": null,
     "next_step": "dispatch the hotfix fixer now (critical path)",
     "note": "main-red hotfix 2026-10-26"
@@ -10105,7 +10156,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
    "files": [
     ".github/workflows/gate-sweep.yml",
     "tests/entities.py",
@@ -10176,6 +10229,352 @@
    },
    "brief": "Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, decision O-1 (M3): count the record path demand as record + enumerate + rest and fix record_burst_replay.py, which underreads by the enumerate share; carry 2, a second M0 pair (gh api rate_limit before and after) around Nightly record-autofix's enumerate step; carry 3, the ref_privacy.py home-directory match has no path-segment boundary (an instrument finding from the #2852 review). Workflow files are code-owned: the owner reviews. Failing test first, each carry's control re-measured at the landing merge base, never carry the quoted figures.",
    "hot_files": []
+  },
+  {
+   "group": "R10-RECORD-HOLD-APPROVE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [
+    ".github/workflows/nightly.yml"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
+   "files": [
+    ".github/workflows/nightly.yml",
+    "tests/entities.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once this group is on the roster (critical path)",
+    "note": "triage P198, 2026-10-26"
+   },
+   "brief": "Record PRs deadlock under back-to-back trains (V118). In .github/workflows/nightly.yml's step \"Approve and merge a row-only record pull request\", the train-hold block (HOLD_REF=train-hold through its esac/fi) sits before `guard` and the approver App's review. merge_train.py's --bot-prs sweep merges on record_row.py's guard alone and leaves the review to the beat, so while trains run back to back no beat posts the review and the record PR waits. Instance: #2856 at b6de9fad, about 3 h at REVIEW_REQUIRED, nightly run 40300518367 skip-train-hold; it was worked around by a hand approval (review 5650544835). Change: move the hold block to after the approver App's review and before THE PITCH. A held beat runs the guard, dismisses on refusal, posts the one approving review per head, and exits skip-train-hold without merging. No change to merge_train.py. Update the nightly.yml comments that state the order. Controls, over tests/entities.py's executed _train_hold_status harness: a live hold with the guard passing returns skip-train-hold, records the approver POST and no merge (the existing 'skips while a live merge train holds' check moves to guard_rc=0 and gains these assertions); a live hold with the guard refusing returns refused, dismisses and posts no review; the pitch check's live-hold arm keeps skip-train-hold; no hold reaches the pitch and merge as today (null); one mutant moving the hold back ahead of the approval fails the 'reviewed under a live hold' assertion. The filed alternative, the train posting the approver review itself, is REJECTED: a second approval site, the approver key in the train, and a hot file. Critical-path relevant: until this lands, every record PR during a drain needs a hand approval. triage: dev/programme/triage/s6-batch34.md#P198"
+  },
+  {
+   "group": "R10-FRICTION-REGRESSION",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2860
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/rca/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "Root-cause seat for issue #2860, the governance cron's recurring-friction key regression (three distinct pull requests in the v7.0.4..origin/main window, threshold three). The friction key names a verdict class, so the subject is why fix reviews kept returning regression blocks. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
+  },
+  {
+   "group": "R10-FRICTION-MUTATION-SURVIVOR",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2840
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/rca/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "Root-cause seat for issue #2840, the recurring-friction key mutation-survivor (verdict class at threshold in the v7.0.4..origin/main window). Distinct from issue #2410's mutation family and issue #2660's mutation-vacuous, both on R10-RCA-FRICTION-RESIDUE: read that group's output first and do not re-derive what it records. The subject is why heads reached review with survivors that tests/mutation_table.py --pin-killed would have reported before handoff. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
+  },
+  {
+   "group": "R10-FRICTION-GATE-SCOPING",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2835
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/governance/rules/gate-scoping.md",
+    "dev/audit/rca/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the v7.0.4..origin/main window above threshold). Read each citing body's Friction line, group the instances by the step of dev/governance/rules/gate-scoping.md they name (interpreter, lease, scoped gate, closures), and decide per group whether the rule is unclear, unfollowed, or wrong (process state b, c or d). A rule edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and is capped by dev/governance/config/policy_budgets.json. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
+  },
+  {
+   "group": "R10-DIAG-AGES",
+   "lane": "RP",
+   "kind": "fix",
+   "class": "privacy",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2814
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/debugger.py"
+   ],
+   "carry": [
+    "From R10-DIAG-REDACT (#2824): issue 2814 stays open on three parts outside that pull request's carries 0-2 -- re-basing input_ages_minutes to the export clock (the payload carries no publish instant to re-base from), judging plan_stale at publish, and a run time on the stored self-test results, which needs a field in the collection's store document."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "wip-sync/ext-wt-5d3ff6c5",
+    "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
+    "last_step": null,
+    "next_step": "fixer live; 6ebc8aac re-bases input ages, judges plan_stale at export and stamps the self-test run time, the three parts #2824 left open on issue 2814 (which this group already lists). No handoff branch and no PR yet: reachable at wip-sync/ext-wt-5d3ff6c5 (snapshot). Push handoff/r10-diag-ages, then open the PR.",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "Residue of issue #2814 that R10-DIAG-REDACT (#2824) recorded and left, per that body's Forward-carry: (1) re-base the published input ages to the export clock, which needs a publish instant in the payload to re-base from; (2) the plan-stale flag is judged at publish, not at export; (3) the stored self-test results carry no run time, which needs a field in the collection's store document. Seams: custom_components/heatpump_optimizer/diagnostics.py and custom_components/heatpump_optimizer/debugger.py. Failing test first in tests/debug_collect.py; null control: a download taken at the publish instant reads the same ages before and after. Use drift.stored_age_seconds for every age. Closes #2814."
+  },
+  {
+   "group": "R10-ADVISOR-WHATIF",
+   "lane": "UI",
+   "kind": "owner",
+   "class": "owner",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2257
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-SAV-COMFORT"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/payload.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+   },
+   "brief": "The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. (1) The Plan page's what-if panel still reads the single-solve monthly cost delta, which moves with the house's start (dev/audit/harnesses/r10_advisor_residue.py, whatif arm); no sound estimator exists in the seam, so either design one or record the owner's acceptance of the copy docs/dashboard-card.md already discloses. (2) Proposal P141 (triage: dev/programme/triage/s6-batch27.md#P141, ACCEPT): move the plan-slot summary builder out of custom_components/heatpump_optimizer/coordinator.py beside its TypedDict in custom_components/heatpump_optimizer/payload.py, behaviour byte-identical; controls as that ruling states (archscore coord_footprint before and after with a whitespace-only null, the fixture captures' slot lists byte-identical, one mutant). Closes #2257."
+  },
+  {
+   "group": "R10-DEPENDABOT-SETUPTOOLS",
+   "lane": "F",
+   "kind": "tooling",
+   "class": "tooling",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2722
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/requirements-build.txt"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+    "pr": 2678
+   },
+   "brief": "Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). Main's pin is the one open Dependabot alert, whose first patched version is 84.1.0. The head is all dependabot[bot] commits: per R10-FLY-CARRY-DISPOSITION's P100 carry its delivery row lives on origin/main, never on the head; do not add a merge commit or row to the head (the #2773 trap, tools/policy/dependabot_contract.mjs). Verify the scoped gate is green at the head, then the orchestrator merges it; afterwards the open-alert count reads zero."
+  },
+  {
+   "group": "R10-STORE-RACES",
+   "lane": "IN",
+   "kind": "production",
+   "size": "M",
+   "issues": [
+    2248,
+    2249,
+    2674
+   ],
+   "fixes": [],
+   "after": [
+    "R10-BUFFER-STORE"
+   ],
+   "brief": "Store seam races, after R10-BUFFER-STORE (same store seam; ordered behind its running fixer to avoid conflict). Fix the restore-after-await race (#2248): a restore applies persisted state after an await during which a writer changed the same state. Fix the shared-interval order coupling (#2249): two sibling updaters consume one shared interval and the first closes it destructively. Probe the seven per-cycle store-load leads (#2674) and fix or refute each with its harness. Failing test first per fixer.md.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
+  },
+  {
+   "group": "R10-PLAN-PRIO",
+   "lane": "IN",
+   "kind": "tooling",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
   }
  ]
 }
