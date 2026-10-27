@@ -1,45 +1,17 @@
-PR #2878 round-4 fix-review. Head measured: 340b3298ac6645883fecf1d5aefe08132735db62
-(gh pr view 2878 --json headRefOid and git rev-parse HEAD both answer this SHA).
-Worktree: ~/hpo-seats/r10s6/review-2878-r4 (detached).
-origin/main a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9; merge-base with HEAD 6eb552157.
-
-B1  diff of the #2878 body against gh pr view 2866 body: 1 hunk, 157 removed / 33 added.
-B2  git log --no-merges --format=%H origin/main..HEAD | wc -l            -> 76
-    git rev-list --count --no-merges origin/main..b0920b94a              -> 27
-    git rev-list --count --no-merges origin/main..2b1fefed1              -> 75
-    git rev-list --count --no-merges origin/main..origin/handoff/...     -> 77   (ref moved)
-    union of the two sets | sort -u | wc -l                              -> 76
-    common commits of the two sets                                       -> 26 (75-26=49)
-    git diff --numstat origin/main...b0920b94a   -> 1 0 delivery/2878.md ; 29 20 rosters
-    git diff --numstat origin/main...2b1fefed1   -> 259 49 rosters
-    git diff --numstat origin/main...origin/handoff/audit-r10-roster -> 262 52 (ref moved)
-    group-diff origin/main HEAD                  -> 208 212 4 25
-    group-diff origin/main 2b1fefed1              -> 208 212 4 33
-    group-diff origin/main origin/handoff/...     -> 208 212 4 34 (ref moved)
-    git rev-parse HEAD:dev/programme/rosters/wave-r10-groups.json -> eb7252e2edf3...
-    git rev-parse 2b1fefed1:...                   -> c20ee1a87b60...
-    git rev-parse origin/handoff/audit-r10-roster:... -> 1bc4b944667... (ref moved)
-    git show origin/main:... | git hash-object --stdin -> 582f75be3a84...
-    size XS counts: main 0 ; roster ref 8 ; 524c1896b 8
-    Triage P199|P200|P203: main 3 ; roster ref 3
-    git diff --name-status <merge-base>...HEAD -> A delivery/2878.md, M rosters/wave-r10-groups.json
-    25 groups change; 13 carry-changed; 12 carry-free resume moves; 0 size moves
-    nine groups against 524c1896b -> 9 ; against the live merge base 6eb552157 -> 17
-B3  superset over origin/main: 0 groups, 0 carries, 0 issues, 0 after, 0 resume keys lost
-B4  dev/programme/delivery/2878.md -> "- [#2878](...) — **open**, roster: round-10 batch 24 (R10-ORCH-ROSTER)"
-    R10-ORCH-ROSTER in main/head/roster-ref rosters: absent from all three
-    roster_lib.group_for_branch(head_roster,"fix/audit-r10-roster-pr") -> R10-ROSTER-BATCH24
-B5  env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test
-      -> "roster_sync self-test: 64 checks, 0 failed" (exit 0)
-B6  gh api .../commits/1dbf3f674/check-runs: governance / instrument-self-tests conclusion=failure
-      (run 122390395354); at HEAD it is success (19:26:13Z-19:40:35Z)
-    HEAD rollup: {"skipped":19,"success":36}, 0 failures; pr-contract success at 19:46:57Z
-HEAD..origin/handoff/audit-r10-roster -> 2 commits:
-      7322d0deb set-stage R10-PREPR-CAP -> fixing
-      8f7e252fe set-stage R10-ORCH-REVIEW-PACKET -> done
-    main and HEAD both read R10-PREPR-CAP done and R10-ORCH-REVIEW-PACKET in-progress;
-    git diff origin/main HEAD -- rosters has no line for either -> merging is neutral.
-git merge-tree --write-tree origin/main HEAD -> exit 0, tree 399d62c3c (no conflict)
-node tools/policy/brief_lint.mjs ... -> TOTAL: 0 error(s)
-carry_audit pr 2878 -> 1 finding item(s): 1 routed, 0 unrouted
-VERSION, the manifest, RELEASE_NOTES.md, both claim files and every *_budgets.json: not in the diff.
+# measurements at head 5c73750010e6b8836728268bba47c969eb4be90f
+## three-dot numstat vs merge-base a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9
+1	0	dev/programme/delivery/2878.md
+259	49	dev/programme/rosters/wave-r10-groups.json
+## no-merge count origin/main..HEAD
+      77
+## HEAD..origin/handoff/audit-r10-roster
+2
+8f7e252fe roster_edit set-stage R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
+7322d0deb roster_edit set-stage R10-PREPR-CAP (tools/audit/seat/roster_edit.py)
+## blobs
+main 582f75be3a84fed858d94bc17487b7f577da4229
+HEAD eb7252e2edf3889e3b51fd46b38a62d51cc6c173
+2b1fefed1 c20ee1a87b60778b69867dc7f1a67f671cd7c664
+ref-tip 1bc4b944667753a746b6fef43e21ae610c97399e
+## delivery row
+- [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) — **open**, roster: round-10 batch 24 (R10-ROSTER-BATCH24)

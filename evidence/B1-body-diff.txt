@@ -1,18 +1,20 @@
---- ev/body-2866.md	2026-10-27 20:41:21
-+++ ev/body-2878.md	2026-10-27 20:41:08
-@@ -1,186 +1,62 @@
+# body 5c7375001 vs PR #2866 body at 2026-10-27T20:18:36Z
+## unified diff (head body vs 2866 body)
+--- /tmp/body-2866.md	2026-10-27 21:07:27
++++ /tmp/body-2878-r4.md	2026-10-27 21:07:26
+@@ -1,186 +1,64 @@
 -<!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
 -Roster for round 10, at the roster tip `1e9180dc9113b85354e5a03737f6dd4b9d4bb686` on `handoff/audit-r10-roster`: 95 commits over main `6fe5170cd7ce01e60ffebfc93e598c216e628fa3`, counted by kind under Figures. Part of #201. It closes nothing by keyword and leaves #201 open.
 +Round-10 roster, batch 24, at the head the push lane produces: this pull request's own roster and record commits, the `origin/handoff/audit-r10-roster` tip the lane merges in as its code sha, and current `origin/main`. Part of #201; it closes nothing by keyword and leaves #201 open.
  
 -The pull request was cut as batch 22 at `b15f2633943e8be2ca9f2e7233b199f7c969b34c` and the branch has since taken batch 23, so this body describes the head it is pushed with. Two of the commits are the record beat: five delivery rows that still read `**open**` for merged pull requests (#2834, #2858, #2862, #2864, #2865) are flipped, and #2866's own row is added. Neither is hand-written; the flips come from `record_row.py --enumerate --plan --apply`, and the rows the generator exempts as record-class (#2856, #2863) are left alone.
-+The change is roster state only. This pull request's own commits are 26 authored roster ops (`3b78b44a0`..`a9c7555ad`) and one record commit, `b0920b94a`, which adds only `dev/programme/delivery/2878.md`. The roster tip adds 49 more no-merge commits, and the merged head lands 76 no-merge commits over `origin/main`.
++The change is roster state only. This pull request's own commits are 26 authored roster ops (`3b78b44a0`..`a9c7555ad`) and two record commits: `b0920b94a`, which adds `dev/programme/delivery/2878.md`, and `6bab7c4cb`, which corrects the row's group suffix from the dead `(R10-ORCH-ROSTER)` to `R10-ROSTER-BATCH24` -- the group `roster_lib.group_for_branch("fix/audit-r10-roster-pr")` answers and the head roster carries. The roster tip adds 49 more no-merge commits, and the merged head lands 77 no-merge commits over `origin/main`.
  
 -### The ops, oldest first, by kind
 +## Head
  
 -- `roster_edit.py` (27):
-+`340b3298ac6645883fecf1d5aefe08132735db62` merges the authored code head `2b1fefed116c43fd48ce7d7c74ae2e3479914a84` and then merges origin/main `6eb552157` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
++`5c73750010e6b8836728268bba47c969eb4be90f` merges origin/main `a0e7664ea` (an automatic merge by the orchestrator's script; no resolution was needed) into `6bab7c4cb`, the record commit that corrects this PR's delivery row from the dead `(R10-ORCH-ROSTER)` to `R10-ROSTER-BATCH24`.
  
 -```
 -09e8e857f roster_edit set-stage R10-ORCH-DISPATCH-REG (tools/audit/seat/roster_edit.py)
@@ -44,7 +46,7 @@
 -f7430f731 roster_edit set-stage R10-HOTFIX-BATCH-ERREXIT (tools/audit/seat/roster_edit.py)
 -```
 -- `roster_sync.py` (6):
-+`1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd` merges the authored code head `cfacd3800bb5fa7deb043e6afd7533fa73f3a5d8` and then merges origin/main `e40806a7d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
++`340b3298ac6645883fecf1d5aefe08132735db62` merges the authored code head `2b1fefed116c43fd48ce7d7c74ae2e3479914a84` and then merges origin/main `6eb552157` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
  
 -```
 -46ef8448f roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
@@ -55,7 +57,7 @@
 -3e5300557 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
 -```
 -- Issue wirings (6):
-+Previous head: `0e370d603264f4c050fefa9591ac8bf688c1e0d5` merged the authored code head `f318f7014f9d376ab6926bebe9b155f5a286c58e` and then merged origin/main `4db1d3e28` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
++`1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd` merges the authored code head `cfacd3800bb5fa7deb043e6afd7533fa73f3a5d8` and then merges origin/main `e40806a7d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
  
 -```
 -11b53fbd7 roster: wire #2271 (redaction on the owner's exported day) to R10-REPLAY-REAL-DAY
@@ -66,7 +68,7 @@
 -a07420b26 roster: wire #2855 (carry-missing friction) to R10-RCA-FRICTION-RESIDUE, whose brief names the carry-missing key
 -```
 -- Group appends under the completion rule (tvofi, 2026-10-26 20:20Z) (6):
-+Measured inputs, not a result sha: the lane merges `origin/handoff/audit-r10-roster`'s tip `2b1fefed1` (repaired from `cfacd3800`, the input the previous body named) into the live head `1dbf3f674`, and then `origin/main` (measured at `6eb552157`); the resulting roster blob is the `eb7252e2e` below.
++Previous head: `0e370d603264f4c050fefa9591ac8bf688c1e0d5` merged the authored code head `f318f7014f9d376ab6926bebe9b155f5a286c58e` and then merged origin/main `4db1d3e28` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
  
 -```
 -15168182b roster: append-group R10-DEPENDABOT-SETUPTOOLS (completion rule, tvofi 20:20Z)
@@ -77,7 +79,7 @@
 -51060018d roster: append-group R10-FRICTION-REGRESSION (completion rule, tvofi 20:20Z)
 -```
 -- Orchestrator and seat resume, stage, carry and file edits (48):
-+This pull request's own roster commits change nine groups against the merge base `524c1896b`: `R10-ARCH-SHAPES`, `R10-FLOW-AUDIT-PLAN` and `R10-PLAN-PRIO` reach `done`, `R10-DIAG-AGES` and `R10-HOUSE-GRADE` take their handoff commit and pull-request fields, and four groups gain carries (`R10-FLOW-WIP` for P199, `R10-FLOW-TOOLKIT-MODEL`, `R10-FLOW-DESIGN-STAGES`, `R10-ARCH-SHAPES-CLASSIFIER`). The record commit adds the row above and nothing else.
++Measured inputs, not a result sha: the head merged `origin/handoff/audit-r10-roster`'s tip `2b1fefed1` (repaired from `cfacd3800`) as its code sha, and then `origin/main` (measured at `a0e7664ea`); the resulting roster blob is the `eb7252e2e` below. The roster ref has since taken two `set-stage` commits, `7322d0deb` (`R10-PREPR-CAP` -> `fixing`) and `8f7e252fe` (`R10-ORCH-REVIEW-PACKET` -> `done`), which touch no line of this diff; every ref figure below is pinned to `2b1fefed1`, the input this head carries.
  
 -```
 -1e9180dc9 roster: R10-CEILING-PROBE files widened to the seven its design names
@@ -130,19 +132,20 @@
 -aa4a11e31 roster: R10-FLOW-ROSTER-FREEZE arms (a) #2792 and (b) #2779 merged; arm (b2) + review_freeze mutant R1 remain
 -```
 -- Record (2):
-+Against `origin/main`, the roster tip has four more groups (`R10-ROSTER-BATCH24`, `R10-TRIAGE-B36`, `R10-TRIAGE-B37`, `R10-REVIEW-CARRY`) and 33 changed groups. Net over `origin/main`, the merged head has 212 groups against main's 208, and 25 groups change: thirteen gain carries (`R10-996-RUNNER-CLAIMS`, `R10-ARCH-SHAPES-CLASSIFIER`, `R10-FLOW-DESIGN-STAGES`, `R10-FLOW-POSTMERGE`, `R10-FLOW-TOOLKIT-MODEL`, `R10-FLOW-WIP`, `R10-FLY-CARRY-DISPOSITION`, `R10-ORCH-BEATD`, `R10-ORCH-ROSTER-SCHEMA`, `R10-PREPR-CAP`, `R10-RCA-BODY-LINT`, `R10-SAV-ACTUATION` and `R10-STORE-RACES`) and twelve move `resume` (`R10-ARCH-SHAPES`, `R10-FLOW-AUDIT-PLAN`, `R10-PLAN-PRIO`, `R10-SAV-COMFORT` and `R10-TRAIN-OVERLAP-GRADE` to `done`; `R10-UPDATE-PR-SIGNALS` to `fixing`; `R10-DIAG-AGES` and `R10-FLOW-BOARD` to `in-progress`; `R10-BUFFER-STORE` to `in-review`; and `R10-COP-PARTLOAD`, `R10-FLOW-BODY-ONLY` and `R10-HOUSE-GRADE` move other `resume` fields at an unchanged stage). No `size` key moves at the merged head: the branch's `XS` words are already the merge base's, and `origin/main`'s `9973089cb` (the stage/size registry) carries those groups at `S`, which the merge keeps.
++This pull request's own roster commits change nine groups against `524c1896b`, the fork point they were cut from: `R10-ARCH-SHAPES`, `R10-FLOW-AUDIT-PLAN` and `R10-PLAN-PRIO` reach `done`, `R10-DIAG-AGES` and `R10-HOUSE-GRADE` take their handoff commit and pull-request fields, and four groups gain carries (`R10-FLOW-WIP` for P199, `R10-FLOW-TOOLKIT-MODEL`, `R10-FLOW-DESIGN-STAGES`, `R10-ARCH-SHAPES-CLASSIFIER`). The record commits add and then correct this PR's own row in `dev/programme/delivery/2878.md`, the second changing one word in one line.
  
 -```
 -218bf4067 record: the merged rows for #2834 #2858 #2862 #2864 #2865
 -891085e9d record: the delivery row for #2866
 -```
-+`R10-REVIEW-CARRY` is the one policy-carrying newcomer and it is registered at `resume.stage: fixing`. On 2026-10-27 the owner ruled, verbatim: **"if there are no code changes, the previous review can be carried"**. The group exists to make that test mechanical rather than a seat's judgement — a helper that answers `CARRY` or `FRESH-REVIEW` from a commit range, a `bus.sh dispatch` refusal over a clean range, and two contract sentences in `fix-review.md` and `orchestrator.md`. Its fixer works in its own handoff; this pull request registers the group and nothing else.
++Against `origin/main`, the roster tip has four more groups (`R10-ROSTER-BATCH24`, `R10-TRIAGE-B36`, `R10-TRIAGE-B37`, `R10-REVIEW-CARRY`) and 33 changed groups. Net over `origin/main`, the merged head has 212 groups against main's 208, and 25 groups change: thirteen gain carries (`R10-996-RUNNER-CLAIMS`, `R10-ARCH-SHAPES-CLASSIFIER`, `R10-FLOW-DESIGN-STAGES`, `R10-FLOW-POSTMERGE`, `R10-FLOW-TOOLKIT-MODEL`, `R10-FLOW-WIP`, `R10-FLY-CARRY-DISPOSITION`, `R10-ORCH-BEATD`, `R10-ORCH-ROSTER-SCHEMA`, `R10-PREPR-CAP`, `R10-RCA-BODY-LINT`, `R10-SAV-ACTUATION` and `R10-STORE-RACES`) and twelve move `resume` (`R10-ARCH-SHAPES`, `R10-FLOW-AUDIT-PLAN`, `R10-PLAN-PRIO`, `R10-SAV-COMFORT` and `R10-TRAIN-OVERLAP-GRADE` to `done`; `R10-UPDATE-PR-SIGNALS` to `fixing`; `R10-DIAG-AGES` and `R10-FLOW-BOARD` to `in-progress`; `R10-BUFFER-STORE` to `in-review`; and `R10-COP-PARTLOAD`, `R10-FLOW-BODY-ONLY` and `R10-HOUSE-GRADE` move other `resume` fields at an unchanged stage). No `size` key moves at the merged head: the branch's `XS` words are already the merge base's, and `origin/main`'s `9973089cb` (the stage/size registry) carries those groups at `S`, which the merge keeps.
  
 -## Head
-+A `git merge-tree --write-tree` simulation of both merges is conflict-free. At its tree the roster blob is `eb7252e2e`, `roster_sync --self-test` prints `64 checks, 0 failed`, and `brief_lint` prints `TOTAL: 0 error(s)`.
++`R10-REVIEW-CARRY` is the one policy-carrying newcomer and it is registered at `resume.stage: fixing`. On 2026-10-27 the owner ruled, verbatim: **"if there are no code changes, the previous review can be carried"**. The group exists to make that test mechanical rather than a seat's judgement — a helper that answers `CARRY` or `FRESH-REVIEW` from a commit range, a `bus.sh dispatch` refusal over a clean range, and two contract sentences in `fix-review.md` and `orchestrator.md`. Its fixer works in its own handoff; this pull request registers the group and nothing else.
  
 -`eb97437efd6c273745352ee2cdb5c65c970c3c74` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2866.md`. The authored code head is `1e9180dc9113b85354e5a03737f6dd4b9d4bb686`.
--
++A `git merge-tree --write-tree` simulation of both merges is conflict-free. At its tree the roster blob is `eb7252e2e`, `roster_sync --self-test` prints `64 checks, 0 failed`, and `brief_lint` prints `TOTAL: 0 error(s)`.
+ 
 -The authored head is `1e9180dc9113b85354e5a03737f6dd4b9d4bb686`, the tip of `handoff/audit-r10-roster`. Its merge base with origin/main (`6fe5170cd7ce01e60ffebfc93e598c216e628fa3` at this reading) is `6fe5170cd7ce01e60ffebfc93e598c216e628fa3` itself, so the three-dot diff carries only this branch's commits. `git merge-tree --write-tree 6fe5170cd7ce01e60ffebfc93e598c216e628fa3 1e9180dc9113b85354e5a03737f6dd4b9d4bb686` prints the tree `8a25ac669cfe5f9352e5e20d35ca3e73ab39b23e` and no conflict.
 -
 -The head the pull request is pushed at merges this tip into `fix/audit-r10-roster-pr`; the previous head `6f42fc12b066c93e91cf98764018725cb48623c0` merges the earlier tip `09e8e857f320002a1a521f13099ce5b5030690ec`, which this head contains.
@@ -177,18 +180,18 @@
  
 -`git log --no-merges --format=%s 6fe5170cd7ce01e60ffebfc93e598c216e628fa3..1e9180dc9113b85354e5a03737f6dd4b9d4bb686` prints 95 subjects; piping it through `grep -cE '^roster: wire'` prints 6, `'^roster: append-group'` 6, `'^roster: '` 60, `'^roster_edit'` 27, `'^roster_sync'` 6 and `'^record: '` 2.
 +- `git rev-list --count --no-merges origin/main..b0920b94a` -- 27 at `b0920b94a` (26 authored roster commits plus the record commit).
-+- `git rev-list --count --no-merges origin/main..origin/handoff/audit-r10-roster` -- 75 at the roster tip `2b1fefed1`.
-+- `{ git rev-list --no-merges origin/main..b0920b94a; git rev-list --no-merges origin/main..origin/handoff/audit-r10-roster; } | sort -u | wc -l` -- 76, the merged head's no-merge commits over `origin/main` (27 + 75 - 26 common).
++- `git rev-list --count --no-merges origin/main..2b1fefed1` -- 75 at the roster tip this head merges.
++- `{ git rev-list --no-merges origin/main..b0920b94a; git rev-list --no-merges origin/main..2b1fefed1; } | sort -u | wc -l` -- 76 (27 + 75 - 26 common); `git rev-list --count --no-merges origin/main..HEAD` reads 77 at the pushed head, the extra commit being the row fix.
 +- `git diff --numstat origin/main...b0920b94a` -- `1 0 dev/programme/delivery/2878.md` and `29 20 dev/programme/rosters/wave-r10-groups.json`.
-+- `git diff --numstat origin/main...origin/handoff/audit-r10-roster` -- `259 49 dev/programme/rosters/wave-r10-groups.json`.
++- `git diff --numstat origin/main...2b1fefed1` -- `259 49 dev/programme/rosters/wave-r10-groups.json`.
 +- `git merge-tree --write-tree 1dbf3f674 2b1fefed1` -- a tree with no conflict; merging `origin/main` into it the same way is also clean, and that merged tree's roster blob is `eb7252e2e`.
-+- `python3 -c 'import json,subprocess as s,sys;g=lambda r:{x["group"]:x for x in json.loads(s.check_output(["git","show",r+":dev/programme/rosters/wave-r10-groups.json"]))["groups"]};a,b=g(sys.argv[1]),g(sys.argv[2]);print(len(a),len(b),len(set(b)-set(a)),sum(a[k]!=b.get(k) for k in a))' origin/main HEAD` -- at the pushed head `208 212 4 25`; at `origin/handoff/audit-r10-roster` it reads `208 212 4 33`.
-+- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c '"size": "XS"'` -- 0; the same on `origin/handoff/audit-r10-roster` -- 8; on `524c1896b` -- 8.
++- `python3 -c 'import json,subprocess as s,sys;g=lambda r:{x["group"]:x for x in json.loads(s.check_output(["git","show",r+":dev/programme/rosters/wave-r10-groups.json"]))["groups"]};a,b=g(sys.argv[1]),g(sys.argv[2]);print(len(a),len(b),len(set(b)-set(a)),sum(a[k]!=b.get(k) for k in a))' origin/main HEAD` -- at the pushed head `208 212 4 25`; against `2b1fefed1` it reads `208 212 4 33`.
++- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c '"size": "XS"'` -- 0; the same on `2b1fefed1` -- 8; on `524c1896b` -- 8.
 +- `git log --oneline -1 9973089cb` -- the stage/size registry commit on `origin/main`.
-+- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin` -- `582f75be3`; at the merged tree -- `eb7252e2e`; `git rev-parse origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json` -- `c20ee1a87`. The merged tree's hash is named above, not in the `## Head` note, because it is the clean merge of those two inputs into the live head.
++- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | git hash-object --stdin` -- `582f75be3`; at the merged tree -- `eb7252e2e`; `git rev-parse 2b1fefed1:dev/programme/rosters/wave-r10-groups.json` -- `c20ee1a87` (the live ref tip `8f7e252fe` carries `1bc4b9446`). The merged tree's hash is named above, not in the `## Head` note, because it is the clean merge of those two inputs into the live head.
 +- `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` -- `TOTAL: 0 error(s) across 1 file(s)` at main and at the merged tree.
 +- `env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test` -- `64 checks, 0 failed` at main and at the merged tree.
-+- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c 'Triage P199\|Triage P200\|Triage P203'` -- 3, and 3 on `origin/handoff/audit-r10-roster`.
++- `git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c 'Triage P199\|Triage P200\|Triage P203'` -- 3, and 3 on `2b1fefed1`.
 +- `gh api repos/tvofi/heatpump_optimizer/commits/b0920b94abd9bfcb62611c05e04afda797a39518/check-runs --paginate -q '[.check_runs[] | .conclusion] | group_by(.) | map({(.[0]//"null"): length}) | add'` -- `{"skipped":19,"success":36}`.
  
 -`env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test` at this head prints `roster_sync self-test: 55 checks, 0 failed` -- the line `governance / instrument-self-tests` greps, run with the workflow's own command and `BASH_ENV` unset so the venv cannot make it pass vacuously.
@@ -216,6 +219,6 @@
  
 -- roster-stage-derivation: stale: two `roster_sync: derive stages from pull requests` commits (`d7c7f66fb`, `46ef8448f`) landed on this branch inside the batch and re-derived `resume.stage` for every group with an open pull request from `handoff` back to `in-progress`; the reconciler owns that field, so the four groups with an open PR read `in-progress` and the commit, branch and next step this batch wrote sit untouched beside it. Carry: R10-ORCH-ROSTER-SCHEMA
 -- stage-flag-stored: unenforced: `roster_edit.py` stores its stage argument whole, so `set-stage G "done --at-sha <sha>"` writes the flag into `resume.stage` -- the shape `governance / instrument-self-tests` refused at `6f42fc12b`; a one-line validator refusing a stage that holds whitespace, or that is outside the derivable and protected sets, with two self-test arms, is the countermeasure. Carry: R10-ORCH-ROSTER-SCHEMA
-+- delivery-row-group: contradiction: `dev/programme/delivery/2878.md` records this pull request as (R10-ORCH-ROSTER), which no group in the merged roster holds; `roster_lib.group_for_branch` maps `fix/audit-r10-roster-pr` to `R10-ROSTER-BATCH24`, so a later row rewrite that keeps the group suffix keeps the dead name. Carry: R10-ROSTER-BATCH24
++none
  
 +
