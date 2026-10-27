@@ -47,9 +47,9 @@ sanctions (`SKIP: <script> ... left to CI, named unrun`) instead of blocking unb
   `grep -rn 'gate_lock\.take\|gate_lock import\|from gate_lock' tools/ tests/ .claude/ | grep -v '\.pyc'`
   finds `judge_batch.py` but not the CLI route, so it is completed by
   `grep -rn 'gate_lock\.py.*\(take\|auto-lease\|flock-wrap\|slot-take\|slot-auto-lease\)' --include='*.sh' --include='*.py' tools/ tests/`
-  piped to `grep -v gate_lock.py`, which adds `mutation_table.py`, `prepr.sh`, `run.sh` and
-  `derive_closures.sh`, plus `prepare_baseline.sh`, whose match is a usage line in the
-  baseline text it prints to a seat, not an invocation.
+  piped to `grep -v '^tests/gate_lock.py:'`, which prints invocations at `prepr.sh` 3142, `run.sh` 343/347/350,
+  `derive_closures.sh` 128, plus text mentions at `mutation_table.py` 1987, `prepare_baseline.sh` 322
+  (a usage line it prints to a seat), `judge_batch.py` 39/45 and `entities.py` 38636.
 - Arm 3 (longer leases) is REJECTED as proposed, and for a second reason: a longer lease also
   lengthens a wedged by-hand holder's window between commands.
 
@@ -73,16 +73,16 @@ Instances: one measured wait, and the tree's recordings account for its length.
   and must not be extended past a waiter."
 - `tests/run.sh` takes the lease per script and only for measuring ones: `leased()` asks
   `needs-lease` about the single script it is about to run (comment at line 317, function
-  329-353), and `needs_lease` answers `lease` only for `MACHINE_MEASURING`, an empty scope, or
-  an unreadable table (lines 918-954). Measured: a scope naming two ordinary scripts answers
-  `slot`, one naming `tests/stress.py` answers `lease`
-  (`python3 tests/gate_lock.py needs-lease <file>`).
+  329-353), and `needs_lease` answers `lease` for exactly four cases: an empty scope argument
+  (`MODE: FULL`), an unreadable scope file, a `MACHINE_MEASURING` script, or an unreadable table
+  (lines 937-949). Measured: `python3 tests/gate_lock.py needs-lease /nonexistent/scope.scope`
+  prints `lease`; with a two-ordinary-script file it prints `slot`, with `tests/stress.py` `lease`.
 - The waiter's wait is unbounded: `take()`'s loop is `while True: ... time.sleep(WAIT_POLL_SECS)`
-  with no deadline (lines 511-566); `wait=False` raises instead, and only `gate_lock.py`'s own
-  self-tests pass it. `grep -n 'timeout\|deadline\|max_wait' tests/gate_lock.py` finds only
-  subprocess-cleanup waits, none in the ticket loop. `tests/run.sh`'s comment above `leased()`
-  states the hold: "auto-lease and flock-wrap both hold flock for the run, so a crash releases
-  at once (#404)" (lines 325-326).
+  with no deadline (lines 511-566); `wait=False` raises instead, and only self-tests pass it, in
+  `tests/gate_lock.py` and `tests/entities.py` (`grep -rln --include='*.py' --include='*.sh' wait=False tools/ tests/`).
+  `grep -n 'timeout\|deadline\|max_wait' tests/gate_lock.py` finds only subprocess-cleanup waits,
+  none in the ticket loop. `tests/run.sh`'s comment above `leased()` states the hold: "auto-lease
+  and flock-wrap both hold flock for the run, so a crash releases at once (#404)" (lines 325-326).
 - Roster: `R10-PREPR-CAP` owns `tools/pr/prepr.sh` and `tests/gate_lock.py`, stage `done`, no
   carry; `tests/run.sh` is named in no group's `files` (208 groups), so the carry names that
   file explicitly.
