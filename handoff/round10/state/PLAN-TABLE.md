@@ -323,7 +323,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-PLAN-PRIO | IN | 1 | done | - | -/- | - | tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. |  |
 | R10-TRIAGE-B36 | IN | 1 | in-progress | - | opus/opus | - | Own the triage s6 batch 36 pull request to a merge-ready head. |  |
 | R10-ROSTER-BATCH24 | IN | 1 | in-progress | - | opus/opus | - | Own the round-10 roster batch 24 pull request to a merge-ready head. |  |
-| R10-TRIAGE-B37 | IN | 1 | fixing | - | opus/opus | - | Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. |  |
+| R10-TRIAGE-B37 | IN | 1 | in-progress | - | opus/opus | - | Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. |  |
 
 ## ETA
 
