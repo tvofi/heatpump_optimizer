@@ -1,0 +1,22 @@
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'negative_prices', 'summer_dhw_only'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (897 entries)
+  re-run the gate that owns this file before pushing
+c7ea8794e8a0470ceed45d43b48fe67f6d6c1707
+100644 85e7384e83e2e93c130aaffc62bd9da883ae429a 1	tests/golden/claimed_drift.txt
+100644 e42dffa598ef4dd8ed59610df93dbd07541129d8 2	tests/golden/claimed_drift.txt
+100644 447e37d23453b138ef4c025177802126592ce5fb 3	tests/golden/claimed_drift.txt
+
+Auto-merging custom_components/heatpump_optimizer/payload.py
+Auto-merging tests/card.mjs
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
