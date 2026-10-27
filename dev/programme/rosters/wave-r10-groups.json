@@ -8028,7 +8028,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Check the body's `## Head` before the expensive steps, not only at step 7 (P208/V128, from R10-BUFFER-STORE's 40-minute scoped prepr that took the heavy slot and then refused the body at `## Head` -- the local buffer-store log puts `REFUSE pr-body` before `ok figures`/`ok carry`/`ok unpinned sites` -- and from R10-FLOW-BOARD's body re-take that named `c35a4e313` against `4c62b9804`). `tools/pr/prepr.sh` must run the same `## Head` arm, the one that checks the body names the sha `git rev-parse HEAD` prints, before step 1b takes the heavy slot, and keep the step-7 call (the body check at 3435) because the head can move during the run (`update_pr.sh`/`open_pr.sh` merge `main` before pushing). Constraints: no second parser -- the early arm invokes the existing body check earlier and prints the same refusal line the late one does; the `## Approval` arm, keyed on the path list, may stay late because it needs the diff; `tools/audit/seat/body_push.sh`'s early body gate keeps its behaviour; self-test arms: a body whose `## Head` names another sha refuses before 1b's slot is taken, and a matching body runs every step exactly as today (null control). triage: dev/programme/triage/s6-batch39.md#P208"
+   ],
    "architect_note": "",
    "brief": "Root-cause countermeasure for the recurring class of fixer bodies refused at prepr by the pr-body lint (#2524 twice, R10-CURRENCY three times, P2a once; 36 of 519 handoff-body pushes over 22 topics fail it offline, 2-12 a day 10-15..10-22). Cause: body_push.sh ran only ci_predict, never the body lint, and the Friction trailer drop predates the cloud session-link line. Countermeasure: prepr.sh --body-check runs step 7 offline; body_push.sh lints when handoff/<topic> is HEAD and refuses a mismatched head; the session link joins the trailer drop. Record dev/audit/rca/R10-RCA-BODY-LINT.md and class N-body-lint-bounce. Code at handoff/r10-rca-body-lint 5b27a11aa.",
    "resume": {
