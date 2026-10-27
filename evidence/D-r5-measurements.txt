@@ -1,0 +1,22 @@
+=== merge-tree b69828eb4a056850e7fc8914e6cde391f04743df a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9 (round-4 head + then-main) ===
+3ff4ce0fcccf746646cb9bf2b4c6af79bd85bb57
+100644 351ec2d629f7d43a3e0b1084aa1af2754fd6bea3 1	tools/pr/ci_predict.py
+100644 deb7e58b5e201973958bda410ba5b3887014f08a 2	tools/pr/ci_predict.py
+100644 f83bf6fca00d00a786a1cb17daf0edaebc291d2b 3	tools/pr/ci_predict.py
+
+Auto-merging tools/pr/ci_predict.py
+CONFLICT (content): Merge conflict in tools/pr/ci_predict.py
+rc=1
+
+=== merge-tree 14427f3acc22e8e7e0040deca9d398175bf212e6 ea36188c30ff9b8e5f48e8181eacc837b002a07a (measured head + live main) ===
+b813c8fdec2057a64c0b6d46526dab7650ecb1b7
+tree of 25a6f0e: b813c8fdec2057a64c0b6d46526dab7650ecb1b7
+
+=== ancestry ===
+b69828eb4a056850e7fc8914e6cde391f04743df ancestor of 14427f3acc22e8e7e0040deca9d398175bf212e6: yes
+a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9 ancestor of 14427f3acc22e8e7e0040deca9d398175bf212e6: yes
+14427f3acc22e8e7e0040deca9d398175bf212e6 ancestor of 25a6f0e840e413a7cb905f01e293ef4721716f8a: yes
+
+=== head vs main / head vs old head stat ===
+ 171 files changed, 900 insertions(+), 3190 deletions(-)
+ 27 files changed, 1323 insertions(+), 23 deletions(-)

@@ -1,63 +1,80 @@
-Fix review: merge b69828eb4a056850e7fc8914e6cde391f04743df
-bus-nonce: f28528ad3234536c0ea115bf2fd72abb
+Fix review: blocked 14427f3acc22e8e7e0040deca9d398175bf212e6 head-moved: measured 14427f3acc22e8e7e0040deca9d398175bf212e6, head is 25a6f0e840e413a7cb905f01e293ef4721716f8a
+bus-nonce: c955c2856810de42d09b2f34ca237813
 
-Head reviewed: `b69828eb4a056850e7fc8914e6cde391f04743df`. `refs/pull/2853/head` re-read immediately before this verdict was written. Worktree `~/hpo-seats/r10s6/review-2853-r4/`, detached at the head and created by me; the main checkout and the fixer's tree were not used. Round: the fifth review and the fourth code head measured. Three `blocked` verdicts precede it — `915fef90c` on `fa18c13d2`, `23e775ee4` on `2724c87bb`, `09b2be3f3` on `fccb88371` — and this verdict tests all three against this head, not only the last. The body carries the `## Re-cut` note `fixer.md`'s past-three-rounds rule requires. Diff, three-dot from merge base `4db1d3e28`: 7 files, 522 insertions, 44 deletions. The head's merge of `origin/main` touches none of the four changed code files — `git diff bde48ac1 HEAD -- tools/pr/prepr.sh dev/audit/rounds/round4/D6/claims.py tests/harness_headers.py tools/audit/seat/body_push.sh` is empty — so the authored code at this head is `bde48ac1`'s, and the figures the body takes there describe the code I measured.
+# PR #2853, round 5: the merge resolution at 14427f3acc
 
-## B1 — the last block paid: step 6g's per-target interpreter
+RESULT head: measured=14427f3acc live=25a6f0e84 (`gh pr view 2853 --json headRefOid`, read at 21:53 and re-read before posting)
+RESULT recarry: automatic; `git merge-tree --write-tree 14427f3acc ea36188c` = b813c8fdec = `25a6f0e84^{tree}`
+RESULT recarry-delta: paths=165, intersecting the branch's own diff in 1 path (`dev/audit/rounds/round4/D6/claims.py`)
+RESULT branch-own-diff-at-live-head: paths=7 (`git diff --name-status ea36188c 25a6f0e84`)
+RESULT hand-resolution-vs-automatic-merge: paths=1 (`tools/pr/ci_predict.py`, `git diff --name-only 3ff4ce0f e0388ad8`)
+RESULT ci-predict --only wiring / --only mutation: rc=0 / rc=0; --only bogus: rc=2
+RESULT ci-predict self-test at 14427f3acc: failed=5; `wiring_self_test` cases=3, all pass
+RESULT ci-predict self-test at b69828eb4a: failed=5, FAIL labels identical to 14427f3acc
+RESULT ci-predict self-test at a0e7664ea: failed=5, FAIL labels identical to 14427f3acc
+RESULT prepr --self-test at 14427f3acc: stopped at ok=254 fail=0; not completed
 
-`09b2be3f3` found `claims_reg_line`'s derivation spawning `python3 -I -c` once per link target: 84 spawns, 2.84–3.12 s of the check's CPU, total 6.63–6.85 s (6.85–7.09 s with the copy) against the owner's 5 s per-added-check cap. Repair `2d63555e6` replaces that one line with `rel=${t#./}; case $rel in /*|..|../*) continue;; esac`.
+## Why this is blocked
 
-My instrument, mine and not the fixer's: `claims_reg_line` and its constants extracted verbatim from the head into `~/hpo-seats/r10s6/review-2853-r4-ev/fx_head.sh` (`diff` against `prepr.sh` lines 243–255 and 293–387 empty), driven exactly as the step drives it — a `git archive HEAD -- $CLAIMS_INPUTS $CLAIMS_GEN` copy, then the function on it — timed with `/usr/bin/time -p`, CPU = user+sys. The pre-repair variant `fx_spawn.sh` is that same file with this one line restored to `2d63555e6^`'s and nothing else changed (`diff` is one 1-for-3 line replacement).
+The head moved while this review was running. Every measurement below was taken at
+`14427f3acc`; none was re-taken at `25a6f0e84`, and the PR body's `## Head` has
+already been re-taken to the new SHA.
 
-**(a) The check's CPU cost at this head.** Five runs, 8 cores, load 129–139: copy 0.26–0.28 s; `claims_reg_line` 3.85–4.08 s; **total 4.11–4.35 s CPU** — under the 5 s cap by 0.65 s at the worst run. Same host, same hour, the pre-repair line measured function 7.08–7.28 s, total 7.35–7.56 s, so the separation the block measured is reproduced. The body's 3.99–4.10 s and the delivery row's 3.99–4.10 s agree with mine in order and in margin.
+- The live head is `25a6f0e84`; the dispatched head and the packet name `14427f3acc`. A `merge` verdict at `14427f3acc` would be a verdict on a head that is no longer the PR. Carry: R10-FLOW-JIDOKA
+- `25a6f0e84`'s parents are `14427f3acc` and `ea36188c` (main), and `git merge-tree --write-tree 14427f3acc ea36188c` prints tree `b813c8fdec`, byte-identical to `25a6f0e84^{tree}`: the recarry is git's automatic result, so it hides no hand resolution. That makes the delta attributable; it does not make it measured. Carry: R10-FLOW-JIDOKA
+- A merge verdict at `14427f3acc` cannot be carried to `25a6f0e84`: `git diff --name-only 14427f3acc 25a6f0e84` names 165 paths and includes `dev/audit/rounds/round4/D6/claims.py`, which is one of the branch's own seven files, so `app_approve.sh --carry`'s "the delta misses the branch's own diff" test fails and section 11 makes the new head a delta for a reviewer to take. Carry: R10-FLOW-JIDOKA
+- The intersecting file is not a dropped change: at `25a6f0e84`, `claims.py` carries both the branch's `--print-link-targets` / `_doc_paths` / `_doc_links` and main's `RESULT arch_modules_on_disk=83` / `arch_map_listed=83`; main's side of the recarry is two count lines over the branch's re-plumbed doc-link reader. Carry: R10-FLOW-JIDOKA
+- At `14427f3acc`, both `gate` check runs concluded `cancelled`, not green (absent is not green), and `prelude` and `codeql / Analyze (python)` were also cancelled; all other completed checks concluded success, including `governance / instrument-self-tests`. At `25a6f0e84` the required checks are still queued or in progress. Carry: R10-FLOW-JIDOKA
 
-**(b) Interpreter spawns.** **Three per `claims_reg_line` call, zero per target**: `python3 -I … claims.py --print-link-targets`, `python3 … claims.py` (the generator), and the header `-c`. Counted with a `python3` shim first on `PATH` that logs every invocation (`spawn_count.txt`). The pre-repair line makes 84 more on this tree — 87 total — and 88 on my fixture A, which carries one added link.
+## The resolution I measured at 14427f3acc
 
-**(c) The derived target set, as a set.** The raw **string** sets are *not* equal: 38 distinct values under `os.path.normpath`, 40 under the shell, because nine `docs/../x` targets keep their `docs/../` prefix instead of being collapsed (`target_set_equality.txt`). **No target is dropped, and the copy the step grades is identical.** Three measurements, not a count:
+**The union is correct.** The merge conflict was named by
+`git merge-tree --write-tree b69828eb4a a0e7664ea` in one path only,
+`tools/pr/ci_predict.py` (stage blobs: base `351ec2d6`, old head `deb7e58b5`,
+main `f83bf6fca`). The head's file differs from git's automatic merge of the
+same parents in that one path and in no other
+(`git diff --name-only 3ff4ce0f e0388ad8` = `tools/pr/ci_predict.py`), so the
+seat touched only what it claimed. Its content is the union, not either side:
+`ARMS` holds ten entries including `"wiring"` (ci_predict.py:540-541),
+`--only` accepts all ten, and main's `wiring_preds` / `wiring_self_test` and
+`("wiring", ...)` dispatch entry are present beside the branch's `ARMS` and
+`--only` re-architecture. Relative to its merge parents that is 32+/14- for the
+branch's re-architecture and 74+/6- for main's wiring additions, both present.
 
-1. On this head all 84 targets are already inside the copy, so the archive arm fires **zero times under either variant**: `RESULT targets=84 already_present_in_copy=84 archive_actions=0` (`archive_actions_head.txt`).
-2. On two fixtures that make the arm fire — A, a link to `tools/audit/seat/INSTRUMENTS.md`, outside `CLAIMS_INPUTS`; B, `docs/../tools/pr/prepr.sh`, the divergence shape and also outside the list — the head and pre-repair variants produce **byte-identical copies** (`f38e9751…` and `8dd1ee4c…` each way) with the target present after both and the same pass line.
-3. `git` normalises the `docs/../x` form in both `ls-tree` and `archive` (`git archive HEAD -- docs/../tests/README.md` extracts `tests/README.md`) and `test -e` resolves it. The one shape the shell no longer refuses at the string stage — an embedded `..` that `normpath` would have made leading, `docs/../../x` — still copies nothing: `git ls-tree` exits 128 *outside repository* and `git archive` extracts 0 files.
+**Nothing else was dropped.** Both parents are ancestors of `14427f3acc`
+(`git merge-base --is-ancestor`, both yes). The branch's other six files are
+byte-identical between `b69828eb4a` and `14427f3acc` (empty diff), and all seven
+are unchanged by the recarry except `claims.py`, where main's two count lines
+sit on top of the branch's reader. In the recarry, the 164 other paths are
+main's side taken whole (the tree equals the automatic merge).
 
-**(d) Graded verdicts unchanged.** Six arms at both variants, identical rc and identical message: A unlisted target rc 0 (copied); B `docs/../` unlisted target rc 0 (copied); C stale register rc 1; D target absent from the repository rc 1 (not copied); no docs change rc 3. The copies are byte-identical in every arm. The register itself re-records byte-identically at this head (5 of 5 runs: "rewrites claims.json and claims.md byte-identical, its header RESULTs hold").
+**The branch's own diff still matches round 4** modulo main's `wiring` change:
+the seven paths at the live head are
+`dev/audit/harnesses/r10_seat_selftests_mutants.py`,
+`dev/audit/rounds/round4/D6/claims.py`,
+`dev/programme/delivery/2853.md`, `tests/harness_headers.py`,
+`tools/audit/seat/body_push.sh`, `tools/pr/ci_predict.py`, `tools/pr/prepr.sh`;
+six are byte-identical to the round-4 head, and the seventh's difference is
+exactly main's wiring additions.
 
-## B2 — the three earlier blocks, each against this head
+**The merge was runnable at `14427f3acc`:** `--only wiring` rc 0,
+`--only mutation` rc 0, `--only bogus` rc 2 (argparse refuses the choice), and
+`ci_predict --self-test` reports 5 failed. Those five are the wave-script
+`AGREEMENT` cases whose fixtures diverge between `budget_raise_gate.py` and
+`policy_lint.mjs`; the old head `b69828eb4a` and main `a0e7664ea` report the
+same five labels (the FAIL label sets diff empty at all three refs), so the
+branch introduced none of them. The `wiring_self_test` cases (3) pass.
+`prepr.sh --self-test` was stopped at 254 ok / 0 fail when the head moved, so
+the body's "417 passed, 0 failed" is not verified here.
 
-**Round-1 budget (`fa18c13d2`, `915fef90c`) — paid.** Its 6g item is (a). Its `--fill-red` item, "the wall time `--fill-red` adds to every body_push is not stated", is answered: `## Figures` states it in wall with the load beside it and in CPU, 2.86–3.16 s at `a0e741cf`, against 5.66–5.80 s for the whole predictor it replaced. I re-measured `bash tools/pr/prepr.sh --fill-red <body>` at this head: **3.42–3.71 s CPU**, wall 8.69–14.55 s at load 200–221 — under 5 s on CPU, wall tracking the host as the body says. The `8 s`/`15 s` restatement is withdrawn, not carried: its only occurrence is the sentence withdrawing it.
+## Friction
 
-**Round-1 class-open (`2724c87bb`, `23e775ee4`) — paid.** The derivation is present and `2d63555e6` does not narrow it. Fixtures A and B show the narrow copy taking a link target the enumeration does not name (target present, rc 0), the whole-tree control passing rc 0 at both, and the derivation dropped reddening both (B3). The copy is not narrowed anywhere else in the re-cut.
+- The body's `## Head` paragraph says the `ci_predict.py` conflict was "resolved to main's version". Measured, it is a union: main's version has no `ARMS` or `--only`, and the head has both plus wiring. The sentence was true of neither parent. Carry: R10-FLOW-JIDOKA
+- The body says "the five new wiring cases pass". `wiring_self_test` holds 3 cases (ci_predict.py:816-821), and all three pass; the fourth wiring-shaped line in the log, "a self-testing tool the diff adds with no workflow run line", is `plant_self_test`'s case, not the wiring arm's. The count is 3, not 5. Carry: R10-FLOW-JIDOKA
+- The union makes four arm-count comments state the wrong number: `tools/pr/ci_predict.py:538` "the other eight", `tools/pr/prepr.sh:583` "not nine", `1591` "the other eight" and `2873-2874` "One arm, not nine ... other eight". With `ARMS` at ten, the other arms number nine and the whole set ten. Carry: R10-FLOW-JIDOKA
+- At the live head, step 6g's claims register must re-run: main moved `arch_modules_on_disk` and `arch_map_listed` to 83 over the branch's re-plumbed doc-link reader, and the body's claimed figures were taken against the old base. Carry: R10-FLOW-JIDOKA
+- The body's `## Head` sentence "The reviewed code is unchanged" is true of the seven branch files but not of the head's tree, which changed by 165 main paths (closures, structure budgets, golden fixtures and the claims files among them); the re-review must re-establish the ratchet and claim figures at `25a6f0e84`, not only re-read the seven files. Carry: R10-FLOW-JIDOKA
 
-**Round-2 budget (`fccb88371`, `09b2be3f3`) — paid.** B1 pays the budget item. Its B2 secondary, a delivery row asserting a clearance the class-open block had refused, is answered: `dev/programme/delivery/2853.md` now names all three blocks and what this head does about the class-open one and the 6g budget. Its B3, figures stopping at the pre-repair tree, is answered: the 6g and self-test rows are re-taken at `bde48ac1`, the `claims.py` change has its own bullet, and `prepr-13` — the derivation dropped — is reported as pinned by perturbation.
+## Carry
 
-## B3 — perturbation
-
-The repair's load-bearing line, not a comment: `rel=${t#./}; case $rel in /*|..|../*) continue;; esac` replaced by `rel=""; continue` (every target dropped) in a copy of the extracted function, nothing else changed (`fx_perturb.sh`). Fixtures A and B go from **rc 0 with the target copied** to **rc 1 with it absent** — `committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0)`. C, D and the skip arm do not move. Restoring the head's line returns A and B to rc 0 with the target present. The in-tree mutant `prepr-13` has the same shape (`done < /dev/null`) and its pattern matches the head's line exactly once, so the arm is pinned in the tree as well as by me.
-
-## Accepted, with the measurements that decided it
-
-The head's checks all concluded: **55 check runs, 38 success, 17 skipped, 0 failure, 0 neutral, 0 pending** (`check_runs_head.tsv`). `gate` success twice (the last at 19:31:43Z), `pr-contract / pr-contract` success twice, `governance / instrument-self-tests` success in 18m46s, and `tests / fast (3.14)`, `tests / mutation`, `tests / closures`, `arch-score` and `budget-raise-gate` success. The PR workflow runs on the merge ref `872c44829`; `git rev-parse 872c44829^{tree}` equals the tree `git merge-tree --write-tree origin/main HEAD` prints locally, so CI's verdict is about the tree I measured.
-
-`git merge-tree --write-tree origin/main HEAD` exits 0 against the body's cited tip `2b45d098c`, the head's own base `4db1d3e28` and the current `origin/main` `6eb552157`.
-
-`VERSION`, the manifest version, the `RELEASE_NOTES.md` heading, both claim files and every `tests/*_budgets.json` are untouched, three-dot from the head's own base as well as from `origin/main`. No budget is raised. `python3 tests/env_drift.py --claims-only origin/main` prints `claims hygiene: origin/main ok`. No Co-Authored-By, Generated-With or session trailer is on any authored commit.
-
-`bash tools/pr/prepr.sh --body-check` on the real body exits 0: `figures ok: 17 resolved, 2 not verified, 0 refused`; `ref_privacy ok … 28 file(s) …, 479 line(s) added …, 0 refused`; `preflight ok`; `pr-body ok: 0 error(s)`. The body's `## Red checks` names the two historic reds with their check runs and counts and answers each, and `pr-contract` — which reads the body — is green at this head.
-
-`python3 tools/audit/carry_audit.py pr 2853` on the draft, before this verdict published: **11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)**. Re-run on the PR with this verdict at `refs/hpo-bus/review/2853`: **13 finding item(s): 13 routed, 0 unrouted, 0 bad destination(s)** — the two added are this verdict's own bullets, each carrying `R10-FLOW-JIDOKA`.
-
-The cost of the added checks against the owner's second cap holds at this head: a prepr run adds 6g 4.35 + `ref_privacy` 1.26 + `check-wave-script` 0.25 = 5.86 s CPU, and a `body_push` adds `--fill-red` 3.71 + `figure_lint` 0.11 + `ref_privacy` 1.26 = 5.08 s, both under 10 s.
-
-## Findings (non-blocking)
-
-- The repaired cost is pinned by no check. `prepr-13` guards that the derivation runs, not what it costs, so a future change that reintroduces a per-target interpreter would put this check back over the owner's 5 s cap with nothing in the tree failing — only a reviewer's timing catches it. The margin is 0.65 s, 4.35 against 5.0, which is real but not large. Carry: R10-FLOW-JIDOKA
-- The closing paragraph of `## Head` names merge base `34cd75bf1` and `origin/main` at `2b45d098c`. Those are the *figure-taking* head `bde48ac1`'s merge base and tip; this head merges `origin/main` `4db1d3e28`, so its merge base is `4db1d3e28`. No figure is invalidated — the code is identical and I re-took the 6g and `--fill-red` figures at the head — and the section's first paragraph names the head and its merge correctly, but the two paragraphs disagree about which tree the figures describe. Carry: R10-FLOW-JIDOKA
-
-## Evidence
-
-`~/hpo-seats/r10s6/review-2853-r4-ev/`: `fx_head.sh`, `fx_spawn.sh`, `fx_perturb.sh` (the three function extractions, diffed against each other and against the head), `drive6g.sh` and `time6g.sh` (my instruments), `timing_head.txt`, `timing_spawn.txt`, `target_set_equality.txt`, `archive_actions_head.txt`, `spawn_count.txt`, `containment.txt`, `body_check.txt`, `check_runs_head.tsv`, `merge_tree.txt`, `untouched.txt`, and `mkfixtures.sh`, which rebuilds the four fixture repositories deterministically from the reviewed head (I verified it reproduces the copies byte-for-byte: manifests `f38e9751…` and `8dd1ee4c…`).
-
-## What could not be established
-
-The self-test's 417 count. `governance / instrument-self-tests` is green at this head, but I did not re-run the 18-minute job — the contract says cite CI's heavy runs rather than re-run them — so the conclusion is established and the count itself is not.
-
-The fixer's own host figures. Both sides of every before/after pair are same-host and same-hour, and the measure is `user+sys`, which the body itself declares load-independent; my wall figures at load 200+ are far above the body's at load 20–70 with the same CPU, which is what the body's disclaimer predicts.
+Carry: R10-FLOW-JIDOKA (live roster group, `dev/programme/rosters/wave-r10-groups.json`, stage `in-progress`, PR 2853)

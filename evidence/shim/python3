@@ -1,5 +1,0 @@
-#!/bin/bash
-# Counts one line per invocation, then runs the real interpreter.
-# Usage: EV=<evidence dir> REAL_PY=<python3> PATH=<this dir>:$PATH <command>
-{ printf 'python3'; printf ' %s' "$@"; printf '\n'; } >> "${EV:?}/spawns.log"
-exec "${REAL_PY:?}" "$@"

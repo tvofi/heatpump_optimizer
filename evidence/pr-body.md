@@ -20,6 +20,8 @@ Replaced at the fourth round and re-cut at the fifth: the round-2 findings answe
 
 ## Head
 
+`14427f3acc22e8e7e0040deca9d398175bf212e6` is `b69828eb4a` merged with origin/main `a0e7664ea6` by `tools/pr/merge_main_bot.py`. The one conflict was `tools/pr/ci_predict.py`, resolved to main's version — main's `wiring` arm is additive and the branch's seven files are untouched (`git diff a0e7664ea HEAD --stat` = the branch's own 7 files). Verified at this head: `ci_predict.py --only wiring` rc 0 with no closures/fast/wave-script/instrument red predicted against `a0e7664ea`; `--self-test` reports 5 failed, the same 5 identical at both `b69828eb4` and `a0e7664ea`, so pre-existing rather than introduced here; the five new wiring cases pass. CI was still running when this note was written.
+
 `b69828eb4a056850e7fc8914e6cde391f04743df` merges the authored code head `bde48ac11a9335899fb6564b0d1bfa8861280526` and then merges origin/main `4db1d3e28` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `bde48ac11a9335899fb6564b0d1bfa8861280526` answers the round-2 block on `fccb88371`, in two commits with no merge: `2d63555e6` normalises step 6g's link targets in the shell instead of spawning an interpreter per target (B1), and `bde48ac1` rewrites `dev/programme/delivery/2853.md` to state the class-open block and the budget blocks rather than a superseded verdict and a clearance the block disproved (B2).
@@ -103,6 +105,7 @@ Each row names the head it was taken at. `<reviewer-ev>` is the round-2 reviewer
 ## Friction
 
 none
+
 
 
 

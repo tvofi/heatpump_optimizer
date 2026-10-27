@@ -1,6 +1,0 @@
-python3 -I dev/audit/rounds/round4/D6/claims.py --print-link-targets
-python3 dev/audit/rounds/round4/D6/claims.py
-python3 -I -c import contextlib, io, sys; sys.path[:0] = ["tests", "tests/hastub"]; from pathlib import Path
-with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
-e, g = h.expected_from(Path(sys.argv[1])), h.printed_from(sys.stdin.read())
-print(" ".join(f"{k}={g.get(k)} (header {v})" for k, v in e.items() if g.get(k) != v)) <copy>/dev/audit/rounds/round4/D6/claims.py

@@ -1,2 +1,0 @@
-head: invocations=3 of which per-target normpath=0 targets_on_this_tree=84
-spawn: invocations=87 of which per-target normpath=84 targets_on_this_tree=84
