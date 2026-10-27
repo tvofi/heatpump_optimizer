@@ -1,263 +1,188 @@
-Fix review: blocked 410d3988fd2ae01ea6ec281174e470b4f5540bcb root-cause-detectable: gate and instrument-self-tests are red at the head because the new review_packet.py is unwired and its render in dispatch breaks cloud_dispatch; ## Red checks names neither
-bus-nonce: 8de7caec70872d504eb7cac82264126e
+Fix review: merge cc78cc831ea51cd98f14fb7cce96001cd108fb55
+bus-nonce: 7ead16cd2d786a87c765b810fc9a29c7
 
-# Fix review — PR #2870 (R10-ORCH-REVIEW-PACKET), head 410d3988fd2ae01ea6ec281174e470b4f5540bcb
+# Fix review — PR #2870 (R10-ORCH-REVIEW-PACKET), round 2, head cc78cc831ea51cd98f14fb7cce96001cd108fb55
 
-Reviewed in a detached worktree at the head (`/tmp/rev-2870`), merge base
-`484d9902222031f8e081df9f53b52ffd50fcc0af`, three-dot diffs throughout.
-The head was confirmed the PR head before starting and did not move.
+Round 2 reviews **the repair and the merge**, not the group. Detached worktrees
+at `~/hpo-seats/review-2870-r2/wt` (head) and `~/hpo-seats/review-2870-r2/base410`
+(round 1's head, `410d3988`), merge base `34cd75bf1fe506334611ba6c074c223317370e67`,
+three-dot reads. The head was the PR head when the review started and when this
+was posted; it did not move.
 
-The dispatch brief said this PR's only changed path is
-`dev/governance/roles/fix-review.md`. That premise is false: the three-dot diff
-touches seven paths, ~530 new lines (`review_packet.py` 409, `r10_review_gather_share.py`
-71, `bus.sh` +49/-8, `INSTRUMENTS.md` +14/-1, `closures.json` +2, the policy file +3/-3,
-and the delivery row). The policy diff is one file of the seven; the rest is the
-machinery the policy now points reviewers at, so it was reviewed as code.
+## The two reds, re-run at both ends
 
-## What a reviewer seat must now do differently (plain words)
-
-Before: the reviewer opened the frozen worktree and gathered the facts itself;
-the contract named no starting point. Now: `bus.sh dispatch` renders a
-`review-packet:` at the frozen head — the three-dot diff, the head's check runs
-with each run id, `carry_audit` and `figure_lint` at the head, the finder's
-harness output at base and head, and the mutation-ledger diff — and writes its
-path into the dispatch output. The reviewer **starts from that packet**, and
-because the packet's check digest is only as fresh as its render, the reviewer
-**re-reads the live check state before returning a verdict**. Everything else is
-unchanged: the fresh-context rule, preparing against the merge base only before
-the handoff, steps 1–12, publishing through `bus.sh push-verdict` as
-`hpo-approver`, and never treating the verdict as the owner's approving review.
-
-Policy judgement: **no loosening found.** The change adds two obligations
-(start from the packet; re-read live checks) and no sentence lets a reviewer
-skip a check, accept weaker evidence, or return `merge` earlier. The cuts pay for
-the added sentence inside the same paragraph: `in a fresh context` → `fresh`;
-`That worktree holds this contract ... frozen by design, so your copy can be
-arbitrarily old` → `Its copy of this contract is frozen with the tree, so can be
-old`; `Before the fixer's handoff message (fixer.md: "the handoff freezes the
-branch")` → `Before the handoff freezes the branch (fixer.md)`; `never ...
-never ...` → `never ... or ...`. The dropped phrase `no head measurement` is
-subsumed by the retained operative clause `prepare against the merge base only`.
-Step 2's "Measure with the finder's harness ... printing your own RESULT lines"
-is untouched, so the packet does not substitute for the reviewer's own
-measurement. No contradiction with `CLAUDE.md`, `COMMON.md`, or
-`dev/governance/rules/*`: `rules_sync --check` passes, `policy_lint --report`
-prints 0 errors across 50 policy files, `policy_lint --budgets` exits 0, and the
-canon-path cap for this file did not move (2448 → 2446 tokens against a 2451 cap,
-140/140 lines).
-
-The verdict is blocked anyway: the policy sentence cannot be delivered to most
-reviewers, and the head is red on the required check because of the diff.
-
-## Findings
-
-### F1 (blocking, code) — the new instrument's self-test is not wired into any workflow
-
-`tools/audit/seat/review_packet.py` gains a `--self-test` (21 checks) but the
-diff touches no workflow, so nothing names that self-test in a run line. The
-repository's own wiring ratchet rejects it at this head and at the merge base it
-passes:
-
-- head: `python3 -I tools/audit/seat/selftest_wiring.py --check` →
-  `UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test`;
-  `selftest_wiring: 98 self-testing, 97 wired, 1 unwired`; rc 1.
-- base: `97 self-testing, 97 wired, 0 unwired`; rc 0.
-- CI, `governance / instrument-self-tests` id 121985023161:
-  `UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test`
-  and `##[error]Process completed with exit code 1`.
-
-The delta is exactly the file this PR adds. Fix: add the self-test to the
-instrument-self-tests job's run line in `.github/workflows/governance.yml`
-(the shape at lines 480–482) with its `grep -Eq '^review_packet self-test:
-[1-9][0-9]* checks, 0 failed$'`.
-Carry: R10-ORCH-REVIEW-PACKET — fix here before merge.
-
-### F2 (blocking, regression) — the packet render makes `bus.sh dispatch` hard-fail in a caller that used to pass
-
-`dispatch` now runs `review_packet.py render` unconditionally, and
-`review_packet.gather` raises `SystemExit` on any failed `git merge-base
-origin/main <head>`. `cloud_dispatch.py` calls `bash bus.sh dispatch` inside a
-synthetic repo whose `origin/main` cannot resolve the synthetic head, so the
-whole dispatch refuses. This is a regression of an existing tool's self-test:
-
-- head: `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` → rc 1,
+- At the head: `python3 -I tools/audit/seat/selftest_wiring.py --check` →
+  `selftest_wiring: 99 self-testing, 99 wired, 0 unwired`, rc 0 (real 0.18);
+  `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` →
+  `cloud_dispatch self-test: 77 checks, 0 failed`, rc 0 (real 21.72).
+  Carry: dismissed: both re-run green
+- At `410d3988` the same two commands reproduce round 1's reds exactly:
+  `UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its
+  self-test`, `98 self-testing, 97 wired, 1 unwired`, rc 1; and
   `Refusal: bus.sh dispatch refused: review_packet: REFUSED git merge-base
-  origin/main <sha>: fatal: Not a valid commit name <sha>`.
-- base (null control): `cloud_dispatch self-test: 73 checks, 0 failed`, rc 0.
-- CI, `governance / instrument-self-tests` id 121985023161, second failing step,
-  same traceback through `cloud_dispatch._bus_dispatch`.
+  origin/main <synthetic head>: fatal: Not a valid commit name`, rc 1.
+  Carry: dismissed: round 1 reproduced
+- CI at the head agrees, and the wiring step **ran**, not merely read: job
+  `122309519259` (`governance / instrument-self-tests`) success, its "Show the
+  review packet refusing its own fixtures" step success; latest `gate`
+  `122330797512` success; `pr-contract / pr-contract` `122330330409` success.
+  Carry: dismissed: CI green at head
 
-The same shape bites any real caller whose checkout cannot resolve
-`origin/main` to the dispatched head (a partial clone, a cloud seat's repo dir, a
-stale base). Fix: resolve the base once with a caller-supplied or recorded base
-and degrade to an advisory (or a named refusal the caller can pass) rather than
-`SystemExit`, and update the cloud-dispatch fixture.
-Carry: R10-ORCH-REVIEW-PACKET — fix here before merge.
+## The REFUSE / UNAVAILABLE split — both arms, live
 
-### F3 (blocking, body) — `## Red checks` names none of the head's concluded reds
+Driven through the **real** `bus.sh dispatch` and the **real** renderer, in a
+scratch repo (`~/hpo-seats/review-2870-r2/live/seat`) whose `origin/main`
+resolves to its head and which carries its delivery row; state under a scratch
+`HPO_BUS_STATE`.
 
-The head has three concluded red contexts (`gate` id 121997429064,
-`governance / instrument-self-tests` id 121985023161, `pr-contract / pr-contract`
-id 121997241906). The body's `## Red checks` answers four *local* `tests/entities.py`
-sub-checks from a Darwin scoped-gate run and names none of the three. Reproduced
-with the exact invocation the new packet uses:
+- REFUSE: `dispatch 7 <head> r1 --harness-file inside_harness.py` (inside the
+  tree) → render rc 1 `review_packet: REFUSE independence: --harness-file is
+  inside the tree; name it by --harness`; dispatch rc 1; `$S/dispatched`
+  absent; no packet named. **Records nothing.**
+  Carry: dismissed: recorded nothing
+- UNAVAILABLE, failing `gh`: render rc 3, dispatch rc 0, one record
+  `7 <head> reviewer2 <nonce>`, output `bus: review-packet: unavailable --
+  review_packet: UNAVAILABLE: gh api repos/o/r/pulls/7: gh: auth required`.
+  **Records and proceeds.**
+  Carry: dismissed: recorded and proceeded
+- UNAVAILABLE, working directory outside a checkout (real renderer through a
+  wrapper): render rc 3, dispatch rc 0, recorded, `review-packet: unavailable --
+  review_packet: UNAVAILABLE: the working directory is not inside a git
+  checkout`.
+  Carry: dismissed: recorded and proceeded
+- UNAVAILABLE, no pinned interpreter under a scratch `HOME`: dispatch rc 0,
+  recorded, `unavailable -- python3: no pinned interpreter …`.
+  Carry: dismissed: recorded and proceeded
+- Positive arm: `review_packet.py render --pr 2870 --head <head>` in the real
+  checkout with real `gh` → rc 0, `## Refusals none`, `## Gate digest: green`,
+  1248 lines / 70333 bytes, real 114.93. Round 1's F4 self-refutation is gone.
+  Carry: dismissed: packet renders clean
+- My mutation on the load-bearing line: `main`'s `except Unavailable → print
+  UNAVAILABLE, return 3` replaced by `print REFUSE unavailable, return 1`.
+  `review_packet.py --self-test` → `31 checks, 1 failed`, the named FAIL
+  `UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and
+  writes nothing`; and the live outside-checkout arm flips to dispatch rc 1,
+  refused, `$S/dispatched` absent — the #2870 regression shape. Restored
+  byte-identical (sha256 `a209f923…`). Null control: the same live arm on the
+  unmutated tree is rc 0 and records.
+  Carry: dismissed: mutant killed
+- The body's `repo()` mutant re-run: `review_packet.py --self-test` →
+  `31 checks, 1 failed`, FAIL `repo(): a git read runs in the checkout the
+  working directory is in, not the tool's install`. `cloud_dispatch.py
+  --self-test` stays `77 checks, 0 failed` under it, and that is the repair
+  working, not a gap in the arm: an install-path read now degrades to
+  UNAVAILABLE instead of breaking the dispatch. Restored byte-identical.
+  Carry: dismissed: mutant killed
 
-- `node tools/policy/policy_lint.mjs --pr-body <body> --head <head> --red "governance / instrument-self-tests" --red "pr-contract / pr-contract"`
-  → two `ERROR [pr-body] ... check \`X\` is red and \`## Red checks\` does not name it`
-  (`evidence/policy-lint-red.txt`).
-- `pr-contract / pr-contract` is red for exactly that body omission
-  (its log: `ERROR [pr-body] ... check \`governance /
-  instrument-self-tests\` is red and \`## Red checks\` does not name it`;
-  `evidence/instrument-self-tests-excerpt.txt` and `evidence/gate-log.txt`).
-- `gate` is red because `gate.py` reads that `pr-contract` failure:
-  `FAIL pr-contract / pr-contract: failure` (`evidence/gate-log.txt`).
+## Round 1's "unclassified new file" arm
 
-This is contract step 11 silence over every head. A cheaper detector existed and
-is named: `python3 -I tools/audit/seat/selftest_wiring.py --check` and
-`python3 -I tools/audit/seat/cloud_dispatch.py --self-test` show F1 and F2 in
-under a minute; `policy_lint --pr-body ... --red ...` shows the omission itself.
-Carry: R10-ORCH-REVIEW-PACKET — answer each red in `## Red checks` (the cheaper
-detector and its standing cost) before merge.
+- `closure.orphan_files()` prints `0` at the head **and** at `410d3988`.
+  Carry: dismissed: arm does not reproduce
+- `closure.is_inert()` is `True` by prefix for both new files
+  (`tools/audit/seat/review_packet.py`, `dev/audit/harnesses/r10_review_gather_share.py`)
+  at both heads.
+  Carry: dismissed: classified at both heads
+- The classification is `tests/closures.json`'s `inert_reads` pair —
+  `tests/entities.py: tools/audit/seat/review_packet.py`,
+  `tests/harness_headers.py: dev/audit/harnesses/r10_review_gather_share.py` —
+  identical at both heads.
+  Carry: dismissed: the real classification
+- Round 1 did not block on an unclassified file: its F6 was **non-blocking**
+  and itself states that `inert_reads` pair. Its block 1
+  (`root-cause-detectable`) is the two reds, and both reproduce at `410d3988`.
+  So the report that round 1's block was mis-specified is itself the
+  mis-specification; the measurements behind it are right.
+  Carry: dismissed: round 1 reproduced
 
-### F4 (blocking, self-refutation) — the PR's own instrument refuses this PR
+## Merge, scope, and the untouched files
 
-Live at the dispatched head:
+- `git merge-tree --write-tree origin/main HEAD` exits 0 (tree
+  `b889b4e8e851ef8fe0ae7096746024f14775d6c9`) against `origin/main`
+  `4db1d3e28`; no conflict; both claim files are byte-identical to the merge
+  base. `mergeStateStatus: BLOCKED` is the draft/approval state, not a conflict.
+  Carry: dismissed: merges cleanly
+- The seven non-merge commits in `410d3988..cc78cc831` touch only
+  `tools/audit/seat/review_packet.py`, `bus.sh`, `cloud_dispatch.py`,
+  `tools/pr/ci_predict.py`, `INSTRUMENTS.md` and
+  `.github/workflows/governance.yml`. The branch's own nine paths are
+  byte-identical between the code head `5936aab2f` and the merge head;
+  `closures.json` and `INSTRUMENTS.md` differ from it only by main's
+  `plan_audit.py` additions, with the branch's entries still present.
+  Carry: dismissed: scope holds
+- `VERSION`, the manifest version, `RELEASE_NOTES.md`, both claim files, the
+  structure and mutation budgets, the mutation ledger and every golden fixture
+  are untouched by the three-dot diff.
+  Carry: dismissed: nothing moved
 
-```
-review_packet.py render --pr 2870 --head 410d3988… --out /tmp/pk-2870.md
-  REFUSE red-unanswered: concluded red check `governance / instrument-self-tests` is not named in ## Red checks
-  REFUSE red-unanswered: concluded red check `pr-contract / pr-contract` is not named in ## Red checks
-  REFUSE required-red: required context `gate` concluded failure at 410d3988…
-  rc=1 ; packet written: no
-```
+## `## Red checks` against the head's real runs
 
-`bus.sh dispatch` would therefore refuse to record a reviewer dispatch for this
-PR at this head, and the policy now tells every reviewer to start from a packet
-that cannot be produced here. Fix by F3 (answer the reds); the instrument then
-renders.
-Carry: R10-ORCH-REVIEW-PACKET — fix here before merge.
+- The head's 55 check runs contain no failure. The three red contexts the body
+  answers are real and are at `410d3988`: `gate` job `122012634486`,
+  `governance / instrument-self-tests` job `122007070159` (two failing steps)
+  and `pr-contract / pr-contract` job `122012407506`; each is named in the body
+  with a cheaper detector, its standing cost and a process state. The head's
+  `pr-contract` run (started 16:46:37Z, after the body's last edit at
+  16:10:10Z) is green, which is the body's acceptance.
+  Carry: dismissed: answered and green
 
-### F5 (blocking, policy deliverability) — the packet path never reaches a cloud or relayed reviewer
+## Non-blocking findings
 
-The contract now binds every reviewer to `start from the dispatch's
-review-packet:`, but the only in-tree path that fires a *cloud* reviewer never
-receives it:
+- Non-blocking: the body's figures are stale after the main merge. It quotes
+  `selftest_wiring: 98 self-testing, 98 wired, 0 unwired` twice; at this head
+  the same command prints `99/99/0` (main added
+  `tools/audit/seat/plan_audit.py`). It states the three-dot merge base is
+  `484d9902` and origin/main's tip `524c1896b`; at this head they are `34cd75bf1`
+  and `4db1d3e28`, and the predictor figure "against 484d9902" now reads
+  against `34cd75bf1`. Its `## Head` also still carries the previous head's
+  `e82f4d23` paragraph. The conclusions survive (0 unwired; diffstat `10 files
+  changed, 891(+), 14(-)`, re-derived), but re-take the figures and drop the
+  stale paragraph.
+  Carry: R10-ORCH-REVIEW-PACKET
+- Non-blocking: the body calls `dev/audit/harnesses/r10_review_gather_share.py`
+  "the reviewer gather-share measurement the body's figure comes from", but the
+  body quotes no gather-share figure any more (round 1's 49% was removed as
+  unre-derivable). The file is honestly labelled as the fixer's own in its
+  docstring and is inert; either quote the figure with its re-measurement
+  instruction or drop the file and the sentence.
+  Carry: R10-ORCH-REVIEW-PACKET
 
-- `cloud_dispatch.py` contains 0 references to `review-packet`; `_bus_dispatch`
-  parses `^bus-nonce: ([0-9a-f]{32})$` out of the dispatch stdout and discards
-  the rest, so the `review-packet:` line is dropped.
-- `bus.sh` prints the packet path only to stdout; the persistent dispatch record
-  is `pr head reviewer nonce timestamp model` — no packet field
-  (`$S/dispatched`). `cloud_relay.sh` and `standing-dispatch.md` also contain 0
-  references to the packet.
-- The printed path is `home_rel` of the dispatcher's state dir
-  (`~/state/packets/<pr>-<head>.md`), a host-local path a seat on another machine
-  cannot read.
-- No dispatch path supplies `--harness`, and the roster group has
-  `"harness": null`, so the packet's independence arm renders
-  `## Finder's harness: none named / not run / not run` by default — verified on
-  #2864 at 30c940e5b (`evidence/packet-2864-bytes.txt`).
+## Numbers re-derived, and the one I could not
 
-So the added obligation is unsatisfiable for the cloud seats that carry most
-reviews, and the packet's advertised independence evidence is absent unless a
-human passes `--harness` by hand. Fix: record the packet path in the dispatch
-record (or payload) and forward it in `cloud_dispatch.render`, put the packet on
-a path the remote seat can read, and derive `--harness` from the roster/topic
-instead of a manual flag; or scope the policy sentence to a dispatch that
-actually carries a packet.
-Carry: R10-ORCH-REVIEW-PACKET — fix here before merge.
+- Re-derived at this head: `review_packet.py --self-test` 31/0;
+  `bus.sh --self-test` 92/0 (66.07 s); `cloud_dispatch.py --self-test` 77/0;
+  `selftest_wiring.py --check` 99/99/0; the three-dot diffstat 10/891/14;
+  `ci_predict --base origin/main` no red predicted, rc 0 (14.20 s);
+  `rules_sync --check` ok; `policy_lint --report` 0 errors / 50 files;
+  `policy_lint --budgets` rc 0; `carry_audit.py check` 10 routed, 0 unrouted;
+  `merge-tree` rc 0; the live render rc 0.
+  Carry: dismissed: re-derived
+- Not re-derived: `ci_predict.py --self-test` timed out at 420 s on this host
+  and printed nothing, so the body's "5 failed" is not verified here; CI's own
+  step at the head ("Show the CI predictor …", job `122309519259`) passed,
+  which is that check's `0 failed` on Linux. The WIRING arm I drove directly
+  instead: a planted unwired tool **in the diff** predicts
+  `UNWIRED tools/x_unwired.py: no workflow run line names its self-test`, the
+  same tool **outside the diff** predicts nothing, and a wired tool in the diff
+  predicts nothing. The render timings are host- and PR-specific and are not
+  comparable to the body's #2864 numbers.
+  Carry: dismissed: CI ran it
 
-### F6 (non-blocking, coverage) — the new file is inert and no closure names it
+## Policy approval
 
-Both new files are in `tests/closures.json`'s `inert_reads` for
-`tests/entities.py` and `tests/harness_headers.py`, and no closure lists
-`review_packet.py` or `bus.sh`. `ci_predict.py --base origin/main` therefore
-printed `no closures, fast, wave-script or instrument red predicted` (rc 0) while
-CI's instrument job went red on the new file. The full `governance /
-instrument-self-tests` job (not closure-scoped) is what caught it. Once F1 wires
-the self-test, a change to `review_packet.py` should also select a script that
-runs it.
-Carry: R10-ORCH-REVIEW-PACKET — fold into F1.
-
-### F7 (low, robustness) — the check-run read is not paginated
-
-`review_packet.gather` reads
-`commits/{head}/check-runs?per_page=100` without pagination. At this head there
-are 55 runs, so the digest is correct today; a commit exceeding 100 runs would
-silently truncate the digest and could miss a pending or red required run, which
-is what `required-red` and the `pending` state exist to catch. The dispatch's own
-check-run read paginates. Carry: #2717.
-
-### F8 (low, claim) — the packet's harness section is conditional, the prose is not
-
-Body and `INSTRUMENTS.md` say the packet holds "the finder's harness output at
-the base and at the head". Without `--harness` it holds `none named` / `not run`
-/ `not run` (verified on #2864). State the condition in both places.
-Carry: R10-ORCH-REVIEW-PACKET.
-
-## Figures re-taken at this head (all matched)
-
-- `review_packet.py --self-test` → `21 checks, 0 failed`.
-- `bus.sh --self-test` (`env -u BASH_ENV`) → `91 checks, 0 failed`.
-- `tests/closure.py selftest` → `ALL 117 closure shrink pins PASSED`.
-- `tests/structure.py` → `STRUCTURE RATCHET PASSED` (every metric at its budget).
-- Byte identity, #2864 at 30c940e5b, two renders + `cmp` → identical,
-  `87` lines / `3591` bytes, `## Refusals none`, `## Gate digest: green`.
-- Verdict reads: `verdict/2865` tip 33d6c5a4 first line
-  `Fix review: merge 07bc8000cd85b894ae65905eee065f0e15c21a68`; `verdict/2864`
-  tip b3d758ec first line `Fix review: merge 30c940e5b5e009ebe95004235cbab8536ea14799`.
-- `carry_audit.py check` → `5 finding item(s): 5 routed, 0 unrouted`.
-- `figure_lint.mjs` → `FIGURES: 7 resolved, 1 not verified, 0 refused`.
-- `rules_sync.mjs --check` → ok; `policy_lint --report` → 0 errors / 50 files;
-  `policy_lint --budgets` → rc 0, cap unchanged.
-- Mutation proof re-run (body's own method, one line replaced by `pass`/`true`,
-  self-test re-run, restored): `red-unanswered` → exactly one FAIL;
-  `head-note` → exactly one FAIL; `bus.sh`'s `review_packet.py check` call →
-  `bus self-test: 91 checks, 1 failed`, the `stale packet` case. Not vacuous.
-
-## Numbers I did not re-derive (say so, per step 8)
-
-- Reviewer gather share `seats=14 calls=731 gather=361 share=49%`: the transcript
-  corpus is out of tree, so the rule cannot be re-run here; the harness's own
-  `--self-test` passes but that pins the rule, not the 49%. The harness is the
-  fixer's own instrument (new in this diff) and the body does not label it as
-  the fixer's, only as `(new)`.
-- Packet size `950` lines / `98657` bytes at #2866 eb97437e: not re-taken.
-- Structure arm `real 29.97`s: host- and PR-specific; not comparable here (the
-  #2870 render took 40.8 s wall on this host).
-- The four local `tests/entities.py`/nightly hang-control failures on Darwin:
-  not reproduced; they are not the head's CI reds and do not offset them.
-
-## Policy approval (required line)
-
-This PR changes policy: `dev/governance/roles/fix-review.md` under
-`dev/governance/`. `.github/CODEOWNERS` routes `/dev/governance/roles/` to
-`@tvofi` and `CLAUDE.md` says the owner approves any policy change before
-merging. **It needs the owner's policy approval at merge; the orchestrator must
-surface it and must not merge it on a seat's approval.** The body's `## Approval`
-says "the policy approval is the orchestrator's approving review at the head
-under that mandate"; mandate 6329234399 is cited in the tree
-(`dev/programme/triage/s6-batch26.md`) as the mandate under which the
-orchestrator opens and merges policy edits, but the code-owner rule still names
-`@tvofi`, so the owner's approving review is the one that must be on the head.
-
-## Forward-carry checked
-
-The body's `## Forward-carry` routes roster carry [11] and the gather-wiring
-control to #2717; the group's carry list in
-`dev/programme/rosters/wave-r10-groups.json` states both with their controls as
-preconditions, so step 10 holds for those two. F5 is **not** carried anywhere:
-nothing in the body or the roster says the packet path must reach a cloud or
-relayed seat. That must be fixed here or carried explicitly before merge.
+`dev/governance/roles/fix-review.md` is unchanged since round 1 and remains the
+only policy file: it adds two obligations (start from the packet; re-read live
+checks) and loosens none, paid inside the same paragraph; `policy_lint
+--budgets` rc 0, `--report` 0 errors, `rules_sync --check` ok. `/dev/governance/roles/`
+is `@tvofi`'s under CODEOWNERS, so **the owner's approving review is still owed
+at merge**, under the cited mandate; this verdict is not it and the orchestrator
+must surface it.
 
 ## Evidence
 
-`evidence/HEAD.txt` holds the head sha. Supporting files:
-`check-runs-nongreen.txt`, `gate-log.txt`, `instrument-self-tests-excerpt.txt`,
-`policy-lint-red.txt`, `selftest-wiring-head.txt`, `selftest-wiring-base.txt`,
-`cloud-dispatch-head.txt`, `cloud-dispatch-base.txt`,
-`packet-render-2870.txt`, `packet-2864-bytes.txt`,
-`cloud-packet-delivery.txt`, `mutation-red-unanswered.txt`,
-`mutation-head-note.txt`, `mutation-bus-check.txt`,
-`policy-budgets.txt`, `policy-budgets-base.txt`, `policy-report.txt`,
-`rules-sync.txt`.
+`~/hpo-seats/review-2870-r2/evidence/`: `HEAD.txt`,
+`selftest-wiring-head.txt`, `selftest-wiring-base410.txt`,
+`cloud-dispatch-head.txt`, `cloud-dispatch-base410.txt`,
+`arm-refuse-dispatch.txt`, `arm-unavailable-dispatch.txt`,
+`arm-unavailable-outside.txt`, `mutation-unavailable-arm.txt`,
+`mutation-repo-clouddispatch.txt`, `render-2870-head.txt`,
+`bus-selftest-head.txt`, `ci-predict-selftest-head.txt`.

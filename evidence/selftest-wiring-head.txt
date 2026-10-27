@@ -1,3 +1,4 @@
-  UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test
-selftest_wiring: 98 self-testing, 97 wired, 1 unwired
-head rc=1
+selftest_wiring: 99 self-testing, 99 wired, 0 unwired
+real 0.18
+user 0.08
+sys 0.04

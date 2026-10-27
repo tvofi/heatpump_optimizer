@@ -1,3 +1,0 @@
-mutant: dispatch's review_packet.py check call replaced by true
-  FAIL a packet naming another head is stale: dispatch refuses to name it and records nothing
-bus self-test: 91 checks, 1 failed
