@@ -1,0 +1,28 @@
+instance: handoff-body/r10-heat-meter ce2d38d3ffcc BODY.md through --body-check at this head:
+  ERROR   [pr-body] /tmp/rev2853-fail.md: `## Head` does not name fa18c13, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names:
+REFUSE pr-body: ERROR   [pr-body] /tmp/rev2853-fail.md: `## Head` does not name fa18c13, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the 
+carry ok: CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 94d14569e
+preflight ok
+REFUSE figures: A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+ref_privacy ok: ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 241 line(s) added since 2563e29228a9 judged, 0 refused
+real 5.72
+user 1.98
+sys 1.51
+rc=
+null: this PR's own body:
+pr-body ok: PR-BODY: 0 error(s) in ~/hpo-seats/r10s6/rev-2853/out/ev/body.md -- no budget leaf raised over 2563e2922...fa18c13d2
+carry ok: CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 94d14569e
+preflight ok
+figures ok: FIGURES: 18 resolved, 3 not verified, 0 refused
+ref_privacy ok: ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 241 line(s) added since 2563e29228a9 judged, 0 refused
+rc=
+control: this PR's body plus one figure whose instrument is not in the tree (the instance's line):
+pr-body ok: PR-BODY: 0 error(s) in /tmp/rev2853-c8.md -- no budget leaf raised over 2563e2922...fa18c13d2
+REFUSE figures: A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+rc=1
+MUTANT m8 (--body-check does not propagate the figure lint's rc), same body:
+REFUSE figures: A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+rc=0 (0 = defect passes)
+null: this PR's body unchanged:
+rc=0
+figures ok: FIGURES: 18 resolved, 3 not verified, 0 refused

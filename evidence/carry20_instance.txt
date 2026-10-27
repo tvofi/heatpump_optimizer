@@ -1,0 +1,11 @@
+interpreter: Python 3.14.7
+#2609 red instance ff83a3d7 (check-run 119826108493), merge base 47147487ba2bbe124cca1c0f3f5448bb5e26ad8b
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; re-run it and commit
+rc=1
+null: #2609's merged head 97ac438d6be4 (re-recorded register), merge base 47147487ba2bbe124cca1c0f3f5448bb5e26ad8b
+dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+rc=0
+MUTANT m20 (register comparison deleted: stale never set) at ff83a3d7:
+1
+dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+rc=0

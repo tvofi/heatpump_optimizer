@@ -1,0 +1,2 @@
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 241 line(s) added since 2563e29228a9 judged, 0 refused
+rc=0

@@ -1,0 +1,30 @@
+host: 8 cores; load at start: 72.50 81.40 63.76
+ref_privacy --check (privacy_line) run 1: 1.63s rc=0
+ref_privacy --check (privacy_line) run 2: 1.67s rc=0
+ref_privacy --check (privacy_line) run 3: 1.52s rc=0
+figure_lint --pr-body (figures_check, this body) run 1: 0.26s rc=0
+figure_lint --pr-body (figures_check, this body) run 2: 0.23s rc=0
+figure_lint --pr-body (figures_check, this body) run 3: 0.29s rc=0
+check-wave-script.mjs run 1: 0.38s rc=0
+check-wave-script.mjs run 2: 0.50s rc=0
+check-wave-script.mjs run 3: 0.48s rc=0
+6g archive+claims_reg_line (README touched) run 1: 16.03s rc=0
+6g archive+claims_reg_line (README touched) run 2: 15.41s rc=0
+6g archive+claims_reg_line (README touched) run 3: 16.29s rc=0
+--fill-red (predict_line + fill_red) run 1: 12.63s rc=0
+--fill-red (predict_line + fill_red) run 2: 14.16s rc=0
+--fill-red (predict_line + fill_red) run 3: 18.79s rc=0
+load at end: 70.69 80.45 65.49
+CPU (user+sys, load-independent proxy), /usr/bin/time -p; load 65.04 78.57 65.16
+6g run 1:
+real 15.86 user 3.93 sys 3.45 
+6g run 2:
+real 14.46 user 3.88 sys 3.48 
+--fill-red run 1:
+fill-red: the diff adds no unpinned mutation site; nothing written real 11.77 user 4.17 sys 1.35 
+--fill-red run 2:
+fill-red: the diff adds no unpinned mutation site; nothing written real 10.34 user 4.26 sys 1.22 
+privacy_line run 1:
+real 1.59 user 0.58 sys 0.48 
+privacy_line run 2:
+real 1.98 user 0.60 sys 0.50 
