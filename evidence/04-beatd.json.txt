@@ -1,6 +1,0 @@
-=== roster group R10-ORCH-BEATD ===
-groups: 208
-found: 1
-stage: not-started size: L carries: 34
---- index 21 (carry 22 ) ---
-From P97 (triage: dev/programme/triage/s6-batch21.md#P97): In the `--seat-alive` arm of tools/audit/seat/pulse.py, read standing-seat liveness from one alive entry per seat id under each role, beside the per-role file, and print 'DUPLICATE seat <role>: <id> <id>' when two ids of one role are fresh inside the stale window. Step (1b) of tools/audit/seat/sweep_template.md then stops the older id before anything else, and logs both ids. Self-test: two fresh ids of one role give DUPLICATE; the null control, one fresh id plus one stale id, gives no DUPLICATE. Mutation proof: deleting the count fails the two-fresh case. Basis: on 2026-10-25 four standing-seat restarts (tick, roster, merge, dispatch) left the predecessor running, and the doubled dispatch seat pushed duplicate reviewer-pool entries for #2765 and #2767.

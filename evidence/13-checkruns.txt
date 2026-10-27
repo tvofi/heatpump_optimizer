@@ -1,6 +1,0 @@
-head reviewed: b95d3faf8d1ebf1a03d26d39a593ad91e410b891
-
-check-runs at f924420 (body's figure): 55 total, 38 success, 17 skipped, 0 non-success
-check-runs at 35a165fc0: 0
-check-runs at b95d3fa: 43 rollup entries; 30 success, 11 skipped, 2 in progress, 0 non-success at 16:37Z
-gate / pr-contract at b95d3fa: not present at 16:37Z

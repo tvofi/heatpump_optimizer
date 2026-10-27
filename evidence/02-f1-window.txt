@@ -1,0 +1,65 @@
+F1 — THE RECORD S OWN COMMAND, RE-RUN (cwd: the orchestrator state directory)
+ledger sha256 at the snapshot: 7c87d57887f7d74dde858fe18804711b4ae494763dbe7cca2cac9185615f656b
+$ grep -n 'triage s7:' seat-ledger.md | sed -n '/08:13:15Z/,/09:38:27Z/p'
+1331:triage s7: 2026-10-27T08:13:15Z HOLD (no v7.0.5 tag)
+1332:triage s7: 2026-10-27T08:18:02Z HOLD (no v7.0.5 tag; main 6f4434608)
+1333:triage s7: 2026-10-27T08:18:16Z HOLD (no v7.0.5 tag)
+1341:triage s7: 2026-10-27T08:23:14Z HOLD (no v7.0.5 tag; main moved 6f4434608 -> 273221c71)
+1342:triage s7: 2026-10-27T08:23:16Z HOLD (no v7.0.5 tag)
+1345:triage s7: 2026-10-27T08:28:17Z HOLD (no v7.0.5 tag)
+1346:triage s7: 2026-10-27T08:28:27Z HOLD (no v7.0.5 tag; main 273221c71)
+1350:triage s7: 2026-10-27T08:33:18Z HOLD (no v7.0.5 tag)
+1351:triage s7: 2026-10-27T08:33:45Z HOLD (no v7.0.5 tag; main 273221c71)
+1353:triage s7: 2026-10-27T08:38:19Z HOLD (no v7.0.5 tag)
+1354:triage s7: 2026-10-27T08:43:20Z HOLD (no v7.0.5 tag)
+1355:triage s7: 2026-10-27T08:44:02Z HOLD (no v7.0.5 tag; main 273221c71)
+1356:triage s7: 2026-10-27T08:48:20Z HOLD (no v7.0.5 tag)
+1358:triage s7: 2026-10-27T08:49:18Z HOLD (no v7.0.5 tag; main 273221c71; blockers #2745 02a28aed / #2854 ff886d61 per merge s7 08:38Z)
+1359:triage s7: 2026-10-27T08:53:21Z HOLD (no v7.0.5 tag)
+1362:triage s7: 2026-10-27T08:54:25Z HOLD (no v7.0.5 tag; main 273221c71 -> 524c1896)
+1364:triage s7: 2026-10-27T08:58:22Z HOLD (no v7.0.5 tag)
+1365:triage s7: 2026-10-27T09:03:22Z HOLD (no v7.0.5 tag)
+1366:triage s7: 2026-10-27T09:08:23Z HOLD (no v7.0.5 tag)
+1367:triage s7: 2026-10-27T09:13:24Z HOLD (no v7.0.5 tag)
+1368:triage s7: 2026-10-27T09:15:38Z HOLD (no v7.0.5 tag; main 524c1896)
+1369:triage s7: 2026-10-27T09:18:24Z HOLD (no v7.0.5 tag)
+1371:triage s7: 2026-10-27T09:20:52Z HOLD (no v7.0.5 tag; main 524c1896; alive cadence gap 08:59->09:20Z, sleep call stalled 21 min, no action)
+1372:triage s7: 2026-10-27T09:22:53Z ESCALATED duplicate triage seat: second writer started 08:13:15Z, plain HOLD lines every ~5 min, interleaved with mine since 08:13Z; told main, asking which seat to keep; no rulings, no queue ops while held
+1373:triage s7: 2026-10-27T09:23:25Z HOLD (no v7.0.5 tag)
+1374:triage s7: 2026-10-27T09:28:14Z HOLD (no v7.0.5 tag; main 524c1896; duplicate-seat escalation outstanding)
+1375:triage s7: 2026-10-27T09:28:26Z HOLD (no v7.0.5 tag)
+1380:triage s7: 2026-10-27T09:33:26Z ACK orch RULING (a1c1b98c is the triage seat; annotated form continues; pre-stamp barrier: if a batch file I did not write exists after 09:30:39Z I emit nothing and escalate one line); HOLD held (no v7.0.5 tag)
+1381:triage s7: 2026-10-27T09:33:27Z HOLD (no v7.0.5 tag)
+1382:triage s7: 2026-10-27T09:34:28Z RECONCILED V119-V123 already ruled as P199-P203 in s6-batch35.md (merged c73d8984a 2026-10-26T22:24:12Z); carries P199/P200/P203 present in main's wave-r10-groups.json; barrier check: no batch file after 09:30:39Z; nothing emitted; brief's ruling list stale, state corrected to LASTV=123/P204
+1384:triage s7: 2026-10-27T09:38:27Z HOLD (no v7.0.5 tag)
+
+$ ... | wc -l
+      31
+$ ... | grep -c '; main '
+10
+$ ... | grep -c 'HOLD (no v7.0.5 tag)$'
+18
+
+ANCHORS
+2026-10-26T21:15Z orch s7: tvofi: merge/roster/triage seats dead (s7 ran them one-shot; no liveness). Restarted as standing loops (300 s pass, touch s7/<role>.alive): merge 41aa5c30, roster 22092dff, triage 9f4ddc2c (holds until v7.0.5 tag). sweep_mech.sh now flags '-> DEAD SEAT' at alive age >15 min; timer notifies on it.
+triage s7: 2026-10-26T20:56:28Z HOLD (no v7.0.5 tag)
+triage s7: 2026-10-27T08:12:52Z HOLD (no v7.0.5 tag; main 6f4434608; b34 review outstanding; V119-V123 pending)
+merge s7: 2026-10-27T08:19:56Z RESTART (prev instance dead since 2026-10-26T22:16Z). Re-measured: main 6f4434608, no live train (s64 ended TRAIN DONE rc=1 07:58Z, skip #2745 gate red; no pid). Owed post-merge records found: #2819 4f3c7302 (rows still **open**, roster still in-progress 04669d82) and #2869 6f4434608 (row **open**, roster not-started). #2745 live head 02a28aed still red (tests/fast census ledger.py::coverage_factor; gate derivative), fixer seat owns it. #2854 1b0899999 blocked verdict 64d33242 + CONFLICTING, merge-forward seat owns it.
+
+PLAIN-SERIES GAP (exact plain HOLD lines across the whole ledger)
+plain lines 248 first 2026-10-26T20:56:28Z last 2026-10-27T17:29:30Z
+largest gap seconds 302 2026-10-26T21:01:49Z -> 2026-10-26T21:06:51Z
+gaps over 420 s: 0
+
+NULL CONTROL (unmodified copy of the snapshot, same pipeline)
+lines=31
+ annotated=10
+ bare=18
+MUTATION (one annotation removed inside the window)
+1332c1332
+< triage s7: 2026-10-27T08:18:02Z HOLD (no v7.0.5 tag; main 6f4434608)
+---
+> triage s7: 2026-10-27T08:18:02Z HOLD (no v7.0.5 tag)
+MUTANT counts: lines=31
+ annotated=9
+ bare=19
