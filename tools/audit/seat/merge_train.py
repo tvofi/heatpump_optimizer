@@ -183,6 +183,10 @@ conclude. Queue order holds absolutely: an earlier entry still pending is
 never jumped by a later eligible one. An entry recarried up front guards its
 merge on the base it was recarried onto remaining main's ancestor -- main may
 advance only by this batch's own merges, and anything else stops the train.
+AND a car whose base the batch's own merges moved is GRADED before it lands
+(`grade_merge`): that merge makes a tree no CI has read, so policy_lint -- and
+structure.py where the gate's own closure selects it -- runs over that tree,
+and a red is held and recarried, never merged (#2586; R10-TRAIN-OVERLAP-GRADE).
 Without the flag the serial path is byte-for-byte today's: recarry one, wait,
 merge, next.
 
@@ -546,6 +550,38 @@ def _fastpath():
     return mod
 
 
+def grade_reason(o: str) -> str:
+    """The one line of a whole-tree check's output that names its red: the
+    first FAIL/ERROR line, else a TOTAL/RATCHET/FAILED summary, else the last
+    line. Both scripts print their failure, then pages of remedy prose after
+    it, so the LAST line names the remedy and never the red."""
+    lines = [ln.strip() for ln in o.splitlines() if ln.strip()]
+    for ln in lines:
+        if re.match(r"(?:FAIL|ERROR)\b", ln):
+            return ln[-160:]
+    for ln in reversed(lines):
+        if ln.startswith("TOTAL:") or "FAILED" in ln or "RATCHET" in ln:
+            return ln[-160:]
+    return lines[-1][-160:] if lines else "no output"
+
+
+# THE OVERLAP GRADE (R10-TRAIN-OVERLAP-GRADE). Under --overlap a serial car is
+# re-carried onto the batch's start base and merged later, so the batch's OWN
+# merges can move the base under it: the tree that lands is a merge no CI has
+# read, and the ruleset is non-strict (#2586; the third instance after
+# 6077bf70e and 143e2d0ac). Before such a merge the train grades that tree with
+# the gate's own whole-tree checks, in the tree the checks read: policy_lint
+# always -- it reads the whole corpus, so no car's own diff can be trusted to
+# have graded it -- and structure.py where tests/closure.py's table, which
+# selects the gate's run, reaches what the merge changes.
+GRADE_POLICY = (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")
+GRADE_STRUCTURE = "tests/structure.py"
+GRADE_CLOSURES = "tests/closures.json"
+# CI's own order (`test -f .claude/workflows/... || test -f tools/policy/...`),
+# so the grade runs the linter the gate would run, at the merge tree's copy.
+POLICY_LINT_REL = next((p for p in GRADE_POLICY if (ROOT / p).is_file()), GRADE_POLICY[-1])
+
+
 class Stop(Exception):
     def __init__(self, step: str, why: str, cls: "str | None" = None) -> None:
         super().__init__(f"{step}: {why}")
@@ -882,6 +918,9 @@ class Train:
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
         self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
         self.built_heads: dict = {}  # {pr: head} of the entries build_queue admitted
+        # (merge tree, does the gate's selection reach the ratchet) -> red checks
+        # ([] green): the overlap grade, keyed on exactly its inputs.
+        self.graded: dict[tuple[str, bool], list[str]] = {}
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -1683,7 +1722,10 @@ class Train:
         entry landed onto a main descending from `rb`, so an `rb` that is no
         longer main's ancestor is a change nobody graded. The file list is the
         three-dot diff either way: a head recarried up front meets current
-        main exactly at `rb`, its merge-base."""
+        main exactly at `rb`, its merge-base. And an `rb` the world moved past
+        still admits the merge -- the batch's own merges keep it an ancestor --
+        so the tree ABOUT TO LAND is graded before the approvals and again at
+        the merge itself (`grade_merge`); a red is held and recarried."""
         # R9-ADMIT-REQ: the head wait judges the ruleset's required contexts
         # only, as admission and settle/proof do -- a non-required lane (e.g.
         # the 180-min composed-proof) must never hold a landing whose
@@ -1716,14 +1758,22 @@ class Train:
                        "bar refuses an unrowed merge. Remedy: add the row on-branch "
                        "(moves the head: fresh verdict owed) or a separate row PR "
                        "(2158-pattern)", cls=ROW_MISSING)
+        # THE OVERLAP GRADE, before the approvals: a car whose base the batch's
+        # own merges moved is about to land on a tree no CI has read, so the
+        # tree is graded first and a red posts no approval at all.
+        self.grade_merge(item, h, rb, files)
         def guard() -> None:
             if rb is not None:
                 self.run(["git", "fetch", "-q", "origin", "main"])
                 if not self.ok("git", "merge-base", "--is-ancestor", rb, "origin/main"):
                     raise MainMoved("merge", "origin/main moved outside this batch before the merge; run the train again")
+                # ... and the tree about to land, re-read at the merge itself:
+                # a cached grade costs one merge-tree, a moved base is graded.
+                self.grade_merge(item, h, rb, files)
                 return
             if not self.contains_main(h):
                 raise MainMoved("merge", "origin/main moved before the merge; run the train again")
+            self.grade_merge(item, h, None, files)
         try:
             self.land(item["pr"], h, item, files, guard)
         except MainMoved:
@@ -2173,6 +2223,155 @@ class Train:
                   if {unit(f) for f in a["files"]} & set(t.get(s, ()))}
         self.log(f"proof {sha[:8]} failing scripts {sorted(scripts)}, owned by {sorted(owners)}")
         return owners.pop() if len(owners) == 1 else None
+
+    def merge_tree(self, base: str, head: str) -> "tuple[str, list[str]] | None":
+        """The tree GitHub's own merge of <base> and <head> makes -- git's text
+        merge in place of every driver this clone configures (`text_merge`),
+        which is the merge `build` proves a batch with and never the ledger's
+        -- and the paths it conflicts on ([] for a clean merge); None when git
+        could not answer."""
+        drivers = text_merge(self.run)
+        if drivers is None:
+            return None
+        code, o = self.run(["git", *drivers, "merge-tree", "--write-tree", "--name-only", "--no-messages",
+                            base, head])
+        lines = [x.strip() for x in o.splitlines() if x.strip()]
+        if not lines or not is_sha(lines[0]) or code not in (0, 1) or (code == 1) != (len(lines) > 1):
+            return None
+        return lines[0], lines[1:]
+
+    def structure_reaches(self, tree: str, touched: "list[str]") -> bool:
+        """Whether the gate's own selection would run structure.py for what
+        this merge changes. `tests/closure.py select` reads the table at the
+        tree it grades, so the grade reads the same table AT THE MERGE TREE,
+        over every file that differs from the tree the head's CI read -- the
+        car's own files plus whatever the base gained since. An unreadable
+        table stops: a selection graded on a guess is not a grade."""
+        try:
+            closures = json.loads(self.git("show", f"{tree}:{GRADE_CLOSURES}"))["closures"]
+            reached = set(closures[GRADE_STRUCTURE])
+        except (Stop, ValueError, KeyError, TypeError) as e:
+            raise Stop("grade", f"{GRADE_CLOSURES} at merge tree {tree[:8]} could not be read "
+                       f"({str(e).splitlines()[0][:120] if str(e) else type(e).__name__}): structure.py's "
+                       "selection is unknown, and the merge tree is not graded on a guess") from None
+        unit = _fastpath().closure.unit_of
+        return bool({unit(f) for f in touched} & reached)
+
+    def grade_tree(self, tree: str, base: str, head: str, touched: "list[str]",
+                   structure: "bool | None" = None) -> list[str]:
+        """Run the gate's whole-tree checks over <tree>, the tree GitHub would
+        make of <base> and <head>: the red checks, [] green. The tree is
+        materialised as a throwaway worktree at a commit of that tree -- both
+        checks read FILES, and each derives its root from its own path, so the
+        worktree is the only thing either can read -- and removed before this
+        returns, a killed train's own leftover included. `structure` is whether
+        the gate's selection reaches the ratchet; None asks (`structure_reaches`)
+        and a caller that already asked passes its answer, because that answer
+        is the other half of the grade's cache key."""
+        code, said = self.run(["git", "commit-tree", tree, "-p", base, "-p", head, "-m",
+                               f"merge-train grade: {head[:12]} onto {base[:12]}"])
+        commit = said.strip()
+        if code or not is_sha(commit):
+            raise Stop("grade", f"git commit-tree of merge tree {tree[:8]} refused (rc={code}): {commit[-160:]}")
+        wt = self.state / "grade-wt"
+        if wt.exists():  # a train killed mid-grade leaves one, and it is ours to replace
+            self.run(["git", "worktree", "remove", "--force", str(wt)])
+            self.run(["git", "worktree", "prune"])
+        code, said = self.run(["git", "worktree", "add", "-q", "--detach", str(wt), commit])
+        if code:
+            raise Stop("grade", f"the grade worktree {wt} could not be made (rc={code}): {said.strip()[-160:]}")
+        red: list[str] = []
+        try:
+            if structure is None:
+                structure = self.structure_reaches(tree, touched)
+            checks = [("policy_lint", ["node", POLICY_LINT_REL])]
+            if structure:
+                checks.append(("structure.py", ["python3", GRADE_STRUCTURE]))
+            for name, argv in checks:
+                started = self.clock()
+                code, o = self.run(argv, cwd=wt)
+                took = self.clock() - started
+                tail = grade_reason(o)
+                self.log(f"grade {name} {tree[:8]}: {'RED' if code else 'ok'} ({took:.0f}s)"
+                         + (f" {tail}" if code else ""))
+                if code:
+                    red.append(f"{name} ({tail})")
+        finally:
+            code, said = self.run(["git", "worktree", "remove", "--force", str(wt)])
+            if code:
+                self.log(f"grade: NOT removed {wt} (rc={code}: {said.strip()[-160:]}); the next run's "
+                         "worktree_gc.sh prunes it")
+        return red
+
+    def grade_merge(self, item: dict, h: str, rb: "str | None", files: list[str]) -> None:
+        """Grade the tree <h> would land on, before a merge (R10-TRAIN-OVERLAP-GRADE).
+
+        Under --overlap a serial car is re-carried onto `rb` at batch start and
+        merged later, so the batch's OWN merges move the base under it: the
+        tree that lands is a merge no CI has read, and the ruleset is
+        non-strict -- #2586, the third instance after 6077bf70e and 143e2d0ac.
+        Nothing is graded while the base is still `rb`: the head contains it,
+        the merge is a fast-forward, and tree(h) is exactly what h's CI read.
+
+        A red is HELD: the first time it is `MainMoved`, so `serial` re-carries
+        onto the current base and CI judges the new head (the recarry-and-wait
+        path). A clean recarry of the same car reproduces the same merge tree,
+        so the second encounter is a plain stop -- a recarry must not launder
+        a graded red back into a merge. The car stays `grade_held` until it
+        merges, so that second encounter is reachable.
+
+        `rb` None is the post-recarry path, graded only for a car this already
+        held; the plain serial train grades nothing, because its guard already
+        requires the head to contain main.
+        """
+        held = item.get("grade_held")
+        if rb is None and held is None:
+            return
+        # The tree about to land is read from origin/main AS IT IS NOW: the
+        # batch's own last merge is not in the local ref until it is fetched,
+        # and a grade of a stale base grades a tree nobody is about to make.
+        self.run(["git", "fetch", "-q", "origin", self.base])
+        tip = self.out("git", "rev-parse", f"origin/{self.base}")
+        if not is_sha(tip):
+            raise Stop("grade", f"origin/{self.base} could not be read: {tip[:80]}")
+        if tip == rb:
+            return  # the batch moved nothing: tree(h) is the tree h's CI read
+        got = self.merge_tree(tip, h)
+        if got is None:
+            raise Stop("grade", f"git could not build the merge tree of origin/{self.base} {tip[:8]} "
+                       f"and {h[:8]}; no merge lands on a tree the train could not read")
+        tree, conflicts = got
+        if conflicts:
+            why = (f"the batch's own merges moved origin/{self.base} past {rb[:8]} and #{item['pr']} no "
+                   f"longer merges cleanly ({', '.join(conflicts[:6])})" if rb is not None else
+                   f"#{item['pr']} still conflicts on the recarried base ({', '.join(conflicts[:6])})")
+            raise MainMoved("grade", why + "; recarry and wait CI")
+        touched = files
+        if rb is not None:
+            # --no-renames lists both sides of a rename; a superset only widens the gate's selection, never drops a check.
+            touched = files + self.git("diff", "--no-renames", "--name-only", rb, tip).split()
+            self.log(f"#{item['pr']} grade: origin/{self.base} moved {rb[:8]} -> {tip[:8]} by the batch's "
+                     f"own merges since the recarry; grading the merge tree {tree[:8]}")
+        # The grade's ANSWER is a function of two things and nothing else: the
+        # tree (both checks read it) and whether the gate's selection reaches
+        # the ratchet for the merge's files. Those two are the cache key, so a
+        # second encounter with one tree costs no checks -- and a car that meets
+        # a tree another car was graded on with a selection that DID reach the
+        # ratchet is graded, never handed the earlier car's narrower green.
+        structure = self.structure_reaches(tree, touched)
+        red = self.graded.get((tree, structure))
+        if red is None:
+            red = self.grade_tree(tree, tip, h, touched, structure)
+            self.graded[(tree, structure)] = red
+        if not red:
+            self.log(f"#{item['pr']} grade: merge tree {tree[:8]} green")
+            return
+        why = (f"the merge tree {tree[:8]} (origin/{self.base} {tip[:8]} with {h[:8]}) is red at "
+               f"{', '.join(red)}")
+        if held == tree:
+            raise Stop("grade", why + "; the recarry produced the same tree, so the car is held, not recarried again")
+        item["grade_held"] = tree
+        raise MainMoved("grade", why + "; recarry and wait CI")
 
     def settle(self, tag: str, base: str, kept: list[dict], req: list[str]) -> tuple[list[dict], list[str], list[dict]]:
         """The entries whose proof is green, their proofs, and the entries dropped
@@ -4419,7 +4618,11 @@ def _batch_self_test(check) -> None:
                 "led.json": "1\n2\n3\n4\n5\n6\n", ".gitattributes": "led.json merge=led\n",
                 ".github/workflows/t.yml": "      run: |\n        git checkout \"$PINNED\" -- \\\n          'tools/grader.sh'\n",
                 "tools/grader.sh": "g\n",
-                "tests/closures.json": json.dumps({"closures": {"tests/ratchet.py": ["tests/ratchet.py", "units/b"]}})}
+                # tests/structure.py's entry: the overlap-grade arms drive the
+                # closure rule the gate itself selects the ratchet by.
+                "tests/closures.json": json.dumps({"closures": {
+                    "tests/ratchet.py": ["tests/ratchet.py", "units/b"],
+                    "tests/structure.py": ["tests/structure.py"]}})}
         for f, t in tree.items():
             (R / f).parent.mkdir(parents=True, exist_ok=True)
             (R / f).write_text(t)
@@ -4499,6 +4702,21 @@ def _batch_self_test(check) -> None:
                     return 0, ""
                 return 0, ("e" * 40 if "headRefOid" in a else
                            f"MERGED {w['bot_merged']}" if w.get("bot_merged") else "OPEN None")
+            # THE OVERLAP GRADE's two checks. Each reads the tree it is GIVEN:
+            # a worktree carrying `red.txt` is red, so an arm that grades
+            # main's tree instead of the merge tree reads GREEN and fails.
+            # Exact argv: the train's own `policy_lint --corpus-filter` read is
+            # NOT the grade and must keep answering with the corpus filter.
+            if (len(argv) == 2 and argv[0] == "node" and argv[1].endswith("policy_lint.mjs")):
+                red = (Path(cwd) / "red.txt").exists()
+                w.setdefault("grades", []).append(("policy_lint", red))
+                return ((1, "TOTAL: 1 error(s) in the merged policy corpus") if red
+                        else (0, "TOTAL: 0 error(s) across 50 policy file(s)"))
+            if (len(argv) == 2 and argv[0].endswith("python3") and argv[1] == "tests/structure.py"):
+                red = (Path(cwd) / "red.txt").exists()
+                w.setdefault("grades", []).append(("structure.py", red))
+                return ((1, "STRUCTURE RATCHET FAILED: methods_over_200 10 <= 9") if red
+                        else (0, "STRUCTURE RATCHET PASSED"))
             if argv[0] == "git" and "--delete" in argv:  # the proof branches live only in w["pushed"]
                 w["deleted"] = argv[argv.index("--delete") + 1:]
                 return w.get("delete_rc", (0, ""))
@@ -4979,6 +5197,59 @@ def _batch_self_test(check) -> None:
           "none is possible); it recarries at its turn, after the earlier merges, and lands",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and w.get("recarries") == [2]
           and any(ln.startswith("OVERLAP: recarrying #1 up front") for ln in w["lines"]))
+
+    # THE OVERLAP GRADE (R10-TRAIN-OVERLAP-GRADE): the third-instance barrier
+    # (6077bf70e, 143e2d0ac, a2576fcb2 -- #2586 landed on a tree no CI had
+    # read). A serial car is re-carried onto `rb` at batch start and merges
+    # later; the batch's OWN merges move the base in between, and the ruleset
+    # is non-strict, so `at_head`'s guard lets the car land on a tree its CI
+    # never saw. The train now grades that tree before it lands. Both arms are
+    # the required control: the red car is held AND recarried, the unmodified
+    # green one merges.
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "w\n"},
+            3: {"tests/golden/claimed_drift.txt": "c\n", "red.txt": "x\n"}},
+           base="main", setup=lambda w: w.update(remerge=True), overlap=True, main_moved_tries=1)
+    check("THE OVERLAP GRADE, arm 1: a serial car whose base the batch's own merges moved is graded "
+          "before it lands, and a red one is HELD -- never merged -- and re-carried",
+          list(w["merged"]) == [1, 2] and w["rc"] == 1 and w.get("recarries") == [3]
+          and any(ln.startswith("TRAIN STOPPED grade") for ln in w["lines"])
+          and any("the recarry produced the same tree, so the car is held" in ln for ln in w["lines"]))
+    check("THE OVERLAP GRADE: the red arm read the MERGE tree -- #3's own file was in the graded "
+          "worktree, and the grade ran once per moved base (the recarry's identical tree is cached, "
+          "not re-run)",
+          [("policy_lint", True)] == [g for g in w.get("grades", []) if g[1]]
+          and sum(1 for g in w.get("grades", []) if g[0] == "policy_lint") == 2)
+    check("THE OVERLAP GRADE leaves no worktree behind: the graded tree is a throwaway, so the next "
+          "run's pre-flight finds nothing holding a branch",
+          not (w["state"] / "grade-wt").exists())
+    w = go({1: {"led.json": "1\n2\nX\n4\n5\n6\n"},
+            2: {".github/workflows/t.yml": "w\n", "led.json": "1\n2\nY\n4\n5\n6\n"}},
+           base="main", setup=lambda w: w.update(remerge=True), overlap=True, main_moved_tries=1)
+    check("THE OVERLAP GRADE builds GitHub's merge with git's TEXT merge, never the clone's ledger "
+          "driver: a car the batch's own merges put in conflict on a driven file is reported as a "
+          "conflict and re-carried, not silently resolved into a tree the grade calls green",
+          any("no longer merges cleanly" in ln for ln in w["lines"])
+          and any(ln.startswith("#2 [MAIN-MOVED] grade") for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "w\n"}},
+           base="main", setup=lambda w: w.update(remerge=True), overlap=True)
+    check("THE OVERLAP GRADE, arm 2 (the unmodified green car): a green merge tree still merges, and "
+          "the car the batch moved the base FOR is graded exactly once",
+          w["rc"] == 0 and list(w["merged"]) == [1, 2] and w.get("grades") == [("policy_lint", False)])
+    w = go({1: {"a.txt": "A\n"}}, base="main", overlap=True)
+    check("THE OVERLAP GRADE's null control: the first car's base never moved, so nothing is graded",
+          w["rc"] == 0 and list(w["merged"]) == [1] and not w.get("grades"))
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "w\n", "tests/structure.py": "#\n"}},
+           base="main", setup=lambda w: w.update(remerge=True), overlap=True)
+    check("THE OVERLAP GRADE runs structure.py where the gate's own closure selects it for what the "
+          "merge changes, and only then (the workflow-only car above got policy_lint alone)",
+          w["rc"] == 0 and list(w["merged"]) == [1, 2]
+          and [g[0] for g in w.get("grades", [])] == ["policy_lint", "structure.py"])
+    w = go({1: {".github/workflows/t.yml": "w\n"}}, base="main", overlap=True,
+           setup=lambda w: (w["red"].add(g(w["R"], "rev-parse", "main")[1]), w.update(remerge=True)))
+    check("THE REPAIR CAR still lands: --overlap admitting ONE car onto a red main merges it, as #2595's "
+          "repair car did -- a one-car batch cannot move a base, so the grade never fires on it",
+          w["rc"] == 0 and list(w["merged"]) == [1] and not w.get("grades")
+          and any(ln.startswith("OVERLAP: main at") and "does not wait" in ln for ln in w["lines"]))
 
     # THE WIRE, not the stubbed runs: wait_ci itself is counted. The arms above
     # exercise the real wait_ci against stubbed gh output, so a main_green that
