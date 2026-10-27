@@ -1,0 +1,42 @@
+Reviewer: PR #2874 (R10-PLAN-PRIO), round 1
+Reviewed head: 012b795d930ba31e164c1b9a6a6021221007e84d
+Authored code head: b13dc43bd994d685a5dd5ff40b08f53af877c6ba
+Merge base: 4f3c7302046eccd1f869724a6de2cbf6f8183418
+origin/main at review: 273221c71347fce38f6361d46e80bde3d8033d43
+Verdict: merge
+
+Worktrees:
+  reviewer: /Users/timmalmstrom/hpo_review_2874/wt   (detached at the reviewed head)
+  base:     /Users/timmalmstrom/hpo_review_2874/base (detached at the merge base)
+  mutant:   /Users/timmalmstrom/hpo_review_2874/mut  (isolated, for the mutating harness)
+  harnesses written by this reviewer: /Users/timmalmstrom/hpo_review_2874/harness/
+
+EVIDENCE FILES IN THIS DIRECTORY
+  reviewer-harness.txt     my own fixtures, base vs head (RESULT total=18 failed=5)
+  mutation-proof.txt       my own ast-scoped deletion proof of the body's 7 rows (RESULT red=0)
+  plan-page-mutants.txt    the fixer's external harness re-run (RESULT survived=0, 20 mutants)
+  head-selftest.txt        replan --self-test at head: 56 ok, 0 FAIL, 13 mutants rc=1
+  pr-body.md               the body as read from the API at this head
+
+MEASUREMENTS RE-TAKEN (all mine)
+  replan --self-test                      56 ok, 0 failed, 13 mutants all rc=1, null control rc=0
+  reviewer harness, head                  9/9 ok
+  reviewer harness, base                  4 of 9 red: production-vs-height, t==0 admission,
+                                          savings order, XS crash+message  (the before/after)
+  mutation proof (my own, 7 rows)         RESULT red=0; every named check on its own assertion, crash=False
+  external mutant harness                 RESULT survived=0 (19 mutants + M0 null control)
+  plan_page --self-test                   51 checks, 0 failed
+  plan_table --self-test                  25 checks, 0 failed
+  structure ratchet                       PASSED, no metric moved
+  closure scope (re-derived)              MODE: SCOPED -- 0 script(s) run, 33 scoped out (scope.run empty)
+  live roster: base                       KeyError: 'XS' at replan.py:325, rc 1
+  live roster: head                       PlanError refusal, rc 2, no plan written
+  build_plan cost, base vs head           56.45 ms vs 55.72 ms median (interleaved, 7x20 runs, 208 groups)
+  plan JSON determinism                   1 hash over 10 hash seeds (with savings populated)
+  refusal message determinism             3 distinct group names over 10 runs
+  check-runs at head                      55 runs: 38 success, 17 skipped, 0 red
+  merge-tree vs origin/main               exit 0, no conflicts, no MERGE-CLAIM refusal
+  carry_audit on the body                 1 finding item, 1 routed, 0 unrouted
+  env_drift --claims-only                 claims hygiene ok at the merge base
+  check_plan on the live roster    base 0 violations; head 0 violations; head tier histogram
+                                   over 70 open groups = {0: 5, 1: 23, 2: 42}

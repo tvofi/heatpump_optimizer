@@ -1,0 +1,17 @@
+ok   --check passes a fresh plan (null control)
+  null control: unmutated copy rc=0
+ok   the unmutated copy's self-test exits 0 (null control)
+  mutation earliest-attempt: 'if prev is None or started < prev["started"]:' -> rc=1
+  mutation coordinator-cap: 'if coord[n] and n not in inherited and cc >= coord_cap:' -> rc=1
+  mutation tier-critical-path: 'if n in crit:' -> rc=1
+  mutation tier-production: 'return TIER_PRODUCTION if lane[n] in PRODUCTION else TIER_OTHER' -> rc=1
+  mutation tier-savings: 'sav = -savings[n] if n in savings else float("inf")' -> rc=1
+  mutation height-tiebreak: '(t, sav, -height[n], -dur_min[n], n)' -> rc=1
+  mutation live-same-key: 'key=priority' -> rc=1
+  mutation savings-validated: 'if isinstance(s, bool) or not isinstance(s, (int, float)):' -> rc=1
+  mutation size-refusal: 'if size not in size_hours:' -> rc=1
+  mutation stamp-cadence: 'if len(carry) >= every:' -> rc=1
+  mutation ci-formula: 'ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)' -> rc=1
+  mutation freshness: 'if have != want:' -> rc=1
+  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
+self-test: 0 failed

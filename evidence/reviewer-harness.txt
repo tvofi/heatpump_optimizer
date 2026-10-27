@@ -1,0 +1,24 @@
+ok   [base] critical path is CHAIN-A -> CHAIN-B
+FAIL [base] a 2h production group starts before an 8h non-production one: {'CHAIN-A': '2026-01-05T00:00:00Z', 'CHAIN-B': '2026-01-05T14:00:00Z', 'SHORT-PROD': '2026-01-05T20:00:00Z', 'TALL-OTHER': '2026-01-05T06:00:00Z'}
+ok   [base] the critical chain is dispatched before either
+FAIL [base] the short live production group is the one admitted at t==0: {'LIVE-PROD': False, 'LIVE-TALL': True}
+FAIL [base] tier 2 orders by savings, absent savings last: {'HI-SAV': '2026-01-05T18:00:00Z', 'LO-SAV': '2026-01-05T08:00:00Z', 'NO-SAV': '2026-01-05T14:00:00Z'}
+FAIL [base] an unmeasured XS size does not crash as a bare KeyError: KeyError: 'XS'
+FAIL [base] the refusal names the group, the size and the roster: KeyError: 'XS'
+ok   [base] a roster of only measured sizes plans
+ok   [base] null control: two identical runs are byte-identical
+ok   [head] critical path is CHAIN-A -> CHAIN-B
+ok   [head] a 2h production group starts before an 8h non-production one
+ok   [head] the critical chain is dispatched before either
+ok   [head] the short live production group is the one admitted at t==0
+ok   [head] tier 2 orders by savings, absent savings last
+ok   [head] an unmeasured XS size does not crash as a bare KeyError
+ok   [head] the refusal names the group, the size and the roster
+ok   [head] a roster of only measured sizes plans
+ok   [head] null control: two identical runs are byte-identical
+RESULT total=18 failed=5
+  RED [base] a 2h production group starts before an 8h non-production one
+  RED [base] the short live production group is the one admitted at t==0
+  RED [base] tier 2 orders by savings, absent savings last
+  RED [base] an unmeasured XS size does not crash as a bare KeyError
+  RED [base] the refusal names the group, the size and the roster

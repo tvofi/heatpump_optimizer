@@ -1,0 +1,10 @@
+null control (unmodified copy): rc=0
+ok   critical-path-tier: rc=1 assertion=True crash=False :: the critical path is dispatched before the shorter work
+ok   production-tier: rc=1 assertion=True crash=False :: a short production group outranks a taller non-production one
+ok   production-tier: rc=1 assertion=True crash=False :: the t==0 live admission uses the same priority key
+ok   savings: rc=1 assertion=True crash=False :: tier 2 ranks by savings, and absent savings sorts last
+ok   height-tiebreak: rc=1 assertion=True crash=False :: height breaks ties within a tier, ahead of the name
+ok   live-admission-key: rc=1 assertion=True crash=False :: the t==0 live admission uses the same priority key
+ok   savings-validated: rc=1 assertion=True crash=False :: a non-numeric savings is refused
+ok   size-refusal: rc=1 assertion=True crash=False :: an unmeasured size is refused, naming roster, group and size
+RESULT red=0
