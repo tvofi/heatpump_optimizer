@@ -1,0 +1,25 @@
+# (a) this box, with its ambient global git identity (what the fixer measured)
+$ python3 -I tools/audit/seat/plan_audit.py --self-test
+  ok   the null control: a later merge of one module alone lowers the rate
+plan_audit self-test: 25 checks, 0 failed
+
+# (b) the same command with the ambient git identity removed (still macOS, same tree)
+$ env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME=/tmp/emptyhome GIT_CONFIG_GLOBAL=/dev/null \
+    GIT_CONFIG_SYSTEM=/dev/null python3 -I tools/audit/seat/plan_audit.py --self-test
+Traceback (most recent call last):
+  File "/private/tmp/rev-2869/tools/audit/seat/plan_audit.py", line 660, in <module>
+    sys.exit(main(sys.argv[1:]))
+  File "/private/tmp/rev-2869/tools/audit/seat/plan_audit.py", line 606, in main
+    return self_test()
+  File "/private/tmp/rev-2869/tools/audit/seat/plan_audit.py", line 553, in self_test
+    git("add", "-A", cwd=repo); git("commit", "-qm", "a", cwd=repo)
+  File "/private/tmp/rev-2869/tools/audit/seat/plan_audit.py", line 77, in git
+    return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True,
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 528, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', '-C', '/tmp/plan-audit-couple-rw_afzdi', 'commit', '-qm', 'a']' returned non-zero exit status 128.
+
+# CI: run 40441516775, job 121982854726 = governance / instrument-self-tests
+# printed the same traceback on Linux:
+#   subprocess.CalledProcessError: Command [git, -C, /tmp/plan-audit-couple-oto5h4fb, commit, -qm, a]
+#   returned non-zero exit status 128.

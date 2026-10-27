@@ -1,0 +1,7 @@
+$ node tools/policy/brief_lint.mjs; echo rc=$?
+rc=0
+# (summary lines)
+TOTAL: 0 error(s) across 48 file(s)
+FIXTURE ok: 14 error(s) pin the 931dffe acceptance (9 required)
+FIXTURE ok: 9 error(s) pin the shape-defects acceptance (9 required)
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
