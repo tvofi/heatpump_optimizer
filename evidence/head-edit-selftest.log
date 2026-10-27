@@ -1,0 +1,216 @@
+roster_edit: REFUSED: R9-B already wires #1946 in issues
+roster_edit: REFUSED: R9-B does not hold #1946 in issues (holds: [])
+roster_edit: REFUSED: R9-A does not hold #10 in fixes (holds: [])
+roster_edit: REFUSED: issue must be an integer: 'abc'
+roster_edit: REFUSED: no roster group 'R9-NOPE' (known: 2 groups)
+roster_edit: REFUSED: R9-B already wires #5 in fixes
+usage: roster_edit.py [-h] [--at-sha AT_SHA]
+                      [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+                      [--value VALUE_OPT] [--match MATCH]
+                      [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+                      [--branch BRANCH] [--roster-path ROSTER_PATH]
+                      --worktree WORKTREE [--lint-cwd LINT_CWD] [--push]
+                      [--message MESSAGE]
+                      {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+                      group [value]
+roster_edit.py: error: wire-issue --field is one of issues, fixes
+usage: roster_edit.py [-h] [--at-sha AT_SHA]
+                      [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+                      [--value VALUE_OPT] [--match MATCH]
+                      [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+                      [--branch BRANCH] [--roster-path ROSTER_PATH]
+                      --worktree WORKTREE [--lint-cwd LINT_CWD] [--push]
+                      [--message MESSAGE]
+                      {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+                      group [value]
+roster_edit.py: error: unwire-issue --field is one of issues, fixes
+roster_edit: REFUSED: append-group: R9-C already in the roster
+roster_edit: REFUSED: R9-F does not hold #7 in fixes (holds: [8])
+roster_edit: REFUSED: append-group: R9-D after names no group: ['R9-NOPE']
+roster_edit: REFUSED: R9-A already carries that entry
+roster_edit: REFUSED: no roster group 'R9-ZZ' (known: 5 groups)
+roster_edit: REFUSED: --field commit needs a sha: 'nothex'
+roster_edit: REFUSED: resume.stage is a non-null field; an empty value is refused
+roster_edit: REFUSED: resume.branch is a non-null field; an empty value is refused
+roster_edit: REFUSED: no roster group 'R9-ZZ' (known: 5 groups)
+usage: roster_edit.py [-h] [--at-sha AT_SHA]
+                      [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+                      [--value VALUE_OPT] [--match MATCH]
+                      [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+                      [--branch BRANCH] [--roster-path ROSTER_PATH]
+                      --worktree WORKTREE [--lint-cwd LINT_CWD] [--push]
+                      [--message MESSAGE]
+                      {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+                      group [value]
+roster_edit.py: error: argument --field: invalid choice: 'log' (choose from 'stage', 'commit', 'branch', 'last_step', 'next_step', 'note', 'issues', 'fixes')
+roster_edit: LINT GATE REFUSED the push
+TOTAL: 1 error(s) across 1 file(s)
+the commit is local at a07f7efa8dae in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/wt-lint (detached); nothing pushed
+roster_edit: REFUSED: host-path in the ref name would publish this host (#2310); nothing written
+roster_edit: LINT GATE REFUSED the push
+--lint-cwd /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/stale is at d1d048ee78fa, not origin/main (f69d2a0a4ad7): the stale-worktree trap; lint from a fresh main checkout
+the commit is local at ee9f1a191ee6 in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/wt-stale (detached); nothing pushed
+roster_edit: REFUSED: --roster-path nope.json is not a file at /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/wt5
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/wt6; pass --roster-path or --roster-ref
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/hpo-fr8-selftest-g1t8i7r2/drv3; pass --roster-path or --roster-ref
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 48bf082d46b2e54c5ed4dccf953a4399b9b5bb90
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 2d219f15380f5be0414f6319212869af6a765132
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at ca3e9f8a0c72a34b916bbd275f44f5a7750c8f56
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at fcefc45d5eb4401623aa63fa2c7298d504393701
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at a0dbd59d28462e169be0ca72cdcf252c5f97e0c9
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 933959413bd1fd4187afad82c336b3aae2421545
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at f32d4d5707488ef616c50bcbd735a4b82d64f674
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at cf96ff4a2c96361329f5d3f5e838dc69d1c94d22
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 42d50f4c30fcd16e68efb5f5071df2e2cb3ce1b9
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 8020bb36eeb9f25bffa408961b504654538f23bc
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at b1058b564cfc47ffe00571048dce6181f834503c
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 5dc40e38313c9da9683a5f29c8b74cd696f46085
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at c11a7ca010599814edc3a36ce39cbaea8114c986
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at e303bc312bec8d681c1427980cdc3b79206879d9
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at b636f2c4a51b39f989fa621148b49bddf9ae0fe1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 4a32e2aeb8595ff879be7833811d6bd2ed262342
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at b7131434529f2eec2b6a819b7c086af53761136c
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at c9daea826d3030cc3f5bea095dd3c6132ce8a0e4
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 29c6bcc87088a3b96429e53208ce6df3f5f3a2e3
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at e896c42c706cebdf928cc500a0e1fe11e1dbeb52
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 72161932d5462a7af895cded48efd970b6696106
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at a64fa33d0675c600a0d2662032754e2a2780dc88
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 5e69b63d7fa8a93baf8fe521905c4749397b6e7e
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at ca6ea0b1c625ce6ae53a0baac0d5f4ce2e0b3aca
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 3a02209f9e83dc5d488d18b7cd88f971333b7bb9
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at f47f5bb740c47438d322d6247e18178e7d05feee
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at a9d4264e160e112817b4f1fb6eb3b64bce655423
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+no change: set-after R9-B wrote the roster's own bytes (byte-identical); nothing to commit or push
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 48de28e69e73f04164204a86a9909500299cd6d6
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at ece846feda691b79025de4b3b3b1820ec32f83ae
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 9ad25e10a1bf452b362e25bcce7c23ca505b77f7
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 9d49dcb0583cbee0705330582d02003eecb231fe
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 9c6ce132ba6345647bc53f48dff51ef872cceb42
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 5fb004869ef4c378b1101e87b1ebd561f8f118c0
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at 834f5cbdfbe2e7cb404042769fc7560d2838d482
+roster: dev/programme/rosters/wave-r9-groups.json on edit-byte
+no change: set-resume R9-A wrote the roster's own bytes (byte-identical); nothing to commit or push
+roster: dev/programme/rosters/wave-r9-groups.json on edit-byte
+no change: set-after R9-A wrote the roster's own bytes (byte-identical); nothing to commit or push
+roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+roster: dev/programme/rosters/wave-r9-groups.json on edit-2
+roster: dev/programme/rosters/wave-r9-groups.json on edit-3
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-3 at 4ea7d965bcca81c24d95f1d7ef9ccd8d9c20c922
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r10-roster at 8c6c0cc8831cd14f594468c21f568dfa21053376
+roster: dev/programme/rosters/wave-r9-groups.json on edit-r9
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-r9 at 293701ec05f11b84ca7937ebad00d7170657ffcc
+roster_edit self-test: 124 checks, 0 failed

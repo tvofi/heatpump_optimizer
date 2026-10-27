@@ -1,0 +1,117 @@
+# #2880 fix review — measurements at head 1f077c996884c298e2d25f91e190a6fb61b78681
+
+Head measured: 1f077c996884c298e2d25f91e190a6fb61b78681 (re-read from origin before posting).
+Merge base / origin/main: 524c1896b6943b3da03d6cad61420ced31e14c9c.
+Worktree: /Users/timmalmstrom/hpo-seats/r10s6/rev-2880 (detached at the head).
+
+## 1. The refusal, both ends, with the legal op beside it (my harness, both_ends.py)
+Baseline = origin/main worktree; head = the PR worktree. Same op, same args.
+  RESULT baseline set-stage-shipped-written: ok=True detail='shipped'
+  RESULT baseline set-resume-stage-shipped-written: ok=True detail='shipped'
+  RESULT baseline append-group-XS-written: ok=True detail=('not-started', 'XS')
+  RESULT baseline append-group-shipped-written: ok=True detail=('shipped', None)
+  RESULT head set-stage-shipped-written: ok=False detail="stage 'shipped' for R9-A is not a classified roster stage (classified: ...) in the/roster.json"
+  RESULT head set-resume-stage-shipped-written: ok=False detail="stage 'shipped' for R9-B is not a classified roster stage ... in the/roster.json"
+  RESULT head append-group-XS-written: ok=False detail="append-group: size 'XS' for R9-H is not in the durations model (L, M, S, XL) at tools/plan/durations.json in the/roster.json"
+  RESULT head append-group-shipped-written: ok=False detail="append-group: stage 'shipped' for R9-G is not a classified roster stage ..."
+Null controls (same run, legal op beside the refused one):
+  RESULT head set-stage-review-written: ok=True detail='review'
+  RESULT head set-resume-stage-fixing-written: ok=True detail='fixing'
+  RESULT head append-group-S-written: ok=True detail=('not-started', 'S')
+
+The CLI path's rc=2 and its stderr message are pinned by roster_edit.py's own
+self-test arms ("set-stage refuses an unclassified stage" etc., 124 checks, 0 failed);
+this harness drives the op layer directly, in-process, at both ends.
+
+## 2. One registry
+grep over roster_edit.py / roster_sync.py / wave-r10-groups.json:
+  - No stage-list or size-list literal survives in the writer or reader; the only
+    declared vocabularies are roster_lib.STAGE_KIND and the views derived from it.
+  - roster_sync.py: DERIVABLE_STAGES = roster_lib.DERIVABLE, PROTECTED_STAGES = roster_lib.DISPOSITION.
+  - Size vocabulary: no SIZES/SIZE_ORDER literal in the three; roster_lib.sizes() reads
+    tools/plan/durations.json's sizes_hours keys ('L','M','S','XL').
+  - Roster JSON stage values seen: absorbed 4, carries-open 7, done 138, fixing 2,
+    in-progress 10, not-started 43, queued 5, refused 1 (208 groups).
+  - Roster JSON sizes: L 15, M 58, S 128, XL 6; unmodelled {} at head.
+  Second copies outside the three files, all dispositioned:
+  - tools/plan/replan.py:108 LIVE_STAGES (equal to roster_lib.LIVE) -> carry R10-FLOW-TOOLKIT-MODEL.
+  - tools/audit/seat/orchestrator_tick.py:206 DEFERRED_STAGES, :207 UNBLOCKABLE_STAGES ->
+    carry R10-FLOW-WIP (carry 9 names both).
+  - state_docs.py:728 is a self-test fixture writing the roster dict directly, not
+    through roster_edit; its self-test passes at head ("all checks passed").
+
+Size scan both ends (roster_sync.roster_sizes/unmodelled_sizes over each roster file):
+  RESULT roster-main: seen=['L','M','S','XL','XS'] unmodelled={'XS': 'wave-r10-groups.json'}
+  RESULT roster-head: seen=['L','M','S','XL'] unmodelled={}
+  RESULT model: ('L', 'M', 'S', 'XL')
+
+## 3. Roster delta
+vs origin/main (git diff): 8 lines changed, all "size": "XS" -> "size": "S"
+  (R10-FLY-{WORKTREE-GC,DAEMONIZE-ARGV,CIPREDICT-LAYOUT,CLOUD-SETUP-TOOLCHAIN,
+   YIELD-GUARD,ENVMATRIX-NOREMOTE,SUITE-ENV-FLAKES,LEDGER-SAMPLE}).
+  Group set identical (208). Per-group stage and carry counts: 0 differences vs main.
+vs origin/handoff/audit-r10-roster (eb0e5237d):
+  - head is BEHIND the live roster branch, not ahead: 7 stage movements and 8 groups'
+    carries are other seats' later writes on that branch (ARCH-SHAPES, FLOW-AUDIT-PLAN,
+    PLAN-PRIO done; BUFFER-STORE/DIAG-AGES/TRAIN-OVERLAP in progress; this group in-review).
+  - No carry text in head is absent from the roster branch; no group main carries is
+    missing from the roster branch (3 handoff-only groups: R10-ROSTER-BATCH24,
+    R10-TRIAGE-B36, R10-TRIAGE-B37 are that branch's newer appends).
+  - The roster branch still carries XS on those 8 groups (the repair lives only in the
+    PR's copy). Simulated stamp merge (git merge-tree of main+this PR vs the roster
+    branch): 0 XS in the merged roster, 131 S -> the repair survives the merge.
+  - git merge-tree --write-tree origin/main HEAD: rc 0, no conflict.
+
+## 4. Mutant drivers
+- r10_roster_sync_mutants.py: 24 RESULT lines (M1..M24), every one rc=1 with a
+  named FAIL; "restored"; --null: "RESULT mutant=NULL_no_plant rc=0 fails=0".
+  No survivors, no crash kills. (head-sync-mutants.log)
+- r10_roster_ops_mutants.py: 31 RESULT lines (A1..A7,C1..C8,P1..P3,D1,T1..T5,S1..S7);
+  30 named FAILs; C6 rc=1 fails=0 (crash: KeyError 'carry', disclosed by the body);
+  driver: "plants: 31, without a FAIL line: ['C6']"; --null: rc=0 fails=0.
+  New S plants: S1 1, S2 1, S3 1, S4 1, S5 3, S6 1, S7 2 -- all die named.
+  The body says 32 plants / 31 named FAIL; measured 31 / 30 named + C6 crash.
+  (head-ops-mutants.log)
+- Reviewer's own plant (S1 by hand, then git checkout --):
+  roster_edit --self-test "124 checks, 1 failed",
+  "FAIL set-stage refuses an unclassified stage (got: (0, ''))"; restored clean.
+  (reviewer-plant-s1.log)
+
+## 5. RCA (dev/audit/rca/R10-N-vocabulary-drift.md)
+Named cause: yes (a vocabulary declared on each side of a write and nowhere between).
+Process state: (a) the process did not exist, with (b)/(c) argued.
+Cost test: cost(countermeasure)=0 new jobs, inside the two self-tests governance.yml
+  already runs; cost(defect)=2 CI reds (jobs 119785082787, 122016117273 step 59) plus a
+  planner dead on every run; P(recurrence)=3 (measured, the three instances); "pays on
+  the first avoided red".
+Countermeasure: yes, with the red/fix demonstration at 21b1ed140 (roster_edit 124 checks
+  4 failed; roster_sync 61 checks 4 failed) and at head (124/0, 64/0) — re-run by me.
+STALE FIGURE: the RCA and the body quote `KeyError: 'XS'` from the reproduction. At this
+  head the same command prints
+  `replan.PlanError: R10-FLY-DAEMONIZE-ARGV: size 'XS' has no measured duration in
+  sizes_hours (L, M, S, XL)`. main's #2874 (5f269ef0c) added that refusal after the
+  RCA's base 6f44346080d2. The class still reproduces (a plan over main's roster still
+  refuses); the quoted exception text is stale at the measured head.
+
+## 6. Policy
+dev/governance/roles/standing-dispatch.md: one factual clause changed --
+  "`roster_edit.py set-stage` accepts any string and nothing verifies" ->
+  "`roster_edit.py set-stage` refuses unknown stages; nothing verifies".
+  The paragraph's instruction ("read the ref, not the record") is unchanged; the file is
+  39 lines at its 39-line cap, policy_lint 0 errors, no budget raised.
+  The body's "## Approval" section states the owner's approving review is required and
+  says it is not claimed there.
+
+## Other re-derivations
+- python3 -I tests/structure.py: STRUCTURE RATCHET PASSED.
+- python3 -I tools/audit/fold_ledger.py check: 0 violation(s).
+- PYTHONPATH=tests/hastub python3 -I tools/pr/ci_predict.py --base origin/main:
+  "no closures, fast, wave-script or instrument red predicted".
+- python3 -I tests/env_drift.py --claims-only origin/main: claims hygiene ok.
+- node tools/policy/policy_lint.mjs: 0 errors across 50 files.
+- node tools/policy/brief_lint.mjs over the roster branch's roster: 0 errors.
+- python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster
+  check --body: 6 finding items, 6 routed, 0 unrouted, 0 bad destinations.
+- check-runs at the head (API, all pages, 55 runs): 0 failures; gate success x2,
+  pr-contract success x2.
+- VERSION / manifest / RELEASE_NOTES / claim files / *_budgets.json: untouched.

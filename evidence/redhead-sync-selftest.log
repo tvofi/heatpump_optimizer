@@ -1,0 +1,5 @@
+FAIL a live claim survives its open pull request (no change) (got: ({'L-GONE': Change(group='L-GONE', stage='in-progress', pr=33, merge_commit=None, was='done', state='OPEN')}, [('L-OPEN', 'in-review', PR(number=31, state='OPEN', head='handoff/l-open', merge_commit=None, body='')), ('L-MERGED', 'review', PR(number=32, state='MERGED', head='handoff/l-merged', merge_commit='3333333333333333333333333333333333333333', body='## Friction\n\n- none\n'))]))
+FAIL a live claim is closed to done by its merge (got: {'L-GONE': Change(group='L-GONE', stage='in-progress', pr=33, merge_commit=None, was='done', state='OPEN')})
+FAIL a done group stays settled under a matching open pull request (got: {'L-GONE': Change(group='L-GONE', stage='in-progress', pr=33, merge_commit=None, was='done', state='OPEN')})
+FAIL every size the tree's rosters carry is in the durations model (got: {'XS': 'wave-r10-groups.json'})
+roster_sync self-test: 61 checks, 4 failed

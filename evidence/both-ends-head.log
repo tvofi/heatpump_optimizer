@@ -1,0 +1,14 @@
+RESULT head set-stage-shipped-written: ok=False detail="stage 'shipped' for R9-A is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
+RESULT head set-stage-review-written: ok=True detail='review'
+RESULT head set-resume-stage-shipped-written: ok=False detail="stage 'shipped' for R9-B is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
+RESULT head set-resume-stage-fixing-written: ok=True detail='fixing'
+RESULT head append-group-XS-written: ok=False detail="append-group: size 'XS' for R9-H is not in the durations model (L, M, S, XL) at tools/plan/durations.json in the/roster.json"
+RESULT head append-group-S-written: ok=True detail=('not-started', 'S')
+RESULT head append-group-shipped-written: ok=False detail="append-group: stage 'shipped' for R9-G is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
+RESULT head set-stage-shipped-written: ok=False detail="stage 'shipped' for R9-A is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
+RESULT head set-stage-review-written: ok=True detail='review'
+RESULT head set-resume-stage-shipped-written: ok=False detail="stage 'shipped' for R9-B is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
+RESULT head set-resume-stage-fixing-written: ok=True detail='fixing'
+RESULT head append-group-XS-written: ok=False detail="append-group: size 'XS' for R9-H is not in the durations model (L, M, S, XL) at tools/plan/durations.json in the/roster.json"
+RESULT head append-group-S-written: ok=True detail=('not-started', 'S')
+RESULT head append-group-shipped-written: ok=False detail="append-group: stage 'shipped' for R9-G is not a classified roster stage (classified: not-started, planned, queued, in-progress, in-flight, fixing, handoff, review, in-review, done, rca-done, deferred, refused, refuted, absorbed, carries-open) in the/roster.json"
