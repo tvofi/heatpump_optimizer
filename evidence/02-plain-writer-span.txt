@@ -1,0 +1,6 @@
+# R2: the plain HOLD writer is ONE continuous cadence 2026-10-26T20:56:28Z .. 2026-10-27T10:58:39Z
+# (170 lines, no gap > 7 min), predating the annotated seat's first line 08:12:52Z by 11.3 h
+
+plain count: 170 first: 2026-10-26T20:56:28Z last: 2026-10-27T10:58:39Z
+gaps > 7 min: NONE
+annotated (; main) count: 19 first: 2026-10-27T08:12:52Z last: 2026-10-27T10:57:40Z

@@ -1,0 +1,12 @@
+# R1: P197 absence from R10-ORCH-BEATD / the roster, at origin/main and every roster branch
+$ grep -c P197 dev/programme/rosters/wave-r10-groups.json
+0
+$ grep -c V117 dev/programme/rosters/wave-r10-groups.json
+0
+$ git grep -n P197 origin/handoff/audit-r10-roster -- dev/programme/rosters
+(no hits)
+--- the only P197 occurrences in the tree ---
+  dev/programme/triage/s6-batch36.md:10:(`not-started`, L; the sweep/beat is its surface, and it already carries P197). Two arms of
+  dev/programme/triage/s6-batch34.md:101:## P197: the orchestrator's resume prompt is hand-kept; handover_prompt.py covers seats only (S6-V117)
+--- BEATD carry[12] (1-indexed 13, cited by P197's own batch34 entry) ---
+"tvofi 2026-10-24 card 2, amended twice (owner; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): the same orchestrator.md edit adds one paragraph on context rotation, with caps by role: about 150 k tokens for mechanical, standing and relay seats, reviewers, and S and M fixers; about 300 k for L and XL fixers, designers, pre-studies, root-cause and plan seats; about 500 k for the orches
