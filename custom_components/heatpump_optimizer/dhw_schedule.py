@@ -83,6 +83,17 @@ class DHWWindowError(ValueError):
     """Raised when a DHW window specification cannot be parsed."""
 
 
+def cyclic_span(start: int, end: int, size: int, first: int = 0) -> list[int]:
+    """The values a range ``start``..``end`` covers on a cycle, in order.
+
+    The one cyclic-range wrap (D7-s2-59): the cycle holds ``first`` ..
+    ``first + size - 1``, and an end before its start wraps it, so
+    ``Sa-Mo`` is Sa, Su, Mo and ``Nov-Mar`` five months. The hot-water day
+    selector and the grid-fee month and weekday ranges all read it here.
+    """
+    return [first + (start - first + k) % size for k in range((end - start) % size + 1)]
+
+
 def _parse_day_selector(token: str) -> list[int]:
     """A day-selector token into the weekday indices it names.
 
@@ -111,9 +122,7 @@ def _parse_day_selector(token: str) -> list[int]:
             hi = _DAY_TOKENS.index(parts[1])
         except ValueError:
             return []
-        span = (hi - lo) % 7 + 1
-        days = [(lo + k) % 7 for k in range(span)]
-        return sorted(days)
+        return sorted(cyclic_span(lo, hi, len(_DAY_TOKENS)))
     for part in t.split(","):
         try:
             days.append(_DAY_TOKENS.index(part))
@@ -134,14 +143,13 @@ def _format_day_selector(days: list[int]) -> str:
     # Contiguous runs (possibly wrapping) render as ranges; anything else
     # as a comma list. Ranges keep the rendered spec short, which is the
     # point of rendering back at all.
-    for lo in ordered:
-        span = len(ordered)
-        run = [(lo + k) % 7 for k in range(span)]
-        if sorted(run) == ordered:
-            hi = run[-1]
-            if span >= 3:
-                return f"{_DAY_TOKENS[lo].capitalize()}-{_DAY_TOKENS[hi].capitalize()}"
-            break
+    run = next(
+        ((lo, hi) for lo in ordered for hi in ordered
+         if sorted(cyclic_span(lo, hi, len(_DAY_TOKENS))) == ordered),
+        None,
+    )
+    if run is not None and len(ordered) >= 3:
+        return f"{_DAY_TOKENS[run[0]].capitalize()}-{_DAY_TOKENS[run[1]].capitalize()}"
     return ",".join(_DAY_TOKENS[d].capitalize() for d in ordered)
 
 
@@ -440,17 +448,21 @@ def _normalize(windows: list[Window]) -> list[Window]:
     return merged
 
 
+def format_clock(hour: float) -> str:
+    """An hour-of-day as the grammar's ``HH:MM``, rounded to the minute.
+
+    A window ending at the end of the day reads ``24:00``, not ``00:00``:
+    folding it would label the whole-day window ``00:00-00:00``.
+    """
+    total_minutes = int(round(hour * 60))
+    if total_minutes != 24 * 60:
+        total_minutes %= 24 * 60
+    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
+
+
 def format_windows(windows: list[Window]) -> str:
     """Render normalized windows back into the configuration string form."""
-
-    def fmt(value: float) -> str:
-        total_minutes = int(round(value * 60))
-        # A window ending at the end of the day reads better as 24:00 than 00:00.
-        if total_minutes != 24 * 60:
-            total_minutes %= 24 * 60
-        return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
-
-    return ", ".join(f"{fmt(s)}-{fmt(e)}" for s, e in windows)
+    return ", ".join(f"{format_clock(s)}-{format_clock(e)}" for s, e in windows)
 
 
 def hour_in_windows(hour: float, windows: list[Window]) -> bool:

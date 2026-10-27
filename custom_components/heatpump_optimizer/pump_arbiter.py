@@ -156,6 +156,7 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
+from .const import finite_float
 from .inputs import (
     InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
@@ -461,15 +462,7 @@ def _space_target(
 
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
-    return (
-        _finite_or_none(_planned_room(result, now, "power_schedule"))
-    )
-
-
-def _finite_or_none(value: Any) -> float | None:
-    return (
-        float(value) if isinstance(value, (int, float)) else None
-    )
+    return finite_float(_planned_room(result, now, "power_schedule"))
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
@@ -960,11 +953,6 @@ async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: da
         await _write(coord, inp, slot, getattr(command, slot), now)
 
 
-def _night_clock(hour: float) -> tuple[int, int]:
-    minutes = int(round(hour * 60.0)) % (24 * 60)
-    return minutes // 60, minutes % 60
-
-
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
     """Hold the GCHV night-mode start/end for the next silent window (#1913).
 
@@ -984,8 +972,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
     nxt = quiet_windows.next_gchv_window(now, spec)
     if nxt is None:
         return
-    start_h, start_m = _night_clock(nxt[0])
-    end_h, end_m = _night_clock(nxt[1])
+    start_h, start_m = quiet_windows.wall_clock(nxt[0])
+    end_h, end_m = quiet_windows.wall_clock(nxt[1])
     if (start_h, start_m) == (end_h, end_m):
         return
     values = {
