@@ -1,8 +1,14 @@
 # Proposal triage, session s7, batch 40 (P211)
 
-One entry, the first from `proposals.md` since V123: V124, relayed by the orchestrator at
-2026-10-27T18:53Z. Facts read at origin/main `6eb552157`; roster at
-`origin/handoff/audit-r10-roster` `32b938f3e` (212 groups).
+One entry, the first from `proposals.md` since V123: V124, the orchestrator s7 entry. Its
+arrival is `proposals.md`'s mtime on this box, 2026-10-27T18:23Z; the entry's own header stamp
+reads 2026-10-27T18:53Z, about 10 min ahead of this box's clock -- the seat read and ruled it at
+18:43:35Z, so 18:53Z is a stamp, not an arrival. Facts read at origin/main `6eb552157`; roster
+at `origin/handoff/audit-r10-roster` `32b938f3e` (212 groups).
+
+Provenance note on the 85-minute figure: it is #2854's own body text -- "when the 30-minute
+lease lapsed inside the 85-minute run" (`updatedAt` 2026-10-27T18:23:17Z) -- not a measurement on
+this box, and it is not re-derived here; the claim that #2854's body lacks the figure is false.
 
 ## P211: the push-stuck guard's threshold sits below the work it is guarding (V131)
 
@@ -20,8 +26,8 @@ the machine-measuring commands, recorded at 936.3 s and 241.1 s, both under `LEA
 (1800). The lease is therefore not shorter than the gate it protects, because it does not
 protect it.
 
-Source: `proposals.md` V124 (orchestrator s7, 2026-10-27T18:53Z); not yet ruled before this
-entry.
+Source: `proposals.md` V124 (orchestrator s7; header stamp 2026-10-27T18:53Z, arrival 18:23Z);
+not yet ruled before this entry.
 
 Instances: the class is an `OWED ... push-stuck` line raised on a healthy push.
 - (1) #2876 pid 85023 was raised at 2,295 s and finished normally at `HEAD=d08647f0513a`; #2854
@@ -64,4 +70,7 @@ the line keeps its shape and gains the delta (`STUCK <branch> <pid> <age>s cpu+<
 text must say "no CPU advance", not "hung", because a push waiting on I/O is flat too; a released
 lock is never read, unchanged; and the self-test arms are (a) an advancing tree prints no line
 after the bound, (b) a flat tree across two passes prints it, (c) a run under the bound with a
-sample prints nothing (null control).
+sample prints nothing (null control). Known limitation of the carried arm: the stored sample
+must be keyed to the pid and start it sampled, and re-stored when either differs, or a branch
+lock re-taken by a later run compares its CPU against the earlier run's sample and prints a
+false STUCK.
