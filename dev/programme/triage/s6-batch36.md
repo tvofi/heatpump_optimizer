@@ -35,9 +35,9 @@ the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
   writer produced four lines inside that window (08:58:22, 09:03:22, 09:08:23, 09:13:24) at
   its unbroken cadence, so it is a separate timer or process. Arrival order is unresolved:
   the whole-ledger series (`grep -n 'triage s7:' seat-ledger.md`) puts a plain-`HOLD`
-  cadence starting before this seat's first line with no gap over 7 minutes, so the
-  orchestrator's 09:30:39Z stand-down rests on the 08:13-09:38 window and does not settle
-  which writer arrived first.
+  cadence starting at 20:56:28Z (ledger:1171, before this seat's first `; main <sha>`-annotated
+  line at 08:12:52Z, ledger:1330) with no gap over 7 minutes, so the orchestrator's 09:30:39Z
+  stand-down rests on the 08:13-09:38 window and does not settle which writer arrived first.
 - Invisible to the liveness file. Both writers `touch` `s7/triage.alive`; its mtime can only
   say that someone is alive, never how many. (The orchestrator's board reads alive age only,
   and it was corrected today from 660 s to 1800 s after 22 beat gaps, median 57 s, max
