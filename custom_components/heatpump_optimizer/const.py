@@ -4,7 +4,8 @@ from __future__ import annotations
 import math
 import re
 from datetime import timedelta
-from typing import Final
+from numbers import Real
+from typing import Any, Final, overload
 
 DOMAIN: Final = "heatpump_optimizer"
 #: Entity ids that name a person or a household calendar, anywhere in a
@@ -1294,6 +1295,42 @@ BUFFER_INSULATION_U_TYPICAL: Final = 1.0  # W/m2K, an ordinary insulated tank
 BUFFER_INSULATION_U_WORST: Final = 8.0  # W/m2K, effectively a bare cylinder
 
 
+# --- One finite-float coercion (D7-s2-58, #2239) ---------------------------
+#
+# Here, the package's one dependency-free module, rather than in inputs.py:
+# a model, a learner, the config parse and the glue all ask "is this value a
+# finite number", and inputs.py's reader runs on Home Assistant's clock, so
+# reading the answer there would lift every pure caller into the glue layer.
+# Nine coercers each answered it with their own bool, text, NaN and overflow
+# policy before this; tests/finite_boundary.py's census holds the count at one.
+
+
+@overload
+def finite_float(value: Any) -> float | None: ...
+@overload
+def finite_float(value: Any, default: float) -> float: ...
+@overload
+def finite_float(value: Any, default: float | None) -> float | None: ...
+def finite_float(value: Any, default: float | None = None) -> float | None:
+    """``value`` as a finite float; anything else is ``default``.
+
+    The one coercion every reader shares (D7-s2-58): ``None``, text that is
+    not a number, NaN, an infinity and an int past a double (an attribute-
+    or service-fed value orjson never parsed) are all unreadable, never a
+    raise and never a non-finite number handed on to the solver. Only a real
+    number or text is read: a ``bool`` is not a number here, although
+    ``float()`` takes it -- ``True`` read as 1.0 kW, 1.0 degC or a 1 degC
+    away target is a guess, not a reading -- and neither are bytes.
+    """
+    if isinstance(value, bool) or not isinstance(value, (Real, str)):
+        return default
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return result if math.isfinite(result) else default
+
+
 def buffer_tank_surface_area(volume_litres: float) -> float:
     """Outer area of a tank of this volume, m2.
 
@@ -1301,10 +1338,10 @@ def buffer_tank_surface_area(volume_litres: float) -> float:
     wide, which is what accumulators of every size look like. Exactness does not
     matter here; the volume^(2/3) growth does.
     """
-    try:
-        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0
-    except (TypeError, ValueError):
+    volume = finite_float(volume_litres)
+    if volume is None:
         return 0.0
+    volume_m3 = max(volume, 1e-6) / 1000.0
     diameter: float = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
     return 9.42 * diameter * diameter  # side + both ends
 

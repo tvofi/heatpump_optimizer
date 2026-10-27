@@ -38,7 +38,7 @@ from typing import Any
 
 import numpy as np
 
-from .dhw_schedule import Window
+from .dhw_schedule import Window, format_clock
 
 #: Occurrence totals kept per window — about six weeks of daily windows.
 MAX_EVENTS_PER_WINDOW = 40
@@ -149,19 +149,9 @@ def window_label(hour: float, windows: list[Window]) -> str:
         else:  # wraps midnight
             inside = hour >= start or hour < end
         if inside:
-            return f"{_fmt(start)}-{_fmt(end)}"
+            return f"{format_clock(start)}-{format_clock(end)}"
     return ""
 
 
 def labels_for(windows: list[Window]) -> list[str]:
-    return [f"{_fmt(s)}-{_fmt(e)}" for s, e in windows]
-
-
-def _fmt(hour: float) -> str:
-    minutes = int(round(hour * 60))
-    if minutes == 24 * 60:
-        # The full-day window's end is 24:00, and folding it to "00:00"
-        # would label the whole-day reservoir "00:00-00:00".
-        return "24:00"
-    minutes %= 24 * 60
-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+    return [f"{format_clock(s)}-{format_clock(e)}" for s, e in windows]

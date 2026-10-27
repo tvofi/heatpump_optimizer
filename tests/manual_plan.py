@@ -726,6 +726,47 @@ def test_quiet_window_arms(R: Results) -> None:
         bad_unit is None,
         f"got {bad_unit!r}",
     )
+    # D7-s2-61 (#2236): a non-finite state ("inf", or a number past the
+    # float range) and a finite one past the nameplate both made the silent
+    # ceiling the nameplate itself -- no cap -- and skipped the frequency
+    # and fraction fallbacks. A measured figure outside (0, p_max] is no
+    # measurement; the configured fraction (0.7 of 5.0) answers instead.
+    out_of_range = {
+        raw: call(
+            _qw.silent_cap_kw,
+            {CONF_POWER_ENTITY: "sensor.hp", CONF_SILENT_MODE_FRACTION: 0.7},
+            _quiet_get({"sensor.hp": _PowerState(raw, "kW")}),
+            5.0,
+        )
+        for raw in ("inf", "1e400", "100", "5.001")
+    }
+    R.check(
+        "a non-finite or over-nameplate power reading is no measurement",
+        all(v is not None and abs(v - 3.5) < 1e-9 for v in out_of_range.values()),
+        f"got {out_of_range!r}",
+    )
+    at_plate = call(
+        _qw.measured_ceiling_kw,
+        {CONF_POWER_ENTITY: "sensor.hp"},
+        _quiet_get({"sensor.hp": _PowerState("5", "kW")}),
+        5.0,
+    )
+    R.check(
+        "a power reading at the nameplate is a measurement",
+        at_plate == 5.0,
+        f"got {at_plate!r}",
+    )
+    hz_over = call(
+        _qw.measured_ceiling_kw,
+        {CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz", CONF_COMPRESSOR_FREQ_MAX_HZ: 100.0},
+        _quiet_get({"sensor.hz": _PowerState("150", None)}),
+        5.0,
+    )
+    R.check(
+        "a frequency past its configured maximum measures nothing",
+        hz_over is None,
+        f"got {hz_over!r}",
+    )
     R.check(
         "no state callable and a non-positive nameplate measure nothing",
         _qw.measured_ceiling_kw({CONF_POWER_ENTITY: "sensor.hp"}, None, 5.0) is None

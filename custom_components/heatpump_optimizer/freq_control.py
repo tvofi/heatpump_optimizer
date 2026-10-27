@@ -30,7 +30,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .inputs import _finite
+from .const import finite_float
 from .payload import FreqMapBucket
 
 #: The two stages. Anything unrecognised in config reads as observe.
@@ -111,14 +111,14 @@ def resolve_reading(
         if reading is None:
             return (None, 0.0, 0.0, source)
         attrs = getattr(reading, "attributes", {}) or {}
-        lo, hi = _finite(attrs.get("min")), _finite(attrs.get("max"))
+        lo, hi = finite_float(attrs.get("min")), finite_float(attrs.get("max"))
         hz_min = hz_min if lo is None else lo
         hz_max = hz_max if hi is None else hi
     if sensor_id:
         reading = get_state(sensor_id)
     if reading is None:
         return (None, hz_min, hz_max, source)
-    return (_finite(reading.state), hz_min, hz_max, source)
+    return (finite_float(reading.state), hz_min, hz_max, source)
 
 
 @dataclass
