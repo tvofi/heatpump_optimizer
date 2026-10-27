@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:DebugCollector.as_dict BOOLOP 81d62bfa",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        if self.self_tests_at is not None and tests:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.self_tests_at is not None or tests:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
