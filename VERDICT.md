@@ -4,9 +4,9 @@ Fix review: merge 43f436a03b9a4729ed0eb8efe7c09014e2cb98d2
 
 Measured at `origin/main` `6fe5170cd7ce01e60ffebfc93e598c216e628fa3`, which is
 also this branch's merge base and the head's parent, and at the head
-`43f436a03b9a4729ed0eb8efe7c09014e2cb98d2`. Round 1. No `bus-nonce:` line: this
-review was dispatched by the orchestrator's brief without one, so it proposes a
-verdict and the orchestrator records it; nothing here was relayed.
+`43f436a03b9a4729ed0eb8efe7c09014e2cb98d2`. Round 1. The nonce below was issued
+by the orchestrator after the first push, when the dispatch was recorded; the
+verdict itself was measured and written before it and nothing in it changed.
 
 The head is a triage record: two added files (`dev/programme/triage/s6-batch35.md`,
 `dev/programme/delivery/2867.md`), no code, no VERSION, no manifest, no
@@ -309,4 +309,7 @@ section), `ledger-lines.txt` (the cited `seat-ledger.md` lines),
 runs, the head's `gate` runs now, the head's totals), `roster.txt` (the 34 gates
 with their kinds at `9937317d8`, the issue join, the destination groups, the PR
 join), `measure-first.txt` (MF1-MF4, the replay rows, the census),
-`open-issues.txt` / `open-issues-join.txt`, `open-prs.txt`, `structure.txt`.
+`open-issues.txt` / `open-issues-join.txt`, `open-prs.txt`, `structure.txt`,
+`HEAD.txt` (the reviewed 40-hex head, for `bus.sh confirm`'s `evidence/` grep).
+
+bus-nonce: b91ed09198a985be61b2d591d66183fb
