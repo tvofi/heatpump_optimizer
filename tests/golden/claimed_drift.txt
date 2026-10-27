@@ -747,4 +747,4 @@ coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fi
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
-config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
+config_flow # R10-COP-PARTLOAD: the heat_pump_cop_partload_derate option joins the options table and its seeded copy; keys added, no value moved
