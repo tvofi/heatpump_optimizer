@@ -4866,7 +4866,7 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "in-progress",
+    "stage": "in-review",
     "branch": "handoff/r10-buffer-store",
     "commit": "173b71ba44480b6992f8f91021109c8eecc16582",
     "last_step": "handoff pushed at 173b71ba4; 11 mutants KILLED at the tip",
