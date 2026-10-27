@@ -26,14 +26,19 @@ without either having to know the other exists.
 Instances: one, measured end to end in this seat's own session, and the measurement is why
 the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
 - Two writers, one role. `grep -n 'triage s7:' seat-ledger.md`, in the orchestrator state
-  directory, shows two cadences interleaved from 08:13:15Z. The second writer's lines are the plain
+  directory, shows two cadences interleaved from 08:13:15Z. The other writer's lines are the plain
   `HOLD (no v7.0.5 tag)` form, 18 of them, at 5:00-5:01 intervals: 08:13:15, 08:18:16,
   08:23:16, 08:28:17, 08:33:18, 08:38:19, 08:43:20, 08:48:20, 08:53:21, 08:58:22, 09:03:22,
   09:08:23, 09:13:24, 09:18:24, 09:23:25, 09:28:26, 09:33:27, 09:38:27.
-- Not an echo of this seat. This seat's ledger lines carry a `; main <sha>` annotation and
-  stopped for 21 minutes (last line before the stall 08:54:25Z, next 09:15:38Z); the other
-  writer produced four lines inside that window (08:58:22, 09:03:22, 09:08:23, 09:13:24) at
-  its unbroken cadence, so it is a separate timer or process. Arrival order is unresolved:
+- Not an echo of this seat. The annotation separates the two writers on the `HOLD` lines only.
+  In the 08:13:15-09:38:27Z window this seat's 10 `HOLD` lines each carry `; main <sha>` and
+  the other writer's 18 are the bare form, while this seat's three operational lines inside the
+  window (ESCALATED, ACK, RECONCILED) carry none (`grep 'triage s7:' seat-ledger.md | sed -n
+  '/08:13:15Z/,/09:38:27Z/p'` prints 31 lines; appending `| grep -c '; main '` prints `10` and
+  `| grep -c 'HOLD (no v7.0.5 tag)$'` prints `18`). This seat's annotated cadence stopped for
+  21 minutes (last line before the stall 08:54:25Z, next 09:15:38Z); the other writer produced
+  four lines inside that window (08:58:22, 09:03:22, 09:08:23, 09:13:24) at its unbroken
+  cadence, so it is a separate timer or process. Arrival order is unresolved:
   the whole-ledger series (`grep -n 'triage s7:' seat-ledger.md`) puts a plain-`HOLD`
   cadence starting at 20:56:28Z (ledger:1171, before this seat's first `; main <sha>`-annotated
   line at 08:12:52Z, ledger:1330) with no gap over 7 minutes, so the orchestrator's 09:30:39Z
@@ -49,23 +54,27 @@ the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
 - The proposed claim would not have named it. The writer emits nothing but that one fixed
   line, so it reads neither this seat's brief nor the session preamble; a convention it does
   not implement cannot record its start. It is not one of the loop scripts in the tree either:
-  the two running (`tick_loop.sh`, pid 7716, and `roster-loop.sh`, pid 99863) write `tick.txt`
-  and `roster s7:` lines respectively — `roster-loop.sh` read in full this pass, no
-  `triage`/`HOLD` write in it — and w71's `loop.sh`/`watch.sh` have no process at all, while
-  `w71/loop.pid` names 76559, which is gone. Its source is unidentified.
+  no file under `tools/audit/seat/` carries the line's literal, `HOLD (no v7` (`grep -rn
+  'HOLD (no v7' tools/audit/seat/` prints nothing), and `s7/roster-loop.sh`, read in full this
+  pass, writes `roster s7:` lines with no `triage`/`HOLD` write in it; w71's `loop.sh`/`watch.sh`
+  have no process at all, while `w71/loop.pid` names 76559, which is gone. Its source is
+  unidentified.
 
 Cost: read against all 34 of the destination group's carries, not one. P97(b), at index 21
 (carry 22; `s6-batch21.md#P97`), already carries three parts of the filed shape: the
 per-instance alive entry (one alive entry per seat id under each role, beside the per-role
-file), the sweep arm that acts on it (step (1b) of `tools/audit/seat/sweep_template.md` stops
-the older id and logs both), with that arm's self-test and mutation proof, and the `DUPLICATE
-seat <role>: <id> <id>` print. What is genuinely new is the renewal on every pass, the second
-liveness source (renewal age) that can disagree with the alive-age test and with P199's carried
-arm ("no live pid and no `TRAIN DONE`/`STOPPED` line"), which already owns death detection, and
-the noise a per-role line adds for every legitimate restart until a dead seat's claim is
-retired — seat restarts and beat gaps are routine in this session (three seats restarted at
-21:15Z, `seat-ledger.md:1149`; the merge seat restarted at 08:19:56Z after being dead since
-22:16Z, `seat-ledger.md:1334`) — which lands on the board the orchestrator reads every pass.
+file), the sweep arm that acts on it (step (1b) of `tools/audit/seat/sweep_template.md`, which
+the carry amends to stop the older id before anything else and log both ids; the template
+today has no older-id stop and no `DUPLICATE`, `grep -c 'older id\|DUPLICATE'
+tools/audit/seat/sweep_template.md` printing `0`), with that arm's self-test and mutation
+proof, and the `DUPLICATE seat <role>: <id> <id>` print. What is genuinely new is the renewal
+on every pass, the second liveness source (renewal age) that can disagree with the alive-age
+test and with P199's carried arm ("no live pid and no `TRAIN DONE`/`STOPPED` line"), which
+already owns death detection, and the noise a per-role line adds for every legitimate restart
+until a dead seat's claim is retired — seat restarts and beat gaps are routine in this session
+(three seats restarted at 21:15Z, `seat-ledger.md:1149`; the merge seat restarted at 08:19:56Z
+after being dead since 22:16Z, `seat-ledger.md:1334`) — which lands on the board the
+orchestrator reads every pass.
 
 Binding: a convention binds only the seats that implement it, and the instance that motivated
 the proposal implements nothing; the benefit is therefore unmeasured against its own target
@@ -79,11 +88,11 @@ dispatch and not in a seat claim.
 
 What survives of the proposed shape, and why it is not an ACCEPT: a launch record written by
 the launching side, one file per launch, carrying role, nonce, started_at and the supervisor's
-pid. The fact that made the second writer unstoppable was that nothing recorded its launch at
-all, and the launching side is the only party that always knows a seat started. It needs no
-seat cooperation, no sweep arm, no renewal and no new liveness source, and the orchestrator can
-adopt it in its own dispatch path now; if it wants that as repository work, it is a separate
-proposal and will be ruled on its own cost.
+pid. The fact that made the plain-`HOLD` writer unstoppable was that nothing recorded its
+launch at all, and the launching side is the only party that always knows a seat started. It
+needs no seat cooperation, no sweep arm, no renewal and no new liveness source, and the
+orchestrator can adopt it in its own dispatch path now; if it wants that as repository work, it
+is a separate proposal and will be ruled on its own cost.
 
 No roster op: `roster_edit.py` refuses a carry whose cite is not an ACCEPT, so this item travels
 in R10-ORCH-BEATD's carry text as prose, as P201's PR half does (s6-batch35.md).
