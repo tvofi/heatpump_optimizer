@@ -387,6 +387,24 @@ def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
     return out
 
 
+def carried_from(carries: list, number: int) -> str | None:
+    """The destination carry naming pull request <number> as its source, or
+    None. The routing seat records a finding it propagated as `From #2625
+    (...)`; the same finding reaches this plan again from that pull request's
+    body, in the body's own words, so the derived text never equals the held
+    one and appending it duplicates the carry. The body's routing sentence can
+    also name a triage item (`where triage P3/Q3 (s4) gives it to ...`), which
+    the write path's triage gate (decision 0015) refuses when the citation is
+    not resolvable -- and one refusal there aborts the whole write, so the
+    duplicate also blocks the stage changes that would stop re-deriving it.
+    """
+    pat = re.compile(rf"(?<![\w-])#{number}(?!\d)")
+    for text in carries:
+        if pat.search(str(text)):
+            return str(text)
+    return None
+
+
 def carry_plan(roster: dict, transitions: list[PR], repo: str,
                pr_state: str | None) -> tuple[list[tuple], list[tuple]]:
     """(appends, refusals) from a merged body's `Carry: <GROUP>` items.
@@ -394,7 +412,10 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
     The parser is `carry_audit.py`'s (`audit`, hence `items` and `carry_dests`);
     a second one is refused. Only a group token is appended -- an issue, an
     O-brief and a dismissal keep their own record -- and a destination that
-    is done is refused, never appended.
+    is done is refused, never appended. A destination that already carries a
+    finding from the same pull request (`carried_from`) is refused too: the
+    derived text is that finding again in the body's words, and re-appending
+    it would duplicate the carry.
     """
     groups = roster_lib.groups_of(roster)
     appends: list[tuple] = []
@@ -414,6 +435,12 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
                                      "the destination is done (resume.stage "
                                      f"{(g.get('resume') or {}).get('stage')})"))
                 else:
+                    held = carried_from(g.get("carry") or [], pr.number)
+                    if held is not None:
+                        refusals.append((pr.number, dest,
+                                         "already carried from "
+                                         f"#{pr.number}: {held[:60]!r}"))
+                        continue
                     text = " ".join(BULLET.sub("", row["text"], count=1).split())
                     if text in (g.get("carry") or []) or (dest, text) in appends:
                         continue
@@ -795,6 +822,18 @@ def self_test() -> int:
         {"group": "R9-HELD", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "held", "carry": ["already held. Carry: R9-HELD"],
          "resume": {"stage": "not-started"}},
+        # A destination whose carry already names the source pull request: the
+        # derived copy is that finding again in the body's words, so it is not
+        # appended (and its `triage P3` tail never reaches the write path's
+        # triage gate, which refuses a citation it cannot resolve).
+        {"group": "R9-FROM", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from", "carry": ["From #15 (R9-CARRY): landed."],
+         "resume": {"stage": "not-started"}},
+        # The NULL CONTROL for the boundary: `#1525` is not `#15`, so #15's
+        # item still appends here.
+        {"group": "R9-FROM-2", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from 2", "carry": ["From #1525 (other): landed."],
+         "resume": {"stage": "not-started"}},
     ]
     ROSTER_FIXTURE = {"repo": "fixture/roster", "session": "r9-sync",
                       "groups": groups}
@@ -803,6 +842,9 @@ def self_test() -> int:
             "- a quoted example `Carry: R9-DEST` in a code span routes nothing.\n\n"
             "- a real finding for a done group. Carry: R9-OVER\n\n"
             "- already held. Carry: R9-HELD\n\n"
+            "- the same finding again, where triage P3 gives it. Carry: R9-FROM\n\n"
+            "- the same finding for a destination naming another pull request. "
+            "Carry: R9-FROM-2\n\n"
             "- an issue keeps its own record. Carry: #77\n")
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
@@ -848,6 +890,11 @@ def self_test() -> int:
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
         check("the dry run plans no append of an item the destination holds",
               "carry R9-HELD +=" not in out, out)
+        check("the dry run refuses an item the destination already carries from "
+              "the same pull request", "REFUSED Carry: R9-FROM from #15: "
+              "already carried from #15" in out, out)
+        check("a held carry naming another pull request does not suppress the "
+              "append (#15 is not #1525)", "carry R9-FROM-2 +=" in out, out)
         check("an issue destination is neither appended nor refused (it keeps "
               "its own record)", "#77" not in out, out)
         check("a commit the checkout does not hold is RECORD-INVALID, printed "
@@ -892,6 +939,14 @@ def self_test() -> int:
               by["R9-DEST"].get("carry"))
         check("a Carry: to a done group is refused, not appended",
               "carry" not in by["R9-OVER"], by["R9-OVER"].get("carry"))
+        check("a duplicate of a carry already landed from that pull request is "
+              "not appended", by["R9-FROM"].get("carry")
+              == ["From #15 (R9-CARRY): landed."], by["R9-FROM"].get("carry"))
+        check("the dedupe's null control: a held carry naming another pull "
+              "request leaves the append alone", by["R9-FROM-2"].get("carry")
+              == ["From #1525 (other): landed.",
+                  "the same finding for a destination naming another pull "
+                  "request. Carry: R9-FROM-2"], by["R9-FROM-2"].get("carry"))
         check("a head matching only through the <topic>- arm decides its group",
               by["R9-ARM"]["resume"]["stage"] == "done"
               and by["R9-ARM"]["resume"].get("commit") == "1" * 40,
