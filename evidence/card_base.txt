@@ -1,3 +1,0 @@
-=== node tests/card.mjs at the merge-base worktree ===
-FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
-exit: killed by V8 heap (Abort trap: 6 on the body's run)
