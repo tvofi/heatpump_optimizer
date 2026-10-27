@@ -150,10 +150,13 @@ def run(cmd, cwd=None):
 
 
 # ----------------------------------------------------------------- ops
-def op_set_stage(roster, group, stage, at_sha):
+def op_set_stage(roster, group, stage, at_sha, rel=""):
     g = _need(roster, group)
     if not isinstance(stage, str) or not stage.strip():
         raise Refuse("stage must be a non-empty string")
+    why = _stage_why(stage, rel, group)
+    if why:
+        raise Refuse(why)
     if at_sha and not SHA_RE.match(at_sha):
         raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
     g.setdefault("resume", {})["stage"] = stage
@@ -171,21 +174,25 @@ NON_NULL_RESUME_FIELDS = ("stage", "branch")
 TEXT_RESUME_FIELDS = ("last_step", "next_step", "note")
 
 
-def op_set_resume(roster, group, field, value):
+def op_set_resume(roster, group, field, value, rel=""):
     g = _need(roster, group)
     if field not in RESUME_FIELDS:
         # argparse's --field choices refuse it first; this guards direct callers
         raise Refuse(f"unknown resume field: {field!r} "
                      f"(known: {', '.join(RESUME_FIELDS)})")
-    resume = g.setdefault("resume", {})
     if value == "":
         if field in NON_NULL_RESUME_FIELDS:
             raise Refuse(f"resume.{field} is a non-null field; an empty "
                          "value is refused")
-        resume[field] = None  # clearing a nullable field
+        g.setdefault("resume", {})[field] = None  # clearing a nullable field
         return
+    if field == "stage":
+        why = _stage_why(value, rel, group)
+        if why:
+            raise Refuse(why)
     if field == "commit" and not SHA_RE.match(value):
         raise Refuse(f"--field commit needs a sha: {value!r}")
+    resume = g.setdefault("resume", {})
     resume[field] = _text(value) if field in TEXT_RESUME_FIELDS else value
 
 
@@ -226,7 +233,7 @@ def op_unwire_issue(roster, group, issue, field="issues"):
     g[field] = [i for i in held if i != n]
 
 
-def op_append_group(roster, json_file):
+def op_append_group(roster, json_file, rel="", sizes=()):
     try:
         new = json.loads(Path(json_file).read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
@@ -239,6 +246,14 @@ def op_append_group(roster, json_file):
     for field in ("lane", "brief"):
         if not new.get(field):
             raise Refuse(f"append-group: {gid} needs a {field}")
+    stage = (new.get("resume") or {}).get("stage")
+    if stage is not None:
+        why = _stage_why(stage, rel, gid)
+        if why:
+            raise Refuse(f"append-group: {why}")
+    why = _size_why(new.get("size"), sizes, rel, gid)
+    if why:
+        raise Refuse(f"append-group: {why}")
     after = new.get("after", [])
     if not isinstance(after, list):
         raise Refuse(f"append-group: {gid} after must be a list")
@@ -347,27 +362,59 @@ def op_drop_carry(roster, group, index=None, match=None):
     del carry[i]
 
 
-def apply_op(roster, op, group, value, field, at_sha, match=None):
+def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
+             sizes=()):
     """One op on a loaded roster -- re-run on each attempt of a push race,
-    so the edit is applied to the tip it is pushed onto."""
+    so the edit is applied to the tip it is pushed onto. `rel` is the roster's
+    path and `sizes` the duration model's vocabulary, for a refusal to name
+    what it refused; only append-group reads `sizes`."""
     if op == "set-stage":
-        op_set_stage(roster, group, value, at_sha)
+        op_set_stage(roster, group, value, at_sha, rel)
     elif op == "wire-issue":
         op_wire_issue(roster, group, value, field or "issues")
     elif op == "unwire-issue":
         op_unwire_issue(roster, group, value, field or "issues")
     elif op == "append-group":
-        op_append_group(roster, value)
+        op_append_group(roster, value, rel, sizes)
     elif op == "edit-brief":
         op_edit_brief(roster, group, value)
     elif op == "set-resume":
-        op_set_resume(roster, group, field, value)
+        op_set_resume(roster, group, field, value, rel)
     elif op == "set-after":
         op_set_after(roster, group, value)
     elif op == "drop-carry":
         op_drop_carry(roster, group, value, match)
     else:
         op_append_carry(roster, group, value)
+
+
+def _stage_why(stage, rel, group):
+    """Why `stage` may not be written for `group`, or None.
+
+    THE VOCABULARY BARRIER (R10-ORCH-ROSTER-SCHEMA). A stage word is legal only
+    if `roster_lib.STAGE_KIND` classifies it: every classified derivable word is
+    one the reconciler may close (a merge makes it `done`), a live claim is one
+    it closes on the merge, and a disposition is one it deliberately leaves
+    alone. A word outside the registry is one the writer and the reader would
+    have to agree on twice -- the drift that put `in-review` in a roster with no
+    rule to close it, and `XS` in a roster the planner could not price.
+    """
+    if stage in roster_lib.STAGES:
+        return None
+    return (f"stage {stage!r} for {group} is not a classified roster stage "
+            f"(classified: {', '.join(roster_lib.STAGES)}) in "
+            f"{rel or 'the roster'}")
+
+
+def _size_why(size, sizes, rel, group):
+    """Why `size` may not be written for `group`, or None. The duration model
+    IS the size vocabulary: a size it lacks makes `replan.build_plan` raise
+    KeyError at `size_hours[...]`, which no gate reads."""
+    if size is None or size in sizes:
+        return None
+    return (f"size {size!r} for {group} is not in the durations model "
+            f"({', '.join(sizes) or 'no sizes'}) at {roster_lib.DURATIONS} in "
+            f"{rel or 'the roster'}")
 
 
 def _need(roster, group):
@@ -569,9 +616,10 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
     by every caller, so `main()` and `roster_sync.py` cannot drift apart in
     formatting, the no-op rule, the gate or the push race.
 
-    `edit(roster)` applies the caller's ops to the roster loaded at the base
-    and returns whether there is anything to write; it is re-run on every
-    attempt of a push race, so the edit lands on the tip it is pushed onto.
+    `edit(roster, rel)` applies the caller's ops to the roster loaded at the
+    base, `rel` being that roster's path (so a refusal names it), and returns
+    whether there is anything to write; it is re-run on every attempt of a push
+    race, so the edit lands on the tip it is pushed onto.
     Returns 0 or 3 (the lint gate refused); a failed git command, or a race
     lost PUSH_ATTEMPTS times, raises Refuse, which each caller prints.
 
@@ -590,7 +638,7 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
         print(f"roster: {rel} on {branch}")
         roster = json.loads(path.read_text(encoding="utf-8"))
         before = json.loads(path.read_text(encoding="utf-8"))
-        if not edit(roster):
+        if not edit(roster, rel):
             return 0
         why = triage_refusal(added_texts(before, roster),
                              ruling_reader(worktree, checkout))
@@ -708,8 +756,19 @@ def main(argv=None) -> int:
         why = ref_privacy.refusal(branch, (("the message", msg),))
         if why:
             raise Refuse(f"{why} would publish this host (#2310); nothing written")
-        def edit(roster) -> bool:
-            apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match)
+        def edit(roster, rel) -> bool:
+            sizes = ()
+            if a.op == "append-group":
+                # The size vocabulary comes from the tree the roster lands in,
+                # not from this tool's: an XS appended while durations.json
+                # lacked it is the second half of this class.
+                try:
+                    sizes = roster_lib.sizes(
+                        roster_lib.read_durations(a.worktree))
+                except roster_lib.SchemaError as e:
+                    raise Refuse(str(e))
+            apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
+                     rel, sizes)
             return True
         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
@@ -811,6 +870,15 @@ def _self_test() -> int:
         "const bad=t.includes('__bad__');\n"
         "console.log(bad ? 'TOTAL: 1 error(s) across 1 file(s)'\n"
         "               : 'TOTAL: 0 error(s) across 1 file(s)');\n",
+        encoding="utf-8")
+    # The duration model this fixture tree carries: append-group validates a
+    # size against it, so without it every size would be refused. Deliberately
+    # NOT the live model's numbers -- this pins the mechanism ("a size is legal
+    # iff the model keys it"), and roster_sync's self-test is the one that
+    # measures the tree's real rosters against the real model.
+    (seed / roster_lib.DURATIONS).parent.mkdir(parents=True, exist_ok=True)
+    (seed / roster_lib.DURATIONS).write_text(
+        json.dumps({"sizes_hours": {"S": 1.0, "M": 2.0, "L": 3.0}}, indent=1),
         encoding="utf-8")
     roster = {"repo": "fixture/roster", "groups": [
         {"group": "R9-A", "lane": "L1", "issues": [10], "fixes": [],
@@ -990,8 +1058,8 @@ def _self_test() -> int:
                        encoding="utf-8")
     rc, said = refusal("append-group", "R9-H", str(badsize))
     check("append-group refuses a size the duration model lacks", rc == 2
-          and "duration model" in said and "R9-H" in said and "XS" in said,
-          (rc, said[-300:]))
+          and "not in the durations model" in said and "R9-H" in said
+          and "XS" in said and FIXTURE_ROSTER in said, (rc, said[-300:]))
     goodsize = Path(tmp, "good-size.json")
     goodsize.write_text(json.dumps({"group": "R9-I", "lane": "L2", "after": [],
                                     "brief": "fixture I", "size": "S"}),
@@ -1343,11 +1411,13 @@ def _self_test() -> int:
     pushed_at = re.compile(r"^pushed \S+ at ([0-9a-f]{40})$", re.M)
     try:
         # the null control first: a solo edit pushes once, says no race, and
-        # adds exactly one commit -- the one it reports.
-        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-1",
+        # adds exactly one commit -- the one it reports. The stage values are
+        # classified ones (R10-ORCH-ROSTER-SCHEMA): a placeholder like `solo-1`
+        # is now refused at the writer, before the push these arms measure.
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "in-progress",
                                         branch="edit-race", wt="wt-race"))
         tip0 = race_tip()
-        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-2",
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "fixing",
                                         branch="edit-race", wt="wt-race"))
         tip1 = race_tip()
         rep = pushed_at.findall(out)
@@ -1361,7 +1431,7 @@ def _self_test() -> int:
         # one rival inside the lint window: both edits reach origin, and the
         # sha this run reports is origin's tip.
         globals()["lint_gate"] = racing(1)
-        rc, out = captured(lambda: edit("set-stage", "R9-A", "raced",
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "in-flight",
                                         branch="edit-race", wt="wt-race"))
         r = branch_roster("edit-race")
         rep = pushed_at.findall(out)
@@ -1369,7 +1439,7 @@ def _self_test() -> int:
         check("race: the rival's edit survives",
               r["groups"][1].get("carry") == ["rival carry 1"], r["groups"][1].get("carry"))
         check("race: the loser's edit reaches origin",
-              r["groups"][0]["resume"]["stage"] == "raced",
+              r["groups"][0]["resume"]["stage"] == "in-flight",
               r["groups"][0]["resume"]["stage"])
         check("race: the sha reported pushed is origin's tip",
               rep == [race_tip()], (rep, race_tip()))
@@ -1379,7 +1449,7 @@ def _self_test() -> int:
         # edit on origin, every rival's edit kept.
         rivals.clear()
         globals()["lint_gate"] = racing(PUSH_ATTEMPTS)
-        rc, out = captured(lambda: edit("set-stage", "R9-A", "exhausted",
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "handoff",
                                         branch="edit-race", wt="wt-race-x"))
         r = branch_roster("edit-race")
         check("race on every attempt: refused (rc 2), said loudly",
@@ -1388,7 +1458,7 @@ def _self_test() -> int:
         check("race on every attempt: bounded at PUSH_ATTEMPTS rivals",
               len(rivals) == PUSH_ATTEMPTS, rivals)
         check("race on every attempt: origin holds every rival, not this edit",
-              r["groups"][0]["resume"]["stage"] == "raced"
+              r["groups"][0]["resume"]["stage"] == "in-flight"
               and r["groups"][1]["carry"] == ["rival carry 1"] + rivals
               and "rival carry 1" not in rivals,
               (r["groups"][0]["resume"]["stage"], r["groups"][1]["carry"]))
@@ -1402,7 +1472,7 @@ def _self_test() -> int:
     hook.chmod(0o755)
     try:
         before = race_tip()
-        rc, out = captured(lambda: edit("set-stage", "R9-A", "hooked",
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "queued",
                                         branch="edit-race", wt="wt-race"))
         check("a non-race push failure refuses at once (rc 2), no retry",
               rc == 2 and "hook says no" in out and "lost a race" not in out
