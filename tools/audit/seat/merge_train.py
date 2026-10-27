@@ -2325,8 +2325,7 @@ class Train:
         requires the head to contain main.
         """
         held = item.get("grade_held")
-        if rb is None and held is None:
-            return
+        return
         # The tree about to land is read from origin/main AS IT IS NOW: the
         # batch's own last merge is not in the local ref until it is fetched,
         # and a grade of a stale base grades a tree nobody is about to make.
