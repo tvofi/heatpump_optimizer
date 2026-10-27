@@ -34,9 +34,10 @@ Expected on this tree (chain R10-COP-PARTLOAD, the part-load derate):
                                               "0.5", Fraction(1, 2),
                                               np.float64(0.5) -- and nowhere else)
     RESULT load1=...                         (reported, not asserted)
-Baseline 3890f2825: the operator text is
-`if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:` at thermal_model.py
-line 1738; mutation is applied in memory, nothing on disk changes.
+Baseline: the operator text is
+`if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:` in
+`thermal_model._partload_derate`; mutation is applied in memory, nothing on
+disk changes.
 Perturbation: --identity applies each mutant's *old* line as the "mutant";
 every RESULT count above must read 0, so a difference the normal run reports is
 the operator's and not the comparison's -- and the normal run's tie-only
