@@ -35,9 +35,9 @@ the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
   writer produced four lines inside that window (08:58:22, 09:03:22, 09:08:23, 09:13:24) at
   its unbroken cadence, so it is a separate timer or process. Arrival order is unresolved:
   the whole-ledger series (`grep -n 'triage s7:' seat-ledger.md`) puts a plain-`HOLD`
-  cadence starting before this seat's first line with no gap over 7 minutes, so the
-  orchestrator's 09:30:39Z stand-down rests on the 08:13-09:38 window and does not settle
-  which writer arrived first.
+  cadence starting at 20:56:28Z (ledger:1171, before this seat's first `; main <sha>`-annotated
+  line at 08:12:52Z, ledger:1330) with no gap over 7 minutes, so the orchestrator's 09:30:39Z
+  stand-down rests on the 08:13-09:38 window and does not settle which writer arrived first.
 - Invisible to the liveness file. Both writers `touch` `s7/triage.alive`; its mtime can only
   say that someone is alive, never how many. (The orchestrator's board reads alive age only,
   and it was corrected today from 660 s to 1800 s after 22 beat gaps, median 57 s, max
@@ -54,14 +54,18 @@ the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
   `triage`/`HOLD` write in it — and w71's `loop.sh`/`watch.sh` have no process at all, while
   `w71/loop.pid` names 76559, which is gone. Its source is unidentified.
 
-Cost: as filed, one file per seat instance plus a renewal on every pass, an arm in the sweep
-and its self-tests, and a second liveness source (renewal age) that can disagree with the
-alive-age test and with P199's carried arm ("no live pid and no `TRAIN DONE`/`STOPPED` line"),
-which already owns death detection. The per-role line would also print for every legitimate
-restart until a dead seat's claim is retired — seat restarts and beat gaps are routine in this
-session (three seats restarted at 21:15Z, `seat-ledger.md:1149`; the merge seat restarted at
-08:19:56Z after being dead since 22:16Z, `seat-ledger.md:1334`) — so the noise lands on the
-board the orchestrator reads every pass.
+Cost: read against all 34 of the destination group's carries, not one. P97(b), at index 21
+(carry 22; `s6-batch21.md#P97`), already carries three parts of the filed shape: the
+per-instance alive entry (one alive entry per seat id under each role, beside the per-role
+file), the sweep arm that acts on it (step (1b) of `tools/audit/seat/sweep_template.md` stops
+the older id and logs both), with that arm's self-test and mutation proof, and the `DUPLICATE
+seat <role>: <id> <id>` print. What is genuinely new is the renewal on every pass, the second
+liveness source (renewal age) that can disagree with the alive-age test and with P199's carried
+arm ("no live pid and no `TRAIN DONE`/`STOPPED` line"), which already owns death detection, and
+the noise a per-role line adds for every legitimate restart until a dead seat's claim is
+retired — seat restarts and beat gaps are routine in this session (three seats restarted at
+21:15Z, `seat-ledger.md:1149`; the merge seat restarted at 08:19:56Z after being dead since
+22:16Z, `seat-ledger.md:1334`) — which lands on the board the orchestrator reads every pass.
 
 Binding: a convention binds only the seats that implement it, and the instance that motivated
 the proposal implements nothing; the benefit is therefore unmeasured against its own target
