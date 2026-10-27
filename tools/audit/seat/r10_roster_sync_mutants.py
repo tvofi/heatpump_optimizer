@@ -51,6 +51,14 @@ Plants:
                               it is refused only as unresolvable.
   M20_shared_topic_first_only a pull request answers for the first group of
                               a shared topic alone.
+  M21_live_claim_rewritten    a live claim under an open pull request is
+                              rewritten to `in-progress` (the claim lost).
+  M22_live_claim_stranded     a live claim is never closed by its merge, so a
+                              merged group stays open forever (the class).
+  M23_done_rewritten          a settled `done` group is rewritten by an open
+                              pull request matching its topic.
+  M24_size_scan_blind         the size drift check returns nothing whatever
+                              the rosters carry.
 """
 import subprocess
 import sys
@@ -65,15 +73,13 @@ PLANTS = {
         (SRC, "        if stage not in DERIVABLE_STAGES:",
               "        if False:  # M1")],
     "M2_open_not_in_progress": [
-        (SRC, "        if pr.state == OPEN:\n"
-              "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
-              "        if pr.state == OPEN:\n"
+        (SRC, "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
               "            if False:  # M2")],
     "M3_merged_without_commit": [
-        (SRC, "            changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
-              "                                  stage, pr.state))",
-              "            changes.append(Change(gid, \"done\", pr.number, None,\n"
-              "                                  stage, pr.state))  # M3")],
+        (SRC, "        changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
+              "                              stage, pr.state))",
+              "        changes.append(Change(gid, \"done\", pr.number, None,\n"
+              "                              stage, pr.state))  # M3")],
     "M4_carry_to_done_appended": [
         (SRC, "                elif not roster_lib.is_open(g):",
               "                elif False:  # M4")],
@@ -130,6 +136,19 @@ PLANTS = {
     "M20_shared_topic_first_only": [
         (SRC, "                    out[gid].append(pr)\n",
               "                    out[gid].append(pr)\n                    break  # M20\n")],
+    "M21_live_claim_rewritten": [
+        (SRC, "            if stage in roster_lib.LIVE_CLAIM:\n                continue",
+              "            if False:  # M21\n                continue")],
+    "M22_live_claim_stranded": [
+        (SRC, "        if stage in roster_lib.DONE_STAGES:\n            continue",
+              "        if stage in roster_lib.DONE_STAGES or stage in "
+              "roster_lib.LIVE_CLAIM:\n            continue  # M22")],
+    "M23_done_rewritten": [
+        (SRC, "        if stage in roster_lib.DONE_STAGES:\n            continue",
+              "        if False:  # M23\n            continue")],
+    "M24_size_scan_blind": [
+        (SRC, "    return {s: w for s, w in seen.items() if s not in model}",
+              "    return {}  # M24")],
 }
 
 
