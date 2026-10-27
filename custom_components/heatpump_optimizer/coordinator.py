@@ -499,7 +499,7 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 
 
 #: One forecast step, as the clock ``drift.utc_step_starts`` walks; its
-#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``).
+#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``). (null control)
 FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
 
 
