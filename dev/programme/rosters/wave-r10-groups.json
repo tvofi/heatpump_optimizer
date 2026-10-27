@@ -10458,7 +10458,7 @@
    ],
    "resume": {
     "stage": "in-progress",
-    "branch": "wip-sync/ext-wt-5d3ff6c5",
+    "branch": "handoff/r10-diag-ages",
     "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
     "last_step": null,
     "next_step": "fixer live; 6ebc8aac re-bases input ages, judges plan_stale at export and stamps the self-test run time, the three parts #2824 left open on issue 2814 (which this group already lists). No handoff branch and no PR yet: reachable at wip-sync/ext-wt-5d3ff6c5 (snapshot). Push handoff/r10-diag-ages, then open the PR.",
