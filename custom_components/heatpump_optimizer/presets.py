@@ -347,7 +347,7 @@ def house_grade(
         ),
     }
     total = sum(logs.values())
-    grade = max(100.0 / (1.0 + math.exp(_GRADE_SLOPE * total)), _GRADE_FLOOR)
+    grade = 100.0 / (1.0 + math.exp(_GRADE_SLOPE * total))
     drivers = [
         {"code": code, "points": (grade - 50.0) * value / total if total else 0.0}
         for code, value in logs.items()
