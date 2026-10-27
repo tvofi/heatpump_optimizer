@@ -18,6 +18,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-BUFFER-STORE (stage in-review, branch `handoff/r10-buffer-store`): `git fetch origin handoff/r10-buffer-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
+- R10-FLOW-BOARD (stage in-progress, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-JIDOKA (stage in-progress, branch `fix/r10-flow-jidoka-p2`): `git fetch origin fix/r10-flow-jidoka-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-ROSTER-FREEZE (stage carries-open, branch `handoff/r10-flow-roster-freeze`): `git fetch origin handoff/r10-flow-roster-freeze && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
