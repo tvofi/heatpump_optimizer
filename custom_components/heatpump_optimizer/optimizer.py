@@ -397,7 +397,7 @@ def _thermostat_demand_single(
     p = model.params
     k_slab = p.slab_heat_transfer_floored
 
-    # Thermal power the room needs to sit at the setpoint.
+    # Thermal power the room needs to sit at the setpoint. (null control)
     q_demand = _floor_demand_at_target(
         model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
     )
@@ -5069,7 +5069,7 @@ class HeatPumpOptimizer:
             cop = self.model.marginal_cop(
                 out_mean, "buffer", store_temp=temp, humidity=humidity
             )
-            heat = delivered_heat_kw(p, cop, p.max_electrical_power)
+            heat: float = delivered_heat_kw(p, cop, p.max_electrical_power)
             return heat - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
 
         if net(hi) > 0.0:
