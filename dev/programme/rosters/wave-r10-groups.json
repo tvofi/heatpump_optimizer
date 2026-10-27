@@ -10457,7 +10457,7 @@
     "From R10-DIAG-REDACT (#2824): issue 2814 stays open on three parts outside that pull request's carries 0-2 -- re-basing input_ages_minutes to the export clock (the payload carries no publish instant to re-base from), judging plan_stale at publish, and a run time on the stored self-test results, which needs a field in the collection's store document."
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "in-progress",
     "branch": "wip-sync/ext-wt-5d3ff6c5",
     "commit": "6ebc8aacac2d1576670419e34bfdd62bc8d435dc",
     "last_step": null,
