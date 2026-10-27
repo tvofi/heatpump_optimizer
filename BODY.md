@@ -44,15 +44,19 @@ instead of the flow's own reads, and `payload.py` declares the new
 are in the roster's list. The rest of the diff is tests and evidence:
 `tests/features.py`, `tests/card.mjs`, `tests/entities.py`'s census entry, the
 two harnesses (one new, registered in `tests/closures.json`), the three
-mutation-ledger entries the removed `envelope_score` and `envelope_band_hours`
-lines owned, and the two claim files.
+mutation-ledger rows the removed `envelope_score` and `envelope_band_hours`
+lines owned (deleted with them) and the four the grade's own lines add
+(recorded below), the group's delivery row, and the two claim files. The
+delivery row is inert to the gate: `tests/closure.py select` at this head reads
+the same `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` as the gate on the
+pin head.
 
 Part of #2258, #2816. Neither closes here: the roster gives this group
 `fixes: []`, so the orchestrator decides their disposition at the merge.
 
 ## Head
 
-c89e5b5db1a8c2bfddbb9a9259f8dc319187eee9
+b1134fa8bf984881df7d292d4dbcaa29b1a403c2
 
 ## Mutation proof
 
@@ -97,6 +101,17 @@ M7 -- the removed `era_assumed` driver is reintroduced. The same three reds,
 which is why the removal is pinned from both sides: the absent-key proof rejects
 the read, and the two grade-level checks reject the extra driver.
 
+M8 -- not one mutant but four: the candidate sites the mutation table counts on
+this diff's own lines. At c89e5b5d the instrument refused with `MUTATION TABLE
+REFUSED -- 3908 unpinned site(s) against 3904 at the ratchet base
+3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f, 4 of them added by this diff`, and
+`--pin-killed --scripts tests/features.py` then drove each and recorded it
+(`4 pinned, 0 left unpinned`): `tests/features.py` moves from rc=0 failed=0 to
+rc=1 failed=1 under the coordinator's `RETURN_DEL`, and to rc=1 failed=2 under
+each of the grade's two doubled constants and its dropped clamp. The drive's
+null control, a comment-only edit at `coordinator.py:518`, survived, so the
+reds are the mutants' and not the driver's.
+
 ## Null control
 
 At ratio 1.0, all 240 preset cells (4 structures x 5 eras x 3 foundations x 2
@@ -139,23 +154,41 @@ split's, not a scale-only drift.
   seat's scratch directory, not in the tree; each compiles the region from the
   tree's own source.
 - `node tests/card_drift.mjs`: `1 state(s) moved and claimed, 44 identical`.
-- Scoped gate, `GATE_SCOPE=auto` on this head: `MODE: SCOPED -- 27 script(s) run,
-  6 scoped out.`, 23 of the 27 green. The four red are this host's, not the
-  branch's, and each is red identically at the merge base — `tests/entities.py`
-  (4 of 2463), `tests/optimality.py` (1 of 84), `tests/stress.py` (1 of 113) and
-  `tests/golden.py` in strict mode, which the contract's `GOLDEN_MODE=drift`
-  replaces. The drift lane, `python3 tests/env_drift.py --all origin/main`,
-  reads its whole run: 5 committed fixtures stale and all 5 `CLAIMED`, 0
-  `UNCLAIMED`, every backtest scenario `byte-identical to origin/main here`.
+- Scoped gate, `GATE_SCOPE=auto`: on the authored head c89e5b5d `MODE: SCOPED
+  -- 27 script(s) run, 6 scoped out.`, 23 of the 27 green (the four host reds
+  below); re-run at the pin head 65ac142, whose only change since is the four
+  ledger rows, the same mode line and the same 27 scripts: `ALL 4454 FEATURE
+  CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, the same four host reds at the
+  same counts, and `tests/card.mjs` added to the red set by this host's V8 heap
+  limit (its merge-base control is in `## Red checks`). The drift lane,
+  `python3 tests/env_drift.py --all origin/main`, reads its whole run: 5
+  committed fixtures stale and all 5 `CLAIMED`, 0 `UNCLAIMED`, every backtest
+  scenario `byte-identical to origin/main here`.
 - `tests/structure.py`: `STRUCTURE RATCHET PASSED`, every metric at or under
   its budget.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/presets.py:323 CONST`: `_GRADE_SLOPE = 1.5`. Written triage: the checks pin the owner's 30-40 band, not the value; a 1.0 slope lands the owner's case on exactly 40.0 and passes, and the harness's `EXPECTED curve_min=4.23` line is not executed by any check. Left for `mutation-autofix` to pin with the driver that kills it.
-- `custom_components/heatpump_optimizer/presets.py:325 CONST`: `_GRADE_FLOOR = 1.0`, pinned by the value check `#2816: the grade falls strictly with the loss ratio until the floor, and a measured house never grades 0` (`min(_env_curve) == 1.0`).
-- `custom_components/heatpump_optimizer/presets.py:361 CLAMP_DROP`: the `max(...)` floor, pinned by the same check (mutant M2).
-- `custom_components/heatpump_optimizer/coordinator.py:2902 RETURN_DEL`: `return grade, None, drivers`, pinned by `#2816: the scores publish the grade's drivers, their points rounded to one decimal and summing to its distance from 50` (mutant M3).
+none. The diff adds four candidate sites and each has a `killed_by` row naming
+the mutant it was driven with and the rc the driver moved:
+
+- `coordinator.py:2902 RETURN_DEL` (`return grade, None, drivers`): `pass`
+  takes `tests/features.py` from rc=0 failed=0 to rc=1 failed=1, because every
+  grade read unpacks the tuple.
+- `presets.py:323 CONST` (`_GRADE_SLOPE = 1.5`): the doubled 3.0 takes it to
+  rc=1 failed=2, because the owner's house then falls out of its 30-40 band.
+- `presets.py:325 CONST` (`_GRADE_FLOOR = 1.0`): the doubled 2.0 takes it to
+  rc=1 failed=2, because the curve's floored cell reads 2.0.
+- `presets.py:361 CLAMP_DROP` (`grade = max(...)`): the dropped clamp reads
+  1.0e-07 at that cell, rc=1 failed=2.
+
+Recorded by `python3 tests/mutation_table.py --pin-killed --scripts
+tests/features.py --base origin/main --jobs 3`: `4 pinned, 0 left unpinned`,
+and the drive's own null control (`coordinator.py:518 NULL_COMMENT`, a
+comment-only edit) survived the driver. The table's count reads 3904 unpinned
+sites of 6411 candidates at both the ratchet base
+3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f and this head, 0 added; completeness
+and the ledger's canonical form both read clean.
 
 ## Red checks
 
@@ -186,13 +219,38 @@ here, and each fix carries its own mutant above.
 - `tests/card_drift.mjs`: `score_open` moved because the House row's explanation
   is rewritten and gains its driver line. Claimed in
   `tests/golden/card_claimed_drift.txt`; the other 44 states are identical.
+- `mutation`: red at the handoff head c89e5b5d, and this diff's. The instrument
+  refused with `MUTATION TABLE REFUSED -- 3908 unpinned site(s) against 3904 at
+  the ratchet base 3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f, 4 of them added by
+  this diff`, the four `ADDED UNPINNED` lines being the grade's two module
+  constants, its clamp and the coordinator's removable return. Answered by
+  measurement, not prose: the diff's own `#2816` checks kill all four, so
+  `python3 tests/mutation_table.py --pin-killed --scripts tests/features.py`
+  recorded four `killed_by` rows (`4 pinned, 0 left unpinned`) and the table now
+  reads 3904 unpinned sites at the base and 3904 here, 0 added. There was no
+  cheaper detector to build -- the killing checks were already in the diff's
+  test block, and what was missing was the ledger row that says so. The standing
+  cost is the row, not a run: the pull-request `mutation` job drives only its
+  sampled pool and never re-drives a pin, and a `killed_by` row is re-driven by
+  the nightly drain or by `mutation_table.py --anchor`.
+
+- `governance / delivery-status`: the first CI pass over a freshly opened pull
+  request is expected to read red because `dev/programme/delivery/<N>.md` does
+  not exist until the opener has created the pull request; `open_pr.sh` writes
+  and pushes that row as its own second commit, and the head after it carries
+  the row. This branch additionally carries the group row
+  `dev/programme/delivery/r10-house-grade.md`, which the grader's
+  `*.md`-with-a-numeric-stem filter ignores, so it neither substitutes for nor
+  displaces `<N>.md`.
 
 Not a red of the branch: `tests/arch_score_head.py` in that first gate was
 killed by a SIGTERM to the process group that launched the gate (its log reads
 `Terminated: 15`), not by a failing assertion; the gate on this head ran it.
 
-Not the branch's either, and not repaired here: four scripts this host reddens
-are red at the merge base `3b4180dcc` too, measured there in this environment.
+Not the branch's either, and not repaired here: five scripts this host
+reddens. Four are red at the merge base `3b4180dcc` with the same checks,
+measured there in this environment; the fifth, `tests/card.mjs`, is killed by
+this host's V8 heap limit at both ends.
 
 - `tests/entities.py`, 4 of 2463: `hb:positive_control survives one hung py-spy
   sample`, `and a try whose sample misses the spin, or names it at rc!=0, is
@@ -212,6 +270,16 @@ are red at the merge base `3b4180dcc` too, measured there in this environment.
 - `tests/stress.py`, 1 of 113: `shoulder: cheaper than holding the setpoint`,
   `4.67 vs 3.96` — the same check, the same two numbers, at 3b4180dcc
   (`1 of 113`).
+- `tests/card.mjs` at the pin head: not a check failure. It dies with
+  `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed -
+  JavaScript heap out of memory` at 2.0 GB, immediately after `the census
+  records through the navigation surface the card loaded against` printed ok.
+  The merge-base tree `3b4180dcc`, given its own `tests/plan_view.py` payload,
+  dies at the same check with the same line (`0 of 0` failed checks either
+  time: the process is killed, not the assertion). The earlier gate on this
+  branch ran `node tests/card.mjs` to green, and no file this branch changes is
+  read by that census except the card it renders, so the heap exhaustion is
+  this host's memory pressure and not the branch's code.
 - `tests/golden.py` in strict mode: `55 of 56 GOLDEN SCENARIOS CHANGED`, value
   leaves only. Strict mode compares committed fixtures recorded on another
   machine against this one's floats; `tests/run.sh`'s own comment says so. The
@@ -219,6 +287,18 @@ are red at the merge base `3b4180dcc` too, measured there in this environment.
   `tests/env_drift.py --all origin/main`, which reads every backtest scenario
   `byte-identical to origin/main here` and the five coordinating fixtures
   `CLAIMED` with `0 UNCLAIMED` (the claims this branch adds).
+
+Side by side, at the merge base `3b4180dcc` and at this head, in this
+environment: `tests/entities.py` prints `4 of 2463 ENTITY CHECKS FAILED` at
+both, the same four `hb:` checks; `tests/optimality.py` `1 of 84` at both, the
+same claim; `tests/stress.py` `1 of 113` at both, `4.67 vs 3.96` at both;
+`tests/golden.py` in strict mode `55 of 56 GOLDEN SCENARIOS CHANGED` at both;
+and `node tests/card.mjs` dies with the same `FATAL ERROR: ... JavaScript heap
+out of memory` line right after the same census check at both.
+The drift lane at both ends prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked
+against origin/main` and `NO STALE FIXTURE: 56 committed fixture(s) still match
+what this tree computes`; at this head the five fixtures this branch's claim
+lines name read `CLAIMED`.
 
 ## Forward-carry
 
