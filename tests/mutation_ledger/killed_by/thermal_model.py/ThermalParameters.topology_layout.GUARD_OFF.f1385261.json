@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout GUARD_OFF f1385261",
+  "killed_by": "tests/features.py",
+  "old": "        elif not throttling:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -424,6 +424,30 @@ R.check(
 )
 R.check("a missing unit is refused", normalize_power_kw(3000.0, None) is None)
 
+# D7-s2-61: the one live-state power parse and its three sign policies. Each
+# row is a policy's own answer; the non-finite, word and unit rows are every
+# policy's "no reading".
+from heatpump_optimizer.inputs import state_power_kw as _spk  # noqa: E402
+_spk_rows = {
+    ("-400", "W"): (-0.4, 0.0, None),
+    ("0", "kW"): (0.0, 0.0, None),
+    ("2500", "W"): (2.5, 2.5, 2.5),
+    ("inf", "kW"): (None, None, None),
+    ("1e400", "kW"): (None, None, None),
+    ("1e306", "MW"): (None, None, None),  # finite in, overflows on conversion
+    ("unknown", "kW"): (None, None, None),
+    ("3", "furlong"): (None, None, None),
+}
+_spk_got = {
+    k: tuple(_spk(FakeState(k[0], unit=k[1]), sign=p) for p in ("signed", "clamp", "positive"))
+    for k in _spk_rows
+}
+R.check(
+    "a power state parses to finite kW under the caller's sign policy, or to no reading",
+    _spk_got == _spk_rows and _spk(None) is None,
+    f"got {_spk_got}",
+)
+
 power_reader = reader(
     {"sensor.pump_power": FakeState("2400", unit="W", last_updated=NOW)}
 )
@@ -9316,6 +9340,16 @@ R.check(
     "while the schedule agrees, so do the baselines",
     np.allclose(_bl_setback[:8], _bl_flat[:8]),
 )
+# A house that needs more than the pump can draw gets the pump's nameplate, the
+# cap a real thermostat runs into, never the demand the pump cannot meet.
+_bl_capped, _ = _PvOpt(_PvModel(_PvParams(max_electrical_power=1.0)), _PvOptCfg(
+    target_temp=21.0))._compute_baseline_power(
+    _WS(_bl_out, _bl_zero, _bl_zero, _bl_zero), _bl_state, 0.25)
+R.check(
+    "a demand past the pump's nameplate holds the reference at max_electrical_power",
+    float(np.max(_bl_capped)) == 1.0 and float(np.min(_bl_capped)) == 1.0,
+    f"reference {np.min(_bl_capped):.3f}..{np.max(_bl_capped):.3f} kW against a 1.0 kW pump",
+)
 
 # --- The foundation mass adjustment must be applied once ------------------
 basement_two_zone = presets.derive(
@@ -12893,6 +12927,30 @@ R.check(
     "and reports no wood trajectory at all",
     _w2t_out_none[6] is None,
     "None rather than a flat line of ambient, so a silent reset is visible",
+)
+
+
+# The savings reference backs its electric demand off by the same wood share,
+# and only where the layout models the wood tank: a single-tank state that
+# carries a wood reading is the thermostat it would be without one.
+def _w2t_reference(params, wood, n=16):
+    _z = np.zeros(n)
+    return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
+        _WS(np.full(n, -5.0), _z, _z, _z), _w2t_state(wood), 0.25)[0]
+
+
+_w2t_ref_hot = _w2t_reference(_w2t_params_two, 80.0)
+_w2t_ref_cold = _w2t_reference(_w2t_params_two, 20.0)
+_w2t_ref_off = _w2t_reference(_w2t_params_off, 80.0)
+_w2t_ref_off_none = _w2t_reference(_w2t_params_off, None)
+R.check(
+    "the savings reference backs off by the wood share on the two-tank layout, "
+    "and a wood reading on any other layout moves it not at all",
+    float(np.sum(_w2t_ref_hot)) < float(np.sum(_w2t_ref_cold)) - 1.0
+    and np.array_equal(_w2t_ref_off, _w2t_ref_off_none),
+    f"two-tank hot {np.sum(_w2t_ref_hot):.2f} vs cold {np.sum(_w2t_ref_cold):.2f} kW-steps; "
+    f"single-tank with a reading {np.sum(_w2t_ref_off):.2f} vs without "
+    f"{np.sum(_w2t_ref_off_none):.2f}",
 )
 
 
@@ -17215,8 +17273,8 @@ R.check(
 )
 R.check(
     "the plan lookup reads this step and the next",
-    _ps.plan_commands_heat([0.0, 2.0, 0.0], 0) == (False, True)
-    and _ps.plan_commands_heat([0.0, 2.0, 0.0], 2) == (False, False),
+    _ps.plan_commands_heat([False, True, False], 0) == (False, True)
+    and _ps.plan_commands_heat([False, True, False], 2) == (False, False),
 )
 
 # The coordinator glue: transitions only, and only configured entities.
@@ -17354,6 +17412,34 @@ R.check(
     "and a fresh plan drives the space pump, so the check above is not vacuous",
     _pump_entities(_fresh_pumps) == ["switch.vvc", "switch.space_pump"],
     f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
+)
+
+# D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
+# steps (optimizer.channel_heating_steps over both channels), not the space
+# draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
+# commands nothing. Null control: the 0.07 kW share on a step the hot-water
+# share makes run, and the 3 kW steps, still command heat.
+_ps_seen: list = []
+_ps_real = _ps.plan_commands_heat
+
+
+def _ps_spy(space_heating, step_index):
+    _ps_seen.append(list(space_heating or []))
+    return _ps_real(space_heating, step_index)
+
+
+_fresh_pumps._optimization_result.power_schedule[:3] = [0.07, 0.07, 3.0]
+_fresh_pumps._optimization_result.dhw_power_schedule = [0.0, 0.07] + [0.0] * 46
+_ps.plan_commands_heat = _ps_spy
+try:
+    _asyncio.run(_fresh_pumps._async_drive_pumps())
+finally:
+    _ps.plan_commands_heat = _ps_real
+R.check(
+    "the space pump reads the plan's space-heating steps, not its raw draw "
+    "(D8-s1-01)",
+    bool(_ps_seen) and _ps_seen[0][:3] == [False, True, True],
+    f"saw {_ps_seen[:1]}",
 )
 
 # The class D1-02 states, as a rule rather than an instance: every actuation
@@ -19072,6 +19158,20 @@ R.check(
         {"t": _RS_T0.isoformat()}
     ).solar_radiation is None,
     "a legacy sample (no field) must load as unknown, not as zero",
+)
+R.check(
+    "a stored sample's numbers go through const.finite_float: a bool or a "
+    "non-finite value loads as unknown (D7-s2-58 class)",
+    AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "solar_radiation": True}
+    ).solar_radiation is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "nan"}
+    ).actual_temp is None
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "actual_temp": "21.5"}
+    ).actual_temp == 21.5,
+    "True used to load as 1.0",
 )
 
 
@@ -21310,6 +21410,23 @@ R.check(
     repr(_cs6._current_action),
 )
 
+# D8-s1-01 class sweep: the experiment's on flag is the pump's running rule
+# (planned_draw_runs, MIN_RUNNING_DRAW_KW), not the 0.05 kW channel line. Null
+# control: the 2.0 kW command above is on.
+_cs6_low = _t2_coord()
+_cs6_low._current_action = {"power": 1.0, "space_reason": None, "dhw_reason": None}
+_cs6_low._sysid.phase = PHASE_ARMED
+_cs6_low._sysid.step = lambda **kw: 0.07
+_sysid_cycle(_cs6_low, np.array([1.0]))
+R.check(
+    "an experiment command under the running floor does not mark the pump on "
+    "(D8-s1-01)",
+    _cs6._current_action["heat_pump_on"] is True
+    and _cs6_low._current_action["heat_pump_on"] is False,
+    f"2.0 kW -> {_cs6._current_action.get('heat_pump_on')!r}, "
+    f"0.07 kW -> {_cs6_low._current_action.get('heat_pump_on')!r}",
+)
+
 # --- #40 the month freeze --------------------------------------------------------
 _cm = _t2_coord()
 _cm._accumulate_energy(
@@ -23115,6 +23232,24 @@ R.check(
     "null control: a non-defrost interval still folds",
     _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
     repr(_cdf0._freq_map.buckets),
+)
+# D7-s2-01's pump_offline arm (R10-ARCH-SHAPES carry): an offline or faulted
+# pump's metered draw against its reported Hz is not its kW-per-Hz curve, and
+# every other learner already stands down on the freeze reason pump_signals
+# returns. The map admitted both; only cooling was refused.
+from heatpump_optimizer import pump_signals as _ps_mod  # noqa: E402
+_cfz = {}
+for _cfz_reason, _cfz_online in ((_ps_mod.FREEZE_OFFLINE, False),
+                                 (_ps_mod.FREEZE_FAULT, True),
+                                 (_ps_mod.FREEZE_COOLING, True)):
+    _cfz_c = _freq_coord()
+    _cfz_c._pump_signals = PumpSignals(online=_cfz_online, freeze_reason=_cfz_reason)
+    _cfz_c._observe_frequency(_T6)
+    _cfz[_cfz_reason] = bool(_cfz_c._freq_map.buckets)
+R.check(
+    "an offline, faulted or cooling pump's interval never teaches the frequency map",
+    _cfz == {r: False for r in _cfz},
+    repr(_cfz),
 )
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
@@ -34358,6 +34493,70 @@ def _db_band(coord, solve_time=_DB_T0):
     return coord._build_plan_views(_db_plan(solve_time))["dhw_plan"]["forecast"]
 
 
+# D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
+# plan's own on schedule calls off -- active_now read the channel's draw
+# against 0.05 kW, the running rule reads the step's whole ask against
+# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# Null control: the rows where the step runs keep their verdicts.
+def _ah_active(space0, dhw0):
+    plan = _db_plan(_DB_T0)
+    plan.power_schedule[0], plan.dhw_power_schedule[0] = space0, dhw0
+    views = _ah_coord._build_plan_views(plan)
+    return views["space_plan"]["active_now"], views["dhw_plan"]["active_now"]
+
+
+_ah_coord = _db_drive(cycles=1)
+_ah_rows = {
+    (0.07, 0.0): (False, False),  # the step's ask is under the running rule: off
+    (0.0, 0.07): (False, False),
+    (0.07, 0.07): (True, True),   # the step runs, and both channels carry it
+    (2.0, 0.0): (True, False),
+    (0.04, 2.0): (False, True),   # running, but space's own share is idle
+}
+_ah_got = {k: _ah_active(*k) for k in _ah_rows}
+R.check(
+    "a plan channel is heating now only on a step the plan runs (D8-s1-01)",
+    _ah_got == _ah_rows,
+    f"got {_ah_got}",
+)
+from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
+import inspect as _ah_inspect  # noqa: E402
+# The slot merge and the DHW schedule sensor read the same running rule
+# (D8-s1-01's secondary arm): each step of ``_ah_steps`` the plan calls off
+# must sit in no slot, and the schedule sensor counts no period from a raw
+# draw. Null control: the steps the plan runs keep their slot.
+_ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
+_ah_sp = [s for s, _ in _ah_steps]
+_ah_dw = [d for _, d in _ah_steps]
+_ah_ts = [_DB_T0 + timedelta(minutes=15 * i) for i in range(len(_ah_steps))]
+_ah_in_slot = [
+    [any(sl["start"] <= t.isoformat() < sl["end"] for sl in slots) for t in _ah_ts]
+    for slots in (
+        Coord._plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
+        Coord._plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
+    )
+]
+R.check(
+    "a plan slot holds only steps the plan runs, each channel on its own share "
+    "(D8-s1-01)",
+    _ah_in_slot == [
+        [True, False, False, True, False, False],
+        [False, False, False, True, True, False],
+    ],
+    f"got {_ah_in_slot}",
+)
+_ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
+_ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()
+R.check(
+    "the DHW schedule sensor counts periods only from the plan's own slots "
+    "(D8-s1-01): a raw draw of 0.07 kW does not say whether the pump runs",
+    _ah_sched.native_value is None
+    and not hasattr(_ah_sensor, "CHANNEL_ACTIVE_KW")
+    and "threshold" not in _ah_inspect.signature(Coord._plan_slots).parameters,
+    f"state {_ah_sched.native_value!r}",
+)
+
+
 # --- the record fills only from a configured, usable probe -----------------
 _db_ok = _db_drive()
 R.check(
@@ -40138,17 +40337,18 @@ R.check(
     [r["month"] for r in _rows] == ["2026-02"],
     repr([r["month"] for r in _rows]),
 )
-# #2255: the row's actual is the month's bill (the spot line, 2.0), the
-# saving is baseline less actual over the covered interval (1.0), and the
-# baseline is the bill plus that saving. With no coverage meta (a month
+# #2492: every cell is on the savings lines' one basis -- the row's actual
+# is the metered energy's cost over the covered interval (1.0), not the
+# month's bill (the spot line, 2.0); the baseline is the thermostat's (2.0)
+# and the saving the one less the other. With no coverage meta (a month
 # booked before it existed) the open month falls back to 28 / 10.
 R.check(
-    "open month scales the bill and the saving by one factor",
+    "open month scales the baseline, the actual and the saving by one factor",
     _rows[0]["estimated"] is True
-    and abs(_rows[0]["actual_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
     and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
-    and abs(_rows[0]["baseline_sek"] - 8.4) < 1e-9
-    and abs(_rows[0]["savings_pct"] - 100.0 / 3.0) < 1e-9,
+    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
     repr(_rows[0]),
 )
 _led.add_savings_settlement(
@@ -40162,10 +40362,10 @@ R.check(
 )
 _closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
 R.check(
-    "a closed month is unscaled; nothing saved reads baseline == actual == bill",
+    "a closed month is unscaled; nothing saved reads baseline == actual on the energy basis",
     _closed["estimated"] is False
-    and abs(_closed["baseline_sek"] - 20.0) < 1e-9
-    and abs(_closed["actual_sek"] - 20.0) < 1e-9
+    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
+    and abs(_closed["actual_sek"] - 1.0) < 1e-9
     and _closed["savings_sek"] == 0.0
     and _closed["savings_pct"] == 0.0,
     repr(_closed),
@@ -40177,9 +40377,12 @@ from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
 from heatpump_optimizer.ledger import month_hours as _sav_month_hours
 from heatpump_optimizer.ledger import SETTLED_HOURS_META as _SAV_SETTLED_META
 
-# Item 5: a closed September with every line the receipt adds -- spot,
-# grid fee, capacity, immersion, wear -- and one interval no plan covered.
-# The receipt's headline and the savings row's actual are the same figure.
+# Item 5, restated by #2492 (the owner's one-basis acceptance): a closed
+# September with every line the receipt adds -- spot, grid fee, capacity,
+# immersion, wear -- and one interval no plan covered. The row's actual is
+# the metered energy of the covered intervals at spot plus fee, the basis
+# its saving is on; capacity, wear and the uncovered interval are the
+# receipt's and in neither column.
 _sep = _SavLedger()
 _sep_t = _SavDT(2026, 9, 12, 3, 0)
 for _i, _base_kw in enumerate((2.0, 2.0, None)):
@@ -40198,9 +40401,9 @@ _sep_receipt = _sav_freeze(
 )
 _sep_row = _sep.savings_months(_SavDT(2026, 10, 3, 12, 0))[0]
 R.check(
-    "the closed month's actual is the receipt's total, not a second sum",
-    _sep_row["actual_sek"] == _sep_receipt["total_sek"]
-    and abs(_sep_row["actual_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
+    "the closed month's actual is the covered metered energy at spot plus fee, not the bill",
+    abs(_sep_row["actual_sek"] - 2 * 1.5 * 1.4) < 1e-9
+    and abs(_sep_receipt["total_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
     f"row {_sep_row} receipt total {_sep_receipt['total_sek']}",
 )
 R.check(
@@ -40228,14 +40431,14 @@ _feb_row = _feb.savings_months(_feb10)[0]
 R.check(
     "the open month scales by the month's hours over the hours it settled",
     _sav_month_hours(_feb10) == 672.0
-    and abs(_feb_row["actual_sek"] - (24.0 * 28.0 + 10.0)) < 1e-9
+    and abs(_feb_row["actual_sek"] - 24.0 * 28.0) < 1e-9
     and abs(_feb_row["savings_sek"] - 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 R.check(
-    "the capacity line is a month figure already and is not extrapolated",
+    "the capacity line is in neither column: baseline less actual is the saving",
     abs(_feb_row["baseline_sek"] - _feb_row["actual_sek"] - _feb_row["savings_sek"]) < 1e-9
-    and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
+    and abs(_feb_row["baseline_sek"] - 2 * 24.0 * 28.0) < 1e-9,
     repr(_feb_row),
 )
 _over = _SavLedger()
@@ -40305,12 +40508,113 @@ R.check(
     repr(_none_meta),
 )
 
+# #2492, the owner's baseline specification (2026-10-24): the thermostat
+# runs at the power levels the pump recorded, over the same price profile,
+# and the saving is its cost less the metered cost. The ledger books the
+# plan's own modelled kWh beside the meter's on the same intervals, and the
+# month scales the modelled thermostat by their ratio. Four one-hour
+# intervals, a plan heating in the cheap hours, a thermostat of the same
+# modelled volume spread flat, and a meter reading 1.5x the plan's model.
+from heatpump_optimizer.ledger import (
+    MIN_CALIBRATION_KWH as _SAV_MIN_CAL,
+    SAVINGS_PLAN_LINE as _SAV_PLAN_LINE,
+)
+
+def _sav_cal_month(prices, thermostat, plan, meter_factor, with_plan=True, fee=0.0):
+    led = _SavLedger()
+    for _h, (_p, _b, _q) in enumerate(zip(prices, thermostat, plan)):
+        pend = {"baseline_kw": _b, "grid_fee": fee}
+        if with_plan:
+            pend["power"] = _q
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 1, 12, _h, 0), _p, pend, meter_factor * _q, 1.0
+        )
+    return led.savings_months(_feb10)[0]
+
+_sav_flat, _sav_vary = [2.0] * 4, [1.0, 3.0, 1.0, 3.0]
+_sav_plan, _sav_therm = [2.0, 0.0, 2.0, 0.0], [1.0, 1.0, 1.0, 1.0]
+_cal_flat = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5)
+_cal_flat_model = _sav_cal_month(_sav_flat, _sav_therm, _sav_plan, 1.5, with_plan=False)
+R.check(
+    "#2492: a meter reading a fixed factor over the model saves 0 at one flat price "
+    "when the thermostat's modelled volume is the plan's",
+    _cal_flat["meter_calibration"] == 1.5
+    and _cal_flat["savings_sek"] == 0.0
+    and _cal_flat["baseline_sek"] == _cal_flat["actual_sek"] == 12.0,
+    repr(_cal_flat),
+)
+R.check(
+    "#2492: and the modelled basis (no plan line) books the model's gap as a loss "
+    "(the control: the calibration is what moved it)",
+    _cal_flat_model["meter_calibration"] is None
+    and _cal_flat_model["savings_sek"] == 8.0 - 12.0,
+    repr(_cal_flat_model),
+)
+_cal_vary = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.5)
+R.check(
+    "#2492: over a varying profile the same month saves its timing, priced alike "
+    "on both sides",
+    _cal_vary["savings_sek"] == round(1.5 * (1 + 3 + 1 + 3) - 1.5 * 2.0 * (1 + 1), 2)
+    and _cal_vary["savings_sek"] > 0.0,
+    repr(_cal_vary),
+)
+_cal_vol = _sav_cal_month(_sav_flat, [2.0] * 4, _sav_plan, 1.5)
+R.check(
+    "#2492: at one flat price the volume difference remains, at the meter's levels",
+    _cal_vol["savings_sek"] == 2.0 * 1.5 * (8.0 - 4.0),
+    repr(_cal_vol),
+)
+_cal_gapless = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, fee=0.4)
+_cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_plan=False, fee=0.4)
+R.check(
+    "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
+    _cal_gapless["meter_calibration"] == 1.0
+    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
+    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    f"{_cal_gapless} / {_cal_gapless_model}",
+)
+# A month whose savings lines began before the plan line existed (an upgrade
+# mid-month) never gains one: its later intervals would calibrate the whole
+# month's thermostat. It stays on the modelled basis; the next month does not.
+_cal_upg = _SavLedger()
+_cal_upg.add_savings_settlement(_SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 1, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+_cal_upg.add_savings_settlement(
+    _SavDT(2026, 2, 4), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0, planned_kw=2.0
+)
+R.check(
+    "#2492: a month begun without the plan line stays modelled; the next one calibrates",
+    _SAV_PLAN_LINE not in _cal_upg.months["2026-01"]["lines"]
+    and _cal_upg.meter_calibration("2026-01") is None
+    and _cal_upg.meter_calibration("2026-02") == 1.5,
+    repr({k: v["lines"].keys() for k, v in _cal_upg.months.items()}),
+)
+_cal_tiny = _SavLedger()
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=0.99,
+)
+_cal_tiny.add_savings_settlement(
+    _SavDT(2026, 2, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
+    planned_kw=1.0,
+)
+R.check(
+    "#2492: a month whose plan booked under one modelled kWh stays modelled "
+    "(at one kWh it calibrates)",
+    _cal_tiny.meter_calibration("2026-01") is None
+    and _cal_tiny.meter_calibration("2026-02") == 3.0 / 1.0 and _SAV_MIN_CAL == 1.0,
+    repr(_cal_tiny.months),
+)
+
 # Item 1: the settlement books the plan's thermostat baseline at the step
 # covering the interval. A thermostat that ran all along does not care where
 # the optimiser left the house, so step 0 must not depend on the plan's start
-# state. Started from that state it was all-or-nothing: the clip (max power)
-# whenever the house sat below target, 0 kW above it -- September's 81 % and
-# October's negative month. Both topologies, the DHW path on the two-zone one.
+# state beyond the comfort the plan delivers (#2492). Started from that state
+# it was all-or-nothing: the clip (max power) whenever the house sat below
+# target, 0 kW above it -- September's 81 % and October's negative month.
+# Both topologies, the DHW path on the two-zone one.
 from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_weather
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer as _HbOpt,
@@ -40420,11 +40724,13 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
             "",
         )
 
-# The start's settlement, at its two limits. A pre-heated start (24 C room,
-# above the 21 C cap the end settlement uses) carries heat the plan coasts
-# on inside the horizon, so it is debited past the caps -- but by no more
-# than the thermostat would have bought: with nothing to buy (a summer house
-# holding passive warmth) the debit stops at the capped gap.
+# The start's settlement, at its limits (#2255, #2492). A pre-heated start
+# (24 C room, above the 21 C cap the end settlement uses) carries heat the plan
+# coasts on inside the horizon, so it is debited -- but by no more than that
+# heat could have bought: the space heat the thermostat buys, plus what of it
+# reaches the end and is credited there. With nothing to buy and nothing
+# credited (a summer house holding passive warmth) the debit is 0, not the
+# capped gap, which read the summer house's saving as a loss.
 from heatpump_optimizer.thermal_model import WeatherSeries as _HbWS
 
 _hs_cfg = _hb_house(two_zone=False, dhw=False)
@@ -40443,17 +40749,17 @@ _hs_held = _hb_held_state(_hs_opt.model, _hs_warm, _hs_ws, 21.0)
 _hs_capped = _hs_opt._deferred_energy_cost(
     _hs_held, _hs_warm, _hs_px, _hb_out, caps=_hs_caps)
 _hs_free = _hs_opt._deferred_energy_cost(_hs_held, _hs_warm, _hs_px, _hb_out, caps=None)
-_hs_gap = lambda cost: _hs_opt._start_gap_cost(  # noqa: E731
-    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost)
+_hs_gap = lambda cost, end=0.0: _hs_opt._start_gap_cost(  # noqa: E731
+    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost, end)
 R.check(
     "precondition: the pre-heated start carries heat above the caps",
     _hs_free < _hs_capped - 0.5,
     f"capped {_hs_capped:.3f} uncapped {_hs_free:.3f}",
 )
 R.check(
-    "with a thermostat that buys nothing, the start is settled at the caps",
-    abs(_hs_gap(0.0) - _hs_capped) < 1e-9,
-    f"{_hs_gap(0.0)!r} vs capped {_hs_capped!r}",
+    "with a thermostat that buys nothing and no end credit, the warm start is debited nothing",
+    _hs_gap(0.0) == 0.0,
+    f"{_hs_gap(0.0)!r} (capped {_hs_capped!r})",
 )
 R.check(
     "with demand to displace, the pre-heated start is debited past the caps",
@@ -40461,14 +40767,19 @@ R.check(
     f"{_hs_gap(1e9)!r} vs uncapped {_hs_free!r}",
 )
 R.check(
-    "between the two, the debit past the caps stops at the thermostat's cost",
-    abs(_hs_gap(1.0) - (_hs_capped - 1.0)) < 1e-9,
-    f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
+    "between the two, the whole debit stops at the thermostat's cost",
+    abs(_hs_gap(1.0) - (-1.0)) < 1e-9,
+    f"{_hs_gap(1.0)!r} vs -1.0",
 )
 R.check(
-    "a negative thermostat cost (negative prices) never turns the debit into a credit",
-    abs(_hs_gap(-5.0) - _hs_capped) < 1e-9,
-    f"{_hs_gap(-5.0)!r} vs capped {_hs_capped!r}",
+    "heat carried to the end and credited there is debited at the start too",
+    abs(_hs_gap(0.0, -0.75) - (-0.75)) < 1e-9 and abs(_hs_gap(1.0, -0.75) - (-1.75)) < 1e-9,
+    f"{_hs_gap(0.0, -0.75)!r} {_hs_gap(1.0, -0.75)!r}",
+)
+R.check(
+    "an end charge or a negative thermostat cost (negative prices) never widens the bound",
+    _hs_gap(-5.0) == 0.0 and _hs_gap(0.0, 3.0) == 0.0 and abs(_hs_gap(1.0, 3.0) - (-1.0)) < 1e-9,
+    f"{_hs_gap(-5.0)!r} {_hs_gap(0.0, 3.0)!r} {_hs_gap(1.0, 3.0)!r}",
 )
 _hs_cold = _HbState(room_temperature=19.0, slab_temperature=20.0,
                     outdoor_temperature=float(_hb_out[0]))
@@ -40482,7 +40793,7 @@ _hs_cold_capped = _hs_opt._deferred_energy_cost(
 R.check(
     "a start colder than the held house is settled at the caps, with no surplus to debit",
     _hs_cold_held.slab_temperature > 21.5
-    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 1e9)
+    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 0.0, 0.0)
             - _hs_cold_capped) < 1e-9,
     f"held slab {_hs_cold_held.slab_temperature!r} capped {_hs_cold_capped!r}",
 )
@@ -40508,16 +40819,27 @@ _hd_par.dhw_enabled = True
 _hd_opt = _HbOpt(_HbModel(_hd_par), _HbCfg(
     horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
 ))
-_hd_bounds = []
+_hd_bounds, _hd_ends, _hd_settled = [], [], []
 _hd_real = _hd_opt._start_gap_cost
+_hd_real_def = _hd_opt._deferred_energy_cost
 
 
 def _hd_record(*a):
-    _hd_bounds.append(a[-1])
+    _hd_bounds.append(a[-2])
+    _hd_ends.append((a[-1], list(_hd_settled)))
     return _hd_real(*a)
 
 
-with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record):
+def _hd_record_def(*a, **k):
+    # The tank-inclusive settlement marked one SEK off, so the two ends
+    # differ whatever the tank did and the check below can tell which went.
+    v = _hd_real_def(*a, **k) + (1.0 if k.get("include_dhw") else 0.0)
+    _hd_settled.append((bool(k.get("include_dhw")), v))
+    return v
+
+
+with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record), \
+        _hs_mock.patch.object(_hd_opt, "_deferred_energy_cost", _hd_record_def):
     _hd_plan = _hd_opt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
             room_temperature=21.0, slab_temperature=22.0,
@@ -40532,6 +40854,43 @@ R.check(
     "the hot-water path bounds the start debit by the space reference's cost, not the tank's",
     len(_hd_bounds) == 1 and 0.0 < _hd_bounds[0] < float(_hd_plan.baseline_cost) - 0.01,
     f"bounds {_hd_bounds} baseline_cost {_hd_plan.baseline_cost!r}",
+)
+# Its end credit is the house's alone: the start gap holds the tanks as
+# measured, so a tank the plan ends warmer must not widen the house's bound.
+_hd_end, _hd_before = _hd_ends[0] if len(_hd_ends) == 1 else (None, [])
+R.check(
+    "the hot-water path hands the start the house's end settlement, not the tank-inclusive one",
+    [v for dhw, v in _hd_before if not dhw] == [_hd_end]
+    and [v for dhw, v in _hd_before if dhw] != [_hd_end],
+    f"end handed {_hd_end!r}, settled before it {_hd_before!r}",
+)
+
+# #2492 (2): a summer house that starts above its comfort and ends above its
+# caps saves on hot water and spends nothing on space; its warm start
+# displaced at most what the thermostat bought for space, so the predicted
+# saving is the hot-water one and not negative (golden summer_dhw_only read
+# -7.62 % at 50af6174, the start debited 1.69 SEK on a 1.38 SEK space reference).
+_su_t0 = _SavDT(2026, 7, 15, 0, 0)
+_su_out, _su_wind, _su_rain, _su_sol = _hb_weather("summer_warm", _su_t0)
+_su_cfg = _hb_house(two_zone=False, dhw=True)
+_su_par = _HbParams.from_config(_su_cfg)
+_su_par.dhw_enabled = True
+_su_opt = _HbOpt(_HbModel(_su_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=_su_cfg["target_temperature"],
+    min_temp=_su_cfg["min_temperature"], max_temp=_su_cfg["max_temperature"],
+))
+_su_plan = _su_opt.optimize(inputs=solve_inputs(
+    initial_state=_HbState(
+        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(_su_out[0]),
+        dhw_temperature=52.0, dhw_hours_since_legionella=20.0,
+    ),
+    prices=_hb_prices("summer_typical", _su_t0), outdoor_temps=_su_out, wind_speeds=_su_wind,
+    precipitation=_su_rain, solar_radiation=_su_sol, start_time=_su_t0,
+))
+R.check(
+    "a summer house holding passive warmth reads its hot-water saving, not a loss",
+    float(_su_plan.predicted_savings) >= 0.0 and float(_su_plan.savings_percentage) >= 0.0,
+    f"saving {_su_plan.predicted_savings!r} ({_su_plan.savings_percentage!r} %)",
 )
 
 import inspect as _sav_inspect
@@ -40838,15 +41197,15 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [0.0], [0.0]),
+    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
 )
 R.check(
-    "one pump hour above 0.05 kW cheaper is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [0.2], [0.0]),
+    "one hour the plan runs the pump, and wood is cheaper, is on",
+    _wf_cheaper(1.0, [4.0], [2.0], [True]),
 )
 R.check(
     "that hour counts",
-    _wf_count(1.0, [4.0], [2.0], [0.2], [0.0]) == 1,
+    _wf_count(1.0, [4.0], [2.0], [True]) == 1,
 )
 
 from heatpump_optimizer.wood_fuel import night_advice as _wf_night
@@ -40943,8 +41302,7 @@ _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
     outdoor=[-5.0],
-    space_kw=[0.2],
-    dhw_kw=[0.0],
+    runs=[True],
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
@@ -40960,6 +41318,7 @@ from heatpump_optimizer.optimizer import OptimizationResult as _WfOR
 
 _wf_ts = datetime(2026, 1, 1, tzinfo=_tz_wf.utc)
 _wf_result = _WfOR(
+    heat_pump_on_schedule=[True],
     power_schedule=[0.2],
     room_temp_trajectory=[21.0, 21.0],
     slab_temp_trajectory=[21.0, 21.0],
@@ -40994,6 +41353,24 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper") is True
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
+)
+# D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
+# share the plan calls off buys no pump heat for wood to undercut. Null
+# control: the same plan with the step running counts it (the check above).
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
+try:
+    _dt_wf.now = lambda: NOW
+    _wf_off_pub = _wf_ready_coord._build_data_dict()
+finally:
+    _dt_wf.now = _real_now_wf
+R.check(
+    "a step the plan calls off is no pump hour for the wood advisor (D8-s1-01)",
+    _wf_off_pub["wood_fuel"].get("cheaper_hour_count") == 0
+    and _wf_off_pub["wood_fuel"].get("cheaper") is False,
+    repr(_wf_off_pub.get("wood_fuel")),
 )
 _wf_idle = _WfOR(
     power_schedule=[0.0],
@@ -41031,8 +41408,7 @@ R.check(
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
@@ -41084,8 +41460,7 @@ _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
     outdoor=[0.0] * 48,
-    space_kw=[0.0] * 48,
-    dhw_kw=[0.0] * 48,
+    runs=[False] * 48,
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
@@ -41115,6 +41490,7 @@ _wf_probe_result = _WfNS(
     outdoor_temps=[0.0] * 48,
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
+    heat_pump_on_schedule=[False] * 48,
 )
 _wf_from_probes = _wf_from_coord(
     _wf_probe_coord._config,
@@ -47020,10 +47396,11 @@ def _t5_drive(coord, method, *args, **kwargs):
 # an entity the user never named is the one failure a heating integration
 # cannot take back.
 class _T5Plan:
-    """The two fields the pump driver reads off a solved plan."""
+    """The fields the pump driver reads off a solved plan."""
 
     def __init__(self, power_schedule, timestamps=None):
         self.power_schedule = power_schedule
+        self.dhw_power_schedule: list = []
         self.timestamps = timestamps or []
 
 
@@ -47593,7 +47970,7 @@ import io as _io  # noqa: E402
 import pickle as _t6_pickle  # noqa: E402
 from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
 from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
-from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.const import finite_float as _t6_as_float  # noqa: E402
 from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
 from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
 from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
@@ -48373,7 +48750,7 @@ R.check(
 
 
 # -- the module helpers every reader in the class goes through ------------
-# `_as_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
+# `finite_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
 # small, and that is exactly why they are worth pinning: a wrong answer in
 # any of them is wrong everywhere at once, and none of them has a caller
 # that would notice.
@@ -49402,14 +49779,14 @@ R.check(
 )
 
 
-# -- away._as_num and _parse_return_time -----------------------------------
+# -- away's numbers (const.finite_float) and _parse_return_time ------------------
 _g8_nums = {
-    "None": _g8_away._as_num(None, 7.0),
-    "int": _g8_away._as_num(3, 7.0),
-    "bool": _g8_away._as_num(True, 7.0),
-    "numeric string": _g8_away._as_num("3.5", 7.0),
-    "text": _g8_away._as_num("warm", 7.0),
-    "list": _g8_away._as_num([1], 7.0),
+    "None": _t6_as_float(None, 7.0),
+    "int": _t6_as_float(3, 7.0),
+    "bool": _t6_as_float(True, 7.0),
+    "numeric string": _t6_as_float("3.5", 7.0),
+    "text": _t6_as_float("warm", 7.0),
+    "list": _t6_as_float([1], 7.0),
 }
 R.check(
     "a configured number takes the default unless it really is one",
@@ -49753,16 +50130,16 @@ _G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
 _G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
 
 
-# -- _optional_float: the difference between "not set" and "set to zero" ----
+# -- wood numbers (const.finite_float): "not set" against "set to zero" ----
 _g8_wof = {
-    "None": _g8_wf._optional_float(None),
-    "empty string": _g8_wf._optional_float(""),
-    "zero": _g8_wf._optional_float(0),
-    "float": _g8_wf._optional_float(2.5),
-    "numeric string": _g8_wf._optional_float("2.5"),
-    "bool": _g8_wf._optional_float(True),
-    "text": _g8_wf._optional_float("lots"),
-    "list": _g8_wf._optional_float([2.5]),
+    "None": _t6_as_float(None),
+    "empty string": _t6_as_float(""),
+    "zero": _t6_as_float(0),
+    "float": _t6_as_float(2.5),
+    "numeric string": _t6_as_float("2.5"),
+    "bool": _t6_as_float(True),
+    "text": _t6_as_float("lots"),
+    "list": _t6_as_float([2.5]),
 }
 R.check(
     "an unset wood number is None and a zero one is 0.0, which are not the same",
@@ -69190,7 +69567,7 @@ R.check(
 # move the count off zero or the comparison is not reading anything.
 def _rp_ledger_key(now, src_floor):
     held = _rp_pa.ArbiterState()
-    inp = _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
+    inp = _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
     _rp_pa._observe(held, inp, None, now)
     key = held.step["start"] if held.step else None
     ref = src_floor(now)
@@ -69252,7 +69629,7 @@ try:
         _rp_held = _rp_pa.ArbiterState()
         _rp_pa._observe(
             _rp_held,
-            _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
+            _RP_NS(config={}, plan=None, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
             None, _rp_now,
         )
         _rp_widths.append((
@@ -69286,6 +69663,41 @@ R.check(
     "step) -- live a microsecond before the edge, expired at it",
     _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
     f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
+)
+
+# --- #2492 (carry 5, seam 1): a step is scored against the plan that actuated it --
+# The cycle's re-solve can move a hot-water slot onto the current step, and
+# the switch is written from that new plan. The row froze `planned` at the
+# step's first tick, so a step whose plan changed mid-step was scored
+# against the plan before the solve. Null arm: a duty that changes with the
+# SAME plan in force (a lease or boost moving) keeps the adoption's freeze.
+from heatpump_optimizer.thermal_model import ThermalParameters as _RpRefreezeParams  # noqa: E402
+
+_rp_refreeze_params = _RpRefreezeParams()
+
+
+def _rp_refreeze(second_plan):
+    held = _rp_pa.ArbiterState()
+    first = object()
+    t0 = datetime(2026, 1, 15, 13, 0, tzinfo=timezone.utc)
+    for when, plan, duty, kw in (
+        (t0, first, "dhw", 0.0),
+        (t0 + timedelta(minutes=13), second_plan or first, "space", 0.6),
+        (t0 + timedelta(minutes=15), second_plan or first, "idle", 0.0),
+    ):
+        _rp_pa._observe(held, _RP_NS(config={}, plan=plan, state=_RP_NS(dhw_temperature=None),
+                                     thermal=_RP_NS(params=_rp_refreeze_params),
+                                     measured_power_kw=kw), duty, when)
+    return held.log[-1]
+
+
+_rp_moved, _rp_kept = _rp_refreeze(object()), _rp_refreeze(None)
+R.check(
+    "#2492: a plan adopted mid-step re-freezes the step's planned duty; the same "
+    "plan's later duty does not",
+    _rp_moved["planned"] == "space" and _rp_moved["verdict"] == "delivered"
+    and _rp_kept["planned"] == "dhw" and _rp_kept["verdict"] == "space-instead",
+    f"re-solved {_rp_moved}; same plan {_rp_kept}",
 )
 
 # --- R10-SAV-REASONS (#2256): a cost is booked under the cause that drew it ----

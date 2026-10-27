@@ -410,6 +410,19 @@ jobs:
           python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
           grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
 
+      # P3's move ledger and holdout check (R10-FLOW-AUDIT-PLAN): the ledger's
+      # four refusals against a plan-and-bodies null control, the holdout
+      # comparison's five regressions against an identical pair, and change
+      # coupling over a throwaway repository -- no network, no repository
+      # state. `-I` so a `json.py` beside the script cannot answer first; the
+      # self-test inserts the paths it reads explicitly. The tally line must
+      # say 0 failed.
+      - name: Show the P3 move ledger and holdout check refusing their own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_audit.py --self-test | tee "$RUNNER_TEMP/pa-self-test.txt"
+          grep -Eq '^plan_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pa-self-test.txt"
+
       # A tracked script, workflow or decision record that depends on a temp
       # or machine path (2026-10-03: a temp cleanup took three seat scripts'
       # state, a decision's source and the seat interpreter). Here and not in

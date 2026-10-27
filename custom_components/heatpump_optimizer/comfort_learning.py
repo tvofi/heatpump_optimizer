@@ -233,7 +233,7 @@ class ComfortLearner:
         # dict/list/str/int/float/bool/None, and over that domain the two agree
         # member for member. The snapshot one hands `as_dict()` straight back
         # with no JSON round trip, and is covered instead by
-        # `configured_weight` only ever being written from `_as_float` -- a
+        # `configured_weight` only ever being written from `finite_float` -- a
         # plain `float`. So the precondition that would make these two forms
         # diverge is a numpy scalar reaching that FIELD, not an in-memory
         # caller: that caller already exists and is fine.

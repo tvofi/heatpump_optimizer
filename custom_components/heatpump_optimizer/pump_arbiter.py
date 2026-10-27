@@ -156,6 +156,7 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
+from .const import finite_float
 from .inputs import (
     InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
@@ -461,15 +462,7 @@ def _space_target(
 
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
-    return (
-        _finite_or_none(_planned_room(result, now, "power_schedule"))
-    )
-
-
-def _finite_or_none(value: Any) -> float | None:
-    return (
-        float(value) if isinstance(value, (int, float)) else None
-    )
+    return finite_float(_planned_room(result, now, "power_schedule"))
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
@@ -960,11 +953,6 @@ async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: da
         await _write(coord, inp, slot, getattr(command, slot), now)
 
 
-def _night_clock(hour: float) -> tuple[int, int]:
-    minutes = int(round(hour * 60.0)) % (24 * 60)
-    return minutes // 60, minutes % 60
-
-
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
     """Hold the GCHV night-mode start/end for the next silent window (#1913).
 
@@ -984,8 +972,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
     nxt = quiet_windows.next_gchv_window(now, spec)
     if nxt is None:
         return
-    start_h, start_m = _night_clock(nxt[0])
-    end_h, end_m = _night_clock(nxt[1])
+    start_h, start_m = quiet_windows.wall_clock(nxt[0])
+    end_h, end_m = quiet_windows.wall_clock(nxt[1])
     if (start_h, start_m) == (end_h, end_m):
         return
     values = {
@@ -999,7 +987,13 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
 
 
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
-    """Fold this pass into the current step's ledger row; close the last one."""
+    """Fold this pass into the current step's ledger row; close the last one.
+
+    ``planned`` is re-frozen whenever a new plan is adopted inside the step:
+    the cycle's re-solve can move a slot onto the current step, and the
+    switch is written from that plan, so the step is scored against the
+    plan that actuated it, not the one in force at its first tick.
+    """
     held.last_duty = duty
     start = plan_step_start(now)
     tank = getattr(inp.state, "dhw_temperature", None)
@@ -1007,8 +1001,10 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     if row is None or row["start"] != start:
         if row is not None:
             held.log.append(_verdict(row, tank))
-        held.step = row = {"start": start, "planned": duty, "tank": tank,
+        held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
+    elif row["plan"] is not inp.plan:
+        row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
     if power is not None:
         row["measured"] = True
