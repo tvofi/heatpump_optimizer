@@ -10589,9 +10589,10 @@
    "fixes": [],
    "after": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-plan-prio",
-    "pr": 2874
+    "pr": 2874,
+    "commit": "524c1896b6943b3da03d6cad61420ced31e14c9c"
    },
    "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
   }
