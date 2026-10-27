@@ -3697,9 +3697,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-sav-comfort",
-    "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
+    "commit": "34cd75bf1fe506334611ba6c074c223317370e67",
     "last_step": null,
     "next_step": "PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land.",
     "note": null,
@@ -9471,7 +9471,8 @@
    ],
    "carry": [
     "From #2745 (R10-SAV-COMFORT, #2492), carry 5 seam 2 controls, preconditions for this group's failing test: (a) a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts; (b) one mutant per seam (each seam's mutant must turn (a) red). Source: R10-SAV-COMFORT's carry 5 and #2745's Forward-carry; the #2745 review at c70c3e46 blocked because this group's brief named the work but not its controls.",
-    "D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verifier row s1-05 of dev/audit/rounds/round10/D15/verify.md): the stores self-test reports 3 off-domain leaves under `pump_duty` (`written/silent/*`). The silent slot is written by the current writer (`pump_arbiter.py` `_SLOTS`, lines 71-75), and `store.py` `DOMAINS` does not declare it. Declare `written/silent` in the `pump_duty` domain with this group's change to `pump_arbiter.py`. Do not touch the 15 `snapshots` `learners/peak_tracker/*` leaves: they are legacy snapshots and `coordinator.py` omits `peak_tracker` from the payload on purpose. Controls: on a fixture install with a silent row configured the stores self-test reports 0 off-domain leaves for `pump_duty` after the change (null: before the change it reports 3); an install with no silent row writes no `silent` leaf and reports 0 either way; one mutant that removes the declaration. (triage: dev/programme/triage/s6-batch24.md#P117)"
+    "D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verifier row s1-05 of dev/audit/rounds/round10/D15/verify.md): the stores self-test reports 3 off-domain leaves under `pump_duty` (`written/silent/*`). The silent slot is written by the current writer (`pump_arbiter.py` `_SLOTS`, lines 71-75), and `store.py` `DOMAINS` does not declare it. Declare `written/silent` in the `pump_duty` domain with this group's change to `pump_arbiter.py`. Do not touch the 15 `snapshots` `learners/peak_tracker/*` leaves: they are legacy snapshots and `coordinator.py` omits `peak_tracker` from the payload on purpose. Controls: on a fixture install with a silent row configured the stores self-test reports 0 off-domain leaves for `pump_duty` after the change (null: before the change it reports 3); an install with no silent row writes no `silent` leaf and reports 0 either way; one mutant that removes the declaration. (triage: dev/programme/triage/s6-batch24.md#P117)",
+    "Carry 5, seam 2: actuate the supply switch at step boundaries from a one-minute tick, rather than at the cycle phase. Its owed controls are a synthetic install with the cycle phase at 0 and at 14 min that books identical duty verdicts, and one mutant per seam. It moves the actuator edge (`coordinator._apply_action`, `early_cutoff`, `pump_arbiter.switch_supply`) and needs a design note first. Main's roster, `dev/programme/rosters/wave-r10-groups.json`, holds the group for it, R10-SAV-ACTUATION (after R10-SAV-COMFORT, issues [2492]), whose `carry` already records both controls. Carry: R10-SAV-ACTUATION"
    ],
    "resume": {
     "stage": "not-started",
