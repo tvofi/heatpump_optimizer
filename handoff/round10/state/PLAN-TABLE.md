@@ -319,7 +319,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-ADVISOR-WHATIF | UI | 2 | not-started | #2257 | opus/opus | - | The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. |  |
 | R10-DEPENDABOT-SETUPTOOLS | F | 1 | not-started | #2722 | sonnet/opus | - | Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). |  |
 | R10-STORE-RACES | IN | 2 | not-started | #2248, #2249, #2674 | -/- | - | Store seam races, after R10-BUFFER-STORE (same store seam; ordered behind its running fixer to avoid conflict). |  |
-| R10-PLAN-PRIO | IN | 1 | not-started | - | -/- | - | tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. |  |
+| R10-PLAN-PRIO | IN | 1 | in-progress | - | -/- | - | tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. |  |
 
 ## ETA
 
