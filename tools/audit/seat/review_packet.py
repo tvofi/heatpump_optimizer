@@ -410,14 +410,18 @@ def _self_test() -> int:
 
     # The independence arm reads a base blob, so it is driven over a checkout of
     # its own: a self-test must not need the tree it happens to be run in.
+    # Built through `tests/throwaway_git.py`, the one way a tracked script
+    # makes a throwaway repository: a raw `git init` spawns auto-maintenance
+    # against a directory this test then deletes.
     with tempfile.TemporaryDirectory() as td:
         t = Path(td).resolve()
+        sys.path.insert(0, str(ROOT / "tests"))
+        import throwaway_git  # noqa: E402
+        denv = throwaway_git.throwaway_git_init(t, "-q")
 
         def tgit(*a: str) -> str:
-            return subprocess.run(["git", "-C", str(t), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+            return subprocess.run(["git", *a], cwd=t, env=denv,
                                   capture_output=True, text=True, check=True).stdout
-
-        tgit("init", "-q")
         (t / "base_harness.py").write_text("# the finder's\n")
         tgit("add", "-A")
         tgit("commit", "-q", "-m", "base")
