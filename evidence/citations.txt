@@ -1,0 +1,14 @@
+=== nudge.md:105 ===
+Load the roster through `tools/audit/seat/roster_lib.py` at the ref `tools/audit/seat/state_docs.py` defaults. Dispatch by pull: a flow lane under its cap (A critical path 4, B product 4, C process 3, F fly-in 2) takes its eligible group of greatest critical-path depth, behind `tools/audit/seat/pr_cap.py` dispatch-gate, which enforces the total. Eligible: resume stage not-started, after-edges all done or absent, not deferred or refused, no fixer working. Brief it that group's own roster brief. Done stages are the pair `roster_lib.py` names. Register a fly-in at dispatch with `tools/audit/seat/roster_edit.py` append-group, named `R10-FLY-`. An expedite item (red main, quota exhaustion, outage, security) bypasses the caps, one at a time.
+=== sweep_template.md:63 ===
+(4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), the finished seat's worktrees under {{seat_root}} and its scratch removed, `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, and the plan artifact regenerated with `{{plan_generator}}` and republished at {{plan_artifact}}.
+=== set-resume in roles/sweep (none expected) ===
+rc=1
+=== merge_main_bot.py:138-139 ===
+    if driver_rc != 0 or driver_conflicts or "refused" in driver_err.lower():
+        return "skip-driver-refused " + ",".join(driver_conflicts or text_conflicts)
+=== head_note.py defs ===
+20:def head_offset(body: str) -> int:
+39:def prefix(body: str, note: str) -> str:
+48:def self_test() -> int:
+77:def main(argv: list) -> int:
