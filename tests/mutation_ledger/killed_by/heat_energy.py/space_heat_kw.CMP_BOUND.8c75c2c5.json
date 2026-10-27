@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:space_heat_kw CMP_BOUND 8c75c2c5",
+  "killed_by": "tests/features.py",
+  "old": "    return heat_kw if a.dhw <= 0.0 < a.space else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return heat_kw if a.dhw < 0.0 < a.space else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11. Each of the 2 sites under this anchor was killed."
+}

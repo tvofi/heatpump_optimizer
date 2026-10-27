@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss CMP_BOUND 826c1858",
+  "killed_by": "tests/features.py",
+  "old": "        if delta_t < HOUSE_LOSS_MIN_DELTA or is_sunlit_interval(previous_state.solar_radiation):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if delta_t <= HOUSE_LOSS_MIN_DELTA or is_sunlit_interval(previous_state.solar_radiation):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
