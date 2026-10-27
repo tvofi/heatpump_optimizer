@@ -7,7 +7,7 @@ reads 2026-10-27T18:53Z, about 10 min ahead of this box's clock -- the seat read
 at `origin/handoff/audit-r10-roster` `32b938f3e` (212 groups).
 
 Provenance note on the 85-minute figure: it is #2854's own body text -- "when the 30-minute
-lease lapsed inside the 85-minute run" (`updatedAt` 2026-10-27T19:09:27Z) -- not a measurement on
+lease lapsed inside the 85-minute run" -- not a measurement on
 this box, and it is not re-derived here; the claim that #2854's body lacks the figure is false.
 
 Correction (this seat, after the first cut merged): the first cut rejected the proposal's second
@@ -67,8 +67,8 @@ Instances: the class is an `OWED ... push-stuck` line raised on a healthy push.
 - (6) The refusal the lease half repairs, from #2854's own body: `tests/stress.py` and
   `tests/harness_headers.py` "were refused by `tests/gate_lock.py` when the 30-minute lease
   lapsed inside the 85-minute run" (`gate_lock: flock-wrap refused, fix-2854-conflict holds no
-  lease: no live gate lease to renew`; `updatedAt` 2026-10-27T19:09:27Z). Mechanism read here:
-  `tests/gate_lock.py:577` and `:1123`, cited above; the first cut read the body's line
+  lease: no live gate lease to renew`). Mechanism read here:
+  `tests/gate_lock.py:577` and `:1119-1124`, cited above; the first cut read the body's line
   truncated and recorded absence, which is what the correction fixes.
 
 Cost: one arm inside `stuck_arm()`'s `STUCK_PY` blob (15 lines today, `cloud_relay.sh:477-491`)
