@@ -1,0 +1,66 @@
+Finding 3 — the blanket marker test exempts a STOP body that states owed work
+=============================================================================
+
+The batch's ruling (s6-batch37.md:10-11): the arm exempts "a `handoff-body/` ref
+whose body commit's first non-blank line is a STOP marker, matched with an optional
+markdown heading." Its Binding (65-70) constrains the marker form, the `handoff-body/`
+scope, and prefix-not-substring. It does not test whether the body's work is carried
+anywhere else.
+
+The motivating body is a STOP body that states owed work. `git show
+b9b690afb9830a20e046b3515bd18858757d2047:BODY.md`:
+
+  # STOP: r10-flow-jidoka-p2-body — 5ab48352 does not carry the voluptuous fix
+  ...
+  ## What is owed
+
+  - A code fix first, on `fix/r10-flow-jidoka-p2`, as `dispatch/fixer-r10-flow-jidoka-p2`
+    (08:50+01:00) already asks: make the 6g header comparison independent of
+    `tests/harness`, close the vacuous rc-1 arm, and show the self-test green under
+    `env -u BASH_ENV` with a venv-free `python3`.
+  - Then a body re-take for that new head. Whoever re-dispatches this body seat should
+    give the fixed head's SHA, not 5ab48352.
+  - For the record: `python3 -I tools/audit/carry_audit.py check --body` over the current
+    `handoff-body/r10-flow-jidoka-p2` (0d91d96a) prints ...
+
+So the premise the ruling generalises from ("a STOP result body is not an owed row")
+is not what this body shows: the body names work it owes. It happens that the work is
+keyed to the sibling topic `r10-flow-jidoka-p2` (a `handoff/r10-flow-jidoka-p2` code ref
+exists, af5783194), not to `r10-flow-jidoka-p2-body`. The batch neither states that nor
+checks it.
+
+Constructed case the marker test does not catch
+------------------------------------------------
+A result body `handoff-body/r10-foo` whose first non-blank line is
+`# STOP: r10-foo — blocked on X` and whose text says the fixer must port X, with:
+  - no `refs/heads/handoff/r10-foo` code ref,
+  - no `dispatch/*` ref (and `dispatch/` is not a ledger arm: ledger.py:99-101),
+  - no roster row naming it.
+The proposed test matches the marker and exempts the ref; nothing else in the
+ledger/files carries the follow-up, and the OWED line was the only automatic
+signal that the topic was unowned. The heading form cannot distinguish this case
+from the measured one, because both first lines are `# STOP: ...`; the test reads
+only the marker, never the "What is owed" text.
+
+`dispatch/` is not an ARMS prefix:
+tools/audit/seat/ledger.py:99-101
+ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
+        ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"),
+        ("refs/heads/review/", "confirm-owed"))
+
+`carry_audit.py check --body` is run on PR bodies by pr-contract (prepr.sh:837,
+app_push.sh:260), not on result bodies automatically; the motivating body only ran it
+on the sibling body "for the record". So the ledger row was the automatic channel.
+
+The arm needs one of: a check that the topic's follow-up exists (a `handoff/<topic>`
+code ref, or a dispatch), or the ruling keeps the `dispose` route and does not exempt
+on the marker alone. As written the exemption is unconditional on the marker.
+
+Function name
+-------------
+The batch names `level()` (lines 10, 38). There is no `level` function; the
+exemptions live in `handoff_level()`:
+$ grep -n 'def handoff_level\|def level' tools/audit/seat/ledger.py
+393:def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str):
+`level` is the CLI verb (ledger.py:6, 551-570). The PR body uses the correct name
+("in `handoff_level()` (the `level` CLI verb)").

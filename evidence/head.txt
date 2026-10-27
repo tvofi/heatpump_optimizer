@@ -1,0 +1,46 @@
+PR #2879 review round 3 — head and base
+========================================
+
+Head reviewed: e766c3bdceca6e64156cb0b44212dc62c1159b6e
+PR head at origin refs/pull/2879/head immediately before posting: e766c3bdceca6e64156cb0b44212dc62c1159b6e (unchanged)
+
+$ git rev-parse refs/pull/2879/head   (via: git fetch origin refs/pull/2879/head && git rev-parse FETCH_HEAD)
+e766c3bdceca6e64156cb0b44212dc62c1159b6e
+
+$ gh pr view 2879 --json headRefOid,headRefName,state
+{"headRefName":"fix/triage-s6-batch37","headRefOid":"e766c3bdceca6e64156cb0b44212dc62c1159b6e","state":"OPEN"}
+
+$ git merge-base origin/main HEAD
+67178dc6a589cf95d2ce7cff36d8bbf17343e8dc
+$ git rev-parse origin/main
+67178dc6a589cf95d2ce7cff36d8bbf17343e8dc
+
+$ git diff --stat $(git merge-base origin/main HEAD)...HEAD
+ dev/programme/delivery/2879.md     |  1 +
+ dev/programme/triage/s6-batch37.md | 70 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+
+$ grep -c '^## P' dev/programme/triage/s6-batch37.md
+1
+
+$ git merge-tree --write-tree origin/main HEAD
+1062391363838a426a0b3ac5c010b7bc57eecd20
+rc=0
+
+Check runs at e766c3bdceca6e64156cb0b44212dc62c1159b6e
+$ gh api repos/tvofi/heatpump_optimizer/commits/e766c3bd.../check-runs
+[{"conclusion":null,"n":7},{"conclusion":"skipped","n":8},{"conclusion":"success","n":22}]
+(no "failure" conclusion; the 7 nulls were still running)
+
+Delivery row
+dev/programme/delivery/2879.md (1 line):
+- [#2879](https://github.com/tvofi/heatpump_optimizer/pull/2879) — **open**, triage: s6 batch 37 (P205) (R10-TRIAGE-B37)
+
+Batch header line 3-4:
+One entry. Numbering continues after `s6-batch36.md` (P204). Facts read at origin/main
+`524c1896b` on 2026-10-27.
+
+$ git log -1 --format='%H %ci %s' 524c1896b
+524c1896b6943b3da03d6cad61420ced31e14c9c 2026-10-27 09:50:00 +0100 Merge pull request #2874 from tvofi/fix/r10-plan-prio-pr
+$ git merge-base --is-ancestor 524c1896b origin/main ; echo rc=$?
+rc=0

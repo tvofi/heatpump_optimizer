@@ -1,0 +1,43 @@
+Prior round's findings (verdict/2879 at 13f7ce8a, reviewing a63c6bfd) — answered?
+==================================================================================
+Source: `git show` of the fetched refs/heads/verdict/2879 tip.
+
+1. "Wrong file for the pin (blocking)": the tick's test does not pin
+   count("handoff-no-pr") == 4.
+   ANSWERED at this head. The batch (56-62) now says the pin is the ledger's own
+   --self-test, run by governance.yml:585, and names ledger.py:831 and the
+   exact-dict at ledger.py:810. Re-derived in evidence/figures.txt section 5:
+   one hit at 831, def self_test at 592, dict(why) at 810, governance.yml:585.
+   The batch also says both assertions move with the counter, which is true.
+
+2. "Uncounted figure": "four ref globs".
+   ANSWERED. The batch (49-54) names ledger.py:434-437 and enumerates a plain main
+   plus handoff/*, handoff-body/*, fix/* = four refspecs, and gives cloud_relay's
+   five globs with lines 270, 306, 401, 404. Both re-derived in
+   evidence/figures.txt sections 3 and 4.
+
+3. "Unverifiable precedent": the 660 s -> 1800 s dead-seat move.
+   ANSWERED by deletion. The batch contains no 660, no dead-seat, no 1800.
+   (evidence/figures.txt section 11)
+
+4. "Path unresolved at head": s6-batch36.md is not in HEAD.
+   ANSWERED IN THE PR BODY, not in the batch: "That file is not on this branch or
+   origin/main; it is on #2877's fix/triage-s6-batch36, still open. The citation
+   resolves by merge order — #2877 merges, then this branch merges origin/main —
+   not by an edit here." Confirmed: origin/main has no s6-batch36.md, #2877 is
+   OPEN, and the branch holds it. The batch file itself still cites a path a
+   reader cannot open today; that is disclosed, so this is answered as a plan,
+   not fixed in the tree.
+
+5. "Out-of-tree path unresolved at head": proposals.md.
+   ANSWERED. The batch now says "the `proposals.md` entry was not yet appended when
+   this ruling was cut" (17-18). The session register at
+   ~/hpo-orch/r10s6/proposals.md ends at V123; V124 (batch 36) and V125 (this) are
+   not appended, so the statement is accurate. (evidence/figures.txt section 10)
+
+The prior verdict's "Not established" note on the board lines is NOT answered: the
+batch restates the three literal lines and "the board's only OWED line" as fact.
+Finding 1 shows the second is false; finding 6 shows the literals are still carried.
+
+The prior verdict's "Not established" note on R10-ORCH-LEDGER's files omitting
+ledger.py is NOT answered either; see finding 7.
