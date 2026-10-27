@@ -198,7 +198,6 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
     DEFAULT_HEAT_PUMP_MAX_POWER,
     DEFAULT_HEAT_PUMP_MIN_POWER,
-    DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE,
     MAX_HEAT_PUMP_COP_PARTLOAD_DERATE,
     DEFAULT_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
@@ -1719,7 +1718,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),
     _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
     _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
-    _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
+    _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
     # -- thermal_model_zones
     _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),
     _F("thermal_model_zones", CONF_UPPER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
