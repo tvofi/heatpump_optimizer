@@ -4906,7 +4906,9 @@
    "fixture": true,
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
-   "carry": [],
+   "carry": [
+    "From R10-COP-PARTLOAD (handoff/r10-cop-partload at 775ae0340): the inverse conversions still close the loop with heat / cop -- dhw_planner._plan_dhw_min_cost and _clamp_dhw_to_capacity, optimizer._compute_baseline_power, coordinator._dhw_setpoint_sweep. With a derate the forward relation is quadratic in power, so the closed form understates the electrical power needed to deliver a given heat by up to the derate; the exact form is the positive root on the band, and at the default 0 the current ones are exact. A cost-accounting inaccuracy, not a control error: the ceiling and the step share the helper, so every setpoint a plan holds is still met."
+   ],
    "architect_note": null,
    "findings": [],
    "wave": 2,
