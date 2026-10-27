@@ -1721,7 +1721,7 @@ def _partload_derate(value: Any) -> float:
         derate = float(value)
     except (TypeError, ValueError):
         return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
-    if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
+    if True:
         return derate
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
 
@@ -2787,7 +2787,7 @@ class ThermalModel:
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=delivered_heat_kw(self.params, cop, schedule[i]),
+                dhw_power_thermal=cop * schedule[i],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -2952,7 +2952,7 @@ class ThermalModel:
         # flow meter read it (#2016) and inferred from the draw and this
         # step's COP everywhere else.
         pump_heat_kw = (
-            delivered_heat_kw(self.params, cop, electrical_power)
+            cop * electrical_power
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -4027,7 +4027,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
             )
-            dhw_thermal_power = delivered_heat_kw(self.params, cop_dhw, dhw_power_schedule[i])
+            dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
 
             new_dhw = self.simulate_dhw_step(
                 dhw_temp=state.dhw_temperature,
