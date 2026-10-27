@@ -10,22 +10,36 @@ Provenance note on the 85-minute figure: it is #2854's own body text -- "when th
 lease lapsed inside the 85-minute run" (`updatedAt` 2026-10-27T18:23:17Z) -- not a measurement on
 this box, and it is not re-derived here; the claim that #2854's body lacks the figure is false.
 
+Correction (this seat, after the first cut merged): the first cut rejected the proposal's second
+arm whole. That was wrong about its lease half, and the entry below is corrected. The first cut
+reached `main` as PR #2886 at `ee5816b1`; this follow-up replaces it, and the ledger keeps the
+order in which the seat changed its mind.
+
 ## P211: the push-stuck guard's threshold sits below the work it is guarding (V131)
 
-Verdict: ACCEPT narrowed -> a carry of **R10-UPDATE-PR-SIGNALS** (`resume.stage` `done`, so the
-roster op reopens it first, the P196/P208 route; it names both `tools/audit/seat/cloud_relay.sh`
-and `tools/audit/seat/pr_args.sh`, and its brief is exactly the seam: deterministic arms, a
-condition rather than a fixed window, and the `ps` dependency of the lock holder). The proposal's
-first arm (sample the push's process-tree CPU advance instead of elapsed time alone) is the one
-carried. Its second arm -- raise the threshold above the measured gate cost, and stop
-`gate_lock`'s lease being shorter than the gate it protects -- is REJECTED twice over: a prepr
-takes a **pool slot**, not the exclusive lease, and a slot is held for the life of the run, not
-its lease (`tests/gate_lock.py:53-56`: "under load a prepr routinely runs past `LEASE_SECONDS`
-and expiry-stealing admitted a fifth while the first still ran"); the exclusive lease covers only
-the machine-measuring commands, recorded at 936.3 s and 241.1 s, both under `LEASE_SECONDS`
-(1800). The lease is therefore not shorter than the gate it protects, because it does not
-protect it.
+Verdict: ACCEPT narrowed, in two carries. The proposal's first arm (sample the push's
+process-tree CPU advance instead of elapsed time alone) is the one carried into
+**R10-UPDATE-PR-SIGNALS** (`resume.stage` `fixing` at the roster tip `8f7e252fe`, so the roster op
+is a plain `append-carry`; the group names both `tools/audit/seat/cloud_relay.sh` and
+`tools/audit/seat/pr_args.sh`, and its brief is exactly the seam: deterministic arms, a condition
+rather than a fixed window, and the `ps` dependency of the lock holder).
 
+The second arm splits. The threshold raise alone is REJECTED: a prepr takes a **pool slot**, not
+the exclusive lease, and a slot is held for the life of the run, not its lease
+(`tests/gate_lock.py:53-56`: "under load a prepr routinely runs past `LEASE_SECONDS` and
+expiry-stealing admitted a fifth while the first still ran"), so 900 s is not too small for the
+push, it is too small for a *healthy* push, and every measured instance is a healthy run -- which
+is why the CPU condition, not a bigger number, is the repair.
+
+The lease half is ACCEPTED narrowed, into a second carry of **R10-PREPR-CAP**, the group that
+owns `tests/gate_lock.py` (`resume.stage` `fixing` at `8f7e252fe`, so also a plain
+`append-carry`). The measurement that overturned the first cut: an expired lease does not merely
+report, it refuses the command. `renew()` raises `no live gate lease to renew` when the recorded
+owner is absent or expired (`tests/gate_lock.py:577`), and `_cmd_flock_wrap` (`:1123`) turns that
+`RuntimeError` into rc 1 **without running the command**; `flock_wrap` (`:861-877`) recovers only
+from `RenewRefused`, so a lease lapsing between two measuring commands inside one gate refuses
+the second, though the prepr itself is not lease-bound. The repair does not lengthen
+`LEASE_SECONDS` and does not change `renew()`'s refusals.
 Source: `proposals.md` V124 (orchestrator s7; header stamp 2026-10-27T18:53Z, arrival 18:23Z);
 not yet ruled before this entry.
 
@@ -49,6 +63,12 @@ Instances: the class is an `OWED ... push-stuck` line raised on a healthy push.
   ended" in the dead sense never reaches the line, and every report is a run that is alive.
   Elapsed time alone therefore cannot separate a working push from a stalled one; the CPU
   sample can.
+- (6) The refusal the lease half repairs, from #2854's own body: `tests/stress.py` and
+  `tests/harness_headers.py` "were refused by `tests/gate_lock.py` when the 30-minute lease
+  lapsed inside the 85-minute run" (`gate_lock: flock-wrap refused, fix-2854-conflict holds no
+  lease: no live gate lease to renew`; `updatedAt` 2026-10-27T18:23:17Z). Mechanism read here:
+  `tests/gate_lock.py:577` and `:1123`, cited above; the first cut read the body's line
+  truncated and recorded absence, which is what the correction fixes.
 
 Cost: one arm inside `stuck_arm()`'s `STUCK_PY` blob (15 lines today, `cloud_relay.sh:477-491`)
 plus a per-branch sample file under `$HPO_STATE_DIR` and three self-test arms in the same
@@ -57,6 +77,9 @@ measured in instances (1)-(3): an OWED line on every pass of every push longer t
 and an investigation per sweep. The arm is also the cheapest way to make the andon's own trial
 clause ("removed if it reports no STUCK line in its first 48 h", `cloud_relay.sh:468`) judgeable
 at all: the trial is satisfied today by lines that are false.
+
+The second carry's cost is one branch in the `flock-wrap` path plus two self-test arms in the same
+script; no new dependency, and the null control is the path that runs today.
 
 Binding: the 900 s age floor stays and is not raised; a lock past it is reported **only** when
 the summed CPU of its recorded run pid's process tree has not advanced by more than 0.2 s of
@@ -74,3 +97,12 @@ sample prints nothing (null control). Known limitation of the carried arm: the s
 must be keyed to the pid and start it sampled, and re-stored when either differs, or a branch
 lock re-taken by a later run compares its CPU against the earlier run's sample and prints a
 false STUCK.
+
+Second carry (R10-PREPR-CAP): `LEASE_SECONDS` and `renew()`'s refusal rules do not change; a
+command never runs without a live lease, so a label that never held one still takes rc 1; a
+refresh respects a waiting ticket and never preempts another label's live run; when the owner is
+gone or another label's, or another label holds a ticket first, the path re-takes at the back
+exactly as `RenewRefused` does today; and a run that never loses its lease takes exactly today's
+path, which is the null control. Self-test arms: (a) an expired own-label lease with no waiter
+refreshes and its command runs, (b) one with a waiting ticket re-queues rather than running
+beside it.
