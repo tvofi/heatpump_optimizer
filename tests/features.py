@@ -70718,12 +70718,13 @@ R.check(
 )
 _pl_cfg = {
     v: ThermalParameters.from_config({_PL_KEY: v}).cop_partload_derate
-    for v in (0.1, -0.1, 0.9, "x", None, float("nan"))
+    for v in (0.0, 0.1, 0.5, -0.1, 0.9, "x", None, float("nan"))
 }
 R.check(
     "a configured derate inside [0, 0.5] is taken; a negative, oversized, "
     "non-numeric or NaN one refuses to the 0 default",
-    _pl_cfg[0.1] == 0.1 and all(_pl_cfg[v] == 0.0 for v in (-0.1, 0.9, "x", None))
+    _pl_cfg[0.0] == 0.0 and _pl_cfg[0.1] == 0.1 and _pl_cfg[0.5] == 0.5
+    and all(_pl_cfg[v] == 0.0 for v in (-0.1, 0.9, "x", None))
     and _pl_cfg[next(k for k in _pl_cfg if isinstance(k, float) and k != k)] == 0.0
     and ThermalParameters.from_config({}).cop_partload_derate == 0.0,
     f"{_pl_cfg}",
