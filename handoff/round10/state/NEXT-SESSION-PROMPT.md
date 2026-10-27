@@ -14,9 +14,11 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-HEAT-METER (stage in-progress, branch `fix/r10-heat-meter-pr`): `git fetch origin fix/r10-heat-meter-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-PREPR-CAP (stage fixing, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BUFFER-STORE (stage in-review, branch `handoff/r10-buffer-store`): `git fetch origin handoff/r10-buffer-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-UPDATE-PR-SIGNALS (stage fixing): no branch pushed yet, so nothing to fetch
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLOW-BOARD (stage in-progress, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-JIDOKA (stage in-progress, branch `fix/r10-flow-jidoka-p2`): `git fetch origin fix/r10-flow-jidoka-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -24,7 +26,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TRAIN-OVERLAP-GRADE (stage done --at-sha 4db1d3e28f0dff50f6916e39d52efed0ce856d0a, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-BODY-LINT (stage fixing, branch `fix/r10-rca-body-lint`): `git fetch origin fix/r10-rca-body-lint && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -45,7 +46,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TRIAGE-B37 (stage in-progress, branch `fix/triage-s6-batch37`): `git fetch origin fix/triage-s6-batch37 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-CARRY (stage fixing): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ADVISOR-WHATIF, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-BUFFER-STORE, R10-CEILING-PROBE, R10-COP-PARTLOAD, R10-DEPENDABOT-SETUPTOOLS, R10-DIAG-AGES, R10-ERREXIT-COUNTERMEASURES, R10-FLOW-BOARD, R10-FLOW-BODY-ONLY, R10-FLOW-DESIGN-STAGES, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-ROSTER-FREEZE, R10-FLOW-WIP, R10-FLY-DAEMONIZE-ARGV, R10-FLY-GH-READ-RETRY, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-NO-FOOTERS, R10-FLY-ORPHANS-REWRITTEN, R10-FLY-POOL-INSTRUMENT, R10-FLY-PRUNE-REFS, R10-FLY-RECORD-BEAT, R10-FLY-RELAY-REVIEW-FF, R10-FLY-ROW-HEAD-CARRY, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-WORKTREE-GC, R10-FRICTION-GATE-SCOPING, R10-FRICTION-MUTATION-SURVIVOR, R10-FRICTION-REGRESSION, R10-HEAT-METER, R10-HOUSE-GRADE, R10-IMMERSION-LATCH, R10-LEARNER-DEFAULT, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-MACHINERY, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-RCA-BODY-LINT, R10-RCA-FRICTION-RESIDUE, R10-RCA-HEADMOVED, R10-RECORD-API-O1, R10-RECORD-HOLD-APPROVE, R10-REPLAY-REAL-DAY, R10-REVIEW-CARRY, R10-ROSTER-BATCH24, R10-SAV-ACTUATION, R10-TRAIN-OVERLAP-GRADE, R10-TRIAGE-B36, R10-TRIAGE-B37
+Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ADVISOR-WHATIF, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-BUFFER-STORE, R10-CEILING-PROBE, R10-COP-PARTLOAD, R10-DEPENDABOT-SETUPTOOLS, R10-DIAG-AGES, R10-ERREXIT-COUNTERMEASURES, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-POSTMERGE, R10-FLOW-WIP, R10-FLY-DAEMONIZE-ARGV, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-NO-FOOTERS, R10-FLY-POOL-INSTRUMENT, R10-FLY-PRUNE-REFS, R10-FLY-RECORD-BEAT, R10-FLY-ROW-HEAD-CARRY, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-WORKTREE-GC, R10-FRICTION-GATE-SCOPING, R10-FRICTION-MUTATION-SURVIVOR, R10-FRICTION-REGRESSION, R10-HEAT-METER, R10-HOUSE-GRADE, R10-IMMERSION-LATCH, R10-LEARNER-DEFAULT, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-MACHINERY, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-RCA-BODY-LINT, R10-RCA-FRICTION-RESIDUE, R10-RCA-HEADMOVED, R10-RECORD-API-O1, R10-RECORD-HOLD-APPROVE, R10-REPLAY-REAL-DAY, R10-REVIEW-CARRY, R10-ROSTER-BATCH24, R10-SAV-ACTUATION, R10-TRIAGE-B36, R10-TRIAGE-B37, R10-UPDATE-PR-SIGNALS
 
 ## Resume steps
 
