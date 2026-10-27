@@ -1,0 +1,8 @@
+roster ref: origin/handoff/audit-r10-roster d61e2834c, groups: 212
+R10-ROSTER-OPS: stage=done files=['tools/audit/seat/roster_edit.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/INSTRUMENTS.md'] hot=[] fixes=[]
+R10-RCA-FRICTION-RESIDUE: stage=queued files=['dev/audit/rca/harness-friction/blocked_rounds.tsv'] hot=[] fixes=[2410, 2593]
+R10-ORCH-REVIEW-PACKET: stage=done files=['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/INSTRUMENTS.md'] hot=[] fixes=[]
+R10-996-RUNNER-CLAIMS: stage=carries-open files=['tests/env_drift.py', 'tests/golden/claimed_drift.txt'] hot=[] fixes=[]
+
+owner of tools/pr/head_note.py: NO OWNER
+owner of tools/pr/merge_main_bot.py: NO OWNER
