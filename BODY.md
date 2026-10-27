@@ -13,11 +13,17 @@ the tree's own record shows firing.
 
 ## Head
 
-`0dfca1cfba47831d32ad80534999659ae542d30c`, two commits on `a0e7664ea` (main): the seat's corrected
-entry (`2a92dd656`), then three citation corrections measured at that head (`0dfca1cfb`) -- #2854's
-body `updatedAt` is 19:09:27Z, read live, not the 18:23:17Z the earlier read carried; and
-`_cmd_flock_wrap` refuses at `tests/gate_lock.py:1124` while `:1123` only prints, so the span is
-cited `:1119-1124`.
+`1ca755414135d116cc815882b1f8f777053396d8`, three commits on `a0e7664ea` (main): the seat's
+corrected entry (`2a92dd656`), two citation fixes measured at that head (`0dfca1cfb`), and one more
+(`1ca755414`) after the triage seat showed the first fix had made the entry worse:
+
+- `_cmd_flock_wrap` refuses at `tests/gate_lock.py:1124`; `:1123` only prints. Cited `:1119-1124`
+  with both lines named, here and in Instances (6).
+- #2854's `updatedAt` is dropped from both citations. It is not a body stamp: it answered
+  18:23:17Z, then 19:09:27Z, then 19:39:04Z while this branch was being written, so it moves on any
+  activity and each reading is stale within the hour. Citing it twice would give the entry a second
+  self-invalidating figure, which is the defect this correction exists to remove. The quoted
+  sentence and both refusal strings stay, verified present in `pulls/2854`'s body.
 
 ## Mutation proof
 
@@ -42,13 +48,14 @@ mutation proof is measuring the verdict line and not the correction.
 
 ## Figures
 
-- `git diff --stat origin/main...0dfca1cfb` -- `dev/programme/triage/s6-batch40.md | 61 +++---`:
-  1 file changed, 47 insertions(+), 14 deletions(-).
-- `git log --no-merges --oneline origin/main..0dfca1cfb` -- two commits.
+- `git diff --stat origin/main...1ca755414` -- `dev/programme/triage/s6-batch40.md | 61 +++---`:
+  1 file changed, 47 insertions(+), 14 deletions(-) -- the same line counts as the two-commit head,
+  because the third commit rewrites lines it had already changed.
+- `git log --no-merges --oneline origin/main..1ca755414` -- three commits.
 - `git diff --stat 1a6365f16:dev/programme/triage/s6-batch40.md a0e7664ea:dev/programme/triage/s6-batch40.md`
   -- empty: main's copy before this branch is the authored head's, so the diff carries the
   correction and nothing lost in #2886's merge.
-- `grep -c '18:23:17Z' dev/programme/triage/s6-batch40.md` -- `0`; `grep -c '19:09:27Z'` -- `2`.
+- `grep -c 'updatedAt' dev/programme/triage/s6-batch40.md` -- `0`.
 
 ## Red checks
 
