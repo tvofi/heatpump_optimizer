@@ -7,10 +7,13 @@ after `s6-batch35.md` (P199-P203). Facts read at origin/main `524c1896b` on 2026
 
 ## P204: two seats on one role are invisible and unstoppable (V124)
 Verdict: DEFER. Route the item as prose into the carry text of **R10-ORCH-BEATD**
-(`not-started`, L; the sweep/beat is its surface, and it already carries P197). Two arms of
-the proposed shape are REJECTED: per-pass renewal, and a sweep flag. The one element that
-survives is a launch record written by whoever dispatches a seat, which is dispatch practice
-already within the orchestrator's reach and needs no repository change.
+(`not-started`, L; the sweep/beat is its surface). P197 is deferred to that group and sits
+in its carry 13 (index 12), the context-rotation paragraph, per `s6-batch34.md`; the roster
+holds no `P197` string, proved by
+`git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c P197` printing `0`.
+Two arms of the proposed shape are REJECTED: per-pass renewal, and a sweep flag. The one
+element that survives is a launch record written by whoever dispatches a seat, which is
+dispatch practice already within the orchestrator's reach and needs no repository change.
 
 Source: orch s7, 2026-10-27 — V124 assigned to this seat in the orchestrator's 09:37Z relay
 (the `proposals.md` entry was not yet appended when this ruling was cut). Proposal text as
@@ -30,7 +33,11 @@ the verdict is DEFER rather than ACCEPT — the mechanism does not reach it.
 - Not an echo of this seat. This seat's ledger lines carry a `; main <sha>` annotation and
   stopped for 21 minutes (last line before the stall 08:54:25Z, next 09:15:38Z); the other
   writer produced four lines inside that window (08:58:22, 09:03:22, 09:08:23, 09:13:24) at
-  its unbroken cadence, so it is a separate timer or process.
+  its unbroken cadence, so it is a separate timer or process. Arrival order is unresolved:
+  the whole-ledger series (`grep -n 'triage s7:' seat-ledger.md`) puts a plain-`HOLD`
+  cadence starting before this seat's first line with no gap over 7 minutes, so the
+  orchestrator's 09:30:39Z stand-down rests on the 08:13-09:38 window and does not settle
+  which writer arrived first.
 - Invisible to the liveness file. Both writers `touch` `s7/triage.alive`; its mtime can only
   say that someone is alive, never how many. (The orchestrator's board reads alive age only,
   and it was corrected today from 660 s to 1800 s after 22 beat gaps, median 57 s, max
