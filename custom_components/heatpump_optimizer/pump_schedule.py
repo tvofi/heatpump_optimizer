@@ -27,10 +27,6 @@ from collections.abc import Sequence
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
 from .dhw_schedule import Window, hour_in_windows, hours_until_next_window
 
-#: Planned electrical power below this counts as "no heat commanded".
-_PLAN_ACTIVE_KW = 0.05
-
-
 def vvc_should_run(
     hour_of_day: float, windows: list[Window], lead_minutes: float
 ) -> tuple[bool, str]:
@@ -93,14 +89,17 @@ def space_pump_should_run(
 
 
 def plan_commands_heat(
-    power_schedule: Sequence[float] | None, step_index: int
+    space_heating: Sequence[bool] | None, step_index: int
 ) -> tuple[bool, bool]:
-    """(heat now, heat next step) read from the plan's power schedule."""
-    if not power_schedule:
+    """(heat now, heat next step) read from the plan's space-heating steps.
+
+    ``space_heating`` is ``optimizer.channel_heating_steps`` over the plan's
+    space and hot-water schedules, which the coordinator passes in: a space
+    share on a step the plan runs no pump at commands no heat (D8-s1-01).
+    """
+    if not space_heating:
         return True, True  # no plan yet — the rails treat unknown as ON
-    n = len(power_schedule)
+    n = len(space_heating)
     idx = max(0, min(int(step_index), n - 1))
-    now_on = float(power_schedule[idx]) > _PLAN_ACTIVE_KW
     nxt = min(idx + 1, n - 1)
-    next_on = float(power_schedule[nxt]) > _PLAN_ACTIVE_KW
-    return now_on, next_on
+    return bool(space_heating[idx]), bool(space_heating[nxt])

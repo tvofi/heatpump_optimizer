@@ -690,6 +690,76 @@ def _service_dispatch_pins() -> dict[str, bool]:
     }
 
 
+def _r10_arch_shapes_pins() -> dict[str, bool]:
+    """R10-ARCH-SHAPES: the bounds the shared coercions re-spelled (#2819).
+
+    The move put each reader on ``finite_float``, so every guard and bound on
+    the re-spelled lines is a new mutation site. One input per site sits on
+    the bound itself, where the operator's one-step move changes the answer.
+    """
+    from heatpump_optimizer import sensor
+    from heatpump_optimizer.accuracy import AccuracySample
+    from heatpump_optimizer.const import (
+        DHW_MIN_TEMP_SETPOINT_MARGIN,
+        buffer_tank_surface_area,
+    )
+    from heatpump_optimizer.coordinator import _at_least
+    from heatpump_optimizer.dhw_schedule import _format_day_selector, format_clock
+    from heatpump_optimizer.optimizer import CHANNEL_ACTIVE_KW, channel_heating_steps
+    from heatpump_optimizer.quiet_windows import _within_nameplate
+    from heatpump_optimizer.wood_fuel import _scan_wood_night, cheaper_hour_count
+
+    def sample_kw(raw: object) -> float | None:
+        got = AccuracySample.from_dict(
+            {"t": "2026-01-05T00:00:00+00:00", "predicted_power_kw": raw}
+        )
+        return None if got is None else got.predicted_power_kw
+
+    def tank_area(raw: object) -> float | None:
+        try:
+            return buffer_tank_surface_area(raw)  # type: ignore[arg-type]
+        except TypeError:
+            return None
+
+    def wood_scan_short_cops() -> bool:
+        now = datetime(2026, 1, 5, 20, 0, tzinfo=timezone.utc)
+        stamps = [now + timedelta(hours=h) for h in range(3)]
+        try:
+            _scan_wood_night(now, [3.0, 3.0, 3.0], stamps, [2.0], 0.1, 3)
+        except IndexError:
+            return False
+        return True
+
+    return {
+        "an accuracy sample's zero planned draw is kept (bound lo inclusive)":
+            sample_kw(0.0) == 0.0 and sample_kw(-0.1) is None,
+        "an unreadable tank volume has no surface, not a raise":
+            tank_area("x") == 0.0 and (tank_area(200.0) or 0.0) > 0.0,
+        "a stored aperture sum at its floor is kept, below it defaulted":
+            _at_least(0.0, 0.0, 7.0) == 0.0 and _at_least(-1.0, 0.0, 7.0) == 7.0,
+        "three contiguous days render as a range, two as a list":
+            _format_day_selector([0, 1, 2]) == "Mo-We"
+            and _format_day_selector([0, 1]) == "Mo,Tu",
+        "a window ending at midnight keeps 24:00, a later hour folds":
+            format_clock(24.0) == "24:00" and format_clock(25.0) == "01:00",
+        "a channel drawing exactly the active line is not heating":
+            channel_heating_steps([CHANNEL_ACTIVE_KW], [1.0]) == [False]
+            and channel_heating_steps([CHANNEL_ACTIVE_KW + 0.01], [1.0]) == [True],
+        "a measured ceiling of zero is no measurement":
+            _within_nameplate(0.0, 5.0) is None,
+        "a measured ceiling exactly at the nameplate is admitted":
+            _within_nameplate(5.0, 5.0) == 5.0 and _within_nameplate(5.01, 5.0) is None,
+        "the DHW minimum ceiling is the setpoint less the margin":
+            sensor._dhw_min_ceiling(55) == round(55 - DHW_MIN_TEMP_SETPOINT_MARGIN, 1)
+            and sensor._dhw_min_ceiling("x") is None,
+        "a pump hour costing exactly wood's price is not cheaper wood":
+            cheaper_hour_count(1.0, [2.0], [2.0], [True]) == 0
+            and cheaper_hour_count(1.0, [3.0], [2.0], [True]) == 1,
+        "a COP series shorter than the horizon reads as no COP, not a raise":
+            wood_scan_short_cops(),
+    }
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -743,6 +813,8 @@ def main() -> int:
         R.check(f"#1913 GCHV {name}", ok)
     for name, ok in _service_dispatch_pins().items():
         R.check(f"R9-SW-2 {name}", ok)
+    for name, ok in _r10_arch_shapes_pins().items():
+        R.check(f"R10-ARCH-SHAPES {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 
