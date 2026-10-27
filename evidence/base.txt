@@ -1,0 +1,4 @@
+merge base (origin/main): 6fe5170cd7ce01e60ffebfc93e598c216e628fa3
+head re-read from the pull request at 2026-10-27T01:24:42Z: eb97437efd6c273745352ee2cdb5c65c970c3c74 (unchanged)
+authored tip 1e9180dc9113b85354e5a03737f6dd4b9d4bb686 is an ancestor of the head
+HEAD^..HEAD: 1 commit, M dev/programme/delivery/2866.md

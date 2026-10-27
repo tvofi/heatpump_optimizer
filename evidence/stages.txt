@@ -1,0 +1,39 @@
+resume state at head eb97437efd6c273745352ee2cdb5c65c970c3c74
+
+the five the batch takes to `fixing`, each with a commit and a wip-sync ref
+  R10-HOUSE-GRADE          stage=fixing       commit=516d47fd7 branch=wip-sync/ext-mut-3efc9ad7
+  R10-DIAG-AGES            stage=fixing       commit=6ebc8aaca branch=wip-sync/ext-wt-5d3ff6c5
+  R10-BUFFER-STORE         stage=fixing       commit=eb46ec47a branch=wip-sync/ext-mut-297fc65b
+  R10-COP-PARTLOAD         stage=fixing       commit=50ef300f7 branch=wip-sync/ext-wt-a58e58ff
+  R10-ORCH-REVIEW-PACKET   stage=fixing       commit=9c35ddd23 branch=wip-sync/ext-wt-2b362865
+
+the five the batch takes to `in-progress`
+  R10-ARCH-SHAPES   in-progress  commit=04669d82f branch=handoff/r10-arch-shapes     (PR #2819 OPEN at af7ec86f4)
+  R10-HEAT-METER    in-progress  commit=7e9fea6ac branch=fix/r10-heat-meter-pr       (PR #2854 OPEN at 7e9fea6ac)
+  R10-SAV-COMFORT   in-progress  commit=3b55da2c6 branch=fix/r10-sav-comfort         (PR #2745 OPEN at 3b55da2c6)
+  R10-FLOW-JIDOKA   in-progress  commit=fa18c13d2 branch=fix/r10-flow-jidoka-p2      (PR #2853 OPEN at fa18c13d2)
+  R10-CEILING-PROBE in-progress  commit=9ef332566 branch=design/r10-ceiling-probe    (design rev 3 being re-cut)
+
+the repaired stage value
+  R10-ORCH-DISPATCH-REG at base 6fe5170c: stage "not-started"
+  R10-ORCH-DISPATCH-REG at head        : stage "done", commit bfc4a1e297fb2899be1c4643ae9d75b8a5829208, pr 2865
+  at the previous head 6f42fc12b, roster line 8207 read:
+    "stage": "done --at-sha bfc4a1e297fb2899be1c4643ae9d75b8a5829208",
+
+other resume movements the body's op list implies
+  R10-996-RUNNER-CLAIMS    done -> carries-open (PR #2843 MERGED at bb8addd89)
+  R10-ADVISOR-RESIDUE      in-progress -> done (PR #2834 MERGED at 0137c4cb0)
+  R10-FLY-OPENPR-ATOMIC    in-progress -> done (PR #2858 MERGED at 3b4180dcc)
+  R10-FLOW-ROSTER-FREEZE   not-started -> carries-open
+  R10-HOTFIX-BATCH-ERREXIT done -> done (commit re-recorded at fe47636fb)
+
+files widening
+  R10-CEILING-PROBE files 2 -> 7: sysid.py, draw_range.py, coordinator.py, payload.py,
+  button.py, sensor.py, pump_arbiter.py (5 added, none removed)
+
+carry counts
+  R10-COP-GATE carries 11 -> 12 (the learned top's consumer; orchestrator ruling, design-verdict 3a261d86473f)
+
+stages in use at head: absorbed, carries-open, deferred, done, fixing, handoff,
+in-progress, not-started, queued, rca-done, refuted -- no stage holds whitespace
+or command-line text.

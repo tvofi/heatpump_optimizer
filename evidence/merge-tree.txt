@@ -1,0 +1,43 @@
+$ git merge-tree --write-tree origin/main HEAD
+0ad737408723b9ec3c974bc92a09788ca83c17c5
+rc=0
+
+No MERGE-CLAIM line on stdout or stderr: both claim files are byte-identical to
+the merge base, so the claimnotes driver is never invoked. Nothing for the
+orchestrator to resolve.
+
+the body's own merge simulation, re-derived
+$ git merge-tree --write-tree 6fe5170cd7ce01e60ffebfc93e598c216e628fa3 1e9180dc9113b85354e5a03737f6dd4b9d4bb686
+8a25ac669cfe5f9352e5e20d35ca3e73ab39b23e
+rc=0
+-- matches the tree id the body quotes.
+
+three-dot diff (git diff 6fe5170c...HEAD --name-status)
+M	dev/programme/delivery/2834.md
+M	dev/programme/delivery/2858.md
+M	dev/programme/delivery/2862.md
+M	dev/programme/delivery/2864.md
+M	dev/programme/delivery/2865.md
+A	dev/programme/delivery/2866.md
+M	dev/programme/rosters/wave-r10-groups.json
+
+byte-identical to the merge base (same blob id)
+  VERSION
+  custom_components/heatpump_optimizer/manifest.json
+  RELEASE_NOTES.md
+  tests/golden/claimed_drift.txt
+  tests/golden/card_claimed_drift.txt
+  tests/closures.json
+  tests/structure_budgets.json
+  tests/mutation_budgets.json
+  tests/ci_budgets.json, tests/coverage_budgets.json, tests/stress_budgets.json,
+  tests/typing_budgets.json, dev/governance/config/policy_budgets.json
+  (none of the seven *_budgets.json files appears in the diff at all)
+
+delivery rows against the API (one GraphQL read)
+  2834 MERGED merge 0137c4cb0   row says 0137c4c
+  2858 MERGED merge 3b4180dcc   row says 3b4180d
+  2862 MERGED merge 149ce54a3   row says 149ce54
+  2864 MERGED merge 6fe5170cd   row says 6fe5170
+  2865 MERGED merge bfc4a1e29   row says bfc4a1e
+  2866 OPEN                    row says **open**

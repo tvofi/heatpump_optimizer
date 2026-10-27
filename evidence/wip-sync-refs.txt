@@ -1,0 +1,40 @@
+wip-sync refs and recorded commits. Measured 2026-10-27T01:02:41Z against
+origin (git ls-remote; ancestry with git merge-base --is-ancestor on a fetched ref).
+
+refs the batch names, all present on origin at that reading
+  wip-sync/ext-mut-3efc9ad7   bc9de92b1a9db4793563278197b1355c231b44bf
+  wip-sync/ext-wt-5d3ff6c5    2eb746592e8b6c11b92fffde676baf84409bec94
+  wip-sync/ext-mut-297fc65b   2dc25b1258f4e68e0ed6817420138ec0e2cbf1c9
+  wip-sync/ext-wt-a58e58ff    3a4f599bb57462f9f2b7826694e35772a1eb36e2
+  wip-sync/ext-wt-2b362865    0e32d89d80fe3b910e54b42b4d65b8707f82b813
+
+other wip-sync refs the roster names (pre-existing, unchanged by this batch)
+  wip-sync/ext-wt-1e092393    3f576b357d4cf14537b7c61091ece71aa3ea49ee   (R10-RCA-FRICTION)
+  wip-sync/ext-wt-e3556a49    95fe130cbf8c1958b102c560db44ed01e9467750   (R10-BUFFER-STORE next_step)
+  wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-A-a9912b6d
+  wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-B1-3033f784
+  wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-B2-4d506020
+      (R10-CLOSEOUT-CLEANUP names this family as a glob)
+
+recorded commit vs the ref's history
+  HOUSE-GRADE        516d47fd7   ancestor of tip bc9de92b1
+  ORCH-REVIEW-PACKET 9c35ddd23  ancestor of tip 0e32d89d8
+  DIAG-AGES          6ebc8aaca  NOT on the ref; same tree (b5c9b6f61) as tip 2eb746592
+  BUFFER-STORE       eb46ec47a  NOT on the ref; same tree (da2fe10be) as 2aedb02b8
+  COP-PARTLOAD       50ef300f7  NOT on the ref; same tree (2c1d39074) as 4b1c9f053
+      -- COP-PARTLOAD was still an ancestor of its ref at 00:56Z the same session
+
+the three orphaned SHAs still fetch from origin by direct SHA
+  git fetch origin 6ebc8aacac2d1576670419e34bfdd62bc8d435dc   -> ok
+  git fetch origin eb46ec47ad6add449c46d1f0d3bfae4694355e67   -> ok
+  git fetch origin 50ef300f72a96fe467467deec6f4877bdadb8221   -> ok
+so the work is checkable, but roster_sync.invalid_commits() resolves by local
+object and would print RECORD-INVALID for these three in a fresh clone.
+
+timeline (commit/committer times)
+  22:20:42Z  roster records R10-DIAG-AGES's commit      6ebc8aac
+  22:23:10Z  roster records R10-BUFFER-STORE's commit   eb46ec47
+  22:43:52Z  last roster_sync pass on the branch
+  22:48:42Z  fixer's rebased twin of DIAG-AGES lands    9b5eac912
+  22:50:56Z  fixer's rebased twin of BUFFER-STORE lands a2edb02b8
+  23:10:11Z  BUFFER-STORE's next commit lands            158b8ba93

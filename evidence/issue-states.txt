@@ -1,0 +1,34 @@
+every issue number this batch wires or adds, read from the tracker
+(one GraphQL read, 2026-10-27T00:5xZ)
+
+wired by the six `roster: wire` commits
+  2257 OPEN   Advisor: day-to-day swing, Open settings not deep-linked   -> R10-REPLAY-REAL-DAY
+  2494 CLOSED [R10-MERGE-SUBJECT-HARDEN] Two review findings on #2423   -> R10-MERGE-SUBJECT-CASEARM
+  2499 OPEN   [R10-DEMAND-OVERBOOK] plan vs relaxed DP overbook residual -> R10-BUFFER-STORE
+  2258 OPEN   [R10-SCORES] Plan scores read 0 for no evidence            -> R10-HOUSE-GRADE
+  2260 OPEN   [R10-LEARNER-ETA] Learner progress payload and Health hints -> R10-UX-HEALTH
+  2855 OPEN   [policy] recurring friction: carry-missing                 -> R10-RCA-FRICTION-RESIDUE
+
+added groups' issues
+  2257 OPEN, 2722 OPEN, 2814 OPEN, 2835 OPEN, 2840 OPEN, 2860 OPEN,
+  2248 OPEN, 2249 OPEN, 2674 OPEN
+  R10-PLAN-PRIO and R10-RECORD-HOLD-APPROVE carry none.
+
+#2494, the one closed issue
+  state CLOSED, stateReason COMPLETED, closedAt 2026-10-26T22:31:43Z
+  closing comment: "Closed as done -- both findings are fixed... 09b1d002c
+  ('the title template is the host's shape, and the writer scan reads the call')
+  is an ancestor of origin/main... re-measured by triage batch 35"
+  verified here: 09b1d002c is an ancestor of origin/main; its sibling
+  #2803 (the case-arm class rule) is OPEN, so the group is live.
+  the wire commit f4ff4cc13 was made at 20:27:16Z, two hours before the closure.
+
+roster stage/PR claims against the API
+  2745 OPEN at 3b55da2c6   -> R10-SAV-COMFORT   in-progress   ok
+  2819 OPEN at af7ec86f4   -> R10-ARCH-SHAPES   in-progress   ok
+  2834 MERGED 0137c4cb0    -> R10-ADVISOR-RESIDUE done        ok
+  2843 MERGED bb8addd89    -> R10-996-RUNNER-CLAIMS carries-open ok (its carry cites the merge)
+  2853 OPEN at fa18c13d2   -> R10-FLOW-JIDOKA   in-progress   ok
+  2854 OPEN at 7e9fea6ac   -> R10-HEAT-METER    in-progress   ok
+  2858 MERGED 3b4180dcc    -> R10-FLY-OPENPR-ATOMIC done      ok
+  2865 MERGED bfc4a1e29    -> R10-ORCH-DISPATCH-REG done      ok

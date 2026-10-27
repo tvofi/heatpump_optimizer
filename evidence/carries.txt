@@ -1,0 +1,33 @@
+carry_audit.py check, run from a worktree at the head with an explicit --repo.
+
+on the real body (15899 bytes, 3 lines carrying `Carry:`)
+  NOTE body item 2f1d1b2d: R10-FLOW-WIP
+  NOTE body item 2f1d1b2d: R10-ORCH-REVIEW-PACKET
+  NOTE body item 2f1d1b2d: R10-ORCH-ROSTER-SCHEMA
+  NOTE body item f51846f0: R10-ORCH-ROSTER-SCHEMA
+  NOTE body item 82c86bc5: R10-ORCH-ROSTER-SCHEMA
+  CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+  rc=0
+
+null control: the same command over an empty file
+  CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+  rc=0
+  -- the first attempt of this review wrote an empty body because `gh` ran
+  outside a worktree; that vacuous green is why the body is re-saved and
+  sized before the audit is trusted.
+
+destinations, read from the roster at head
+  R10-FLOW-WIP               not-started   live
+  R10-ORCH-REVIEW-PACKET     fixing        live
+  R10-ORCH-ROSTER-SCHEMA     not-started   live
+
+the producing pull request carries the same three (triage batch 35, #2867 OPEN
+at 43f436a03): its body names `Carry: R10-FLOW-WIP`,
+`Carry: R10-ORCH-REVIEW-PACKET`, `Carry: R10-ORCH-ROSTER-SCHEMA`.
+
+roster carries
+  26 carry strings new across 12 host groups; every host live (none `done`)
+  0 carry strings removed from any group
+  every explicit `Carry: <group>` inside a new string names a live group
+  (the seven assertions name the host group itself: FLOW-BODY-ONLY,
+   FLY-SUITE-ENV-FLAKES, ORCH-BEATD x3, ORCH-REVIEW-PACKET x2)

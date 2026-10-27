@@ -1,0 +1,40 @@
+roster census, keyed by `group`, base 6fe5170cd7ce01e60ffebfc93e598c216e628fa3 -> head eb97437efd6c273745352ee2cdb5c65c970c3c74
+groups 199 208
+added 9 ['R10-ADVISOR-WHATIF', 'R10-DEPENDABOT-SETUPTOOLS', 'R10-DIAG-AGES', 'R10-FRICTION-GATE-SCOPING', 'R10-FRICTION-MUTATION-SURVIVOR', 'R10-FRICTION-REGRESSION', 'R10-PLAN-PRIO', 'R10-RECORD-HOLD-APPROVE', 'R10-STORE-RACES']
+removed 0 []
+changed 27
+   R10-996-RUNNER-CLAIMS ['carry', 'resume']
+   R10-ADVISOR-RESIDUE ['resume']
+   R10-ARCH-SHAPES ['resume']
+   R10-BUFFER-STORE ['issues', 'resume']
+   R10-CEILING-PROBE ['carry', 'files', 'resume']
+   R10-COP-GATE ['carry']
+   R10-COP-PARTLOAD ['resume']
+   R10-ERREXIT-COUNTERMEASURES ['after']
+   R10-FLOW-BODY-ONLY ['after', 'carry', 'resume']
+   R10-FLOW-JIDOKA ['carry', 'resume']
+   R10-FLOW-POSTMERGE ['issues']
+   R10-FLOW-ROSTER-FREEZE ['resume']
+   R10-FLY-LEDGER-SAMPLE ['after', 'issues']
+   R10-FLY-OPENPR-ATOMIC ['resume']
+   R10-FLY-SUITE-ENV-FLAKES ['after', 'carry']
+   R10-HEAT-METER ['resume']
+   R10-HOTFIX-BATCH-ERREXIT ['resume']
+   R10-HOUSE-GRADE ['after', 'issues', 'resume']
+   R10-IMMERSION-LATCH ['after', 'carry']
+   R10-MERGE-SUBJECT-CASEARM ['issues']
+   R10-ORCH-BEATD ['carry']
+   R10-ORCH-DISPATCH-REG ['resume']
+   R10-ORCH-REVIEW-PACKET ['carry', 'resume']
+   R10-RCA-FRICTION-RESIDUE ['issues']
+   R10-REPLAY-REAL-DAY ['carry', 'issues']
+   R10-SAV-COMFORT ['resume']
+   R10-UX-HEALTH ['after', 'carry', 'issues']
+
+field-level control loss (removals from after / issues / files): none
+dangling `after` targets at head: 0
+self-dependency or cycle over `after`: none
+groups with zero issues: base 55, head 57; the two new ones are R10-PLAN-PRIO, R10-RECORD-HOLD-APPROVE
+group entries 208, distinct names 208
+brief text changed on any group: none (0 of 27)
+top-level roster keys (_comment, fork, fork_note, refused, repo, serial, session, struck, unreproduced): all unchanged
