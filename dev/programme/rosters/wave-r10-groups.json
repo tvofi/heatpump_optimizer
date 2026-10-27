@@ -2642,12 +2642,14 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Bounds the WAIT for the gate lease, not the lease itself (P206/V126, from the 38-minute lane block behind two stress.py runs). `tests/gate_lock.py`: `take()`'s wait loop today has no deadline (`while True: ... time.sleep(WAIT_POLL_SECS)`), so a waiter behind a running measurement blocks for as long as measurements keep arriving; `LEASE_SECONDS = 1800` and `renew()`'s refusal (rc 75 while another label's ticket waits) already bound the holder and cannot preempt a live run's `flock`. Add a wait deadline defaulting to the awaited script's recorded duration when the caller names one (`tests/closures.json` records `tests/stress.py` at 936.3 s and `tests/harness_headers.py` at 241.1 s) and to `LEASE_SECONDS` otherwise, exiting with a distinct code and one line naming the wait and its bound. `tests/run.sh`'s `leased()` gains a case arm mapping that code to the existing sanctioned exit, `SKIP: <script> ... left to CI, named unrun` (`gate-scoping.md`), so the lane records a named unrun instead of a pass. Constraints: the bound must be at least the awaited script's recorded duration; the skip must never be a silent pass; it applies only to scripts `needs_lease` classifies `lease` (a `slot` waiter already shares the four-slot pool and must not skip); uncontended runs take no new branch (null control); neither `LEASE_SECONDS` nor `renew()`'s refusal changes. Two self-test arms: a waiter past the bound exits with the code and the line, one within it still runs. triage: dev/programme/triage/s6-batch38.md#P206"
+   ],
    "architect_note": null,
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-prepr-cap",
-    "commit": "f0724675ff079895f7af8756b342165137a344ed",
+    "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane that needs a first-green head; the local re-record duplicated CI required closures context plus closures-autofix and cost 10-25 min per handoff. CORRECTION 2026-10-21: the figure first recorded here (108 ok, 0 FAIL, 12 skip, read as never having refused) was WRONG. The step line format is REFUSE, not FAIL, and the filter could not see the word. Re-counted over the same logs: 108 ok, 13 skip, 3 REFUSE, and 10 REFUSE lines in a looser pass; the fixer measured 15 in its own corpus. So the step does catch under-scoped closures locally and the ruling cost side is not zero. Recommendation on record: keep the skip as the default and force the local check with PREPR_RECORD_CLOSURES=1 on diffs touching tests/closures.json, tests/closure.py, or adding a read of an INERT file - the class that actually refused. Same change makes closures_line reap its recorder on TERM: stopped preprs left derive_closures reparented to launchd for 20-38 min. Fixer on handoff/r10-prepr-closures."
@@ -3697,9 +3699,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-sav-comfort",
-    "commit": "3b55da2c65ca24780fa2b6da5137d64332279b36",
+    "commit": "34cd75bf1fe506334611ba6c074c223317370e67",
     "last_step": null,
     "next_step": "PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land.",
     "note": null,
@@ -4866,12 +4868,12 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "fixing",
-    "branch": "wip-sync/ext-mut-297fc65b",
-    "commit": "eb46ec47ad6add449c46d1f0d3bfae4694355e67",
-    "last_step": null,
-    "next_step": "fixer live; eb46ec47a models the valved buffer tank in the single-zone step. No handoff branch and no PR yet: reachable at wip-sync/ext-mut-297fc65b (snapshot) and wip-sync/ext-wt-e3556a49. Push handoff/r10-buffer-store, then open the PR.",
-    "note": null
+    "stage": "in-review",
+    "branch": "handoff/r10-buffer-store",
+    "commit": "5c01e40658af339371b22b1b7c141ae3e539deb9",
+    "last_step": "handoff pushed at 5c01e4065 (body handoff-body 1b5ff1d65); merged origin/main 524c1896b, re-recorded functions_cc_over_15 28->27, 11 mutants KILLED, 25 unpinned sites disposed, scoped gate at this head",
+    "next_step": "open the PR from handoff/r10-buffer-store and dispatch the fix review at 5c01e4065 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store; gate reds are answered in its ## Red checks",
+    "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md: cause named, process state (c) with evidence, cost test ~31,000x, census countermeasure demonstrated red at base and green at head, plus a recorded refusal. Gate reds at this head: optimality (the arm64-only claim, documented at tests/optimality.py:711-717); card.mjs (host V8 heap -- ALL CARD CHECKS PASSED at 4 GiB); stress.py's shoulder case (identical 4.6716/3.9585 at base, main and head, carried to R10-FLOW-POSTMERGE). #2499 stays open (Part of); its residual is carried to R10-STORE-RACES."
    },
    "class": "production",
    "group": "R10-BUFFER-STORE",
@@ -4918,9 +4920,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-cop-partload",
-    "commit": "775ae0340b1735db77bafe3d6a5d79e992706171",
+    "commit": "f4415303e012a4851585ff366441b0c4f88ac661",
     "last_step": "Handoff pushed at 775ae0340: the term at the seven priced forward sites and the two hot-water sites, the structure re-record (class_excess_loc 18082; the naive shape measures 18111, so the shape pays 29 lines and the rise over the base is 3), the golden config_flow re-record and its claim, the buffer-ceiling triage re-anchor, the harness INERT read, the RCA at dev/audit/rca/R10-RCA-COP-PARTLOAD.md, and the two audit header blocks. Scoped gate MODE: SCOPED -- 30 script(s) run, 3 scoped out; its reds are classified against 3b4180dcc in the body's ## Red checks -- golden 55/56, the stress shoulder economics and the card.mjs V8 OOM reproduce at the base, harness_headers was fixed in dc67636b2 and re-runs green, and the stress production-call channel is this branch's, named there for the owner's pass.",
-    "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder's harness). Body on handoff-body/r10-cop-partload; open the PR after the verdict. The RCA the group's rca step owed is in the diff (dev/audit/rca/R10-RCA-COP-PARTLOAD.md), and the two carries are on this group's carry list.",
+    "next_step": "PR #2872 open at the merge-forwarded head f4415303e (main 524c1896b merged, no hand resolution; structure.py and entities.py re-run green: 18070<=18070, ALL 2467). Body on handoff-body/r10-cop-partload (fa3905d28); update_pr advanced the branch and the ## Head note. Review owed at f4415303e from a detached worktree with the finder's harness. Two checks are owner-gated rather than fixer-gated: tests / fast (3.14) (13 stress production-call scenarios 1.050x-1.063x past the 1.05 allowance, work counts vouching 1.000x) and budget-raise-gate (class_excess_loc 18067->18070; ## Raise justification carries dS +0.0000 NULL and the rejected naive shape at 18099). Under mandate 6329234399 the budget-raise arm is mine to rule once the reviewer confirms no payment improves the architecture; the stress allowance is not, and it waits for tvofi.",
     "note": null,
     "pr": 2872
    },
@@ -5797,12 +5799,13 @@
    "architect_note": "",
    "brief": "Flow board (Lean study K1). Today nothing measures throughput against the owner's demand of one roster group merged per hour, so no flow change can show it worked. Extend tools/audit/merge_throughput.py with a flow subcommand rather than adding a file: read the first-parent log of origin/main, the review and verdict bus refs (tools/audit/seat/bus.sh publishes one commit per verdict, subject 'verdict: #N Fix review: merge|blocked <sha> <class>: ...'), and the roster through tools/audit/seat/roster_lib.py. Print per rolling hour and per 24 h: roster groups closed against takt 1.0; fly-ins closed; main moves split into group-carrying, record, roster-edit and fly-in; work in progress by flow lane (A critical path, B product, C process, F fly-in); first-pass yield of fix review and the blocked-class mix; lead time per size. Add it to tools/audit/seat/state_docs.py's generator list so the beat publishes it beside the plan table, and print UNAVAILABLE, never zeros, when a source is unreadable. Wire its self-test into governance.yml's instrument-self-tests job. Controls: a fixture with one merge, one blocked then merged verdict and one record merge gives exact counts; a null control (an unchanged fixture) reads identical before and after; its mutants fail named arms.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-flow-board",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "pr": 2883
    }
   },
   {
@@ -6228,7 +6231,8 @@
     "R10-FLOW-POSTMERGE: LANDED \"`postmerge-owed` is an event kind in ledger.py's table: the after-merge step opens it (`ledger.py open postmerge-owed <pr> <merge-sha40> <why>`) and its later success closes it (`ledger.py close postmerge-owed <pr> <merge-sha40> <how>`); no other closer exists for it.\" Carry: R10-FLOW-POSTMERGE",
     "tvofi 2026-10-24 recommendation (f) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): dispatch this group ahead of the non-critical S fly-ins. After-merge bookkeeping is the work a retired merge seat's job must do, so it is on the path of the card 1 retirement. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified.",
     "From triage P96 (a) (triage: dev/programme/triage/s6-batch20.md#P96): In tools/audit/seat/merge_pr.sh, before app_comment.sh posts anything, compare the reviewed SHA in the evidence directory's verdict file (the one merge_pr.sh already copies before posting) with the head argument. If they differ, refuse with a 'CARRIED HEAD' line naming the route, a one-entry `merge_train.py run` queue whose verdict is the reviewed SHA (the train runs `app_approve.sh --carry` at admission and at the head). Add no carry logic to merge_pr.sh. Self-test: a fixture whose verdict SHA differs from the head refuses with CARRIED HEAD and posts nothing; the null control, an equal SHA, posts as today. Mutation proof: deleting the comparison fails the moved-head case. Basis: #2762 (carried c851f2a8 -> 2f5bf725, CARRY yes) could not merge via merge_pr.sh, because app_comment.sh refuses a merge verdict off the live head, and it waited about 1 h or more for the train.",
-    "GROUP R10-FLY-RECORD-BEAT (new, size S, triage: dev/programme/triage/s6-batch4.md#P61). A new script, record_beat (taking <PR...>; the file does not exist yet): for each merged PR it resolves the FULL merge sha from git (never typed), posts the #201 record comment through gh_comment.py and reads it back, so the tick's search by full merge sha finds it (V8: 10 merges read unrecorded because comments cited short shas). The merge seat calls it after each merge. Controls: the comment carries the 40-char sha (null: a short-sha comment is what the tick misses; assert the tick's finder matches the new one and not the old); read-back mismatch exits nonzero; one mutant. NOT in this group: the HANDOVER updated-for refresh (deferred; measure first whether any check reads the field). Files: the new script under tools/audit/seat/ and tools/audit/seat/INSTRUMENTS.md. (folded from R10-FLY-RECORD-BEAT, tvofi 2026-10-25 existing-groups-first)"
+    "GROUP R10-FLY-RECORD-BEAT (new, size S, triage: dev/programme/triage/s6-batch4.md#P61). A new script, record_beat (taking <PR...>; the file does not exist yet): for each merged PR it resolves the FULL merge sha from git (never typed), posts the #201 record comment through gh_comment.py and reads it back, so the tick's search by full merge sha finds it (V8: 10 merges read unrecorded because comments cited short shas). The merge seat calls it after each merge. Controls: the comment carries the 40-char sha (null: a short-sha comment is what the tick misses; assert the tick's finder matches the new one and not the old); read-back mismatch exits nonzero; one mutant. NOT in this group: the HANDOVER updated-for refresh (deferred; measure first whether any check reads the field). Files: the new script under tools/audit/seat/ and tools/audit/seat/INSTRUMENTS.md. (folded from R10-FLY-RECORD-BEAT, tvofi 2026-10-25 existing-groups-first)",
+    "From r10-buffer-store (code head 173b71ba4): tests/stress.py's shoulder-economics check is red on the merge base (3b4180dcc) and on current main (524c1896b) with the identical reading (predicted 4.6716 / thermostat 3.9585), yet no check-run at main's head shows it: at 524c1896b the gate check completed in 21 s and sweep in 10 s, and of the tests/... jobs only ci-ratchet and coverage-ratchet ran. A full-suite pass on main is therefore not visible in that push's checks, so a base red travels unremarked into a branch's gate; the after-merge bookkeeping this group builds is where main's own suite state must be read."
    ],
    "architect_note": "",
    "brief": "After-merge bookkeeping without an agent (Lean flow study, mechanisation). nudge.md step 12 has the orchestrator run four mechanical things after every merge: the worktree collector, one #201 comment through tools/pr/gh_comment.py with a byte-identical read-back, the roster stage, and the state docs. merge_pr.sh already runs tools/audit/worktree_gc.sh and merge_train.py runs it after each merge; nothing runs the other three. Make both merge paths finish the job: post the #201 line from a fixed template (pull request, merge sha, group, issues closed by the merge, and the words Leaves #201 open), with the body file under the state directory, since gh_comment.py refuses a shared root; let R10-ROSTER-OPS's roster-sync set the stage; and run tools/audit/seat/state_docs.py once with its push flag. A failure in any of them is printed as OWED and never undoes the merge. Controls: a dry-run fixture prints the exact comment and commands; a refused comment prints OWED and exits non-zero after the merge line; each step's deletion fails a named arm.",
@@ -6766,7 +6770,7 @@
     "branch": "handoff/r10-flow-body-only",
     "commit": null,
     "last_step": null,
-    "next_step": "Re-size or split before dispatch: 12 carries, carry 7 needs owner review, V115/V64 reach outside declared files (stopped seat 2026-10-26, scratch NOTES.md)",
+    "next_step": "DISPATCH NOW: every `after` group is done (R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH, R10-FLY-OPENPR-ATOMIC all `done`), so the only thing that held this group was its own note. CARRY 7 IS RULED, under mandate 6329234399, by the orchestrator acting as tvofi on 2026-10-27T11:15Z: adopt P22 -- update_pr.sh exits 75 (BUSY, not 1) for \"branch checked out elsewhere\" and worktree-in-use, exactly as it already does for its own lock, so a live train's worktree is never read as a permanent refusal. The evidence is fresh and it is ours: at 11:02Z update_pr.sh refused #2872 with `branch fix/r10-cop-partload checked out elsewhere` and exited non-zero, the orchestrator read it as a permanent stop, and the true cause was a finished fixer's worktree still holding the branch -- released by one detach and the same command then ran clean. Carry 7's remaining asks stand unchanged: keep the body-only path callable by the beat's handoff job, and register any new push site in ref_privacy's PUSHERS. Size S, files tools/audit/seat/{update_pr.sh,cloud_relay.sh,pr_args.sh,INSTRUMENTS.md}. Blocked on nothing but a free lane seat, which the orchestrator dispatches into.",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
@@ -7355,7 +7359,8 @@
     "From R10-FLOW-TOOLKIT-MEASURE (#2645, handoff-body/r10-flow-toolkit-measure at a7ef03069016), Friction: finding-propagation: stale: the roster carry's null control asks flow_metrics to reproduce \"the FUTURE-STATE section 2 figures\", which are in no tree or ref this seat can read, so no comparison with them was made; the figures above are each enumerator's own rule over the round-10 windows.",
     "Triage P-K: tools/plan/replan.py raises KeyError 'XS'. Measured: tools/plan/durations.json `sizes_hours` at origin/main holds exactly S 13.1, M 11.4, L 20.1, XL 30.2 (no XS), and replan.py line 335 does `size_hours[G[n].get(\"size\") or \"M\"]` with no fallback, so any open group of size XS raises KeyError. The roster holds seven XS groups (R10-FLY-WORKTREE-GC, -DAEMONIZE-ARGV, -CIPREDICT-LAYOUT, -CLOUD-SETUP-TOOLCHAIN, -YIELD-GUARD, -ENVMATRIX-NOREMOTE, -SUITE-ENV-FLAKES), so every replan crashes while any is open; the overlay (XS = S/2) hides it for rev 22 only. replan.py line 814 holds an embedded default table `{\"S\": 2.0, \"M\": 4.0, \"L\": 6.0, \"XL\": 8.0}` also without XS. The measured numbers are not monotone (S 13.1 h > M 11.4 h), so \"XS = S/2\" is derived from nothing: the XS value should come from the durations measurement with a stated n, and the fallback for an unknown size should be loud (a `size not in model` line), never the smallest size silently. Fix route, S inside this M group (it already extends the same plan model with --project, so one PR on replan.py, a hot file for three groups): a measured XS value or an explicit fallback, a refusal-or-line for any other unknown size, two self-test rows (an XS group renders; a size outside the table refuses or lines, never KeyError) with a null control (a roster of S..XL only gives the same output as before). Not R10-ORCH-PLANPAGE: it reads the model, it does not own durations. Interim: the replan overlay already in use. If a replan crashes in an unattended path, open the fly group R10-FLY-REPLAN-XS (XS, files tools/plan/replan.py, tools/plan/durations.json) and have this group rebase on it. (triage batch 5, 2026-10-23; proposals.md P-K)",
     "Three input corrections in `tools/plan/replan.py`, keeping the model offline and deterministic. (1) Liveness from refs: a `--live-refs FILE` input, a saved `git ls-remote` listing. A group in a `LIVE_STAGES` stage (line 94, read at 322) with no fixer, handoff or dispatch ref for its topic and no open PR is scheduled as pending, not as live. (2) Sizes measured in tree: a `--measure-sizes` mode writes `tools/plan/durations.json`'s `sizes_hours` by the plan-opt method (first PR commit to last merge, per size, over the done groups in a window). Its null control re-derives the current values (S 13.1, M 11.4, L 20.1) from the window they were taken over. (3) Inflow: a measured `inflow_groups_per_hour` field (plan-opt measured 0.40 per h over 48 h) adds expected arrivals to the schedule. Controls: a fixture group in-progress with no ref is pending (null: with a handoff ref it is live); the sizes null control; an inflow of 0 reproduces today's plan byte for byte; one mutant per input. (triage: dev/programme/triage/s6-batch26.md#P131)",
-    "From R10-ORCH-ROSTER-SCHEMA: the size half of this vocabulary drift, now that the data is cleared. Measured at that branch: durations.json sizes_hours holds S 13.1, M 11.4, L 20.1, XL 30.2 (no XS, and not monotone), roster_lib.sizes() returns exactly those keys, roster_edit refuses an append-group size the model lacks (naming roster, group and value) and roster_sync --self-test scans every wave roster for a size the model does not key. The eight XS groups (carry 6s seven plus R10-FLY-LEDGER-SAMPLE) are relabelled S, the smallest modelled bucket, so replan.build_plan no longer raises KeyError XS and no guessed hours entered the model. Owed here, carrying 6s route: the XS measurement with a stated n from the durations measurement, an XS entry in sizes_hours only once measured, and the loud unknown-size line in build_plan instead of a silent smallest-size fallback; null control: a roster of S..XL only renders the same plan as before."
+    "From R10-ORCH-ROSTER-SCHEMA: the size half of this vocabulary drift, now that the data is cleared. Measured at that branch: durations.json sizes_hours holds S 13.1, M 11.4, L 20.1, XL 30.2 (no XS, and not monotone), roster_lib.sizes() returns exactly those keys, roster_edit refuses an append-group size the model lacks (naming roster, group and value) and roster_sync --self-test scans every wave roster for a size the model does not key. The eight XS groups (carry 6s seven plus R10-FLY-LEDGER-SAMPLE) are relabelled S, the smallest modelled bucket, so replan.build_plan no longer raises KeyError XS and no guessed hours entered the model. Owed here, carrying 6s route: the XS measurement with a stated n from the durations measurement, an XS entry in sizes_hours only once measured, and the loud unknown-size line in build_plan instead of a silent smallest-size fallback; null control: a roster of S..XL only renders the same plan as before.",
+    "From R10-ORCH-ROSTER-SCHEMA (0f2541d69): tools/plan/replan.py:94's LIVE_STAGES = (\"in-progress\", \"fixing\", \"review\", \"in-review\") is a second copy of the live-stage view; roster_lib.LIVE (tools/audit/seat/roster_lib.py) is the one registry now and the two are equal at that head, so adopting the import changes no schedule. This group lists tools/plan/replan.py and is not started; R10-PLAN-PRIO, which the wave brief named, is done. Bring the planner's live set from roster_lib."
    ],
    "architect_note": "",
    "brief": "Land the Lean flow study's projection model on main as part of the one plan model, not beside it (owner, 2026-10-21). Extend the plan model R10-ORCH-MACHINERY part (3) extracts (plan-model(), from R10-PLAN-ARTIFACT's code) with: (1) --project: an hourly simulation of the roster with lanes and caps, a lead per size ramping to a target, the merge pitch, the drain hold, merge-order-only edges, a tail after a predecessor, a cut-over that waits for a gap in the critical chain, a reserved slot for the next chain link, enabler effects credited pro rata to groups in flight, and fly-in and scope-creep arrivals; (2) --rank: the CD3 order of a stated set of enablers (round hours saved per hour earlier, divided by size); (3) a shadow overlay: roster_edit.py --dry-run --out applies a pack of group files and carries to a roster ref in memory, for brief_lint; (4) the schedule table rendered as a section of the plan page. The critical chain comes from roster_lib.critical_path; every scenario figure (caps, leads, effects, edges) is read from a per-round JSON file under dev/programme/<round>/, never from code.",
@@ -7785,12 +7790,13 @@
    "architect_note": "",
    "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
    "resume": {
-    "stage": "queued",
+    "stage": "in-progress",
     "branch": "handoff/r10-train-overlap-grade",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted."
+    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted.",
+    "pr": 2882
    }
   },
   {
@@ -8025,7 +8031,7 @@
    "architect_note": "",
    "brief": "Root-cause countermeasure for the recurring class of fixer bodies refused at prepr by the pr-body lint (#2524 twice, R10-CURRENCY three times, P2a once; 36 of 519 handoff-body pushes over 22 topics fail it offline, 2-12 a day 10-15..10-22). Cause: body_push.sh ran only ci_predict, never the body lint, and the Friction trailer drop predates the cloud session-link line. Countermeasure: prepr.sh --body-check runs step 7 offline; body_push.sh lints when handoff/<topic> is HEAD and refuses a mismatched head; the session link joins the trailer drop. Record dev/audit/rca/R10-RCA-BODY-LINT.md and class N-body-lint-bounce. Code at handoff/r10-rca-body-lint 5b27a11aa.",
    "resume": {
-    "stage": "done",
+    "stage": "fixing",
     "branch": "fix/r10-rca-body-lint",
     "pr": 2625,
     "commit": "cf01e82eec281c0d4e4141beb8fd5a8834cf99de"
@@ -8288,7 +8294,8 @@
     "From R10-ORCH-DISPATCH-REG (handoff de66f00b): **K17 alignment.** Part (4) is this group's: the dispatch record is now the registry the seats job reads, with time and model, which is the backing state the round-3 review's N11-R found missing for the folded dispatch reason. Part (4b), the read-back close of `verdict-unposted`, is already on main (R10-ORCH-LEDGER) and unchanged here. Parts (0)-(3) and (5)-(7) are other groups' (the brief copies the carry whole): carried to R10-ORCH-BEATD below; part (3)'s live reviewer in the workers JSON file reads as the live record in `$S/dispatched` (Decision above).",
     "**R10-ORCH-BEATD: the seats job reads this registry.** The worker registry is `$HPO_BUS_STATE/dispatched`, one line per reviewer dispatch, `<pr> <head> <reviewer> <nonce> <utc> <model|->` (older 4-field lines stay readable); the design's workers JSON file is not built, by decision. The seats job and the WORKERS section read it, and fixer seats (not dispatched through the bus) need their own record or none. Control: a reviewer dispatched through `cloud_dispatch.dispatch_group` appears as a live seat with its dispatch time; a line at a head the PR has moved past reads `DONE?`, not live. Carry: R10-ORCH-BEATD",
     "**R10-ORCH-BEATD: carry [5], the dispatch beat job.** It calls `bus.sh dispatch` (or `dispatch_group`), never a second writer of the registry or of the `reviewer-fire` close; the standing dispatch seat stays until the job has run beside it for one full cycle. Control: one beat pass over a handoff with no live dispatch leaves one registry line and one `close reviewer-fire` in `events.tsv`, and a second pass adds neither. Carry: R10-ORCH-BEATD",
-    "**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD"
+    "**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD",
+    "Triage writer arrival order is unresolved, and the 2026-10-27T09:30:39Z stand-down rests on a windowed read. Read the WHOLE seat ledger, not the window: the plain `HOLD (no v7.0.5 tag)` writer is one continuous cadence across the series with no inter-line gap over 302 s, and its first line predates the annotated seat's first line at 08:12:52Z -- so the annotated seat is the later arrival, not the \"second writer\" the batch file calls it. The windowed figures remain exact and reproducible (18 plain lines in 08:13:15-09:38:27; 4 inside the 08:54:25-09:15:38 stall) but they establish the overlap, not the order. The DEFER is unaffected either way: a fixed-line loop implements no convention, whichever seat wrote it."
    ],
    "model": {
     "fixer": "opus",
@@ -8402,7 +8409,8 @@
     "A carries-open group blocks a dependent only while its leftover carries reach the dependent's files. Add `roster_lib.blocks(after_group, dependent, roster)`. A group in an open stage other than `carries-open` blocks as today (`is_open`). A `carries-open` group P blocks a dependent D when D has `closes_round: true`, or when `touched(P) & touched(D)` is non-empty and D's `architect_note` records no seam split naming P. `touched(X)` is X's `files` plus the repository paths its carries name: tokens under custom_components/, tools/, tests/, dev/, docs/, .github/ and .claude/, and bare *.py, *.sh or *.mjs names matched by basename; `tools/audit/seat/INSTRUMENTS.md` is excluded. Set `closes_round: true` on R10-ARCH-DOCS, R10-ROUND-PLAYBOOK and R10-CLOSEOUT-CLEANUP. Read the predicate everywhere openness gates an edge: `orchestrator_tick.py` PLAN blockers (line 1154), `roster_lib.depth_of` (232), `plan_page.py:189`, `plan_table.py:81`, `handover_prompt.py:49` and `tools/plan/replan.py`'s `is_done` (175). Those files are this carry's, beside the group's own. Evidence: #2822 round 1 (comment 6400503903): R10-UPDATE-PR-SIGNALS' owed carries edit `update_pr.sh`, `pr_args.sh` and `cloud_relay.sh`, which four not-started dependents also edit. Controls: a dependent sharing a file with a carries-open predecessor's carry stays blocked (null: one sharing none is released); the same pair with a seam-split note naming the predecessor is released; a `closes_round` dependent stays blocked with no shared file; a bare `update_pr.sh` in a carry matches `tools/audit/seat/update_pr.sh`; the six readers agree on one fixture roster; one mutant per arm (drop the carries from touched(), drop the closes_round exception, drop the seam-note check). (triage: dev/programme/triage/s6-batch26.md#P133)",
     "Add two roster ops. (1) `roster_edit.py set-size <group> <XS|S|M|L|XL> --cite <ref>@<sha>`: it refuses an unknown size, and refuses a cite whose ref does not hold that sha. It records the old size and the cite in the group's `resume.note`. (2) `roster_edit.py set-files <group> --add <path>... [--cite <ref>@<sha>]`: it refuses a path not in the tree at origin/main (or not added by the cited ref) and records the cite. First uses: R10-HEAT-METER XL -> L citing `design-verdict/R10-HEAT-METER@ad376684f` (approve 21f4fbfe9, 'Size verdict: L, conditional on #2753'), applied once #2753 merges; this group's own `files` gain the readers P133 names; R10-ORCH-DISPATCH-REG's gain `tools/audit/seat/ledger.py` and `orchestrator_tick.py` (P136). Controls: set-size with a valid cite writes the size and the note (null: an unknown size refuses and writes nothing); a cite whose ref lacks the sha refuses; set-files with a path missing from the tree refuses; one mutant per op that skips its check fails that arm. (triage: dev/programme/triage/s6-batch26.md#P139)",
     "Carry from the #2844 delta verdict (probe/rev-2844-35c20883, 26ef56c6a): R10-FLOW-RECORD-PITCH's resume is missing `pr: 2836`. `roster_edit.py set-resume --field` offers only stage, commit, branch, last_step, next_step, note, issues and fixes, so a merged group's PR number cannot be recorded through the safe edit. Add `pr` to set-resume's fields, or derive it in the schema, with a fixture that shows a set-resume of pr round-tripping. Then set pr for every done group that lacks it, starting with R10-FLOW-RECORD-PITCH = 2836. Ruling: orchestrator, 2026-10-26, mandate 6329234399.",
-    "Triage P203 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P203): the tick marks mandate-approved owner gates as blocked. ACCEPT narrowed to a gate-kind classifier in roster_lib that the tick calls; a tick-only string heuristic is REJECTED because the gate's meaning belongs to the roster schema (the tick already imports roster_lib for its group and open-group reads) and a regex in the tick would be the second reader of one fact. Instances: every tick, and the board's own gated count carries it -- the ruling's census, re-derived with the tick's own loader at the roster-branch tip it names, found every open group with a non-empty owner_gate covered (one family naming a mandate, two beginning code-owned:, three beginning policy:, several matching more than one) and none stating a decision still to be taken; the older instance in the ledger read the same class at its own roster. Cause: the tick's gated test is the presence of any owner_gate string, it sets the flag unconditionally, and it makes one issues read of the oldest gated issue to print its age. Carried arm: roster_lib gains a gate-kind helper (the ruling names it gate_kind, over the gate text) returning covered (names a mandate id, or begins code-owned:, policy: or budget:, which the mandate in force covers) or owner (the text states a decision not yet taken, today only 'owner decision after the probe'); the tick reports covered gates informationally with no flag and flags only owner ones, and makes the oldest-issue age read only when an owner gate exists (on today's roster, zero calls per tick instead of one). Controls: a fixture of the gate strings from the roster, all classifying covered; the 'owner decision after the probe' text classifying owner; one mutant that treats every gate as owner fails the covered fixture; one that treats every gate as covered fails the owner row; null -- a group with no gate is not in the line at all. The roster moves under the count, so the fixture pins the class, not a total. One helper (about 15-25 lines) plus the tick's call site (about 3), and the fixture rows; no roster data migration, so roster_edit.py and roster_sync.py are not touched in this arm. Benefit: the false gated line is the one the completion criterion's last step is judged on, so a false positive costs a re-derivation every pass. Carry: R10-ORCH-ROSTER-SCHEMA"
+    "Triage P203 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P203): the tick marks mandate-approved owner gates as blocked. ACCEPT narrowed to a gate-kind classifier in roster_lib that the tick calls; a tick-only string heuristic is REJECTED because the gate's meaning belongs to the roster schema (the tick already imports roster_lib for its group and open-group reads) and a regex in the tick would be the second reader of one fact. Instances: every tick, and the board's own gated count carries it -- the ruling's census, re-derived with the tick's own loader at the roster-branch tip it names, found every open group with a non-empty owner_gate covered (one family naming a mandate, two beginning code-owned:, three beginning policy:, several matching more than one) and none stating a decision still to be taken; the older instance in the ledger read the same class at its own roster. Cause: the tick's gated test is the presence of any owner_gate string, it sets the flag unconditionally, and it makes one issues read of the oldest gated issue to print its age. Carried arm: roster_lib gains a gate-kind helper (the ruling names it gate_kind, over the gate text) returning covered (names a mandate id, or begins code-owned:, policy: or budget:, which the mandate in force covers) or owner (the text states a decision not yet taken, today only 'owner decision after the probe'); the tick reports covered gates informationally with no flag and flags only owner ones, and makes the oldest-issue age read only when an owner gate exists (on today's roster, zero calls per tick instead of one). Controls: a fixture of the gate strings from the roster, all classifying covered; the 'owner decision after the probe' text classifying owner; one mutant that treats every gate as owner fails the covered fixture; one that treats every gate as covered fails the owner row; null -- a group with no gate is not in the line at all. The roster moves under the count, so the fixture pins the class, not a total. One helper (about 15-25 lines) plus the tick's call site (about 3), and the fixture rows; no roster data migration, so roster_edit.py and roster_sync.py are not touched in this arm. Benefit: the false gated line is the one the completion criterion's last step is judged on, so a false positive costs a re-derivation every pass. Carry: R10-ORCH-ROSTER-SCHEMA",
+    "From this group's own handoff (0f2541d69): the wave brief names dev/programme/delivery/r10-roster-schema.md as this group's delivery row, but tests/delivery_status.py reads only digit-named rows (^dev/programme/delivery/\\d+\\.md$), so a row under that name is read by no check; the numeric row open_pr.sh writes is the ledger's and the topic-named file this branch adds is an inert pointer. Recorded in the pull request's Friction as brief-citations: stale."
    ],
    "model": {
     "fixer": "opus",
@@ -8419,8 +8427,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "in-review",
+    "branch": "handoff/r10-roster-schema",
+    "commit": "0f2541d692f6d2fc9d1ba98643bb157d3caea407"
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern D, the roster schema: owner_gate structure, absorbed-edge closure, the brief pin and the stage set (note section 3 row D). DONE_STAGES changes, and pr_cap.py, prune_refs.py, handover_prompt.py and the tick all read it (carry 24). Independent of the ledger, beat and page. It is policy: rows vii and viii of the design's section 8 table need tvofi's approval before merge. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
@@ -9465,7 +9474,8 @@
    ],
    "carry": [
     "From #2745 (R10-SAV-COMFORT, #2492), carry 5 seam 2 controls, preconditions for this group's failing test: (a) a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts; (b) one mutant per seam (each seam's mutant must turn (a) red). Source: R10-SAV-COMFORT's carry 5 and #2745's Forward-carry; the #2745 review at c70c3e46 blocked because this group's brief named the work but not its controls.",
-    "D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verifier row s1-05 of dev/audit/rounds/round10/D15/verify.md): the stores self-test reports 3 off-domain leaves under `pump_duty` (`written/silent/*`). The silent slot is written by the current writer (`pump_arbiter.py` `_SLOTS`, lines 71-75), and `store.py` `DOMAINS` does not declare it. Declare `written/silent` in the `pump_duty` domain with this group's change to `pump_arbiter.py`. Do not touch the 15 `snapshots` `learners/peak_tracker/*` leaves: they are legacy snapshots and `coordinator.py` omits `peak_tracker` from the payload on purpose. Controls: on a fixture install with a silent row configured the stores self-test reports 0 off-domain leaves for `pump_duty` after the change (null: before the change it reports 3); an install with no silent row writes no `silent` leaf and reports 0 either way; one mutant that removes the declaration. (triage: dev/programme/triage/s6-batch24.md#P117)"
+    "D15 live-bundle lead L5, narrowed (owner install; REPORT.md, and verifier row s1-05 of dev/audit/rounds/round10/D15/verify.md): the stores self-test reports 3 off-domain leaves under `pump_duty` (`written/silent/*`). The silent slot is written by the current writer (`pump_arbiter.py` `_SLOTS`, lines 71-75), and `store.py` `DOMAINS` does not declare it. Declare `written/silent` in the `pump_duty` domain with this group's change to `pump_arbiter.py`. Do not touch the 15 `snapshots` `learners/peak_tracker/*` leaves: they are legacy snapshots and `coordinator.py` omits `peak_tracker` from the payload on purpose. Controls: on a fixture install with a silent row configured the stores self-test reports 0 off-domain leaves for `pump_duty` after the change (null: before the change it reports 3); an install with no silent row writes no `silent` leaf and reports 0 either way; one mutant that removes the declaration. (triage: dev/programme/triage/s6-batch24.md#P117)",
+    "Carry 5, seam 2: actuate the supply switch at step boundaries from a one-minute tick, rather than at the cycle phase. Its owed controls are a synthetic install with the cycle phase at 0 and at 14 min that books identical duty verdicts, and one mutant per seam. It moves the actuator edge (`coordinator._apply_action`, `early_cutoff`, `pump_arbiter.switch_supply`) and needs a design note first. Main's roster, `dev/programme/rosters/wave-r10-groups.json`, holds the group for it, R10-SAV-ACTUATION (after R10-SAV-COMFORT, issues [2492]), whose `carry` already records both controls. Carry: R10-SAV-ACTUATION"
    ],
    "resume": {
     "stage": "not-started",
@@ -9826,9 +9836,9 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-house-grade",
-    "commit": "8b37c0a5c19dbc2cd5e42a7d71eb862deddb192b",
-    "last_step": "PR #2876 open at 8b37c0a5; delivery row dev/programme/delivery/2876.md pushed at the head",
-    "next_step": "a reviewer is owed at 8b37c0a5; mutation reads 3818 unpinned at 6f443460 and 3818 at the head, 0 added",
+    "commit": "f1f67bec2420ab603de2ee39dcb69649498ea988",
+    "last_step": "PR head 253dc4867 (code f1f67bec2, body ref 0ed3c466d) is fully green: 55 check-runs, 39 success, 16 skipped, 0 pending, 0 failure; tests / fast and tests / mutation both success",
+    "next_step": "a reviewer is owed at 253dc4867; do not re-push",
     "note": null,
     "pr": 2876
    }
@@ -10579,7 +10589,11 @@
    "resume": {
     "stage": "not-started",
     "branch": null
-   }
+   },
+   "carry": [
+    "From r10-buffer-store (code head 173b71ba4, body handoff-body/r10-buffer-store): the store that group makes live costs 2.5x CPU seconds on the owner shape -- benchcpu2.py over the same seeded 10-solve sequence reads 8.560 s -> 22.338 s (per-solve medians 1.123 -> 2.782), while the flat no-buffer null on the same run reads 1.15x (9.611 -> 11.014 s). The production-call channel sits at 1.028x/1.029x (max 1.0295x) of its 1.05x allowance in the two-zone valved families, and the single-zone valved family re-plans (64 objective evaluations against 40, exempt there). A bound or a warm start on the planner must earn the 2.5x. The 272 s owner-box outlier was not reproduced: worst 17.3 s over 5 owner-shape solves, and the doubled-resolution mutant reaches 143.9 s, so the instrument responds but no input shape here produces 272 s.",
+    "From r10-buffer-store (code head 173b71ba4): two homes for the 35 L buffer fallback, on purpose -- `_buffer_capacity` words `if c_buf < 1e-6: c_buf = 0.04` once, and the two-zone step and the batch step each still inline it. Routing the step through the helper would delete those lines and drop class_excess_loc, at one more `_buffer_capacity` call per two-zone step, which the call channel prices at 1.0295x of its 1.05x allowance, so it is left to the group that next prices that family (this seam)."
+   ]
   },
   {
    "group": "R10-PLAN-PRIO",
@@ -10596,6 +10610,138 @@
     "commit": "524c1896b6943b3da03d6cad61420ced31e14c9c"
    },
    "brief": "tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. Wire the owner's dispatch priority (tvofi 2026-10-26) into the schedule: tier 0 groups on the critical path as critical_path() computes it from the roster graph each replan (never a stored list); tier 1 production groups; tier 2 non-production groups ranked by a per-group savings field on the roster (absent sorts last); height breaks ties within a tier; the t==0 live admission uses the same key. Extend selftest() with a fixture where a short production group outranks a taller non-production one while the critical path still runs first; mutation proof per fixer.md; tools/audit/seat/plan_page.py shows each group's tier."
+  },
+  {
+   "group": "R10-TRIAGE-B36",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27 under the owner's ruling that a delivery gap with no owning group gets folded into the roster rather than left as an orphan handoff. This group exists because the triage s6 batch 36 pull request carried a handoff ref that no group named, so the drain, the plan count and the board's OWED handoffs line all saw it as uncovered work with no seat."
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/triage-s6-batch36",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "advance the head over the gap repair, then review it",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2877
+   },
+   "brief": "Own the triage s6 batch 36 pull request to a merge-ready head. The batch file and the pull request's own Figures section must agree on every deferred item: the repair that reopened this group was one place saying a proposal was already carried while the enumerator printed zero for it. Re-derive the enumerator's output at your merge base rather than quoting the body's, and when the two disagree, the enumerator wins and the prose is the defect. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Do not add a survivor-triage record; a survivor list is repaired by killing the mutant or by an equivalent assertion, not by recording it."
+  },
+  {
+   "group": "R10-ROSTER-BATCH24",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/rosters/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27: the round-10 roster batch 24 pull request was advancing a handoff ref that no roster group named, so the board read it as an orphan handoff with no pull request even while the pull request was open. A record-only change still needs an owning group, or the drain cannot see it finish."
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/audit-r10-roster-pr",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "bring the pull request head up to the roster handoff, then review it",
+    "note": "orchestrator registration 2026-10-27; the handoff ref and the pull request head are different commits, so re-derive both before deciding what is uncovered",
+    "pr": 2878
+   },
+   "brief": "Own the round-10 roster batch 24 pull request to a merge-ready head. It is a record change, so the review is about whether the recorded state is true, not about code: re-derive each row from the tree and from the open pull requests rather than trusting the previous batch's claim, and correct any row that has gone stale since it was written. Keep the roster's own formatting byte-identical where no row changes -- the round-trip rule in tools/audit/seat/roster_edit.py is the constraint that stops a one-row edit rewriting the whole file. Read dev/governance/rules/delivery-status-tracking.md before touching a status row: the record outranks any wave body."
+  },
+  {
+   "group": "R10-TRIAGE-B37",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-27 because the triage s6 batch 37 handoff was pushed with no pull request and no group: an orphan handoff is a gap the board's OWED line names and no seat owns. Batch 37 is cut as its own branch rather than folded into batch 36 so that a pending review on that pull request is not moved under."
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/triage-s6-batch37",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "advance the head over the gap repair, then review it",
+    "note": "orchestrator registration 2026-10-27; re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2879
+   },
+   "brief": "Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. The batch is a ruling on one proposal plus the corrections the ruling took from the seats that measured it, so re-derive each stated fact from the tree or from the remote rather than repeating it: a ruling that quotes a figure the tree no longer answers is the defect this group exists to catch. Read dev/governance/roles/proposal-triage.md for what a batch may and may not rule, and dev/governance/rules/brief-citations.md before writing any figure into the batch file. Keep batch 37 off batch 36's branch: a pending review must not be moved under."
   }
  ]
 }
