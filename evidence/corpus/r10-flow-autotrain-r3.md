@@ -1,0 +1,66 @@
+R10-FLOW-AUTOTRAIN, round 3. This is the minimal re-cut for the owner's re-scope (tvofi, 2026-10-24), built on R10-TRAIN-UPGRADE's `add` (#2772, now merged). The timed hourly pitch is gone. A verdicted pull request now enters the merge train through `add`. bus.sh calls it the moment it posts a merge verdict, which is the event. A slow backstop sweep catches any head that event missed. Part of #2715.
+
+- **Admission behind `add`.** `Train.admit_add` gains a `verdict` rule (`Train.add_verdict`), checked on a `main` base after `open`/`base` and before `carry`. It is the queue builder's own read, factored out of `Train.admit_verdict` as `Train.posted_verdict`: the newest approver-App `Fix review:` comment must be `verdict/<pr>`'s posted tip (its `bus: verdict/<pr> at <tip>,` line) and `merge` at the added verdict. The `verdict` rule refuses an add when the verdict was confirmed but never posted, has been superseded, is blocked, names another sha, or the add names a different comment. An add that names no comment gets the posted verdict's id, which the mandate approval quotes. `queue` (`build_queue`) is unchanged apart from calling the factored reader. The grammar is still read only through `proof_watch.parse_verdict`.
+- **The event.** `bus.sh`'s `post_verdict`, the path both `confirm` (the dispatch seat's verdict confirmation) and `watch --post` reach, ends with `train_add`. For a merge verdict it has just posted, it runs `merge_train.py add <pr> <verdict-head> --repo R --state-dir "$HPO_BUS_TRAIN_STATE" [--mandate "$HPO_BUS_TRAIN_MANDATE"] --auto` and prints one `BUS train-add <pr> rc=<rc> <last line>` line, with the full output in `$S/train-add.log`. It is off unless `HPO_BUS_TRAIN_STATE` is set. A refused add never fails the post. `add --auto` gives a started train `auto_train_argv`: `train.sh --repo --state-dir --bot-prs --approval-carry --pre-flight [--mandate]`, the flags the pitch used. `--auto` together with `-- <flags>` is refused.
+- **The backstop.** `merge_train.py sweep [--state-dir D] [--mandate M]` (`sweep`). It holds while the obligations ledger holds an open `train-stop` (nudge.md step 3), and refuses on an unreadable ledger or pull-request list. Otherwise it hands every entry `build_queue` admits to `train_add`, unless an earlier sweep already handed it over at that same head (`sweep-added.json`). A train that stopped on a head is therefore not fed that head again on every pass, and a moved head counts as a new entry. `train_add` (#2772's lock, ALREADY idempotence, `admit_add`, and the one-train-per-state-dir rule reading `queue.open` and then `train.pid`) decides whether the entry joins the live train's next batch or starts the first train. The sweep never starts a second train. `tick_loop.sh --sweep`, which replaces `--pitch`, runs it on the first pass and then once every `HPO_TICK_SWEEP_EVERY` seconds (default 1800, inside the 30 to 60 minute range), with a `TICK-SWEEP` line after the banner.
+- Removed: `pitch`, `launch_train`, `live_train`, `PITCH_*`, `pitch --once/--every`, and `tick_loop.sh --pitch`. `launch_detached` (#2772) is the one launcher.
+- `INSTRUMENTS.md` (merge_train and bus.sh entries) and `sweep_template.md` item (3) now describe `sweep`, the event add and `add`'s next batch. Item (3) still follows nudge.md step 3's hourly pitch for a sweep run by hand.
+
+Alternatives considered:
+
+- (a) Make the event call `train.sh add` with the flags spelled out in bus.sh. That would put a second copy of the started train's flags in shell. `add --auto` keeps one copy, `AUTO_TRAIN_FLAGS`, which the sweep shares, and the train itself still starts through `train.sh` (`launch_detached`).
+- (b) Have the sweep skip any head present in the live train. That duplicates `train_add`'s ALREADY rule. The sweep instead remembers only what it handed over itself (per head), which is the exactly-once property, and leaves every train decision to `train_add`.
+- (c) Put the event in the dispatch seat's contract instead of the bus. That keeps the load in an agent's turn, which the re-scope removes. `post_verdict` is the one place every confirmed merge verdict passes through.
+
+## Head
+
+The code head is `3cc94a93cea9750490c074b83a168b44c47ac03f`, on merge base `ab00437c94bd8d8ca7b47b69095c47535f3e645a` (origin/main's tip when this round merged it, committed 2026-10-25T03:29Z). It is r2's head `77ef64df9` (PR #2780's code), plus `e324638bc` (`git merge origin/main`, which brings #2772; the three conflicts in `merge_train.py`, the docstring, the self-test list and `_parser`, are resolved by keeping both sides), plus `81b1f727a` (this rework) and `3cc94a93c` (a self-test tightening and the harness's R5 pattern). Every figure below was taken at this head in this pass.
+
+## Mutation proof
+
+`bash dev/audit/harnesses/r10_flow_autotrain_mutants.sh` plants one mutant per rule, runs the owning self-test (`merge_train.py`, `bus.sh`, `tick_loop.sh` or `orchestrator_tick.py --self-test`) from the committed tree, and restores the file. The kill rule: the self-test's last line reports one or more failures, with no `PATTERN NOT FOUND`. Result at the head: 41 mutants planted and 41 killed: of the 41 `== <id>:` result lines, 0 read `0 failed` or `PATTERN NOT FOUND` (`grep "^== " | grep -v M0 | grep -c " 0 failed\|NOT FOUND"` printed 0). Baseline (M0): `merge_train self-test: 316 checks, 0 failed; tick_loop self-test: 17 checks, 0 failed; bus self-test: 74 checks, 0 failed`. Per rule, with the arm that kills it:
+
+- **Refused add, rule named** (`admit_add`): V1 `verdict` rule off, V2 another verdict sha, V3 another comment id, V4 comment not filled, V5 unreadable bus, V6 bus tip ignored, and R1 to R7 (#2772's `shape`, `open`, `base`, `carry`, `row`, `budget-raise`, `policy`). Each one fails its arm `admit_add refuses by its \`<rule>\` rule, naming it: <rule>: ...`, or the comment-fill arm for V4.
+- **Add during proof lands in the next batch:** S7 (the live-train spool branch off) fails "sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it", as well as #2772's "add, a train live: the entry is spooled for its NEXT batch". The drain into the next batch is #2772's arm "live queue: entries added while a batch is in proof never join it -- they run as the NEXT batch".
+- **The sweep adds a missed head exactly once and never starts a second train:** S1 (the per-head memory off) fails "sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add". S6 (records no head) fails the same arm and "null control -- a new verdict at a moved head is a new entry, added once". S7 also fails "sweep, no train live: ONE train starts over the first missed head, the second joins its next batch (spooled) -- never a second train". S2 to S5 and S8 cover start failure, refused-add retry, the ledger hold, the started train's flags and `--auto` with `--`.
+- **Event add:** B1 (on without `HPO_BUS_TRAIN_STATE`) fails "null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict prints only its BUS posted line and adds nothing". B2 (a blocked verdict added) fails "a posted blocked verdict adds nothing to the train". B3 (no add after the post) fails "a posted merge verdict is added to the train at its head, after the post (the event add)".
+- **Loop:** T1 (the sweep runs without `--sweep`), T2 (the step deleted) and T3 (the interval off) fail the `--sweep` arms.
+- **Builder (unchanged rules, re-run):** A1 to A12 fail the `queue:` arms named in the harness comments. G1 and G2 (the grammar re-inlined) fail the two parse_verdict arms, and under each `agreement_py --run` prints `RESULT ... unregistered=1`.
+
+The first full pass in this round turned up two harness defects, fixed before the run above. R5's pattern also matched `Train.admit`'s row check, so it was not applied (`PATTERN NOT FOUND`); its pattern now includes the `return f"row:` line. B1 survived because, under `set -u`, the mutant crashed after the post, and the arm read that crash as "no add". The arm now requires the post's output to be its one `BUS posted` line.
+
+## Null control
+
+- At merge base `ab00437c9`, `python3 tools/audit/seat/merge_train.py sweep` prints `invalid choice: 'sweep'` and `add 7 <sha> --auto` prints `unrecognized arguments: --auto`. bus.sh holds no `train_add` (`grep -c "train_add\|HPO_BUS_TRAIN" tools/audit/seat/bus.sh` gives 0).
+- Each refusal arm has an admitted twin: "admit_add: a green, rowed, carried head is admitted (null control)", with the posted merge verdict at the added head. A sweep after a closed train-stop reaches its queue. A pass once the interval has elapsed sweeps again. Without `--sweep` the loop sweeps nothing. Without `HPO_BUS_TRAIN_STATE` a post adds nothing.
+- At the head, `grep -n "def pitch\|launch_train" tools/audit/seat/merge_train.py` prints nothing (`grep -c` gives 0).
+
+## Figures
+
+- Self-tests at the head: `python3 tools/audit/seat/merge_train.py --self-test` (316 checks, 0 failed), `bash tools/audit/seat/bus.sh --self-test` (74 checks, 0 failed), `bash tools/audit/seat/tick_loop.sh --self-test` (17 checks, 0 failed), `bash tools/audit/seat/train.sh --self-test` (ok), `python3 tools/audit/seat/orchestrator_tick.py --self-test` (214 checks, 0 failed), `python3 tools/audit/seat/proof_watch.py --self-test` (40 checks, 0 failed).
+- Mutants: `bash dev/audit/harnesses/r10_flow_autotrain_mutants.sh`, 41 mutants planted and 41 killed: of the 41 `== <id>:` result lines, 0 read `0 failed` or `PATTERN NOT FOUND` (`grep "^== " | grep -v M0 | grep -c " 0 failed\|NOT FOUND"` printed 0) (kill rule under Mutation proof).
+- Agreement: `python3 -I tools/policy/agreement_py.py --run` gives `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`, and `agreement_py restore: 18 closure file(s), 18 covered by the wave-script restore list, 0 missing`.
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/harness_headers.py`). `PYTHONPATH=tests/hastub python3 tests/entities.py` reports `2 of 2440 ENTITY CHECKS FAILED` at the head and at merge base ab00437c9, and the FAIL-line sets, sorted with their bracketed detail stripped, are identical (`diff base head && echo IDENTICAL` printed IDENTICAL). The two are the `hb:positive_control` py-spy checks, which this container cannot satisfy. `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` prints `ALL 112 HARNESS HEADER CHECKS PASSED`. The run_always set: `python3 tests/closure.py selftest` (`ALL 117 closure shrink pins PASSED`), `python3 tests/layout.py` (`layout self-test: ok`), `python3 tests/env_drift.py --claims-only ab00437c9` (`claims hygiene: ... ok`). `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against ab00437c94bd`. `python3 -I tools/audit/seat/selftest_wiring.py --check` prints `96 self-testing, 96 wired, 0 unwired`. `python3 tests/throwaway_git.py --check` shows 0 refused. `python3 -I tools/audit/seat/tmp_paths.py --check` shows 0 refused. `python3 -I tools/audit/seat/ref_privacy.py --self-test` gives 92 checks, 0 failed; the diff adds no push site.
+
+## Architecture score
+
+n/a: no file under `custom_components/` changes, so `tools/audit/archscore/` reads nothing this diff moves.
+
+## Unpinned sites
+
+none: the diff adds no production line under `custom_components/`. The CI mutation lane's scope is production code, and the in-tree harness above is this tool's mutation proof.
+
+## Red checks
+
+- `tests / nightly-status`, red on main's ancestry: it grades `main`'s nightly lane, not this head (`merge_train.py`'s default `--ignore-red`). This diff did not turn it red, and the detector that grades it is the nightly itself.
+- `tests / ci-ratchet`, which may be red on main's push runs: GitHub's repo-wide artifacts listing returns 0 bytes, and a hotfix is in flight. It is not this branch's, and this diff does not touch `tests/ci_ratchet.py`.
+
+## Forward-carry
+
+1. The live sweep and the event add are off by default (`tick_loop.sh --sweep`, `HPO_BUS_TRAIN_STATE`). Under the roster's card-1 acceptance, the first real load runs with the merge seat watching. Until then nudge.md step 3 (load a train "when no train is running") still describes the hand pitch. Once the job is verified, step 3 drops "when no train is running" (the re-scope's "drop never while a train is live") and names `sweep` and the event add. Control: diff nudge.md step 3 against `sweep` and `sweep_template.md` item (3); no contradiction remains. Carry: R10-POLICY-ROLE-PACK
+2. R10-ORCH-BEATD's job table (its K17 carry, item 1) names a `pitch` job "on the hour or when the previous train ends". That job is now `merge_train.py sweep --state-dir <dir> [--mandate M]`, a one-shot whose last line is `SWEEP HELD|REFUSED|DONE`, rc 2 only on REFUSED, at an interval of 1800 s. bus.sh's `HPO_BUS_TRAIN_STATE` on the confirming machine is the event. Nothing writes a ledger `train-stop` yet, so the beat's producer must `ledger.py open train-stop <pr> <head>` on a `TRAIN STOPPED` line. Carry: R10-ORCH-BEATD
+
+## Friction
+
+none

@@ -1,0 +1,3 @@
+RESULT arm-a-stop-with-owed.md                  marker=yes owed=yes -> OWED
+RESULT arm-b-stop-only.md                       marker=yes owed=no  -> EXEMPT
+RESULT null-no-marker-with-owed.md              marker=no  owed=yes -> OWED
