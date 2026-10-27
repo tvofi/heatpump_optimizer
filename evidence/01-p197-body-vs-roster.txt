@@ -1,0 +1,38 @@
+head: f92442065832f5ccbe397882b73c79c173ab4dd7
+merge-base: 524c1896b6943b3da03d6cad61420ced31e14c9c
+date: 2026-10-27T15:19:29Z
+
+== PR body ## Figures P197 line ==
+32:- `R10-ORCH-BEATD` is `not-started`, size L, and already carries P197: `git show origin/main:dev/programme/rosters/wave-r10-groups.json`, filtered to that group.
+
+== body's own enumerator: grep -c P197 on origin/main roster ==
+0
+
+== at the batch's stated base 524c1896b ==
+0
+
+== across every roster file in the tree ==
+       0
+
+== 996eb1df1 message (the correction) ==
+triage: correct batch 36's P197 claim; record the unresolved arrival order
+
+The ruling and its figures claimed R10-ORCH-BEATD "already carries P197".
+The roster holds no P197 string at origin/main (git show ... | grep -c P197
+prints 0); P197 is deferred into BEATD's carry 13 (index 12), the
+context-rotation paragraph, per s6-batch34.md. The DEFER is unchanged.
+Also records that the two triage writers' arrival order is unresolved and
+the orchestrator's 09:30:39Z stand-down rests on a windowed read (review F2,
+non-blocking).
+
+
+== batch text at head (corrected) ==
+## P204: two seats on one role are invisible and unstoppable (V124)
+Verdict: DEFER. Route the item as prose into the carry text of **R10-ORCH-BEATD**
+(`not-started`, L; the sweep/beat is its surface). P197 is deferred to that group and sits
+in its carry 13 (index 12), the context-rotation paragraph, per `s6-batch34.md`; the roster
+holds no `P197` string, proved by
+`git show origin/main:dev/programme/rosters/wave-r10-groups.json | grep -c P197` printing `0`.
+Two arms of the proposed shape are REJECTED: per-pass renewal, and a sweep flag. The one
+element that survives is a launch record written by whoever dispatches a seat, which is
+dispatch practice already within the orchestrator's reach and needs no repository change.

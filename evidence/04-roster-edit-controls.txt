@@ -1,8 +1,0 @@
-# R5: roster_edit.py triage gate, re-run by the reviewer at the head
-ruling_verdict(committed,'P204') = DEFER
-ruling_verdict(committed,'P999') = None
-triage_refusal(committed) = dev/programme/triage/s6-batch36.md#P204 is not an ACCEPT ruling (DEFER)
-ruling_verdict(mutant ACCEPT,'P204') = ACCEPT
-triage_refusal(mutant ACCEPT) = None
-triage_refusal(absent file) = the triage ruling dev/programme/triage/s6-batch36.md is not on the roster branch or origin/main
-triage_refusal(P999) = dev/programme/triage/s6-batch36.md#P999 is not an ACCEPT ruling (no such entry)
