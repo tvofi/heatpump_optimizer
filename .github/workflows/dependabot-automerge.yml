@@ -1,0 +1,129 @@
+name: Dependabot auto-merge
+
+# tvofi 2026-10-24: "ideally, the dependabot prs should also merge
+# automatically". This workflow ARMS auto-merge on a Dependabot pull request;
+# it never merges. The merge happens when the ruleset is satisfied: `gate`
+# green (the one required check stays the barrier) and an approving review
+# (plus @tvofi's on a code-owned path). Nothing here can make `gate` pass:
+# a Dependabot PR's `pr-contract` is judged on the dependency-bump contract
+# (tools/policy/dependabot_contract.mjs), the rest of the gate as any PR's.
+#
+# WHAT IT DOES, per tools/pr/dependabot_merge.py:
+#   - a semver patch or minor update (fetch-metadata's `update-type`, a
+#     group's highest): approve as the hpo-approver App when no changed path
+#     is code-owned (decision 0011: the App approves non-code-owned PRs, only
+#     @tvofi reviews code-owned ones), then arm auto-merge with the MERGE
+#     method, so main's subject is GitHub's `Merge pull request #N from
+#     tvofi/dependabot/...`, the shape tools/release/stamp.py and
+#     tests/delivery_status.py number merges by (MERGE_SUBJECT_RE);
+#   - anything else (a major, an unnamed update type): a notice, nothing done.
+#
+# WHY AN APP TOKEN AND NEVER GITHUB_TOKEN: auto-merge armed by GITHUB_TOKEN
+# merges as github-actions, and a GITHUB_TOKEN push triggers no workflow, so
+# main's `push` run (the FULL gate, CLAUDE.md rule 1; the `record` job) would
+# never run for that merge. The hpo-approver App's token triggers them. Its
+# key is HPO_APPROVER_PEM / HPO_APPROVER_APPID; absent, the job prints one
+# notice and does nothing (fail-soft, the HPO_RUNS_PEM precedent): a Dependabot
+# PR then waits for a seat exactly as before. The App needs Pull requests:
+# write and Contents: write on this repository, and Workflows: write for a
+# github-actions update.
+#
+# SAFETY: pull_request_target runs THIS file from the base, with secrets, so
+# it never checks out or runs the pull request's code: the one checkout is the
+# base (the default for this event, made explicit), for CODEOWNERS and the
+# decision program. The job runs only when both the PR's author and the
+# event's actor are dependabot[bot], on a head in this repository, and
+# fetch-metadata verifies the head commit is Dependabot's own signed commit.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  arm:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.actor == 'dependabot[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Read the update's metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out the BASE (never the pull request's head)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          HAS_KEY: ${{ secrets.HPO_APPROVER_PEM != '' && secrets.HPO_APPROVER_APPID != '' }}
+        run: |
+          set -euo pipefail
+          WORD=$(python3 -I tools/pr/dependabot_merge.py decide --update-type "$UPDATE_TYPE")
+          echo "decision: $WORD"
+          if [ "${WORD%% *}" != merge ]; then
+            echo "::notice::Dependabot PR #$PR left for a seat: ${WORD#leave }"
+            echo "arm=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$HAS_KEY" != true ]; then
+            echo "::notice::HPO_APPROVER_PEM or HPO_APPROVER_APPID is not set; Dependabot PR #$PR left for a seat (fail-soft)"
+            echo "arm=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename' > "$RUNNER_TEMP/paths.txt"
+          python3 -I tools/pr/dependabot_merge.py owned --codeowners .github/CODEOWNERS \
+            --paths "$RUNNER_TEMP/paths.txt" > "$RUNNER_TEMP/owned.txt"
+          if [ -s "$RUNNER_TEMP/owned.txt" ]; then
+            echo "code-owned, so no App approval (@tvofi reviews): $(paste -sd, "$RUNNER_TEMP/owned.txt")"
+            echo "approve=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "approve=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "arm=true" >> "$GITHUB_OUTPUT"
+
+      - name: Mint the hpo-approver App token
+        id: app
+        if: steps.decide.outputs.arm == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.HPO_APPROVER_APPID }}
+          private-key: ${{ secrets.HPO_APPROVER_PEM }}
+
+      - name: Approve (non-code-owned only) and arm auto-merge
+        if: steps.decide.outputs.arm == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          APPROVE: ${{ steps.decide.outputs.approve }}
+        run: |
+          set -euo pipefail
+          if [ "$APPROVE" = true ]; then
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" \
+              -f event=APPROVE -f commit_id="$HEAD_SHA" \
+              -f body="Dependabot patch/minor update: approved by .github/workflows/dependabot-automerge.yml; \`gate\` decides the merge." \
+              --jq '"approved: review \(.id) at \(.commit_id)"'
+          fi
+          # MERGE, never --subject: the subject is GitHub's merge grammar.
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --auto --merge --match-head-commit "$HEAD_SHA"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq '"auto-merge: \(.auto_merge.merge_method // "NOT armed")"'

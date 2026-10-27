@@ -87,17 +87,55 @@ function program(dir, name) {
 // A FAIL that says nothing about why is the instrument's own defect: CI's first
 // run of this matrix failed `shallow / policy_lint rc=0` with `rc=1 ` and a blank
 // detail, because this slot quoted only a FIXTURE VACUOUS line and the run had
-// produced none. So: the vacuous line if there is one; otherwise every ERROR,
-// fatal and skip line; otherwise the last three lines of whatever it printed.
+// produced none. So, in order: the program's own verdict line (a FIXTURE
+// refusal, or a MUTANTS line other than the NOT-measured one a no-remote clone
+// prints by design); then its ERROR findings, counted, first one quoted; then
+// fatal, skip and exception lines; then the last three lines it printed. The
+// verdict comes before `fatal:` because a clone with no origin/main prints
+// benign `fatal: ambiguous argument` lines around the real refusal.
 const why = (out) => {
-  const vac = out.match(/^FIXTURE VACUOUS.*$/m)
-  if (vac) return vac[0].slice(0, 160)
-  const bad = out.split('\n').filter((l) => /ERROR|fatal:|^\s*skip\s|Error:|TypeError|ReferenceError/.test(l))
+  const verdict = out.match(/^(?:FIXTURE (?:VACUOUS|OVER-FIRES)|MUTANTS: (?!`[^`]*` was NOT measured)).*$/m)
+  if (verdict) return verdict[0].slice(0, 240)
+  const lines = out.split('\n')
+  const errors = lines.filter((l) => /^\s*ERROR\s/.test(l))
+  if (errors.length) return `${errors.length} ERROR line(s), first: ${errors[0].trim()}`.slice(0, 240)
+  const bad = lines.filter((l) => /fatal:|^\s*skip\s|Error:|TypeError|ReferenceError/.test(l))
   if (bad.length) return bad.slice(-3).join(' | ').slice(0, 240)
   return out.trim().split('\n').slice(-3).join(' | ').slice(0, 240)
 }
 const rows = []
 const add = (name, ok, detail) => rows.push({ name, ok, detail })
+// A row keyed on a program's exit code carries what that program said, so its
+// FAIL names a cause. env-matrix job 119862131576 failed both no-remote rows
+// with a bare `rc=1`, which read as a shape that flakes. The cause was the live
+// ruleset: policy-docs job 119863295377, run in the same minutes, failed on
+// `required-contexts` ERROR lines.
+const rcRow = (name, ok, r, extra = '') => add(name, ok, `rc=${r.rc}${extra ? ` ${extra}` : ''}; ${why(r.out)}`)
+
+// The two outputs that bare `rc=1` hid, cut down from the no-remote arm at
+// 97ac438d6 rebuilt in CI's shape. Each holds a benign line that `fatal:` or
+// `skip` also matches. The detail must name the program's own verdict. If it
+// does not, the matrix refuses before it builds anything.
+const WHY_CASES = [
+  { out: '  ERROR   [required-contexts] fixtures/required-contexts.json: `gate` is recorded as a required context but the live set no longer returns it.\n' +
+         "fatal: ambiguous argument 'origin/main': unknown revision or path not in the working tree.\n" +
+         '  skip     checkProvenance-pin    origin/main is not in this clone, so neither direction can be driven\n' +
+         '\nFIXTURE ok: 92 error(s) hold 242 pins across 12 check classes\n',
+    want: /ERROR\s+\[required-contexts\]/ },
+  { out: "fatal: ambiguous argument 'origin/main': unknown revision or path not in the working tree.\n" +
+         'MUTANTS: the entry point exited 1 on the corpus as it stands. First refusal: (refused with no FIXTURE line)\n' +
+         "fatal: ambiguous argument 'origin/main': unknown revision or path not in the working tree.\n",
+    want: /MUTANTS: the entry point exited 1/ },
+]
+{
+  for (const c of WHY_CASES) rcRow('why-probe', false, { rc: 1, out: c.out })
+  const probe = rows.splice(0)
+  const mute = probe.filter((p, i) => !WHY_CASES[i].want.test(p.detail.slice(p.detail.indexOf('; ') + 2)))
+  if (probe.length !== WHY_CASES.length || mute.length) {
+    console.log(`MATRIX MUTE: ${mute.length} of ${WHY_CASES.length} recorded failure output(s) give a row detail that does not name the program's verdict: ${JSON.stringify(mute.map((p) => p.detail))}`)
+    process.exit(1)
+  }
+}
 
 // ---- shape 1: a pull request (HEAD is not origin/main) --------------------
 const pr = build('pr', (d) => {
@@ -110,15 +148,14 @@ if (pr.error) add('pr / built', false, pr.error)
 else {
   const r = sh('node', [program(pr.dir, 'policy_lint.mjs')], { cwd: pr.dir })
   basePins = pinsOf(r.out)
-  add('pr / policy_lint rc=0 and every pin earned', r.rc === 0 && basePins !== null,
-      `rc=${r.rc} pins=${basePins}`)
+  rcRow('pr / policy_lint rc=0 and every pin earned', r.rc === 0 && basePins !== null, r, `pins=${basePins}`)
   // Except the one skip a job token cannot avoid: GitHub hides the ruleset's
   // bypass_actors from a non-admin token, and that line says so exactly.
   const skips = unexpectedSkips(r.out)
   add('pr / nothing skipped in a full clone', !skips.length, (skips[0] || 'none').trim())
   const m = sh('node', [program(pr.dir, 'policy_lint_mutants.mjs')], { cwd: pr.dir })
-  add('pr / every corpus and record-mode check measured and pinned',
-      m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), `rc=${m.rc}`)
+  rcRow('pr / every corpus and record-mode check measured and pinned',
+      m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), m)
 }
 
 // ---- shape 2: the push to main (HEAD IS origin/main) ----------------------
@@ -132,13 +169,13 @@ if (pm.error) add('push-main / built', false, pm.error)
 else {
   const r = sh('node', [program(pm.dir, 'policy_lint.mjs')], { cwd: pm.dir })
   const p = pinsOf(r.out)
-  add('push-main / policy_lint rc=0', r.rc === 0, `rc=${r.rc}`)
+  rcRow('push-main / policy_lint rc=0', r.rc === 0, r)
   add('push-main / the same pins are earned as on a pull request',
       p !== null && p === basePins, `pins=${p} vs pr=${basePins}`)
   const m = sh('node', [program(pm.dir, 'policy_lint_mutants.mjs')], { cwd: pm.dir })
-  add('push-main / every corpus and record-mode check still measured and pinned',
-      m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out),
-      `rc=${m.rc} ${(m.out.match(/^\s*(SKIP|ACCEPTED|CRASH).*$/m) || [''])[0].trim()}`)
+  rcRow('push-main / every corpus and record-mode check still measured and pinned',
+      m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), m,
+      (m.out.match(/^\s*(SKIP|ACCEPTED|CRASH).*$/m) || [''])[0].trim())
 }
 
 // ---- shape 3: a clone with no origin/main --------------------------------
@@ -151,14 +188,14 @@ if (nr.error) add('no-remote / built', false, nr.error)
 else {
   const r = sh('node', [program(nr.dir, 'policy_lint.mjs')], { cwd: nr.dir })
   const p = pinsOf(r.out)
-  add('no-remote / policy_lint rc=0', r.rc === 0, `rc=${r.rc}`)
+  rcRow('no-remote / policy_lint rc=0', r.rc === 0, r)
   add('no-remote / the skipped drive is said out loud',
       /skip\s+checkProvenance-pin/.test(r.out), 'no `skip checkProvenance-pin` line')
   add('no-remote / a skipped drive does not claim its pins',
       p !== null && basePins !== null && p < basePins, `pins=${p} vs pr=${basePins}`)
   const m = sh('node', [program(nr.dir, 'policy_lint_mutants.mjs')], { cwd: nr.dir })
-  add('no-remote / the lane reports NOT MEASURED rather than failing',
-      m.rc === 0 && /^\s*SKIP\s/m.test(m.out), `rc=${m.rc}`)
+  rcRow('no-remote / the lane reports NOT MEASURED rather than failing',
+      m.rc === 0 && /^\s*SKIP\s/m.test(m.out), m)
 }
 
 // ---- shape 4: a shallow clone that HAS origin/main -----------------------
@@ -176,7 +213,7 @@ if (shl.error) add('shallow / built', false, shl.error)
 else {
   const r = sh('node', [program(shl.dir, 'policy_lint.mjs')], { cwd: shl.dir })
   const p = pinsOf(r.out)
-  add('shallow / policy_lint rc=0', r.rc === 0, `rc=${r.rc} ${why(r.out)}`)
+  rcRow('shallow / policy_lint rc=0', r.rc === 0, r)
   // The property, not one spelling of it: an arm this shape cannot drive is
   // said out loud AND is not counted. Declaring the skip line's exact text
   // would test the fix rather than the property.

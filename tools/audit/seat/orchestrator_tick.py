@@ -123,8 +123,10 @@ SELF = "tools/audit/seat/orchestrator_tick.py"
 SEAT = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
-#: Per merge_train.py: written only by a PR event; no dispatch writes them.
-PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+#: Per merge_train.py (its self-test pins the two equal): under the umbrella
+#: the one required context, `gate`, is written by a dispatch too, so nothing
+#: is PR-only (R10-CI-LAYOUT P2b).
+PR_ONLY: "tuple[str, ...]" = ()
 ROW_DIR = "dev/programme/delivery/"
 CLAIM_FILES = ("tests/golden/claimed_drift.txt",
                "tests/golden/card_claimed_drift.txt")
@@ -615,14 +617,9 @@ class Tick:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
 
-    #: The verdict grammar, bus.sh's verdict_sha (app_comment.sh's two patterns).
-    VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
-    VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
-
-    def _verdict_authors(self) -> "tuple[set, int] | None":
+    def _verdict_authors(self, pw) -> "tuple[set, int] | None":
         """The approver App's identity off app_approve.sh, through
         proof_watch.verdict_allowlist, its one reader; None when unreadable."""
-        pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")
         if pw is None or not hasattr(pw, "verdict_allowlist"):
             return None
         for rel in ("tools/pr/app_approve.sh", "tools/audit/app_approve.sh"):
@@ -661,7 +658,8 @@ class Tick:
           BLOCKED-UNFIXED: #N <head8>  blocked at the current head, and no
                                        handoff/<topic> tip committed after it.
         A verdict at an older head prints neither line."""
-        allow = self._verdict_authors()
+        pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")  # the identity and the grammar
+        allow = self._verdict_authors(pw)
         if allow is None:
             self.unreadable(S, "verdict levels", "no VERDICT_AUTHORS in app_approve.sh")
             return
@@ -686,11 +684,11 @@ class Tick:
                 continue
             v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
             first = (v.get("body") or "").split("\n", 1)[0].rstrip("\r")
-            m, b = self.VERDICT_MERGE.match(first), self.VERDICT_BLOCKED.match(first)
+            kind, at = pw.parse_verdict(first) or ("", "")
             ms = (pr.get("mergeStateStatus") or "").upper()
-            if m and m.group(1) == head and ms in ("CLEAN", "UNSTABLE"):
+            if kind == "merge" and at == head and ms in ("CLEAN", "UNSTABLE"):
                 self.line(S, f"MERGE-READY: #{n} {head[:8]}", flag=True)
-            elif b and b.group(1) == head:
+            elif kind == "blocked" and at == head:
                 newer = self._handoff_newer(pr.get("headRefName") or "", v.get("created_at") or "")
                 if newer is None:
                     self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
@@ -700,8 +698,16 @@ class Tick:
         if lg is None:
             self.unreadable(S, "REVIEW OWED", "tools/audit/seat/ledger.py absent")
         elif dispatched is not None:
-            for text in lg.review_owed(prs, self._readback, dispatched):
+            for text in lg.review_owed(prs, self._readback, dispatched, self._carries):
                 self.line(S, text, flag=True)
+
+    def _carries(self, verdict: str, head: str) -> bool:
+        """REVIEW OWED's carry filter: `app_approve.sh --carry`, the train's predicate, over a
+        fresh main; a fetch that fails carries nothing, so the head stays owed."""
+        if self.git(["fetch", "-q", "origin", "main", verdict, head])[0]:
+            return False
+        lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+        return lg.app_approve_carries(self.checkout or ".", "origin/main")(verdict, head)
 
     def _dispatched(self, S: str) -> "set | None":
         """{(pr, head)} from bus.sh's dispatch record; a missing record is no
@@ -1223,8 +1229,11 @@ class Tick:
         else:
             latest = self.latest(runs)
             green, _, red = self.judge(latest)
+            # A unit's red is a REQUIRED red once the ruleset is [gate]: the
+            # classes below read gate_required too (DESIGN-P2 9, item 11).
+            gating = mt.gating_names(req) or []
             sup = [n for n in red
-                   if n not in (req or ()) and self.superseded(latest[n])]
+                   if n not in gating and self.superseded(latest[n])]
             if sup:
                 red = [n for n in red if n not in sup]
                 self.line(S, f"main {tip[:12]}: superseded, not red (GitHub "
@@ -1251,7 +1260,7 @@ class Tick:
                 self.line(S, f"main {tip[:12]} green "
                              f"({len(green)} context(s) concluded green)")
             nightly = [n for n in red
-                       if n not in (req or []) and NIGHTLY_CLASS.search(n)]
+                       if n not in gating and NIGHTLY_CLASS.search(n)]
             if nightly:
                 self.line(S, f"main {tip[:12]}: non-required red (nightly/record "
                              f"class): {', '.join(nightly)}", flag=True)
@@ -1287,7 +1296,7 @@ class Tick:
         """True when GitHub cancelled this run for a newer one in its own
         concurrency group -- its annotation is GitHub's record of why. A
         workflow_run follower of a PR head attaches to main's tip, and one
-        with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
+        with cancel-in-progress is cancelled so by
         design: its successor's conclusion is the status, and counting it red
         sent a fixer after main for a run that never had a runner. Any other
         cancellation, or an annotation list the API did not return, is red;
@@ -2778,6 +2787,36 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- MAIN under the umbrella (R10-CI-LAYOUT P2b, DESIGN-P2 9 item
+        # 11): the ruleset is [gate], so every unit check is non-required to
+        # GitHub; `tests / closures` matches NIGHTLY_CLASS and would print as a
+        # nightly red. The classes read gate_required as well, so it is not.
+        def umbrella(names_red):
+            gh = Stub()
+            gh.on("commits/main", out=H1)
+            gh.on(".[] | select(.name", out="42")
+            gh.on("rulesets/42", out="gate\n")
+            gh.on(f"commits/{H1}/check-runs", out="\n".join(
+                json.dumps(run_obj(n, conclusion="failure" if n in names_red else "success"))
+                for n in ("gate", "tests / closures", "tests / fast (3.14)", "record-autofix")))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            t.main()
+            return [x["text"] for x in t.findings]
+        got = umbrella({"gate", "tests / closures", "record-autofix"})
+        a, f = check("MAIN umbrella item 11", [
+            ("PR_ONLY agrees with merge_train's (empty)", PR_ONLY == mt.PR_ONLY == ()),
+            ("a red gate is REQUIRED not green",
+             any("REQUIRED not green: gate" in x for x in got)),
+            ("a red unit check is never classed nightly/non-required",
+             not any("non-required red" in x and "tests / closures" in x for x in got)),
+            ("null control: record-autofix, which gate never owes, is still a non-required red",
+             any("non-required red" in x and "record-autofix" in x for x in got)),
+            ("null control: a green gate with only record-autofix red reads main green on the required set",
+             not any("REQUIRED not green" in x for x in umbrella({"record-autofix"}))),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- MAIN: a lane GitHub cancelled for a newer run in its own
         # concurrency group is superseded, not red (rerun-stale-contract on
         # f58b14c1: a workflow_run follower of a PR head attaches to main's
@@ -2785,7 +2824,7 @@ def self_test() -> int:
         # design). Its annotation is GitHub's own record of why; any other
         # cancellation, or an unreadable annotation list, stays red.
         sup = ("Canceling since a higher priority waiting request for "
-               f"pr-contract-rerun-{H2} exists")
+               f"follower-{H2} exists")
         for label, ann, want_red in (
                 ("concurrency-superseded", [{"message": sup}], False),
                 ("cancelled otherwise (null control)",
@@ -3286,9 +3325,10 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
             total, failed = total + a, failed + f
-        # PRS (d): a pull request's head is judged on PR_ONLY too: a red
-        # pr-contract, read live from the ruleset, is not reviewable (null
-        # control: the same head with pr-contract green).
+        # PRS (d): a pull request's head is judged on every live required
+        # context: a red pr-contract, read live from the ruleset, is not
+        # reviewable (null control: the same head with pr-contract green).
+        # PR_ONLY is empty under the umbrella, so MAIN grades it too.
         for concl, want in (("failure", True), ("success", False)):
             t = tick(prs=[pr_obj(74, H1)], required_names=("tests", "pr-contract"),
                      runs_at={H1: [run_obj("tests"), run_obj("pr-contract", conclusion=concl),
@@ -3298,7 +3338,7 @@ def self_test() -> int:
             t.one_pr("PRS", pr_obj(74, H1), None, req)
             nr = [x["text"] for x in t.findings if x["text"].startswith("#74: NOT REVIEWABLE")]
             a, f = check(f"K15 (d) PRS PR_ONLY pr-contract {concl}", [
-                ("the ruleset's PR_ONLY context is not among the main-graded names", req == ["tests"]),
+                ("with PR_ONLY empty, every live context is main-graded", req == ["pr-contract", "tests"]),
                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
             total, failed = total + a, failed + f
@@ -3741,6 +3781,28 @@ def self_test() -> int:
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
         ])
         total, failed = total + a, failed + f
+        # R10-FLOW-AUTOTRAIN-R2: the grammar is proof_watch.parse_verdict's. A grammar
+        # swapped in the module the tick loads must move the level; a copy here would not.
+        real_module = _module
+
+        def swapped(name, *candidates):
+            mod = real_module(name, *candidates)
+            if name == "proof_watch_tick" and mod is not None:
+                mod.VERDICT_MERGE = re.compile(mod.VERDICT_MERGE.pattern.replace(" merge ", " MERGE "))
+            return mod
+        globals()["_module"] = swapped
+        try:
+            upper, _ = vboard([(50, "CLEAN", [vc(11, f"Fix review: MERGE {h(50)}")])])
+            lower, _ = vboard([(51, "CLEAN", [vc(12, f"Fix review: merge {h(51)}")])])
+        finally:
+            globals()["_module"] = real_module
+        a, f = check("verdict grammar", [
+            ("the verdict grammar is proof_watch.parse_verdict's, not a copy: a grammar swapped there is MERGE-READY",
+             any(l["text"] == f"MERGE-READY: #50 {h(50)[:8]}" for l in upper)),
+            ("null control: under the swapped grammar the old spelling is no merge verdict",
+             not any(l["text"].startswith("MERGE-READY") for l in lower)),
+        ])
+        total, failed = total + a, failed + f
 
         # ---- OWED from the obligations ledger (R10-ORCH-LEDGER) ----
         seq = iter(range(1000))
@@ -3858,6 +3920,17 @@ def self_test() -> int:
         t_ro._git.on(("ls-remote",), out="")
         t_ro.verdict_levels("PRS", ro_board)
         ro = [x for x in flagged(t_ro.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
+        # The carry filter: #64's newest verdict is a merge at an older head, which carries to its
+        # head (a clean main merge) under the stub; #65's does not (a branch-own commit).
+        cr_board = [pr_obj(n, h(n)) for n in (64, 65)]
+        cr_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([[vc(21, f"Fix review: merge {h(70)}")]]))
+                    for n in (64, 65)]
+        t_cr = tick(prs=cr_board, gh_extra=cr_extra, bus_state=str(tmp / "bus-ro"))
+        t_cr._git.on(("ls-remote",), out="")
+        asked = []
+        t_cr._carries = lambda v, hd: asked.append((v, hd)) or hd == h(64)
+        t_cr.verdict_levels("PRS", cr_board)
+        cr = [x for x in flagged(t_cr.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
         (tmp / "bus-dir").mkdir()
         (tmp / "bus-dir" / "dispatched").mkdir()
         t_rb = tick(prs=ro_board, gh_extra=ro_extra, bus_state=str(tmp / "bus-dir"))
@@ -3866,6 +3939,8 @@ def self_test() -> int:
         a, f = check("REVIEW OWED", [
             ("of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither",
              ro == [f"REVIEW OWED: #62 {h(62)[:12]}"]),
+            ("a head the newest merge verdict carries to owes no review; one it does not carry to does",
+             cr == [f"REVIEW OWED: #65 {h(65)[:12]}"] and asked == [(h(70), h(64)), (h(70), h(65))]),
             ("an unreadable dispatch record is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: bus dispatch record" in x for x in rb)
              and not any(x.startswith("REVIEW OWED") for x in rb)),

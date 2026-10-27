@@ -14,8 +14,8 @@
 # retroactively (dev/governance/decisions/0011). Authorship moves to the `hpo-author`
 # App and MINTING IS ORCHESTRATOR-CENTRAL: seats never hold the App's key,
 # hand their branch off locally, and the orchestrator runs this script. The
-# trailing issue numbers are the ones the body INTENDS to close; they go to
-# `prepr.sh`, which hands them to `preflight.sh`.
+# trailing issue numbers go to `prepr.sh`, whose step 7 ignores them and
+# derives the intended list from the rosters as pr-contract does (#2838).
 #
 # IT REFUSES, AND TOUCHES NOTHING REMOTE, UNLESS ALL OF THESE HOLD:
 #   - the App id file holds digits only and the private key file exists
@@ -237,7 +237,8 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
 # What --row-only runs in prepr's place: two of the body checks pr-contract runs,
 # at the head the verdict judged and with the live title -- step 7's body
 # contract (`policy_lint.mjs --pr-body`) and the carry check
-# (`carry_audit.py check`, which prepr does not run). The contract is fed the
+# (`carry_audit.py check`, pr-contract's reading: the tree's roster and the
+# round branch's; prepr's step 7e reads the round branch alone). The contract is fed the
 # credential prepr's step 7c reads (`gh_credential`: GITHUB_TOKEN, GH_TOKEN,
 # else `gh auth token`), so its red-history walk -- the ancestry reds 7c
 # answers, read from the same check runs -- reads them rather than printing

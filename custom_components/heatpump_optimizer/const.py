@@ -1,6 +1,7 @@
 """Constants for Heat Pump Cost Optimizer."""
 from __future__ import annotations
 
+import math
 import re
 from datetime import timedelta
 from typing import Final
@@ -1127,6 +1128,11 @@ CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 #: (``flow_meter.read_heat_output_kw``), used only while the install has
 #: neither a power nor a frequency signal.
 CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
+#: Optional sensor carrying the heat the pump delivers, in W or kW (#1955
+#: fold e). The direct reading of what the flow meter estimates, so it
+#: outranks the meter whenever it is configured, and with a power entity it
+#: makes COP an observable (``flow_meter.read_heat_output_kw``).
+CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
 #: The compressor's frequency range where no number entity publishes one:
@@ -1356,6 +1362,11 @@ HOUSE_HEAT_LOSS_SCALE_MAX: Final = 3.0
 DEFAULT_LOWER_FLOOR_LOSS_RATIO: Final = 1.0
 LOWER_FLOOR_LOSS_RATIO_MIN: Final = 0.3
 LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
+# What the heat-loss learners replay as the interval's heat input, worst
+# first: the commanded draw carries every delivery shortfall into the fit, a
+# metered draw does not. Evidence on an earlier basis than the one now
+# configured is void against it (G-ID-3); a later one is kept.
+HEAT_LOSS_BASES: Final = ("commanded", "metered")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
@@ -1578,6 +1589,37 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
 # Flow is read with those two temperatures, so it shares their horizon.
 INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY] = 30.0
+# A thermal meter is read with the electrical one it is divided by.
+INPUT_MAX_AGE_MINUTES[CONF_THERMAL_POWER_ENTITY] = 30.0
+
+# Humidity drives the mold floor: a frozen sensor would hold a raised floor
+# forever, so it gets the reader's indoor-scale limit.
+INPUT_MAX_AGE_MINUTES[CONF_INDOOR_HUMIDITY_ENTITY] = 120.0
+
+# The limits above are for a source that polls: one seen re-reporting an
+# unchanged value, whose silence therefore means it stopped. A source that
+# reports only on change writes nothing while its value holds, so its age
+# measures how still the value is, not whether the source is alive (R10
+# N-staleness, #2234): a power meter holding 0 W for an idle night read stale
+# on 39 of 48 cycles. This table is the limit for a source never seen
+# re-reporting (``inputs.age_limit_for``). ``inf``: the value can hold
+# indefinitely, so only ``unavailable`` says the source is gone. Every other
+# key keeps its polling limit, and tests/features.py names why for each.
+INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
+    **INPUT_MAX_AGE_MINUTES,
+    CONF_POWER_ENTITY: math.inf,  # 0 W through an idle spell
+    CONF_ENERGY_ENTITY: math.inf,  # a counter holds while the pump idles
+    CONF_HEAT_PUMP_MODE_ENTITY: math.inf,  # changes only when the mode does
+    # Water at rest stays inside its report threshold, and flow holds 0 while
+    # the circulator is off.
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: math.inf,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: math.inf,
+    CONF_FLOW_METER_ENTITY: math.inf,
+    # Heat holds 0 kW while the pump idles, as electricity does.
+    CONF_THERMAL_POWER_ENTITY: math.inf,
+    # The room probe's own humidity channel: the room's quiet-store bound.
+    CONF_INDOOR_HUMIDITY_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
+}
 
 # Physical windows, degC, for every temperature key ``InputReader.read``
 # serves (D1-s5-52). A DS18B20 reports -127 for a lost bus and 85 for a

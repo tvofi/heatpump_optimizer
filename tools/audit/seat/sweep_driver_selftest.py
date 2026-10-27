@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import io
+import os
 import re
+import sys
+from pathlib import Path
 
 import sweep_driver as D
 
 
 class Proc:
-    def __init__(self, argv):
-        self.argv, self.returncode, self.stdout = argv, 0, io.StringIO("SWEEP-DONE reruns=0\n")
+    def __init__(self, argv, env=None):
+        self.argv, self.env, self.returncode, self.stdout = argv, env, 0, io.StringIO("SWEEP-DONE reruns=0\n")
 
     def poll(self):
         return 0
@@ -20,7 +23,7 @@ class World:
 
     def __init__(self, runs, limit=(5000, 5000), s403=0):
         self.runs, self.limit, self.s403, self.t, self.sleeps = runs, limit, s403, 1000.0, []
-        self.calls, self.spawned, self.out = [], [], []
+        self.calls, self.spawned, self.out, self.envs = [], [], [], []
 
     def gh(self, path):
         self.calls.append(path)
@@ -41,11 +44,13 @@ class World:
         self.sleeps.append(s)
         self.t += s
 
-    def spawn(self, argv):
+    def spawn(self, argv, env=None):
         self.spawned.append(argv)
-        return Proc(argv)
+        self.envs.append(env)
+        return Proc(argv, env)
 
     def driver(self, chain, **kw):
+        kw.setdefault("env", {"PATH": "/bin", "GH_TOKEN": "tok"})
         return D.Driver("o/r", 7, "tree/tools/ci/gate.py", chain, self.gh, self.spawn, self.out.append,
                         self.sleep, lambda: self.t, **kw)
 
@@ -73,6 +78,47 @@ def run_checks():
     d.look()
     ok("the child is `python3 -I <tree>/gate.py --sweep --run <id>`",
        w.spawned[0][1:] == ["-I", "tree/tools/ci/gate.py", "--sweep", "--run", "5"] and "other" not in " ".join(w.calls))
+    # The child's own contract, not a copy of it: `gate.py --sweep` hands sweep.main
+    # `--run <id>` alone, so the repository and the token reach the child only
+    # through its environment. On 2026-10-23 the probe's first M-6 arm started two
+    # sweeps that each died `FAIL usage: --run <id> (and GITHUB_REPOSITORY or
+    # --repo)` (rc 2), because the driver passed neither; the argv check above passed.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
+    import sweep as S
+
+    class Reached(Exception):
+        pass
+
+    def contract(env):
+        def get(*a, **k):
+            raise Reached
+        saved = dict(os.environ)
+        os.environ.clear(), os.environ.update(env)
+        said = []
+        try:
+            rc = S.main(w.spawned[0][-2:], get, get, out=said.append)
+        except Reached:
+            rc = "reached the API"
+        finally:
+            os.environ.clear(), os.environ.update(saved)
+        return rc, said
+
+    child = w.envs[0] or {}
+    ok("the child's environment names the driver's repository and keeps the token",
+       child.get("GITHUB_REPOSITORY") == "o/r" and child.get("GH_TOKEN") == "tok")
+    ok("and under it the child's argv passes sweep.main's usage check and reaches the API",
+       contract(child)[0] == "reached the API")
+    bare = {k: v for k, v in child.items() if k != "GITHUB_REPOSITORY"}
+    ok("null: without GITHUB_REPOSITORY the same argv is refused as usage (rc 2)",
+       contract(bare)[0] == 2 and "FAIL usage" in " ".join(contract(bare)[1]))
+    runs = []
+    fake = lambda a, **k: (runs.append(a), type("P", (), {"returncode": 0, "stdout": "gho_x\n"}))[1]  # noqa: E731
+    env = D.child_env("o/r", {"PATH": "/bin"}, run=fake)
+    ok("child_env takes the token from `gh auth token` when none is set",
+       env.get("GH_TOKEN") == "gho_x" and env.get("GITHUB_REPOSITORY") == "o/r" and runs == [["gh", "auth", "token"]])
+    runs.clear()
+    env = D.child_env("o/r", {"PATH": "/bin", "GITHUB_TOKEN": "t"}, run=fake)
+    ok("null: a token already set is kept and `gh` is not asked", env.get("GITHUB_TOKEN") == "t" and runs == [])
     ok("the driver only reads: no call but a path to `gh api` GET", all(not c.startswith(("-", "POST")) for c in w.calls))
     cmd = []
     D.gh_get("repos/o/r/pulls/7", run=lambda a, **k: (cmd.append(a), type("P", (), {"stdout": "HTTP/2.0 200 OK\n\n{}"}))[1])

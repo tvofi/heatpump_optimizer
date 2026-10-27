@@ -162,7 +162,7 @@ from .inputs import (
 from .log_latch import log_held
 from .payload import CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
-from .accuracy import utc_elapsed_seconds, utc_shift
+from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (

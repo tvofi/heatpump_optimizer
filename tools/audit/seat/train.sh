@@ -6,6 +6,14 @@
 #                             [--ignore-red CONTEXT]... [--skip-bad] [--overlap] \
 #                             [--approval-carry] [--bot-prs] [--pre-flight] \
 #                             [--free-holders] [--main-moved-tries N] [--self-test]
+#   tools/audit/seat/train.sh add <pr> <verdict> --repo OWNER/REPO --state-dir DIR \
+#                             [--verdict-comment ID] [any flag above but --queue]
+#
+# `add` loads one verdicted pull request into the state dir's live train -- it
+# joins the batch after the one running -- or, with no train live, starts one
+# over it with the flags given (merge_train.py's `add`: one flock, one train per
+# state dir, ALREADY for a pull request already queued, ADD REFUSED <rule> for
+# one the admission refuses). It never takes the pidfile itself.
 #
 # What it adds over calling merge_train.py by hand, which the orchestrator's
 # scratch re-duplicated once per session before this existed:
@@ -31,9 +39,25 @@ set -u
 
 die() { echo "train.sh: REFUSE: $*" >&2; exit 2; }
 
-usage() { sed -n '2,16p' "$0" >&2; exit 2; }
+usage() { sed -n '2,24p' "$0" >&2; exit 2; }
 
 selftest=0
+add_pr="" add_verdict="" add_comment="" add_flags=()
+if [ "${1:-}" = add ]; then
+  [ $# -ge 3 ] || die "add needs <pr> <verdict>"
+  add_pr=$2; add_verdict=$3; shift 3
+  # The flags a started train gets: everything given but --verdict-comment.
+  rest=("$@"); set --
+  while [ ${#rest[@]} -gt 0 ]; do
+    if [ "${rest[0]}" = --verdict-comment ]; then
+      [ ${#rest[@]} -ge 2 ] || die "--verdict-comment needs a value"
+      add_comment=${rest[1]}; rest=("${rest[@]:2}")
+    else
+      [ "${rest[0]}" = --queue ] && die "add takes no --queue: the started train's queue is the added entry"
+      add_flags+=("${rest[0]}"); set -- "$@" "${rest[0]}"; rest=("${rest[@]:1}")
+    fi
+  done
+fi
 queue="" repo="" checkout="" state="" minruns=1 mandate=""
 skipbad="" overlap="" opts=()
 ignores=()
@@ -265,8 +289,45 @@ if [ "$selftest" = 1 ]; then
   rm -rf "$st"
   [ "$live $marks$pf" = "0 G removed" ] \
     || die "self-test: a TERMed train did not stop merge_train.py first (alive $live, marks '$marks', pidfile $pf)"
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first)"
+  # 11. `add` hands merge_train.py's `add` the pull request, the verdict and its
+  #     comment, the train.sh flags a started train gets after `--` (the comment
+  #     not among them), and takes no pidfile: it is no train. --queue is refused.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  sha=$(printf 'a%.0s' $(seq 40))
+  HPO_STATE_DIR="$st" "$0" add 7 "$sha" --repo x/r --state-dir "$st/state" --verdict-comment 42 --overlap \
+    >/dev/null 2>&1; rc=$?
+  flags=$(tr '\n' '|' < "$st/argv" 2>/dev/null)
+  pidf=$([ -f "$st/state/train.pid" ] && echo present || echo absent)
+  HPO_STATE_DIR="$st" "$0" add 7 "$sha" --repo x/r --state-dir "$st/state" --queue q >/dev/null 2>&1; qrc=$?
+  rm -rf "$st"
+  [ "$rc $pidf $qrc" = "0 absent 2" ] || die "self-test: add left rc $rc, pidfile $pidf, --queue rc $qrc"
+  case $flags in
+    "-u|tools/audit/seat/merge_train.py|add|7|$sha|--repo|x/r|--state-dir|"*"|--verdict-comment|42|--|--repo|x/r|--state-dir|"*"|--overlap|") : ;;
+    *) die "self-test: add's argv shape wrong: $flags" ;;
+  esac
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)"
   exit 0
+fi
+
+if [ -n "$add_pr" ]; then
+  [ -n "$repo" ] || usage
+  [ -n "$state" ] || usage
+  _HPO_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  [ -f "$_HPO_STATE/venv-ci/bin/python3" ] \
+    || die "no seat venv at $_HPO_STATE/venv-ci/bin/python3; build it first: bash tools/audit/seat/seat_venv.sh venv-ci"
+  PATH=$_HPO_STATE/venv-ci/bin:$PATH; export PATH
+  [ -n "$checkout" ] || checkout=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || die "no repository around $0; pass --checkout"
+  cd "$checkout" || die "checkout directory not found: $checkout"
+  mkdir -p "$state" || die "cannot create state dir $state"
+  # No pidfile: `add` is no train. Its own lines go to the caller and to the train's log.
+  python3 -u tools/audit/seat/merge_train.py add "$add_pr" "$add_verdict" --repo "$repo" --state-dir "$state" \
+    ${mandate:+--mandate "$mandate"} ${add_comment:+--verdict-comment "$add_comment"} \
+    -- ${add_flags[@]+"${add_flags[@]}"} 2>&1 | tee -a "$state/train.log"
+  exit "${PIPESTATUS[0]}"
 fi
 
 [ -n "$queue" ] || usage

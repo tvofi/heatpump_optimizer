@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .accuracy import utc_shift
+from .drift import utc_shift
 from .const import MANUAL_PLAN_WINDOW_HOURS
 from .payload import ReleasedStep
 

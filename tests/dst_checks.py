@@ -821,7 +821,7 @@ R.check(
 _lg = LegionellaGuard(
     FakeHass(),
     "dst",
-    ThermalParameters.from_config({}),
+    lambda _p=ThermalParameters.from_config({}): _p,
     {},
     action=lambda: {},
     disinfect=DisinfectionSwitch({}, None, None),
@@ -907,9 +907,15 @@ async def _mode_source_after_outage(night):
         # "heating" alone is status-ambiguous for a plain sensor
         # (pump_mode._STATUS_AMBIGUOUS); a multi-duty spelling is accepted
         # from any domain, so this is a LIVE read.
+        # Polled: the write re-reports an unchanged mode, so the silence
+        # that follows is evidence (a source seen only on change is #2234's).
         coord.hass.states.set(
             "sensor.mode",
-            FakeState("heating + hot water", last_updated=dt_util.now()),
+            FakeState(
+                "heating + hot water",
+                last_updated=dt_util.now() - timedelta(minutes=3),
+                last_reported=dt_util.now(),
+            ),
         )
         await coord._update_current_state()
         stamped = coord._pump_mode_last_good_at
@@ -1107,7 +1113,7 @@ R.section("the UTC helpers themselves across both transitions (round-9 P7)")
 # error inside ``utc_elapsed_seconds`` or ``utc_shift`` is invisible to it
 # (fix review of #1722: ``replace(tzinfo=UTC)`` for ``astimezone(UTC)`` put
 # the P7 bug back with every check green). These pin the helpers directly.
-from heatpump_optimizer.accuracy import utc_shift  # noqa: E402
+from heatpump_optimizer.drift import utc_shift  # noqa: E402
 
 
 _aut_a = datetime(2026, 10, 25, 1, 30, tzinfo=STHLM)  # 23:30Z, CEST
@@ -1935,7 +1941,7 @@ def _leg_guard(cfg=None, action=None):
     return LegionellaGuard(
         FakeHass(),
         "dst",
-        ThermalParameters.from_config({}),
+        lambda _p=ThermalParameters.from_config({}): _p,
         cfg or {},
         action=lambda: action or {},
         disinfect=_NO_SWITCH,
@@ -2118,7 +2124,8 @@ def _house_dt(prev, now, lower):
     c._thermal_model.simulate_step = _sim
     dt_util.freeze(now)
     asyncio.run(
-        c._async_learn_lower_floor_loss() if lower else c._async_learn_house_heat_loss()
+        c._async_learn_lower_floor_loss(c._close_fabric_interval()) if lower
+        else c._async_learn_house_heat_loss(c._close_fabric_interval())
     )
     dt_util.freeze(None)
     return seen

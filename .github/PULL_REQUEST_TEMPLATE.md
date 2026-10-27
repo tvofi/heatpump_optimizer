@@ -1,6 +1,6 @@
 <!-- The headings below are what `pr-contract` requires: each is content or an
-explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
-`tools/pr/prepr.sh <this body>` before opening; the job re-checks what it can. -->
+explicit `n/a: <reason>`. Run
+`tools/pr/prepr.sh <this body>` before opening. -->
 
 Why this change, and what it measures.
 
@@ -25,9 +25,9 @@ a gate rise passes only explained under `## Architecture score`, one line per me
 
 ## Red checks
 
-`none`, or each failing check by name, with the answer the root-cause rule
-requires: the cheaper detector and its standing cost, or the finding that none
-exists.
+`none`, or each failing check and each open `code-scanning alert <n> (<rule id>)`
+that `pr-contract` lists, by name, with the answer the root-cause rule requires:
+the cheaper detector and its standing cost, or the finding that none exists.
 
 ## Forward-carry
 

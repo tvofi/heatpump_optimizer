@@ -1430,4 +1430,251 @@ R.check(
 
 dt_util.freeze(None)
 debugger._COLLECTORS.clear()
+# -- R10-DIAG-REDACT: a redacted value is redacted wherever else it reaches ---
+# The download's redaction is keyed: ``tibber_token`` and ``name`` are blanked
+# and ``latitude``/``longitude`` coarsened. D15's production triage found
+# dropped credential values surviving elsewhere in the same payload, so each
+# value the keyed passes remove is planted below in every section of the
+# download -- under an unredacted key, inside a message, as a key, and as a
+# number under a key the coarsening does not name -- and none may come back.
+NAME = "Villa Solbacken"
+EXACT = ("59.334591", "18.06324")  # the install's solar_location, as text
+OPTIONS_TOKEN = "tibber-options-fedcba9876543210"  # a token reauth saved in options
+PRIVATE = (TOKEN, OPTIONS_TOKEN, NAME, *EXACT)
+
+
+def _leak_text(tag):
+    return f"{tag}: {TOKEN} {OPTIONS_TOKEN} for {NAME} at {EXACT[0]},{EXACT[1]}"
+
+
+def _value_pass(on):
+    """``diagnostics._without_values`` as it is, or switched off (the control)."""
+    saved = diagnostics_mod.__dict__.get("_without_values")
+    if not on and saved is not None:
+        diagnostics_mod._without_values = lambda value, private: value
+    return saved
+
+
+def _value_pass_restore(saved):
+    if saved is not None:
+        diagnostics_mod._without_values = saved
+
+
+async def _planted_download(value_pass=True):
+    """The replay install with every private value planted in every section."""
+    hass, entry, coord, collector = _replay_install(plant_entry={
+        "name": NAME, "ecl110_state_topic": f"ecl/{TOKEN}/state"})
+    entry.options = {**entry.options, "tibber_token": OPTIONS_TOKEN}
+    folder = tempfile.mkdtemp()
+    (Path(folder) / ".storage").mkdir()
+    hass.config.path = lambda *parts: str(Path(folder, *parts))
+    (Path(folder) / ".storage" / debugger.store_keys("rp")["accuracy"]).write_text(
+        json.dumps({"version": 1, "data": {"note": _leak_text("store"),
+                                           "lat": float(EXACT[0])}}))
+    coord.mode = _leak_text("mode")
+    coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
+                  "problem_messages": [_leak_text("input")],
+                  "current_action": _leak_text("plan"),
+                  "dhw_cooling_rate": _leak_text("learning")}
+    collector.rows = [_row(note=_leak_text("row"), lon=float(EXACT[1]), **{TOKEN: 1})]
+    collector.snapshots = [{"t": T0.isoformat(), "cycle": 1,
+                            "data": json.dumps({"msg": _leak_text("snapshot")})}]
+    collector.self_tests = {"feeds": {"error": _leak_text("self-test")}}
+    dt_util.freeze(T0 + timedelta(days=1))
+    saved = _value_pass(value_pass)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        _value_pass_restore(saved)
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+async def _clean_download(value_pass):
+    saved = _value_pass(value_pass)
+    try:
+        return await _replay_download()
+    finally:
+        _value_pass_restore(saved)
+
+
+def _leaves(node, path=""):
+    """``(path, key or value)`` for every key and every leaf of ``node``."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield f"{path}.{key}", key
+            yield from _leaves(value, f"{path}.{key}")
+    elif isinstance(node, (list, tuple)):
+        for i, value in enumerate(node):
+            yield from _leaves(value, f"{path}[{i}]")
+    else:
+        yield path, node
+
+
+def _private(text):
+    return any(value in str(text) for value in PRIVATE)
+
+
+def _carrying(download):
+    """Every path of ``download`` whose key or value still holds a private value."""
+    return sorted({path for path, leaf in _leaves(download) if _private(leaf)})
+
+
+planted_dl = asyncio.run(_planted_download())
+planted_open = asyncio.run(_planted_download(value_pass=False))
+planted_paths = _carrying(planted_open)
+# The census of sections is the download's own keys, and the bundle's, so a
+# section a later change adds is refused here until the fixture plants in it.
+# The exempt ones carry no text the install supplies: a constant, the names of
+# config keys, the version stamps, the export's clock, and the replay half, which ``seal`` refuses
+# rather than write with a dropped value in it (the checks above).
+EXEMPT = {".exported_at", ".entry", ".config_overridden_by_options", ".domain",
+          ".debug.schema", ".debug.replay"}
+SECTIONS = {f".{key}" for key in planted_open if key != "debug"} | {
+    f".debug.{key}" for key in planted_open["debug"]}
+_unplanted = sorted(section for section in SECTIONS - EXEMPT if not any(
+    path == section or path.startswith((f"{section}.", f"{section}[")) for path in planted_paths))
+R.check(
+    "the fixture plants a private value in every section of the download and of its "
+    "debug bundle, bar the exempt ones, and every exempt one is still a section",
+    _unplanted == [] and EXEMPT <= SECTIONS,
+    f"unplanted={_unplanted} exempt-gone={sorted(EXEMPT - SECTIONS)}",
+)
+R.check(
+    "Download diagnostics carries none of the values its redaction removes -- the "
+    "token, the entry name, the exact coordinate -- in any section, under any key",
+    _carrying(planted_dl) == [],
+    "; ".join(_carrying(planted_dl)),
+)
+_untouched = {(path, repr(leaf)) for path, leaf in _leaves(planted_dl)}
+_moved = [path for path, leaf in _leaves(planted_open)
+          if not _private(path) and not _private(leaf) and (path, repr(leaf)) not in _untouched]
+R.check(
+    "the null control: every field of the planted download that holds no private value "
+    "comes out as it would without the value pass",
+    _moved == [],
+    "; ".join(_moved[:5]),
+)
+R.check(
+    "the null control: with nothing private planted elsewhere, the value pass leaves the "
+    "download byte-identical",
+    json.dumps(asyncio.run(_clean_download(True)), sort_keys=True)
+    == json.dumps(asyncio.run(_clean_download(False)), sort_keys=True),
+)
+
+_six = "x" * replay_doc.LEAK_MIN_CHARS
+R.check(
+    "the value pass searches for a removed value at the leak check's shortest length and "
+    "not one character under it, for a coordinate only when the coarsening cut it, and "
+    "never for a flag",
+    diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}],
+                                      "tibber_token": True,
+                                      "solar_location": {"latitude": -123.4,
+                                                         "longitude": float(EXACT[1])}}])
+    == {_six, EXACT[1]},
+    str(diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}]}])),
+)
+R.check(
+    "the value pass redacts a private value inside text, as a key, and as a number, in a "
+    "tuple too, and leaves a flag and any other number alone",
+    diagnostics_mod._without_values(
+        {"a": ("x abcdef y", 18.06324, True, 7), "abcdef": 1}, frozenset({"abcdef", "18.06324"}))
+    == {"a": ["x **REDACTED** y", "**REDACTED**", True, 7], "**REDACTED**": 1},
+)
+_stamp = T0 + timedelta(minutes=7)  # a leaf neither text nor a number
+R.check(
+    "a removed leaf of any other type is searched for and redacted by its text, as a "
+    "number is, and a None, shorter than any value searched for, is left alone",
+    diagnostics_mod._private_values({"name": _stamp, "tibber_token": None}) == {str(_stamp)}
+    and diagnostics_mod._without_values({"at": _stamp, "none": None, "n": f"{_stamp}"},
+                                        frozenset({str(_stamp)}))
+    == {"at": "**REDACTED**", "none": None, "n": "**REDACTED**"},
+    str(diagnostics_mod._private_values({"name": _stamp, "tibber_token": None})),
+)
+
+# -- #2814, P119: the download says when it was taken, and how old each part is --
+# The payload's ``plan_age_minutes`` is the plan's age when the payload was
+# built; the owner's bundle read 0.8 for a plan 14 minutes old at the export.
+# The finished collection's rows are as old as the collection's end, which the
+# manifest did not say: ``days`` is the configured length.
+from heatpump_optimizer import drift  # noqa: E402
+
+PUBLISHED = T0 + timedelta(days=10)
+
+
+async def _aged_download(after, rows=()):
+    """The download ``after`` past a plan solved at ``PUBLISHED`` whose payload
+    still says 0.8 minutes, with ``rows`` in a finished collection."""
+    coord = FakeCoordinator({"last_optimization": PUBLISHED, "plan_age_minutes": 0.8})
+    coord.integration_version = "0.0.0"
+    entry = FakeEntry(entry_id="aged", options={CONF_DEBUG_COLLECT: True})
+    entry.runtime_data = coord
+    hass = _disk_hass(tempfile.gettempdir())
+    collector = debugger.DebugCollector(hass, "aged", lambda c: c.close())
+    collector.started_at, collector.final, collector.rows = T0, True, list(rows)
+    debugger._COLLECTORS[coord] = collector
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+_rows = [{"t": (T0 + timedelta(hours=h)).isoformat(), "mode": "auto"} for h in (0, 3, 1)]
+aged = asyncio.run(_aged_download(timedelta(minutes=14), _rows))
+fresh = asyncio.run(_aged_download(timedelta(minutes=1)))
+ahead = asyncio.run(_aged_download(timedelta(minutes=-5)))
+R.check(
+    "the download's plan age is measured at the export: 14 minutes after the solve it "
+    "reads 14, whatever the payload said when it was published",
+    aged["plan"]["plan_age_minutes"] == 14.0,
+    str(aged["plan"]["plan_age_minutes"]),
+)
+R.check(
+    "the null control: a plan solved a minute before the export reads 1",
+    fresh["plan"]["plan_age_minutes"] == 1.0,
+    str(fresh["plan"]["plan_age_minutes"]),
+)
+R.check(
+    "a plan stamped ahead of the export clock has an unknowable age, never 0, and a "
+    "payload with no solve has none",
+    ahead["plan"]["plan_age_minutes"] is None
+    and diagnostics_mod._plan_summary({}, PUBLISHED)["plan_age_minutes"] is None,
+    f'{ahead["plan"]["plan_age_minutes"]}',
+)
+R.check(
+    "the download carries its own export time, outside the debug half, read from the "
+    "clock the debug manifest's generated_at reads",
+    aged["exported_at"] == (PUBLISHED + timedelta(minutes=14)).isoformat()
+    == aged["debug"]["manifest"]["generated_at"],
+    f'{aged.get("exported_at")} / {aged["debug"]["manifest"]["generated_at"]}',
+)
+_manifest_window = {key: aged["debug"]["manifest"].get(key)
+           for key in ("first_row_at", "last_row_at", "span_hours", "age_hours")}
+R.check(
+    "the manifest labels the finished collection: its first and last row, the 3 h the "
+    "rows span, and the last row's age at the export, not the configured 7 days",
+    _manifest_window == {"first_row_at": T0.isoformat(),
+                "last_row_at": (T0 + timedelta(hours=3)).isoformat(),
+                "span_hours": 3.0,
+                "age_hours": round((timedelta(days=10, minutes=14)
+                                    - timedelta(hours=3)).total_seconds() / 3600.0, 1)},
+    str(_manifest_window),
+)
+R.check(
+    "a collection with no row has no window, and a row stamped ahead of the export "
+    "clock has an unknowable age, never 0",
+    set(fresh["debug"]["manifest"][key] for key in _manifest_window) == {None}
+    and debugger.collection_window(_rows, T0)["age_hours"] is None,
+    str(debugger.collection_window(_rows, T0)),
+)
+R.check(
+    "a stored instant's age is the seconds to now, none for text that does not parse, "
+    "and none for an instant ahead of now",
+    drift.stored_age_seconds(T0.isoformat(), T0 + timedelta(minutes=2)) == 120.0
+    and drift.stored_age_seconds(T0, T0) == 0.0
+    and drift.stored_age_seconds("garbage", T0) is None
+    and drift.stored_age_seconds(T0 + timedelta(seconds=1), T0) is None,
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

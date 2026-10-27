@@ -148,13 +148,17 @@ class FlowCurveBias:
     #: is a property of the SUPPLY side against the supply curve.
     last_return_c: float | None = None
     #: This cycle's thermal output in kW read off the flow meter, or
-    #: ``None`` (#2016). Set by ``flow_meter.observe_water``; not persisted.
+    #: ``None`` (#2016). Set by ``observe_temps``; not persisted.
     heat_output_kw: float | None = None
 
     def observe_temps(
-        self, supply: float | None, return_temp: float | None
+        self,
+        supply: float | None,
+        return_temp: float | None,
+        heat_output_kw: float | None = None,
     ) -> None:
-        """Record this cycle's two readings, or clear them.
+        """Record this cycle's readings, or clear them: the two water
+        temperatures and the flow meter's thermal output.
 
         Called every cycle, with ``None`` for a slot that was unconfigured,
         unavailable or stale. Clearing rather than keeping is the whole point:
@@ -172,6 +176,7 @@ class FlowCurveBias:
             if return_temp is not None and np.isfinite(return_temp)
             else None
         )
+        self.heat_output_kw = heat_output_kw
 
     def observe(self, measured_supply: float, curve_supply: float) -> None:
         """Fold one (measured, curve) pair into the bias."""

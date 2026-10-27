@@ -388,11 +388,6 @@
    "since": null
   },
   {
-   "old": ".claude/workflows/contract_rerun.py",
-   "new": "tools/pr/contract_rerun.py",
-   "since": null
-  },
-  {
    "old": ".claude/workflows/corpus_excluded.json",
    "new": "dev/governance/config/corpus_excluded.json",
    "since": null

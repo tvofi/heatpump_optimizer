@@ -351,11 +351,12 @@ def _override_payload(state: AwayState) -> dict[str, Any]:
     }
 
 
-def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
-    state.override_active = bool(payload.get("active"))
+def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwayState:
+    """``state`` with the stored override in it; ``state`` itself is not written."""
     parsed = _parse_return_time(payload.get("return_time"))
-    state.override_return_iso = parsed.isoformat() if parsed else None
-    state.migrated_helpers = bool(payload.get("migrated_helpers"))
+    return replace(state, override_active=bool(payload.get("active")),
+                   override_return_iso=parsed.isoformat() if parsed else None,
+                   migrated_helpers=bool(payload.get("migrated_helpers")))
 
 
 async def persist_override(coord: _AwayCoord, state: AwayState) -> None:
@@ -368,11 +369,11 @@ async def persist_override(coord: _AwayCoord, state: AwayState) -> None:
 
 async def restore_override(
     coord: _AwayCoord,
-    state: AwayState,
+    adopt: Callable[[dict[str, Any]], AwayState],
     config: Mapping[str, Any],
     read_entity: EntityReader,
 ) -> None:
-    """Load the stored override into ``state`` (#1739).
+    """Load the stored override and hand it to ``adopt``, which publishes it (#1739).
 
     ``config`` and ``read_entity`` serve the one-off helper migration, which
     reads the configured presence and return entities exactly once.
@@ -386,10 +387,9 @@ async def restore_override(
         payload["migrated_helpers"] = bool(raw.get("migrated_helpers"))
     if not payload["migrated_helpers"]:
         payload = await _migrate_helpers(coord, config, read_entity, payload)
-        apply_override_payload(state, payload)
-        await persist_override(coord, state)
+        await persist_override(coord, adopt(payload))
         return
-    apply_override_payload(state, payload)
+    adopt(payload)
 
 
 async def _migrate_helpers(

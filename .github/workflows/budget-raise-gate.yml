@@ -4,12 +4,21 @@
 # metric re-recorded down -- merges on the approver App's review alone; the
 # direction of the edit, not its path, is what calls for the owner.
 #
-# WHY ITS OWN FILE. It is the only job that must re-run when a review lands,
-# since an approval is the one change it reads that a commit does not make.
-# An event a workflow lists starts a run of every job in it, and a job an `if:`
-# skips still writes a check run at the head -- a skipped run of a required
-# context counts as passing (#1514's shape). So this file holds one job, it has
-# no `if:`, and every run it starts computes the verdict in full.
+# A CALLED WORKFLOW (R10-CI-LAYOUT P2b, unit U8; DESIGN-P2 2.1, 4.3). It is
+# `ci.yml`'s `budget-raise-gate` caller, which runs it on every event that
+# names a pull request, reviews included: an approval is the one change this
+# job reads that a commit does not make, and the `pull_request_review` trigger
+# is `ci.yml`'s. Inside a called workflow `github.event` and
+# `github.event_name` are the caller's, so the payload arms below read the
+# caller's event. The prelude names the pull request, its base ref and its head
+# once (`pr`, `base`, `head`), which replaces the merge-queue naming step this
+# file carried: a queue entry arrives as `inputs.pr` and `inputs.head`.
+#
+# It holds one job with no `if:`: the caller's `if:` is the only guard, and a
+# job an `if:` skips still writes a check run at the head -- a skipped run of a
+# required context counts as passing (#1514's shape). A stale red after an
+# approval is re-judged by `gate.py --sweep` (`gate-sweep.yml`), which replaced
+# `budget-raise-gate-rerun.yml` and this program's `--rerun-stale`.
 #
 # `pull_request_review` runs the pull request's workflow file, as
 # `pull_request` does; `.github/workflows/` stays owned for that reason
@@ -20,43 +29,29 @@
 name: Budget raise gate
 
 on:
-  pull_request:
-    # `edited`: retargeting a pull request to another base fires it, and the
-    # merge base the gate compares against moves with the base. A body edit
-    # fires it too and re-runs the full verdict; this job has no `if:`, so the
-    # run it writes is never a skipped one (#1514's shape).
-    types: [opened, edited, synchronize, reopened]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
-  # The merge queue (round-9 process review item 2): the same verdict, on a
-  # queue entry for the pull request it carries. Still no `if:`, so no run
-  # this file starts is a skipped one.
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
 
-# Workflow-level and read-only: the reviews list needs `pull-requests: read`,
-# the checkout `contents: read`, and the owner's recorded mandate, a comment
-# on #201, `issues: read`. No job widens it.
+# Workflow-level and read-only, and the caller grants no more: the reviews list
+# needs `pull-requests: read`, the checkout `contents: read`, and the owner's
+# recorded mandate, a comment on #201, `issues: read`. No job widens it.
 permissions:
   contents: read
   pull-requests: read
   issues: read
 
-# No run of this file cancels or queues another: each gets a group of its
-# own (R9-CI-2a). It lists `edited`, and an author push that re-bodies the
-# pull request -- `tools/pr/app_push.sh` pushes, then PATCHes the body --
-# fires `synchronize` and `edited` within a second at one head. A group per
-# pull request with `cancel-in-progress` cancelled the first of that pair at
-# every such push, leaving a cancelled `budget-raise-gate` beside its green
-# twin at the live head (#2007, #2029, #2041, #2049). Turning the cancel off
-# alone still shares the group, where a newer pending run cancels an older
-# pending one whatever `cancel-in-progress` says -- what `pr-contract.yml`
-# met while an older head's run held its group. The job is seconds long and
-# its check run is per head, so a superseded head's run finishing costs
-# nothing and is never read. `tests/entities.py` pins the route.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.run_id }}
-  cancel-in-progress: false
+# No `concurrency:` (DESIGN-P2 4.3): `ci.yml`'s group is per run, so no run of
+# this file cancels or queues another. A superseded head's run finishing costs
+# nothing, since its check run is per head and is never read.
 
 jobs:
   budget-raise-gate:
@@ -71,8 +66,10 @@ jobs:
       - name: Restore the check source from the base commit
         env:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          BASE_REF: ${{ inputs.base }}
         run: |
           set -euo pipefail
+          if test -z "$PINNED"; then PINNED=$(git rev-parse --verify "refs/remotes/origin/$BASE_REF^{commit}"); fi
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
           # Each program at its path before and after the reorganisation (R9-RO-2):
           # the diff lists what PINNED holds of them, skipping the half it lacks,
@@ -87,46 +84,23 @@ jobs:
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/budget_raise_gate.py || test -f tools/policy/budget_raise_gate.py
 
-      # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
-      # carries no pull request in its payload, so the entry is named from the
-      # tree: its number from the queue branch's name, its head as the queue
-      # commit's second parent (merge method MERGE), and the API must report
-      # that same head or the step fails -- a run that cannot name what it
-      # grades must not pass. On any other event it writes nothing and every
-      # step below reads the payload as before. Outputs only, never
-      # $GITHUB_ENV: nothing here can reach a later program, and it runs after
-      # the restore, from admitted commands alone.
-      - name: Name the pull request a queue entry carries
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVENT: ${{ github.event_name }}
-          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
-          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
-        run: |
-          set -euo pipefail
-          if [ "$EVENT" = "merge_group" ]; then
-            NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
-            HEAD=$(git rev-parse --verify 'HEAD^2^{commit}')
-            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
-            echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
-            echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
-            echo "head=$HEAD" >> "$GITHUB_OUTPUT"
-            echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
-          fi
-
-      # The head is the payload's: it is the commit this run's check run is
-      # written on. On a queue entry it is the pull request's head the step
-      # above named, the head an owner's approval has to be at. The reviews are
-      # read live, so a re-run after an approval reads the approval.
+      # The head is the prelude's: it is the commit this run's check run is
+      # written on, and on a queue entry the pull request's head, the head an
+      # owner's approval has to be at. The base is the payload's SHA on a pull
+      # request or review event and on a queue entry, and the base ref's tip
+      # on a dispatch. The reviews are read live, so a re-run after an approval
+      # reads the approval.
       - name: Refuse a budget raise the owner has not approved at this head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
-          PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
+          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          BASE_REF: ${{ inputs.base }}
+          PR_HEAD: ${{ inputs.head }}
+          PR_NUMBER: ${{ inputs.pr }}
         run: |
           set -euo pipefail
+          test -n "$PR_NUMBER" && test -n "$PR_HEAD" || { echo "::error title=budget-raise-gate::the caller named no pull request"; exit 1; }
+          if test -z "$PR_BASE"; then PR_BASE=$(git rev-parse --verify "refs/remotes/origin/$BASE_REF^{commit}"); fi
           if test -f .claude/workflows/budget_raise_gate.py; then
             python3 -I .claude/workflows/budget_raise_gate.py \
               --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"

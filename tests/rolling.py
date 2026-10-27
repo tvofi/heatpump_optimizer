@@ -231,7 +231,7 @@ def run_rolling(
                     "precipitation": float(rain[step]),
                 }
             ]
-            asyncio.run(learner._async_learn_house_heat_loss())
+            asyncio.run(learner._async_learn_house_heat_loss(learner._close_fabric_interval()))
             history["heat_loss_scale"].append(learner._house_heat_loss_scale)
             history["heat_loss_samples"].append(learner._house_heat_loss_samples)
 

@@ -10,10 +10,14 @@ claim file turned main red. So every rule below is a refusal, not a warning:
 
   1. The working tree is a checkout of origin/main (fetched), clean except for
      RELEASE_NOTES.md -- the stamper writes the notes section by hand first.
-  2. The Tests workflow for HEAD has completed and succeeded (fast + closures),
-     so a release never publishes ahead of the unscoped gate. --allow-red
+  2. The `gate` job of HEAD's `ci.yml` push run has completed and succeeded
+     (R10-CI-LAYOUT P2b, B3: on push gate.py owes every job whose failure
+     reddened the old Tests push run, ci-ratchet and coverage-ratchet
+     included), so a release never publishes ahead of the unscoped gate; a
+     HEAD with no ci.yml push run predates the umbrella and is read off its
+     Tests push run instead (`tests_run_fallback`). --allow-red
      overrides, loudly, for a red main whose cause is already understood.
-     Read through `gh run list` when gh is installed and through the REST
+     Read through `gh api` when gh is installed and through the REST
      API when it is not; both paths reduce to one verdict, so the refusal
      is the same sentence with the same override either way. A source that
      cannot answer at all -- no gh and no network -- is a not-green verdict
@@ -59,6 +63,15 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      other path in the diff -- one code file beside the delivery row -- breaks
      the class, and the merge owes its row exactly as before. `--allow-rowless`
      is unchanged for everything that is not exempt.
+
+     (rule "flush", between rules 3 and 4) The record beat batches on a
+     push, so a window can owe rows it is holding back. Before rule 4 reads
+     the window, a stamp whose window owes a non-record-class row dispatches
+     nightly.yml (a dispatch flushes at any count) and waits for the record
+     merge, then moves the checkout to that main, names the record pull
+     request in the notes and waits for its gate (`flush_before_tag`). A flush
+     that cannot dispatch or sees no merge in time leaves rule 5 to refuse;
+     --dry-run dispatches nothing; --no-flush skips it.
 
   6. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
@@ -111,6 +124,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -172,6 +186,9 @@ GITHUB_API = "https://api.github.com"
 REPO = "tvofi/heatpump_optimizer"
 TESTS_WORKFLOW = "Tests"
 TESTS_WORKFLOW_FILE = "tests.yml"
+CI_WORKFLOW = "CI"
+CI_WORKFLOW_FILE = "ci.yml"
+GATE_JOB = "gate"
 GATE_RUN_LIMIT = 5
 GATE_TIMEOUT_S = 30.0
 # The deploy-key push. The URL is derived from REPO, never read off or written
@@ -592,9 +609,18 @@ def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | 
     return "\n".join(out) + "\n", old_stamp, deleted
 
 
+def runs_path(head: str, repo: str = REPO) -> str:
+    """The query rule 2 asks: this commit's push runs, newest first."""
+    return f"repos/{repo}/actions/runs?head_sha={head}&event=push"
+
+
 def runs_url(head: str, repo: str = REPO, api: str = GITHUB_API) -> str:
-    """The REST query rule 2 asks: this commit's push runs, newest first."""
-    return f"{api}/repos/{repo}/actions/runs?head_sha={head}&event=push"
+    return f"{api}/{runs_path(head, repo)}"
+
+
+def jobs_path(run_id, repo: str = REPO) -> str:
+    """One run's jobs, each at its latest attempt."""
+    return f"repos/{repo}/actions/runs/{run_id}/jobs?filter=latest&per_page=100"
 
 
 def rest_headers(token: str | None) -> dict[str, str]:
@@ -618,21 +644,55 @@ def is_tests_run(run: dict) -> bool:
 
 
 def runs_from_payload(payload: dict, limit: int = GATE_RUN_LIMIT) -> list[dict]:
-    """Reduce a /actions/runs payload to exactly what `gh run list --json
-    status,conclusion,databaseId --limit 5` returns, so the verdict below
-    cannot tell the two paths apart. The API answers newest first."""
+    """Reduce a /actions/runs payload to the newest five Tests runs as
+    {status, conclusion, databaseId}, the shape gate_verdict reads. The API
+    answers newest first."""
     runs = [{"status": r.get("status"), "conclusion": r.get("conclusion"), "databaseId": r.get("id")}
             for r in (payload.get("workflow_runs") or []) if is_tests_run(r)]
     return runs[:limit]
 
 
-def gate_verdict(runs: list[dict]) -> tuple[bool, str]:
-    """(green, why) for rule 2, from either path's runs."""
+def is_ci_run(run: dict) -> bool:
+    """The umbrella's run, by name and by file, as is_tests_run."""
+    return ((run.get("name") or "").strip() == CI_WORKFLOW
+            or (run.get("path") or "").rsplit("/", 1)[-1] == CI_WORKFLOW_FILE)
+
+
+def gate_runs(payload: dict, jobs_of, limit: int = GATE_RUN_LIMIT) -> "list[dict] | None":
+    """B3: each of HEAD's newest five ci.yml push runs reduced to its `gate`
+    job -- that job's own status and conclusion, never the run's, whose other
+    jobs gate already judged -- or None when HEAD has no ci.yml push run (a
+    pre-umbrella HEAD, the fallback's). A completed run whose jobs name no
+    gate concluded "no gate job": not green."""
+    ci = [r for r in (payload.get("workflow_runs") or []) if is_ci_run(r)][:limit]
+    if not ci:
+        return None
+    out = []
+    for r in ci:
+        g = [j for j in jobs_of(r.get("id")) if j.get("name") == GATE_JOB]
+        st = g[0].get("status") if g else r.get("status")
+        concl = g[0].get("conclusion") if g else ("no gate job" if st == "completed" else None)
+        out.append({"status": st, "conclusion": concl, "databaseId": r.get("id")})
+    return out
+
+
+def tests_run_fallback(payload: dict) -> list[dict]:
+    """THE THREE-ROUND FALLBACK (plan/ci-layout EXECUTION.md 3): a HEAD
+    with no ci.yml push run predates the umbrella, so its rule 2 evidence is
+    its Tests push run, read as before P2b. It lives in this function alone,
+    so it can be split out of P2b or deleted whole."""
+    return runs_from_payload(payload)
+
+
+def gate_verdict(runs: list[dict], what: str = "Tests run") -> tuple[bool, str]:
+    """(green, why) for rule 2, from either path's runs: green on a
+    completed `success` alone (a skipped gate, or RATE-LIMITED's failed job,
+    is not green)."""
     done = [r for r in runs if r["status"] == "completed"]
     green = any(r["conclusion"] == "success" for r in done)
     pending = [r for r in runs if r["status"] != "completed"]
-    why = ("no completed Tests run for HEAD yet" if not done else
-           f"Tests for HEAD concluded {[r['conclusion'] for r in done]}")
+    why = (f"no completed {what} for HEAD yet" if not done else
+           f"{what} for HEAD concluded {[r['conclusion'] for r in done]}")
     if pending:
         why += f"; {len(pending)} run(s) still in progress"
     return green, why
@@ -931,9 +991,9 @@ def self_test() -> int:
     check("rule 2: a run still going is counted, not awaited", gate_verdict(queued) ==
           (False, "no completed Tests run for HEAD yet; 1 run(s) still in progress"))
     check("rule 2: no run at all", gate_verdict([]) == (False, "no completed Tests run for HEAD yet"))
-    check("rule 2: gh's shape and rest's reduce to one verdict",
+    check("rule 2: the reduced shape is the one verdict",
           gate_verdict([{"status": "completed", "conclusion": "failure", "databaseId": 21}]) == gate_verdict(red))
-    check("rule 2: the five newest Tests runs, as gh's --limit", len(runs_from_payload(
+    check("rule 2: the five newest Tests runs", len(runs_from_payload(
         {"workflow_runs": [{"id": i, "name": "Tests", "status": "completed", "conclusion": "success"}
                            for i in range(9)]})) == 5)
     check("rule 2: gh is used when it is installed", gate_source(lambda name: "/usr/bin/gh") == "gh")
@@ -944,7 +1004,45 @@ def self_test() -> int:
 
     unreadable = tests_gate("deadbee", which=lambda name: None, fetchers={"rest": _no_gh})
     check("rule 2: a source that cannot answer refuses, it does not raise",
-          not unreadable[0] and "could not read the Tests gate" in unreadable[1])
+          not unreadable[0] and "could not read the gate" in unreadable[1])
+
+    # B3 (R10-CI-LAYOUT P2b): HEAD's ci.yml push run is judged by its `gate`
+    # job, never by the run's conclusion; a HEAD with no ci.yml push run is
+    # the fallback's, read off Tests as before.
+    def world(runs: list[dict], jobs: dict) -> dict:
+        def get(path: str) -> dict:
+            if path == runs_path("cafe"):
+                return {"workflow_runs": runs}
+            rid = int(path.split("/actions/runs/")[1].split("/")[0])
+            return {"jobs": jobs.get(rid, [])}
+        return {"gh": get, "rest": get}
+
+    ci_run = {"id": 41, "name": "CI", "path": ".github/workflows/ci.yml", "status": "completed",
+              "conclusion": "failure"}
+    tests_ok = {"id": 40, "name": "Tests", "path": ".github/workflows/tests.yml", "status": "completed",
+                "conclusion": "success"}
+
+    def job(concl, name=GATE_JOB, status="completed"):
+        return {"name": name, "status": status, "conclusion": concl}
+    g_ok = tests_gate("cafe", fetchers=world([ci_run], {41: [job("success"), job("failure", "tests / nightly-ha")]}))
+    check("B3: the ci.yml push run's gate success is green, whatever the run concluded", g_ok[0])
+    g_red = tests_gate("cafe", fetchers=world([ci_run], {41: [job("failure")]}))
+    check("B3: a red push gate (a red ci-ratchet reddens it) refuses, naming the gate",
+          not g_red[0] and "gate" in g_red[1] and "failure" in g_red[1])
+    check("B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, "
+          "cancelled, absent",
+          not any(tests_gate("cafe", fetchers=world([ci_run], {41: js}))[0]
+                  for js in ([job("failure")], [job("skipped")], [job("cancelled")], [job("success", "tests / fast (3.14)")])))
+    check("B3: a gate still running is not green",
+          not tests_gate("cafe", fetchers=world([dict(ci_run, status="in_progress")],
+                                                 {41: [job(None, status="in_progress")]}))[0])
+    check("B3: once HEAD has a ci.yml push run, a green Tests run there does not stand in for a red gate",
+          not tests_gate("cafe", fetchers=world([ci_run, tests_ok], {41: [job("failure")]}))[0])
+    fb = tests_gate("cafe", fetchers=world([tests_ok], {}))
+    check("fallback: a pre-umbrella HEAD (no ci.yml push run) is read off its Tests push run",
+          fb[0] and "Tests run" in fb[1])
+    check("fallback null: a pre-umbrella HEAD whose Tests run is red refuses",
+          not tests_gate("cafe", fetchers=world([dict(tests_ok, conclusion="failure")], {}))[0])
 
     # The tag-push fallback is a control-flow contract, so it is pinned by
     # reading this file: a failed tag push must not raise past the caller,
@@ -1513,38 +1611,142 @@ def self_test() -> int:
     check("stamp message: ref_privacy's own reader finds no attribution in it",
           _attribution(stamp_message("7.0.1", "t")) == [] and "stamp_message(nxt, args.title)" in _main_src
           and _attribution("x\n\n" + _banned) != [])
+    # Rule "flush" (R10-FLOW-RECORD-PITCH carry [6]), driven with doubles: a
+    # window owing a row dispatches, then waits -- polling main, dispatching
+    # once more only when the open record pull request is ready -- and returns
+    # the record merge it saw land; nothing owed dispatches nothing (the null
+    # control); a refused dispatch and a merge that never lands change nothing.
+    _fl: list = []
+    _tick = iter(range(0, 10 ** 6, FLUSH_POLL_S))
+
+    def _flush(owed, lands_after, ready=True, sent=True):
+        _fl.clear()
+        polls = iter([[]] * lands_after + [["2810"]])
+        return record_flush(owed, "pre1234",
+                            dispatch=lambda: (_fl.append("dispatch"), (sent, "x"))[1],
+                            landed=lambda pre: (_fl.append(f"poll {pre}"), next(polls, []))[1],
+                            ready=lambda: ready, sleep=lambda s: _fl.append("sleep"),
+                            clock=lambda: next(_tick))
+
+    _owed = [("2801", "abc1234")]
+    _merged, _msg = _flush(_owed, 2)
+    check("flush: a window owing a row dispatches nightly.yml first, then waits on main "
+          "and returns the record merge that landed",
+          _merged == ["2810"] and _fl[:3] == ["dispatch", "poll pre1234", "sleep"]
+          and _fl.count("dispatch") == 1 and "#2810" in _msg)
+    _merged, _msg = _flush([], 0)
+    check("flush: nothing owed dispatches nothing and waits for nothing (null control)",
+          _merged == [] and _fl == [] and "nothing dispatched" in _msg)
+    _merged, _msg = _flush(_owed, 10 ** 5, sent=False)
+    check("flush: a refused dispatch waits for nothing and merges nothing",
+          _merged == [] and _fl == ["dispatch"] and "could not dispatch" in _msg)
+    _merged, _msg = _flush(_owed, 10 ** 5)
+    check("flush: a record merge that never lands times out after at most "
+          "FLUSH_MAX_DISPATCHES dispatches, each FLUSH_REDISPATCH_S apart",
+          _merged == [] and "within" in _msg and _fl.count("dispatch") == FLUSH_MAX_DISPATCHES
+          and _fl.count("poll pre1234") > FLUSH_MAX_DISPATCHES * FLUSH_REDISPATCH_S // FLUSH_POLL_S)
+    _flush(_owed, 10 ** 5, ready=False)
+    check("flush: and never re-dispatches while the record pull request is not ready",
+          _fl.count("dispatch") == 1)
+    check("flush: the owed set is rule 5's rowless merges less the record-class ones; a "
+          "cleared window owes nothing",
+          owed_rows("v1.0.0", gate=lambda t: (False, "  pending  #2801 abc1234 3 commit(s)\n"
+                                                     "  overdue  #2802 def5678 13 commit(s)\n"),
+                    classify=lambda sha: sha == "def5678") == [("2801", "abc1234")]
+          and owed_rows("v1.0.0", gate=lambda t: (True, "  pending  #2801 abc1234 x\n")) == [])
+    _nt = "## v1.2.4\n\n**Lead.**\n\n- Fixes (#1).\n\n# Title\n\n## v1.2.3\n\n- old\n"
+    _nt2 = notes_with_flush(_nt, "1.2.4", ["2810"])
+    check("flush: the notes gain one line naming the flushed record pull request, inside "
+          "the new section, so rule 4 finds it",
+          "#2810" in notes_section(_nt2, "1.2.4") and "#2810" not in _nt2.split("## v1.2.3")[1]
+          and _nt2.replace("\n\n- Delivery record: the rows the stamp flushed before tagging "
+                           "(#2810).", "") == _nt)
+
+    class _FA:
+        no_flush = dry_run = allow_red = False
+
+    def _fbt(args, owed, merged):
+        calls: list = []
+        with tempfile.TemporaryDirectory() as _nd:
+            _np = Path(_nd) / "RELEASE_NOTES.md"
+            _np.write_text(_nt)
+            with contextlib.redirect_stdout(io.StringIO()):
+                out = flush_before_tag(
+                    args, "v1.2.3", "1.2.4", "pre1234", owed_rows=lambda t: owed,
+                    record_flush=lambda o, h: (calls.append(("flush", h)), (merged, "m"))[1],
+                    adopt_main=lambda: (calls.append("adopt"), "new5678")[1],
+                    wait_gate=lambda h: (calls.append(("gate", h)), (True, "ok"))[1], notes=_np)
+            return out, calls, _np.read_text()
+
+    _out, _calls, _notes = _fbt(_FA(), _owed, ["2810"])
+    check("flush: the stamp's default path flushes an owed window, moves to the merged "
+          "main, names the record pull request in the notes and waits for its gate",
+          _out == ("new5678", "") and _calls == [("flush", "pre1234"), "adopt", ("gate", "new5678")]
+          and "#2810" in notes_section(_notes, "1.2.4"))
+    _out, _calls, _notes = _fbt(_FA(), [], ["2810"])
+    check("flush: a window owing nothing never reaches the flush (null control)",
+          _out == ("pre1234", "") and _calls == [] and _notes == _nt)
+    _dry = _FA()
+    _dry.dry_run = True
+    _out, _calls, _ = _fbt(_dry, _owed, ["2810"])
+    check("flush: a dry run dispatches nothing and tells rule 5 what the stamp would flush",
+          _out[0] == "pre1234" and "#2801" in _out[1] and _calls == [])
+    _nf = _FA()
+    _nf.no_flush = True
+    _out, _calls, _ = _fbt(_nf, _owed, ["2810"])
+    _out2, _calls2, _notes2 = _fbt(_FA(), _owed, [])
+    check("flush: --no-flush, and a flush that saw no record merge, leave the head and "
+          "the notes for rule 5 to refuse",
+          _out == ("pre1234", "") and _calls == [] and _out2 == ("pre1234", "")
+          and _calls2 == [("flush", "pre1234")] and _notes2 == _nt)
+    check("flush: main runs it after rule 3 and before rule 4, and a dry run's deferral "
+          "reaches rule 5 only as that deferral",
+          _main_src.find("last_tag = \"v\"") < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
+          < _main_src.find("body = notes_section(NOTES.read_text(), nxt)")
+          and "allow_rowless=args.allow_rowless or bool(deferred)" in _main_src)
+    _gates = iter([(False, "no completed ci.yml push run's gate for HEAD yet"),
+                   (False, "ci.yml push run's gate for HEAD concluded ['failure']; 1 run(s) still in progress"),
+                   (True, "ci.yml push run's gate for HEAD concluded ['success']")])
+    _gt = iter(range(0, 10 ** 6, FLUSH_POLL_S))
+    check("flush: the flushed head's gate is waited for while it runs, and read once settled",
+          wait_gate("new5678", gate=lambda h: next(_gates), sleep=lambda s: None,
+                    clock=lambda: next(_gt))[0] is True
+          and wait_gate("new5678", gate=lambda h: (False, "ci.yml push run's gate for HEAD "
+                                                          "concluded ['failure']"),
+                        sleep=lambda s: 1 / 0, clock=lambda: 0)[0] is False)
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
 
 # --- rule 2's two sources ----------------------------------------------------
 
-def fetch_runs_gh(head: str) -> list[dict]:
-    return json.loads(sh("gh", "run", "list", "--workflow", TESTS_WORKFLOW, "--commit", head,
-                         "--event", "push", "--json", "status,conclusion,databaseId",
-                         "--limit", str(GATE_RUN_LIMIT)))
+def get_gh(path: str) -> dict:
+    return json.loads(sh("gh", "api", path))
 
 
-def fetch_runs_rest(head: str) -> list[dict]:
-    request = urllib.request.Request(runs_url(head), headers=rest_headers(os.environ.get("GH_TOKEN")))
+def get_rest(path: str) -> dict:
+    request = urllib.request.Request(f"{GITHUB_API}/{path}", headers=rest_headers(os.environ.get("GH_TOKEN")))
     with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    return runs_from_payload(payload)
+        return json.loads(response.read().decode("utf-8"))
 
 
 def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> tuple[bool, str]:
-    """Rule 2's evidence, from gh or from REST. Never raises: a source that
+    """Rule 2's evidence, from gh or from REST: HEAD's ci.yml push `gate`
+    (gate_runs), else the pre-umbrella fallback. Never raises: a source that
     cannot answer is a not-green verdict carrying its reason, so --allow-red
     governs 'the gate says red' and 'nothing here can read the gate' alike."""
     source = gate_source(which)
-    fetch = (fetchers or {"gh": fetch_runs_gh, "rest": fetch_runs_rest})[source]
+    get = (fetchers or {"gh": get_gh, "rest": get_rest})[source]
     try:
-        runs = fetch(head)
+        payload = get(runs_path(head))
+        runs = gate_runs(payload, lambda rid: get(jobs_path(rid)).get("jobs") or [])
     except Exception as exc:  # every failure to read is a verdict, never a crash
         stderr = getattr(exc, "stderr", None)  # gh's own complaint, when it is gh
         detail = stderr.strip().splitlines()[-1] if stderr else f"{type(exc).__name__}: {exc}"
-        return False, f"could not read the Tests gate for HEAD via {source}: {detail}"
-    return gate_verdict(runs)
+        return False, f"could not read the gate for HEAD via {source}: {detail}"
+    if runs is None:
+        return gate_verdict(tests_run_fallback(payload))
+    return gate_verdict(runs, "ci.yml push run's gate")
 
 
 # --- the D6 register, re-recorded before the commit (rule "register") --------
@@ -1849,6 +2051,210 @@ def parse_rowless(output: str) -> list[tuple[str, str]]:
     return rows
 
 
+# --- the record flush (rule "flush", R10-FLOW-RECORD-PITCH carry [6]) -------
+#
+# The record beat batches on a push (record_row.py's batch_due): up to
+# BATCH_FLOOR_ROWS - 1 rowless merges wait for a batch, and rule 5 refuses
+# every one of them. So before rule 4 reads the window, a stamp whose window
+# owes a non-record-class row dispatches nightly.yml -- a dispatch flushes at
+# any count and never waits the pitch -- and waits for the record merge: the
+# first dispatch opens the record pull request, and once the beat's own guard
+# passes it at a green head, one more dispatch merges it (the train's
+# --bot-prs sweep, or any later beat, may land it first). Then the checkout
+# moves to that main, the notes name the record pull request rule 4 now sees,
+# and the stamp waits for the new head's gate, which rule 2 asked of the old
+# one. A flush that cannot dispatch, or sees no record merge in time, changes
+# nothing: rule 5 refuses as before, carrying the flush's reason. A dry run
+# dispatches nothing and says what the stamp would flush. --no-flush skips
+# it, and rule 5 decides alone.
+NIGHTLY_WORKFLOW_FILE = "nightly.yml"
+RECORD_ROW = ROOT / "tools" / "audit" / "seat" / "record_row.py"
+#: The fixer contract's 60 s API floor between reads of a waited-on state.
+FLUSH_POLL_S = 60
+#: Above record-autofix's own `timeout-minutes: 10`, so a dispatch that is
+#: still merging is never sent again.
+FLUSH_REDISPATCH_S = 900
+#: Open, merge, and one retry: each dispatch also runs every nightly lane.
+FLUSH_MAX_DISPATCHES = 3
+#: A record head's base-to-merge wait, p90 6129 s over round 10
+#: (dev/audit/harnesses/record_batch_measure.py's `wait_s`), with margin.
+FLUSH_TIMEOUT_S = 7200
+#: The flushed head's ci.yml push gate: `tests/ci_budgets.json`'s
+#: `critical_path_minutes` budgets its critical path under an hour, so 90 min
+#: holds it with margin.
+FLUSH_GATE_TIMEOUT_S = 5400
+
+
+def owed_rows(last_tag: str | None, gate=None, classify=None) -> list[tuple[str, str]]:
+    """(pr, sha7) of each merge rule 5 would refuse on: the instrument's
+    rowless merges less the record-class ones it exempts. A cleared window owes
+    nothing; a line the gate cannot read refuses, as rule 5 would."""
+    cleared, output = (gate or disposition_gate)(last_tag)
+    if cleared:
+        return []
+    classify = classify or merge_is_record_class
+    return [(pr, sha7) for pr, sha7 in parse_rowless(output) if not classify(sha7)]
+
+
+def _api_token() -> str:
+    token = os.environ.get("GH_TOKEN", "")
+    if not token and shutil.which("gh"):
+        token = subprocess.run(["gh", "auth", "token"], text=True,
+                               capture_output=True).stdout.strip()
+    return token
+
+
+def dispatch_record_beat(token=_api_token) -> tuple[bool, str]:
+    """(sent, detail): one workflow_dispatch of nightly.yml on main."""
+    tok = token()
+    if not tok:
+        return False, "no GH_TOKEN and no gh login to dispatch with"
+    request = urllib.request.Request(
+        f"{GITHUB_API}/repos/{REPO}/actions/workflows/{NIGHTLY_WORKFLOW_FILE}/dispatches",
+        data=json.dumps({"ref": "main"}).encode(), method="POST",
+        headers={**rest_headers(tok), "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
+            return True, f"HTTP {response.status}"
+    except Exception as exc:  # a refused dispatch is the flush's reason, never a crash
+        return False, f"{type(exc).__name__}: {exc}"
+
+
+def record_merges_since(pre_main: str, runner=None) -> list[str]:
+    """The pull requests of the record-class merges origin/main gained after
+    `pre_main`, read off its first-parent line after a fetch."""
+    run = runner or sh
+    try:
+        run("git", "fetch", "origin", "--quiet")
+        raw = run("git", "log", "--first-parent", f"--format={WINDOW_FORMAT}",
+                  f"{pre_main}..origin/main")
+    except subprocess.CalledProcessError:
+        return []
+    return [pr for sha, _, subject, body in parse_window(raw)
+            if merge_is_record_class(sha, runner) and (pr := pr_from_subject(subject, body))]
+
+
+def record_pr_green(token=_api_token) -> bool:
+    """Whether the open record pull request passes the beat's own guard at a
+    green head (`record_row.py --automerge-check --require-green`), so that a
+    dispatch now merges it."""
+    env = {**os.environ, "GH_TOKEN": token()}
+    rr = [sys.executable, "-I", str(RECORD_ROW), "--repo", REPO]
+    found = subprocess.run([*rr, "--find-open", "--owner", REPO.split("/")[0]],
+                           text=True, capture_output=True, env=env)
+    n = (found.stdout.strip().splitlines() or ["0"])[-1].strip()
+    if found.returncode or not n.isdigit() or n == "0":
+        return False
+    return subprocess.run([*rr, "--automerge-check", "--require-green", "--pr", n],
+                          text=True, capture_output=True, env=env).returncode == 0
+
+
+def record_flush(owed: list[tuple[str, str]], pre_main: str, dispatch=dispatch_record_beat,
+                 landed=record_merges_since, ready=record_pr_green, sleep=None, clock=None,
+                 timeout_s: int = FLUSH_TIMEOUT_S) -> tuple[list[str], str]:
+    """(record pull requests merged, what happened). Nothing owed dispatches
+    nothing; otherwise one dispatch, then a wait for a record merge on main,
+    with one more dispatch whenever the open record pull request is ready and
+    the last one is FLUSH_REDISPATCH_S old, up to FLUSH_MAX_DISPATCHES."""
+    if not owed:
+        return [], "record flush: nothing owed; nothing dispatched"
+    sleep = sleep or time.sleep
+    clock = clock or time.monotonic
+    named = ", ".join(f"#{pr}" for pr, _ in owed)
+    sent, why = dispatch()
+    if not sent:
+        return [], f"record flush: could not dispatch {NIGHTLY_WORKFLOW_FILE} for {named}: {why}"
+    count, last = 1, clock()
+    deadline = last + timeout_s
+    while True:
+        merged = landed(pre_main)
+        if merged:
+            return merged, (f"record flush: record merge(s) #{', #'.join(merged)} landed for "
+                            f"{named} after {count} dispatch(es)")
+        now = clock()
+        if now >= deadline:
+            return [], (f"record flush: no record merge landed within {timeout_s}s of "
+                        f"{count} dispatch(es) for {named}")
+        if count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
+            sent, why = dispatch()
+            if sent:
+                count, last = count + 1, now
+        sleep(FLUSH_POLL_S)
+
+
+def notes_with_flush(text: str, version: str, prs: list[str]) -> str:
+    """`text` with one line naming the flushed record pull requests appended
+    to the '## v<version>' section, so rule 4 finds what the flush merged."""
+    lines = text.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.strip() == f"## v{version}"), None)
+    if start is None or not prs:
+        return text
+    end = next((j for j in range(start + 1, len(lines))
+                if lines[j].startswith("## v") or lines[j].startswith("# ")), len(lines))
+    while end > start + 1 and not lines[end - 1].strip():
+        end -= 1
+    line = ("- Delivery record: the rows the stamp flushed before tagging ("
+            + ", ".join(f"#{pr}" for pr in prs) + ").")
+    return "\n".join(lines[:end] + ["", line] + lines[end:])
+
+
+def adopt_main(runner=None) -> str:
+    """Move the detached checkout to the origin/main the flush merged into,
+    carrying the hand-written notes, and re-assert rule 1 there."""
+    run = runner or sh
+    run("git", "checkout", "-q", "--detach", "origin/main")
+    head = run("git", "rev-parse", "HEAD").strip()
+    dirty = [l for l in run("git", "status", "--porcelain").splitlines() if l.strip()]
+    if any(not l.endswith("RELEASE_NOTES.md") for l in dirty):
+        raise Refuse(1, f"after the record flush the working tree has changes beyond "
+                        f"RELEASE_NOTES.md: {dirty}")
+    return head
+
+
+def wait_gate(head: str, gate=tests_gate, sleep=None, clock=None,
+              timeout_s: int = FLUSH_GATE_TIMEOUT_S) -> tuple[bool, str]:
+    """Rule 2's verdict for `head`, waited for: green, or the last answer once
+    no run is in progress or the bound has passed."""
+    sleep = sleep or time.sleep
+    clock = clock or time.monotonic
+    deadline = clock() + timeout_s
+    while True:
+        green, why = gate(head)
+        settled = " concluded " in why and "still in progress" not in why
+        if green or settled or clock() >= deadline:
+            return green, why
+        sleep(FLUSH_POLL_S)
+
+
+def flush_before_tag(args, last_tag: str | None, nxt: str, head: str, owed_rows=owed_rows,
+                     record_flush=record_flush, adopt_main=adopt_main, wait_gate=wait_gate,
+                     notes: Path = NOTES) -> tuple[str, str]:
+    """(head, why rule 5 may defer): rule "flush" between rule 3 and rule 4.
+    The head moves only when a record merge landed; `why` is non-empty only on
+    a dry run that would flush, whose rule 5 then reads the owed merges as
+    deferred rather than refuse a stamp the real run would flush."""
+    owed = [] if args.no_flush else owed_rows(last_tag)
+    if not owed:
+        return head, ""
+    named = ", ".join(f"#{pr}" for pr, _ in owed)
+    if args.dry_run:
+        return head, (f"dry run: {named} owe(s) a row; the stamp dispatches "
+                      f"{NIGHTLY_WORKFLOW_FILE} and waits for the record merge before rule 4")
+    merged, message = record_flush(owed, head)
+    print(message)
+    if not merged:
+        return head, ""
+    head = adopt_main()
+    notes.write_text(notes_with_flush(notes.read_text(), nxt, merged))
+    green, why = wait_gate(head)
+    if not green:
+        if not args.allow_red:
+            raise Refuse(2, f"the flushed head's gate: {why} (wait, or --allow-red with the "
+                            "cause understood)")
+        print(f"WARNING: stamping a flushed main whose gate is not green: {why}")
+    return head, ""
+
+
 def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) -> None:
     """Discard the local stamp commit and tag, keeping the hand-written notes.
 
@@ -1953,6 +2359,9 @@ def main() -> int:
     ap.add_argument("--allow-rowless", action="store_true",
                     help="stamp even though the window the tag closes holds a merge with no "
                          "disposition row; the instrument's own list is printed as the warning")
+    ap.add_argument("--no-flush", action="store_true",
+                    help="do not dispatch the record beat for a window that owes rows; rule 5 "
+                         "decides alone")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -1999,6 +2408,10 @@ def main() -> int:
     if version_tuple(nxt) <= top:
         raise Refuse(3, f"next version {nxt} is not above the highest tag {'.'.join(map(str, top))}")
     last_tag = "v" + ".".join(map(str, top)) if top != (0, 0, 0) else None
+
+    # Rule "flush": a window owing a row the batching record beat holds back
+    # is flushed before rule 4 reads it (`flush_before_tag`).
+    head, deferred = flush_before_tag(args, last_tag, nxt, head)
 
     # Rule 4: the notes section exists and covers every merged PR.
     body = notes_section(NOTES.read_text(), nxt)
@@ -2047,8 +2460,10 @@ def main() -> int:
                                      f"refuses rather than classify from either")
     self_disposing = [(pr, sha7) for pr, sha7 in rowless
                       if merge_is_record_class(sha7)]
+    if deferred:
+        print(deferred)
     refuse, message = rows_gate_decision(cleared=cleared,
-                                         allow_rowless=args.allow_rowless,
+                                         allow_rowless=args.allow_rowless or bool(deferred),
                                          last_tag=last_tag, output=why,
                                          rowless=rowless,
                                          self_disposing=self_disposing)

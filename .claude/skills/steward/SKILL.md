@@ -9,10 +9,6 @@ Read this before acting on a CI failure or a review comment. It states only
 where this repository differs from the general rules; everything not named
 here is unchanged, and nothing here loosens a prohibition.
 
-The difference is worth reading because two of these have a wrong default: one
-tells you to push a fix that the repository forbids you to write, and one
-leaves you waiting on a run that will never start.
-
 ## S1 A red claim, closure or pin check is a bot's job, not yours
 
 IF `fast` fails with `INHERITED CLAIMS`, `closures` prints `UNDER-SCOPED`, or
@@ -86,8 +82,10 @@ invalidates the head a reviewer measured and every checkout of it.
 ## S8 A red check owes an answer in the body
 
 IF your branch turned any required check red, THEN name it in the body and
-answer it: the cheaper detector, or that none exists. An unanswered required
-check is a blocked verdict. Naming a trigger is not the analysis.
+answer it: the cheaper detector, or that none exists. The one required check is
+`gate`, red whenever a unit is, so answer the units `pr-contract` lists
+(`tests / closures`) and each `code-scanning alert <n> (<rule id>)`, not `gate`.
+An unanswered one is a blocked verdict. Naming a trigger is not the analysis.
 
 `delivery-status` is not required. PENDING a row is ordinary; only OVERDUE is a stopped batch. Read its list, or `tests/delivery_status.py --emit`.
 
@@ -103,7 +101,7 @@ IF a fix also needs the pull-request body corrected, THEN create the commit
 first, write the body against the SHA it already has, push last, and check the
 head's own checks afterwards.
 
-`pr-contract` runs on `synchronize` and reads the body as it stood at push time.
+`pr-contract` runs last in `ci.yml`, on `synchronize`, and reads the body as it stood at push time.
 Push before correcting the body and the job measures the stale one.
 
 Both orders leave exactly one failed run. The difference is WHERE, and that is

@@ -7,9 +7,11 @@
     "total_count": 2,
     "check_runs": [
       {"id": 900001, "name": "gate", "head_sha": "4f1c2a9e0b7d3c5a6e8f9b1d2c3a4e5f6a7b8c9d",
-       "status": "completed", "conclusion": "failure", "app": {"id": 15368, "slug": "github-actions"}},
+       "status": "completed", "conclusion": "failure", "app": {"id": 15368, "slug": "github-actions"},
+       "check_suite": {"id": 700001}},
       {"id": 900002, "name": "gate", "head_sha": "4f1c2a9e0b7d3c5a6e8f9b1d2c3a4e5f6a7b8c9d",
-       "status": "completed", "conclusion": "success", "app": {"id": 15368, "slug": "github-actions"}}
+       "status": "completed", "conclusion": "success", "app": {"id": 15368, "slug": "github-actions"},
+       "check_suite": {"id": 700001}}
     ]
   },
   "runs": {

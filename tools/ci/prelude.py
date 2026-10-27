@@ -23,10 +23,17 @@ WORKSET is the units a kind's run owns; a code run on a PR carrying the
 
 A dispatch naming `pr` is VERIFIED against the live PR (open, from this
 repository, headed by this SHA, based on `base`) or the prelude fails, and the
-gate, which re-verifies, fails with it. A non-code run waits until every
-EARLIER ci.yml run at its head has finished (a held run aside), polling at
-POLL_S (tvofi's 60 s floor, 2026-10-19), one runs listing per poll. A rate
-limit prints `RATE-LIMITED` and fails closed (A1 item 4).
+gate, which re-verifies, fails with it. A non-code run waits (`wait_sources`)
+until no run at its head that it orders after can still add a source: every
+EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
+does not number a same-second push and body edit in event order
+(R10-RCA-CODESCAN-WAIT: the edit run got the lower id in 27 of 94 pairs), so
+an id alone orders nothing; a code run never waits, so no cycle forms. A run
+can add no source once it is `judging` -- every unit ended and its gate
+listed -- not only once it has finished, because that gate may itself be
+waiting on this run (gate.py's bounded wait). Polls at POLL_S (tvofi's 60 s
+floor, 2026-10-19): one runs listing, and a jobs listing per unfinished
+run waited on. A rate limit prints `RATE-LIMITED` and fails closed (A1 item 4).
 """
 from __future__ import annotations
 
@@ -46,6 +53,17 @@ BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
 KP = "kernel-points"
+UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
+    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+              "closure-scope"),
+    "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
+    "governance": ("policy-docs", "wave-script", "env-matrix"),
+    "hassfest": ("hassfest",),
+    "validate": ("validate-hacs",),
+    "arch-score": ("arch-score",),                 # owner ruling D-2
+    "budget-raise-gate": ("budget-raise-gate",),
+    "pr-contract": ("pr-contract",),
+}
 UNFINISHED = ("queued", "pending", "waiting", "requested", "in_progress")
 POLL_S = 60
 WAIT_MAX_S = 8700       # inside the job's 150-minute timeout: the wait fails before the runner kills it
@@ -68,7 +86,7 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
         "queue_pr": q.group(1) if q else "",
         "input_pr": inputs.get("pr") or "", "input_base": inputs.get("base") or "",
         "head": (pr.get("head") or {}).get("sha") or mg.get("head_sha") or env.get("GITHUB_SHA", ""),
-        "sha": env.get("GITHUB_SHA", ""), "repo": env.get("GITHUB_REPOSITORY", ""),
+        "sha": env.get("GITHUB_SHA", ""), "ref": env.get("GITHUB_REF", ""), "repo": env.get("GITHUB_REPOSITORY", ""),
         "run_id": int(env.get("GITHUB_RUN_ID") or 0), "run_attempt": int(env.get("GITHUB_RUN_ATTEMPT") or 1),
     }
 
@@ -141,37 +159,112 @@ def verify_dispatch(ctx: dict, get) -> str:
     return ""
 
 
-def wait_earlier(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
-    """'' once every earlier ci.yml run at this head is finished; else why it stopped."""
+def run_jobs(get, repo: str, run_id) -> dict:
+    """A run's latest jobs, name -> (status, conclusion)."""
+    return {j["name"]: (j["status"], j["conclusion"]) for j in
+            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
+
+
+def judging(run: dict) -> bool:
+    """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
+    `gate` is listed, no listed prelude or unit job is unfinished, and every name
+    its own title's workset owes is listed and completed (`tests /
+    closure-scope` aside when it names no PR)."""
+    jobs = run.get("jobs") or {}
+    if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
+                                     if k == "prelude" or k.split(" / ")[0] in UNITS):
+        return False
+    t = parse_title(run.get("title") or "")
+    if t is None:
+        return False                        # unreadable: never treated as finished (gate() also refuses it)
+    for u in workset(t[0], t[1]) & set(UNITS):
+        for n in UNITS[u]:
+            if u == "tests" and n == "closure-scope" and not t[1]:
+                continue
+            st = jobs.get(f"{u} / {n}")
+            if st is None or st[0] != "completed":
+                return False
+    return True
+
+
+def waits_on(run_id: int, run: dict) -> bool:
+    """Whether a non-code run waits on `run` at its head: an earlier run, or a code run of any id."""
+    t = parse_title(run.get("title") or "")
+    return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
+
+
+def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
+    """'' once no run this one waits on can still add a source; else why it stopped."""
     t0 = now()
     while True:
         st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
                          {"head_sha": ctx["head"], "per_page": 100})
         if st != 200 or not isinstance(doc, dict):
             return f"runs at {ctx['head'][:12]}: HTTP {st}"
-        busy = sorted(r["id"] for r in doc.get("workflow_runs", [])
-                      if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)
+        busy = []
+        for r in doc.get("workflow_runs", []):
+            run = {"id": r["id"], "title": r.get("display_title") or ""}
+            if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
+                try:
+                    run["jobs"] = run_jobs(get, ctx["repo"], r["id"])
+                except ghapi.ApiError as e:
+                    return str(e)
+                if not judging(run):
+                    busy.append(r["id"])
         if not busy:
             return ""
         if now() - t0 + POLL_S > WAIT_MAX_S:
-            return f"earlier run(s) {busy} still unfinished after {WAIT_MAX_S} s"
+            return f"run(s) {sorted(busy)} still adding sources after {WAIT_MAX_S} s"
         sleep(POLL_S)
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep) -> tuple[dict, str]:
+def _codeql_scope():
+    sys.path.insert(0, str(HERE.parent / "pr"))
+    import codeql_scope
+    return codeql_scope
+
+
+def proof_scope(ctx: dict, get, entries=None, changed=None) -> tuple[list[str], dict | None]:
+    """(the proof's changed files, {entry head: legs proven}) for a train
+    proof (codeql_scope's rule); ([], None) when its chain does not verify or
+    a read fails, and every leg analyzes. `entries`/`changed` default to
+    codeql_scope.proof_entries/changed_files over this checkout."""
+    cq = _codeql_scope()
+    chain = (entries or cq.proof_entries)(ctx["sha"])
+    if not chain:
+        return [], None
+    base, heads = chain
+    try:
+        files = (changed or cq.changed_files)(base, ctx["sha"])
+        proven = {}
+        for head in heads:
+            legs: frozenset = frozenset()
+            for r in ghapi.paginate(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                                    {"head_sha": head, "event": "pull_request"}, get=get):
+                if r.get("event") == "pull_request" and r.get("head_sha") == head:
+                    legs |= cq.proven_legs(run_jobs(get, ctx["repo"], r["id"]))
+            proven[head] = legs
+    except (ghapi.ApiError, cq.subprocess.CalledProcessError):
+        return [], None
+    return files, proven
+
+
+def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
            "scope": "full" if ev == "push" else "auto",
            "workset": " ".join(sorted(workset(kind, pr, ctx.get("labels", ()))))}
-    sys.path.insert(0, str(HERE.parent / "pr"))
-    import codeql_scope
-    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [])[0]
+    codeql_scope = _codeql_scope()
+    ref, proven = ("" if ctx.get("input_pr") else ctx.get("ref", "")), None
+    if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
+        changed, proven = proof(ctx, get)
+    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
     if not why and kind != "code":
-        why = wait_earlier(ctx, get, sleep)
+        why = wait_sources(ctx, get, sleep)
     return out, why
 
 
@@ -241,23 +334,97 @@ def self_test() -> int:
     check("dispatch naming the wrong base refused", bool(verify_dispatch(dctx, g({**live, "base": {"ref": "rel"}}))), True)
     check("dispatch of a fork PR refused", bool(verify_dispatch(dctx, g({**live, "head": {"sha": "H", "repo": {"full_name": "f/r"}}}))), True)
     check("dispatch pr without base refused", bool(verify_dispatch(ctx("workflow_dispatch", inputs={"pr": "7"}), g(live))), True)
-    listings = [[{"id": 40, "status": "in_progress"}, {"id": 60, "status": "queued"}],
-                [{"id": 40, "status": "completed"}, {"id": 45, "status": "action_required"}, {"id": 60, "status": "queued"}]]
-    naps, tick = [], iter(range(0, 10 ** 6, 3000))
-    w = wait_earlier(ctx("pull_request_review", pull_request=pr),
-                     lambda p, q=None: (200, {}, {"workflow_runs": listings[min(len(naps), 1)]}), naps.append,
-                     lambda: next(tick))
-    check("waits for an earlier run, not a later or held one", (w, naps), ("", [POLL_S]))
+    rctx = ctx("pull_request_review", pull_request=pr)          # run 50, a verdict run
+
+    def run(i, kind, status, jobs=None):
+        return {"id": i, "display_title": title(kind, "7", "main", "M"), "status": status, "jobs": jobs or []}
+
+    def done(kind, gate=True):
+        names = [f"{u} / {n}" for u in sorted(workset(kind, "7") & set(UNITS)) for n in UNITS[u]]
+        return [{"name": x, "status": "completed", "conclusion": "success"} for x in ["prelude"] + names
+                + (["gate"] if gate else [])]
+
+    def timeline(*frames):
+        """A get over a sequence of listings, one frame per poll (the count of naps so far)."""
+        naps = []
+
+        def get(path, params=None):
+            frame = frames[min(len(naps), len(frames) - 1)]
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{k: v for k, v in r.items() if k != "jobs"} for r in frame]}
+            rid = int(path.split("/runs/")[1].split("/")[0])
+            return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
+        return get, naps
+    tick = iter(range(0, 10 ** 6, 3000))
+    get, naps = timeline([run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued")],
+                         [run(40, "code", "completed"), run(45, "code", "action_required"),
+                          run(60, "edit", "queued")])
+    check("waits for an earlier run, not a later non-code or held one",
+          (wait_sources(rctx, get, naps.append, lambda: next(tick)), naps), ("", [POLL_S]))
+    get, naps = timeline([run(60, "code", "in_progress", done("code", gate=False))],
+                         [run(60, "code", "in_progress", done("code"))])
+    check("M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging",
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", [POLL_S]))
+    get, naps = timeline([run(40, "edit", "in_progress", done("edit"))])
+    check("a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us)",
+          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", []))
     check("poll floor is 60 s", POLL_S >= 60, True)
     clock = iter(range(0, 10 ** 6, 3000))
-    w = wait_earlier(ctx("pull_request_review", pull_request=pr),
-                     lambda p, q=None: (200, {}, {"workflow_runs": [{"id": 1, "status": "queued"}]}),
-                     lambda s: None, lambda: next(clock))
-    check("the wait is bounded", w.startswith("earlier run(s) [1]"), True)
+    get, _ = timeline([run(1, "code", "queued")])
+    w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
+    check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
+
+    # A train proof (r10-proof-codeql): the evidence is each entry head's own
+    # pull_request runs; a dispatch at that head carries none.
+    def proof_get(legs_at):
+        runs, jobs = {}, {}
+        for head, per_run in legs_at.items():
+            for ev, legs in per_run:
+                rid = len(jobs) + 1
+                runs.setdefault(head, []).append({"id": rid, "event": ev, "head_sha": head})
+                jobs[rid] = [{"name": f"codeql / Analyze ({leg})", "status": "completed", "conclusion": "success"}
+                             for leg in legs]
+
+        def get(path, params=None):
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": runs.get(params["head_sha"], [])}
+            return 200, {}, {"jobs": jobs[int(path.split("/runs/")[1].split("/")[0])]}
+        return get
+    all3 = ("actions", "javascript-typescript", "python")
+    two = {"h1": [("pull_request", all3)], "h2": [("pull_request", ("actions",)), ("pull_request", ("python",))]}
+    chain = lambda tip: ("B", ["h1", "h2"])  # noqa: E731
+    code = ["custom_components/heatpump_optimizer/coordinator.py"]
+    pctx = context("workflow_dispatch", {"inputs": {"recheck": "true"}}, {**env, "GITHUB_REF": "refs/heads/batch/t-1"})
+
+    def legs(c, ev_get, files=code, entries=chain):
+        out, why = outputs(c, None, ev_get, proof=lambda c2, g2: proof_scope(c2, g2, entries, lambda b, h: files))
+        return json.loads(out["legs"]), why
+    check("proof: legs every entry proved skip, the one an entry lacks analyzes",
+          legs(pctx, proof_get(two)), ({"actions": "skip", "javascript-typescript": "analyze", "python": "skip"}, ""))
+    check("proof: an entry with no pull_request run analyzes every leg (a dispatch run is no evidence)",
+          legs(pctx, proof_get({**two, "h2": [("workflow_dispatch", all3)]}))[0],
+          {leg: "analyze" for leg in all3})
+    check("proof: a .github/ change analyzes every leg",
+          legs(pctx, proof_get(two), files=code + [".github/workflows/codeql.yml"])[0], {leg: "analyze" for leg in all3})
+    check("proof: an unverifiable chain analyzes every leg",
+          legs(pctx, proof_get(two), entries=lambda tip: None)[0], {leg: "analyze" for leg in all3})
+
+    def broken(path, params=None):
+        return 502, {}, None
+    check("proof: a failed evidence read analyzes every leg", legs(pctx, broken)[0], {leg: "analyze" for leg in all3})
+    full = {"h1": [("pull_request", all3)], "h2": [("pull_request", all3)]}
+    check("proof: full evidence skips every leg", legs(pctx, proof_get(full))[0], {leg: "skip" for leg in all3})
+    for name, c in (("push to main", context("push", {}, {**env, "GITHUB_REF": "refs/heads/main"})),
+                    ("a dispatch on main", context("workflow_dispatch", {}, {**env, "GITHUB_REF": "refs/heads/main"})),
+                    ("a batch/ dispatch naming a pr", context("workflow_dispatch", {"inputs": {"pr": "7", "base": "main"}},
+                                                             {**env, "GITHUB_REF": "refs/heads/batch/t-1"}))):
+        check(f"{name} analyzes every leg on full evidence (null control)",
+              legs(c, lambda path, params=None: (200, {}, live) if "/pulls/" in path else proof_get(full)(path, params))[0],
+              {leg: "analyze" for leg in all3})
 
     def limited(path, params=None):
         raise ghapi.RateLimited(path, 99)

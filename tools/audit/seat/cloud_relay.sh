@@ -114,6 +114,16 @@
 #     reads the file well-formed): never hold-all, never hold-none.
 #     `held <pr>` answers from the same file, for a driver that updates PRs
 #     itself (the beat's handoff job reads it unchanged).
+#     FREEZE. A PR whose live head is under review is not updated either: a
+#     merge verdict at that head on verdict/<pr> (HELD-VERDICT), or a review of
+#     that head in flight with no verdict at it yet (HELD-REVIEW: bus.sh's
+#     dispatch record, or a detached review worktree at the head). A blocked
+#     verdict, or one naming an older head, freezes nothing. Each prints
+#       cloud_relay: HELD-<why> #<pr> <handoff tip> (...)
+#     once per pass and is `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in
+#     <log>.level; `<state>/cloud-handoff-release` (the hold grammar, the
+#     orchestrator's) releases a listed PR from the freeze, never from the
+#     hold. review_freeze below says why each case is what it is.
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
 #   confirm arm (--confirm): the ledger is written before confirm runs, so a
@@ -336,8 +346,9 @@ watch() { # [--interval N] [--once]
 }
 
 hold_file() { echo "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-handoff-hold"; }
-hold_list() { # the held PR numbers, one per line; rc 2 when the hold file is malformed. No file = no hold.
-  local f l; f=$(hold_file); [ -e "$f" ] || return 0
+release_file() { echo "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-handoff-release"; }
+hold_list() { # [file] the PR numbers a hold-grammar file lists, one per line; rc 2 when it is malformed. No file = none.
+  local f=${1:-$(hold_file)} l; [ -e "$f" ] || return 0
   [ -f "$f" ] && [ -r "$f" ] || { echo "cloud_relay: refused: malformed hold file $f (not a readable file)" >&2; return 2; }
   while IFS= read -r l || [ -n "$l" ]; do
     case $l in ''|'#'*) ;; *[!0-9]*|0*) echo "cloud_relay: refused: malformed hold file $f: '$l' is not a PR number" >&2; return 2;; *) printf '%s\n' "$l";; esac
@@ -346,11 +357,42 @@ hold_list() { # the held PR numbers, one per line; rc 2 when the hold file is ma
 held() { # held <pr>: rc 0 listed in the hold file, 1 not listed, 2 malformed file or argument. The orchestrator writes the file.
   local l; case ${1:-} in ''|*[!0-9]*|0*) die "'${1:-}' is not a PR number"; return;; esac
   l=$(hold_list) || return 2; grep -qxF "$1" <<< "$l"; }
+# THE FREEZE (R10-FLOW-ROSTER-FREEZE arm (a), triage P-H): a head under review is the reviewer's
+# measuring surface (fixer.md step 6), so the arm does not move it while
+#   VERDICT  verdict/<pr>'s tip is `verdict: #<pr> Fix review: merge <head>` at the PR's live head:
+#            moving it voids the merge it is waiting on. A `blocked` verdict at the head does not
+#            freeze (a fixer handoff is what it asks for), nor one naming an older head;
+#   REVIEW   no verdict at the head yet, and a review of that head is in flight: a dispatch of
+#            <pr> at <head> in bus.sh's record ($HPO_BUS_STATE/dispatched), or a detached
+#            worktree of this checkout at <head> (fix-review.md's review worktree). A verdict at
+#            the head, either way, disposes it, so the roster edits held meanwhile land next pass.
+# A frozen PR prints `cloud_relay: HELD-<why> #<pr> <handoff tip>` once per pass and is owed
+# `handoff-held <ref> <tip> #<pr> <why>` in <log>.level: a decision for main, never a failure.
+# RELEASE: `<state>/cloud-handoff-release` (the hold file's grammar, the orchestrator's) lists PRs
+# the freeze passes over: genuine new work on a merge-verdicted fix head, which voids the verdict;
+# re-dispatch with `bus.sh dispatch` after the update. The hold file outranks a release.
+# bus.sh's dispatch record is the worker registry (R10-ORCH-DISPATCH-REG), so the REVIEW read
+# above is the registry's live-reviewer read.
+review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or UNREAD and rc 0 when frozen; rc 1 when not
+  local vs v bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+  vs=$(awk -v r="refs/heads/verdict/$1" '$2 == r { print $1; exit }' "$3")
+  if [ -n "$vs" ]; then
+    git fetch -q origin "refs/heads/verdict/$1" 2>/dev/null && git cat-file -e "$vs^{commit}" 2>/dev/null || { echo UNREAD; return 0; }
+    v=$(git log -1 --format=%s "$vs" | sed -nE "s/^verdict: #$1 Fix review: (merge|blocked) ([0-9a-f]{40})( .*)?\$/\1 \2/p")
+    case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac
+  fi
+  if awk -v p="$1" -v h="$2" '$1 == p && $2 == h { f = 1 } END { exit !f }' "$bus/dispatched" 2>/dev/null \
+     || git worktree list --porcelain | awk -v h="$2" '$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }'; then
+    echo REVIEW; return 0
+  fi
+  return 1
+}
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs upd
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why
   f=$state/cloud-handoff-failed; mkdir -p "$state"
   : > "$state/cloud-level-hold.$$"   # the refusal is a level: owed while the file is malformed, gone once it is not
   held_prs=$(hold_list) || { level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
+  released=$(hold_list "$(release_file)") || { level_line handoff-hold-malformed "$(release_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
   level_set handoff-hold-malformed "$state/cloud-level-hold.$$"
   { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
@@ -358,7 +400,10 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }
-  : > "$state/cloud-level-update.$$"
+  # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
+  git ls-remote origin 'refs/heads/verdict/*' > "$state/cloud-vrefs.$$" \
+    || { echo "cloud_relay: could not list verdict refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-vrefs.$$"; return 0; }
+  : > "$state/cloud-level-update.$$"; : > "$state/cloud-level-held.$$"
   while IFS=$'\t' read -r pr br head; do
     [ -n "$pr" ] || continue
     topic=${br#fix/}; topic=${topic%-pr}
@@ -369,6 +414,10 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
     git merge-base --is-ancestor "$hs" "$head" && continue
     if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
+    if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
+      echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
+    fi
     if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; continue; fi
     # The body goes in a directory of this run's own, under the state dir: a file directly in a
     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
@@ -381,9 +430,12 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
     # The update is the reap's lead (pr_args.sh's PR_REAP_LEAD): a stopped relay TERMs it alone,
     # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+    # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
+    # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
+    # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
     # One launch for both routes, so the self-test's stub runs the production launch line.
     urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
-    "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
@@ -403,13 +455,50 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     else ledger_open dispatch "$pr" "$nh" "bus.sh dispatch failed; run it by hand"; fi
   done < "$state/cloud-prs.$$"
   level_set handoff-update "$state/cloud-level-update.$$"
+  level_set handoff-held "$state/cloud-level-held.$$"
   # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
   cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
   # The level is ledger.py's fold (rc 0 none owed, 1 owed, 2 unreadable: the level stays as it was).
   ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
   case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
     *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
-  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$"
+  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$"
+}
+
+# THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
+# 48 h). A branch lock (pr_args.sh's pr_branch_lock) held longer than HPO_PUSH_STUCK_SECS (default
+# 900) is a run or its push that has not ended: `push-stuck <branch> <pid>` on the level, its why
+# `STUCK <branch> <pid> <age>s`, where <branch> is the lock's name (update_pr.sh's worktree name, `/`
+# as `-`), <pid> the run's and <age> from the start epoch its holder recorded -- never the file's
+# mtime, which the drain mark rewrites. A released lock keeps its text, so only a lock held now is
+# read, by trying it (LOCK_NB) once its age is past the bound: a run that starts in that moment
+# reads BUSY, exit 75, and is retried as any BUSY is. A lock with no start recorded has no age and
+# is not reported. Reaping is update_pr.sh's; this reports only. Unreadable: the level stays.
+STUCK_PY='import fcntl, os, sys, time
+lim, d = int(sys.argv[1]), sys.argv[2]; now = int(time.time())
+def held(f):
+  try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+  except BlockingIOError: return True
+  fcntl.flock(f, fcntl.LOCK_UN); return False
+for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+  if not (n.startswith("upd-") and n.endswith(".lock")): continue
+  try:
+    f = open(os.path.join(d, n)); w = f.read().split()
+    run, start = int(w[0]), int(w[2])
+  except (OSError, IndexError, ValueError): continue
+  if now - start <= lim: continue
+  if not held(f): continue
+  print(n[4:-5], run, now - start)'
+stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SECS is push-stuck on the level
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} b p a
+  mkdir -p "$state" || return 0
+  python3 -I -c "$STUCK_PY" "${HPO_PUSH_STUCK_SECS:-900}" "$state/pr" > "$state/cloud-stuck.$$" \
+    || { echo "cloud_relay: the branch locks could not be read (HPO_PUSH_STUCK_SECS='${HPO_PUSH_STUCK_SECS:-900}'); the level stays" >&2; rm -f "$state/cloud-stuck.$$"; return 0; }
+  : > "$state/cloud-level-stuck.$$"
+  while read -r b p a; do
+    level_line push-stuck "$b" "$p" "STUCK $b $p ${a}s" >> "$state/cloud-level-stuck.$$"; echo "cloud_relay: STUCK $b $p ${a}s"
+  done < "$state/cloud-stuck.$$"
+  rm -f "$state/cloud-stuck.$$"; level_set push-stuck "$state/cloud-level-stuck.$$"
 }
 
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
@@ -418,7 +507,7 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -721,6 +810,67 @@ EOF
   chk "the same file newline-terminated holds #41 (null control)" 0 grep -q "HELD #41 " <<< "$ho"
   rm -f "$hf" "$t/hupdated"; HPO_RELAY_UPDATE=$ustub
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
+  # the freeze (R10-FLOW-ROSTER-FREEZE (a), P-H): handoff/topic-a ($HS2) is ahead of #41's head $PRH
+  HPO_RELAY_UPDATE=$hu; rf=$t/state/cloud-handoff-release; cp "$t/bus/dispatched" "$t/bus/dispatched.keep"
+  mkv() { rm -rf "$t/v"; throwaway_git_init "$t/v" -q; git -C "$t/v" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"
+    git -C "$t/o.git" fetch -qf "$t/v" "HEAD:refs/heads/verdict/41"; }
+  frz() { rm -f "$t/hupdated"; ho=$(handoff_arm 2>&1); }
+  mkv "verdict: #41 Fix review: merge $PRH"; frz
+  chk "a merge verdict at the head holds the handoff ahead: no update_pr call" 0 test ! -e "$t/hupdated"
+  chk "and prints HELD-VERDICT with the handoff tip" 0 grep -q "^cloud_relay: HELD-VERDICT #41 $HS2 " <<< "$ho"
+  chk "and names the release" 0 grep -qF "list #41 in $rf" <<< "$ho"
+  frz
+  chk "the HELD-VERDICT line is printed once per pass" 0 test "$(grep -c '^cloud_relay: HELD-VERDICT ' <<< "$ho")" = 1
+  chk "and owes handoff-held in the level once after two passes" 0 test "$(grep -c "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 VERDICT\$" "$LOG.level")" = 1
+  chk "and the event log carries no level line" 1 grep -q handoff-held "$LOG"
+  mkv "verdict: #41 Fix review: merge $h"; frz
+  chk "a merge verdict naming an older head still updates (null control)" 0 grep -q "^fix/topic-a-pr $HS2\$" "$t/hupdated"
+  chk "and prints no HELD" 1 grep -q HELD <<< "$ho"
+  chk "and a pass that holds nothing drops handoff-held from the level" 1 grep -q handoff-held "$LOG.level"
+  mkv "verdict: #41 Fix review: blocked $PRH carry-missing: x"; frz
+  chk "a blocked verdict at the head still updates (null control)" 0 test -e "$t/hupdated"
+  mkv "verdict: #41 Fix review: merge ${PRH}x"; frz
+  chk "a merge verdict whose head is not exactly the live head still updates" 0 test -e "$t/hupdated"
+  git -C "$t/o.git" update-ref -d refs/heads/verdict/41; frz
+  chk "no verdict ref and no review updates (null control)" 0 test -e "$t/hupdated"
+  # a review in flight: a dispatch of #41 at its head, until a verdict at that head posts
+  printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  chk "a dispatch at the head with no verdict holds the handoff: no update_pr call" 0 test ! -e "$t/hupdated"
+  chk "and prints HELD-REVIEW" 0 grep -q "^cloud_relay: HELD-REVIEW #41 $HS2 " <<< "$ho"
+  chk "and owes handoff-held REVIEW in the level" 0 grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 REVIEW\$" "$LOG.level"
+  mkv "verdict: #41 Fix review: merge $h"; frz
+  chk "a verdict at an older head does not dispose the review: still HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
+  mkv "verdict: #41 Fix review: blocked $PRH carry-missing: x"; frz
+  chk "once a verdict at the head posts, the held edits land: update_pr runs" 0 grep -q "^fix/topic-a-pr $HS2\$" "$t/hupdated"
+  mkv "verdict: #41 Fix review: merge $PRH"; frz
+  chk "a posted merge verdict at the head turns the review hold into HELD-VERDICT" 0 grep -q "HELD-VERDICT #41 " <<< "$ho"
+  git -C "$t/o.git" update-ref -d refs/heads/verdict/41; cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
+  printf '41 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"; frz
+  chk "a dispatch at an older head holds nothing (null control)" 0 test -e "$t/hupdated"
+  cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
+  printf '42 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  chk "a dispatch of another PR at the same head holds nothing (null control)" 0 test -e "$t/hupdated"
+  cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
+  # the review worktree heuristic: a detached worktree of this checkout at the head
+  git worktree add -q --detach "$t/rw" "$PRH" 2>/dev/null; frz
+  chk "a detached review worktree at the head holds the handoff" 0 test ! -e "$t/hupdated"
+  chk "and prints HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
+  git -C "$t/rw" checkout -q --detach "$HS2"; frz
+  chk "a detached worktree at another commit holds nothing (null control)" 0 test -e "$t/hupdated"
+  git worktree remove --force "$t/rw"
+  # the release: the orchestrator passes the freeze over a listed PR; the hold file outranks it
+  mkv "verdict: #41 Fix review: merge $PRH"; printf '41\n' > "$rf"; frz
+  chk "a released PR with a merge verdict at its head is updated" 0 test -e "$t/hupdated"
+  printf '141\n' > "$rf"; frz
+  chk "a released #141 does not release #41 (whole-line match)" 0 grep -q "HELD-VERDICT #41 " <<< "$ho"
+  printf '41\n' > "$rf"; printf '41\n' > "$hf"; frz
+  chk "a held and released PR is HELD: the hold outranks the release" 0 grep -q "^cloud_relay: HELD #41 " <<< "$ho"
+  chk "and not updated" 0 test ! -e "$t/hupdated"
+  rm -f "$hf"; printf '4x\n' > "$rf"; frz
+  chk "a malformed release file refuses the pass (rc 2)" 2 handoff_arm
+  chk "and updates nothing" 0 test ! -e "$t/hupdated"
+  chk "and owes handoff-hold-malformed naming the release file" 0 grep -q "^OWED .* handoff-hold-malformed $rf -\$" "$LOG.level"
+  rm -f "$rf"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41; rm -f "$t/hupdated" "$t/bus/dispatched.keep"; HPO_RELAY_UPDATE=$ustub; : > "$LOG"
   # a failing update is noted once and not retried
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
@@ -846,12 +996,68 @@ EOF
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
   chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  # #2549: a signal to the loop's whole process group reaches the update only through the loop's
+  # reap: the update runs in a group of its own (pr_own_group). grprelay <stub> <pids wanted>
+  # <signal>: one pass in a group of its own, and the signal to that whole group once the update's
+  # tree is up; then $t/go lets a surviving update finish, and its tree's survivors are counted.
+  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nk=0; while [ ! -e "%s/go" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done\necho done >> "%s/marks"\n' \
+    "$t" "$t" "$t" > "$t/finish.sh"; chmod +x "$t/finish.sh"
+  grprelay() {
+    rm -f "$t/state/cloud-handoff-failed" "$t/go"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+    HPO_RELAY_UPDATE=$1 python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp("bash", sys.argv[1:])' bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+    k=0; while [ "$(wc -l < "$t/tpids")" -lt "$2" ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -"$3" -- "-$rp"; wait "$rp" 2>/dev/null; touch "$t/go"
+    k=0; while [ "$3" = KILL ] && ! grep -q done "$t/marks" && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+    k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
+      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+    for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done; }
+  grprelay "$t/lead.sh" 2 TERM
+  chk "a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first" \
+    0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  grprelay "$t/finish.sh" 1 KILL 2>/dev/null
+  chk "a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock" \
+    0 test "$tn $(tr '\n' ' ' < "$t/marks")" = "1 done "
+  # THE STUCK ANDON (P163): branch locks as pr_branch_lock writes them, under $HPO_STATE_DIR/pr.
+  # Two held by a fixture holder, aged 901 s and 899 s by their recorded start epoch; one aged
+  # 5000 s and released. All three are written now, so the file's mtime reads age 0 on each. A pass
+  # whose clock moved more than one second from the write to the read could age 899 to 901, so it
+  # is taken again (a condition, not a window). Each is a whole `pass`, its other arms stubbed out.
+  stuckrun() { handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1; }
+  stuckpass() {
+    local k=0 t0 t1 hp; LOG=$t/stuck.log; mkdir -p "$t/state/pr"; rm -f "$t/state/pr"/upd-*.lock "$t/stuck.held"
+    while :; do
+      t0=$(date +%s)
+      printf '111 222 %s\n' $((t0 - 901)) > "$t/state/pr/upd-fix-old.lock"
+      printf '333 444 %s\n' $((t0 - 899)) > "$t/state/pr/upd-fix-young.lock"
+      printf '555 666 %s drain\n' $((t0 - 5000)) > "$t/state/pr/upd-fix-gone.lock"
+      python3 -I -c 'import fcntl, sys, time
+fs = [open(p, "a") for p in sys.argv[2:]]
+for f in fs: fcntl.flock(f, fcntl.LOCK_EX)
+open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd-fix-old.lock" "$t/state/pr/upd-fix-young.lock" & hp=$!
+      while [ ! -e "$t/stuck.held" ] && kill -0 "$hp" 2>/dev/null; do sleep 0.05; done
+      t0=$(date +%s); out=$(stuckrun); t1=$(date +%s)
+      kill -KILL "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; rm -f "$t/stuck.held"
+      { [ $((t1 - t0)) -le 1 ] || [ $k -ge 5 ]; } && break; k=$((k + 1))
+    done
+    cp "$LOG.level" "$t/stuck.level"
+    # one more pass with every lock released: a released lock is never reported
+    stuck_free=$(stuckrun)
+  }
+  stuckpass
+  chk "a held branch lock aged 901 s by its recorded start is STUCK, naming branch, run pid and age" \
+    0 grep -qE '^cloud_relay: STUCK fix-old 111 90[12]s$' <<< "$out"
+  chk "and it is push-stuck on the level, where the tick reads it" \
+    0 grep -qE '^OWED [^ ]+ push-stuck fix-old 111 STUCK fix-old 111 90[12]s$' "$t/stuck.level"
+  chk "a held lock aged 899 s is not reported" 1 grep -qF 'fix-young' <<< "$out"
+  chk "a released lock aged 5000 s is not reported, whatever its text" 1 grep -qF 'fix-gone' <<< "$out"
+  chk "once every lock is released nothing is reported, and the level holds no push-stuck line" \
+    0 test "$(printf '%s' "$stuck_free")$(grep -c push-stuck "$LOG.level")" = 0
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
 
 case ${1:-} in
-  --self-test) self_test; exit $?;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || pr_bounded cloud_relay bash "$0" --self-test; self_test; exit $?;;  # pr_args.sh's bound
   held) shift; held "$@"; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
   pass) shift; pass "$@"; exit $?;;

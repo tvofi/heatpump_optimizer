@@ -49,18 +49,32 @@ def gh_get(path, run=subprocess.run):
         return status, headers, {}
 
 
-def spawn(argv):
-    return subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+def spawn(argv, env=None):
+    return subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+
+
+def child_env(repo, environ=os.environ, run=subprocess.run):
+    """The child's environment. `gate.py --sweep` hands sweep.main `--run <id>` alone, and
+    ghapi reads GITHUB_TOKEN or GH_TOKEN, so off Actions the repository and the token reach
+    the child only here: GITHUB_REPOSITORY is the driver's --repo, and the seat's `gh` token
+    is taken once when neither variable is set."""
+    env = dict(environ, GITHUB_REPOSITORY=repo)
+    if not (env.get("GITHUB_TOKEN") or env.get("GH_TOKEN")):
+        p = run(["gh", "auth", "token"], capture_output=True, text=True)
+        if p.returncode == 0 and p.stdout.strip():
+            env["GH_TOKEN"] = p.stdout.strip()
+    return env
 
 
 class Driver:
     def __init__(self, repo, pr, gate, chain, gh=gh_get, spawn=spawn, out=print, sleep=time.sleep,
-                 clock=time.time, poll=POLL_FLOOR, idle=IDLE_S):
+                 clock=time.time, poll=POLL_FLOOR, idle=IDLE_S, env=None):
         if poll < POLL_FLOOR:
             raise SystemExit(f"--poll {poll}: refused, the floor is {POLL_FLOOR} s")
         self.repo, self.pr, self.gate, self.chain, self.gh, self.spawn = repo, pr, gate, chain, gh, spawn
         self.out, self.sleep, self.clock, self.poll, self.idle = out, sleep, clock, poll, idle
         self.swept, self.children, self.last = set(), [], clock()
+        self.env = child_env(repo, os.environ if env is None else env)  # env: the base environment
 
     def get(self, path):
         status, headers, body = self.gh(f"repos/{self.repo}/{path}")
@@ -81,7 +95,7 @@ class Driver:
 
     def start(self, run, n, att, superseded):
         argv = [sys.executable, "-I", self.gate, "--sweep", "--run", str(run["id"])]
-        self.children.append((self.spawn(argv), run["id"], n, att.get("updated_at"), self.clock(), superseded))
+        self.children.append((self.spawn(argv, self.env), run["id"], n, att.get("updated_at"), self.clock(), superseded))
         self.last = self.clock()
 
     def look(self):

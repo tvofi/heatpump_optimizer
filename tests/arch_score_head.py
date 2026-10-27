@@ -37,65 +37,25 @@ R = Results("architecture score on today's tree (R9-EG-A1)")
 #: #1736: a solve plans from one record built on the loop, so every hub write
 #: the scheduled cycle reaches (hub_solve_writes' roots: the cycle and the
 #: what-if, R9-EG-A4) is a producer moving live state at the event that changed
-#: it: a reading, a learner's adoption, the cycle's carried corrections. Keyed
+#: it. The thermal parameters' producers -- a reading, a learner's adoption,
+#: the cycle's carried corrections -- publish a new snapshot instead
+#: (``_publish_params``, D7-s1-82), which is no site, so none is a row. Keyed
 #: writer -> (the hub fields it writes, why). A writer or a field outside this
 #: table is a solve-scoped value written into shared state: #1736's class,
 #: wherever in the cycle it sits -- #1887's round-1 review moved one into the
 #: pre-solve step, which the solve-only roots did not reach.
 _C = "coordinator:HeatPumpOptimizerCoordinator."
 CYCLE_HUB_WRITERS = {
-    _C + "_update_current_state": (
-        {"_current_state." + f for f in (
-            "buffer_tank_temperature", "dhw_hours_since_legionella", "dhw_temperature",
-            "floor_return_temperature", "lower_floor_temperature", "outdoor_temperature",
-            "room_temperature", "slab_temperature", "solar_radiation",
-            "upper_floor_temperature", "wood_tank_temperature")}
-        | {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
-        "this cycle's sensor readings into the live state"),
-    "thermal_model:ThermalModel.update_slab_from_return_temp": (
-        {"_current_state.floor_return_temperature", "_current_state.slab_temperature"},
-        "the slab estimate advanced from this cycle's return reading"),
-    "thermal_model:ThermalModel.update_ecl110_displace_state": (
-        {"_current_state.ecl110_displace_command", "_current_state.ecl110_effective_displace"},
-        "the ECL110 displacement state from this cycle's command"),
-    _C + "_refresh_model_corrections": (
-        {"_thermal_params." + f for f in (
-            "dhw_inlet_current", "flow_curve_bias", "flow_curve_indoor_target",
-            "internal_gains_profile", "solar_aperture_scale")},
-        "the cycle's corrections carried on the live model after the learners (#1736)"),
     _C + "_apply_comfort_weight": (
         {"_opt_config.comfort_weight"},
         "the quiet-period learner in the solve's tail moved the learned weight"),
-    _C + "_apply_house_heat_loss_scale": (
-        {"_thermal_params.house_heat_loss_scale"},
-        "a finished system identification adopts its fitted scale"),
-    _C + "_apply_cop_scale": ({"_thermal_params.cop_scale"}, "the COP learner adopts its scale"),
-    _C + "_apply_lower_floor_loss_ratio": (
-        {"_thermal_params.lower_floor_loss_ratio"}, "the zone learner adopts its ratio"),
-    _C + "_apply_buffer_cooling_rate": (
-        {"_thermal_params.buffer_cooling_rate"}, "the buffer learner adopts its rate"),
-    _C + "_apply_learner_payloads": (
-        {"_thermal_params.defrost_derate"}, "a restored learner payload is adopted"),
-    "dhw_learning:DhwProfileLearner.apply_cooling_rate": (
-        {"_thermal_params.dhw_cooling_rate"}, "the DHW learner adopts its cooling rate"),
-    "dhw_learning:DhwProfileLearner.apply_payload": (
-        {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
-    "dhw_learning:DhwProfileLearner.async_learn_usage": (
-        {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
-    # Event callbacks (counter C16, ARCH2-s2 P4's instrument half): Home Assistant calls them back
-    # with the live hubs, so a write there is a reading at the event that changed it.
-    _C + "_async_handle_ecl110_state_message": (
-        {"_current_state.ecl110_effective_displace", "_current_state.ecl110_displace_command"},
-        "the ECL110 MQTT state message stores the controller's displacement"),
-    _C + "_on_power_event": (
-        {"_current_state.peak_guard_active"}, "the meter event flips the peak guard on a crossing"),
 }
 LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
 #: The planted writes the controls add: one as async_run_optimization's first
 #: statement, one as the pre-solve step's last (#1887's round-1 probe).
 _PLANT_AT = '        ctx = getattr(self, "_ctx", self)\n        _LOGGER.info("Running heat pump optimization'
 _PLANT = '        ctx._opt_config.peak_count = 3\n'
-_PRESOLVE_AT = '        params.flow_curve_indoor_target = fresh["flow_curve_indoor_target"]\n'
+_PRESOLVE_AT = '        _publish_params(self, **self._model_corrections(dt_util.now()))\n'
 _PRESOLVE = '        getattr(self, "_ctx", self)._opt_config.peak_count = 3\n'
 
 #: #1776: the fragment-chain guard. ``params_over_10`` is a count, so a split

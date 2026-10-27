@@ -16,8 +16,9 @@ applied to a copy of it, and the switches call in.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Protocol
@@ -27,7 +28,7 @@ from .store import QuarantiningStore, load_mapping
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
-from .accuracy import utc_elapsed_seconds, utc_shift
+from .drift import utc_elapsed_seconds, utc_shift
 from .const import (
     DOMAIN,
     ECONOMY_ABSOLUTE_FLOOR,
@@ -208,6 +209,8 @@ class BoostState:
 
 
 _STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
+# Each coordinator's session-restore gate (``spawn_restore_session``, L3).
+_RESTORES: WeakKeyDictionary[Any, asyncio.Event] = WeakKeyDictionary()
 
 # The last plan action, kept pristine for re-overlay (#1752). The overlay
 # used to mutate ``_current_action`` in place, so a cycle that kept the plan
@@ -471,7 +474,7 @@ async def restore(coord: Any) -> None:
 
 async def restore_session(
     coord: Any,
-    state: away_mode.AwayState,
+    adopt_away: Callable[[dict[str, Any]], away_mode.AwayState],
     config: Mapping[str, Any],
     read_entity: away_mode.EntityReader,
 ) -> None:
@@ -480,13 +483,43 @@ async def restore_session(
     The away half's inputs pass through to ``away_mode.restore_override``
     (#1739); the boost half keeps only the coordinator's public surface.
     """
-    await away_mode.restore_override(coord, state, config, read_entity)
+    await away_mode.restore_override(coord, adopt_away, config, read_entity)
     await restore(coord)
+
+
+def spawn_restore_session(
+    coord: Any,
+    spawn: Callable[[Coroutine[Any, Any, None]], Any],
+    adopt_away: Callable[[dict[str, Any]], away_mode.AwayState],
+    config: Mapping[str, Any],
+    read_entity: away_mode.EntityReader,
+) -> None:
+    """Spawn ``restore_session`` behind the gate its user writers await (L3).
+
+    The gate exists from the spawn line, so a writer arriving before the
+    restore's first step still waits. It opens when the task ends, however it
+    ends, and at once where ``spawn`` returns no task: a coroutine closed or
+    cancelled before its first step never runs a ``finally``.
+    """
+    gate = _RESTORES[coord] = asyncio.Event()
+    task = spawn(restore_session(coord, adopt_away, config, read_entity))
+    if task is None:
+        gate.set()
+    else:
+        task.add_done_callback(lambda _task: gate.set())
+
+
+async def session_restored(coord: Any) -> None:
+    """Return once ``coord``'s session restore, if one was spawned, has ended."""
+    gate = _RESTORES.get(coord)
+    if gate is not None:
+        await gate.wait()
 
 
 async def set_channel(
     coord: Any, channel: str, active: bool, *, refresh: bool = True
 ) -> None:
+    await session_restored(coord)
     held_for(coord).set(channel, active, dt_util.now())
     await persist(coord)
     if refresh:
@@ -497,6 +530,7 @@ async def set_block(
     coord: Any, channel: str, active: bool, *, refresh: bool = True
 ) -> None:
     """Turn a block on or off. A live safety floor refuses the on-press."""
+    await session_restored(coord)
     now = dt_util.now()
     if active and block_release_reason(coord, channel, now) is not None:
         held_for(coord).blocked.pop(channel, None)

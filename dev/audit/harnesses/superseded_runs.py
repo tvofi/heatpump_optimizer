@@ -1,11 +1,13 @@
 """Runs that ran to completion after a newer head on the same branch had started.
 
     python3 dev/audit/harnesses/superseded_runs.py --cache DIR [--since ISO] [--until ISO] [--jobs]
+                                                   [--layout old|new|both]
     python3 dev/audit/harnesses/superseded_runs.py --cache DIR --fetch --since 2026-10-14T20:00:00Z
     python3 dev/audit/harnesses/superseded_runs.py --selftest
 
 DIR holds one `<workflow>.jsonl` per workflow file (tests, validate, hassfest,
-governance, codeql, pr-contract): one JSON object per run with the fields
+governance, codeql, pr-contract; and `ci` after the layout cut-over,
+DESIGN-P2 section 9): one JSON object per run with the fields
 `gh api repos/R/actions/workflows/<file>.yml/runs` returns (id, head_branch,
 head_sha, event, status, conclusion, created_at, run_started_at, updated_at,
 run_attempt, actor, triggering_actor).  --fetch writes them (read-only `gh api`
@@ -33,6 +35,13 @@ run's `actor`, which is the pull_request event's sender on an attempt-1 run;
 `+rerun` marks attempt > 1 with a different triggering_actor (a held run that
 `approve_held_runs.sh` or a rerun re-started).
 
+--layout picks the files: `old` (default, today's six), `new` (`ci` alone: every PR run of tests, codeql, validate, hassfest and governance is
+a `ci.yml` run once the cut-over has landed) and `both` (a window spanning it).
+One `ci.yml` file carries code, edit and review runs, so a run is compared only
+with runs of its own KIND, read from its `display_title` (`run-name`, parsed by
+tools/ci/prelude.py): a review run at a head is not a duplicate of its code run.
+`same_sha_dup_heads` is measured on both layouts by the same function.
+
 Null controls, run on every invocation: every superseded run forced to
 `cancelled` must print 0 (NULLCONTROL), and a same-SHA twin set must print 0
 (SAMESHA).  --selftest runs both on synthetic runs and a pull_request-main
@@ -51,9 +60,13 @@ import sys
 import time
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tools", "ci"))
+import prelude  # noqa: E402  (run-name's kind: the parser the gate reads past runs with)
+
 REPO = "tvofi/heatpump_optimizer"
 WORKFLOWS = ["tests", "validate", "hassfest", "governance", "codeql"]
 EXTRA = ["pr-contract"]  # cancel-in-progress is false there on purpose
+LAYOUTS = {"old": WORKFLOWS + EXTRA, "new": ["ci"], "both": WORKFLOWS + EXTRA + ["ci"]}
 MAIN = "main"
 
 
@@ -69,16 +82,22 @@ def sender(r: dict) -> str:
     return f"{who}{'+rerun' if rerun else ''}"
 
 
+def kind_of(r: dict) -> str:
+    """The run-name kind of a `ci.yml` run (code, edit, review); '' for the older files' runs."""
+    parsed = prelude.parse_title(r.get("display_title") or "")
+    return parsed[0] if parsed else ""
+
+
 def start_of(r: dict, field: str) -> float:
     return ts(r.get(field) or r["created_at"])
 
 
 def superseded(runs: list[dict], field: str = "run_started_at"):
     """[(old, newer)] where `newer` is the earliest later-SHA run inside old's span."""
-    by_branch: dict[str, list[dict]] = collections.defaultdict(list)
+    by_branch: dict[tuple, list[dict]] = collections.defaultdict(list)
     for r in runs:
         if r["head_branch"] != MAIN:
-            by_branch[r["head_branch"]].append(r)
+            by_branch[(r["head_branch"], kind_of(r))].append(r)
     out = []
     for rs in by_branch.values():
         for r in rs:
@@ -101,7 +120,7 @@ def same_sha_pairs(runs: list[dict]) -> int:
         lo, hi = start_of(r, "run_started_at"), ts(r["updated_at"])
         n += any(o is not r and o["head_sha"] == r["head_sha"]
                  and lo < start_of(o, "run_started_at") <= hi for o in runs
-                 if o["head_branch"] == r["head_branch"])
+                 if o["head_branch"] == r["head_branch"] and kind_of(o) == kind_of(r))
     return n
 
 
@@ -113,7 +132,7 @@ def duplicates(runs: list[dict], inwin: set) -> tuple[int, float]:
     for r in runs:
         if (r["head_branch"] != MAIN and r["status"] == "completed"
                 and r["conclusion"] != "cancelled" and r["id"] in inwin):
-            by_sha[(r["head_branch"], r["head_sha"])].append(r)
+            by_sha[(r["head_branch"], r["head_sha"], kind_of(r))].append(r)
     heads, mins = 0, 0.0
     for rs in by_sha.values():
         # Overlap: the later-starting run began before the earlier one ended.
@@ -138,7 +157,7 @@ def gh_json(args: list[str]) -> str:
 
 def fetch(cache: str, since: str, names: list[str]) -> None:
     os.makedirs(cache, exist_ok=True)
-    keep = ("id,name,head_branch,head_sha,event,status,conclusion,created_at,"
+    keep = ("id,name,display_title,head_branch,head_sha,event,status,conclusion,created_at,"
             "run_started_at,updated_at,run_attempt,path").split(",")
     jq = ".workflow_runs[]|{" + ",".join(keep) + \
         ",actor:.actor.login,triggering_actor:.triggering_actor.login}"
@@ -303,6 +322,30 @@ def selftest() -> int:
     # bot-sent: counted like any other (the rule is the outcome, not the sender).
     check("bot", len(superseded([run(1, "a", end=900, actor="github-actions[bot]"),
                                  run(2, "b", start=300)])), 1)
+    # same_sha_dup_heads on BOTH layouts, over saved runs (JSON, as the cache holds them),
+    # by the function `report` calls. Old layout: two `tests` runs at one head, overlapping.
+    # New layout: `ci.yml` runs carry a kind; the same overlap of two CODE runs counts, a code
+    # run beside an EDIT or REVIEW run at that head does not, and a lone run counts 0 (the null).
+    def saved(*rows):
+        return json.loads(json.dumps(list(rows)))
+    title = lambda kind: f"CI {kind} pr=7 base=main sha=a"
+    old2 = saved(run(1, "a", end=900), run(2, "a", start=300, end=900))
+    new2 = saved(dict(run(1, "a", end=900), display_title=title("code")),
+                 dict(run(2, "a", start=300, end=900), display_title=title("code")))
+    mixed = saved(dict(run(1, "a", end=900), display_title=title("code")),
+                  dict(run(2, "a", start=300, end=900), display_title=title("review")))
+    for label, rs, want in (("old layout, two runs at one head", old2, 1),
+                            ("new layout, two code runs at one head", new2, 1),
+                            ("new layout, a code and a review run at one head", mixed, 0),
+                            ("a head with a single run", old2[:1], 0)):
+        check(f"same_sha_dup_heads: {label}", duplicates(rs, {r["id"] for r in rs})[0], want)
+    # superseded() keys on the kind too: a newer-SHA review run is no supersession of a code run.
+    check("new layout: newer-SHA run of another kind supersedes nothing", len(superseded(saved(
+        dict(run(1, "a", end=900), display_title=title("code")),
+        dict(run(2, "b", start=300, end=900), display_title=title("review"))))), 0)
+    check("new layout: newer-SHA run of the same kind supersedes", len(superseded(saved(
+        dict(run(1, "a", end=900), display_title=title("code")),
+        dict(run(2, "b", start=300, end=900), display_title=title("code"))))), 1)
     return 0 if ok else 1
 
 
@@ -322,14 +365,15 @@ def main() -> int:
                     help="with --jobs: read the jobs API for pages not yet cached")
     ap.add_argument("--start", default="run_started_at",
                     choices=["run_started_at", "created_at"])
-    ap.add_argument("--workflows", default=",".join(WORKFLOWS + EXTRA))
+    ap.add_argument("--layout", choices=sorted(LAYOUTS), default="old")
+    ap.add_argument("--workflows", help="override --layout with an explicit comma-separated list")
     ap.add_argument("--selftest", action="store_true")
     ARGS = ap.parse_args()
     if ARGS.selftest:
         return selftest()
     if not ARGS.cache:
         ap.error("--cache is required")
-    names = ARGS.workflows.split(",")
+    names = ARGS.workflows.split(",") if ARGS.workflows else LAYOUTS[ARGS.layout]
     if ARGS.fetch:
         fetch(ARGS.cache, ARGS.since or "2026-10-14T20:00:00Z", names)
     allp: list[tuple[str, dict, dict]] = []

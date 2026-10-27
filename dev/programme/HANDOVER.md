@@ -78,6 +78,17 @@ never listed here.
   never reports blocks every merge, a matrix change is a required-set change,
   `skipped` and `neutral` satisfy the rule (measured both arms), and a scheduled
   context made required blocks the merge that would repair it.
+- **CI is one umbrella with one required check** (R10-CI-LAYOUT P2b; design
+  `archive/probe/design-ci-rev4`, review `archive/probe/design-ci-review5`).
+  `.github/workflows/ci.yml` calls one file per unit, each check reading
+  `<stem> / <job>`; `gate` is the only required context
+  (`tools/policy/fixtures/required-contexts.json`, `gate_required` lists the
+  units it stands for), moved by `tools/ci/ruleset_cutover.py` at the merge.
+  Autofix jobs dispatch `ci.yml -f pr -f base` once; the stamp precondition is
+  the latest `ci.yml` push run's `gate` on `origin/main`. `RUN_PART=fast|arch`
+  splits `run.sh` between `tests / fast` and `tests / arch-instrument`. The
+  approve steps and `approve_held_runs.sh` stay until M-3 decides. Policy text
+  moved with it (`ci-autofix.md`, `orchestrator.md` section 11, `nudge.md`).
 - **A stamp pushes over the deploy key only**: `tools/release/stamp.py --push
   --push-key <key> --known-hosts <file>`. The old admin token returns 401.
   A stamp over a red `main` takes `--allow-red` with the cause recorded in the

@@ -64,8 +64,8 @@ PLANTS = {
     # the tick reads the ledger
     "T1_unkinded_printed": (TICK, "            if len(f) > 2 and f[2] in lg.KINDS:", "            if True:"),
     "T2_no_reads_fold": (TICK, 'lg.fold(rows, getattr(self, "_live", None), getattr(self, "_readback", None))', "lg.fold(rows)"),
-    "T3_review_owed_silent": (TICK, "            for text in lg.review_owed(prs, self._readback, dispatched):\n                self.line(S, text, flag=True)",
-                              "            for text in lg.review_owed(prs, self._readback, dispatched):\n                pass"),
+    "T3_review_owed_silent": (TICK, "            for text in lg.review_owed(prs, self._readback, dispatched, self._carries):\n                self.line(S, text, flag=True)",
+                              "            for text in lg.review_owed(prs, self._readback, dispatched, self._carries):\n                pass"),
     "T4_no_escalation": (TICK, "                                aging, group_of):\n            self.line(S, text, flag=True)",
                          "                                aging, group_of):\n            pass"),
     "T5_no_design_build": (TICK, "        self.design_builds(S, rl, roster)\n", ""),

@@ -11,7 +11,7 @@ const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
 heatpump_optimizer): issue_read (get / get_comments), pull_request_read
 (get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
-actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+actions_list (list_workflow_runs on ci.yml, branch main), actions_get,
 get_job_logs (failed_only). This grant is read-only.`
 
 const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
@@ -103,9 +103,9 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
-branch main) until the run for ${sha} completes; check every three minutes,
-give up after two hours. Require both fast and closures to be success. On a
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow ci.yml,
+branch main) until the push run for ${sha} completes; check every three minutes,
+give up after two hours. Require its \`gate\` job to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
 {green: false, log_excerpt}. Return {green, run_id}.`
 

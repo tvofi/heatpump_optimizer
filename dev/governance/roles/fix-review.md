@@ -1,12 +1,11 @@
 # The fix reviewer's contract
 
 You review one fix PR adversarially, in a fresh context, from a worktree at
-the PR's head SHA. You are not checking that the code looks right (four fixes
-here looked right and were wrong); you are checking that the numbers are real.
-**That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
+the PR's head SHA. You check that the numbers are real, not that the code looks right.
+**That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old**.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233's defect), never the owner's approving review, which code-owned paths still need.
-A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233), never the owner's approving review, which code-owned paths still need.
+A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -26,8 +25,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    **And open the class: a harness's configurations are its parameters, not its
    population.** Run the enumeration rule the body names and compare its output with
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
-   is `blocked <sha> class-open: <seam>`. A body whose issue states more than one
-   seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
+   is `blocked <sha> class-open: <seam>`, a site or a predicate's unguarded
+   domain. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
@@ -37,7 +36,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
-   Read the judge ruling first: #290's brief prescribes a refused harness.
+   Read the judge ruling first (#290's brief prescribed a refused harness).
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
@@ -57,16 +56,17 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     cheapest, `root-cause-unanswered` only if you cannot tell; each posted
     only once the head's workflows all concluded and a `pr-contract` run started after
     the last to conclude red, else the push-time run, checked the body (tvofi,
-    2026-10-08); while it refuses, wait or hand back unverdicted, saying so.
+    2026-10-08); green, that run is the evidence, never re-derived; while it
+    refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` or `delivery-status` is not this pull request's**
     unless its diff reaches what they read (`defect-root-cause.md`); deleting a
     merged row turns `delivery-status` OVERDUE.
 
-    **The head's runs are not the range's** (#1144: a head naming nothing while
-    `record-status` sat one commit back). The body check prints `record`/`skip
-    red-history` for the range; `skip` means every earlier head UNCHECKED.
+    **The head's runs are not the range's** (#1144). The body check prints
+    `record`/`skip red-history` for the range; `skip` means every earlier head
+    UNCHECKED.
 
     **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
@@ -124,7 +124,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     `INERT`, a golden or claim file, any figure the body quotes. Remove the
     mechanism the body names; a movement that survives is not earned:
     `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
-    kind of move on the same instrument with nothing improved. If it reproduces
+    kind of move on the same instrument with nothing improved, and on its
+    neighbouring rules, not only the counter's own re-spelled (#2373). If it reproduces
     the movement, block only where the diff's change is that shape; under a sound
     change it is an instrument finding, carried by `finding-propagation.md`
     (#1874, #1867, #1868). On a raise, judge each payment the body lists and

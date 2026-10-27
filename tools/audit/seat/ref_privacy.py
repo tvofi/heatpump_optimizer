@@ -455,10 +455,17 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
     return out
 
 
-def grep(ref: str) -> list[tuple[str, int, str]]:
-    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b|git/(refs|tags)|createRef|updateRef|release +create|/releases", ref, "--",
+# The prefilter is strict POSIX ERE, no backslash escape at all: `git grep -E`
+# hands it to the platform's regcomp, and BSD's (macOS) has no `\b`, so a
+# `\bpush\b` there matched nothing a GNU seat's matched (#2554). The word
+# boundaries are `_SITE`'s, in Python's re on every platform; this only narrows.
+_GREP_PATTERN = "push|git/(refs|tags)|createRef|updateRef|release +create|/releases"
+
+
+def grep(ref: str, root: Path = ROOT) -> list[tuple[str, int, str]]:
+    out = subprocess.run(["git", "grep", "-n", "-I", "-E", _GREP_PATTERN, ref, "--",
                           "tools", ".claude/workflows", ".github/workflows"],
-                         cwd=ROOT, capture_output=True, text=True)
+                         cwd=root, capture_output=True, text=True)
     if out.returncode not in (0, 1):
         raise RuntimeError(f"git grep exited {out.returncode}: {out.stderr.strip()}")
     lines = []
@@ -944,6 +951,22 @@ def self_test() -> int:
     texts["tools/x/guarded.sh"] = "# ref_privacy.py is named in a comment only\ngit push"
     ok("a guarded entry that calls no guard is refused",
        any("guarded.sh: registered guarded" in b for b in registry_refusals(found, texts.__getitem__, reg)))
+
+    # The prefilter is portable (#2554): the regcomp `git grep -E` uses is the
+    # platform's, so a GNU-only escape gives a macOS seat another verdict.
+    ok("the git grep prefilter carries no backslash escape, so BSD and GNU regcomp read it alike (#2554)",
+       "\\" not in _GREP_PATTERN, _GREP_PATTERN)
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q", "-b", "main")
+        os.makedirs(Path(td, "tools"))
+        Path(td, "tools", "p.sh").write_text('git push -q origin "$ref"\n')
+        Path(td, "tools", "q.sh").write_text("git pushd-like word, not a site\nout.push(git)\n")
+        for a in (("add", "-A"), ("commit", "-q", "-m", "plant")):
+            subprocess.run(["git", *a], cwd=td, env=env, check=True, capture_output=True)
+        got = grep("HEAD", Path(td))
+        ok("and it hands every line naming push to the site rule, which alone judges the word (#2554)",
+           {(p, n) for p, n, _ in got} == {("tools/p.sh", 1), ("tools/q.sh", 1), ("tools/q.sh", 2)}
+           and set(sites(got)) == {"tools/p.sh"}, str(got))
 
     # Tracked content (round 4): a diff adding a line that names a host is
     # refused, by where and class; the planted text is built, never spelled.

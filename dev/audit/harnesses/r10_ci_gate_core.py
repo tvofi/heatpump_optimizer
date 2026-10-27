@@ -23,12 +23,21 @@ now requires on push. By default the shim adds each of those three, green,
 to a push run that lacks it (never over one it has); `--no-b3-fill` drops the
 fill, and the push rows must then fail naming exactly those names.
 
-`b3` enumerates, from `.github/workflows/tests.yml`, every job whose failure
+U5B FILL. The model predates P2b's `tests / arch-instrument` too, which the
+port requires wherever `tests` runs and which is no ruleset context: the shim
+keeps it out of the model's names and adds it, green, to any run carrying a
+`tests / *` job that lacks it (this run's and every run at the head),
+always: `--no-b3-fill` keeps it, so its null stays B3's. The port's own
+self-test is this name's null (a run without it FAILs naming it).
+
+`b3` enumerates, from this tree's `.github/workflows/tests.yml` (the file the
+port's REQUIRED is paired with; origin/main's until P2b), every job whose failure
 reddens the Tests push run (it runs on push and is not continue-on-error)
 and compares it with REQUIRED["push"]'s `tests / *` names; `--plant` drops
 `ci-ratchet` from REQUIRED first, and the parity must go red.
 
-`mutants` plants each predicate mutant below in tools/ci/gate.py, runs the
+`mutants` plants each predicate mutant below in tools/ci/gate.py (or, for
+`judging`, in tools/ci/prelude.py, where R10-GATE-DEFER moved it), runs the
 port's self-test and the replay, and prints KILLED or SURVIVED; the file's
 bytes are restored, and a dirty file refuses first.
 """
@@ -61,11 +70,19 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 DESIGN = "1371a0a6"
 GATE = ROOT / "tools" / "ci" / "gate.py"
+PRELUDE = GATE.parent / "prelude.py"
 sys.path.insert(0, str(GATE.parent))
 import gate as port  # noqa: E402
 import prelude  # noqa: E402
 
 B3_NAMES = tuple(f"tests / {n}" for n in port.PUSH_ONLY["tests"])
+U5B_NAMES = ("tests / arch-instrument",)
+
+
+def u5b_fill(jobs: dict) -> dict:
+    if not any(k.startswith("tests / ") for k in jobs):
+        return jobs
+    return {**{n: ("completed", "success") for n in U5B_NAMES}, **jobs}
 
 
 def extract(dest: Path) -> Path:
@@ -78,18 +95,21 @@ def extract(dest: Path) -> Path:
 
 def shim(b3_fill: bool = True) -> types.ModuleType:
     G = types.ModuleType("gate_model")
-    G.CODE = {u: list(n) for u, n in port.CODE.items()}
+    G.CODE = {u: [x for x in n if f"{u} / {x}" not in U5B_NAMES] for u, n in port.CODE.items()}
     G.BODY = {u: list(n) for u, n in port.BODY.items()}
     G.REQUIRED = {**G.CODE, **G.BODY}
     G.BODY_ON_EDIT, G.BODY_ON_REVIEW = set(prelude.BODY_ON_EDIT), set(prelude.BODY_ON_REVIEW)
     G.ATTEMPT_CAP = port.ATTEMPT_CAP
     G.derive, G.title, G.parse_title, G.title_sha = prelude.derive, prelude.title, prelude.parse_title, prelude.title_sha
     G.workset = lambda kind, pr: prelude.workset(kind, pr)
-    G.judging = port.judging
+    _judging = port.judging                            # the original: gate() below swaps port.judging
+    G.judging = lambda run: _judging({**run, "jobs": u5b_fill(run.get("jobs") or {})})
 
     def gate(ctx, api):
         if b3_fill and ctx["event_name"] == "push":
             api = {**api, "jobs": {**{n: ("completed", "success") for n in B3_NAMES}, **api["jobs"]}}
+        api = {**api, "jobs": u5b_fill(api["jobs"]),
+               "runs_at_head": [{**r, "jobs": u5b_fill(r.get("jobs") or {})} for r in api["runs_at_head"]]}
         saved, port.judging = port.judging, G.judging
         try:
             return port.gate(ctx, api)
@@ -159,7 +179,7 @@ def runs_on_push(cond: str) -> bool:
     e = re.sub(r"github\.event_name\s*==\s*'([\w-]+)'", lambda m: str(m.group(1) == "push"), e)
     e = re.sub(r"github\.ref\s*==\s*'refs/heads/main'", "True", e)
     e = re.sub(r"!\s*cancelled\(\)", "True", e)
-    e = re.sub(r"(needs|github\.event)\.[\w.-]+\s*(==|!=)\s*('[^']*'|github\.repository)", "True", e)
+    e = re.sub(r"(needs|github\.event|inputs)\.[\w.-]+\s*(==|!=)\s*('[^']*'|github\.repository)", "True", e)
     e = e.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     if re.search(r"[^\sA-Za-z()]", e) or set(re.findall(r"[A-Za-z]+", e)) - {"True", "False", "and", "or", "not", "true"}:
         raise SystemExit(f"b3: cannot evaluate if: {cond!r} (left {e!r})")
@@ -167,13 +187,12 @@ def runs_on_push(cond: str) -> bool:
 
 
 def b3_arm(opts: list[str]) -> int:
-    text = subprocess.run(["git", "show", "origin/main:.github/workflows/tests.yml"], cwd=ROOT,
-                          capture_output=True, text=True, check=True).stdout
+    text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
     enumerated = b3_enumerate(text)
     required = [n.split(" / ", 1)[1] for n in port.REQUIRED["push"] if n.startswith("tests / ")]
     if "--plant" in opts:
         required = [n for n in required if n != "ci-ratchet"]
-    print(f"b3: enumerated from origin/main:.github/workflows/tests.yml: {enumerated}")
+    print(f"b3: enumerated from .github/workflows/tests.yml: {enumerated}")
     print(f"b3: REQUIRED['push'] tests / * {'(PLANT: ci-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
     ok = enumerated == sorted(required)
     print(f"b3: parity {'GREEN' if ok else 'RED'}; only in tests.yml {sorted(set(enumerated) - set(required))}, "
@@ -181,7 +200,8 @@ def b3_arm(opts: list[str]) -> int:
     return 0 if ok else 1
 
 
-# name, old (exactly once in gate.py), new: each removes or inverts one rule of the predicate.
+# name, old (exactly once in the file: gate.py unless a fourth item names it), new: each removes
+# or inverts one rule of the predicate.
 MUTANTS = [
     ("M1 prelude conclusion", 'if pre.get("conclusion") != "success":', 'if False:'),
     ("M2 prelude cross-check", 'if (pre.get("kind"), pre.get("pr", "")) != (kind, pr):', 'if False:'),
@@ -189,10 +209,10 @@ MUTANTS = [
     ("M4 unnamed dispatch at a PR head", 'elif ctx["sha"] in api.get("open_pr_heads", set()):', 'elif False:'),
     ("M5 fork PR (R3-4)", 'if lp.get("same_repo") is not True:', 'if False:'),
     ("M6 live base", 'judge_base = lp["base_ref"]', 'judge_base = base'),
-    ("M7 defer rule", 'if busy:\n', 'if False:\n'),
-    ("M8 judging: listed gate", 'if "gate" not in jobs or not all(', 'if not all('),
+    ("M7 defer rule", 'if waiting:\n', 'if False:\n'),
+    ("M8 judging: listed gate", 'if "gate" not in jobs or not all(', 'if not all(', PRELUDE),
     ("M9 judging: owed jobs (R3-2)", '            if st is None or st[0] != "completed":\n                return False\n    return True',
-     '            pass\n    return True'),
+     '            pass\n    return True', PRELUDE),
     ("M10 skipped is not success", 'elif st[1] != "success":', 'elif st[1] not in ("success", "skipped"):'),
     ("M11 source must judge the live base", 'if t[1] != pr or t[2] != judge_base or unit not in workset(t[0], t[1]):',
      'if t[1] != pr or unit not in workset(t[0], t[1]):'),
@@ -207,8 +227,8 @@ MUTANTS = [
 
 
 def mutants_arm() -> int:
-    if subprocess.run(["git", "diff", "--quiet", "--", str(GATE)], cwd=ROOT).returncode:
-        print(f"mutants: {GATE} has uncommitted edits; the restore would erase them")
+    if subprocess.run(["git", "diff", "--quiet", "--", str(GATE), str(PRELUDE)], cwd=ROOT).returncode:
+        print("mutants: gate.py or prelude.py has uncommitted edits; the restore would erase them")
         return 2
 
     def verdicts() -> tuple[int, int]:
@@ -219,19 +239,20 @@ def mutants_arm() -> int:
     print(f"mutants: unmutated self-test rc {base[0]}, replay rc {base[1]}")
     if base != (0, 0):
         return 1
-    orig = GATE.read_bytes()
     survived = 0
-    for name, old, new in MUTANTS:
+    for name, old, new, *where in MUTANTS:
+        target = where[0] if where else GATE
+        orig = target.read_bytes()
         text = orig.decode()
         if text.count(old) != 1:
             print(f"  {name}: NOT RUN, pattern found {text.count(old)} times")
             survived += 1
             continue
-        GATE.write_text(text.replace(old, new))
+        target.write_text(text.replace(old, new))
         try:
             st, rp = verdicts()
         finally:
-            GATE.write_bytes(orig)
+            target.write_bytes(orig)
         killed = st or rp
         survived += not killed
         print(f"  {name}: {'KILLED' if killed else 'SURVIVED'} (self-test rc {st}, replay rc {rp})")

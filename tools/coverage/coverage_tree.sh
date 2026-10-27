@@ -22,7 +22,7 @@
 #                 nothing to this measurement. They cost the most here: the
 #                 pure-Python AST walk is the tracer's worst case, 23.8 min
 #                 median of a 45-50 min job traced against 9.4 min bare in
-#                 `fast`, where run.sh still runs them. coverage.json is
+#                 `tests / arch-instrument`, where run.sh runs them (RUN_PART=arch). coverage.json is
 #                 byte-identical with and without them (the proof is in the
 #                 pull request body). A future script of that kind that does
 #                 import the package must NOT be added here.

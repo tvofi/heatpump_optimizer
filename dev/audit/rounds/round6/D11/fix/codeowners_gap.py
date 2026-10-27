@@ -292,11 +292,41 @@ def jobs_of(wf_text: str) -> list[tuple[str, str]]:
     return [(parts[k], parts[k + 1]) for k in range(1, len(parts) - 1, 2)]
 
 
-def pr_reachable(wf_text: str, job_text: str) -> bool:
-    """False only when the workflow has no `pull_request` trigger, or the job's
-    `if:` compares `github.event_name` solely against other events."""
+def _triggers(wf_text: str, event: str) -> bool:
     head = wf_text[: wf_text.find("\njobs:\n")]
-    if not re.search(r"^  pull_request:", head, re.M) and "pull_request]" not in head:
+    return bool(re.search(rf"^  {event}:", head, re.M)) or f"{event}]" in head
+
+
+CALLS = re.compile(r"^    uses:\s*\./(\.github/workflows/[\w.-]+\.ya?ml)\s*$", re.M)
+
+
+def pr_called(texts: dict[str, str]) -> set[str]:
+    """The `workflow_call` callees a pull request reaches (R10-CI-LAYOUT P2b): a
+    job of a pull_request-triggered workflow that `uses:` a local workflow, and
+    so on down the call chain. The callee's jobs inherit the caller's event, so
+    their own `if:` tests are read as before."""
+    called: set[str] = set()
+    todo = [wf for wf, t in texts.items() if _triggers(t, "pull_request")]
+    seen = set(todo)
+    while todo:
+        wf = todo.pop()
+        for _, jt in jobs_of(texts[wf]):
+            if not pr_reachable(texts[wf], jt, wf in called):
+                continue
+            for callee in CALLS.findall(jt):
+                if callee in texts and _triggers(texts[callee], "workflow_call"):
+                    called.add(callee)
+                    if callee not in seen:
+                        seen.add(callee)
+                        todo.append(callee)
+    return called
+
+
+def pr_reachable(wf_text: str, job_text: str, called: bool = False) -> bool:
+    """False only when the workflow has no `pull_request` trigger and is not a
+    `workflow_call` callee a pull request reaches (`called`), or the job's
+    `if:` compares `github.event_name` solely against other events."""
+    if not _triggers(wf_text, "pull_request") and not (called and _triggers(wf_text, "workflow_call")):
         return False
     m = re.search(r"^    if:(.*?)(?=^    [a-z-]+:)", job_text, re.M | re.S)
     if not m:
@@ -361,7 +391,12 @@ PINNED_OK = {"${{ github.event.pull_request.base.sha || github.sha }}",
              "${{ github.event.pull_request.base.sha }}",
              "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
              " || github.sha }}",
-             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"}
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}",
+             # R10-CI-LAYOUT P2b: a ci.yml callee dispatched with `-f base=`.
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+             " || format('origin/{0}', inputs.base) }}",
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+             " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"}
 # A bare interpreter name, resolved on the job's PATH, which nothing admitted
 # can change; never a path (round 4: `tools/shim/python3`).
 INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
@@ -652,14 +687,16 @@ def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
     executes or loads, in step order."""
     out = []
     workflows = sorted(f for f in have if f.startswith(WF_DIR + "/") and f.endswith(".yml"))
+    texts = {wf: (ROOT / wf).read_text() for wf in workflows}
+    called = pr_called(texts)
     for wf in workflows:
-        text = (ROOT / wf).read_text()
+        text = texts[wf]
         head = text[: text.find("\njobs:\n")]
         wenv = re.search(r"^env:\n((?:  .*\n?)*)", head, re.M)
         whole_file = bool(re.search(r"^defaults:", head, re.M)) or bool(
             wenv and _names_tracked(wenv.group(1), have))
         for job, jt in jobs_of(text):
-            if not pr_reachable(text, jt) or SELF_TEST_ONLY.search(jt):
+            if not pr_reachable(text, jt, wf in called) or SELF_TEST_ONLY.search(jt):
                 continue
             out += [(w, j, f, p and not whole_file, i)
                     for (w, j, f, p, i) in job_executions(wf, job, jt, have)]
@@ -671,7 +708,10 @@ def self_test_only_required(have: set[str]) -> list[str]:
     try:
         import json
 
-        ctx = set(json.loads((ROOT / locate(".claude/workflows/fixtures/required-contexts.json")).read_text())["contexts"])
+        fx = json.loads((ROOT / locate(".claude/workflows/fixtures/required-contexts.json")).read_text())
+        # `contexts` is `gate` alone since the cut-over; the jobs it stands for
+        # are `gate_required`'s `<file stem> / <job>`, matched by job id.
+        ctx = set(fx["contexts"]) | {n.split(" / ", 1)[-1] for n in fx.get("gate_required") or []}
     except (OSError, ValueError, KeyError):
         return []
     bad = []
@@ -891,6 +931,9 @@ PROBES = [
         "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.head_sha }}")),
     ("grader run by an interpreter path", lambda jt: jt.replace(
         "python3 -I -S tests/coverage_ratchet.py", "tools/shim/python3 -I -S tests/coverage_ratchet.py")),
+    ("PINNED from a bare inputs.base (a branch name, no origin/ ref)", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || inputs.base }}")),
 ]
 NULLS = [
     ("no inserted step", ""),
@@ -912,6 +955,18 @@ NULLS = [
         "PINNED: ${{ github.event.pull_request.base.sha }}",
         "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
         " || github.sha }}")),
+    # R10-CI-LAYOUT P2b: a workflow_call callee of ci.yml, whose dispatch names
+    # the pull request's base as `inputs.base` (never the head's own commit).
+    ("PINNED from the dispatched PR's base (a ci.yml callee)", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+        " || format('origin/{0}', inputs.base) }}")),
+    # A ci.yml callee that also runs on a push: the dispatched PR's base when a
+    # dispatch names one, else the push's own commit (Arm B step 4, F-B4).
+    ("PINNED from the dispatched PR's base, else the push's", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+        " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}")),
 ]
 
 
@@ -941,6 +996,25 @@ def self_test() -> int:
         ok = (m.group(1) if m else None) == want
         bad += not ok
         print(f"  {'ok  ' if ok else 'FAIL'} EXEC  {line}: {m.group(1) if m else 'not an execution'}")
+    # R10-CI-LAYOUT P2b: units are workflow_call callees of ci.yml. A callee a
+    # pull_request-triggered caller job calls is PR-reachable; one only a push
+    # workflow calls is not (null), and neither is an uncalled callee.
+    texts = {
+        f"{WF_DIR}/ci.yml": "on:\n  pull_request:\n  push:\njobs:\n  t:\n    uses: ./.github/workflows/t.yml\n",
+        f"{WF_DIR}/t.yml": "on:\n  workflow_call:\njobs:\n  fast:\n    runs-on: x\n",
+        f"{WF_DIR}/nightly.yml": "on:\n  push:\njobs:\n  n:\n    uses: ./.github/workflows/n.yml\n",
+        f"{WF_DIR}/n.yml": "on:\n  workflow_call:\njobs:\n  slow:\n    runs-on: x\n",
+        f"{WF_DIR}/u.yml": "on:\n  workflow_call:\njobs:\n  idle:\n    runs-on: x\n",
+    }
+    called = pr_called(texts)
+    for name, wf, want in (("a callee of a pull_request caller is PR-reachable", "t.yml", True),
+                           ("a callee only a push workflow calls is not (null)", "n.yml", False),
+                           ("an uncalled callee is not (null)", "u.yml", False)):
+        t = texts[f"{WF_DIR}/{wf}"]
+        got = pr_reachable(t, jobs_of(t)[0][1], f"{WF_DIR}/{wf}" in called)
+        ok = got == want
+        bad += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} REACH {name}: {got}")
     print(f"SELF-TEST: {len(PROBES)} probe(s), {len(NULLS)} null(s), {bad} wrong")
     return 1 if bad else 0
 

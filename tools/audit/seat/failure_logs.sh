@@ -56,16 +56,16 @@ self_test() {
   # non-Actions check (NO-JOB). mutation's log fetch fails (NO-LOG).
   cat > "$FIX/cr.json" <<'EOF'
 {"total_count":4,"check_runs":[
- {"name":"closures","status":"completed","conclusion":"failure",
+ {"name":"tests / closures","status":"completed","conclusion":"failure",
   "started_at":"2026-10-14T09:00:00Z","id":111,
   "details_url":"https://github.com/o/r/actions/runs/700/job/900"},
- {"name":"closures","status":"completed","conclusion":"success",
+ {"name":"tests / closures","status":"completed","conclusion":"success",
   "started_at":"2026-10-14T08:00:00Z","id":112,
   "details_url":"https://github.com/o/r/actions/runs/701/job/901"},
  {"name":"delivery-status","status":"completed","conclusion":"failure",
   "started_at":"2026-10-14T09:00:00Z","id":113,
   "details_url":"https://github.com/o/r/check-runs/113"},
- {"name":"mutation","status":"completed","conclusion":"timed_out",
+ {"name":"tests / mutation","status":"completed","conclusion":"timed_out",
   "started_at":"2026-10-14T09:00:00Z","id":114,
   "details_url":"https://github.com/o/r/actions/runs/702/job/902"}
 ]}
@@ -93,8 +93,8 @@ FAKE
   rc=$?
   ck "partial read reports itself (exit 1, one log unread)" [ "$rc" = 1 ]
   newest_ok=1
-  [ -f "$TMP/out/closures-900.log" ] || newest_ok=0
-  [ -f "$TMP/out/closures-901.log" ] && newest_ok=0
+  [ -f "$TMP/out/tests-closures-900.log" ] || newest_ok=0
+  [ -f "$TMP/out/tests-closures-901.log" ] && newest_ok=0
   grep -q 'must never be read' "$TMP/out"/*.log 2>/dev/null && newest_ok=0
   ck "red-then-green grouped to the newest: job 900 read, 901 never fetched" \
     [ "$newest_ok" = 1 ]
@@ -142,7 +142,8 @@ while IFS=$'\t' read -r name concl crid url; do
     continue
   fi
   job_total=$((job_total + 1))
-  safe=$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '-')
+  # `tests / closures` files as tests-closures: the unit prefix joins the job name.
+  safe=$(printf '%s' "$name" | sed 's# / #-#g' | tr -c 'A-Za-z0-9._-' '-')
   f="$OUT/$safe-$jid.log"
   if [ ! -s "$f" ]; then
     api --allow-escape-sequences "repos/$R/actions/jobs/$jid/logs" > "$f" 2>/dev/null \

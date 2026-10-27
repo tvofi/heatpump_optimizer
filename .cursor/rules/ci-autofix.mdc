@@ -8,8 +8,8 @@ alwaysApply: true
 Same-repo PRs run three jobs (`.github/workflows/tests.yml`). **Before the PR exists
 nothing waits**: a handoff ref runs no job, so a red `prepr.sh` step 6d predicts is repaired
 before handoff (`--single`; for INERT READS `python3 tools/pr/ci_predict.py --apply-inert`,
-which writes the Linux recording's entry, not a `--single`). Once it exists, if `closures` is
-`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait** --
+which writes the Linux recording's entry, not a `--single`). Once it exists, if `tests / closures` is
+`UNDER-SCOPED`, `tests / fast` fails `INHERITED CLAIMS` or `tests / mutation` refuses unpinned sites, **wait** --
 a `DIRTY` head queues no run, so no bot commit comes. Do not open a parallel PR, do not
 Darwin `--single` an under-scope CI already recorded, and do not hand-empty claim files
 that match `origin/main`. Darwin can `--single` a **new** node script, or grow a node
@@ -67,12 +67,10 @@ failure — so its summary line is its only signal.
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
-Those subjects are loop guards. The job dispatches Tests/Hassfest/Validate and CodeQL at once; a
-`GITHUB_TOKEN` push's `pull_request` runs are held `action_required` (since 2026-10-15; run
-38781421410), so the contexts only that event writes are ABSENT at a bot head until one is
-approved: all three approve them, fail-soft while their secrets are absent, when an App push or
-body edit cures it. Absent is not green (`orchestrator.md` section 11). Every Tests dispatch is
-PR-like.
+Those subjects are loop guards. The job dispatches `ci.yml -f pr -f base` once, not four workflows;
+a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the one required check `gate` and the `tests / *` units are ABSENT at a bot head
+until a run is approved: all three approve them (kept until M-3), fail-soft while their secrets are
+absent, when an App push or body edit cures it. Absent is not green (`orchestrator.md` section 11).
 
 When `mutation-autofix` goes red, run `--pin-killed` yourself. After `ci: pin killed mutants`
 the reviewer re-checks the body's `## Red checks` `mutation` line, which a pin stales. Do not automate survivor triage,

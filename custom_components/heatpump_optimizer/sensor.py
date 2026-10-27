@@ -1984,16 +1984,16 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
     says whether the heat-loss learner -- the one every plan rests on -- has
     evidence yet, or that the COP health watch has raised an alarm. The
     attributes are one compact row per learner (value, samples, learned),
-    recorded; the per-hour gains, the capacity envelope and the system
-    identification state are bulky and change every cycle, so they stay out
-    of the recorder and the card reads them live.
+    recorded; the per-hour gains, the capacity envelope, the system
+    identification state and each learner's progress are bulky and change
+    every cycle, so they stay out of the recorder and the card reads them live.
     """
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(MODEL_STATUS_STATES)
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _unrecorded_attributes = frozenset(
-        {"internal_gains_kw", "capacity_envelope", "system_identification"}
+        {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"}
     )
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
@@ -2040,6 +2040,7 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "internal_gains_kw": data.get("internal_gains_profile"),
             "capacity_envelope": _mapping(data.get("capacity_envelope")).get("buckets"),
             "system_identification": data.get("system_identification"),
+            "learner_progress": data.get("learner_progress"),
         }
 
 
@@ -2797,13 +2798,18 @@ def _numeric_samples(series: Any) -> list[float]:
 def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
     """The price of a consumed kWh, with the advisor's documented fallbacks.
 
-    A payload with no published spot price -- a first cycle after a restart,
-    or an install whose prices have not been read yet -- falls back to the
+    The ledger's recent kWh price first: the row is a monthly figure, and the
+    price now moved it by the hour it was read, several-fold within one day
+    (#2257 item 6; ``dev/audit/harnesses/r10_advisor_residue.py inbox``).
+    A payload with neither it nor a published spot price -- a fresh install,
+    or one whose prices have not been read yet -- falls back to the
     fixed contract price and then to a nominal spot figure, so the ranking
     survives it. Never the capacity tariff's per-kW price: a kWh priced with
     that is off by a whole month (D8-01, #1226).
     """
-    rate = _as_float(data.get("current_price"))
+    rate = _as_float(data.get("recent_kwh_price"))
+    if rate is None or rate <= 0.0:
+        rate = _as_float(data.get("current_price"))
     if rate is None or rate <= 0.0:
         rate = EntryConfig.from_mapping(config).contract_fixed_price
     if rate <= 0.0:

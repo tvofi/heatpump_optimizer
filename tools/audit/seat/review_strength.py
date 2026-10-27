@@ -6,7 +6,7 @@
         --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
         --window L=2026-10-19T14:50Z..2026-10-21T14:50Z \\
         [--by kind|class|prior-merge|origin|size|product|fixer[+...] ...] \\
-        [--roster REF:PATH] [--as-of T]
+        [--roster REF:PATH] [--as-of T] [--guardrail]
 
 R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
 REST call, so no rate limit and no 403. `--fetch` first fetches
@@ -63,6 +63,23 @@ in every fact stratum. Every figure is then a function of the bus, the two refs
 and T, not of a tip's position when it is run.
 first-pass m/n: of the PRs whose FIRST bus verdict falls in the window, the
 m whose first verdict is `merge`.
+
+GUARDRAIL (`--guardrail`; R10-FLY-YIELD-GUARD, yield-probe.md's threshold).
+REAL is widened by REAL_EXTRA, the record's nine words outside the study's
+list. Each arm takes the last N PRs by first verdict before the latest
+window's until (a tie broken by PR number), restricted for a seat-family arm
+to the verdicts that family gave, and reads its incidence k/N against the
+binomial P(X <= k | N, P0), P0 = 0.28 (24/85, the post-cloud regime). The
+all arm is N = 30 and trips at k <= 4 (P = 0.0495); the cloud and local arms
+are N = 20 and trip at k <= 1 (k = 2 reads P = 0.0526, above ALPHA). An arm
+with fewer than N PRs is insufficient, never a trip. A trip means: audit the
+last reviews with a planted defect, the one calibration that separates weak
+review from a scarce supply of defects; it decides nothing (R13: report-only
+until the owner adopts a threshold). The last line names every blocked word
+neither real nor taught: a word to classify, never silently bookkeeping. A
+model arm, `model:<m>` (N = 20), follows the kind arms for each model a
+verdict/<pr> copy's `bus-model:` line names (bus.sh confirm, from the dispatch
+record); a verdict without that line is kind-only, never a guessed model.
 """
 from __future__ import annotations
 
@@ -76,8 +93,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from math import comb
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -88,12 +106,20 @@ REAL_CATCH = frozenset({
     "mutation-untriaged", "mutation", "architecture-unsound", "metric-gamed",
     "defect", "product-tradeoff-regression", "policy-regression",
     "figures-false"})
+REAL_EXTRA = frozenset({
+    "regression", "flaky-arm", "claim-false", "control-failed", "claim-refuted",
+    "rule-dropped", "null-control-false", "red-at-head", "tests-red"})
+ALPHA = 0.05
+P0 = 0.28
+ARMS = ((None, 30), ("cloud", 20), ("local", 20))
 VERDICT_RE = re.compile(
     r"verdict: #(\d+) Fix review: (merge|blocked) ([0-9a-f]{40})(?: ([^\s:]+):)?")
 PREFIX_RE = re.compile(r"verdict: #(\d+) Fix review:")
 NONCE_RE = re.compile(r"^bus-nonce:\s*([0-9a-f]{32})", re.M)
 PROBE_RE = re.compile(r"rev-(\d+)-([0-9a-f]{8})$")
 CONFIRMED_RE = re.compile(r"^bus-confirmed:\s*(\S+) \(review/\d+ at ([0-9a-f]{40})\)", re.M)
+MODEL_RE = re.compile(r"^bus-model: (\S+)$", re.M)
+MODEL_N = 20
 GROUP_RE = re.compile(r"\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b")
 MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
 STRATA = ("kind", "class", "route", "prior-merge", "origin", "size", "product", "fixer")
@@ -123,10 +149,14 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
         m = PROBE_RE.search(r)
         if m:
             probes.add((int(m[1]), m[2]))
-    confirmed = {}
+    confirmed, models = {}, {}
     for r in refs(repo, f"refs/remotes/{remote}/verdict/") + refs(repo, "refs/tags/archive/verdict/"):
-        for m in CONFIRMED_RE.finditer(git(repo, "log", "--format=%B", r)):
-            confirmed[m[2]] = m[1]
+        for msg in git(repo, "log", "--format=%B%x00", r).split("\0"):
+            for m in CONFIRMED_RE.finditer(msg):
+                confirmed[m[2]] = m[1]
+                mm = MODEL_RE.search(msg)
+                if mm:
+                    models[m[2]] = mm[1]
     seen, out, outside = set(), [], []
     for r in refs(repo, f"refs/remotes/{remote}/review/") + refs(repo, "refs/tags/archive/review/"):
         for line in git(repo, "log", "--format=%H%x09%cI%x09%s", r).splitlines():
@@ -145,7 +175,7 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
             cloud = (int(m[1]), nonce[:8]) in probes or rid.startswith("cloud") or rid.endswith("-cloud")
             out.append(dict(pr=int(m[1]), t=when(t), kind=m[2], head=m[3],
                             cls=m[4] or "", real=m[2] == "blocked" and m[4] in real,
-                            reviewer="cloud" if cloud else "local"))
+                            reviewer="cloud" if cloud else "local", model=models.get(sha, "")))
     out.sort(key=lambda v: v["t"])
     merged = set()
     for v in out:
@@ -267,6 +297,37 @@ def fmt(o: dict) -> str:
             f"first-pass {sum(o['first'])}/{len(o['first'])}")
 
 
+def binom_cdf(k: int, n: int, p: float) -> float:
+    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k + 1))
+
+
+def guardrail(verdicts: list[dict], until: datetime, n: int, p0: float, family: str | None = None) -> str:
+    """One arm: the last `n` PRs `family` (every seat when None, a kind, or `model:<m>`) reviewed
+    before `until`, tested against p0."""
+    first, caught = {}, set()
+    for v in verdicts:
+        if v["t"] < until and (family is None or family == v["reviewer"]
+                               or (v.get("model") and family == f"model:{v['model']}")):
+            first[v["pr"]] = min(first.get(v["pr"], v["t"]), v["t"])
+            if v["real"]:
+                caught.add(v["pr"])
+    last = sorted(first, key=lambda p: (first[p], p))[-n:]
+    arm = family or "all"
+    if len(last) < n:
+        return f"GUARDRAIL {arm} insufficient: {len(last)} reviewed PRs < N={n}"
+    k = sum(p in caught for p in last)
+    cdf = binom_cdf(k, n, p0)
+    verdict = "would-trip: audit the last reviews with a planted defect" if cdf < ALPHA else "ok"
+    return (f"GUARDRAIL {arm} last {n} PRs (first verdict {first[last[0]]:%m-%dT%H:%MZ}..{first[last[-1]]:%m-%dT%H:%MZ}): "
+            f"incidence {k}/{n}; P(X<={k}|{n},{p0}) = {cdf:.4f} -> {verdict} (report-only)")
+
+
+def unclassified(verdicts: list[dict], until: datetime, taught: tuple[str, ...]) -> list[str]:
+    """The block words before `until` that are neither real nor taught: to classify, not to count as bookkeeping."""
+    return sorted({v["cls"] for v in verdicts if v["t"] < until and v["kind"] == "blocked" and v["cls"]
+                   and not v["real"] and v["cls"] not in taught})
+
+
 def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--repo", default=str(ROOT))
@@ -280,6 +341,7 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--as-of", metavar="T", help="the time the fact strata are taken at; default the latest window's until")
     ap.add_argument("--real-extra", default="", metavar="W[,W...]",
                     help="class words counted REAL beside REAL_CATCH (a sensitivity run)")
+    ap.add_argument("--guardrail", action="store_true", help="print the guardrail's arms (widens REAL by REAL_EXTRA)")
     ap.add_argument("--self-test", action="store_true")
     return ap
 
@@ -300,7 +362,7 @@ def main(argv: list[str]) -> int:
     if a.fetch:
         git(repo, "fetch", "-q", "--tags", a.remote, *(f"+refs/heads/{f}/*:refs/remotes/{a.remote}/{f}/*"
                                                       for f in ("review", "verdict", "probe")))
-    extra = frozenset(w for w in a.real_extra.split(",") if w)
+    extra = frozenset(w for w in a.real_extra.split(",") if w) | (REAL_EXTRA if a.guardrail else frozenset())
     verdicts, outside = load(repo, a.remote, REAL_CATCH | extra)
     if extra:
         print(f"REAL = the study's list + {', '.join(sorted(extra))}")
@@ -324,6 +386,12 @@ def main(argv: list[str]) -> int:
             for name, _, _ in wins:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
                 print(f"  {k:24} {name:6} {fmt(o)}")
+    if a.guardrail:
+        until = max(u for _, _, u in wins)
+        for family, n in (*ARMS, *((f"model:{m}", MODEL_N) for m in sorted({v["model"] for v in verdicts} - {""}))):
+            print(guardrail(verdicts, until, n, P0, family))
+        print(f"GUARDRAIL unclassified block words (neither real nor taught): "
+              f"{', '.join(unclassified(verdicts, until, taught)) or '-'}")
     return 0
 
 
@@ -369,7 +437,8 @@ def self_test() -> int:
         verdict(rv(2), f"verdict: #2 Fix review: merge {H}", N[5], "2026-10-01T05:00:00Z")
         # PR 3: a real block in the later window; confirmed by a cloud id on verdict/3.
         s3 = verdict(rv(3), f"verdict: #3 Fix review: blocked {H} mutation-survivor: x", N[6], "2026-10-02T01:00:00Z")
-        vs = g("commit-tree", g("write-tree"), "-m", f"verdict: #3\n\nbus-confirmed: cloud-rev-3 (review/3 at {s3})")
+        vs = g("commit-tree", g("write-tree"), "-m",
+               f"verdict: #3\n\nbus-confirmed: cloud-rev-3 (review/3 at {s3})\nbus-model: opus")
         g("update-ref", "refs/remotes/origin/verdict/3", vs)
         # PR 4: a subject shaped outside the grammar, and the same commit reachable from two refs.
         s4 = verdict(rv(4), f"verdict: #4 Fix review: PASS\tmerge {H}", N[7], "2026-10-02T02:00:00Z")
@@ -389,6 +458,9 @@ def self_test() -> int:
         check("probe ref rev-<pr>-<nonce8> marks the verdict cloud", kinds[(2, "blocked")] == "cloud")
         check("bus-confirmed cloud-* id marks the verdict cloud", kinds[(3, "blocked")] == "cloud")
         check("no probe and no cloud id reads local", kinds[(1, "blocked")] == "local")
+        models = {(v["pr"], v["kind"]): v["model"] for v in vlist}
+        check("a verdict/<pr> copy's bus-model: line is the verdict's model; one without it has none (kind-only)",
+              models[(3, "blocked")] == "opus" and models[(2, "blocked")] == "" and models[(1, "blocked")] == "")
         pm = tally(vlist, a, b, lambda v: stratum("prior-merge", v, {}))
         check("one re-review after a merge verdict", pm["after-a-merge-verdict"]["verdicts"] == 1)
         check("first-pass: PR 1 opened blocked, PR 2 blocked -> 0 of 2 in E",
@@ -590,6 +662,7 @@ def self_test() -> int:
                         lambda v: stratum("class", v, {}))) == {"(merge)"})
         _self_test_seams(R, g, mk, verdict, lines, m1, RP, r2, check)
         _self_test_vocabulary(R, g, verdict, check)
+        _self_test_guardrail(R, verdict, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -945,6 +1018,96 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
           "verdicts on the bus: 17;" in before and "verdicts on the bus: 18;" in after
           and "  cloud                    L      PRs 3 " in before and "  cloud                    L      PRs 6 " in after)
 
+
+def _self_test_guardrail(R: Path, verdict, check) -> None:
+    """The guardrail's calibration: a planted miss of each real class trips its arm, and a null window does not."""
+    H = "c" * 40
+    words = sorted(REAL_CATCH | REAL_EXTRA)
+    study = (ROOT / "dev/audit/rounds/round10/D13/yield-probe.md").read_text()
+    nine = re.search(r"Nine block words outside it[^:]*:\n\n((?:- .*\n)+)", study)
+    check("REAL_EXTRA is the study record's nine words outside the list, word for word",
+          nine is not None and set(re.findall(r"^- (\S+)", nine[1], re.M)) == set(REAL_EXTRA) and len(REAL_EXTRA) == 9)
+    # One PR per word, each blocked under it in a real subject, so realness is load's rule, not this test's.
+    for i, w in enumerate([*words, "carry-missing", "typo-word", "zz-word"]):
+        verdict(f"refs/remotes/origin/review/{200 + i}", f"verdict: #{200 + i} Fix review: blocked {H} {w}: x",
+                f"{200 + i:08x}" + "c" * 24, f"2026-11-01T00:{i:02d}:00Z")
+    bus = load(R, "origin", REAL_CATCH | REAL_EXTRA)[0]
+    real = {v["cls"]: v["real"] for v in bus if v["pr"] >= 200}
+    check("load reads every guardrail word real, a taught bookkeeping word and an untaught one not",
+          all(real[w] for w in words) and not any(real[w] for w in ("carry-missing", "typo-word", "zz-word")))
+    t0 = when("2026-12-01T00:00Z")
+    end = when("2027-01-01T00:00Z")
+
+    def win(n: int, k: int, cls: str, who: str = "cloud", pr0: int = 1000) -> list[dict]:
+        return [dict(pr=pr0 + i, t=t0 + timedelta(minutes=pr0 - 1000 + i), kind="blocked" if i < k else "merge",
+                     cls=cls if i < k else "", real=i < k and real[cls], reviewer=who) for i in range(n)]
+
+    trip = lambda line: line.endswith("would-trip: audit the last reviews with a planted defect (report-only)")
+    check("a planted miss of each class trips: 4/30 trips the all arm (P = 0.0495), 5/30 does not (0.1161)",
+          all(trip(guardrail(win(30, 4, w), end, 30, P0)) and guardrail(win(30, 5, w), end, 30, P0).endswith(
+              "= 0.1161 -> ok (report-only)") for w in words))
+    check("the seat-family arm at the carry's point: 2/20 is ok (P = 0.0526 > ALPHA), 1/20 trips (0.0123)",
+          all(guardrail(win(20, 2, w), end, 20, P0, "cloud").endswith("= 0.0526 -> ok (report-only)")
+              and trip(guardrail(win(20, 1, w), end, 20, P0, "cloud")) for w in words))
+    check("the all arm prints its span, incidence and four-decimal P",
+          guardrail(win(30, 4, "harness"), end, 30, P0)
+          == "GUARDRAIL all last 30 PRs (first verdict 12-01T00:00Z..12-01T00:29Z): incidence 4/30; "
+             "P(X<=4|30,0.28) = 0.0495 -> would-trip: audit the last reviews with a planted defect (report-only)")
+    check("blocks under a bookkeeping or an unclassified word catch nothing: 30/30 of them trip at 0/30",
+          all(" incidence 0/30;" in guardrail(win(30, 30, w), end, 30, P0) and trip(guardrail(win(30, 30, w), end, 30, P0))
+              for w in ("carry-missing", "typo-word")))
+    check("a null window at the baseline (8/30, 6/20) trips no arm",
+          not trip(guardrail(win(30, 8, "harness"), end, 30, P0))
+          and not trip(guardrail(win(20, 6, "defect", "local"), end, 20, P0, "local")))
+    check("fewer PRs than N is insufficient, never a trip",
+          guardrail(win(29, 0, "harness"), end, 30, P0) == "GUARDRAIL all insufficient: 29 reviewed PRs < N=30")
+    mixed = win(20, 6, "harness", "cloud") + win(20, 1, "harness", "local", 2000)
+    check("each family arm reads only its own seats: cloud 6/20 ok, local 1/20 trips, the all arm the last 30",
+          not trip(guardrail(mixed, end, 20, P0, "cloud")) and trip(guardrail(mixed, end, 20, P0, "local"))
+          and " incidence 1/20;" in guardrail(mixed, end, 20, P0, "local")
+          and " incidence 1/30;" in guardrail(mixed, end, 30, P0))
+    by_model = [dict(v, model="opus") for v in win(20, 1, "harness", "cloud")] + win(20, 6, "harness", "cloud", 2000)
+    check("a model arm reads only the verdicts that model gave: opus 1/20 trips, the cloud arm 6/20 does not",
+          trip(guardrail(by_model, end, 20, P0, "model:opus")) and " incidence 1/20;" in guardrail(by_model, end, 20, P0, "model:opus")
+          and guardrail(by_model, end, 20, P0, "model:opus").startswith("GUARDRAIL model:opus last 20 PRs")
+          and not trip(guardrail(by_model, end, 20, P0, "cloud")))
+    tie = [dict(win(1, 1, "harness")[0], pr=5000), dict(win(1, 0, "harness")[0], pr=5001)]
+    check("a PR's own later catch counts, one at until does not; the latest N by first verdict, ties on PR number",
+          " incidence 0/20;" in guardrail([*win(20, 0, "harness"), dict(win(1, 1, "harness")[0], t=end)], end, 20, P0)
+          and " incidence 2/20;" in guardrail([*win(20, 1, "harness"), dict(win(2, 2, "harness")[1], t=end - timedelta(minutes=1))],
+                                              end, 20, P0)
+          and " incidence 0/1;" in guardrail(tie, end, 1, P0) and " incidence 0/1;" in guardrail(tie[::-1], end, 1, P0))
+    late = [dict(win(1, 1, "harness")[0], pr=9001, t=t0 + timedelta(hours=2)), dict(win(1, 0, "harness")[0], pr=9002, t=t0 + timedelta(hours=1)),
+            dict(win(1, 0, "harness")[0], pr=9001, t=t0 + timedelta(hours=3))]
+    check("the latest N by FIRST verdict, not PR number and not a PR's later re-review (9002 before 9001)",
+          guardrail(late, end, 1, P0).startswith("GUARDRAIL all last 1 PRs (first verdict 12-01T02:00Z..12-01T02:00Z): incidence 1/1;")
+          and guardrail(late[1:], end, 1, P0).startswith("GUARDRAIL all last 1 PRs (first verdict 12-01T03:00Z"))
+    odd = [dict(win(1, 1, "harness")[0], cls=w, real=False) for w in "hgfedcba"]
+    check("unclassified: a blocked word neither real nor taught, once and sorted; a merge's word, a taught one "
+          "and one at until are not",
+          unclassified(bus + [dict(win(1, 0, "harness")[0], cls="merge-word"), dict(odd[0], cls="at-until", t=end)], end,
+                       ("carry-missing",)) == ["typo-word", "zz-word"]
+          and unclassified(odd, end, ()) == list("abcdefgh"))
+    out = io.StringIO()
+    argv = ["--repo", str(R), "--tree", "main", "--window", "F=2026-09-01T00:00Z..2026-10-02T00:00Z", "--guardrail"]
+    with contextlib.redirect_stdout(out):
+        rc = main([*argv, "--window", "G=2026-11-01T00:00Z..2026-11-02T00:00Z"])
+    text = out.getvalue()
+    check("main --guardrail counts the extended list and closes its output with one line per arm and the unclassified words",
+          rc == 0 and "REAL = the study's list + " + ", ".join(sorted(REAL_EXTRA)) in text
+          and text.splitlines()[-5:] == [
+              "GUARDRAIL all last 30 PRs (first verdict 10-05T09:53Z..11-01T00:27Z): incidence 25/30; "
+              "P(X<=25|30,0.28) = 1.0000 -> ok (report-only)",
+              "GUARDRAIL cloud insufficient: 11 reviewed PRs < N=20",
+              "GUARDRAIL local last 20 PRs (first verdict 11-01T00:08Z..11-01T00:27Z): incidence 17/20; "
+              "P(X<=17|20,0.28) = 1.0000 -> ok (report-only)",
+              "GUARDRAIL model:opus insufficient: 1 reviewed PRs < N=20",
+              "GUARDRAIL unclassified block words (neither real nor taught): typo-word, zz-word"])
+    with contextlib.redirect_stdout(io.StringIO()) as early:
+        main(argv)
+    check("main --guardrail cuts at the latest window's until, and prints '-' with no unclassified word",
+          early.getvalue().splitlines()[-1] == "GUARDRAIL unclassified block words (neither real nor taught): -"
+          and "GUARDRAIL all insufficient: " in early.getvalue())
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

@@ -89,8 +89,9 @@ from merge_train import is_sha  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
-    "handoff-hold-malformed": "derived", "design-build": "derived", "review-owed": "derived",
-    "probe-refused": "derived", "confirm-owed": "derived",
+    "handoff-hold-malformed": "derived", "handoff-held": "derived",
+    "design-build": "derived", "review-owed": "derived",
+    "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
@@ -501,18 +502,33 @@ def design_builds(verdicts: dict, designs: dict, stage_of, disp: dict) -> list[s
     return out
 
 
-def review_owed(prs: list, readback: dict, dispatched: set) -> list[str]:
+def review_owed(prs: list, readback: dict, dispatched: set, carries=None) -> list[str]:
     """`REVIEW OWED: #N <head12>` per open non-draft PR whose comments were
-    read, no verdict names its head, and no dispatch record is at that head."""
+    read, no verdict names its head, no dispatch record is at that head, and
+    -- with `carries(verdict_head, head)` -- the newest verdict is not a merge
+    that carries to the head (the train's predicate, app_approve_carries)."""
     out = []
     for pr in sorted(prs, key=lambda p: p["number"]):
         n, head = pr["number"], pr.get("headRefOid") or ""
         if pr.get("isDraft") or str(n) not in readback or not head:
             continue
-        if any(verdict_head(l) == head for l in readback[str(n)]) or (str(n), head) in dispatched:
+        lines = readback[str(n)]
+        if any(verdict_head(l) == head for l in lines) or (str(n), head) in dispatched:
+            continue
+        last = lines[-1] if lines else ""
+        if carries and last.startswith("Fix review: merge ") and carries(verdict_head(last), head):
             continue
         out.append(f"REVIEW OWED: #{n} {head[:12]}")
     return out
+
+
+def app_approve_carries(cwd: str, main: str, env=None):
+    """carries(verdict, head) through `tools/pr/app_approve.sh --carry`, run in `cwd` against
+    `main`: True only on its rc 0, so a carry it cannot decide stays owed."""
+    def carries(verdict: str, head: str) -> bool:
+        return subprocess.run(["bash", str(ROOT / "tools/pr/app_approve.sh"), "--carry", verdict, head, main],
+                              cwd=cwd, env=env, capture_output=True).returncode == 0
+    return carries
 
 
 # --------------------------------------------------------------------- CLI
@@ -720,6 +736,33 @@ def self_test() -> int:
               ro == [f"REVIEW OWED: #3 {C[:12]}"])
         check("a PR whose comments were not read owes nothing it cannot know",
               review_owed(prs, {}, set()) == [])
+        # ---- REVIEW OWED's carry filter, through app_approve.sh --carry itself
+        cw = D / "cw"
+        cw.mkdir()
+        throwaway_git_init(cw, "-q", "-b", "main")
+        cg = lambda *a: subprocess.run(["git", "-C", str(cw), *a], capture_output=True, text=True,
+                                       env=throwaway_git_env()).stdout.strip()
+        cput = lambda p, m: ((cw / p).write_text(m + "\n"), cg("add", "-A"), cg("commit", "-qm", m),
+                             cg("rev-parse", "HEAD"))[-1]
+        cput("base.txt", "base")
+        cg("checkout", "-qb", "fix")
+        vh = cput("fix.txt", "the reviewed fix")
+        cg("checkout", "-q", "main")
+        cput("main.txt", "main moves on")
+        cg("checkout", "-q", "fix")
+        cg("merge", "-q", "--no-edit", "main")
+        carried_head = cg("rev-parse", "HEAD")
+        own_head = cput("fix.txt", "a commit of the branch's own after the verdict")
+        rb = {"5": [f"Fix review: blocked {vh} harness: x", f"Fix review: merge {vh}"],
+              "6": [f"Fix review: merge {vh}"]}
+        crs = [{"number": 5, "headRefOid": carried_head}, {"number": 6, "headRefOid": own_head}]
+        carrier = app_approve_carries(str(cw), "main", env=throwaway_git_env())
+        check("REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); "
+              "a branch-own commit after it is owed (null control)",
+              review_owed(crs, rb, set(), carrier) == [f"REVIEW OWED: #6 {own_head[:12]}"])
+        rb["5"].append(f"Fix review: blocked {vh} harness: y")
+        check("a newest verdict that is blocked carries nothing", [l.split()[2] for l in
+              review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
         # ---- covered, the level, the exit codes, over a throwaway origin
         env = throwaway_git_env()
         o, w = D / "o.git", D / "w"

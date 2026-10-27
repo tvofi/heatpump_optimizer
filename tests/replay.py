@@ -81,10 +81,13 @@ fixture, and regenerates the synthetic fixture through
 ``tools/replay/synthesize.py`` and requires it byte-identical to the committed
 one.
 
-The fixture replays are nightly, never per pull request (``tests/closure.py``
-NOT_A_TEST). The cheap half is not: ``tests/entities.py`` runs the controls,
-the sanitiser checks and the regeneration on every pull request that touches
-this file, a fixture, or ``tools/replay/``.
+The fixture replays are nightly, and never a gate script (``tests/closure.py``
+NOT_A_TEST); a pull request runs them only when its diff reaches what they
+time -- ``COST_FILES``, the optimizer, this file or a fixture -- in
+``tests.yml``'s unrequired ``replay`` job (``closure.replay_reach``). The cheap
+half runs wider: ``tests/entities.py`` runs the controls, the sanitiser checks
+and the regeneration on every pull request that touches this file, a fixture,
+or ``tools/replay/``.
 
     python3 tests/replay.py                  # every fixture
     python3 tests/replay.py --fixture F.json --step-minutes 60
@@ -1187,7 +1190,10 @@ def plan_draws(coord, data: dict, t: datetime) -> bool | None:
     step = _plan_step(data, t)
     if step is None:
         return None
-    return bool(coord._optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer  # the tree under replay's own
+
+    optimizer = HeatPumpOptimizer(coord._thermal_model, coord._opt_config)
+    return bool(optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
 
 
 def plan_draw_kw(data: dict, t: datetime) -> float | None:

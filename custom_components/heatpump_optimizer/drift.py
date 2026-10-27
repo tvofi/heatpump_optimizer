@@ -54,6 +54,19 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
     return (_as_utc(newer) - _as_utc(older)).total_seconds()
 
 
+def utc_shift(when: datetime, delta: timedelta) -> datetime:
+    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
+
+    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
+    lands 3 h later. Adding in UTC and converting back keeps the label a real
+    instant (the same walk ``drift.utc_step_starts`` makes); a naive stamp keeps
+    the plain addition.
+    """
+    if when.tzinfo is None:
+        return when + delta
+    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+
+
 def utc_step_starts(
     start: datetime, n: int, step: timedelta, offset: int = 0
 ) -> list[datetime]:
@@ -98,6 +111,19 @@ def stored_instant(
     else:
         return None
     return when if when.tzinfo is not None else when.replace(tzinfo=naive_zone)
+
+
+def stored_age_seconds(raw: Any, now: datetime) -> float | None:
+    """Seconds from a stored instant to ``now``, or ``None``.
+
+    An instant that does not parse has no age, and one ahead of ``now`` has an
+    unknowable one, never 0 (#775's rule).
+    """
+    when = stored_instant(raw)
+    if when is None:
+        return None
+    age = utc_elapsed_seconds(now, when)
+    return age if age >= 0.0 else None
 
 
 @dataclass

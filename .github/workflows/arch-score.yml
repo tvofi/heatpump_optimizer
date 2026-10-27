@@ -5,11 +5,11 @@
 # (tools/audit/archscore/gate.py states the rule; the fix reviewer judges the
 # reason). It is a review trigger, never a target (tools/audit/archscore/ABOUT.md).
 #
-# WHY ITS OWN FILE. tests.yml is the suite; this check reads the body, so it
-# re-runs on `edited` (a body edit is the answer to a red run), and an event a
-# workflow lists starts every job in it. One job, no `if:`, so no run this
-# file starts is a skipped one (#1514's shape, as budget-raise-gate.yml).
-#
+# WHY ITS OWN FILE. tests.yml is the suite; this check reads the body, so a
+# body edit is the answer to a red run and ci.yml's `edited` run re-runs it.
+# One job, no `if:`, so no run this file starts is a skipped one (#1514's shape,
+# as budget-raise-gate.yml).
+
 # The check runs the BASE's scorer and the BASE's tests/structure.py (which the
 # scorer loads by path into its own process), as tests.yml restores its check
 # source: a pull request cannot edit the check that grades it. #2068's round 1
@@ -18,25 +18,26 @@
 
 name: Architecture score
 
+# A called workflow of ci.yml's umbrella (R10-CI-LAYOUT P2b, unit U7): the caller
+# owns the triggers, the run-id concurrency group (so no run is cancelled, as in
+# budget-raise-gate.yml, R9-CI-2a) and the grant. The pull request comes from
+# the inputs, which the prelude derives; `github.event` is the caller's.
 on:
-  pull_request:
-    types: [opened, edited, synchronize, reopened]
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
 
 permissions:
   contents: read
   pull-requests: read
-
-# No run is cancelled, as in budget-raise-gate.yml (R9-CI-2a): this check reads
-# the body, so a body edit starts a same-SHA twin of the run in flight, and
-# cancelling either would leave the SHA with a cancelled check run the edit
-# was meant to replace. The job is short and its check run is per head, so a
-# superseded head's run finishing costs nothing. `tests/entities.py` pins the
-# route.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.run_id }}
-  cancel-in-progress: false
 
 jobs:
   arch-score:
@@ -48,23 +49,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      # A queue entry carries no pull request: named from the queue branch and
-      # its second parent, as budget-raise-gate.yml does, and the API must
-      # report the same head.
+      # A queue entry's pull request comes from the prelude's inputs, named
+      # there from the queue branch; the API must report the same head as the
+      # queue entry's second parent. A run naming no pull request (a push, a
+      # dispatch without one) has nothing to score.
       - name: Name the pull request and read its body
+        id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event_name }}
-          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NUMBER: ${{ inputs.pr }}
+          INPUT_HEAD: ${{ inputs.head }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
-          NUMBER="$PR_NUMBER"
-          if [ "$EVENT" = "merge_group" ]; then
-            NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
-            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$(git rev-parse 'HEAD^2^{commit}')"
+          if [ -z "$NUMBER" ]; then
+            echo "no pull request named: nothing to score"
+            echo "scored=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.body // ""' > "$RUNNER_TEMP/body.md"
+          PULL=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}")
+          if [ "$EVENT" = "merge_group" ]; then
+            test "$(jq -r '.head.sha' <<< "$PULL")" = "$(git rev-parse 'HEAD^2^{commit}')"
+          fi
+          jq -r '.body // ""' <<< "$PULL" > "$RUNNER_TEMP/body.md"
+          echo "scored=true" >> "$GITHUB_OUTPUT"
+          echo "base=${EVENT_BASE:-$(jq -r '.base.sha' <<< "$PULL")}" >> "$GITHUB_OUTPUT"
+          echo "head=${INPUT_HEAD:-$(jq -r '.head.sha' <<< "$PULL")}" >> "$GITHUB_OUTPUT"
           echo "pull request $NUMBER, body $(wc -c < "$RUNNER_TEMP/body.md") bytes"
 
       # The scorer, and everything it loads, is the BASE's: tools/audit/archscore/
@@ -76,9 +87,10 @@ jobs:
       # is the one adopting it: it runs its own copy, once, and the workflow
       # file that says so is under the owner's review.
       - name: Score the change, and refuse an unexplained rise
+        if: steps.pr.outputs.scored == 'true'
         env:
-          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+          PR_HEAD: ${{ steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           GATE=tools/audit/archscore/gate.py

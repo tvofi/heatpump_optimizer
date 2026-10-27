@@ -44,6 +44,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Every commit the PR adds over a freshly fetched `origin/main`, wherever it
   was first published (a `ci-probe/*` or `handoff/*` ref included), is
   judged by `ref_privacy.py guard --over` before anything is minted.
+- `depgraph.py` (tools/pr/) — compares GitHub's dependency graph with the
+  tree's pins: one SBOM read and one open-alerts read (`check --repo
+  OWNER/NAME`), every pip, npm and actions pin against the SBOM, and every
+  open alert the tree already pins past. When: Dependabot alerts that main's
+  locks should have closed, or `dependency-graph.yml`'s daily `check` is red.
+  Refusal: an SBOM ecosystem it does not enumerate, or an alert whose
+  versions it cannot order, exits 2 rather than reading clean; an alerts read
+  that fails prints `alerts: unread`, never OK.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -155,6 +163,18 @@ sweep's standing-seat liveness step keep them alive.
   `orphans` discharges a handoff by name only when that `fix/<t>` or
   `fix/<t>-pr` head carries the tip; a named head behind it is
   `repair=update`.
+  With `HPO_BUS_TRAIN_STATE` set, each merge verdict it posts is added to
+  the merge train there (`merge_train.py add --auto`, one `BUS train-add`
+  line; the output in `train-add.log`); a refused add never fails the post.
+  `dispatch` is the worker registry's one writer (`$HPO_BUS_STATE/dispatched`,
+  `<pr> <head> <reviewer> <nonce> <utc> <model|->`): it closes
+  `reviewer-fire <pr> <head>` in the ledger (`$HPO_BUS_LEDGER`, else
+  `ledger.py`'s default log), `--nonce` re-records a relay-minted nonce for the
+  seat fired with it, and from a fourth round it needs the body's `## Re-cut`
+  note or `--past-three <reason>` (logged in `past-three`). `confirm` writes
+  the record's model as `bus-model:` on `verdict/<pr>`, which
+  `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
+  a posted tree before it pushes.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
@@ -181,10 +201,15 @@ sweep's standing-seat liveness step keep them alive.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
   CI-run pinning): it builds `venv-ci` and `venv-ha` under `/opt/hpo` and
   writes the toolchain profile. When: tvofi pastes it into Project settings; a
-  seat cannot apply its own environment. A seat does not source that profile:
-  a non-interactive Bash call skips it, so the toolchain reaches a seat
-  through the environment's variables (see `cloud_dispatch.py`). Refusal: a
-  missing checkout warns and exits 0, so a session still starts, without pins.
+  seat cannot apply its own environment. A seat's Bash call inherits the
+  agent's environment and reads neither the profile nor `BASH_ENV`, so the
+  toolchain reaches it only through the environment's variables, which
+  `--variables` prints and the setup run's last line names; `--check`, in a
+  seat: `OK` (exit 0) only when all three hold, or `REFUSE` naming them (exit
+  1). The profile prepends `venv-ci/bin` only
+  when absent, so a PATH a caller narrowed is left alone; `--self-test`: the
+  profile, variables and check arms. Refusal: a missing checkout warns and
+  exits 0, so a session still starts, without pins.
 - `cloud_dispatch.py` — renders the whole cloud-runner trigger payload
   (`job_config.ccr`: `environment_id`, `session_context` with `allowed_tools`,
   `model` and `sources`, and one user-message event) for a `reviewer`,
@@ -229,7 +254,8 @@ sweep's standing-seat liveness step keep them alive.
   refusal against a rendering that passes, offline.
   Two measured traps when driving the runner: an update and a run fired in
   parallel start the run on the PREVIOUS config, so a launch is update, wait
-  for it, then run, sequentially; and the container's `BASH_ENV` puts the venv
+  for it, then run, sequentially; and, until the pasted setup script writes
+  `cloud-setup.sh`'s idempotent profile, the container's `BASH_ENV` puts the venv
   python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
   anything else resolving `homeassistant`) with `env -u BASH_ENV`.
 - `cloud_relay.sh` — the orchestrator's half of a cloud reviewer's return:
@@ -295,7 +321,12 @@ sweep's standing-seat liveness step keep them alive.
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
   (default every 120 s). A pass runs the handoff arm, then the relay arm above,
-  then with `--confirm` the confirm arm. Confirm arm: the ledger is written
+  then with `--confirm` the confirm arm, then the stuck arm. Stuck arm (a
+  report-only trial, triage P163): each branch lock held now whose recorded
+  start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
+  `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is
+  `OWED <utc> push-stuck <branch> <pid> STUCK ...` in `<log>.level`; a
+  released lock is never read. Confirm arm: the ledger is written
   before confirm runs, so a confirm that failed, or a relay by a stale script
   or a call without `--confirm`, was never confirmed later (#2659, #2632). For
   every `review/<pr>` tip the relay pushed (its `bus-nonce:` matches a
@@ -327,13 +358,25 @@ sweep's standing-seat liveness step keep them alive.
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
+  updated either, so roster edits accumulate on the handoff ref and land between
+  reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
+  (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
+  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
+  detached worktree at it). A blocked verdict, or one at an older head, freezes
+  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
+  `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
+  freeze, never from the hold, for new work that voids a merge verdict.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
   `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
   matches the handoff's tip, and retried only when the handoff moves. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
-  not recorded, and the next pass retries it. The
+  not recorded, and the next pass retries it. The update runs in a process
+  group of its own, so a signal to the loop's whole group reaches it only
+  through the loop's reap, and a KILL to that group leaves it to finish. The
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
   its topic has an open pull request, it is disposed at its sha, or main
@@ -438,6 +481,20 @@ sweep's standing-seat liveness step keep them alive.
   are removed before its closing line. Every `gh api` GET and `gh pr view`
   it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
   settle logged.
+  `queue <file>` writes the queue nobody had to assemble: every open
+  pull request but the record one whose approver-App verdict is newest, is
+  `verdict/<pr>`'s posted tip and is `merge` at its head or carries to it
+  (`app_approve.sh --carry`), oldest first, one `QUEUE`/`LEFT` line each;
+  budget and policy heads are queued for the batch's own serial route.
+  `add`'s admission (`Train.admit_add`) reads the same posted verdict
+  first, as its `verdict` rule, and fills an absent comment id from it.
+  bus.sh's post loads the train the moment it posts a merge verdict
+  (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
+  `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
+  default): unless the ledger holds an open train-stop, it `add`s each head
+  `queue` admits that no sweep added at that head, into the live train's
+  next batch or a `train.sh --bot-prs --approval-carry --pre-flight` it
+  starts when none is live, never a second.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -451,6 +508,15 @@ sweep's standing-seat liveness step keep them alive.
   not wait on main's CI (log-only) and re-carries every serial entry up front
   so their pull_request runs fire together; each lands in queue order when
   its own required contexts conclude — the ruleset still gates every head.
+  `batch` also takes several batches in one queue (a list of lists), run in
+  order on one train, each with its own admission, proof and merges; between
+  two it drains what `train.sh add` spooled into one more batch, never into a
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines). A
+  policy head batches like any other: under a `--mandate` naming the mandate's
+  comment id, in force for policy merging, the train posts the citing approval
+  step 5 requires (`policy_approve`); a budget raise still goes serial.
+  `dev/audit/harnesses/r10_train_upgrade_mutants.py` holds one mutant per arm
+  of these three.
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
@@ -596,7 +662,10 @@ sweep's standing-seat liveness step keep them alive.
   swimlanes on the plan's time axis with the slot-occupancy strip,
   critical-path marks and planned stamps; the group ledger with status
   classes, PRs, struck closed issues and blockers; waves, stamps and the
-  ETA method, every figure plan.json's. When: after a replan at a wave
+  ETA method, every figure plan.json's. First section: open issues on
+  not-done groups projected to close at the last carrying group's finish
+  (closed ones dropped, unplanned ones flat), omitted with a note when `gh`
+  is absent. When: after a replan at a wave
   edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
   is not the roster's at its ref now; an `origin/` ref is fetched first) or
   `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
@@ -615,7 +684,23 @@ sweep's standing-seat liveness step keep them alive.
   that is not JSON each print OWED, never OK. `--self-test` drives both arms.
 - `pr_args.sh` — sourced by `open_pr.sh` and `update_pr.sh`: their argument
   checks, the ERR trap that reports every other stop, so neither stops
-  silently, and `pr_branch_lock`, the per-branch lock both take. When: never by hand; `--self-test` drives both scripts end to end
+  silently, and `pr_branch_lock`, the per-branch lock both take. The lock
+  outlives the run's push whatever stops the run: its holder ignores TERM,
+  INT and HUP, and lets go only once the push's own lock (`pr_push_hold`, an
+  fd every process of the push inherits) is free, so a SIGKILLed run's lock
+  is held until its push has ended. The lock file reads `<run pid> <holder
+  pid> <start epoch>`, and a fourth field `drain` meanwhile. No `ps` and no process-group walk: on a host without `pgrep` a
+  stopped run says it could not reap, and its lock is held until its push
+  ends. Inside `pr_push_hold` git's auto-maintenance runs in the foreground
+  (`gc.autoDetach`, `maintenance.autoDetach` off), so a `git gc --auto` a
+  push's fetch starts is part of that push rather than a PID-1 orphan holding
+  its lock. With `detach` the holder leaves the run's worktree detached once
+  the push has ended, a SIGKILLed run's too. Only the lock exits 75; a step
+  that does is reported as a stop and exits 1. `pr_bounded` runs a self-test
+  (its own, `update_pr.sh`'s, `cloud_relay.sh`'s) as a session of its own under
+  `PR_SELFTEST_SECONDS` (default 1200), and ends that whole session on exit,
+  at the bound (exit 124, a `BOUND:` line) or once its supervisor is gone;
+  `pr_own_group` starts a command as a process group's leader. When: never by hand; `--self-test` drives both scripts end to end
   in a scratch repository, offline, each refusal arm beside a mutant that
   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
   null controls that pass every check. Refusal: its self-test's tally.
@@ -746,7 +831,10 @@ sweep's standing-seat liveness step keep them alive.
   vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
-  verdicts, `--tree` and the roster ref cut there). When: a flow guardrail
+  verdicts, `--tree` and the roster ref cut there). `--guardrail` prints the
+  review-strength guardrail's arms, report-only: incidence of the last 30
+  PRs and of each seat family's last 20 against P0 = 0.28 with REAL widened
+  by REAL_EXTRA, and the blocked words neither real nor taught. When: a flow guardrail
   or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
   is its first use. Refusal: an out-of-grammar subject is its own row,
   never a verdict.
@@ -806,6 +894,16 @@ sweep's standing-seat liveness step keep them alive.
   `refused` and every stage outside `DERIVABLE_STAGES`) is never rewritten,
   and no pull request is no evidence. `--self-test` drives it offline over a
   recorded `--pr-state`; `r10_roster_sync_mutants.py` plants its predicates.
+- `roster_queue.py` — the standing roster seat's queue runner: `run FIRST LAST`
+  applies each queue line (`<op> <group> [arg] [--flag value]`, so `drop-carry G --match TEXT` works) through `roster_edit.py --push`,
+  linting from a clone it owns and detaches at `origin/main` before every
+  attempt (up to four, when main moved or a clean-lint push lost a race), and
+  never moving the orchestrator's checkout. `readback SHA GROUP FILE` prints
+  whether the roster at SHA holds the file's text as exactly one carry entry
+  (exit 1 when none). When: the roster seat works a queue file; run it alone
+  to replay a range. Refusal: a refused op is reported as `refused rc=N`, never
+  forced; `append-carry @file` reports FAILED when the read-back cannot find the
+  text. `--self-test` drives it offline over a stub editor and a scratch repo.
 - `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
@@ -872,6 +970,14 @@ sweep's standing-seat liveness step keep them alive.
   shape offline (missing required arg, live pidfile, unknown argument, the
   `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
   launch without `--checkout`, and a bare launch's argv carrying no flag.
+  `train.sh add <pr> <verdict> --repo R --state-dir D [--verdict-comment ID]
+  [flags]` loads one pull request into that state dir's live train (its next
+  batch) or, with none live, starts one with those flags. When: whenever a
+  merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
+  `Train.admit_add` (shape, open, base, carry, row, budget-raise, policy),
+  and `one-train` beside a train.sh still closing; a pull request already
+  queued is `ALREADY`, rc 0. One fcntl lock (`queue.lock`) orders every add
+  against the train's drains and its close; never a second train.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
@@ -960,6 +1066,8 @@ sweep's standing-seat liveness step keep them alive.
   clean worktree on the branch only when origin has that worktree's HEAD; one
   holding commits origin lacks (a PR's unpushed row) is refused, naming it.
   Any later stop prints `update_pr: STOPPED: ...`, and a refused push names its log.
+  Its lock's holder leaves its own worktree detached once its push has
+  ended, a SIGKILLed run's too, so no worktree of it holds the branch.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is

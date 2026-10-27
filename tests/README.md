@@ -11,12 +11,17 @@ SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
 GATE_JOBS=1 ./tests/run.sh   # one script at a time, streaming, for watching a failure
 ```
 
-`run.sh`'s own header states the lane shape and why (stress alone after the
-others, the plan_view/card ordering, wired-but-never-executed failing the
-run, per-script replayed output). CI runs the same `run.sh` on every push and
+`run.sh`'s own header states the lane shape and why. CI runs the same `run.sh` on every push and
 pull request with `GOLDEN_MODE=drift` — the same-environment comparison
 against the merge-base, for the reason `run.sh`'s header and `env_drift.py`
 below state; the `SLOW=1` closed-loop runs nightly and on manual dispatch.
+
+CI runs it from one umbrella, `.github/workflows/ci.yml`, whose single required
+check is `gate`: it passes when every unit the prelude (`tools/ci/prelude.py`)
+named for the run has passed, each a `<stem> / <job>` check such as
+`tests / fast (3.14)` (`tools/ci/gate.py`'s `REQUIRED`). `RUN_PART=fast` skips
+the arch pair (`arch_score.py`, `arch_score_head.py`) by name and
+`RUN_PART=arch` runs only it, in `tests / arch-instrument`.
 
 ## The scoped gate
 
@@ -105,17 +110,14 @@ Measured against a real CI run of the fast job (2435 s: `stress.py` 1254 s,
 | a config-flow change (`config_flow.py`, `strings.json`, both translations) | 4 — `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 431 | 82% |
 | a change to `optimizer.py` | 14 — everything but `frontend.py` and `open_meteo.py` | 2424 | 0% |
 
-Those are one CI run's numbers against the suite as it stood, kept as measured.
-Script counts move as lanes are added; the shape of each result is the point,
-and `tests/closure.py select` prints the live selection for your own diff.
+Script counts move as lanes are added; `tests/closure.py select` prints the
+live selection for your own diff.
 
-The last row is the point, not an embarrassment: a change to the solver can
-reach almost every script, the closures say so, and a scoped gate that found a
-way to skip work there would be lying. The card row is the measurement
-disagreeing with the intuition — a card-only change costs 430 s and not five,
-because `features.py` and `entities.py` both open the card's JavaScript, while
-`frontend.py` is *not* run, because it checks how the card reaches the browser
-and never opens the card's code at all.
+The last row is the point: a change to the solver can reach almost every
+script, and a scoped gate that skipped work there would be lying. A card-only
+change costs 430 s and not five, because `features.py` and `entities.py` both
+open the card's JavaScript, while `frontend.py` is not run: it never opens the
+card's code.
 
 ### When it refuses to scope
 
@@ -452,7 +454,7 @@ every measurement, so it cannot catch a visual overflow, a font that failed to
 load, or anything else that depends on real layout. `tests/card_browser.mjs`
 covers that gap: it drives the card in an actual Chromium (via Playwright,
 resolved from `NODE_PATH`, under `PLAYWRIGHT_BROWSERS_PATH`) and is run by its
-own `browser` job in `.github/workflows/tests.yml` on every push and pull
+own `tests / browser` job (`.github/workflows/tests.yml`) on every push and pull
 request — never scoped, and not one of the scripts `run.sh` lanes above. For
 changes to the chart's geometry, that job is what actually verifies them;
 running `card_browser.mjs` locally needs the same Playwright/Chromium setup
