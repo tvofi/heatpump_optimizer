@@ -1,0 +1,6 @@
+file: dev/programme/delivery/2889.md
+line: - [#2889](https://github.com/tvofi/heatpump_optimizer/pull/2889) — **open**, record: delivery rows (autofix)
+open_row_line(2889, OPEN_ROW_TITLE) equality: True
+OPEN_ROW_TITLE: record: delivery rows (autofix) | self-row path: dev/programme/delivery/2889.md
+rows under dev/programme/delivery naming 2889:
+dev/programme/delivery/2889.md:1:- [#2889](https://github.com/tvofi/heatpump_optimizer/pull/2889) — **open**, record: delivery rows (autofix)
