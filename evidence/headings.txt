@@ -1,0 +1,58 @@
+head: adf5ef473a74e4c25f654f01c4201244b771c147
+=== batch41 headings vs Source vs delivery row vs PR body ===
+16:## P212: a verdict cannot be voided by a change to the content it ruled (V132)
+20:Source: `proposals.md` V125 (orchestrator s7, 2026-10-27T20:20Z).
+54:## P213: a complete pull request can be unmergeable because its `## Head` names another sha (V133)
+61:Source: `proposals.md` V126 (orchestrator s7, 2026-10-27T20:20Z).
+97:## P214: the claimnotes refusal leaves a PR unrunnable without stating the decision (V134)
+106:Source: `proposals.md` V127 (orchestrator s7, 2026-10-27T20:20Z).
+145:## P215: a lane rule that only prose enforces (V135)
+153:Source: `proposals.md` V128 (orchestrator s7, 2026-10-27T20:20Z).
+--- delivery row ---
+- [#2890](https://github.com/tvofi/heatpump_optimizer/pull/2890) — **open**, triage: batch 41 -- rule V125-V128 as P212-P215 (R10-ORCH-REVIEW-PACKET)
+--- PR body P-lines ---
+P212 / V125
+P213 / V126
+P214 / V127
+P215 / V128
+=== proposals.md heading resolvability ===
+V125  '## V125 ' count=1
+V126  '## V126 ' count=1
+V127  '## V127 ' count=1
+V128  '## V128 ' count=1
+V132  '## V132 ' count=1
+V133  '## V133 ' count=0
+V134  '## V134 ' count=0
+V135  '## V135 ' count=0
+--- what V132 actually is ---
+## V132 (orchestrator s7, 2026-10-27T21:00Z): triage rulings cite a V-number seven above their source, and the number resolves nowhere
+--- raw 'V135' strings (self-invalidating: V132's own text quotes it) ---
+741:- `dev/programme/triage/s6-batch41.md` — `P215` heading `(V135)`, `Source:` `V128`
+742:  (`grep -c V135 ~/hpo-orch/r10s6/proposals.md` = 0).
+=== the same offset in batch40, merged in origin/main ===
+13:## P211: the push-stuck guard's threshold sits below the work it is guarding (V131)
+29:Source: `proposals.md` V124 (orchestrator s7; header stamp 2026-10-27T18:53Z, arrival 18:23Z);
+batch40 body uses:
+V124
+=== batch35 control: heading == Source == proposals.md ===
+19:Source: s6 `proposals.md` `## V119` (orch s7, 2026-10-26T21:25Z).
+103:## P200: the reviewer verdict relay format is unstated where reviewers read (V120)
+109:Source: s6 `proposals.md` `## V120` (orch s7, 2026-10-26T21:25Z).
+170:## P201: nothing checks every open issue/PR sits on a live roster group (V121)
+=== batch41 PR body line refs vs actual (finding N2) ===
+23:The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 456, `triage_refusal` at 464): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file, with the seat library on `sys.path`:
+actual at head/adf011c8f/base:
+HEAD: 
+adf011c8f: 
+ea36188c: 
+=== nudge step 18 carries no set-stage (finding N3) ===
+89:Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `~/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+step18 from line 111 to EOF; has set-stage: False ; has roster_edit: False
+sweep_template.md:63 is where 'steps 12 and 18' is claimed:
+(4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster g
+head: adf5ef473a74e4c25f654f01c4201244b771c147
+=== actual def lines for N2 (body says 456 and 464) ===
+HEAD: 455:def ruling_verdict(src, pid): 466:def triage_refusal(texts, read_ruling): 
+adf011c8f: 455:def ruling_verdict(src, pid): 466:def triage_refusal(texts, read_ruling): 
+ea36188c: 455:def ruling_verdict(src, pid): 466:def triage_refusal(texts, read_ruling): 
+(body, PR 2890 line 23: ruling_verdict at 456, triage_refusal at 464)

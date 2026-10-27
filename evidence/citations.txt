@@ -1,14 +1,34 @@
-=== nudge.md:105 ===
-Load the roster through `tools/audit/seat/roster_lib.py` at the ref `tools/audit/seat/state_docs.py` defaults. Dispatch by pull: a flow lane under its cap (A critical path 4, B product 4, C process 3, F fly-in 2) takes its eligible group of greatest critical-path depth, behind `tools/audit/seat/pr_cap.py` dispatch-gate, which enforces the total. Eligible: resume stage not-started, after-edges all done or absent, not deferred or refused, no fixer working. Brief it that group's own roster brief. Done stages are the pair `roster_lib.py` names. Register a fly-in at dispatch with `tools/audit/seat/roster_edit.py` append-group, named `R10-FLY-`. An expedite item (red main, quota exhaustion, outage, security) bypasses the caps, one at a time.
-=== sweep_template.md:63 ===
-(4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), the finished seat's worktrees under {{seat_root}} and its scratch removed, `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, and the plan artifact regenerated with `{{plan_generator}}` and republished at {{plan_artifact}}.
-=== set-resume in roles/sweep (none expected) ===
-rc=1
-=== merge_main_bot.py:138-139 ===
-    if driver_rc != 0 or driver_conflicts or "refused" in driver_err.lower():
+head: adf5ef473a74e4c25f654f01c4201244b771c147
+=== code citations ===
+def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
+            "CONFLICTING CLAIMS: both sides rewrote the claim list -- this\n"
+            f"branch claims {sorted(our_claims) or '(nothing)'} and the merge\n"
+            f"brings in {sorted(their_claims) or '(nothing)'}. A claim excuses\n"
+            "one release's golden diff and is written for that diff alone, so\n"
+            "merging two lists would reinstate a claim one side deleted and\n"
+            "excuse a drift by accident. Resolve it by hand: keep the claims\n"
+            "that describe THIS branch's diff and delete the rest."
         return "skip-driver-refused " + ",".join(driver_conflicts or text_conflicts)
-=== head_note.py defs ===
+        refusals.append(f"head-note: ## Head does not name the dispatched head {head}")
+    check("head-note: a ## Head naming another head refuses", refused("head-note", body=f"## Head\n{B}\n"))
+    p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
+                                  "edit-brief", "append-carry", "set-resume",
+                                  "set-after", "drop-carry"))
+    env = dict(os.environ)
+    shims = Path(a.edit_checkout, "tools/audit/seat/shims")
+    if shims.is_dir():
+        env["PATH"] = f"{shims}:{env['PATH']}"
+    editor = a.editor or str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))
+    py = python or "seat-python3"
+
+    def sh(*c):
+        return subprocess.run(c, capture_output=True, text=True, env=env, cwd=a.edit_checkout)
 20:def head_offset(body: str) -> int:
 39:def prefix(body: str, note: str) -> str:
-48:def self_test() -> int:
-77:def main(argv: list) -> int:
+  thread=$(awk -v k="$pr $hsha " -v n="$nonce" 'index($0, k) == 1 && n != "" && $4 == n { print $3; exit }' "$S/dispatched" 2>/dev/null)
+  mkdir -p "$S" && printf '%s %s %s %s %s %s\n' "$pr" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
+=== rulings read by the gate ===
+P212 REJECT
+P213 ACCEPT
+P214 ACCEPT
+P215 ACCEPT

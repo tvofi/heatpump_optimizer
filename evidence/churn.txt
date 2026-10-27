@@ -1,26 +1,23 @@
-=== origin/handoff/audit-r10-roster history (local iso; UTC = local-1h) ===
-9aed78e0e 2026-10-27T21:23:46+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-eb880dba1 2026-10-27T21:23:10+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-8a2310fc9 2026-10-27T21:22:35+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-d61e2834c 2026-10-27T21:17:47+01:00 roster: R10-RCA-FRICTION-RESIDUE fixes #2593 (the RCA seat's close; the body cannot carry it until the roster lists it)
-e331abfbf 2026-10-27T21:17:00+01:00 roster: R10-RCA-FRICTION-RESIDUE fixes #2410, #2593, #2597, #2660, #2784 (the RCA seat's five closes; the body cannot carry them until the roster lists them)
-8f7e252fe 2026-10-27T20:35:59+01:00 roster_edit set-stage R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
-7322d0deb 2026-10-27T20:29:34+01:00 roster_edit set-stage R10-PREPR-CAP (tools/audit/seat/roster_edit.py)
-2b1fefed1 2026-10-27T19:49:20+01:00 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE (tools/audit/seat/roster_edit.py)
-123d126f5 2026-10-27T19:48:32+01:00 roster_edit set-stage R10-UPDATE-PR-SIGNALS (tools/audit/seat/roster_edit.py)
-32b938f3e 2026-10-27T19:32:41+01:00 roster_edit append-carry R10-996-RUNNER-CLAIMS (tools/audit/seat/roster_edit.py)
-8911f8d55 2026-10-27T19:31:46+01:00 roster_edit append-carry R10-RCA-BODY-LINT (tools/audit/seat/roster_edit.py)
-5ffe924ae 2026-10-27T19:31:07+01:00 roster_edit append-carry R10-FLY-CARRY-DISPOSITION (tools/audit/seat/roster_edit.py)
-=== all roster commits 18:00Z..21:00Z, UTC ===
-9aed78e0e 2026-10-27T21:23:46+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-eb880dba1 2026-10-27T21:23:10+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-8a2310fc9 2026-10-27T21:22:35+01:00 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
-d61e2834c 2026-10-27T21:17:47+01:00 roster: R10-RCA-FRICTION-RESIDUE fixes #2593 (the RCA seat's close; the body cannot carry it until the roster lists it)
-e331abfbf 2026-10-27T21:17:00+01:00 roster: R10-RCA-FRICTION-RESIDUE fixes #2410, #2593, #2597, #2660, #2784 (the RCA seat's five closes; the body cannot carry them until the roster lists them)
-8f7e252fe 2026-10-27T20:35:59+01:00 roster_edit set-stage R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
-7322d0deb 2026-10-27T20:29:34+01:00 roster_edit set-stage R10-PREPR-CAP (tools/audit/seat/roster_edit.py)
-2b1fefed1 2026-10-27T19:49:20+01:00 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE (tools/audit/seat/roster_edit.py)
-123d126f5 2026-10-27T19:48:32+01:00 roster_edit set-stage R10-UPDATE-PR-SIGNALS (tools/audit/seat/roster_edit.py)
-32b938f3e 2026-10-27T19:32:41+01:00 roster_edit append-carry R10-996-RUNNER-CLAIMS (tools/audit/seat/roster_edit.py)
-8911f8d55 2026-10-27T19:31:46+01:00 roster_edit append-carry R10-RCA-BODY-LINT (tools/audit/seat/roster_edit.py)
-5ffe924ae 2026-10-27T19:31:07+01:00 roster_edit append-carry R10-FLY-CARRY-DISPOSITION (tools/audit/seat/roster_edit.py)
+head: adf5ef473a74e4c25f654f01c4201244b771c147
+ref: origin/handoff/audit-r10-roster  tip=9aed78e0e89837a197ae68381bc56e33ec8ba5ba
+=== committer timestamps ===
+2026-10-27T21:23:46+01:00 9aed78e0e
+2026-10-27T21:23:10+01:00 eb880dba1
+2026-10-27T21:22:35+01:00 8a2310fc9
+2026-10-27T21:17:47+01:00 d61e2834c
+2026-10-27T21:17:00+01:00 e331abfbf
+2026-10-27T20:35:59+01:00 8f7e252fe
+2026-10-27T20:29:34+01:00 7322d0deb
+2026-10-27T19:49:20+01:00 2b1fefed1
+2026-10-27T19:48:32+01:00 123d126f5
+2026-10-27T19:32:41+01:00 32b938f3e
+2026-10-27T19:31:46+01:00 8911f8d55
+2026-10-27T19:31:07+01:00 5ffe924ae
+2026-10-27T19:25:15+01:00 cfacd3800
+=== window 18:31:07Z..20:23:47Z ===
+12
+5ffe924ae: 2026-10-27T19:31:07+01:00  (18:31:07Z)
+9aed78e0e: 2026-10-27T21:23:46+01:00  (20:23:46Z) -> 1h52m39s; 12 commits -> 6.39/h
+32b938f3e: 2026-10-27T19:32:41+01:00  (18:32:41Z)
+d61e2834c: 2026-10-27T21:17:47+01:00  (20:17:47Z) -> 1h45m06s
+ledger reads 18:34:13Z, 19:47:47Z, 20:18:55Z -> 1h44m42s
