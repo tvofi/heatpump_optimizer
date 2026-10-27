@@ -1,4 +1,0 @@
-worktree: /tmp/rev-2853-1 (detached at the reviewed head)
-HEAD: 2724c87bb4e336561e7034eaf6b0142f4664371b
-porcelain-lines: 0
-branch: HEAD

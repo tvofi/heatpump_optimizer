@@ -1,0 +1,11 @@
+# harness/loop-cost.sh at the head (one run, user+sys CPU):
+targets:       84
+== per-target python3 -I -c (the step's shape) ==
+  real 3.53 cpu 2.84
+== the same normalisation in shell ==
+  real 0.01 cpu 0
+== one spawn ==
+  real 0.04 cpu 0.03
+
+# an earlier identical run over an 85-target fixture measured 3.12 s CPU for the
+# python arm and 0.16 s CPU for the in-shell arm.

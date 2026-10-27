@@ -1,47 +1,97 @@
-CodeQL	pass	2s	https://github.com/tvofi/heatpump_optimizer/runs/122127579985	
-arch-score / arch-score	pass	1m14s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141455573	
-budget-raise-gate / budget-raise-gate	pass	18s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141455680	
-cancel-superseded	pass	8s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127068502	
-codeql / Analyze (actions)	pass	54s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231541	
-codeql / Analyze (javascript-typescript)	pass	58s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231777	
-codeql / Analyze (python)	pass	31m23s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231549	
-gate	pass	22s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122142312990	
-governance / delivery-status	pass	23s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231368	
-governance / env-matrix	pass	5m54s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231532	
-governance / instrument-self-tests	pass	18m46s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231524	
-governance / policy-docs	pass	47s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231626	
-governance / wave-script	pass	38s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231354	
-hassfest / hassfest	pass	31s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231283	
-pr-contract / pr-contract	pass	40s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122142003333	
-prelude	pass	33m6s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122127068458	
-refresh	pass	25s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122127067897	
-tests / arch-instrument	pass	28s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127503824	
-tests / briefs	pass	38s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231401	
-tests / browser	pass	4m13s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127503784	
-tests / closure-scope	pass	34s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231647	
-tests / closures	pass	13m1s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127503765	
-tests / coverage	pass	15m1s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127503816	
-tests / coverage-ratchet	pass	12s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122133939559	
-tests / fast (3.14)	pass	11m45s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127504021	
-tests / graders-head-copy	pass	4m8s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122133939763	
-tests / lane-proofs	pass	7s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122133939595	
-tests / mutation	pass	30s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231616	
-tests / nightly-status	pass	12s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231582	
-tests / typing	pass	1m31s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127504007	
-validate / validate-hacs	pass	47s	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127231187	
-tests	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141457955	
-arm	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485772129/job/122127056025	
-governance	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141458800	
-hassfest	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141457326	
-governance / record	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127233278	
-governance / delivery-status-publish	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127234248	
-kernel-points	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141457229	
-codeql	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141458049	
-tests / ci-ratchet	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122133944812	
-tests / claims-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122132555035	
-tests / closures-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122133091554	
-tests / mutation-autofix	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127471013	
-tests / mutation-pins	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127470475	
-tests / nightly-ha	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127505859	
-tests / replay	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776658/job/122127505870	
-validate	skipping	0	https://github.com/tvofi/heatpump_optimizer/actions/runs/40485776914/job/122141458240	
+# Head checks at fccb883716ce7f8677ea64a2107971baa5381ea9
+# source: gh api commits/<head>/check-runs --paginate (all pages)
+
+skipped    17
+success    38
+
+named contexts:
+arch-score / arch-score	success
+arch-score / arch-score	success
+budget-raise-gate / budget-raise-gate	success
+budget-raise-gate / budget-raise-gate	success
+gate	success
+gate	success
+governance / delivery-status	success
+governance / delivery-status-publish	skipped
+governance / instrument-self-tests	success
+governance / policy-docs	success
+governance / wave-script	success
+pr-contract / pr-contract	success
+pr-contract / pr-contract	success
+tests / briefs	success
+tests / closures	success
+tests / closures-autofix	skipped
+tests / fast (3.14)	success
+tests / mutation	success
+tests / mutation-autofix	skipped
+tests / mutation-pins	skipped
+
+gate job log (job 122319602531, run 40533672021):
+  Restore the programs from the base: programs restored from 34cd75bf1fe506334611ba6c074c223317370e67
+  Judge this head: python3 -I tools/ci/gate.py --pr 2853 --base main --kind code
+  PASS
+
+instrument-self-tests log (job 122293335822):
+  governance / instrument-self-tests	UNKNOWN STEP	2026-10-27T15:48:25.1082723Z 417 passed, 0 failed
+
+local re-run at the head: bash tools/pr/prepr.sh --self-test
+  417 passed, 0 failed
+
+# all 55 check-runs at the head (name, conclusion, status, started_at)
+CodeQL	success	completed	2026-10-27T15:44:07Z
+arch-score / arch-score	success	completed	2026-10-27T15:43:18Z
+arch-score / arch-score	success	completed	2026-10-27T16:28:34Z
+arm	skipped	completed	2026-10-27T15:42:39Z
+budget-raise-gate / budget-raise-gate	success	completed	2026-10-27T15:43:17Z
+budget-raise-gate / budget-raise-gate	success	completed	2026-10-27T16:28:29Z
+cancel-superseded	success	completed	2026-10-27T15:42:44Z
+cancel-superseded	success	completed	2026-10-27T15:42:44Z
+codeql	skipped	completed	2026-10-27T16:28:07Z
+codeql / Analyze (actions)	success	completed	2026-10-27T15:43:18Z
+codeql / Analyze (javascript-typescript)	success	completed	2026-10-27T15:43:17Z
+codeql / Analyze (python)	success	completed	2026-10-27T15:43:18Z
+gate	success	completed	2026-10-27T16:28:15Z
+gate	success	completed	2026-10-27T16:32:47Z
+governance	skipped	completed	2026-10-27T16:28:07Z
+governance / delivery-status	success	completed	2026-10-27T15:43:17Z
+governance / delivery-status-publish	skipped	completed	2026-10-27T15:43:14Z
+governance / env-matrix	success	completed	2026-10-27T15:43:17Z
+governance / instrument-self-tests	success	completed	2026-10-27T15:43:17Z
+governance / policy-docs	success	completed	2026-10-27T15:43:18Z
+governance / record	skipped	completed	2026-10-27T15:43:14Z
+governance / wave-script	success	completed	2026-10-27T15:43:17Z
+hassfest	skipped	completed	2026-10-27T16:28:07Z
+hassfest / hassfest	success	completed	2026-10-27T15:43:17Z
+kernel-points	skipped	completed	2026-10-27T15:43:14Z
+kernel-points	skipped	completed	2026-10-27T16:28:07Z
+pr-contract / pr-contract	success	completed	2026-10-27T16:27:00Z
+pr-contract / pr-contract	success	completed	2026-10-27T16:30:45Z
+prelude	success	completed	2026-10-27T15:42:44Z
+prelude	success	completed	2026-10-27T15:42:44Z
+refresh	success	completed	2026-10-27T15:42:44Z
+refresh	success	completed	2026-10-27T15:42:44Z
+tests	skipped	completed	2026-10-27T16:28:07Z
+tests / arch-instrument	success	completed	2026-10-27T15:43:46Z
+tests / briefs	success	completed	2026-10-27T15:43:17Z
+tests / browser	success	completed	2026-10-27T15:43:46Z
+tests / ci-ratchet	skipped	completed	2026-10-27T16:20:46Z
+tests / claims-autofix	skipped	completed	2026-10-27T15:55:46Z
+tests / closure-scope	success	completed	2026-10-27T15:43:17Z
+tests / closures	success	completed	2026-10-27T15:43:46Z
+tests / closures-autofix	skipped	completed	2026-10-27T16:01:23Z
+tests / coverage	success	completed	2026-10-27T15:43:46Z
+tests / coverage-ratchet	success	completed	2026-10-27T16:21:24Z
+tests / fast (3.14)	success	completed	2026-10-27T15:43:46Z
+tests / graders-head-copy	success	completed	2026-10-27T16:21:44Z
+tests / lane-proofs	success	completed	2026-10-27T16:21:15Z
+tests / mutation	success	completed	2026-10-27T15:43:17Z
+tests / mutation-autofix	skipped	completed	2026-10-27T15:44:03Z
+tests / mutation-pins	skipped	completed	2026-10-27T15:44:03Z
+tests / nightly-ha	skipped	completed	2026-10-27T15:43:43Z
+tests / nightly-status	success	completed	2026-10-27T15:43:18Z
+tests / replay	skipped	completed	2026-10-27T15:43:43Z
+tests / typing	success	completed	2026-10-27T15:43:46Z
+validate	skipped	completed	2026-10-27T16:28:07Z
+validate / validate-hacs	success	completed	2026-10-27T15:43:17Z
+
+# failures: 0  neutral: 0  pending: 0

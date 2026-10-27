@@ -1,0 +1,43 @@
+# Round-1's class-open scenario, driven both ways with the round-1 reviewer's harness
+# (harness/claims_block.sh = the round-1 extraction of the pre-repair block; harness/drive.sh,
+#  harness/perturb.sh). Fixtures cloned from the two heads; links added to docs/architecture.md
+# and claims.py re-run on the FULL tree, so the register committed is correct for the tree.
+# Head under review: fccb883716ce7f8677ea64a2107971baa5381ea9
+
+== OLD HEAD 2724c87bb, round-1 harness (round-1 extracted claims_block.sh) ==
+== [old] generator at repo root rc=0 ==
+e27aed9 fixture: doc link outside CLAIMS_INPUTS, register re-recorded on the full tree
+== [old] narrow copy KB: 14048 ==
+== [old] NEW step copy: rc=1 :: committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+== [old] whole-tree copy (control): rc=0 :: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+== [old] target present in narrow copy: no
+
+== NEW HEAD fccb883716, the head own claims_reg_line ==
+== [new] generator at repo root rc=0 ==
+dcbf3f0 fixture: doc link outside CLAIMS_INPUTS, register re-recorded on the full tree
+== [new] narrow copy KB: 14052 ==
+== [new] NEW step copy: rc=0 :: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+== [new] whole-tree copy (control): rc=0 :: dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+== [new] target present in narrow copy: yes
+
+== PERTURBATIONS at the new head ==
+== P2 second unlisted target (../tools/pr/prepr.sh) ==
+dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+rc=0
+   target present: yes
+== P1 link whose target the repository lacks ==
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+rc=1
+== P4 stale register (link added, not re-recorded) ==
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; re-run it and commit
+rc=1
+== P5 link inside CLAIMS_INPUTS (../tests/rolling.py) ==
+dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+rc=0
+== P6 no docs change ==
+no change to README.md or docs/*.md
+rc=3
+1
+committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+rc=1
+   target present after no-derivation: no

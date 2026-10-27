@@ -1,0 +1,21 @@
+# Perturbation: the per-target `python3 -I -c` replaced by an in-shell normalisation
+# (diff below). Same fixture, same block, only the spawn removed.
+# Expectation: CPU falls under the 5 s cap AND both graded arms keep their verdict.
+
+fast run1 rc=0 real 7.37 cpu 3.59
+  dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+fast run2 rc=0 real 9.40 cpu 3.65
+  dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+fast run3 rc=0 real 8.63 cpu 3.58
+  dev/audit/rounds/round4/D6/claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold
+arm unlisted-target rc=0 target_present=yes
+arm target-absent rc=1 :: committed claims.json claims.md not what dev/audit/rounds/round4/D6/claims.py writes; header RESULT moved: claims_true=122 (header 123) claims_false=1 (header 0); re-run it and commit
+
+# the only change to claims_reg_line:
+79,81c79,80
+<       rel=$(python3 -I -c 'import os, sys
+< p = os.path.normpath(sys.argv[1])
+< print("" if os.path.isabs(p) or p == ".." or p.startswith("../") else p)' "$t") || continue
+---
+>       rel=$t
+>       case $rel in /*|..|../*) continue;; esac
