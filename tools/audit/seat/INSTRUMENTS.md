@@ -175,8 +175,11 @@ sweep's standing-seat liveness step keep them alive.
   the record's model as `bus-model:` on `verdict/<pr>`, which
   `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
   a posted tree before it pushes. `dispatch` first renders the review packet
-  (`review_packet.py`) and names it as `review-packet:`; a refused or stale
-  packet refuses the dispatch and records nothing.
+  (`review_packet.py`) and names it as `review-packet:`. A REFUSED packet (the
+  head is unfit: rc 1, a named signal) refuses the dispatch and records
+  nothing; a packet this seat cannot RENDER (rc 3, `UNAVAILABLE`: no checkout,
+  no `gh`, no token, an unwritable path) dispatches anyway, names no packet,
+  and says why in `review-packet: unavailable -- <reason>`.
 - `review_packet.py` — the fix reviewer's packet at the frozen head: three-dot
   diff, the head's check runs as read (red, pending, `none` or green, with run
   ids), `carry_audit.py` and `figure_lint.mjs` at the head, the finder's
@@ -192,6 +195,9 @@ sweep's standing-seat liveness step keep them alive.
   unboarded merge verdict; a pending check never refuses. A refusal still
   WRITES the packet, so a held dispatch never withholds the evidence, except
   a host path, which writes nothing because the packet carries the diff.
+  Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
+  read the packet's inputs (no checkout, no `gh`/token, a missing tool, an
+  unwritable `--out`), so it writes nothing and `dispatch` degrades.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's

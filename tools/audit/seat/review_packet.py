@@ -45,6 +45,14 @@ facts the reviewer would have: `bus.sh dispatch` dies on the rc and records
 nothing, which is the dispatch gate. `host-path` alone writes nothing -- the
 packet carries the three-dot diff, so writing it copies the host path into a
 file that travels to a reviewer.
+
+UNAVAILABLE (rc 3, nothing written). A seat that cannot READ the packet's
+inputs -- its working directory is not a checkout, `git` cannot resolve the
+base or the head, `gh` is absent or has no token, a tool the packet runs is
+missing, `--out` is unwritable -- is not refusing the head. It prints one
+`review_packet: UNAVAILABLE: <why>` line and exits 3, and `bus.sh dispatch`
+names no packet, says why, and dispatches anyway. A dispatch must never be
+blocked by an aid it could not produce.
 `HPO_BUS_GH` replaces `gh` (the self-test's stub); `HPO_BUS_TRAIN_STATE` is the
 merge train's state dir, read for what is boarded.
 """
@@ -66,6 +74,20 @@ sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
 import proof_watch  # noqa: E402  (the one Python reader of the verdict grammar)
 import ref_privacy  # noqa: E402
 
+class Unavailable(Exception):
+    """The packet's INPUTS are absent in this seat, not its facts bad.
+
+    A refusal (`REFUSE <signal>`) says the dispatched head is not fit to review;
+    `UNAVAILABLE` says this seat cannot render the packet at all -- no checkout,
+    no `gh`, no token, no network, an unwritable path. The two are different
+    worlds, so they get different exit codes: `render` exits 1 for a refusal and
+    3 for `UNAVAILABLE`, and `bus.sh dispatch` refuses the dispatch on the first
+    but names no packet and proceeds on the second. The packet is an aid to a
+    reviewer; a dispatch with no way to render one must still dispatch, and say
+    why rather than go silent.
+    """
+
+
 _REPO_ROOT: Path | None = None
 
 
@@ -83,7 +105,7 @@ def repo() -> Path:
     if _REPO_ROOT is None:
         r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
         if r.returncode or not r.stdout.strip():
-            raise SystemExit("review_packet: REFUSED repo: the working directory is not inside a git checkout")
+            raise Unavailable("the working directory is not inside a git checkout")
         _REPO_ROOT = Path(r.stdout.strip())
     return _REPO_ROOT
 
@@ -103,16 +125,22 @@ SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-
 def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
     r = subprocess.run(["git", *a], cwd=cwd or repo(), capture_output=True, text=True)
     if check and r.returncode:
-        raise SystemExit(f"review_packet: REFUSED git {' '.join(a)}: {r.stderr.strip()[:200]}")
+        raise Unavailable(f"git {' '.join(a)}: {r.stderr.strip()[:200]}")
     return r.stdout
 
 
 def gh(path: str):
     cmd = shlex.split(os.environ.get("HPO_BUS_GH", "gh")) + ["api", path]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise Unavailable(f"gh api {path}: no `gh` on PATH")
     if r.returncode:
-        raise SystemExit(f"review_packet: REFUSED gh api {path}: {(r.stderr or r.stdout).strip()[:200]}")
-    return json.loads(r.stdout or "null")
+        raise Unavailable(f"gh api {path}: {(r.stderr or r.stdout).strip()[:200]}")
+    try:
+        return json.loads(r.stdout or "null")
+    except ValueError:
+        raise Unavailable(f"gh api {path}: not JSON")
 
 
 def section(body: str, name: str) -> str:
@@ -192,8 +220,11 @@ def run_harness(data: bytes, rev: str, args: list[str]) -> str:
     with tempfile.TemporaryDirectory() as d:
         tree = Path(d) / "tree"
         tree.mkdir()
-        a = subprocess.run(["git", "archive", rev], cwd=root, capture_output=True, check=True)
-        subprocess.run(["tar", "-x", "-C", str(tree)], input=a.stdout, check=True)
+        try:
+            a = subprocess.run(["git", "archive", rev], cwd=root, capture_output=True, check=True)
+            subprocess.run(["tar", "-x", "-C", str(tree)], input=a.stdout, check=True)
+        except (OSError, subprocess.CalledProcessError) as e:
+            raise Unavailable(f"cannot export {rev} for the harness: {e}")
         h = Path(d) / "harness.py"
         h.write_bytes(data)
         r = subprocess.run([sys.executable, str(h), *args], cwd=tree, capture_output=True, text=True,
@@ -210,11 +241,15 @@ def structure_at_merge(main: str, head: str) -> str | None:
         return f"head does not merge cleanly with {main}: {r.stdout.splitlines()[1:3]}"
     tree = r.stdout.split()[0]
     with tempfile.TemporaryDirectory() as d:
-        a = subprocess.run(["git", "archive", tree], cwd=root, capture_output=True, check=True)
-        subprocess.run(["tar", "-x", "-C", d], input=a.stdout, check=True)
+        try:
+            a = subprocess.run(["git", "archive", tree], cwd=root, capture_output=True, check=True)
+            subprocess.run(["tar", "-x", "-C", d], input=a.stdout, check=True)
+        except (OSError, subprocess.CalledProcessError) as e:
+            raise Unavailable(f"cannot export the merged tree: {e}")
         s = subprocess.run([sys.executable, "tests/structure.py"], cwd=d, capture_output=True, text=True)
         if s.returncode:
-            return (s.stdout + s.stderr).replace(d, "<tmp>").strip().splitlines()[-1][:300]
+            tail = (s.stdout + s.stderr).replace(d, "<tmp>").strip().splitlines()
+            return (tail[-1] if tail else f"tests/structure.py exited {s.returncode}")[:300]
     return None
 
 
@@ -222,7 +257,11 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(body)
     try:
-        r = subprocess.run([a.replace("{BODY}", f.name) for a in argv], cwd=repo(), capture_output=True, text=True)
+        try:
+            r = subprocess.run([a.replace("{BODY}", f.name) for a in argv], cwd=repo(),
+                               capture_output=True, text=True)
+        except FileNotFoundError as e:
+            raise Unavailable(f"cannot run {argv[0].rsplit('/', 1)[-1]}: {e}")
         return r.returncode, (r.stdout + r.stderr).replace(f.name, "<body>").strip()
     finally:
         os.unlink(f.name)
@@ -465,6 +504,45 @@ def _self_test() -> int:
         check("repo(): a git read runs in the checkout the working directory is in, not the tool's install",
               Path(got) == t)
 
+        # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
+        # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`
+        # degrades on it. Driven through main(), the path bus.sh calls.
+        import contextlib
+        import io
+        out = Path(td) / "unavailable.md"
+        err = io.StringIO()
+        here, _REPO_ROOT = os.getcwd(), None
+        try:
+            os.chdir(td)  # the temporary root is not itself a checkout
+            with contextlib.redirect_stderr(err):
+                rc = main(["render", "--pr", "7", "--head", H, "--out", str(out), "--no-structure"])
+        finally:
+            os.chdir(here)
+            _REPO_ROOT = None
+        check("UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing",
+              rc == 3 and not out.exists() and "review_packet: UNAVAILABLE:" in err.getvalue())
+
+    saved = os.environ.get("HPO_BUS_GH")
+    os.environ["HPO_BUS_GH"] = "false"
+    try:
+        gh("repos/x/y")
+        ok = False
+    except Unavailable:
+        ok = True
+    finally:
+        if saved is None:
+            os.environ.pop("HPO_BUS_GH", None)
+        else:
+            os.environ["HPO_BUS_GH"] = saved
+    check("UNAVAILABLE: a failing `gh` is unavailable, never a refusal", ok)
+
+    try:
+        git("rev-parse", "--verify", "no-such-ref-for-the-review-packet-self-test")
+        ok = False
+    except Unavailable:
+        ok = True
+    check("UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal", ok)
+
     print(f"review_packet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -497,11 +575,19 @@ def main(argv: list[str]) -> int:
     if not re.fullmatch(r"[0-9a-f]{40}", a.head):
         print("review_packet: --head takes a 40-hex sha", file=sys.stderr)
         return 2
-    refusals, _, text = build(gather(a))
+    try:
+        refusals, _, text = build(gather(a))
+    except Unavailable as e:
+        print(f"review_packet: UNAVAILABLE: {e}", file=sys.stderr)
+        return 3
     keep = writes_packet(refusals)
     if keep:
-        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-        Path(a.out).write_text(text)
+        try:
+            Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(a.out).write_text(text)
+        except OSError as e:
+            print(f"review_packet: UNAVAILABLE: cannot write {a.out}: {e}", file=sys.stderr)
+            return 3
     for x in refusals:
         print(f"review_packet: REFUSE {x}", file=sys.stderr)
     if keep:

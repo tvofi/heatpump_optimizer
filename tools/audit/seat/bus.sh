@@ -418,7 +418,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
 # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why hk="" hv="" pk
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why hk="" hv="" pk prc=0 pmsg="" pkline=""
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
@@ -447,10 +447,29 @@ dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] 
     || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
   why=$(three_rounds "$pr" "$p3") || die "dispatch: $why"
   pk=$S/packets/$pr-$h.md
-  ${HPO_BUS_PACKER:-python3 -I "$ROOT/tools/audit/seat/review_packet.py"} render --pr "$pr" --head "$h" --out "$pk" \
-    ${hk:+"$hk" "$hv"} >&2 || die "dispatch: the review packet refused #$pr at $h (its lines above name each signal)"
-  python3 -I "$ROOT/tools/audit/seat/review_packet.py" check "$pk" --head "$h" \
-    || die "dispatch: $pk does not name the head $h; a stale packet is never named"
+  # THE PACKET IS AN AID, NEVER A GATE ON THE DISPATCH. Two failures are different:
+  # a REFUSAL of the head (rc 1, `review_packet: REFUSE <signal>: ...`) refuses the
+  # dispatch and records nothing, because the head is not fit to review; a seat that
+  # cannot RENDER one (rc 3, `review_packet: UNAVAILABLE: ...` -- no checkout, no gh,
+  # no token, an unwritable path) dispatches anyway and says here why. A reviewer
+  # told nothing about a packet and one told "no packet, because X" are in different
+  # worlds, and only the second is honest (R10-ORCH-REVIEW-PACKET, #2870).
+  pmsg=$(${HPO_BUS_PACKER:-python3 -I "$ROOT/tools/audit/seat/review_packet.py"} render \
+           --pr "$pr" --head "$h" --out "$pk" ${hk:+"$hk" "$hv"} 2>&1 >/dev/null) || prc=$?
+  if [ "$prc" = 0 ] && ! python3 -I "$ROOT/tools/audit/seat/review_packet.py" check "$pk" --head "$h" >/dev/null 2>&1; then
+    prc=3
+    pmsg="review_packet: UNAVAILABLE: the packet written does not name the head $h"
+  fi
+  if [ "$prc" = 0 ]; then
+    pkline="review-packet: $(home_rel "$pk")"
+  elif [ "$prc" = 1 ] && printf '%s\n' "$pmsg" | grep -q '^review_packet: REFUSE '; then
+    printf '%s\n' "$pmsg" >&2
+    die "dispatch: the review packet refused #$pr at $h (its lines above name each signal)"
+  else
+    pmsg=$(printf '%s\n' "$pmsg" | grep -v '^[[:space:]]*$' | tail -n 1)
+    pkline="review-packet: unavailable -- ${pmsg:-the packet renderer exited $prc}"
+    printf 'bus: %s\n' "$pkline" >&2
+  fi
   if [ -n "$n" ]; then
     why=$(dispatch_binding <(printf 'bus-nonce: %s\n' "$n") "$pr" "$h") || die "dispatch: $why"
   else
@@ -464,7 +483,7 @@ dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] 
   python3 -I "$ROOT/tools/audit/seat/ledger.py" ${HPO_BUS_LEDGER:+--log "$HPO_BUS_LEDGER"} \
     close reviewer-fire "$pr" "$h" "dispatched $r nonce=${n:0:8}" >&2 \
     || printf 'bus: the ledger refused the reviewer-fire close for #%s at %s; close it by hand\n' "$pr" "$h" >&2
-  printf 'review-packet: %s\n' "$(home_rel "$pk")"
+  printf '%s\n' "$pkline"
   printf 'bus-nonce: %s\n' "$n"
 }
 
@@ -739,6 +758,7 @@ P
   cat > "$W/packer" <<'P'
 printf '%s|' "$@" >> "$BUS_TEST_PACKS"; echo >> "$BUS_TEST_PACKS"
 [ -z "${BUS_PACK_REFUSE:-}" ] || { echo "review_packet: REFUSE head-note: planted" >&2; exit 1; }
+[ -z "${BUS_PACK_UNAVAILABLE:-}" ] || { echo "review_packet: UNAVAILABLE: planted: no gh" >&2; exit 3; }
 while [ $# -gt 0 ]; do case $1 in --head) h=$2; shift 2 ;; --out) o=$2; shift 2 ;; *) shift ;; esac; done
 mkdir -p "$(dirname "$o")" && printf '# Review packet\nhead: %s\n' "${BUS_PACK_HEAD:-$h}" > "$o"
 P
@@ -1271,8 +1291,9 @@ B
   out=$(run dispatch 31 "$h1" cmsg_T --past-three); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "past-three needs a reason"; expect "--past-three without a reason is refused" $?
 
-  # THE REVIEW PACKET: dispatch names the packet rendered at its head, passes the finder's
-  # harness through, and records nothing when the renderer refuses or the packet is stale.
+  # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
+  # finder's harness through; a REFUSED head records nothing; a seat that cannot render
+  # one dispatches anyway, names no packet, and says why (#2870).
   out=$(run dispatch 7 "$h1" cmsg_P --harness dev/audit/harnesses/x.py); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -qx "review-packet: ~/state/packets/7-$h1.md" \
     && tail -n 1 "$W/packs" | grep -q "^render|--pr|7|--head|$h1|--out|$W/state/packets/7-$h1.md|--harness|dev/audit/harnesses/x.py|\$"
@@ -1283,8 +1304,13 @@ B
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "a refused packet refuses the dispatch, names the signal, and records nothing" $?
   out=$(BUS_PACK_HEAD=$h2 run dispatch 7 "$h1" cmsg_P); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "a stale packet is never named" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
-  expect "a packet naming another head is stale: dispatch refuses to name it and records nothing" $?
+  [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- .*does not name the head $h1" \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+  expect "a packet naming another head dispatches, names no packet, and says why" $?
+  out=$(BUS_PACK_UNAVAILABLE=1 run dispatch 7 "$h1" cmsg_P); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- review_packet: UNAVAILABLE: planted: no gh$" \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+  expect "a renderer this seat cannot run dispatches, names no packet, and says why" $?
   out=$(run dispatch 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
   out=$(python3 -I "$ROOT/tools/audit/seat/review_packet.py" --self-test 2>&1) \

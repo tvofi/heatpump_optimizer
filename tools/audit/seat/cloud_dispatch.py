@@ -486,6 +486,19 @@ def _group_checks(check) -> None:
         check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
               refused(role="reviewer", head=rhead, pr="7", environ={**env, "BUS_PACK_REFUSE": "1"})
               and len(registry()) == 1)
+        # A SEAT THAT CANNOT RENDER ONE STILL DISPATCHES (#2870). The REAL renderer,
+        # not the stub, in the throwaway clone this dispatch runs in; its `gh` is
+        # made to fail, so it exits 3 (UNAVAILABLE) and bus.sh names no packet and
+        # proceeds. The alternative -- a render failure refusing the dispatch, which
+        # #2870's first head did -- breaks every caller whose clone has no token.
+        before = len(registry())
+        try:
+            rendered = dispatch(role="reviewer", head=rhead, pr="7",
+                                environ={**env, "HPO_BUS_PACKER": "", "HPO_BUS_GH": "false"})
+        except Refusal:  # a refusal, not a crash, is the regression: report it as one
+            rendered = ""
+        check("a packet the seat cannot render dispatches anyway, records, and says why (the #2870 regression)",
+              rendered == "dispatch/reviewer-r10-x" and len(registry()) == before + 1)
         real_publish = globals()["_publish"]
         globals()["_publish"] = lambda *a, **k: (_ for _ in ()).throw(Refusal("the push was refused"))
         try:
