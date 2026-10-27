@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 58df506a#2",
+  "killed_by": "tests/features.py",
+  "old": "                                * np.maximum(0.0, T_buf - floor_temp)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`* (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=14."
+}
