@@ -65,7 +65,7 @@ them. The item's second half — "capacity envelope never below demand-at-derate
 filed under **Unfinished** in that same report, and that is the half that needs
 delivered heat at a power.
 
-Nine rounds of the step therefore passed while the law had no power term. The defect
+Eight rounds of the step therefore passed while the law had no power term. The defect
 was found instead by D0's demand analysis, in another dimension, from a hypothesis
 about price swings.
 
