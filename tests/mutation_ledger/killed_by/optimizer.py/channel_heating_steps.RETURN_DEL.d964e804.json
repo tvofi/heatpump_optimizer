@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:channel_heating_steps RETURN_DEL d964e804",
+  "killed_by": "tests/plan_view.py",
+  "old": "    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

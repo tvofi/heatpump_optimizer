@@ -1558,6 +1558,107 @@ await block('group 15 -- the readers the agreement lane imports are exported by 
   t('and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some)', want.length > 0 && JSON.stringify(got) === JSON.stringify(want), `declared ${JSON.stringify(want)}, read ${JSON.stringify(got)}`)
 })
 
+console.log('-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)')
+await block('the P3 plan workflow', async () => {
+  // audit-plan.js imports nothing, so drive its real body with the agent
+  // stubbed per label, the way the wave and verification scripts are driven.
+  const psrc = fs.readFileSync(path.join(STAY, 'audit-plan.js'), 'utf8')
+  const pi = psrc.indexOf('export const meta')
+  if (pi < 0) throw new Error('audit-plan.js has no `export const meta`')
+  const pbody = psrc.slice(0, pi) + psrc.slice(psrc.indexOf('\n}\n', pi) + 3)
+  const FIND = (id) => ({ id, dimension: 'D7', severity: 'medium', title: id, class: 'P3', seam: 'coordinator' })
+  const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
+  const SHA = (c) => c.repeat(40)
+  const drive = async (over = {}) => {
+    const calls = []
+    let cur = over.publish?.sha ?? SHA('b')
+    let rev = 0
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      const label = o.label
+      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json' }
+      if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
+      if (label === 'plan/moves') return over.moves ?? { groups: [{ group: 'A', findings: ['D7-s1-01'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [] }
+      if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
+      if (label === 'plan/publish') return over.publish ?? { sha: cur, pushed: true }
+      if (/^plan\/review-/.test(label)) {
+        const r = over.reviewImpl ? over.reviewImpl(label, cur) : null
+        return r ?? { verdict: 'approve', sha: cur, points: [] }
+      }
+      if (/^plan\/revise-/.test(label)) {
+        rev += 1
+        cur = SHA(String(rev))
+        return over.reviseImpl ? over.reviseImpl(label, cur) : { sha: cur, addressed: ['x'] }
+      }
+      if (label === 'plan/verdict') return over.verdict ?? { ref: 'plan/r11', sha: SHA('d'), reviewed: cur, pushed: true }
+      return over.agentImpl ? over.agentImpl(o) : null
+    }
+    const fn = new Function('agent', 'log', 'phase', 'parallel', 'args',
+      `return (async () => { ${pbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (thunks) => Promise.all(thunks.map((t) => t().catch(() => null))),
+      { round: 11, repo: '/repo', fork: 'deadbeefcafe', branch: 'claude/audit-r11-register' })
+    return { out, calls }
+  }
+  const pthrows = async (name, re, over) => {
+    try { await drive(over); t(name, false, 'did not throw') }
+    catch (e) { t(name, re.test(e.message), e.message.slice(0, 120)) }
+  }
+
+  await pthrows('an empty or absent draft roster stops P3', /draft roster .*empty or absent/, { read: { groups: [], findings: [] } })
+  const two = [FIND('D7-s1-01'), FIND('D7-s1-02')]
+  await pthrows('a triage that drops a verified finding stops P3', /dropped 1 verified finding/,
+    { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
+  await pthrows('a triage that keeps one finding twice stops P3', /more than once/,
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')] },
+      architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }, { id: 'D7-s1-01', verdict: 'defer' }] } })
+  await pthrows('a group with no move entry stops P3', /no move entry/,
+    { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
+  await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
+    { publish: { sha: 'abc', pushed: true } })
+  await pthrows('a reviewer answering for another tree stops P3', /answered for/,
+    { reviewImpl: () => ({ verdict: 'approve', sha: SHA('c'), points: [] }) })
+  await pthrows('a recorded verdict that is not a 40-hex commit stops P3', /not a 40-hex commit/,
+    { verdict: { ref: 'plan/r11', sha: 'abc', pushed: true } })
+
+  const ok = await drive()
+  t('an approved plan is published once and its verdict recorded at a 40-hex commit',
+    ok.out?.revisions === 0 && ok.out?.owner_decision === false
+    && ok.out?.plan?.sha === SHA('d') && ok.out?.plan?.reviewed === SHA('b')
+    && ok.calls.filter((c) => c.label === 'plan/publish').length === 1
+    && ok.calls.filter((c) => c.label === 'plan/review-1').length === 1
+    && ok.calls.filter((c) => c.label === 'plan/verdict').length === 1, J(ok.out?.plan))
+
+  const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
+  t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
+    read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
+  const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
+  t('the reviewer is pointed at the published plan ref and its SHA',
+    review1.includes('plan/r11 = ' + SHA('b')) && /plan-review\.md/.test(review1))
+  const verdict = ok.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''
+  t('the verdict file carries the contract line with the SHA it answers for',
+    verdict.includes('Plan review: approve ' + SHA('b')))
+  t('the verdict push is the constant plan/r11 ref and opens no pull request',
+    /git push origin HEAD:refs\/heads\/plan\/r11/.test(verdict) && /Do not open a pull request/.test(verdict)
+    && /ref_privacy\.py guard --ref plan\/r11/.test(verdict))
+
+  const once = await drive({
+    reviewImpl: (label, cur) => label === 'plan/review-1' ? { verdict: 'revise', sha: cur, points: ['the seam is a file'] } : null,
+  })
+  t('one revise round re-plans, re-publishes and approves, and the owner is not troubled',
+    once.out?.revisions === 1 && once.out?.owner_decision === false
+    && once.out?.plan?.reviewed === SHA('1')
+    && once.calls.some((c) => c.label === 'plan/revise-1') && once.calls.some((c) => c.label === 'plan/review-2'), J(once.out?.review))
+
+  const twice = await drive({
+    reviewImpl: (label, cur) => ({ verdict: 'revise', sha: cur, points: ['open-' + label] }),
+  })
+  t('two revise rounds at most, then the owner gets the open points (no third review)',
+    twice.out?.revisions === 2 && twice.out?.owner_decision === true
+    && !twice.calls.some((c) => c.label === 'plan/review-4'), J(twice.calls.map((c) => c.label)))
+  const hand = twice.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''
+  t('and the recorded verdict says the plan is not approved', /NOT an approval/.test(hand), hand.slice(0, 200))
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
