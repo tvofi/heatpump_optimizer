@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_fmt RETURN_DEL 67800b6b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return f\"{clock_h:02d}:{clock_m:02d}\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
