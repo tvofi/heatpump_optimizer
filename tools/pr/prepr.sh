@@ -364,7 +364,7 @@ print("" if os.path.isabs(p) or p == ".." or p.startswith("../") else p)' "$t") 
       [ -e "$2/$rel" ] && continue
       [ -n "$(git -C "$repo" ls-tree --name-only HEAD -- "$rel" 2>/dev/null)" ] || continue
       { git -C "$repo" archive HEAD -- "$rel" 2>/dev/null | tar -x -C "$2" 2>/dev/null; } || true
-    done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)
+    done < /dev/null
   fi
   mkdir -p "$2/.was"
   cp "$d/claims.json" "$d/claims.md" "$2/.was/"
