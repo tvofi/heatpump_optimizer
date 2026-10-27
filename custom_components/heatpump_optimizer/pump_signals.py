@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from . import pump_mode
@@ -241,6 +242,9 @@ class PumpSignals:
     #: not the device enum, so seeing the literal word matters when a mode is
     #: not being recognised.
     mode_text: str | None = None
+    #: The live mode state's ``last_changed``: when the pump entered it, which
+    #: ``heat_energy.ModeDwell`` splits an interval at. ``None`` off a live read.
+    mode_changed_at: datetime | None = None
     #: ``True``/``False`` when the flag was readable this cycle, ``None`` when
     #: there is no evidence either way.
     defrosting: bool | None = None
@@ -255,6 +259,11 @@ class PumpSignals:
     #: unreadable — it is about the machine being in a state where every
     #: thermal measurement it produces is misleading.
     freeze_reason: str | None = None
+
+    @property
+    def mode_live(self) -> bool:
+        """Whether this cycle's mode was read live (not a last-good fallback or absent)."""
+        return self.mode_source == MODE_SOURCE_LIVE
 
     @property
     def space_heat(self) -> bool:
@@ -477,6 +486,7 @@ def read(
         mode_observed=observed,
         mode_source=source,
         mode_text=mode_reading.text,
+        mode_changed_at=getattr(mode_state, "last_changed", None) if source == MODE_SOURCE_LIVE else None,
         defrosting=defrosting,
         online=online,
         fault=fault,
