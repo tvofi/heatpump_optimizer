@@ -1,0 +1,17 @@
+=== tests/entities.py, fresh run at the merge-base worktree ===
+4 of 2463 ENTITY CHECKS FAILED
+   2 FAIL a10
+   1 FAIL a11
+   1 FAIL a12
+   1 FAIL a13
+   8 FAIL a3
+   9 FAIL a4
+   5 FAIL a5
+   3 FAIL a6
+   4 FAIL a8
+   3 FAIL a9
+   1 FAIL and
+  14 FAIL hb
+   2 FAIL line
+   1 FAIL re
+   2 FAIL the

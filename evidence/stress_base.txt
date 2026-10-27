@@ -1,0 +1,3 @@
+  FAIL the probed scenarios' memory peaks stay within their recorded budgets  [typical_slab/shoulder attributable RSS 14.5 MiB vs recorded 9.4 MiB (x1.5 headroom; probe 106.3 MiB over a 91.8 MiB baseline)]
+  FAIL shoulder: cheaper than holding the setpoint  [4.67 vs 3.96]
+2 of 113 STRESS CHECKS FAILED

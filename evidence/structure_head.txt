@@ -2,7 +2,7 @@
   ok   73 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
   custom_components/heatpump_optimizer/coordinator.py:3054-11289  8236 LOC  233 methods  HeatPumpOptimizerCoordinator
-  custom_components/heatpump_optimizer/optimizer.py:2307-5744  3438 LOC  53 methods  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/optimizer.py:2282-5706  3425 LOC  53 methods  HeatPumpOptimizer
   custom_components/heatpump_optimizer/thermal_model.py:2168-4096  1929 LOC  34 methods  ThermalModel
   custom_components/heatpump_optimizer/dhw_planner.py:296-2191  1896 LOC  21 methods  DhwPlanner
   custom_components/heatpump_optimizer/sysid.py:1283-2347  1065 LOC  16 methods  SystemIdentification
@@ -15,27 +15,26 @@
   custom_components/heatpump_optimizer/accuracy.py:163-537  375 LOC  20 methods  AccuracyTracker
   custom_components/heatpump_optimizer/tariff.py:165-479  315 LOC  9 methods  PeakTracker
   custom_components/heatpump_optimizer/external_heat.py:183-491  309 LOC  13 methods  ExternalHeatDetector
-  custom_components/heatpump_optimizer/ledger.py:135-437  303 LOC  18 methods  MonthlyLedger
-  class_excess_loc = 18075 (every class's span past 300, summed; the coordinator's 449 helper lines count in its span)
+  class_excess_loc = 18059 (every class's span past 300, summed; the coordinator's 449 helper lines count in its span)
 
 ########## monster methods: top 10 of 16 over 150 LOC ##########
   custom_components/heatpump_optimizer/sysid.py:1777-2149  373 LOC  identify
-  custom_components/heatpump_optimizer/optimizer.py:3274-3646  373 LOC  optimize
+  custom_components/heatpump_optimizer/optimizer.py:3247-3619  373 LOC  optimize
   custom_components/heatpump_optimizer/dhw_planner.py:947-1298  352 LOC  _build_dhw_requirements
   custom_components/heatpump_optimizer/thermal_model.py:3576-3882  307 LOC  simulate_trajectory_batch
   custom_components/heatpump_optimizer/thermal_model.py:2866-3150  285 LOC  _simulate_step_two_zone
-  custom_components/heatpump_optimizer/optimizer.py:4723-4995  273 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/optimizer.py:4692-4957  266 LOC  _optimize_with_dhw
   custom_components/heatpump_optimizer/coordinator.py:6382-6619  238 LOC  _update_current_state
   custom_components/heatpump_optimizer/coordinator.py:11064-11289  226 LOC  async_simulate
   custom_components/heatpump_optimizer/dhw_planner.py:1320-1526  207 LOC  _plan_dhw_min_cost
-  custom_components/heatpump_optimizer/optimizer.py:4458-4655  198 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/optimizer.py:4431-4624  194 LOC  _optimize_space_only
   max_method_loc = 373 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 29 over 15) ##########
   custom_components/heatpump_optimizer/sysid.py:1777  cc=44  identify
-  custom_components/heatpump_optimizer/optimizer.py:3274  cc=44  optimize
+  custom_components/heatpump_optimizer/optimizer.py:3247  cc=44  optimize
   custom_components/heatpump_optimizer/coordinator.py:6382  cc=41  _update_current_state
-  custom_components/heatpump_optimizer/optimizer.py:5597  cc=40  get_current_action
+  custom_components/heatpump_optimizer/optimizer.py:5559  cc=40  get_current_action
   custom_components/heatpump_optimizer/thermal_model.py:3576  cc=33  simulate_trajectory_batch
   max_cc = 44 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
 
@@ -169,9 +168,9 @@
   custom_components/heatpump_optimizer/config_flow.py:892 _options_suggested_numeric  ==  custom_components/heatpump_optimizer/config_flow.py:899 _suggested_entity
   custom_components/heatpump_optimizer/drift.py:286 _note  ==  custom_components/heatpump_optimizer/power_guard.py:157 _note
   custom_components/heatpump_optimizer/inputs.py:915 read  ==  custom_components/heatpump_optimizer/inputs.py:956 read_state
-  custom_components/heatpump_optimizer/ledger.py:148 _prune  ==  custom_components/heatpump_optimizer/wear.py:44 observe
-  custom_components/heatpump_optimizer/optimizer.py:4661 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
-  custom_components/heatpump_optimizer/optimizer.py:4458 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4723 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3921 _solve_space
+  custom_components/heatpump_optimizer/ledger.py:170 _prune  ==  custom_components/heatpump_optimizer/wear.py:44 observe
+  custom_components/heatpump_optimizer/optimizer.py:4630 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
+  custom_components/heatpump_optimizer/optimizer.py:4431 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4692 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3894 _solve_space
   custom_components/heatpump_optimizer/price_model.py:190 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:236 observe_day_quarters
   custom_components/heatpump_optimizer/pump_arbiter.py:424 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:325 step_duty
   custom_components/heatpump_optimizer/sensor.py:1914 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2375 extra_state_attributes
@@ -201,7 +200,7 @@
   seam_cut_total = 424
 
 ########## RESULT lines ##########
-RESULT class_excess_loc=18075 count
+RESULT class_excess_loc=18059 count
 RESULT const_modules_over_50=3 count
 RESULT coordinator_attrs=143 count
 RESULT coordinator_multiassigned_attrs=110 count
@@ -221,8 +220,8 @@ RESULT name_kept_members=38 count
 RESULT seam_cut_total=424 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at f54f40cc1157) ##########
-  ok   class_excess_loc 18075 <= 18075
+########## ratchet vs structure_budgets.json (recorded_at 3b4180dcc680) ##########
+  ok   class_excess_loc 18059 <= 18059
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 143 <= 143
   ok   coordinator_multiassigned_attrs 110 <= 110

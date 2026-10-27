@@ -1,0 +1,99 @@
+==========================================================================
+DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
+  key       9f7654f8fd90a43a7e073cb80519991e9691b931bc34ee32d00876db88f98f6f
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/9f7654f8fd90a43a7e073cb80519991e9691b931bc34ee32d00876db88f98f6f.json
+  ref       origin/main -> d620369fad72e18081b2efa1b66ee0058296f12c
+  tree      8c85a4ab7ed764caa23d223e6ec824f8469723e3
+  mode      all
+  captured  52 min ago
+  key covers:
+    baseline_commit  dfe0798c17f3
+    baseline_tree    b37e590113d4
+    cache_format     391552c099c1
+    driver_sha256    5af322442b85
+    environment      8f877a02f464
+    interpreter      2aeeaa152ed5
+    mode             5cf7504d9781
+    numeric_probe    56dec5bfd48a
+    numpy_build      9996de8b7d78
+    packages         3f060bd9af17
+    platform         40b244860b80
+    sensitive        541346c5f2b4
+  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
+==========================================================================
+  captured 56 scenarios from branch
+  reused   56 scenarios for baseline from cache key 9f7654f8fd90a43a (see the banner above)
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 55 fixture(s), 34499 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to origin/main here
+  ok    building_preset is byte-identical to origin/main here
+  ok    capacity_curve is byte-identical to origin/main here
+  ok    capacity_tariff is byte-identical to origin/main here
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to origin/main here
+  ok    config_flow is byte-identical to origin/main here
+  ok    cool_rainy_summer is byte-identical to origin/main here
+  ok    coord_all_features is byte-identical to origin/main here
+  ok    coord_dhw is byte-identical to origin/main here
+  ok    coord_grid_fee is byte-identical to origin/main here
+  ok    coord_minimal is byte-identical to origin/main here
+  ok    coord_two_zone is byte-identical to origin/main here
+  ok    cop_scale_learned is byte-identical to origin/main here
+  may-drift cycling_cost: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    dhw_cold_tank is byte-identical to origin/main here
+  ok    dhw_large_tank is byte-identical to origin/main here
+  ok    dhw_learned_windows is byte-identical to origin/main here
+  ok    dhw_schedule_off is byte-identical to origin/main here
+  may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
+  may-drift everything_on: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    external_heat_active is byte-identical to origin/main here
+  ok    extreme_prices is byte-identical to origin/main here
+  may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+  may-drift fuse_guard: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    horizon_48h is byte-identical to origin/main here
+  ok    horizon_6h is byte-identical to origin/main here
+  ok    legionella_due is byte-identical to origin/main here
+  ok    legionella_due_low_setpoint is byte-identical to origin/main here
+  ok    legionella_off is byte-identical to origin/main here
+  ok    mild_windy_rain is byte-identical to origin/main here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  CLAIMED negative_prices: 3 leaves moved (R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -13.19 -> 16.17; no plan key moves)
+         negative_prices.deferred_energy_cost: 1.813187 vs 1.10906
+         negative_prices.predicted_savings: -0.316354 vs 0.387772
+         negative_prices.savings_percentage: -13.190908 vs 16.168811
+  ok    peak_masked is byte-identical to origin/main here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to origin/main here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to origin/main here
+  ok    start_below_band is byte-identical to origin/main here
+  CLAIMED summer_dhw_only: 3 leaves moved (R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -7.62 -> 5.88; no plan key moves)
+         summer_dhw_only.deferred_energy_cost: 1.692308 vs 1.375384
+         summer_dhw_only.predicted_savings: -0.17888 vs 0.138044
+         summer_dhw_only.savings_percentage: -7.621912 vs 5.881915
+  may-drift tariff_plus_two_zone: did not move here (#1207 keep-gate (2e-2 -> 2e-5),)
+  may-drift valve_storage: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+  ok    valve_storage_flat_prices is byte-identical to origin/main here
+  ok    valve_storage_low_target is byte-identical to origin/main here
+  ok    valve_storage_small_tank is byte-identical to origin/main here
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  ok    wide_band is byte-identical to origin/main here
+  ok    winter_single_dhw is byte-identical to origin/main here
+  ok    winter_single_no_dhw is byte-identical to origin/main here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+EXIT=0
