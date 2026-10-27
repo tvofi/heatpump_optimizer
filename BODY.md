@@ -73,9 +73,9 @@ slices taken from `tests/features.py`, and the block text, under the same
 ## Null control
 
 - The unmodified tree is the defect: `python3 tests/features.py` at
-  6eb552157 with this branch's tests prints `8 of 4480 FEATURE CHECKS FAILED`
-  -- the seven `R10-IMMERSION-LATCH` controls and `#2805` -- with the measured
-  lines `[{'spot': 1.5, 'grid_fee': 3.0, 'immersion': 1.5, ...}]` for the
+  6eb552157 with this branch's tests prints `10 of 4481 FEATURE CHECKS FAILED`
+  -- the eight `R10-IMMERSION-LATCH` controls, `#2805`, and the strengthened
+  `savings_actual is the metered kWh` arm -- with the measured lines `[{'spot': 1.5, 'grid_fee': 3.0, 'immersion': 1.5, ...}]` for the
   no-element install and `{'degF step 1': (118.5, 119), ...}` for the floor.
 - The flat-draw null in the tree: at nameplate and one kW below it, with the
   booster flag on and the latch held, all three resistive lines book 0.0 and
@@ -93,14 +93,16 @@ slices taken from `tests/features.py`, and the block text, under the same
 
 ## Figures
 
-- `8 of 4480 FEATURE CHECKS FAILED` before the fix, `ALL 4480 FEATURE CHECKS
+- `10 of 4481 FEATURE CHECKS FAILED` before the fix, `ALL 4481 FEATURE CHECKS
   PASSED` at this head -- `python3 tests/features.py`
 - `R10-IMMERSION-LATCH controls: no element {'spot': 3.0, 'grid_fee': 3.0,
   'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0} booster {'spot':
-  2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.575, ...} flat at
-  nameplate {'spot': 2.5, ...} savings off (3.45, 8.625, 1.5, 3.45, 3.45) on
-  (3.45, 8.625, 1.5, 3.45, 2.875)` -- `python3 tests/features.py` (the block
-  prints its controls on the pass)
+  2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster':
+  0.5750000000000002, 'backup_heater': 0.0} flat at nameplate {'spot': 2.5,
+  'grid_fee': 2.5, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0}
+  savings off (3.45, 8.625, 1.5, 3.45, 3.45) on (3.45, 8.625, 1.5, 3.45,
+  2.875)` -- `python3 tests/features.py` (the block prints its controls on the
+  pass)
 - `class_excess_loc 18041 <= 18047`, `max_class_loc 8216 <= 8222`, both
   re-recorded downwards in this commit -- `python3 tests/structure.py`
 - `MODE: SCOPED -- 28 script(s) run, 5 scoped out` --
