@@ -9834,7 +9834,7 @@
     "stage": "in-progress",
     "branch": "handoff/r10-house-grade",
     "commit": "f1f67bec2420ab603de2ee39dcb69649498ea988",
-    "last_step": "PR head 253dc4867 carries code f1f67bec2 and body ref 0ed3c466d; at 13:20Z every completed check-run green, tests / fast and tests / mutation still in progress",
+    "last_step": "PR head 253dc4867 (code f1f67bec2, body ref 0ed3c466d) is fully green: 55 check-runs, 39 success, 16 skipped, 0 pending, 0 failure; tests / fast and tests / mutation both success",
     "next_step": "a reviewer is owed at 253dc4867; do not re-push",
     "note": null,
     "pr": 2876
