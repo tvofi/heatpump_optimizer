@@ -1,0 +1,14 @@
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:885:    space, dhw = coord._commanded_split()
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:919:    split = coord._commanded_split()
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:1016:        coord._commanded_split(),
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:1091:    split = coord._commanded_split()
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:1188:    share = draw_range.space_share(a.space, a.dhw)
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:4782:        space, dhw = self._commanded_split()
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:4803:        commanded_space, dhw_share = self._commanded_split()
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:4833:        commanded_total = commanded_space + dhw_share
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:4840:        return max(0.0, float(self._measured_power) - dhw_share)
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:5063:        heat_kw, a = span or (bias.heat_output_kw, heat_energy.meter_of(self).attribution(self._commanded_split()))
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:9855:        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:10209:        dhw_share = heat_energy.dhw_share(
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:10212:        dhw_energy = energy * dhw_share
+ec7af675c:custom_components/heatpump_optimizer/coordinator.py:10266:        metered_dhw = metered * dhw_share

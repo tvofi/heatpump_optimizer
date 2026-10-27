@@ -1,0 +1,23 @@
+=== command: python3 tools/audit/archscore/score.py --diff 524c1896b6943b3da03d6cad61420ced31e14c9c HEAD ===
+Architecture score: dS +0.0131 IMPROVES
+  coordinator_multiassigned_attrs 110 -> 109  +0.0131
+
+=== command: python3 tools/audit/archscore/score.py --diff 3b4180dcc680 HEAD (body's stated base) ===
+Architecture score: dS +1.8457 IMPROVES
+  duplication_copies 38 -> 35  +1.0310
+  coord_footprint 2421 -> 2412  +0.0054
+  coordinator_multiassigned_attrs 110 -> 109  +0.0131
+  params_over_10 7 -> 6  +0.1926
+  layer_violations 17 -> 13  +0.3626
+  private_cross_module 12 -> 10  +0.2410
+
+=== command: python3 tools/audit/archscore/score.py --diff 5fb833930 HEAD (round-1 base) ===
+Architecture score: dS +1.8546 IMPROVES
+  duplication_copies 38 -> 35  +1.0310
+  coord_footprint 2423 -> 2412  +0.0066
+  coordinator_multiassigned_attrs 110 -> 109  +0.0131
+  params_over_10 7 -> 6  +0.1926
+  layer_violations 17 -> 13  +0.3626
+  private_cross_module 12 -> 10  +0.2410
+  literal_clone_copies 186 -> 185  +0.0077
+  shape_copies 44 -> 42  (gate only)

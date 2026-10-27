@@ -1,5 +1,0 @@
-RESULT P1 a heat-counter install with no power entity refuses the per-cycle COP as no_measured_power: PASS 'no_measured_power'
-RESULT P2 on that install the per-cycle COP gate is False on every cycle (span_open never returned): PASS clean False
-RESULT P3 the span is valid on both arms (heat 9.0 kW, elec 3.0 kW, no refusal) and only the gate differs: PASS with power 9.0/3.0/None without 9.0/3.0/None
-RESULT P4 with the power entity the span folds the COP; on an energy-only install close.cop is False, so _async_learn_heat_span never calls _fold_cop_evidence: PASS cop with power True without False
-PROBE RESULT: 4 check(s), 0 failed
