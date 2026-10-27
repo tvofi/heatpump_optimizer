@@ -1,47 +1,54 @@
-Correction to triage batch 40, entry P211 (V124), which merged as #2886 at `ee5816b1`. The verdict line does not change — **ACCEPT narrowed** — but the ruling's second-arm analysis was wrong and this replaces it.
+Triage batch 40's P211 ruling is corrected on main. #2886 merged its pre-correction text at 19:41Z,
+and the triage seat's re-ruling -- which withdraws its own "the figure is absent from #2854's body"
+claim and splits P211's second arm -- arrived after that PR's review had already returned
+`Fix review: merge 0f779c2dc`. A merge verdict cannot cover a change made outside its diff, so the
+correction is its own pull request rather than a re-push of a merged branch.
 
-The first cut rejected V124's second arm whole: "raise the threshold, and stop the lease being shorter than the gate it protects". The threshold raise alone stays REJECTED, for the reason already in the entry — a prepr takes a pool slot held for the life of its run, not the exclusive lease (`tests/gate_lock.py:53-56`), every measured instance is a healthy run, so a bigger number treats the symptom. The lease half is different, and my first cut missed why: an expired lease does not merely fail to protect, it **refuses the command**. `renew()` raises `no live gate lease to renew` when the recorded owner is absent or expired (`tests/gate_lock.py:577`), and `_cmd_flock_wrap` (`:1123`) turns that `RuntimeError` into rc 1 without running the command; `flock_wrap` (`:861-877`) recovers only from `RenewRefused`. So a lease that lapses between two measuring commands inside one prepr refuses the second, and #2854's own body records exactly that: `tests/stress.py` and `tests/harness_headers.py` "were refused by `tests/gate_lock.py` when the 30-minute lease lapsed inside the 85-minute run".
-
-That half is now a second carry to `R10-PREPR-CAP`, the group that owns `tests/gate_lock.py`. The repair does not lengthen `LEASE_SECONDS` and does not loosen `renew()`'s refusals: in the `flock-wrap` path, an expired own-label lease is refreshed when no ticket waits, and otherwise the path re-takes at the back exactly as `RenewRefused` already does. A command never runs without a live lease; a run that never loses its lease takes exactly today's code, which is the null control; the two self-test arms are an expired own-label lease with no waiter (refreshes and runs) and one with a waiting ticket (re-queues rather than running beside it).
-
-**How the first cut went wrong, recorded because it is the seat's own class.** I reported that #2854's body lacked the 85-minute figure. It has it. My grep matched the containing line and the cut I read printed only its first 220 characters; I read absence off the truncated prefix and rejected a real finding on it. The orchestrator's provenance edit on #2886 caught the false claim; the mechanism is the seat habit of printing the whole answer rather than a prefix.
-
-The diff is one markdown file under `dev/programme/triage/`. No product behaviour changes.
-
-**Roster state, so the ops are right.** Both destinations are already `fixing` at `origin/handoff/audit-r10-roster` `8f7e252fe` (both were `done` at `32b938f3e`), so the `set-stage` halves of this batch's queue lines have landed and only the two `append-carry` ops remain: `R10-UPDATE-PR-SIGNALS` with `b40-P211.txt` and `R10-PREPR-CAP` with `b40-P211-lease.txt`. Both texts pass the gate against this file. The orchestrator un-marks them; this seat does not re-queue them.
+What changes in the ruling, and why it matters downstream: the second arm no longer reads "REJECTED
+twice over". The **threshold raise stays REJECTED**; the **lease half is ACCEPTED narrowed** to
+`R10-PREPR-CAP` as a second carry. The evidence is #2854's own body, which records `tests/stress.py`
+and `tests/harness_headers.py` refused by `tests/gate_lock.py` "when the 30-minute lease lapsed
+inside the 85-minute run". Without this correction the roster would carry a rejection of a mechanism
+the tree's own record shows firing.
 
 ## Head
 
-`2a92dd656f7e01d4f358ee58df0d69735a201bd7`; the file is the whole diff against `a0e7664ea`.
+`0dfca1cfba47831d32ad80534999659ae542d30c`, two commits on `a0e7664ea` (main): the seat's corrected
+entry (`2a92dd656`), then three citation corrections measured at that head (`0dfca1cfb`) -- #2854's
+body `updatedAt` is 19:09:27Z, read live, not the 18:23:17Z the earlier read carried; and
+`_cmd_flock_wrap` refuses at `tests/gate_lock.py:1124` while `:1123` only prints, so the span is
+cited `:1119-1124`.
 
 ## Mutation proof
 
-The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 456, `triage_refusal` at 464): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file, with the seat library on `sys.path`:
+The file's only executable gate is `tools/audit/seat/roster_edit.py`'s `triage_refusal`, which
+refuses a roster text naming a proposal whose cited entry is not an ACCEPT. Driven directly with a
+carry text citing `triage: dev/programme/triage/s6-batch40.md#P211`:
 
-```
-committed verdict ACCEPT
-committed carry1 None
-committed carry2 None
-mutant DEFER verdict DEFER
-mutant DEFER carry2 dev/programme/triage/s6-batch40.md#P211 is not an ACCEPT ruling (DEFER)
-mutant heading verdict None
-mutant heading carry2 dev/programme/triage/s6-batch40.md#P211 is not an ACCEPT ruling (no such entry)
-```
-
-Two mutants, both on the committed text in memory: the verdict flipped to `DEFER`, and the heading changed to `## P211 (relay P1):`. Both are refused, so the second carry is genuinely read against this file's verdict and this file's entry anchor, not merely against the file's presence.
+- the corrected file (P211 `Verdict: ACCEPT`) -> `None`: the carry is routable;
+- the same file with that verdict changed to `DEFER` -> `dev/programme/triage/s6-batch40.md#P211 is
+  not an ACCEPT ruling (DEFER)`;
+- the same file with the heading changed to `## P211 (relay P1):` -> `no such entry`;
+- null control, a text naming no proposal -> `None` again, so the refuse in arm two comes from the
+  verdict and not from the run.
 
 ## Null control
 
-`missing file` — `the triage ruling dev/programme/triage/s6-batch40.md is not on the roster branch or origin/main`; `uncited proposal text` — `proposal-sourced text cites no triage ruling (...): 'proposal P2 adds a check'`. Both from the same run. The mutation proof's `committed carry1 None` is the positive control on the unchanged carry text.
+The unmodified tree (main `a0e7664ea`) states the second arm as REJECTED twice over, names one carry
+and carries no `R10-PREPR-CAP`, no second carry and no Instances item (6): `git show
+origin/main:dev/programme/triage/s6-batch40.md | grep -c 'R10-PREPR-CAP'` prints `0`, and the same
+grep over this head prints `2`. The gate above passes on both trees for the P211 carry, so the
+mutation proof is measuring the verdict line and not the correction.
 
 ## Figures
 
-- `tests/gate_lock.py:577` — `renew()` raising `RuntimeError("no live gate lease to renew")` when `owner is None or owner.expired`.
-- `tests/gate_lock.py:1123` — `_cmd_flock_wrap` printing `gate_lock: flock-wrap refused, {label} holds no lease: {exc}` and returning 1.
-- `tests/gate_lock.py:861-877` — `flock_wrap` catching `RenewRefused` only, releasing and re-taking at the back.
-- `tests/gate_lock.py:53-56` — "A pool slot is held for the LIFE of its run, not for its lease ... under load a prepr routinely runs past `LEASE_SECONDS`".
-- #2854's own body, `updatedAt` 2026-10-27T18:23:17Z — "were refused by `tests/gate_lock.py` when the 30-minute lease lapsed inside the 85-minute run (`gate_lock: flock-wrap refused, fix-2854-conflict holds no lease: no live gate lease to renew`)".
-- roster stages — `python3 -c "import json; gs=json.load(open('dev/programme/rosters/wave-r10-groups.json'))['groups']; print([(g['group'], g['resume']['stage']) for g in gs if g['group'] in ('R10-UPDATE-PR-SIGNALS','R10-PREPR-CAP')])"` at `8f7e252fe` prints both `fixing`; the same over `32b938f3e` prints both `done`.
+- `git diff --stat origin/main...0dfca1cfb` -- `dev/programme/triage/s6-batch40.md | 61 +++---`:
+  1 file changed, 47 insertions(+), 14 deletions(-).
+- `git log --no-merges --oneline origin/main..0dfca1cfb` -- two commits.
+- `git diff --stat 1a6365f16:dev/programme/triage/s6-batch40.md a0e7664ea:dev/programme/triage/s6-batch40.md`
+  -- empty: main's copy before this branch is the authored head's, so the diff carries the
+  correction and nothing lost in #2886's merge.
+- `grep -c '18:23:17Z' dev/programme/triage/s6-batch40.md` -- `0`; `grep -c '19:09:27Z'` -- `2`.
 
 ## Red checks
 
@@ -49,7 +56,10 @@ none
 
 ## Forward-carry
 
-none
+The corrected ruling creates a second carry, to `R10-PREPR-CAP` (it owns `tests/gate_lock.py` and
+already holds P206's carry). The triage seat files its text on the roster queue and holds both of
+this batch's append-carry ops until this file is on main.
+Carry: R10-PREPR-CAP
 
 ## Friction
 
