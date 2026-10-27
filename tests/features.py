@@ -11031,6 +11031,55 @@ R.check(
     f"single-zone {_zoned_caps[False][2]:.4f}, two-zone {_zoned_caps[True][2]:.4f}",
 )
 
+# --- Batch two-zone twin: the cap the parity cells never reach --------------
+# The parity cells start a 750 L tank with charge to spare, so no step there
+# refuses heat: a defect confined to the batch's own clamp survives every
+# cell (measured -- this group's M11 did). This case drives the tank into
+# buffer_max_temp and demands the batch track the scalar step bit for bit:
+# the cells' own contract, aimed where they are blind. The null controls
+# below hold the reach -- a case that refused nothing would prove nothing
+# about the clamp. (The batch's discharge bound is *not* reachable this way:
+# the stability count divides the step until the heat the tank holds above
+# its floor exceeds the draw, on either API, so that arm cannot bind.)
+def _batch_cap_twin():
+    _cp = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=23.0,
+        buffer_max_temp=70.0, cop_flow_carnot=True,
+        max_electrical_power=12.0, radiator_power_fraction=0.5,
+    )
+    _cm = ThermalModel(_cp)
+    _cs = ThermalState(
+        room_temperature=21.0, slab_temperature=25.0,
+        upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+        buffer_tank_temperature=69.5, outdoor_temperature=-5.0,
+    )
+    _cn = 8
+    _cpw = np.full(_cn, 12.0)
+    _cwx = WeatherSeries(outdoor_temps=np.full(_cn, -5.0))
+    _cb = _cm.simulate_trajectory_batch(_cs, _cpw.reshape(1, _cn), _cwx)
+    _ct = _cm.simulate_trajectory(_cs, _cpw, _cwx)
+    _tracks = (
+        ("room", _cb["room"][0], _ct[0]), ("slab", _cb["slab"][0], _ct[1]),
+        ("upper", _cb["upper"][0], _ct[2]), ("lower", _cb["lower"][0], _ct[3]),
+        ("buffer", _cb["buffer"][0], _ct[4]),
+        ("refused", _cb["refused"][0], np.asarray(_ct[5])),
+    )
+    return (
+        [name for name, a, b in _tracks if not np.array_equal(a, b)],
+        float(np.max(_cb["refused"][0])),
+        float(np.max(_cb["buffer"][0])),
+    )
+
+
+_cap_bad, _cap_refused, _cap_peak = _batch_cap_twin()
+R.check(
+    "batch twin: charging into buffer_max_temp matches the scalar step bit-for-bit",
+    not _cap_bad and _cap_refused > 1.0 and _cap_peak <= 70.0 + 1e-9,
+    f"diverged tracks: {_cap_bad}; peak refused {_cap_refused:.4f} kW; "
+    f"tank peaked at {_cap_peak:.4f} C",
+)
+
 
 R.section("The valve hold schedule (item 29)")
 
