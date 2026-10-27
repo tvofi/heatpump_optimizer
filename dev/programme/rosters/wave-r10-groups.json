@@ -4871,7 +4871,7 @@
     "commit": "5c01e40658af339371b22b1b7c141ae3e539deb9",
     "last_step": "handoff pushed at 5c01e4065 (body handoff-body 1b5ff1d65); merged origin/main 524c1896b, re-recorded functions_cc_over_15 28->27, 11 mutants KILLED, 25 unpinned sites disposed, scoped gate at this head",
     "next_step": "open the PR from handoff/r10-buffer-store and dispatch the fix review at 5c01e4065 with the finder's harness (probe 34 ok, 11 mutants KILLED); body on handoff-body/r10-buffer-store; gate reds are answered in its ## Red checks",
-    "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md (process state (c), census countermeasure). Gate reds: the stress_budgets raise on summer/1z/space/valve is the owner's; the shoulder economics red reads the same at base, main and head; the optimality claim closed; card.mjs OOM on this host."
+    "note": "RCA in dev/audit/rca/R10-RCA-BUFFER-STORE.md: cause named, process state (c) with evidence, cost test ~31,000x, census countermeasure demonstrated red at base and green at head, plus a recorded refusal. Gate reds at this head: optimality (the arm64-only claim, documented at tests/optimality.py:711-717); card.mjs (host V8 heap -- ALL CARD CHECKS PASSED at 4 GiB); stress.py's shoulder case (identical 4.6716/3.9585 at base, main and head, carried to R10-FLOW-POSTMERGE). #2499 stays open (Part of); its residual is carried to R10-STORE-RACES."
    },
    "class": "production",
    "group": "R10-BUFFER-STORE",
