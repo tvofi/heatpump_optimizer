@@ -6964,12 +6964,13 @@
    "architect_note": "",
    "brief": "Mechanise P3 for round 11 (owner, 2026-10-21). (1) A workflow that runs the architect/planner seat and then the architecture-plan reviewer between audit-verify and the fix wave, taking audit-verify's class-grouped draft roster as input and producing the round's roster draft, the ADRs and the move plan on a plan ref. (2) A move ledger: per group, the predicted and the merged dS per metric from each PR's Architecture score lines, and the round's end-to-end admissible diff from the fork SHA (tools/audit/archscore/score.py --diff), flagging a dS no planned move explains. (3) A holdout check run at the fork and at the stamp: tests/structure.py budgets, the archscore gate-only tripwires, a behaviour inventory (entities, services, options, card features), mutation kill rate, and change coupling from git history; any regression fails the round's target. Reuse score.py, vector.py and R10-FLOW-TOOLKIT-MEASURE's flow metrics; re-implement none of them.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-flow-audit-plan",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "pr": 2869
    }
   },
   {
