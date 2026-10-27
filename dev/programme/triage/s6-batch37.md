@@ -31,8 +31,7 @@ the proposal describes.
   refs/heads/handoff-body/r10-flow-jidoka-p2-body ... ct=1793007293`, `DISPATCH: ? ... no code
   ref (25.6h)` and `OWNER FLAG: ? ... stranded 25.6h (threshold 12h)`, at 11:09:39Z in the
   board log `tick.txt` in the orchestrator state directory. It is the board's only OWED line,
-  so it is the whole of the OWED channel — the same argument that moved the dead-seat
-  threshold from 660 s to 1800 s, applied to a line that cannot heal itself because the ref
+  so it is the whole of the OWED channel, and the line cannot heal itself because the ref
   is correct and will never move.
 - The emitter: `tools/audit/seat/ledger.py` classifies by ref prefix (`ARMS` maps
   `refs/heads/handoff-body/` and `refs/heads/handoff/` to `handoff-no-pr`), and `level()`'s
@@ -47,10 +46,20 @@ the proposal describes.
 
 Cost: about 6-10 lines in `level()` plus a `result-body` counter in its `why` mapping, and one
 `git show <ref>:BODY.md` per otherwise-owed `handoff-body/` ref per pass — one process spawn
-today, zero on a clean board, against a pass that already fetches four ref globs and runs a
-`for-each-ref`/`covered` per owed topic. Self-test arms owed with it: one on the real shape
+today, zero on a clean board, against a pass whose `ledger.fetch_world` already asks `git fetch`
+for four refspecs (a plain `main` plus the `handoff/*`, `handoff-body/*` and `fix/*` globs;
+`tools/audit/seat/ledger.py:434-437`) and which runs a `for-each-ref`/`covered` per owed topic.
+`cloud_relay.sh`'s relays are a different count — five `git ls-remote` globs, `probe/*`,
+`review/*`, `handoff/*` plus `handoff-body/*`, and `verdict/*` (lines 270, 306, 401 and 404) —
+so the two are not the same figure. Self-test arms owed with it: one on the real shape
 (the H1 marker) going from owed to exempt, and one null (an ordinary PR body stays owed). The
-tick's own test pins `count("handoff-no-pr") == 4`, so that test moves with the counter. No
+pin is the ledger's own `--self-test` (`self_test()` in `tools/audit/seat/ledger.py`), run by
+`.github/workflows/governance.yml:585`, not the tick's:
+`grep -rn 'count("handoff-no-pr")' tools/ tests/` prints exactly one hit,
+`tools/audit/seat/ledger.py:831`, asserting the `level` CLI's stdout carries
+`r.stdout.count("handoff-no-pr") == 4`; and the same `self_test()` at `ledger.py:810` compares
+`dict(why)` exactly against a five-key literal, so a `result-body` key added to `why` breaks
+that exact-dict too. Both assertions move with the counter. No
 GitHub API call, no CI minutes, no new file, and no hot file beyond `ledger.py`.
 
 Binding: the marker must be the one seats actually write — the H1 form measured above — or the
