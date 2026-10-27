@@ -1749,7 +1749,7 @@ def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any
     Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
     no part-load term is byte-identical to one priced before it."""
     heat = cop * electrical_power
-    if params.cop_partload_derate:
+    if False:
         heat = heat * partload_factor(params, electrical_power)
     return heat
 
