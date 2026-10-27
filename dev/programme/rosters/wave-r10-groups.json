@@ -9833,7 +9833,7 @@
     "stage": "handoff",
     "branch": "handoff/r10-house-grade",
     "commit": "f1f67bec2420ab603de2ee39dcb69649498ea988",
-    "last_step": "code at f1f67bec2 answers the tests / fast red; handoff and body refs pushed, PR branch still 8b37c0a5",
+    "last_step": "PR head 253dc4867 carries code f1f67bec2 and body ref 0ed3c466d; at 13:20Z every completed check-run green, tests / fast and tests / mutation still in progress",
     "next_step": "queued for the coordinator's serial push of f1f67bec2 (update_pr); then a reviewer is owed at the head it lands",
     "note": null,
     "pr": 2876
