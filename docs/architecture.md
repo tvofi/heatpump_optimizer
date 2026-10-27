@@ -356,6 +356,9 @@ These instruments keep this page honest:
   structures around it; a decomposition elsewhere — the optimizer, for
   example — reads NULL. It is a review trigger, never a target a seat is
   rewarded for moving, and it is a required check on a pull request.
+- [`tools/audit/seat/INSTRUMENTS.md`](../tools/audit/seat/INSTRUMENTS.md)
+  is the inventory of instruments a seat runs; it is the first place to look
+  before hand-rolling a merge, push, body or watch loop.
 
 ## The shape at programme end
 
