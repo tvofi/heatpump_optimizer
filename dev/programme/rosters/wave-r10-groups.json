@@ -8959,7 +8959,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-orch-review-packet",
-    "commit": "9c35ddd23bca6d7281d74ff7c6b6d854f8953bbf",
+    "commit": "52aa51050531e1d58e0217c58fb982ec3b358e61",
     "last_step": null,
     "next_step": "fixer live, so its after-edges are satisfied; 2ca9b4a0b has bus.sh dispatch render the reviewer's packet and refuse on its mechanical signals, and 9c35ddd2 puts --no-renames on the touched-paths diff for closure.py's RENAME_SITES pin. No handoff branch and no PR yet: reachable at wip-sync/ext-wt-2b362865 (snapshot). Push handoff/r10-orch-review-packet, then open the PR.",
     "note": "owner card 8, 2026-10-24"
