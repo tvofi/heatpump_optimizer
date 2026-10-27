@@ -49,6 +49,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+import proof_watch  # noqa: E402  (the one Python reader of the verdict grammar)
 import ref_privacy  # noqa: E402
 
 REPO = os.environ.get("HPO_BUS_REPO", "tvofi/heatpump_optimizer")
@@ -119,6 +120,16 @@ def hot_file_refusals(paths: set[str], open_prs: list[dict], boarded: set[int], 
         if p.get("merge_verdict_head") == p["head"] and p["number"] not in boarded:
             out.append(f"#{p['number']} holds an unboarded merge verdict and shares {', '.join(shared)}")
     return out
+
+
+def verdict_merge_head(sha: str, read=None) -> str | None:
+    """The head a merge verdict names, or None: the first line of `VERDICT.md`
+    in the verdict ref's commit, parsed by `proof_watch.parse_verdict`, the one
+    Python reader of the grammar (`agreement_py.py` refuses a copy)."""
+    read = read or (lambda s: git("show", f"{s}:VERDICT.md", check=False))
+    lines = read(sha).splitlines()
+    v = proof_watch.parse_verdict(lines[0]) if lines else None
+    return v[1] if v and v[0] == "merge" else None
 
 
 def harness_source(harness: str | None, harness_file: str | None, base: str, touched: set[str]) -> tuple[str, bytes]:
@@ -238,11 +249,11 @@ def gather(a) -> dict:
         for p in gh(f"repos/{REPO}/pulls?state=open&per_page=100"):
             files = [f["filename"] for f in gh(f"repos/{REPO}/pulls/{p['number']}/files?per_page=100")]
             tip = git("ls-remote", "origin", f"refs/heads/verdict/{p['number']}", check=False).split()
-            subj = git("log", "-1", "--format=%s", tip[0], check=False) if tip and not git(
-                "fetch", "-q", "origin", f"refs/heads/verdict/{p['number']}", check=False) else ""
-            m = re.search(r"Fix review: merge ([0-9a-f]{40})", subj)
+            merge_head = None
+            if tip and not git("fetch", "-q", "origin", f"refs/heads/verdict/{p['number']}", check=False):
+                merge_head = verdict_merge_head(tip[0])
             open_prs.append({"number": p["number"], "head": p["head"]["sha"], "files": files,
-                             "merge_verdict_head": m.group(1) if m else None})
+                             "merge_verdict_head": merge_head})
         boarded = train_boarded()
     return {
         "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate,
@@ -330,6 +341,10 @@ def _self_test() -> int:
     check("hot-file null: the same verdict boarded passes", hot_file_refusals({HOT_FILES[0]}, prs, {9}, 7) == [])
     check("hot-file null: a verdict at a stale head is not a merge verdict at its head",
           hot_file_refusals({HOT_FILES[0]}, [dict(prs[0], merge_verdict_head=B)], set(), 7) == [])
+    check("hot-file reader: the verdict's head is the first line of VERDICT.md through proof_watch.parse_verdict",
+          verdict_merge_head("d" * 40, read=lambda s: f"Fix review: merge {H}\nevidence: ev/\n") == H)
+    check("hot-file reader null: a verdict-ref commit subject is not a verdict",
+          verdict_merge_head("d" * 40, read=lambda s: f"verdict 7 {H}\n") is None)
 
     base = git("rev-parse", "HEAD").strip()
     try:
