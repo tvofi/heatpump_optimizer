@@ -1,0 +1,3 @@
+RESULT round s4: headings=4 unique=4 duplicates={}
+RESULT round s5: headings=37 unique=37 duplicates={}
+RESULT round s6: headings=169 unique=169 duplicates={}

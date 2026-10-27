@@ -1,0 +1,16 @@
+== driver BEFORE ==
+RESULT driver_end: wt-before predicate= carried_from
+RESULT e_two_rows_one_held: appends=[] refusals=[(15, 'R9-DEST', "already carried from #15: 'From #15 (R9-CARRY): finding one landed.'"), (15, 'R9-DEST', "already carried from #15: 'From #15 (R9-CARRY): finding one landed.'")]
+RESULT e_finding_two_lost: True
+RESULT e_both_distinct_findings_survive: False
+RESULT f_null_control_both_append: True appends=[('R9-DEST', 'finding one, already landed by routing. Carry: R9-DEST'), ('R9-DEST', 'finding two, genuinely new and not held. Carry: R9-DEST')] refusals=[]
+RESULT a_duplicate_refused: got='From #15 (R9-CARRY): landed.' want='From #15 (R9-CARRY): landed.' -> PASS
+RESULT b_same_pr_no_matching_carry_appends: got=None want=None -> PASS
+RESULT c_other_pr_named_appends: got=None want=None -> PASS
+RESULT d_null_control_appends: got=None want=None -> PASS
+RESULT b_ii_same_pr_distinct_finding_refused: got='From #15 (R9-CARRY): landed.' want='From #15 (R9-CARRY): landed.' -> PASS
+RESULT two_distinct_one_pr_lost: got=True want=True -> PASS
+RESULT unresolvable_prose_no_match_appends_and_gate: n/a -> proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'a proposal: triage P99 (s4). Carry: R9-DEST'
+RESULT unresolvable_cite_no_match_appends_and_gate: n/a -> proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'proposal triage P7 (s4). Carry: R9-DEST'
+RESULT unresolvable_file_cite_gate: the triage ruling dev/programme/triage/s9-batch1.md is not on the roster branch or origin/main
+RESULT g_live_prose_reference_matches_2447: 'Source: #2447 Forward-carry. Step 6f reads the committed tree (`git grep` at HEAD), as CI does; an uncommitted raw `git init` is invisible to it. A seat runnin

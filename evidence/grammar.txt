@@ -1,0 +1,5 @@
+RESULT carry_grammars: {'cite_only': 85, 'prose_only': 3, 'both': 0, 'other_grammar': 2, 'none': 602}
+   OTHER: ('R10-ARCH-DOCS', "Study step, run first (owner suggestion tvofi 2026-10-22; triage P5 ACCEPT, timing set by the orchestrator to the owner'")
+   OTHER: ('R10-FLY-ORPHANS-REWRITTEN', 'Fold (s4 triage P1): bus.sh orphans reports a handoff tip as ORPHAN when the tip is a merge commit of main whose non-mer')
+RESULT destination_ruling_keys: 87
+RESULT keys_with_multiple_carries: 1

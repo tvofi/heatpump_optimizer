@@ -1,0 +1,18 @@
+# refusal placement, print, non-abort
+480:                    held = already_carried(g.get("carry") or [], text)
+471:                    refusals.append((pr.number, dest, "not a roster group"))
+473:                    refusals.append((pr.number, dest,
+482:                        refusals.append((pr.number, dest,
+588:            print(f"roster_sync: REFUSED Carry: {dest} from #{number}: {why}")
+955:              "REFUSED Carry: R9-OVER from #15" in out
+962:              "same finding, same triage ruling", "REFUSED Carry: R9-FROM "
+972:              "REFUSED Carry: R9-ECHO from #15: already carried" in out, out)
+570:        apply_plan(projected, changes, [])
+611:            apply_plan(projected, changes, [])
+571:        appends, refusals = carry_plan(projected, transitions, a.repo,
+612:            appends, _ = carry_plan(projected, transitions, a.repo, a.pr_state)
+--- write path gate (roster_edit.py) ---
+643:        why = triage_refusal(added_texts(before, roster),
+--- non-abort pinned by self-test ---
+982:        check("apply rc 0", rc == 0, (rc, out, err))
+983:        check("apply pushes once", branches(bare).count(branch) == 1,
