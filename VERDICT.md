@@ -1,149 +1,134 @@
-Fix review: blocked e766c3bdceca6e64156cb0b44212dc62c1159b6e ruling: "the board's only OWED line" is false (the ledger's own summary at the cited pass is owed=3), the ACCEPT fails proposal-triage.md's unmeasured-benefit rule (one STOP body in the whole corpus, already disposed), and the blanket marker test would exempt a STOP body that states owed work — this instance's own "## What is owed" does.
-bus-nonce: 877f5c03bd92a7ba023d0607932a9a72
+Fix review: merge 5fc0158aa9921acfca259f7a0f64d254174a303d
+bus-nonce: 0102c96a815638b7a3868f30c75da2eb
 
-# Fix review — #2879 triage: s6 batch 37 (P205), round 3
+Round 4 of #2879, the repair and the merge. Head re-read at posting: unchanged.
+This head's three-dot diff over `4db1d3e28` (= `origin/main` tip) is
+`dev/programme/triage/s6-batch37.md` +78 and `dev/programme/delivery/2879.md` +1,
+2 files, 79 insertions, and nothing else. No production line is written, so no
+mutant is owed and no instrument moves; the class rule is the corpus scan below,
+which returns the one seam the body dispositions.
 
-Head reviewed: `e766c3bdceca6e64156cb0b44212dc62c1159b6e` (re-read at
-`refs/pull/2879/head` immediately before posting: unchanged). Merge base
-`67178dc6a589cf95d2ce7cff36d8bbf17343e8dc` (= origin/main tip). Diff: 2 files,
-+71/-0 — `dev/programme/triage/s6-batch37.md` +70, `dev/programme/delivery/2879.md` +1.
+## The three blocks
 
-Form notes. Line 1 uses `bus.sh`'s enforced grammar (`verdict_sha`,
-`tools/audit/seat/bus.sh:164-170`: `Fix review: merge <40-hex>` or
-`Fix review: blocked <40-hex> <class>: <reason>`); `push-verdict` refuses the brief's
-`Verdict:` form at this head. `push-verdict` also takes a third argument, the evidence
-directory; it was passed.
+- B1 answered by measurement, not by reading. `grep -B1 'TICK-RELAY
+  2026-10-27T11:09:14Z' ~/hpo-orch/r10s6/tick-loop.log` prints exactly the level
+  line `ledger: level carried=167 disposed=26 open-pr=16 owed=3 state-ref=4` above
+  that relay line, so the pass the board read carried `owed=3` and the prior
+  ruling's "the board's only OWED line" is refuted. The record's second claim,
+  that the jidoka ref was one of the three, is a derivation, and it gives its two
+  premises in the same sentence with their citations: not disposed until
+  `2026-10-27T11:28:57Z` (`grep r10-flow-jidoka-p2-body
+  ~/.local/state/hpo/dispositions.tsv`, one row) and no open PR or `handoff/` code
+  ref on its topic (`git ls-remote origin 'refs/heads/*jidoka*'`; `gh pr list`:
+  #2853 `fix/r10-flow-jidoka-p2` and `refs/heads/handoff/r10-flow-jidoka-p2` carry
+  the sibling topic). I re-derived all three and the derivation holds. The 11:09
+  OWED detail lines are gone because they live in the per-pass `tick.txt`, which I
+  confirmed is rewritten (its current content is the 18:57 pass and holds no
+  jidoka line) — so the record's inference is the only route, and it is shown.
+  Carry: dismissed: number and derivation re-derived
 
-## Findings
+- B2 answered: `proposal-triage.md`'s "an unmeasured benefit is DEFER, never
+  ACCEPT" is now the ruling, and the gate moves both ways. At this head,
+  `PYTHONPATH=tools/audit/seat python3 -c 'import roster_edit as r; ...'` prints
+  `verdict: DEFER` and `refusal: dev/programme/triage/s6-batch37.md#P205 is not an
+  ACCEPT ruling (DEFER)`; flipping `Verdict: DEFER.` to `ACCEPT.` in memory prints
+  `verdict: ACCEPT` / `refusal: None`; and the unreadable-path null prints
+  `verdict: None` / `refusal: ... is not on the roster branch or origin/main`. The
+  ids line up: P205/V125 continues P204/V124 (`~/hpo-orch/r10s6/triage-STATE.md`,
+  batch 36 on #2877), and the register truly ends at `## V123`
+  (`~/hpo-orch/r10s6/proposals.md`). A DEFER ordered no roster op: the diff holds
+  no roster or groups file, `git grep 'P205\|s6-batch37' -- dev/programme/rosters
+  .claude/workflows dev/programme/carries dev/programme/plan*.md` is empty, and
+  `R10-ORCH-LEDGER`'s carries still hold no P205 text.
+  Carry: dismissed: DEFER takes no roster op
 
-1. **"The board's only OWED line" is wrong (blocking).** The batch (lines 33-35) says
-   the jidoka body "is the board's only OWED line, so it is the whole of the OWED
-   channel". The ledger's own summary for the pass the board read is `owed=3`, not
-   `owed=1`. `~/hpo-orch/r10s6/tick-loop.log`:
-   - the relay pass that finished `2026-10-27T11:09:14Z` (`started=2026-10-27T11:01:38Z`,
-     the level the `11:11:37Z` board read): `ledger: level carried=167 disposed=26
-     open-pr=16 owed=3 state-ref=4`;
-   - the preceding pass prints the same.
-   `cloud_relay.sh:459-464` writes `ledger level`'s stdout into `<log>.level` for the
-   `handoff-no-pr` kind; `orchestrator_tick.py:742-750` prints every such line. All
-   three owed refs are `handoff-no-pr` (ARMS, `ledger.py:99-101`), so the board had
-   three OWED lines. The jidoka ref was one of them (not disposed until `11:28:57Z`),
-   so two others were owed on the same board. The three-line *shape* of the cost is
-   right (it reproduces from `ledger.escalate`); the "only OWED line" claim is not.
-   Evidence: `evidence/owed.txt`.
+- B3 answered, and the narrowed test moves. My own harness
+  (`~/hpo-seats/r10s6/review-2879-r4-ev/marker_test.sh`, disclosed as mine and not
+  the finder's — a triage ruling has no committed harness) implements `marker AND
+  no owed text`, owed text being a `^#{1,6}\s*What is owed` line. Arm A, a STOP
+  first line plus `## What is owed`, stays OWED; arm B, a STOP first line with no
+  owed heading, is EXEMPT; the null control, no marker plus `## What is owed`,
+  stays OWED, so the marker is what drives the exemption. The perturbation that
+  moves it: the round-3 marker-only test flips arm A to EXEMPT, which is exactly
+  the narrowing's delta. Over the real corpus the narrowed arm newly exempts 0 of
+  104 — re-derived: 104 `handoff-body/` refs, all 104 carrying a `BODY.md`, exactly
+  one STOP first line (`b9b690afb…`), and that body's work is under `## What is
+  owed` (its line 19).
+  Carry: dismissed: arms and null control move
 
-2. **The ACCEPT does not meet `proposal-triage.md`'s bar (blocking).**
-   `dev/governance/roles/proposal-triage.md`: "An even or marginal trade is REJECT;
-   **an unmeasured benefit is DEFER, never ACCEPT.**" The batch's own remedy disposes
-   the one instance (`ledger.py dispose`, read back rc=0; the store row is
-   `... b9b690af… 2026-10-27T11:28:57Z disposed`), and a full `ledger.py level` pass at
-   the default home no longer owes it (`carried=192 disposed=27 owed=5`, no jidoka row).
-   So the measured benefit is zero for the instance. For the class it is unmeasured:
-   across all 102 `refs/heads/handoff-body/*` refs (every one carrying a `BODY.md`),
-   exactly one has a STOP first line — the ref already disposed. The batch's own text
-   is "Instances: one". A benefit already delivered by a one-command remedy, with the
-   class frequency unmeasured, is the contract's DEFER. Evidence: `evidence/ruling.txt`.
+## Also re-derived at this head
 
-3. **The blanket marker test exempts a STOP body that states owed work (blocking).**
-   The arm exempts any `handoff-body/` ref whose first non-blank line is a STOP marker.
-   The motivating body is exactly a STOP body that states owed work — its own
-   `## What is owed` gives three items (the code fix on `fix/r10-flow-jidoka-p2`, the
-   body re-take, the carry-audit record). The work happens to be keyed to the sibling
-   topic `r10-flow-jidoka-p2` (a `handoff/r10-flow-jidoka-p2` code ref exists), but the
-   ruling neither says so nor checks it. The constructed case the heading form does not
-   catch: a body whose first line is `# STOP: r10-foo — blocked on X`, whose text names
-   work, and where no `handoff/r10-foo` code ref, no dispatch and no roster row exists.
-   The marker test exempts it and the OWED line — the only automatic signal that the
-   topic is unowned — is gone. `dispatch/` is not an ARMS prefix (`ledger.py:99-101`),
-   and `carry_audit.py check --body` runs on PR bodies (`prepr.sh:837`,
-   `app_push.sh:260`), not on result bodies automatically. The arm needs to verify the
-   follow-up is carried (a `handoff/<topic>` code ref or a dispatch), or the ruling
-   should keep the `dispose` route rather than exempt on the marker alone.
-   Evidence: `evidence/exemption.txt`.
+- corpus `104` and the STOP scan: `git ls-remote origin 'refs/heads/handoff-body/*'
+  | wc -l` = 104, 104 `git show <sha>:BODY.md` succeed, and the record's own scan
+  prints only `b9b690afb9830a20e046b3515bd18858757d2047`.
+  Carry: dismissed: figures re-derived
 
-4. **Wrong identifier.** The batch says the exemptions live in `level()`; they live in
-   `handoff_level()` (`ledger.py:393`). `level` is the CLI verb. The PR body uses the
-   correct name. `evidence/exemption.txt`.
+- a fresh `ledger.py level` at the default home (`carried=180 disposed=27
+  open-pr=16 owed=5 state-ref=4`) prints `grep -c r10-flow-jidoka-p2-body` = `0`
+  over its OWED stdout, and `ledger.py disposed <ref> <sha>` exits 0 for the store
+  row the record cites.
+  Carry: dismissed: remedy read back
 
-5. **The dispositions file named is not the relay state directory's.** The relay's
-   state dir is `$HPO_STATE_DIR` (default `~/.local/state/hpo`), whose
-   `dispositions.tsv` is the ledger's store (236 refs, this one included). The
-   two-entry file is the orchestrator session dir's copy (`~/hpo-orch/r10s6/`). And
-   "a grep of either copy still prints 0" is not true of the repository, where no such
-   file exists (only two policy fixtures); grep there exits 2. `evidence/notes.txt`.
+- the cost shape's two literals: `git show -s --format=%ct b9b690afb` = `1793007293`
+  (2026-10-26T09:34:53Z), 25.579 h at 11:09:39Z, both thresholds of
+  `AGING_DEFAULT = (4.0, 12.0)` passed, so `ledger.escalate` yields OWED plus
+  DISPATCH plus OWNER FLAG.
+  Carry: dismissed: literals re-derived
 
-6. **The three board lines and 11:09:39Z are carried, not cited.** `tick.txt` is
-   rewritten every pass (mtime 17:36) and no longer holds `1793007293`,
-   `r10-flow-jidoka-p2-body` or `11:09:39`. `proposal-triage.md` requires "cite it,
-   don't carry it". The shape and the 25.6h/12h arithmetic reproduce; the literals do
-   not. `evidence/notes.txt`.
+- the cited code locations are correct at this head: `handoff_level()` at
+  `tools/audit/seat/ledger.py:393`, its four exemption keys at 418-427, `ARMS` at
+  99-101, `self_test()` at 592, the exact `dict(why)` at 810,
+  `count("handoff-no-pr") == 4` at 831, and `governance.yml:585`. `ledger.py` and
+  `roster_edit.py` are byte-identical between the record's measurement base
+  `2b45d098c` and this head, so the merge did not move them.
+  Carry: dismissed: line numbers hold at head
 
-7. **The destination's `files` omit `ledger.py`, and P79 already asks for it.** The
-   roster gives R10-ORCH-LEDGER `files` = `cloud_relay.sh`, `orchestrator_tick.py`; the
-   arm edits `tools/audit/seat/ledger.py`. `s6-batch10.md:15` (P79) already carries "Add
-   `tools/audit/seat/ledger.py` to the group's files." P205 neither repeats that ask nor
-   dispositions it, though its line 63 says "no hot file beyond `ledger.py`".
-   `evidence/notes.txt`.
+- `R10-ORCH-LEDGER` is size L with `resume.stage carries-open` and `files` that
+  omit `ledger.py`; P79's carry already asks to add it
+  (`dev/programme/triage/s6-batch10.md:15`), so this batch opening no second carry
+  is right.
+  Carry: dismissed: already carried by P79
 
-8. **`R10-TRIAGE-B37` resolves nowhere.** 0 hits in `wave-r10-groups.json`;
-   `roster_lib.group_for_branch(..., 'fix/triage-s6-batch37')` is `None`;
-   `record_row.py:145` emits a group tail only from that lookup; every other triage
-   delivery row carries no id. `evidence/notes.txt`.
+## The merge
 
-9. **One uncited assertion.** "the seat that most needs it did not read its brief" has
-   no command or log reference. `evidence/notes.txt`.
+- `5fc0158aa`'s parents are the branch head `914e5e4bc` and `4db1d3e28`;
+  `git merge-tree --write-tree origin/main HEAD` exits 0 and its tree
+  `b47225b329bb03f861d321fb53c7ee3e41a9b769` equals `HEAD^{tree}`, so the merge is
+  complete, clean and a no-op against today's main.
+  Carry: dismissed: merge verified clean
 
-## Prior round — each finding answered at this head
+- the merge took main's own files only (`merge_train.py`, `INSTRUMENTS.md`,
+  `delivery/2882.md`) and touched neither branch file, so the three-dot diff is
+  the record and the delivery row and nothing else — as the brief requires.
+  Carry: dismissed: merge holds to the two files
 
-1. Pin attribution — answered; the batch now names the ledger's own `--self-test`
-   (`governance.yml:585`), `ledger.py:831`, and the exact-dict at `:810`. Re-derived.
-2. "Four ref globs" — answered; `ledger.py:434-437` (four refspecs) and
-   `cloud_relay.sh:270,306,401,404` (five globs), both re-derived.
-3. 660 s / 1800 s precedent — answered by deletion.
-4. `s6-batch36.md` unresolvable — answered in the PR body: on #2877's
-   `fix/triage-s6-batch36`, open, "resolves by merge order". Confirmed absent from the
-   tree and origin/main; #2877 OPEN. Still unopenable at this head until #2877 merges.
-5. `proposals.md` — answered; the batch says the entry was not appended, and the
-   register (`~/hpo-orch/r10s6/proposals.md`) ends at V123.
+## Notes
 
-The prior "Not established" note on the board lines is not answered (finding 1 shows
-one of them false); the note on `ledger.py` in the group's `files` is not answered
-(finding 7).
+- Non-blocking: the record's cost sentence still quotes `ct=1793007293` and `25.6h`
+  without the command that prints them, which `proposal-triage.md`'s "cite it,
+  don't carry it" asks for. Both re-derive from `git show -s --format=%ct <sha>`
+  (above), so this is a citation gap, not a wrong figure.
+  Carry: dismissed: re-derived by the reviewer
 
-## Verified
+- Non-blocking: the PR body restates round history in its "This head replaces…"
+  paragraph, which `fixer.md`'s re-cut rule deletes. The requirement is not yet
+  triggered: `bus.sh`'s `blocked_rounds 2879` counts 2 (`verdict/2879` holds
+  `3f7ce8ad` and `45375ae40`), so `bus.sh:397-406` does not demand a `## Re-cut`
+  note, and the `r4` label counts a round with no blocked verdict.
+  Carry: dismissed: re-cut rule not yet triggered
 
-- One entry: `grep -c '^## P'` = 1. Diff +71/-0. Delivery row 1 line.
-- `git ls-remote origin 'refs/heads/handoff-body/r10-flow-jidoka*'` = 3 refs, the named
-  `b9b690afb9830a20e046b3515bd18858757d2047 refs/heads/handoff-body/r10-flow-jidoka-p2-body`
-  plus two siblings.
-- `git show b9b690afb:BODY.md | sed -n 1p | od -c`: first bytes `# S T O P :`; the line
-  is `# STOP: r10-flow-jidoka-p2-body — 5ab48352 does not carry the voluptuous fix`.
-  It is an H1, so the proposal's "begins `STOP:`" test does not match it.
-- `ct=1793007293` = 2026-10-26T09:34:53Z; age at 2026-10-27T11:09:39Z = 25.579 h = 25.6 h;
-  `AGING_DEFAULT = (4.0, 12.0)`, so both thresholds are passed.
-- `grep -rn 'count("handoff-no-pr")' tools/ tests/` = exactly one hit,
-  `tools/audit/seat/ledger.py:831`; `def self_test` at `:592`; `dict(why) ==` at `:810`;
-  `governance.yml:585` runs the self-test.
-- `fetch_world` at `ledger.py:434-437` asks four refspecs (plain `main` + `handoff/*`,
-  `handoff-body/*`, `fix/*`). `cloud_relay.sh`'s relays use five `ls-remote` globs at
-  270, 306, 401 (two) and 404.
-- `ARMS` maps `refs/heads/handoff-body/` and `refs/heads/handoff/` to `handoff-no-pr`;
-  `why`'s keys today are state-ref, open-pr, disposed, carried, owed.
-- The dispose read-back: `ledger.py disposed <ref> <sha>` rc=0; store row
-  `b9b690af… 2026-10-27T11:28:57Z disposed`; `ledger.py level` at the default home no
-  longer owes the jidoka ref.
-- R10-ORCH-LEDGER: `size` L, `resume.stage` `carries-open`, `files` =
-  `cloud_relay.sh`, `orchestrator_tick.py`.
-- `git merge-tree --write-tree origin/main HEAD` rc=0. Check-runs at the head: 22
-  success, 8 skipped, 7 still running, no `failure`.
+- Residual for any future arm: "owed text" is only as good as the heading
+  convention — a STOP body that says "still owed:" in prose would be exempted. The
+  record names this as its DEFER trigger, "a body whose owed text is
+  machine-checkable".
+  Carry: R10-ORCH-LEDGER
 
-## Not established
+## Scope run
 
-- The literal three board lines and the exact `tick.txt` timestamp: the file was
-  overwritten (finding 6); the contradiction in finding 1 comes from the surviving
-  `tick-loop.log` summary.
-- "the seat that most needs it did not read its brief" (finding 9).
-- That the ref "will never move": a future push to it would change the tip; the body is
-  final today but the claim is a forecast, not a measurement.
-- The frequency of future STOP bodies; that is precisely the unmeasured benefit in
-  finding 2.
+Ran: the three B3 arms and null, the real-corpus scan, the `roster_edit` gate and
+its perturbation and null, `ledger.py level` and `disposed`, `carry_audit.py check`
+on this verdict and `pr 2879`, `git merge-tree`, the check-runs API at this head
+and at every earlier head in the range. Not run: `prepr.sh`, the `gate`, the
+mutation lane, and any test suite — CI owns those and this diff writes no
+production line.
+Carry: dismissed: heavy lanes left to CI

@@ -1,0 +1,94 @@
+R10-FLOW-JIDOKA, second slice: error-proofing in `tools/pr/prepr.sh` before the handoff. Refs #2428. The first slice merged as #2838. This slice builds five of the group's roster carries (19, 18, 20, 8, 17). Every addition is a quick, deterministic check, as the owner ruled on 2026-10-22 ("only quick checks"): **at most 5 s per added check, and at most 10 s added to any one prepr or body_push run.** Each check's cost is under `## Figures`, in CPU and in wall, with the host's load beside each run.
+
+- **Step 3f7, `ref_privacy --check` (carry 19, triage s6-batch9 P78; also answers carry 5).** The new function `privacy_line` runs `python3 -I tools/audit/seat/ref_privacy.py --check`, the same command `instrument-self-tests` runs. It judges every line the diff adds for a host path, and every push site for its PUSHERS entry, from the merge base, never the whole tree. A refusal carries the tool's own `file:line: host-path ...` lines. `--body-check` runs it too, over the code head being handed off, so `body_push.sh` refuses such a head before the body push.
+- **Step 4's wave-script trigger reads the moved briefs (carry 18, P75).** The trigger list is now `WAVE_INPUTS`, matched by `pinned_touched` (the matcher step 3f already uses) over the three-dot changed-path list. The dead pre-move briefs glob is replaced by `dev/governance/roles/*.md` and `dev/governance/dimensions/*.md`, the two directories `briefListing()` in `tools/policy/check-wave-script.mjs` reads. If the changed-path list does not derive, the step runs, as `! git diff --quiet` did before.
+- **Step 6g, the D6 claims register (carry 20).** When the diff touches `README.md` or `docs/*.md`, `claims_reg_line` copies HEAD's inputs — `git archive HEAD -- $CLAIMS_INPUTS $CLAIMS_GEN`, the paths `dev/audit/rounds/round4/D6/claims.py` reads: `README.md`, `DISCLAIMER.md`, `LICENSE`, `NOTICE`, `VERSION`, `hacs.json`, `docs`, `.github/workflows`, `custom_components`, `tests/README.md`, `tests/harness.py`, `tests/golden.py`, `tests/entities.py`, `tests/rolling.py`, `tests/profiles.py`, `tests/hastub`, `dev/README.md`, `dev/archive/README.md`, `dev/archive/backlog.md`, `tools/audit/archscore/ABOUT.md`, and the generator's own directory — and runs the generator on the copy. It refuses if the generator fails, if the generated `claims.json` or `claims.md` differs from the committed one, or if a header `RESULT` moved, using `tests/harness_headers.py`'s own `expected_from` and `printed_from`. `git archive` fails the whole pathspec on any path HEAD lacks, so a rename in that list refuses the copy rather than grading a short tree, and the step prints the archive's own reason; a copy holding the generator but not the register committed beside it is named rather than read as stale. It runs whether or not `PREPR_SKIP_CLOSURES` is set, which is the gap #2609 fell through.
+- **Figure lint at body push (carry 8).** `--body-check`, the call `body_push.sh` makes, runs step 7a's `figures_check` on the body and refuses on its rc: the same `figure_lint.mjs --pr-body` that `pr-contract` runs, a function of the body alone.
+- **`--fill-red` (carry 17, P67).** `prepr.sh --fill-red <body>` asks step 6d's predictor one arm — `ci_predict.py --only mutation`, the only arm whose sites it writes; `ci_predict.py` now names its arms in `ARMS` and `predict_line` passes the selector through. When the arm lists unpinned sites and `## Red checks` does not contain `mutation` (policy_lint's own test, a substring), `fill_red` writes one line naming the `mutation` red, the head and the site count. A bare `none` in the section is replaced. Otherwise it writes nothing, and it never refuses. `body_push.sh` runs it before the `--body-check` lint. `tools/pr/prepr.sh` has no budget row, so no budget is raised.
+- **The mutants land in the tree (fixer.md step 18).** `dev/audit/harnesses/r10_seat_selftests_mutants.py` gains a `prepr-1` .. `prepr-12` block beside the other `tools/pr/` mutants, and a `STEP_OF` map naming prepr's self-test step for the two planted in another file (`tools/audit/seat/body_push.sh`, `tests/harness_headers.py`).
+
+## Re-cut
+
+Replaced at the fourth round. The review's findings, and what answers each:
+
+- **6g's copy was the step's cost.** It copied the whole tree — 135.1 MB, of which the `dev/audit` evidence is 81.7 MB that the generator never opens — and that `git archive` is 2.77–2.86 s of CPU. It now copies the generator's inputs: 14.0 MB, 0.21–0.24 s of CPU, and the register it writes is byte-identical to the whole-tree run's (`## Null control`).
+- **`--fill-red` ran the whole predictor.** It now asks the one arm it writes from: 5.66–5.80 s CPU for the whole predictor against 2.86–3.16 s CPU for the check (`## Figures`).
+- **The earlier body restated the budget to 8 s and 15 s after measuring.** That restatement is withdrawn, not carried forward: a budget raised after the measurement to admit the addition it was meant to refuse is not a correction (`ratchet-budgets.md`'s shape). The budget is 5 s per added check and 10 s added per run, and nothing here is over it on the load-independent measure.
+- **The delivery-status red at `fa18c13d2`** is answered under `## Red checks`; the branch has carried its `dev/programme/delivery/2853.md` row since `819b82fb`, and this head states the blocked review in it.
+
+## Head
+
+`3507d345b8684e962ef4751d1593363e696cdd30` merges the authored code head `36c5c78e91c0d1c2517e3f368826bc8352cdd3e6` and then merges origin/main `4f3c73020` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`36c5c78e91c0d1c2517e3f368826bc8352cdd3e6`: the delivery row on `a0e741cf2`, which merges `origin/main` `d620369fad72e18081b2efa1b66ee0058296f12c` into `fa39e955cddb896dc47d5afa652956a6a047a592` (`R10-FLOW-JIDOKA: pay 6g's budget and prove --fill-red detects`). Earlier heads on this branch: `fa18c13d2` (reviewed, blocked), `1fc98acdc` and `819b82fb`.
+
+Merge base `d620369fad72`; origin/main read at `4f3c7302046eccd1f869724a6de2cbf6f8183418`, 2026-10-27T06:18:35Z, and `git merge-tree --write-tree origin/main HEAD` exited 0 against it, so the figures were taken with no second merge (fixer.md step 6). A later merge of `main` is the note above this section, and moves no figure here. `python3 tests/env_drift.py --claims-only origin/main` prints `claims hygiene: origin/main ok` at this head, against the newer tip.
+
+## Mutation proof
+
+Run by the in-tree harness: `python3 -I dev/audit/harnesses/r10_seat_selftests_mutants.py <ids>`, from a clean clone of this head (a clone, so the in-place mutation and its restore cannot touch this worktree). The harness edits the committed file, runs `bash tools/pr/prepr.sh --self-test` as CI's `instrument-self-tests` step runs it, and restores the bytes; the same step on the unmutated file must pass first (cached once per step) or the mutant reads `NOT RUN`. A pattern that does not match exactly once is `NOT RUN`. The kill rule is the step's nonzero exit. One measurement-side change: the harness bounds a step run at 900 s, and on this host under load a self-test run takes longer than that, so the runs were driven through a wrapper that raises only that bound to 5400 s; the baseline, match-once and kill rules are the harness's own.
+
+- prepr-1, step 3f7's call replaced by `PRIVACY_LINE=""` and rc 0: KILLED rc=2.
+- prepr-2, `--body-check` not propagating `privacy_line`'s rc: KILLED rc=2.
+- prepr-3, `WAVE_INPUTS` without the two governance globs: KILLED rc=2.
+- prepr-4, step 6g's `claims_reg_line` call replaced by a skip: KILLED rc=2.
+- prepr-5, the register comparison deleted from `claims_reg_line`: KILLED rc=2.
+- prepr-6, `--body-check` not propagating the figure lint's rc: KILLED rc=2.
+- prepr-7, `fill_red`'s already-named guard deleted: KILLED rc=2.
+- prepr-8, `fill_red`'s no-site guard deleted: KILLED rc=2.
+- prepr-9, `body_push.sh`'s `--fill-red` call deleted: KILLED rc=2.
+- prepr-10, `from harness import Results` put back at the top of `tests/harness_headers.py`: KILLED rc=2, the step's last line `ModuleNotFoundError: No module named 'voluptuous'`.
+- prepr-11, `CLAIMS_INPUTS` naming `NOTICE_MOVED` instead of `NOTICE` (the narrowed copy's path list): KILLED rc=2.
+- prepr-12, `ci_predict.ARMS` without `"mutation"` (the arm `--fill-red` asks for): KILLED rc=2.
+
+Result: `RESULT survivors=0` — 12 planted at `36c5c78e9`, 12 killed.
+
+## Null control
+
+- **The narrowed copy writes the same register.** `git archive HEAD` and `git archive HEAD -- $CLAIMS_INPUTS $CLAIMS_GEN`, each into a fresh directory, run `claims.py` under the same interpreter: both exit 0, 135,128 KB against 14,044 KB, and `claims.json` / `claims.md` hash to `58af4af311288579c7065c1327dc5b50` / `f58efb8b8e286983fc4d48a663be4c54` in both. On this head the step prints `claims.py rewrites claims.json and claims.md byte-identical, its header RESULTs hold`.
+- **A copy without the register is named, not graded.** `claims_reg_line` refuses with "the copy has no committed .../claims.json and claims.md beside .../claims.py, so nothing was compared" rather than reading the committed register as stale. In the self-test a stub generator drives the skip, pass, stale, moved-header and failing-generator arms.
+- **`--fill-red` detects the defect it exists for.** On a branch of a throwaway clone cut from this head's merge base that adds a 3-site function to `away.py`, and a body whose `## Red checks` says `none`: `ci_predict.py --only mutation` lists 3 sites; `policy_lint.mjs --pr-body ... --red mutation` refuses (rc 1) with "check `mutation` is red and `## Red checks` does not name it"; `prepr.sh --fill-red` prints "wrote `mutation` under `## Red checks` for 3 unpinned site(s)" (rc 0) and the same policy_lint call then prints `PR-BODY: 0 error(s)`. The null control: a head that adds no site has 0 sites, `--fill-red` writes nothing, and the body is byte-identical.
+- **The other checks' arms.** In the self-test: `privacy_line` refuses a planted host path and passes the same line written home-relative; `WAVE_INPUTS` matches `dev/governance/roles/fixer.md` and `dev/governance/dimensions/D3.md` and skips a `README.md`-only diff; `figures_check` refuses a body whose figure command cannot resolve and is silent on one whose command resolves, and `--body-check` refuses on its rc.
+
+## Figures
+
+Taken at `36c5c78e9` (timings at `a0e741cf`, whose tree differs only in the delivery row) against merge base `d620369fad72`, 2026-10-27 between 05:31Z and 06:40Z on this 4-core box. origin/main read at `4f3c7302`, 06:18:35Z. **CPU** is `user+sys` from `/usr/bin/time -p`, the load-independent measure the review itself used for 6g. Wall on this host tracks the other seats' load, not the check: the same 6g code measured 4.77–5.66 s wall at load 48–64 and 7.2–10.2 s wall at load 25–40 an hour later, so every wall figure below carries the load it was taken at.
+
+- **Step 6g, whole-tree copy (what the reviewed head did).** `bash <report>/time-6g3.sh <wt> <report>/fx2.sh 3 full` at load 53–70: archive 4.37–6.14 s wall / 2.77–2.86 s CPU, `claims_reg_line` 6.25–7.78 s wall / 3.48–3.61 s CPU, total 10.76–13.92 s wall / **6.25–6.47 s CPU**.
+- **Step 6g, the input list (this head).** Same command with `5 inputs`: copy 0.23–0.30 s wall / 0.21–0.24 s CPU, `claims_reg_line` 4.54–5.39 s wall / 3.65–3.86 s CPU, total 4.77–5.66 s wall / **3.89–4.10 s CPU** (five runs, load 48–64); five further runs at load 25–40: 7.20–10.25 s wall / **3.48–3.76 s CPU**. Ten runs, CPU 3.48–4.10 s, under the 5 s budget.
+- **`--fill-red`, the whole predictor (what the reviewed head ran).** `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at load 48–70: 8.49–9.21 s wall / **5.66–5.80 s CPU**.
+- **`--fill-red`, this head.** `bash tools/pr/prepr.sh --fill-red <body>`: at load 75–101, 5.12–6.09 s wall / **2.86–3.16 s CPU**; at load 25–40, 10.33–14.73 s wall / **2.89–3.12 s CPU**. Six runs, CPU 2.86–3.16 s, under the 5 s budget. The arm alone (`--only mutation`) measures 3.57–5.00 s wall / 2.91–3.05 s CPU.
+- **The small checks**, at `36c5c78e9`, load 26–51, three runs each: `python3 -I tools/audit/seat/ref_privacy.py --check` 1.72–1.90 s wall / 1.19–1.26 s CPU; `node tools/policy/figure_lint.mjs --pr-body <body>` 0.26–0.38 s wall / 0.11 s CPU; `node tools/policy/check-wave-script.mjs` 0.44–0.68 s wall / 0.23–0.25 s CPU.
+- **Added per run.** A prepr on a `README.md` plus role-contract diff: 1.26 + 4.10 + 0.25 = 5.61 s CPU, under 10 s. A `body_push`: 3.16 + 0.11 + 1.26 = 4.53 s CPU, under 10 s.
+- **Self-test.** `bash tools/pr/prepr.sh --self-test` at `a0e741cf`: `415 passed, 0 failed` under the venv `python3`, and `415 passed, 0 failed` under a no-`voluptuous` CPython 3.13.5 put first on `PATH` (the governance job's shape). The slice's rows: 11 for `fill_red`/`--fill-red`, 3 for `privacy_line`, 3 for `WAVE_INPUTS`, 6 for `claims_reg_line`, 5 call-site rows, 3 for this round's copy/wiring/arm rows.
+- **Mutants.** `python3 -I dev/audit/harnesses/r10_seat_selftests_mutants.py prepr-1 .. prepr-12` at `36c5c78e9`: 12 KILLED, `RESULT survivors=0`.
+- **Scoped gate at `36c5c78e9`.** `GATE_SCOPE=auto PREPR_SKIP_CLOSURES=1 bash tests/run.sh`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, running `tests/entities.py` and `tests/harness_headers.py`. `harness_headers.py` prints `ALL 112 HARNESS HEADER CHECKS PASSED`. `entities.py` prints `4 of 2463 ENTITY CHECKS FAILED`, all four in the `hb:` py-spy heartbeat-timing family, and the same family fails on main's tip `d620369` (`6 of 2463` there), so the gate's one red script is this host's timing, not this diff.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures, fast, wave-script or instrument red predicted`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff d620369fad72 HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
+- `python3 tests/layout.py`: `layout self-test: ok`.
+- `python3 -I tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused, 0 stale allow entries at HEAD`.
+- `python3 -I tools/audit/seat/ref_privacy.py --check`: `26 file(s) with a push site, 12 guarded, 346 line(s) added since d620369fad72 judged, 0 refused`.
+- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK — 207 rowed, 1 pending, 0 overdue (overdue at 12 commits)`; the pending row is #2819, not this pull request.
+
+## Red checks
+
+- `governance / delivery-status`, red at `fa18c13d2` (check run 121521893945, step 4 "Report what is pending and what is overdue a row"): the head's `dev/programme/delivery/2853.md` row did not state the blocked review and the check grades the merged window from `origin/main`. Cause: a record that lagged the pull request's state, not code. Countermeasure: the row now states the blocked verdict, the 6g budget finding and the narrowing, in this head. Cheaper detector: none needed — `python3 -I -S tests/delivery_status.py --check` is one local command and prints `DELIVERY STATUS OK` here; the job runs it on every pull request.
+- `governance / instrument-self-tests`, red at `819b82fb` (06:39Z, exit 2, `409 passed, 2 failed`), fixed in the branch at `eb898c9bb`: step 6g's header comparison imported `tests/harness_headers.py`, whose module-level `from harness import Results` pulled the HA stub's `import voluptuous`, absent from the job's interpreter. `harness_headers.py` now binds its recorder in `main()`; the self-test imports the parsers with `voluptuous` and `homeassistant` blocked by a `sys.meta_path` finder, so the defect reddens there on any interpreter. This head prints `415 passed, 0 failed` under a no-`voluptuous` 3.13.5 as well as under the venv.
+- `pr-contract / pr-contract` and `gate`, red at `819b82fb` on the `instrument-self-tests` line above: both followed that red and its fix.
+
+## Forward-carry
+
+- Carries 4, 7, 9 and 16, the base-pinned replay: prepr runs the head's copy of the graders that CI's pinned jobs restore from the base, and of `field_coverage.mjs`'s registry. They are not built. `governance.yml` holds three distinct `Restore the check source from the base commit` lists, and the agreement lane reads merge-subject history, so the replay needs a detached worktree with the overlay, not an archive. It is a slice of its own, under the 5 s per-check budget named above or listed CI-only. Carry: R10-FLOW-JIDOKA
+- Carries 11, 12 and 14, the `--body-check` parity extensions (the agreement lane, step 6d's sites fed to 7d, the predicted budget-raise-gate red, and the parity test over `pr-contract.yml`), plus one grammar owner for `## Forward-carry`. Not built. This slice adds the figure lint and `ref_privacy` to `--body-check`, which two of the parity test's rows will name. Carry: R10-FLOW-JIDOKA
+- Carry 13, quiet output by default, with the flag convention shared with R10-UPDATE-PR-SIGNALS. Not built. Carry: R10-FLOW-JIDOKA
+- Carries 15 and 21, predicting the `instrument-self-tests` and `tests / fast (3.14)` reds. Partly answered: 3f7 runs `instrument-self-tests`' `ref_privacy --check`, and 6g predicts the D6-register class of the `fast (3.14)` red. The rest of both jobs is not modelled; an earlier round's own red is the instance: prepr ran its self-test on the seat's venv interpreter, never on the job's. Carry: R10-FLOW-JIDOKA
+- Carry 22, the gate-scoping friction measurement. Not taken: `node tools/policy/policy_lint.mjs --stats --since v7.0.4` needs a working token, and on this seat it printed `could not fetch pull-request bodies and comments: HTTP 500` and no histogram. Carry: R10-FLOW-JIDOKA
+- Carry 10, the stale `S36` pattern in `dev/audit/harnesses/r10_seat_selftests_mutants.py`. This slice adds a block to that file and does not touch `S36`. Carry: R10-FLOW-JIDOKA
+- The round-1 census's HEAD-ONLY class needs a predicting detector. Not built. Carry: R10-FLOW-JIDOKA
+
+## Friction
+
+none

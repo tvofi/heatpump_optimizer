@@ -1,46 +1,44 @@
-PR #2879 review round 3 — head and base
-========================================
+# Review evidence, PR #2879 round 4
+head: 5fc0158aa9921acfca259f7a0f64d254174a303d
+merge-base / origin-main: 4db1d3e28f0dff50f6916e39d52efed0ce856d0a
 
-Head reviewed: e766c3bdceca6e64156cb0b44212dc62c1159b6e
-PR head at origin refs/pull/2879/head immediately before posting: e766c3bdceca6e64156cb0b44212dc62c1159b6e (unchanged)
-
-$ git rev-parse refs/pull/2879/head   (via: git fetch origin refs/pull/2879/head && git rev-parse FETCH_HEAD)
-e766c3bdceca6e64156cb0b44212dc62c1159b6e
-
-$ gh pr view 2879 --json headRefOid,headRefName,state
-{"headRefName":"fix/triage-s6-batch37","headRefOid":"e766c3bdceca6e64156cb0b44212dc62c1159b6e","state":"OPEN"}
-
-$ git merge-base origin/main HEAD
-67178dc6a589cf95d2ce7cff36d8bbf17343e8dc
-$ git rev-parse origin/main
-67178dc6a589cf95d2ce7cff36d8bbf17343e8dc
-
-$ git diff --stat $(git merge-base origin/main HEAD)...HEAD
+## three-dot diff
  dev/programme/delivery/2879.md     |  1 +
- dev/programme/triage/s6-batch37.md | 70 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 71 insertions(+)
+ dev/programme/triage/s6-batch37.md | 78 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 79 insertions(+)
 
-$ grep -c '^## P' dev/programme/triage/s6-batch37.md
-1
+## B1: the level line the board read
+ledger: level carried=167 disposed=26 open-pr=16 owed=3 state-ref=4
+TICK-RELAY 2026-10-27T11:09:14Z relay=ok started=2026-10-27T11:01:38Z
 
-$ git merge-tree --write-tree origin/main HEAD
-1062391363838a426a0b3ac5c010b7bc57eecd20
-rc=0
+## B1: dispose row
+refs/heads/handoff-body/r10-flow-jidoka-p2-body	b9b690afb9830a20e046b3515bd18858757d2047	2026-10-27T11:28:57Z	disposed
+ledger.py disposed rc=0
 
-Check runs at e766c3bdceca6e64156cb0b44212dc62c1159b6e
-$ gh api repos/tvofi/heatpump_optimizer/commits/e766c3bd.../check-runs
-[{"conclusion":null,"n":7},{"conclusion":"skipped","n":8},{"conclusion":"success","n":22}]
-(no "failure" conclusion; the 7 nulls were still running)
+## B1: topic owners
+fccb883716ce7f8677ea64a2107971baa5381ea9	refs/heads/fix/r10-flow-jidoka-p2
+36c5c78e91c0d1c2517e3f368826bc8352cdd3e6	refs/heads/handoff/r10-flow-jidoka
+bde48ac11a9335899fb6564b0d1bfa8861280526	refs/heads/handoff/r10-flow-jidoka-p2
 
-Delivery row
-dev/programme/delivery/2879.md (1 line):
-- [#2879](https://github.com/tvofi/heatpump_optimizer/pull/2879) — **open**, triage: s6 batch 37 (P205) (R10-TRIAGE-B37)
+## B2: gate
+verdict: DEFER / refusal: ... is not an ACCEPT ruling (DEFER)  [reproduced]
+perturbed Verdict: ACCEPT -> verdict: ACCEPT / refusal: None  [reproduced]
+null (unreadable path) -> verdict: None / refusal: not on the roster branch or origin/main  [reproduced]
 
-Batch header line 3-4:
-One entry. Numbering continues after `s6-batch36.md` (P204). Facts read at origin/main
-`524c1896b` on 2026-10-27.
+## B3: arms
+RESULT arm-a-stop-with-owed.md                  marker=yes owed=yes -> OWED
+RESULT arm-b-stop-only.md                       marker=yes owed=no  -> EXEMPT
+RESULT null-no-marker-with-owed.md              marker=no  owed=yes -> OWED
+marker-only perturbation:
+RESULT arm-a-stop-with-owed.md                  marker-only -> EXEMPT
+RESULT arm-b-stop-only.md                       marker-only -> EXEMPT
+RESULT null-no-marker-with-owed.md              marker-only -> OWED
+corpus narrowed:
+RESULT r10-flow-jidoka-p2-body.md               marker=yes owed=yes -> OWED
 
-$ git log -1 --format='%H %ci %s' 524c1896b
-524c1896b6943b3da03d6cad61420ced31e14c9c 2026-10-27 09:50:00 +0100 Merge pull request #2874 from tvofi/fix/r10-plan-prio-pr
-$ git merge-base --is-ancestor 524c1896b origin/main ; echo rc=$?
-rc=0
+## figures
+corpus 104; BODY.md present 104; STOP first line: 1
+level pass (default home): ledger: level carried=180 disposed=27 open-pr=16 owed=5 state-ref=4
+
+## carry audit
+CARRY-AUDIT #2879: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
