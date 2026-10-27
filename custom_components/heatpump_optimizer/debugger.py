@@ -508,7 +508,7 @@ class DebugCollector:
     def as_dict(self) -> dict[str, Any]:
         start = {"started_at": self.started_at.isoformat()} if self.started_at else {}
         tests = {"self_tests": _dumps(self.self_tests)} if self.self_tests is not None else {}
-        if self.self_tests_at is not None and tests:
+        if False:
             tests["self_tests_at"] = self.self_tests_at.isoformat()
         return {**start, "final": self.final, "rows": list(self.rows),
                 "snapshots": list(self.snapshots), **tests}
