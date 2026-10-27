@@ -170,6 +170,31 @@ itself records:
   allowlist of blessed lines — is the drift machine the RCA's §3 refused at a
   53-entry standing cost, and the per-PR owner judgement this gate already makes
   is the cheap end of that trade.
+- `mutation`: red at this head, and this branch's own. The command is
+  `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`;
+  it exits 0 and prints ten `PREDICT tests / mutation ADDED UNPINNED` lines and
+  `CI PREDICT: 10 unpinned site(s) the diff adds -- a warning; the body owes
+  each a line under ## Unpinned sites`. `prepr.sh` step 6d feeds that list to
+  step 7, which adds `mutation` to the reds (`body_line`'s seventh argument), so
+  the reviewed head carries the red until `mutation-autofix` writes the ten
+  dispositions after the push, which is what `ci-autofix.md` intends. The ten
+  sites are the ones listed under `## Unpinned sites` above — nine in
+  `thermal_model.py`'s derate helpers and one the optimizer's ceiling — and all
+  are in `custom_components/`, the lane that job drives. Answer: no cheaper
+  detector exists. A pin's claim is "some check in the suite fails when this
+  operator is applied", which only running the suite against the mutant
+  establishes; this tree's own measurement records 22 checks that executed the
+  line they were named for and pinned nothing and 25 production guards
+  deletable with no check failing (`tests/mutation_table.py`'s header), and a
+  coverage delta prices both at zero and detects neither. The pins' standing
+  cost is one disposition row per site, keyed on the line's content anchor
+  rather than its number, each driven by the single script whose recorded
+  closure reaches the file. R1 and R2 above already show each site is killed by
+  a named check, so the pins record kills that exist rather than buy new work.
+  The alternatives priced here are worse: the 53-entry census refused in
+  `dev/audit/rca/R10-RCA-COP-PARTLOAD.md` §3 costs 53 re-justifications on every
+  move, and the metered slope detector needs the heat meter whose absence is why
+  the term defaults to 0.
 
 ## Forward-carry
 
@@ -212,9 +237,10 @@ three lines are irreducible — the `cop_partload_derate` field on
 `from_config`. The parameter cannot exist without all three, and moving a
 dataclass field out of its class trades the metric for a worse one.
 
-Payments tried: measured at this head, written the naive way — the two helpers
-as class methods, the options row at the three-line shape its neighbours use, the
-ceiling's single-use `p_max` local kept — the tree reads 18111; as shipped it
-reads 18082. The shape pays 29 lines and the rise over `3b4180dcc` is 3, not 29.
+Payments tried: measured on this head's tree (`f916a3279`, re-taken for this
+body), written the naive way — the two helpers as class methods, the options row
+at the three-line shape its neighbours use, the ceiling's single-use `p_max`
+local kept — the tree reads 18111; as shipped it reads 18082. The shape pays 29
+lines and the rise over `3b4180dcc` is 3, not 29.
 
 Architecture score: dS +0.0000 NULL
