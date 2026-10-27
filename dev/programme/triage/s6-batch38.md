@@ -36,7 +36,7 @@ sanctions (`SKIP: <script> ... left to CI, named unrun`) instead of blocking unb
   (line 3142; line 344 only *asks* `needs-lease` -- `grep -n 'needs-lease' tools/pr/prepr.sh`),
   `tests/run.sh`'s `slot-auto-lease` (line 343), `tests/derive_closures.sh`'s `slot-take`
   (line 128), all printed by the grep below. The `gate_lock.take`/`_gate_lock.take` matches in `tests/gate_lock.py`
-  and `tests/entities.py` are self-tests against a temp `lock_dir=d`; the CLI is not
+  and `tests/entities.py` are self-tests against temporary lock dirs (`lock_dir=d`, `d1`, `d2` and `lock` in `tests/entities.py`; `lock_dir=lock_dir` in `tests/gate_lock.py`'s generated subprocess source); the CLI is not
   one of those matches -- `_cmd_take` (line 1008) calls `take(args.label,
   lock_dir=args.lock_dir, ...)` with `--lock-dir` defaulting to `DEFAULT_LOCK_DIR`
   (lines 1140-1145), and that is the by-hand route named above. Command: the importer grep
