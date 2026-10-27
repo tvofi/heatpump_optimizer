@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ROUTING-INVARIANTS (stage absorbed, branch `handoff/r10-routing-invariants`): `git fetch origin handoff/r10-routing-invariants && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-POOL-INSTRUMENT (stage absorbed, branch `handoff/r10-fly-pool-instrument`): `git fetch origin handoff/r10-fly-pool-instrument && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RECORD-BEAT (stage absorbed, branch `handoff/r10-fly-record-beat`): `git fetch origin handoff/r10-fly-record-beat && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOUSE-GRADE (stage in-review, branch `wip-sync/ext-mut-3efc9ad7`): `git fetch origin wip-sync/ext-mut-3efc9ad7 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOUSE-GRADE (stage in-review, branch `handoff/r10-house-grade`): `git fetch origin handoff/r10-house-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-DIAG-AGES (stage fixing, branch `wip-sync/ext-wt-5d3ff6c5`): `git fetch origin wip-sync/ext-wt-5d3ff6c5 && git worktree add --detach $SEAT/wt FETCH_HEAD`
