@@ -40,7 +40,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any, Literal
 from weakref import WeakKeyDictionary
 
@@ -1090,18 +1090,26 @@ class InputReader:
         return reading
 
 
-def stale_summary(health: InputHealth) -> str:
-    """One-line description for the diagnostic entity's state."""
-    stale = health.stale_keys
-    missing = health.missing_keys
-    if not stale and not missing:
+def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:
+    """One-line description from the two sets, so the wording has one owner.
+
+    :func:`stale_summary` reads them off an :class:`InputHealth`; the
+    diagnostics read them at the export instant, where staleness is re-judged
+    from an age and its own published limit and the sets are built there.
+    """
+    if not stale_keys and not missing_keys:
         return "ok"
     parts = []
-    if stale:
-        parts.append(f"{len(stale)} stale")
-    if missing:
-        parts.append(f"{len(missing)} missing")
+    if stale_keys:
+        parts.append(f"{len(stale_keys)} stale")
+    if missing_keys:
+        parts.append(f"{len(missing_keys)} missing")
     return ", ".join(parts)
+
+
+def stale_summary(health: InputHealth) -> str:
+    """One-line description for the diagnostic entity's state."""
+    return health_summary(health.stale_keys, health.missing_keys)
 
 
 #: Human wording for each reading problem, for
