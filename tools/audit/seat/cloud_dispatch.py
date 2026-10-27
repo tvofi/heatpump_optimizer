@@ -13,7 +13,8 @@ a role, a roster group and a model. The roster at REF (default: the round's
 roster branch, roster_lib.default_roster_ref) gives the brief, the topic (the
 group's branch) and the repository; the head is --head, else origin/main's tip,
 never the roster ref's (a seat forks from main, not from the roster branch); a
-reviewer needs --head (the PR head); the environment id comes from the overlay /
+reviewer needs --head (the PR head) and takes its nonce from `bus.sh dispatch`, which
+mints one or re-records --nonce; the environment id comes from the overlay /
 $HPO_CLOUD_ENV_ID. The
 payload is rendered by the same `render` as the flag path, so it is the flag
 path's byte for byte, and is published, with its prompt, on origin as
@@ -264,7 +265,9 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     branch) and the repository. The head is a separate source: the one passed,
     else HEAD_REF's tip; a reviewer must pass its PR head. The environment id comes from the
     known seat environment (`--overlay` / $HPO_CLOUD_ENV_ID). Nothing is pushed
-    unless the payload rendered, so every `render` refusal holds here too."""
+    unless the payload rendered, so every `render` refusal holds here too. A
+    reviewer's nonce is `bus.sh dispatch`'s (`_bus_dispatch`), so the seat is in the
+    worker registry and its `reviewer-fire` closed; an unpublished ref reopens it."""
     if role == "reviewer" and not head:
         raise Refusal("a reviewer is dispatched at its PR head: pass --head")
     roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)
@@ -278,14 +281,46 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
     topic = _topic_of(group)
-    payload = render(role, head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip(),
-                     env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                     pr=pr, topic=topic, nonce=nonce, brief=group.get("brief") or "")
+    args = dict(env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+                pr=pr, topic=topic, brief=group.get("brief") or "")
+    head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
+    if role == "reviewer":
+        render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
+        nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ)
+    payload = render(role, head, **args, nonce=nonce)
     ref = f"{DISPATCH_NS}/{role}-{topic}"
-    _publish(repo_dir, ref, {
-        "PAYLOAD.json": json.dumps(payload),
-        "PROMPT.md": payload["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]})
+    try:
+        _publish(repo_dir, ref, {
+            "PAYLOAD.json": json.dumps(payload),
+            "PROMPT.md": payload["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]})
+    except Refusal:
+        if role == "reviewer":  # the bus closed reviewer-fire for a seat that was never fired
+            subprocess.run([sys.executable, "-I", str(HERE / "ledger.py"), *_ledger_log(environ), "open",
+                            "reviewer-fire", pr, head, f"nonce={nonce} the dispatch ref was not published"],
+                           env={**os.environ, **environ}, capture_output=True)
+        raise
     return ref
+
+
+#: A well-formed nonce for the reviewer's pre-render: the bus mints or checks the real one.
+BUS_PROBE_NONCE = "0" * 32
+
+
+def _ledger_log(environ) -> list[str]:
+    return ["--log", environ["HPO_BUS_LEDGER"]] if environ.get("HPO_BUS_LEDGER") else []
+
+
+def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, environ) -> str:
+    """The reviewer's nonce through `bus.sh dispatch`, the worker registry: minted, or a nonce
+    minted earlier at this pr and head (the relay's) re-recorded with this seat and model. Either
+    closes `reviewer-fire <pr> <head>` in the ledger."""
+    r = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", pr, head, "cloud", "--model", model,
+                        *(["--nonce", nonce] if nonce else [])],
+                       cwd=repo_dir, env={**os.environ, **environ}, capture_output=True, text=True)
+    m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", r.stdout, re.M)
+    if r.returncode or not m:
+        raise Refusal(f"bus.sh dispatch refused: {(r.stderr or r.stdout).strip()[-300:]}")
+    return m.group(1)
 
 
 def _config(args: argparse.Namespace, environ=None) -> dict:
@@ -351,6 +386,16 @@ def _group_checks(check) -> None:
                 return True
             return False
 
+        @contextlib.contextmanager
+        def _env(extra):  # main() reads os.environ, as the orchestrator's shell gives it
+            saved = dict(os.environ)
+            os.environ.update(extra)
+            try:
+                yield
+            finally:
+                os.environ.clear()
+                os.environ.update(saved)
+
         def fetched(line, name):
             git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
             return git(work, "show", "FETCH_HEAD:" + name)
@@ -385,13 +430,49 @@ def _group_checks(check) -> None:
               refused("R10-BAD") and "r10-bad" not in git(work, "ls-remote", str(origin)))
         check("a group the roster does not name refuses", refused("R10-NOPE"))
         check("an unknown environment refuses", refused(environ={}))
-        check("a reviewer needs its pr and nonce, as on the flag path", refused(role="reviewer", head=tip))
-        check("a reviewer needs its PR head", refused(role="reviewer", pr="7", nonce="abc123"))
-        check("a reviewer dispatch with pr and nonce renders",
-              dispatch(role="reviewer", head=first, pr="7", nonce="abc123") == "dispatch/reviewer-r10-x")
+        # A reviewer goes through bus.sh dispatch, the worker registry: a PR head carrying its
+        # delivery rows, the bus state and the ledger in the scratch directory.
+        bus_state, ledger_log = Path(td) / "bus", Path(td) / "ledger" / "cloud-relay.log"
+        env.update(HPO_BUS_STATE=str(bus_state), HPO_BUS_LEDGER=str(ledger_log))
+        (work / "dev/programme/delivery").mkdir(parents=True)
+        for n in (7, 81):
+            (work / f"dev/programme/delivery/{n}.md").write_text(f"- [#{n}](x) **open**\n")
+        git(work, "add", "-A")
+        git(work, "commit", "-q", "-m", "rows")
+        rhead = git(work, "rev-parse", "HEAD").strip()
+        git(work, "push", "-q", str(origin), "HEAD:refs/heads/pr-head")
+        git(work, "reset", "-q", "--hard", "origin/main")
+        ledger = _sibling("ledger")
+        ledger.record(ledger_log.parent, str(ledger_log), "open", "reviewer-fire", "7", rhead, "nonce=relay")
+        registry = lambda: (bus_state / "dispatched").read_text().splitlines() if (bus_state / "dispatched").exists() else []
+        check("a reviewer needs its pr, as on the flag path, and records nothing",
+              refused(role="reviewer", head=tip) and registry() == [])
+        check("a reviewer needs its PR head", refused(role="reviewer", pr="7"))
+        check("a reviewer dispatch with no nonce mints one through bus.sh dispatch and renders",
+              dispatch(role="reviewer", head=rhead, pr="7") == "dispatch/reviewer-r10-x")
+        rec = (registry() or [""])[-1].split()
+        check("the worker registry records the reviewer: pr, head, seat, nonce, time and the model",
+              len(rec) == 6 and rec[:3] == ["7", rhead, "cloud"] and rec[5] == "m-1"
+              and f"Bus nonce: {rec[3]}." in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        open_, _ = ledger.fold(ledger.events(ledger_log.parent, str(ledger_log)))
+        check("a dispatch through dispatch_group closes reviewer-fire at its pr and head in the ledger",
+              not [o for o in open_ if o[:2] == ("reviewer-fire", "7")]
+              and any(r[0] == "close" and r[2:5] == ["reviewer-fire", "7", rhead]
+                      for r in ledger.events(ledger_log.parent, str(ledger_log))))
         check("a reviewer is dispatched at the PR head passed, not at a ref's tip",
-              first in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
+              rhead in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
               and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        check("a nonce no dispatch minted is refused by the bus, and records nothing",
+              refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
+        real_publish = globals()["_publish"]
+        globals()["_publish"] = lambda *a, **k: (_ for _ in ()).throw(Refusal("the push was refused"))
+        try:
+            unpublished = refused(role="reviewer", head=rhead, pr="7")
+        finally:
+            globals()["_publish"] = real_publish
+        open_, _ = ledger.fold(ledger.events(ledger_log.parent, str(ledger_log)))
+        check("a dispatch ref that was not published reopens reviewer-fire: the seat was never fired",
+              unpublished and [o[:3] for o in open_ if o[0] == "reviewer-fire"] == [("reviewer-fire", "7", rhead)])
         leak = DISPATCH_NS + "/fixer-" + users + "someone"
         try:
             _publish(str(work), leak, {"PROMPT.md": "x"})
@@ -435,10 +516,14 @@ def _group_checks(check) -> None:
         git(work, "commit", "-q", "-am", "second group")
         git(work, "push", "-q", str(origin), "HEAD:refs/heads/handoff/audit-r10-roster")
         git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
+        relay = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", "81", rhead, "cloud"], cwd=work,
+                               env={**os.environ, **env}, capture_output=True, text=True).stdout
+        nonce81 = relay.removeprefix("bus-nonce: ").strip()
         out = io.StringIO()
-        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
-            rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", first,
-                       "--pr", "81", "--nonce", "def456", "--overlay", str(overlay)])
+        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()), \
+                _env(env):
+            rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", rhead,
+                       "--pr", "81", "--nonce", nonce81, "--overlay", str(overlay)])
         try:  # a wrong role or group publishes no reviewer-r10-y ref: the check, not a crash, says so
             msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
             model = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"][
@@ -447,7 +532,10 @@ def _group_checks(check) -> None:
             msg = model = ""
         check("the --group CLI passes --role, --group, --model, --pr and --nonce through",
               rc == 0 and out.getvalue() == "dispatch/reviewer-r10-y\n" and msg.startswith("CLOUD REVIEWER")
-              and "PR #81 " in msg and "Bus nonce: def456." in msg and model == "m-9")
+              and "PR #81 " in msg and f"Bus nonce: {nonce81}." in msg and model == "m-9")
+        check("a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none",
+              [l.split()[3:4] + l.split()[5:] for l in registry() if l.startswith("81 ")]
+              == [[nonce81, "-"], [nonce81, "m-9"]])
         # A clone of main alone (--no-local: a local clone copies every object) holds none of the
         # dispatch ref's objects, so it must fetch the tip it extends.
         tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]

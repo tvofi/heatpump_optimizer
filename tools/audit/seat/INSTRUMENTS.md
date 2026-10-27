@@ -166,6 +166,15 @@ sweep's standing-seat liveness step keep them alive.
   With `HPO_BUS_TRAIN_STATE` set, each merge verdict it posts is added to
   the merge train there (`merge_train.py add --auto`, one `BUS train-add`
   line; the output in `train-add.log`); a refused add never fails the post.
+  `dispatch` is the worker registry's one writer (`$HPO_BUS_STATE/dispatched`,
+  `<pr> <head> <reviewer> <nonce> <utc> <model|->`): it closes
+  `reviewer-fire <pr> <head>` in the ledger (`$HPO_BUS_LEDGER`, else
+  `ledger.py`'s default log), `--nonce` re-records a relay-minted nonce for the
+  seat fired with it, and from a fourth round it needs the body's `## Re-cut`
+  note or `--past-three <reason>` (logged in `past-three`). `confirm` writes
+  the record's model as `bus-model:` on `verdict/<pr>`, which
+  `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
+  a posted tree before it pushes.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
