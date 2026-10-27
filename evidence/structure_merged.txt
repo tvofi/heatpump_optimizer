@@ -1,0 +1,5 @@
+  class_excess_loc = 18059 (every class's span past 300, summed; the coordinator's 449 helper lines count in its span)
+RESULT class_excess_loc=18059 count
+########## ratchet vs structure_budgets.json (recorded_at 3b4180dcc680) ##########
+  ok   class_excess_loc 18059 <= 18059
+STRUCTURE RATCHET PASSED

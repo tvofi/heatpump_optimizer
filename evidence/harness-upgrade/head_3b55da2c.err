@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "<tree>/dev/audit/harnesses/r10_savings_upgrade_month.py", line 75, in <module>
-    raise SystemExit(main())
-                     ~~~~^^
-  File "<tree>/dev/audit/harnesses/r10_savings_upgrade_month.py", line 67, in main
-    f"{name:8s} factor={ledger._coverage_factor(NOW):10.3f} "
-                        ^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'MonthlyLedger' object has no attribute '_coverage_factor'

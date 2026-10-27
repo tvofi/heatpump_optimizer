@@ -1,79 +1,90 @@
-Fix review: blocked 3b55da2c65ca24780fa2b6da5137d64332279b36 harness: the finder's #2255 instruments are dead at this head and its baseline harness was re-specified by the fixer, so the owner-required flat-price null still reads 6.18 % on the modelled basis and 10 of 16 committed mutant anchors no longer apply
-bus-nonce: 58212ca1d5f20f925bef2c2fb3135601
+Fix review: merge 4bf7c2eaa95b3b4463ba273e3ca4c230c435e32b
+bus-nonce: 606bc2c9d418ef82dcd2b778a294c950
 
-Round 3 of this fix (fix-review.md, fixer.md: a round-4 fixer owes a re-cut, not a repair). Head measured: `3b55da2c65ca24780fa2b6da5137d64332279b36`, the head at posting (`git ls-remote` reread immediately before). Merge base against origin/main `6fe5170cd` is `3b4180dcc`. Verdict class `harness` (fix-review.md steps 2, 3, 9).
+Round 5 of PR #2745 (R10-SAV-COMFORT): a fresh review of the round-4 re-cut. Head measured `4bf7c2eaa95b3b4463ba273e3ca4c230c435e32b`, still the PR head at posting. Merge base `3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f`; three-dot diff 49 files, +841/−320. Measured from a detached worktree at the head, with scratch worktrees at the round-3 head `3b55da2c6` and at the `origin/main`-merged tree (`git merge-tree --write-tree` → `7671889f3`, then `git archive`). CI's heavy runs are cited, not re-run (fix-review.md step 11); my own runs are the finder's committed bytes, the committed probes and targeted checks.
 
-## RESULT lines (mine; the finder's committed bytes, not the fixer's)
+## RESULT lines (mine, on the finder's `r10_sav_baseline.py`, sha1 `bc31f356191ededbfb0b15f768b258249867b134`)
 
-The finder's `dev/audit/harnesses/r10_sav_baseline.py` at its committed form, sha1 `bc31f356191ededbfb0b15f768b258249867b134`, run with `PYTHONPATH=tests/hastub:tests:custom_components` against each tree:
-
-MERGE BASE `3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f`:
-- transient SOUND: booked baseline step 0 = 2.06 kW from all four starts, spread 0.00 kW (threshold 0.05)
+MERGE BASE `3b4180dcc`:
+- transient SOUND: 2.06 kW at all four starts, spread 0.00 kW
 - cost SOUND: receipt `total_sek` 15.0 = row `actual_sek` 15.0
-- coverage SOUND: 24 settled hours of 672, open-row scale 28.00
-- null DEFECT: baseline 154.1, actual 137.41, saved 16.69 = 10.83238932735682 % (threshold |pct| < 3)
-- `arms run 4, defect 1: null`, rc=1
-
-HEAD `3b55da2c65ca24780fa2b6da5137d64332279b36`:
-- transient DEFECT: step 0 = 1.95 / 1.90 / 1.88 / 1.95 kW across the four starts, spread 0.07 kW (threshold 0.05)
-- cost DEFECT: receipt `total_sek` 15.0 against row `actual_sek` 4.2
 - coverage SOUND: 28.00
-- null DEFECT: baseline 146.46, actual 137.41, saved 9.05 = 6.179161545814557 % (threshold |pct| < 3)
-- `arms run 4, defect 3: transient cost null`, rc=1
+- null DEFECT: baseline 154.1, actual 137.41, saved 16.69 = **10.83238932735682 %**
+- `arms run 4, defect 1: null`
 
-The same head values reproduce at round 2's head `1a13f2b3` byte for byte (the only production change after it is the no-op `coverage_factor` extraction), so the movement from the merge base is the branch's own.
+HEAD `4bf7c2eaa`:
+- transient SOUND: 2.06 kW at all four starts, spread 0.00 kW
+- cost DEFECT: receipt 15.0 vs row 4.2
+- coverage SOUND: 28.00
+- null DEFECT: baseline 154.1, actual 137.41, saved 16.69 = **10.83062946138871 %**
+- `arms run 4, defect 2: cost null`
 
-The finder's committed mutation proof `dev/audit/harnesses/r10_sav_baseline_mutants.py` (unchanged by this branch, from `8d16e9903`, #2255), one mutant per run:
-- merge base, M1: rc=1, `failing=6` — killed by the #2255 section, including "the booked thermostat step is independent of the plan's start state (single-zone)" and "the booked thermostat step is the steady holding power at target"
-- head, M1: rc=1, `AssertionError: M1 baseline starts from the plan's state` at the harness's own `assert orig.count(old) == 1`
-- anchors present at the merge base / at the head, per mutant: M1 1/0, M2 1/1, M3 1/0, M4 1/0, M5 1/1, M6 1/0, M7 1/1, M9 1/0, M10 1/0, M11 1/0, M12 1/1, M13 1/0, M14 1/0, M15 1/0, M16 1/1, M8 1/1. Ten of sixteen are gone; the harness dies on its first mutant, so the finding's mutation proof does not exist at this head.
+FINDER'S HARNESS BYTES against the ROUND-3 PRODUCTION TREE `3b55da2c` (evidence `finder_r3_transient.txt`, `finder_r3_null.txt`):
+- transient DEFECT: 1.95 / 1.90 / 1.88 / 1.95 kW, spread **0.07 kW**
+- null DEFECT: **6.179161545814557 %**
 
-The committed control `dev/audit/harnesses/r10_savings_upgrade_month.py` (#2255/#2411; the roster row for the upgrade fix names it as its synthetic control), whose header records upgrade 2.800 / null 28.000 / fresh 2.800:
-- at `1a13f2b3`: rc=0, prints `upgrade factor= 2.800`, `null factor= 28.000`, `fresh factor= 2.800`
-- at the head: rc=1, `AttributeError: 'MonthlyLedger' object has no attribute '_coverage_factor'`, line 67 — `57eeda5a1` renamed the method to module-level `coverage_factor` and no harness was ported
+The round-3 tree carried a re-specified harness, not these bytes: it scored the transient arm green by measuring step 0 against that plan's comfort-matched target — the dependence on the start state the arm exists to catch — and printed the 0.07 kW spread beside it as a diagnostic. Running the finder's own bytes against the same production code restores the defect, which is what the round-4 block said the re-specification had hidden.
 
-`tests/structure.py` `class_excess_loc`, each run's own RESULT line:
-- origin/main `6fe5170cd` budgets file: 18079
-- `1a13f2b3`: 18075, `STRUCTURE RATCHET PASSED`
-- head: 18072, `STRUCTURE RATCHET PASSED`
-- null control (the extraction reverted, the joins revert kept): 18089, `1 FAIL class_excess_loc 18089 > 18072 (+17)`, `1 STRUCTURE BUDGET(S) BREACHED`
-- plant (mechanical verbatim module-scope extraction of the same function, nothing else improved): 18072 — reproduces the head exactly, so the instrument cannot separate this extraction from a cosmetic move.
+`origin/main`-MERGED TREE (`git merge-tree --write-tree`, 281 main commits past the merge base plus the head; tree `7671889f3`, exit 0, no `MERGE-CLAIM` line):
+- all four arms byte-identical to the head: transient SOUND 0.00 kW; cost DEFECT 15.0 vs 4.2; coverage SOUND 28.00; null DEFECT 10.83062946138871 %. The merge train's merge moves none of them.
 
-## The block
+Probes at the head: `r10_sav_null_terms.py` default — booked 128.4 kWh, plan 114.5, gap 13.9; steady at target 128.4, steady at the delivered room 121.7, comfort 6.6; plan vs steady at the delivered room −7.2 kWh (+5.64 % of steady_at_target); 23.7 kWh_th of stored heat drawn beyond the thermostat's (the probe's sign is −23.7); power-weighted COP 8.383 vs 7.149 (+17.27 %). Its `const` arm — outdoor at the window mean — gap 15.6 = comfort 5.1 + start drawdown 10.1, timing **+0.00 %**. `r10_sav_volume.py` — flat SOUND, saving 0.0000 at `meter_calibration` 1.56; vary SOUND, timing +74.88; meter-reads-the-model 48.0 at calibration 1.0. `r10_savings_upgrade_month.py` — rc=0, 2.800 / 28.000 / 2.800.
 
-1. The finder's baseline harness was re-specified by the fixer. `dev/audit/harnesses/r10_sav_baseline.py` is `bc31f356` at the merge base and `88ac23e4` at the head; commits `c57fb1bc6` (transient) and `29f6d6cbc` ("the #2255 null arm's verdict is the comfort term, not a 0 % reading") change two of the four verdicts:
-   - transient: `spread < 0.05` became `max(abs(first - _floor_demand_at_target(model, matched, ...)/cop)) < 1e-6`. The reference is the production private helper `_floor_demand_at_target` the fix works with, so the arm is the code judged against itself; it cannot fail for the reason #2255 named.
-   - null: the owner-required flat-price control `|savings_pct| < 3.0` became `|kwh_base - kwh_room| < 0.02 * kwh_room`, a comfort-term comparison. The docstring now says the published percentage "is not 0 at a flat price".
-   Step 2 requires the finder's harness at both ends; a fixer ports a name a rename breaks (`fixer.md` 3), not a verdict. On the finder's bytes the head fails three arms where the merge base failed one. The cost arm is answered (below); the transient and null arms are answered only by the re-specification. Step 9's rule applies: "A fixer who builds their own instrument must disclose it as their own, not the finder's" — the body's "Harnesses, both ends" list gives `88ac23e4` with DEFECT/SOUND readings and never says this branch rewrote the verdicts; a reader takes it for the finder's instrument.
-   The same re-specification reaches the committed suite: `tests/features.py`'s #2255 checks are rewritten from "the booked thermostat step is independent of the plan's start state" to "depends on the start only through the comfort delivered", with the assertion now `max(abs((first - rerun) - (first[0] - rerun[0]))) < 1e-9` against a `_compute_baseline_power` rerun from a fixed state — a constant is allowed across starts, so an arbitrary start dependence passes. That may be the right work under the owner's spec, but it is not disclosed as a re-specification anywhere in the body, and it leaves the null control replaced rather than met.
-   Owed: restore the finder's two verdicts, or record the re-specification where the finding lives (roster carry / owner acceptance, quoting the owner's words) and re-cut the body to (a) say the arms were re-specified by this branch and (b) name the published flat-price figure that remains on the modelled basis: +6.18 % at the head (10.83 % at the merge base) against the owner-required <3 %. The fixer's own harnesses (`r10_sav_comfort*.py`, `r10_sav_volume.py`) are the fixer's own and cannot stand in for the finder's arm; the body's `const` arm (+0.35 %) and this arm (+6.18 %) are two readings of one flat-price question that the body does not reconcile.
+## Ruling on the flat-price null (the claim to judge hardest)
 
-2. Ten of the finder's sixteen committed mutants can no longer be applied, and the harness asserts before writing. `dev/audit/harnesses/r10_sav_baseline_mutants.py` is unchanged by the branch; its anchors on the lines the fix moved (`state = _thermostat_held_state(...)`, `actual_sek = self.month_cost(key)`, `return max(1.0, month_hours(now) / settled)` at the old indentation, `surplus_above_caps`, the `_start_gap_cost` call, the demand clamps) are gone. At the base M1 is killed with six failures; at the head the same harness dies on M1's assert and no mutant is ever evaluated.
-   Owed: port each anchor to the line the fix moved (or record each retirement and why), and re-run so every remaining mutant is shown killed at this head.
+**The numbers are as stated.** I re-took both ends on the finder's committed bytes: base 10.83238932735682 %, head 10.83062946138871 %, a 0.00176 pp difference — the body's "within 0.002 percentage points" holds.
 
-3. `dev/audit/harnesses/r10_savings_upgrade_month.py` is dead at the head. `57eeda5a1` renames `MonthlyLedger._coverage_factor` to module-level `coverage_factor` without porting the committed harness that drives it (line 67), which the roster row for the upgrade fix names as its control. rc=0 at `1a13f2b3` printing the header's 2.800 / 28.000 / 2.800; rc=1 at the head. No CI lane executes `dev/audit/harnesses/`: `tests/harness_headers.py`'s `_discover()` runs only `dev/audit/rounds/round*/D*` live-header files, and this harness is an `inert_reads` entry in `tests/closures.json`, so a green head does not and can never cover it.
+**The mutual exclusion is measured, not asserted.** I ran the finder's null and transient arms against the round-3 tree, where the comfort-matched reference was in place: transient DEFECT at 0.07 kW and null 6.179161545814557 %. So comfort matching fails the 3.0 bar too, and it breaks #2255's 0.05 kW start-independence. The COP-timing term alone is 7.2 kWh of the 128.4 kWh booked thermostat (5.6 %), above 3.0 %; removing it would delete a real saving the roster carry says "must survive". Both candidate references were measured; the claim that the bar cannot be met while the COP saving and #2255's property both stand is therefore shown, not reasoned. The only part I could not re-derive is the warm-up skip sweep (see Not established).
 
-## Answered, and accepted
+**The owner's permission is quoted accurately and covers what was done.** The roster carries the binding criterion verbatim (`dev/programme/rosters/wave-r10-groups.json`, tvofi 2026-10-24): "Under one flat price, the volume difference may remain, but timing savings must be 0." The residual at this head is exactly the volume difference — 13.9 kWh (6.6 comfort + 7.2 COP, rounded) — and the timing term measured at one flat price is +0.00 % on `r10_sav_null_terms.py`'s `const` arm, the #2255 harness that is at the merge base and not this branch's (the branch's own `r10_sav_volume.py` reads the same 0.00). The owner's spec also prescribes the reference the re-cut restored ("a plain thermostat over the exact same price profile"). So a control that cannot be met is covered by the owner's recorded decision, not by a seat's reasoning. Not a blocking finding.
 
-- The cost arm's reversal (15.0 vs 4.2) is answered: the owner's acceptance quoted in the roster (`dev/programme/rosters/wave-r10-groups.json`, tvofi 2026-10-24) moves the row's Baseline, Actual and Savings onto one spot-plus-fee basis, so the closed-month receipt's bill total (capacity, wear, immersion) is no longer the row's counterpart. The branch left this arm unchanged and the body states the reversal. I do not block on it.
-- Round 2's `metric-gamed` block is paid. `57eeda5a1` reverts the 14 line-joins of `8005c528` (which improved nothing) and extracts `coverage_factor` with `meta` as its argument, colocated beside `pro_rata_factor`; the call site is inside `savings_months` under `if estimated:` with `key == open_key`, and the base read `self.months.get(month_key(now), {}).get("meta", {})` — behaviour identical. It deletes lines and narrows an input, so it counts; it is not a re-join. `18075 -> 18072`, a decrease against `18079` at origin/main. The movement is partly the instrument's (the plant above reproduces it), and the change being sound, that is an instrument finding, carried below.
-- Red checks: every red on a branch commit is named and answered in the body (replay 121226462191; fast 3.14 120941471531, 120942142230, 120926746399; mutation 120921728932, 120926210442, 121028737618; delivery-status 121326817924; ci-ratchet on main 121377149428). The head `3b55da2c` has 55 check runs, 0 non-success/skipped; `1a13f2b3` 42, 0. The round-3 commits `57eeda5a1` and `48ab3dcea` were never branch heads and have no runs of their own.
-- CI at the head, cited not re-run: gate PASS; mutation `MUTATION TABLE PASSED`, 3900 unpinned of 6420 (3904 at `3b4180dcc`), 7 evaluated / 0 survivors, `ledger.py:34 NULL_COMMENT` survived; fast 3.14 `MODE: SCOPED -- 28 script(s) run, 5 scoped out`, `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56`, `ALL 2463 ENTITY CHECKS PASSED`.
-- Claims: `card_claimed_drift.txt` byte-identical to origin/main; `claimed_drift.txt` adds 41 claim lines, suspends 15 may-drift entries, 0 removals outside may-drift; `claims-for` 7.0.4 = VERSION. `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading untouched.
-- Merge: `git merge-tree --write-tree origin/main HEAD` at `6fe5170cd` exits 0 with no `MERGE-CLAIM` line.
-- Carries: `carry_audit.py pr 2745` = 5 finding items, 5 routed, 0 unrouted, 0 bad; the R10-SAV-ACTUATION precondition carry is present at origin/main. Delivery row `dev/programme/delivery/2745.md` present at the head. The body names the head it measured.
+## The round-4 block, item by item
+
+1. **The finder's harness is restored, not re-specified.** `dev/audit/harnesses/r10_sav_baseline.py` is sha1 `bc31f356191ededbfb0b15f768b258249867b134` at the merge base and at the head — verified from both blobs, not taken from the body. The re-cut took the restore branch the round-4 verdict allowed, and the body states the null remains at 10.83 % (DEFECT) rather than claiming the arm green. Owed item 1 is answered.
+2. **The mutation proof is re-anchored and every live mutant is killed.** `python3 dev/audit/harnesses/r10_sav_baseline_mutants.py` on a copy of the head tree: M0 rc=0 failing=0; M1 6, M2 5, M4 4, M5 2, M7 1, M8 4, M9 4, M10 4, M11 5, M12 1, M13 1, M14 1, M15 1, M16 1, M17 6; M3 and M6 print `RETIRED` with their reasons. The dead-code control holds: counting each base anchor in the file it names at the head gives M1 0, M3 0, M4 0, M6 0, M9 0, M10 0, M11 0, M13 0, M14 0, M15 0 and M2 1, M5 1, M7 1, M8 1, M12 1, M16 1 — exactly the body's set.
+3. **The upgrade control is ported.** `r10_savings_upgrade_month.py` runs at the head, rc=0, printing the expected 2.800 / 28.000 / 2.800 (it died at the round-3 head on the renamed `_coverage_factor`).
+
+## Findings (non-blocking; record-only — none changes a measured fact)
+
+**F1. The body's instrument/scenario counts are imprecise.**
+
+- `## Instrument changes` opens "Two files under `dev/audit/harnesses/` differ from the base", but three do: `r10_sav_baseline_mutants.py` (M), `r10_savings_upgrade_month.py` (M) and `r10_sav_volume.py` (A). The paragraph then covers the first two only; the upgrade-month port and the volume probe are described further down. The baseline harness's unchanged sha1 is stated correctly in both places.
+- `## Re-cut` (the "per-step inputs" paragraph) says "`env_drift.py --all` reads the tree byte-identical to the merge base on all 56 scenarios, so nothing moved", and the body's own `## Figures` says `claimed_drift.txt` "differs from the base by exactly two lines — `negative_prices` and `summer_dhw_only`". At this head the instrument prints exactly those two `CLAIMED` moves (`negative_prices` savings % −13.19 → 16.17; `summer_dhw_only` −7.62 → 5.88) beside `NO UNCLAIMED DRIFT: 56` and `NO STALE FIXTURE: 56`. The `## Figures` statement is the correct one; the `## Re-cut` sentence contradicts it.
+- "`capacity` has 0 occurrences inside `savings_months`" is 1 by literal count: `ledger.py:386`, inside that function's docstring ("capacity, wear, uncovered intervals"). The capacity **code** term and M6's anchor are both 0, so the mutant is dead and the control's substance holds; what is imprecise is the count.
+- `## Head` credits `a50fe5146` with "the one-basis ledger and the duty re-freeze". That commit inserts nothing: it deletes three round-3 harnesses (`r10_sav_comfort*.py`) and their three golden pins, 370 deletions in all, and touches no production file. The re-cut's production change is in `0ff823754` (`optimizer.py`, `price_tiles.py`, `tests/features.py`, the golden claims); `ledger.py`, `pump_arbiter.py` and `payload.py` are untouched across the whole re-cut (`3b55da2c6..HEAD`).
+- `## Red checks`' replay bullet says "the head is unpushed, so that job has not run on it". The head is the pushed PR head and `tests / replay` is green on it.
+- Step 9 disclosure: `r10_sav_volume.py` is the branch's own instrument (added by this diff, `A` at `3b4180dcc..HEAD`), and the body lists it among the harness sha1s and uses its readings without saying so — "(unchanged since round 3)" is the closest it comes. The verdict above does not rest on it (the timing term comes from the inherited `r10_sav_null_terms.py`), and its three readings agree with the finder's arms, but the disclosure is owed.
+
+These are record errors, not measurement errors: every figure the verdict turns on is re-derived above, and the canonical `## Figures`/`## Null control` sections carry the correct data. They should be corrected, but they do not change the fix.
+
+Carry: #2492
+
+## The four container reds, checked at the base (`3b4180dcc`)
+
+All four reproduce at the base in this container, re-taken here from the base worktree:
+
+- `tests/optimality.py` — a fresh run at the merge-base worktree: `1 of 84 OPTIMALITY CHECKS FAILED`, the one `one|summer_negative|shoulder: a recorded claim still has a gap (not stale)` (`claimed but gap 0.0000% is at or below the bar -- the claim closed and should be removed`), exit 1. Same check and count as the body.
+- `tests/stress.py` — fresh run: `2 of 113 STRESS CHECKS FAILED` — `shoulder: cheaper than holding the setpoint [4.67 vs 3.96]` and `the probed scenarios' memory peaks stay within their recorded budgets [typical_slab/shoulder attributable RSS 14.5 MiB vs recorded 9.4 MiB; probe 106.3 MiB over a 91.8 MiB baseline]`. The body's run printed `1 of 113` (the setpoint case alone); this container's extra one is a memory budget on a loaded box. Both are the runner's condition, and the head's CI fast lane is green.
+- `tests/entities.py` — fresh run: `4 of 2463 ENTITY CHECKS FAILED`, exit 1; the `hb:` heartbeat controls (wall-clock spins) are among the failure lines.
+- `node tests/card.mjs` — base worktree: `FATAL ERROR: Ineffective mark-compacts near heap limit ... JavaScript heap out of memory` after ~1,290 green lines, the same V8 heap abort the body records.
+
+None of the four is this diff's: two are platform/load (arm64 ladder, wall-clock heartbeat, RSS on a loaded box), one is this node build's default heap, and the optimality one is the arm64-only stale claim the body quotes from the check's own comment. The head's CI fast lane is green, so none of them is green-then-red on this diff.
 
 ## Not established
 
-- The owner acceptance's third surface, "the closed-month receipt's saved line": `freeze_month_report` at this head publishes `lines`, `reasons`, `total_kwh`, `total_sek`, `basis`, `compressor_starts`, `contract_comparison`, `reasons_reconcile` (plus `mean_spot_price`, `capacity_peak_kw`) and no savings field, so I could not compare a receipt "saved line" with the row. If tvofi's acceptance meant a receipt field, it does not exist at this head.
-- The body's figures were re-taken at `7c422999f`, not at the head. After `7c422999f` the head gained `57eeda5a1`, `48ab3dcea` and a main merge. I re-derived the structure figure, the four finder arms and the two dead harnesses at the head; I did not re-derive every other quoted number.
-- The new transient criterion's soundness: my judgement is that matching a production helper to 1e-6 (and a production rerun up to one constant in `tests/features.py`) is self-referential, but I did not falsify it with a plant of a differently shaped baseline, so I state it as an objection, not as a measured defect.
-- The attribution of the residual 6.18 % to COP timing and stored heat: I did not separate it into those terms myself.
+- The warm-up skip sweep ("0.07 / 0.07 / 0.06 / 0.05 / 0.04 kW at 0/4/8/16/32 h") has no committed harness; I did not re-derive it, and the mutual-exclusion ruling rests on the two reference arms above, not on this sweep. Carry: #2492
 
-## Carry
+## Other checks (re-derived)
 
-Carry: dismissed: step 14's instrument finding — `tests/structure.py` `class_excess_loc` counts class spans and leaves module scope unmeasured, so a mechanical verbatim extraction (my plant: 18089 -> 18072) reproduces this diff's movement; the diff's change is sound (narrower input, colocation, behaviour identical), so this is an instrument finding, not `metric-gamed`. No live group owns `tests/structure.py` (R10-STRUCTURE-BLIND, R10-STRUCTURE-ALIAS and R10-I5-DOCS are done), and a reviewer may not add a carry file; if tvofi wants it recorded, a future structure group's brief takes it.
+- `tests/structure.py`: fresh runs at the head and at the `origin/main`-merged tree both print `class_excess_loc = 18059` and `STRUCTURE RATCHET PASSED`, exit 0; the budget is re-recorded to 18059 with `recorded_at` the merge base (what `recorded_at_sha()` records), while the merge base's and `origin/main`'s budgets both read 18079. A decrease, so no raise and no `## Raise justification` is owed.
+- `env_drift.py --all`: `NO UNCLAIMED DRIFT: 56`, `NO STALE FIXTURE: 56`, the two claimed diffs as above; `card_claimed_drift.txt` byte-identical to the base; `claims-for: 7.0.4` = `VERSION` 7.0.4.
+- `VERSION` 7.0.4, the manifest version 7.0.4 and the `RELEASE_NOTES.md` heading `## v7.0.4` are untouched.
+- Architecture score `dS +0.0000 NULL`.
+- `git merge-tree --write-tree origin/main HEAD` exits 0 with no `MERGE-CLAIM` line; the merged tree's arms and ratchet are measured above.
+- CI at the head: 47 check contexts, 0 non-green (`success`/`skipped`); `tests / mutation`, `tests / replay`, `tests / fast (3.14)` and `governance / delivery-status` are all green. Every red the body names on an earlier branch commit is named and answered there.
+- `carry_audit.py pr 2745`: 5 finding items, 5 routed, 0 unrouted, 0 bad. The `R10-SAV-ACTUATION` brief records carry 5 seam 2's two controls and its `after: R10-SAV-COMFORT`.
+- The body has every `.github/PULL_REQUEST_TEMPLATE.md` heading plus `## Re-cut` and `## Instrument changes`; the `## Re-cut` note the contract now requires is present and materially honest apart from F1.
 
-## What a round-4 fixer owes (a re-cut, fixer.md past three rounds)
+## Carries
 
-Start from the finder's two committed harnesses and the finder's four baseline arms, not from the branch's rewritten ones. Either make the modelled-basis flat-price reading meet the owner's null, or take the re-specification to the finding with the owner's words and say in the body that the arms were re-specified and what remains. Port the ten mutation anchors and the renamed `coverage_factor` call so both committed #2255 harnesses run at the head again, and re-cut the body's figures at the head rather than at `7c422999f`.
+Carry: #2492

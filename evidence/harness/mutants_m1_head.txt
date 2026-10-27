@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "<tree>/dev/audit/harnesses/r10_sav_baseline_mutants.py", line 77, in <module>
-    assert orig.count(old) == 1, name
-           ^^^^^^^^^^^^^^^^^^^^
-AssertionError: M1 baseline starts from the plan's state
