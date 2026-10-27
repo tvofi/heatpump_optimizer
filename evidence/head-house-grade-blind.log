@@ -1,0 +1,31 @@
+eras timber_crawlspace pre_1960: grade=27.0
+eras timber_crawlspace 1960_1980: grade=36.7
+eras timber_crawlspace 1980_2005: grade=50.0
+eras timber_crawlspace post_2005: grade=63.7
+eras timber_crawlspace low_energy: grade=77.6
+eras timber_slab pre_1960: grade=27.0
+eras timber_slab 1960_1980: grade=36.7
+eras timber_slab 1980_2005: grade=50.0
+eras timber_slab post_2005: grade=63.7
+eras timber_slab low_energy: grade=77.6
+eras concrete_slab pre_1960: grade=27.0
+eras concrete_slab 1960_1980: grade=36.7
+eras concrete_slab 1980_2005: grade=50.0
+eras concrete_slab post_2005: grade=63.7
+eras concrete_slab low_energy: grade=77.6
+eras masonry pre_1960: grade=27.0
+eras masonry 1960_1980: grade=36.7
+eras masonry 1980_2005: grade=50.0
+eras masonry post_2005: grade=63.7
+eras masonry low_energy: grade=77.6
+RESULT era_spread=50.5
+owner timber_crawlspace: grade=16.8 drivers=[{'code': 'loss_vs_typical', 'points': -20.585926881514908}, {'code': 'learned_heat_loss', 'points': -12.620039647178526}, {'code': 'thermal_mass', 'points': -0.0}]
+owner timber_slab: grade=16.8 drivers=[{'code': 'loss_vs_typical', 'points': -20.585926881514908}, {'code': 'learned_heat_loss', 'points': -12.620039647178526}, {'code': 'thermal_mass', 'points': -0.0}]
+owner concrete_slab: grade=16.8 drivers=[{'code': 'loss_vs_typical', 'points': -20.585926881514908}, {'code': 'learned_heat_loss', 'points': -12.620039647178526}, {'code': 'thermal_mass', 'points': -0.0}]
+owner masonry: grade=16.8 drivers=[{'code': 'loss_vs_typical', 'points': -20.585926881514908}, {'code': 'learned_heat_loss', 'points': -12.620039647178526}, {'code': 'thermal_mass', 'points': -0.0}]
+RESULT owner_min=16.8
+RESULT owner_max=16.8
+curve [(0.25, 74.79), (0.5, 51.19), (0.8, 34.13), (1.0, 27.05), (1.25, 20.97), (1.5, 16.79), (2.0, 11.59), (4.0, 4.43), (8.0, 1.61)]
+RESULT monotone=True
+RESULT curve_min=1.61
+RESULT drivers_max_gap=0.0
