@@ -338,7 +338,7 @@ def house_grade(
     driver's ``points`` is its log share of the distance from 50, so the
     points sum to ``grade - 50``.
     """
-    typical = ThermalParameters.from_config(derive(preset_from_config(config, config)))
+    typical = ThermalParameters.from_config(derive(preset_from_config({}, config)))
     logs = {
         "loss_vs_typical": math.log(params.house_heat_loss_base / typical.house_heat_loss_base),
         "learned_heat_loss": math.log(scale),
