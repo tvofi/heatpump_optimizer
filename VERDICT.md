@@ -1,54 +1,55 @@
-Fix review: blocked 0e370d603264f4c050fefa9591ac8bf688c1e0d5 roster-stale: the registration of R10-REVIEW-CARRY records resume.stage `not-started` with a null branch and commit while a fixer seat for that group has been live on `fix/r10-review-carry` since 18:58:12+01:00, five minutes before this head was cut at 19:03:08+01:00, carrying the group's own files modified and its helper added; and the body, which registers the group, never cites the owner's 2026-10-27 ruling it carries
-bus-nonce: 0926c22c521dc8fffa7a0e4d5bd2d225
+Fix review: blocked 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd body-stale: this head prints roster_sync 64 checks, 1 failed and R10-TRAIN-OVERLAP-GRADE stage "done --at-sha 4db1d3e28...", while the body claims 0 failed and in-progress
+bus-nonce: 90ccced14f4b9fae9b224c60d7fe14af
 
-Head reviewed: `0e370d603264f4c050fefa9591ac8bf688c1e0d5` (re-read at `git ls-remote origin refs/pull/2878/head` before writing: unchanged at both the pull-request ref and the branch). Base `4db1d3e28` is `origin/main` and is also `git merge-base origin/main HEAD`; `git merge-tree --write-tree origin/main HEAD` exits 0.
-Worktree: `~/hpo-seats/r10s6/review-2878-r2/wt`, detached at the head. Evidence: `~/hpo-seats/r10s6/review-2878-r2/ev/`, files `01`–`12`.
-Round 2. Prior verdict: `blocked b0920b94 body-stale`. Its note that the roster state itself is sound stands, and I re-derived it rather than re-litigating; the three body symptoms it named are all repaired. What blocks is B4 — the newly registered policy group — on two counts.
+# Fix review — PR #2878 at `1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd`
 
-## Verdict
+Round 3. The last verdict was `blocked body-stale` at `0e370d603`; this reviews the repair at the head the PR now carries. Worktree `~/hpo-seats/r10s6/review-2878-r3/wt`, detached at the head; the main checkout is untouched. Head at publish time is still `1dbf3f674`. Delta since the last reviewed head: `git rev-list --count 0e370d603..1dbf3f674 --not origin/main` = 4 commits, one of them the new `12fd86e13 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE`. Evidence: `~/hpo-seats/r10s6/review-2878-r3/evidence/`.
 
-blocked. B1, B2 and B3 are repaired and every quoted figure re-derives. The new group `R10-REVIEW-CARRY` is registered with a stage that is already false at this head, and the body that registers it omits the ruling the registration exists to carry.
+RESULT blocked body-stale (B1). B2, B3 and B4 pass; the block is the body's own figures against this head, plus the roster value that makes one of them false.
 
-B1 — repaired. `git rev-list --count --no-merges origin/main..HEAD` is **69**, as the body says: 27 own commits (`git rev-list --count --no-merges origin/main..b0920b94a` is 27 = 26 authored roster ops `3b78b44a0`..`a9c7555ad` plus the record commit `b0920b94a`) and 68 at the roster tip `f318f7014`, the union 69. The range endpoints bound this branch: `3b78b44a0`, `a9c7555ad`, `b0920b94a` and `f318f7014` are all ancestors of the head, and the 26 own commits touch only `dev/programme/rosters/wave-r10-groups.json` while the record commit touches only `dev/programme/delivery/2878.md`. The body's nine own-commit groups equal a `524c1896b`..`b0920b94a` roster comparison exactly (`R10-ARCH-SHAPES`, `R10-ARCH-SHAPES-CLASSIFIER`, `R10-DIAG-AGES`, `R10-FLOW-AUDIT-PLAN`, `R10-FLOW-DESIGN-STAGES`, `R10-FLOW-TOOLKIT-MODEL`, `R10-FLOW-WIP`, `R10-HOUSE-GRADE`, `R10-PLAN-PRIO`).
+## B1 — the body must describe this head: FAILS
 
-B2 — repaired. `git diff --name-status origin/main...HEAD -- dev/programme/delivery/` is exactly `A dev/programme/delivery/2878.md`, one row added and none flipped; the body claims exactly that and no more, and its statement that the merged head's diff is two files holds (`dev/programme/delivery/2878.md` +1, `dev/programme/rosters/wave-r10-groups.json` 29/20 at `b0920b94a`, 251/45 at the tip).
+- The commit enumeration now describes this branch: `--no-merges origin/main..b0920b94a` = 27, `..cfacd3800` = 70, their union = 71 (intersection 26), `--no-merges origin/main..HEAD` = 71, and the 27 are exactly the 26 `roster_edit`/`roster_sync` ops in `3b78b44a0`..`a9c7555ad` plus the record `b0920b94a`. That part re-derives.
+  Carry: R10-ROSTER-BATCH24
+- `roster_sync --self-test` does NOT pass at this head. The head's own command prints `FAIL every stage the tree's rosters carry is classified (derivable or protected) (got: {'done --at-sha 4db1d3e28f0dff50f6916e39d52efed0ce856d0a': 'wave-r10-groups.json'})` and `roster_sync self-test: 64 checks, 1 failed`; the null control at `origin/main` prints `64 checks, 0 failed`, so the failure is this branch's roster. The body (lines 19 and 42) states `64 checks, 0 failed` at the merged tree. `governance / instrument-self-tests` runs exactly that command (`.github/workflows/governance.yml:761`) and greps `^roster_sync self-test: [1-9][0-9]* checks, 0 failed$` (line 762), so the head cannot go green: reproduction is `env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test`.
+  Carry: R10-ROSTER-BATCH24
+- The value behind that failure is `R10-TRAIN-OVERLAP-GRADE resume.stage = "done --at-sha 4db1d3e28f0dff50f6916e39d52efed0ce856d0a"`, not a `roster_lib.STAGES` value (`is_open()` reads it OPEN). The body (line 15) says the group moves to `in-progress`. It arrived in `12fd86e13`, newer than the last reviewed head, and is present on the current roster tip `32b938f3e`; the repair ops for it are still un-marked in `~/hpo-orch/r10s6/s7/roster-queue-s7.txt:35-36`.
+  Carry: R10-TRAIN-OVERLAP-GRADE
+- The null control's roster blobs do not re-derive. Body line 27 says "this head `cc64745e`, the roster tip `4b136c3e`, the merged tree `adff8318`". Actual: `origin/main` `582f75be3`, roster tip `cfacd3800` `e5cf37ba8` (which the body's own Figures line 40 states), `b0920b94a` `cc64745e`, this head `2740d0909`. `4b136c3e` is `f318f7014` (the previous authored head) and `adff8318` is `0e370d603` (the previous merged head), so both values were carried forward from the head the last verdict reviewed.
+  Carry: R10-ROSTER-BATCH24
 
-B3 — repaired. `R10-FLY-CARRY-DISPOSITION`, `R10-RCA-BODY-LINT` and `R10-996-RUNNER-CLAIMS` are present in both the head roster and `origin/main`'s (grep counts 7/8/8 at the head, 7/8/7 at main), and the body's `## Forward-carry` is `none`; the body never orders an append-carry for any of them. The only mention is `R10-RCA-BODY-LINT` as a group whose stage moves to `fixing`, which matches `origin/main`→`HEAD` (stage `done` to `fixing`, `resume` the only changed key).
+## B2 — delivery rows: PASSES
 
-## F1 (blocking) — `R10-REVIEW-CARRY`'s stage and resume do not name what exists at this head
+- `git diff --stat origin/main...1dbf3f674 -- dev/programme/delivery/` is `dev/programme/delivery/2878.md | 1 +`; the row added is the one line for #2878, and the body claims exactly that one (no flipped rows, no #2866 row).
+  Carry: dismissed: no defect found
 
-The entry reads `resume.stage: "not-started"`, `branch: null`, `commit: null`, `last_step: "registered"`, `next_step: "fixer lands the helper and the two contract sentences; review at the head"`. A fixer seat for this group is already working: `git worktree list` shows a worktree at `~/hpo-seats/r10s6/fix-review-carry` on branch `fix/r10-review-carry`, whose reflog reads `branch: Created from origin/main` at **2026-10-27 18:58:12 +0100**, and that worktree carries `M dev/governance/roles/fix-review.md`, `M dev/governance/roles/orchestrator.md`, `M tools/audit/seat/INSTRUMENTS.md`, `M tools/audit/seat/bus.sh` and `A tools/audit/seat/review_carry.py` — the group's own files and the helper its brief's THE WORK describes. The registration commit is `f318f7014` at 18:53:34+01:00; the branch was created four minutes later and the head was cut at 19:03:08+01:00, so at the head's own commit time the claim was already false. `tools/audit/seat/review_carry.py` is absent from this head's tree, confirming the work is under way out of tree, not landed. `roster-queue-s7.txt:27` carries only `#done append-group R10-REVIEW-CARRY`, no `set-stage`, so nothing moved it. The stage registry (`roster_lib.STAGE_KIND`) defines `fixing` as a live state and this is one; B4 states the group "is at fixing" and requires "its `stage` and `resume` naming what actually exists". The repair is a `set-stage R10-REVIEW-CARRY fixing` with `branch: fix/r10-review-carry` before this head is re-taken.
-Carry: R10-REVIEW-CARRY
+## B3 — forward-carry: PASSES
 
-## F2 (blocking) — the body registers a policy group without citing the ruling it carries
+- The three append-carry ops the previous body ordered are already present, in this head and on `origin/main`: `82db76ffe`, `d052b8d78`, `2f63ddb60` (merge `72da5ffa1`). The body's `## Forward-carry` says `none`, which matches; the un-marked queue lines are the next lane's pending work, not carries this body owes.
+  Carry: dismissed: no defect found
 
-The body names `R10-REVIEW-CARRY` once, in the line-13 list of four new groups, and never states the owner's 2026-10-27 ruling the registration carries: `grep -F 'if there are no code changes'` returns 0, `grep -i 'review can be carried'` 0, `grep -c '2026-10-27'` 0, `grep -c 'ruling'` 0. B4 requires the body to cite the ruling verbatim ("It is a policy group, so its body must cite the ruling verbatim and name the group"), and the registered brief states the same requirement in its own last sentence ("the pull request body cites this group and the ruling verbatim"). The ruling is available to quote — the group's `carry[0]` reads `Owner ruling, 2026-10-27, verbatim: "if there are no code changes, the previous review can be carried"` — so this is an omission, not a source gap. Perturbation: add that one quoted sentence and the requirement is met; as written it is absent. It matters because the group's files are `dev/governance/roles/fix-review.md` and `dev/governance/roles/orchestrator.md`, which merge only on the owner's approving review, and the body is the owner's only briefing. `prepr.sh --body-check` passes on this body (`PR-BODY: 0 error(s)`), so no mechanical check catches it.
-Carry: R10-REVIEW-CARRY
+## B4 — R10-REVIEW-CARRY: PASSES
 
-## F3 (finding, non-blocking) — the group is registered `kind: fix` / `class: process`, so the planner draws it in the wrong lane
+- The body cites the owner's ruling verbatim — "if there are no code changes, the previous review can be carried" — and names the group; the group's own `carry[0]` carries the same words.
+  Carry: R10-REVIEW-CARRY
+- Registration holds: `roster_edit.py --self-test` prints `124 checks, 0 failed`; `roster_edit.dump(load(file))` reproduces the file bytes exactly; 212 groups, 212 unique names; `after: []` and `files` (`fix-review.md`, `orchestrator.md`, `tools/audit/seat/`) are well formed; `brief_lint` prints `TOTAL: 0 error(s)`. `resume.stage: fixing` with `next_step` describing the helper and the two contract sentences — work to be done, not claimed done, which is correct for a policy group at `fixing`.
+  Carry: R10-REVIEW-CARRY
 
-Its whole file set is policy (`dev/governance/roles/fix-review.md`, `dev/governance/roles/orchestrator.md`, plus the tool directory), and its brief says "Both are policy", yet the entry carries `"kind": "fix"` and `"class": "process"`. Every other policy-file group is `kind: policy`: measured with `replan.roster_lane`, `R10-REVIEW-CARRY` draws **Core model** while `R10-POLICY-FIXER-MD`, `R10-POLICY-INSTRUMENTS` and `R10-RCA-BODY-LINT` draw **Instruments**. I found no consumer of the `class` field, so the material effect is through `kind`, which `tools/plan/replan.py` reads. The owner's policy review keys on paths, not this field, so it does not block; the entry should say `kind: policy` when it is corrected.
-Carry: R10-REVIEW-CARRY
+## The three backwards rows
 
-## F4 (finding, non-blocking) — the roster tip moved, so the body's measured inputs are already behind the lane
+- `R10-DIAG-AGES` fixing→in-progress: explained — its fixer is blocked; the body says in-progress, and the head agrees.
+  Carry: R10-DIAG-AGES
+- `R10-FLOW-BOARD` not-started→in-progress: explained — `roster_lib.STAGES` places `in-progress` after `not-started`, so only a ranking that omits `in-progress` reads the move backwards. Head and body agree.
+  Carry: R10-FLOW-BOARD
+- `R10-RCA-BODY-LINT` done→fixing: the reopen is the documented route (`~/hpo-orch/r10s6/s7/roster-queue-s7.txt:24`), but the append it was opened for is absent — 0 carries, and the b39-P208 text ("Check the body's `## Head` before the expensive steps") is nowhere in the roster (`grep -c P208` = 0) though the queue marks that op `#done`. The group is left at `fixing` for a carry that never landed. A finding for this group, not a block on this PR.
+  Carry: R10-RCA-BODY-LINT
 
-The body records `origin/handoff/audit-r10-roster` at `f318f7014` and builds its 68/69 figures on it. The live tip is now `12fd86e13`, which is **not** an ancestor of this head (`git merge-base --is-ancestor 12fd86e13 HEAD` fails), and `prepr.sh --body-check` itself now reads the carry audit `at origin/handoff/audit-r10-roster 12fd86e13`. Any re-take through `update_pr.sh` will merge that tip and move the commit counts and group deltas, so the repair must re-derive the figures after the merge rather than carry these.
-Carry: R10-ROSTER-BATCH24
+## Arms run
 
-## What I ran, and what I did not
+- `bash tools/pr/prepr.sh --body-check ~/hpo-seats/r10s6/review-2878-r3/body.md`: `pr-body ok: PR-BODY: 0 error(s)`, `carry ok: 1 routed, 0 unrouted, 0 bad destination(s)`, `preflight ok`. Not run, per the brief's cost discipline and because the diff is roster data only: full `prepr.sh`, the gate, the mutation table, `env_drift`, `card_drift`.
+  Carry: dismissed: no defect found
 
-Ran: `git ls-remote`, `rev-list`, `diff --stat/--name-status/--numstat`, `merge-base`, `rev-list --parents`, `git merge-tree --write-tree` (both merges, exit 0), `prepr.sh --body-check` on the live body (exit 0, `PR-BODY: 0 error(s)`, `CARRY-AUDIT ... 0 unrouted`, `preflight ok`), `carry_audit.py pr 2878` (1 routed, 0 unrouted, 0 bad destination) and `carry_audit.py check` on this draft (2 routed, 0 unrouted), `roster_edit.py --self-test` (124 checks, 0 failed), `roster_sync.py --self-test` (64 checks, 0 failed), an independent dump round-trip (`roster_edit.dump(json.load(file))` equals the file's bytes, 1086504 bytes), `brief_lint.mjs` (`TOTAL: 0 error(s)`), a duplicate-group-name count (212 groups, 0 duplicates), the `R10-REVIEW-CARRY` stage/resume/files/hot_files read (all files and hot_files present, `after: []`), a grep for the helper and the `bus.sh` refusal the brief's THE WORK would add (0 hits for each, so the brief does not over-claim), `gh api .../check-runs` at `b0920b94a` (`{"skipped":19,"success":36}`) and at the head (`{"null":2,"skipped":13,"success":28}`, zero non-success), `replan.roster_lane`, and `git worktree list` / `git reflog show fix/r10-review-carry` / `git -C ... status --porcelain` / `stat` against the fixer's worktree for F1.
+## Could not establish
 
-Did not run: a full `prepr.sh` (the brief forbids it while the gate pool is saturated); the mutation lane (the diff writes no production line — `## Mutation proof` is correctly `n/a`); `env_drift.py --all` and `card_drift.mjs` (the whole diff is two non-fixture files, so no fixture or claim can have moved); `tests/structure.py` (no budget file is touched); the main-side half of the body's `## Null control` — I re-derived main's 208 groups and its zero `size: XS`, but did not re-run `brief_lint` and `roster_sync --self-test` in a main checkout.
-
-Could not establish: the fixer seat's identity and dispatch channel — `~/.zcode/bus/dispatched` has no record naming `R10-REVIEW-CARRY`, so the seat was started outside the bus dispatch path; and whether it will commit before this head is re-taken, which changes F1's repair from "move the stage" to reading a pushed branch.
-
-RESULT F1 blocking: R10-REVIEW-CARRY says not-started/branch null while a fixer worktree on fix/r10-review-carry existed from 18:58:12+01:00, five minutes before the head at 19:03:08+01:00, with the group's files modified and review_carry.py added.
-RESULT F2 blocking: the body never cites the owner's 2026-10-27 ruling (grep 0) though B4 and the group brief both require it; the registration's carry[0] holds it verbatim.
-RESULT F3 non-blocking: kind fix/class process draws lane Core model; every policy-file peer is kind policy, lane Instruments.
-RESULT F4 non-blocking: roster tip moved f318f7014 to 12fd86e13, not an ancestor of the head; a re-take must re-derive the counts.
-RESULT pass B1: 69 no-merge commits over origin/main (27 own + 68 tip, union 69); endpoints bound the branch; nine own-commit groups exact.
-RESULT pass B2: delivery diff is exactly A dev/programme/delivery/2878.md; one row added, none flipped.
-RESULT pass B3: the three carry ops are present at head and on main; Forward-carry is none and orders no duplicate.
-RESULT pass B4 registration mechanics: self-test 124/0, roster_sync 64/0, dump round-trip byte-equal, no duplicate, after/files well-formed and present, brief does not over-claim.
-RESULT pass: every quoted figure re-derives (208 212 4 22; 208 212 4 30; 1/0 plus 29/20; 251/45; XS 0/8/8; blobs 582f75be3/cc64745e/4b136c3e/adff8318; triage 3/3; ten carries and ten stage moves; no size move); head check-runs have zero non-success; merge-tree exits 0; VERSION, manifest and notes untouched.
+- `governance / instrument-self-tests` and six other jobs were still `in_progress`/`queued` at publish, so I reproduced that job's own command locally rather than citing its conclusion; I did not wait for the run to conclude.
+  Carry: dismissed: measurement incomplete

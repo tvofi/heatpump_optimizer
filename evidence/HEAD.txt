@@ -1,0 +1,12 @@
+reviewed head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+PR head at publish: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd (gh pr view 2878 --json headRefOid)
+worktree: ~/hpo-seats/r10s6/review-2878-r3/wt (detached at the head); main checkout untouched
+git rev-list --count 0e370d603..1dbf3f674 --not origin/main  = 4
+  1dbf3f674 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster-pr
+  e4f7f8ca4 Merge commit 'cfacd3800bb5fa7deb043e6afd7533fa73f3a5d8' into fix/audit-r10-roster-pr
+  cfacd3800 roster_edit set-stage R10-REVIEW-CARRY (tools/audit/seat/roster_edit.py)
+  12fd86e13 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE (tools/audit/seat/roster_edit.py)
+git diff --stat origin/main...1dbf3f674:
+  dev/programme/delivery/2878.md             |   1 +
+  dev/programme/rosters/wave-r10-groups.json | 296 ++++++++++++++++++++-----
+git rev-list --count HEAD --not origin/main = 76 (incl. merges); --no-merges = 71

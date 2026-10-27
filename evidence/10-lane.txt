@@ -1,5 +1,0 @@
-class/kind and planner lane
-R10-REVIEW-CARRY kind fix class process -> lane Core model
-R10-POLICY-FIXER-MD kind policy class policy -> lane Instruments
-R10-POLICY-INSTRUMENTS kind policy class policy -> lane Instruments
-R10-RCA-BODY-LINT kind policy class instrument -> lane Instruments

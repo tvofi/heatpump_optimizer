@@ -1,0 +1,8 @@
+head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+The body's own commit enumeration (all re-derived at this head):
+  git rev-list --count --no-merges origin/main..b0920b94a          = 27   (body line 31: 27)
+  git rev-list --count --no-merges origin/main..cfacd3800          = 70   (body line 32: 70)
+  union of the two, no-merges over origin/main                     = 71   (body line 33: 71; intersection 26)
+  git rev-list --count --no-merges origin/main..HEAD               = 71   (body line 3: "71 no-merge commits")
+  the 27 are 26 roster_edit/roster_sync ops (3b78b44a0..a9c7555ad) + record b0920b94a; no other subject
+B1 commit count and range: PASS (body against head).

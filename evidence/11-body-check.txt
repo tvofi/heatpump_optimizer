@@ -1,3 +1,0 @@
-pr-body ok: PR-BODY: 0 error(s) in ~/hpo-seats/r10s6/review-2878-r2/body.md -- no budget leaf raised over 4db1d3e28...0e370d603
-carry ok: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 12fd86e13
-preflight ok

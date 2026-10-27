@@ -1,0 +1,11 @@
+head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+RUN:
+  bash tools/pr/prepr.sh --body-check ~/hpo-seats/r10s6/review-2878-r3/body.md
+    -> pr-body ok: PR-BODY: 0 error(s) ... ; carry ok: CARRY-AUDIT: 1 routed, 0 unrouted, 0 bad
+       destination(s), at origin/handoff/audit-r10-roster 32b938f3e ; preflight ok
+  python3 tools/audit/carry_audit.py pr 2878  (on the draft verdict)
+  env -u BASH_ENV python3 -I tools/audit/seat/roster_sync.py --self-test (HEAD and origin/main)
+  env -u BASH_ENV python3 -I tools/audit/seat/roster_edit.py --self-test
+  node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json
+NOT RUN (cost discipline; roster data only, no production or test code):
+  full prepr.sh, the scoped/full gate, the mutation table, env_drift, card_drift.

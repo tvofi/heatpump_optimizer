@@ -1,0 +1,14 @@
+head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+R10-REVIEW-CARRY in dev/programme/rosters/wave-r10-groups.json:
+  stage: fixing ; after: [] ; files: [dev/governance/roles/fix-review.md,
+  dev/governance/roles/orchestrator.md, tools/audit/seat/] ; hot_files likewise ; size S
+  resume.next_step: "fixer lands the helper and the two contract sentences; review at the head"
+(the helper does not exist yet and the brief describes work to be done; it does not claim it done)
+RULING cited verbatim, body line 17 and the group's carry[0]:
+  "if there are no code changes, the previous review can be carried"
+REGISTRATION:
+  python3 -I tools/audit/seat/roster_edit.py --self-test   -> roster_edit self-test: 124 checks, 0 failed
+  roster_edit.dump(load(file)) == file bytes               -> True (round-trip byte-identical)
+  groups: 212 total, 212 unique (no duplicate name)
+  node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json -> TOTAL: 0 error(s)
+B4: PASS.

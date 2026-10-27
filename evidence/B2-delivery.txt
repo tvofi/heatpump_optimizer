@@ -1,0 +1,9 @@
+head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+git diff --stat origin/main...1dbf3f674 -- dev/programme/delivery/
+  dev/programme/delivery/2878.md | 1 +
+the only row added:
+  - [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) - **open**, roster: round-10 batch 24 (R10-ORCH-ROSTER)
+the body claims exactly this one row (line 3) and no other (no five flipped rows, no #2866 row).
+R10-ORCH-ROSTER is not a group in the merged roster; R10-ROSTER-BATCH24 is;
+roster_lib.group_for_branch(roster, 'fix/audit-r10-roster-pr') = R10-ROSTER-BATCH24.
+The body's ## Friction discloses the dead name and carries it. B2: PASS.

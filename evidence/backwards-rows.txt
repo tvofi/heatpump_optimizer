@@ -1,0 +1,10 @@
+head: 1dbf3f6741e8507556dd5d6e0b6829ae5dc925dd
+R10-DIAG-AGES       fixing       -> in-progress (carries 1)  explained: its fixer is blocked
+R10-FLOW-BOARD      not-started  -> in-progress (carries 6)  explained: roster_lib.STAGES puts
+  in-progress (index 3) AFTER not-started (index 0), so only a table omitting in-progress reads it backwards
+R10-RCA-BODY-LINT   done         -> fixing      (carries 0)  the reopen is the documented route
+  (~/hpo-orch/r10s6/s7/roster-queue-s7.txt:24, "resume.stage done with 0 carries: reopen it before
+  the append, the route P196 took"), BUT the append it was opened for is absent: carry count 0 and
+  b39-P208's text ("Check the body's `## Head` before the expensive steps") is not in the roster
+  (grep -c P208 = 0). The group is left at fixing for a carry that never landed. A finding for
+  R10-RCA-BODY-LINT, not a block on this PR.
