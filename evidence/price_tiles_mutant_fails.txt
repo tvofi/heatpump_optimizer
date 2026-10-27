@@ -1,0 +1,3 @@
+  FAIL #2257: a degree tile reads the held figure, the cap tile the plan's settled one
+  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (-0.82, -0.82), (3, 23.0): (-22.84, -22.84), (15, 19.0): (-13.86, -13.86), (15, 23.0): (-40.78, -40.78)}]
+2 of 4459 FEATURE CHECKS FAILED
