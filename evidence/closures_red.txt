@@ -1,0 +1,42 @@
+# tests / closures is red at head 8f05b74d4603c29b73eadeaf1c29b821d1f45b1b
+
+job 122347694666 (workflow run 40548660478, "CI code pr=2883")
+  started   2026-10-27T17:17:10Z
+  completed 2026-10-27T17:34:08Z
+  conclusion failure
+  failing step: 10 "Fail if tests/closures.json under-approximates"
+  step 9  "Re-record the closures"            success
+  step 13 "Upload closure recordings"         success
+
+The job's uploaded recording (ev/closure-recordings/check.txt):
+
+  INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+    committed `inert_reads` does not list for it; the merge fast path
+    would treat a change to it as unread (R9-F10.9d). Re-derive:
+    ./tests/derive_closures.sh --single <script>
+      tests/entities.py: tools/audit/merge_throughput.py
+
+# the autofix did not repair it
+
+job 122357300039 ("tests / closures-autofix")
+  started   2026-10-27T17:34:11Z
+  completed 2026-10-27T17:34:33Z
+  conclusion failure
+  step 6 "Merge UNDER-SCOPED recordings"          success
+  step 7 "Push the merged closures"               skipped
+  step 8 "Approve the runs the push left holding" skipped
+  step 9 "Report whether the repair happened"     failure
+
+# pr-contract refuses this body at this head
+
+check-run 122364517241 ("pr-contract / pr-contract")
+  started   2026-10-27T17:47:19Z   (after the last red concluded, 17:34:33Z)
+  completed 2026-10-27T17:48:12Z
+  conclusion failure
+
+.github/workflows/pr-contract.yml, "List the red checks at this head" lists every
+completed failure at the head except `pr-contract / pr-contract` and `gate`, and
+"Check the body against the contract" passes each name to policy_lint.mjs as
+`--red`. `tests / closures` is such a red. The PR body's `## Red checks` section
+reads `none` (body unchanged since 2026-10-27T17:14:13Z; updatedAt), so the body
+answers no red check.

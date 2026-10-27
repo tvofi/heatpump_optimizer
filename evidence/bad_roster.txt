@@ -1,0 +1,4 @@
+RESULT rc = 1
+RESULT stdout_has_UNAVAILABLE = False
+RESULT stderr_tail = json.decoder.JSONDecodeError: Expecting value: line 1 column 13 (char 12)
+RESULT stdout_head = 
