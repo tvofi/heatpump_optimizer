@@ -62,7 +62,7 @@ SAVINGS_PLAN_LINE = "savings_plan"
 #: Below this many modelled kWh a month the plan commanded almost nothing:
 #: a meter-over-model ratio over it measures the meter's own residue, not
 #: the plan's power levels, so the thermostat stays at modelled power.
-MIN_CALIBRATION_KWH = 1.0
+MIN_CALIBRATION_KWH = 2.0
 
 #: The lines that are metered energy at the spot price: what every contract
 #: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
