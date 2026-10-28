@@ -1,7 +1,0 @@
-diff --git a/dev/programme/delivery/2824.md b/dev/programme/delivery/2824.md
-new file mode 100644
-index 000000000..c286a0135
---- /dev/null
-+++ b/dev/programme/delivery/2824.md
-@@ -0,0 +1 @@
-+- [#2824](https://github.com/tvofi/heatpump_optimizer/pull/2824) — **open**, R10-DIAG-REDACT: redact owner data in the diagnostics bundle
