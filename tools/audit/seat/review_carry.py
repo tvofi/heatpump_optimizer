@@ -230,15 +230,16 @@ def self_test():
         else:
             print("  ok   %s" % name)
 
+    # Every scratch repository comes from the shared helper (tests/throwaway_git.py,
+    # #2051), whose env also carries the identity the commits below need.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    "..", "..", "..", "tests"))
+    from throwaway_git import throwaway_git_init
     root = tempfile.mkdtemp(prefix="review_carry_selftest.")
-    _GIT_ENV = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull,
-                    GIT_CONFIG_SYSTEM=os.devnull, GIT_AUTHOR_NAME="t",
-                    GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-                    GIT_COMMITTER_EMAIL="t@t")
     origin = os.path.join(root, "origin.git")
     seat = os.path.join(root, "seat")
-    _t(root, "init", "-q", "--bare", origin)
-    _t(root, "init", "-q", seat)
+    throwaway_git_init(origin, "-q", "--bare")
+    _GIT_ENV = throwaway_git_init(seat, "-q")
     _t(seat, "remote", "add", "origin", origin)
     _t(seat, "checkout", "-q", "-b", "main")
     _t(seat, "commit", "-q", "--allow-empty", "-m", "base")
