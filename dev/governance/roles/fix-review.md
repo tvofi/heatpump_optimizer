@@ -133,8 +133,8 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
 
 Return a verdict with your RESULT lines under a first line `Fix review: merge <head40>`
 or `blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then
-`bus-nonce: <nonce>`; an evidence file names the head. A cloud seat, with no
-`push-verdict`, commits them as `verdict.md` and `ev/` with subject `verdict <pr> <head40>`
-to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`, `cloud_relay.sh`'s layout.
+`bus-nonce: <nonce>`; an evidence file names the head. A cloud seat, with no `push-verdict`,
+commits them in `cloud_relay.sh`'s layout (`ev/`, subject `verdict <pr> <head40>`) to a
+fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.

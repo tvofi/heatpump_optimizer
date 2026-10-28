@@ -558,14 +558,15 @@ EOF
   chk "a commit subject naming PR 8 under PR 7's ref is refused" 2 relay 7 $n $h
   # THE STATED LAYOUT RELAYS (P200, R10-REVIEW-CARRY). A cloud reviewer reads fix-review.md,
   # never this script, so the probe is built from the templates that file states -- the ref,
-  # the subject, the first line, the nonce line, verdict.md and ev/ -- and must relay. A
+  # the subject, the first line, the nonce line and ev/ -- and must relay (the verdict file's
+  # name is this header's alone: policy_lint refuses a path not in the tree). A
   # template the file drops, or one this relay would refuse, fails here instead of on a verdict.
   doc() { # doc <template regex> : the first backticked span in fix-review.md matching it, placeholders filled
     grep -o "\`$1[^\`]*\`" "$HERE/../../../dev/governance/roles/fix-review.md" | head -n 1 | tr -d '\`' \
       | sed -e "s/<pr>/9/g" -e "s/<head40>/$h/g" -e "s/<nonce first 8>/${n:0:8}/g" -e "s/<nonce>/$n/g"; }
   stated() { local ref subj first nl
     ref=$(doc 'probe/rev-'); subj=$(doc 'verdict <pr> '); first=$(doc 'Fix review: merge '); nl=$(doc 'bus-nonce: ')
-    grep -q '`verdict.md`' "$HERE/../../../dev/governance/roles/fix-review.md" && grep -q '`ev/`' "$HERE/../../../dev/governance/roles/fix-review.md" || return 3
+    grep -q '`ev/`' "$HERE/../../../dev/governance/roles/fix-review.md" || return 3
     [ -n "$ref" ] && [ -n "$subj" ] && [ -n "$first" ] && [ -n "$nl" ] || return 3
     case "$ref$subj$first$nl" in *'<'*) return 3;; esac
     rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$h" > "$t/pr/ev/head"
