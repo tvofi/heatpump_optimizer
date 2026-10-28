@@ -1,0 +1,35 @@
+@@ -38,2 +38,2 @@
+@@ -50,0 +51,5 @@
+@@ -54,7 +59,6 @@
+@@ -69,3 +73,4 @@
+@@ -76,5 +81,7 @@
+@@ -123 +130,5 @@ posted() { logline POSTED "$1 $2"; echo "cloud_relay: POSTED #$1 $2"; }
+@@ -158,0 +170 @@ relay() {
+@@ -161 +173 @@ relay() {
+@@ -163,2 +175,2 @@ relay() {
+@@ -169,2 +181 @@ relay() {
+@@ -177 +188 @@ dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled
+@@ -236,0 +248 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -247 +259 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -267 +279 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -270,2 +281,0 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -274 +284,3 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -277,3 +289,2 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -280,0 +292 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -283,8 +295,4 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -311,0 +320 @@ self_test() {
+@@ -373 +382,2 @@ self_test() {
+@@ -377 +387 @@ self_test() {
+@@ -381,0 +392 @@ self_test() {
+@@ -435,0 +447,2 @@ self_test() {
+@@ -462 +475,2 @@ self_test() {
+@@ -472 +486 @@ self_test() {
+@@ -478 +492 @@ self_test() {
+@@ -536 +550,2 @@ self_test() {
+@@ -543 +558 @@ self_test() {
+@@ -545 +560 @@ self_test() {
+@@ -547 +562 @@ self_test() {
+@@ -552,0 +568,3 @@ self_test() {
+@@ -555 +573 @@ self_test() {
+@@ -562 +580 @@ self_test() {
+@@ -565 +583,4 @@ self_test() {
