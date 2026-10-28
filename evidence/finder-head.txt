@@ -1,0 +1,33 @@
+c8ba174c3fa7f6768a7576d31b6597835df45589  dev/audit/rounds/round10/D14/s1/p10_seams.py
+== head --away
+  seam topology.py:_advisor_replay:simulate_step
+RESULT cycles=6 cycles
+RESULT barrier_set_loop=0 calls
+RESULT barrier_set_executor=0 calls
+RESULT loop_kernels=0 calls
+RESULT executor_kernels=0 calls
+RESULT worker_kernels=70 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
+  site     12 worker dhw_planner.py:_plan_dhw_min_cost optimize.linprog
+  site     58 worker optimizer.py:_scoped_minimize optimize.minimize
+RESULT thread_factor=1.002
+RESULT load1=0.89
+RESULT swapins=0
+== head --away --deficit 0
+  seam topology.py:_advisor_replay:simulate_step
+RESULT cycles=6 cycles
+RESULT barrier_set_loop=0 calls
+RESULT barrier_set_executor=0 calls
+RESULT loop_kernels=0 calls
+RESULT executor_kernels=0 calls
+RESULT worker_kernels=70 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
+  site     12 worker dhw_planner.py:_plan_dhw_min_cost optimize.linprog
+  site     58 worker optimizer.py:_scoped_minimize optimize.minimize
+RESULT thread_factor=1.002
+RESULT load1=0.98
+RESULT swapins=0

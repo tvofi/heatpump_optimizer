@@ -1,0 +1,42 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index ebfb9dc42..6d8979010 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -259,6 +259,19 @@ def expire_override(
+     return active, return_time
+ 
+ 
++def expire_state(
++    state: AwayState, now: datetime
++) -> tuple[bool, datetime | None, bool]:
++    """The override as of ``now``, written into ``state`` when it lapsed."""
++    parsed = _parse_return_time(state.override_return_iso)
++    active, ret = expire_override(state.override_active, parsed, now)
++    lapsed = active != state.override_active or ret != parsed
++    if lapsed:
++        state.override_active = active
++        state.override_return_iso = ret.isoformat() if ret else None
++    return active, ret, lapsed
++
++
+ def migrate_helper_override(
+     presence_entity: str | None,
+     presence_raw: str | None,
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 00d89dd9b..550994c0e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9692,11 +9692,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
+         """The override as of ``now``, written back when it lapsed; no await splits it."""
+-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+-        active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
+-        if active != self._away_state.override_active or ret != parsed:
+-            self._away_state.override_active = active
+-            self._away_state.override_return_iso = ret.isoformat() if ret else None
++        active, ret, lapsed = away_mode.expire_state(self._away_state, now)
++        if lapsed:
+             self._spawn(away_mode.persist_override(self, self._away_state))
+         return active, ret
+ 

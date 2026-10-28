@@ -1,0 +1,7 @@
+# trailer lines per branch-only commit (a6620c30a..edc3158d); trailer values redacted
+86b3fe71d committer=2026-10-23T01:16:10+02:00 co-author=1 session=0
+1b4fbc55b committer=2026-10-22T21:45:58+00:00 co-author=1 session=1
+3d87e5910 committer=2026-10-22T21:45:17+00:00 co-author=1 session=1
+2854b1384 committer=2026-10-22T21:29:09+00:00 co-author=1 session=1
+a1e2138ce committer=2026-10-22T21:14:06+00:00 co-author=1 session=1
+add0c1023 committer=2026-10-22T21:07:29+00:00 co-author=1 session=1

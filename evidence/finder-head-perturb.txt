@@ -1,0 +1,13 @@
+RESULT static_seams=36 sites
+RESULT cycles=6 cycles
+RESULT barrier_set_loop=2555 calls
+RESULT barrier_set_executor=0 calls
+RESULT loop_kernels=70 calls
+RESULT executor_kernels=0 calls
+RESULT worker_kernels=0 calls
+RESULT loop_kernels_all=2625 calls
+RESULT loop_kernels_away_seam=183 calls
+RESULT loop_kernels_per_cycle=437.50 calls/cycle
+RESULT thread_factor=1.003
+RESULT load1=1.27
+RESULT swapins=0

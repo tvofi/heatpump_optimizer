@@ -1,0 +1,3 @@
+Architecture score: dS -0.6574 WORSENS (inadmissible: shared_inplace_writes 17->19)
+  shared_inplace_writes 17 -> 19  -0.8273
+  params_over_10 8 -> 7  +0.1699

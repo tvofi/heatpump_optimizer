@@ -1,71 +1,81 @@
-Fix review: blocked 577ec62dbb35f2353902b5bbe5adb37b69805af2 mutation-unpinned: coordinator.py:9568 RETURN_DEL return active, ret, added by this diff, is refused by the mutation lane at this head, job 120235979635, as at 5b068048, job 120230312005; CI's pin run timed out on it a second time, job 120236183357, so no bot pin comes and the lane stays red; the barrier kills it, replay.kernel_checks 3 of 5 under the mutant, so a recorded killed_by pin is owed
+Fix review: merge edc3158d23d19fa9270edaab06293c1ee5a92299
 
-bus-nonce: 0d5b2b364ff8c8e510778510c8fdba8e
+bus-nonce: 8ef895202d8d2525c53ef3fd69926f7b
 
-PR #2632, group R10-LOOP-CPU (roster origin/handoff/audit-r10-roster), round 3. Measured head 577ec62dbb35f2353902b5bbe5adb37b69805af2 (ev/HEAD.txt), in detached worktrees.
-Contract read from origin/main f38f9185 (the head's merge base; `git diff merge-base...origin/main -- dev/governance/roles/` is empty).
+PR #2632, group R10-LOOP-CPU (roster origin/handoff/audit-r10-roster at 7c5ca6bf), round 4. Measured head edc3158d23d19fa9270edaab06293c1ee5a92299 (ev/HEAD.txt), from detached worktrees. Merge base a6620c30adcdf0d9529ee66977694bfa2a06d5c3 = origin/main. Contract read from origin/main: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty. I re-read the head before writing: `refs/heads/fix/r10-loop-cpu` is still edc3158d. The verdict is merge, so no re-cut is owed.
 
-**Head moved after measurement.** The PR head is now 2f66e909ea99ffef43bc5ef5c5b9bee542c9c3b9, the github-actions[bot] commit `ci: pin killed mutants` (ev/head-moved.txt). It adds one ledger file only, the pin for `_expire_away_override` GUARD_OFF (M3, killed by tests/features.py in CI). It does not pin 9568 RETURN_DEL, so the blocker below holds at 2f66e909 too. Every number in this verdict was taken at 577ec62.
+## Findings
 
-## The blocker (brief item c)
+- **Six branch commits carry tool-attribution trailers.** Brief item (5), "commits carry no footers", does not hold. add0c102, a1e2138c, 2854b138, 3d87e591 and 1b4fbc55 each carry `Co-Authored-By` and `Claude-Session` trailers, and 86b3fe71 carries `Co-Authored-By` (ev/trailers.txt, values redacted). All six are round-1 commits, authored 21:07Z to 23:16Z on 2026-10-22. The owner's ban landed as a guard in a4b27986 at 23:07Z. That guard judges only what a push publishes first, so it never charges these commits. Round 4's own commits (05ec7931, 8d25663f, 221ff40f, aeb582c6, edc3158d) carry none. Removing the trailers means rewriting a reviewed, published branch, or squash-merging. A plain merge commit carries them into main's history. Carry: dismissed: published before or at the guard's landing and outside its first-publication rule; whether to squash is the merging seat's call
+- **Two R10-LIVESTATE controls are not yet on the roster.** The body's `## Forward-carry` names two controls beyond cccbf4fb's guard check: the keystone on `_expire_away_override`'s returned pair, and the features.py check `an unexpired away override is not re-persisted each cycle; a lapsed one is cleared and saved once`. The body says neither is on the roster, and the roster at 7c5ca6bf confirms it (`grep -c` prints 0). The carried finding itself is present, with its control stated as a precondition: the awaiting `_resolve_away`, the publish guard, and the guard check, red as `if True:`. So I do not read this as `carry-missing`. The two extra controls are in-tree tests that fail by name the moment a reshape breaks them. The keystone ends features.py at check 1, and its ledger pin anchors `return active, ret`. A seat reshaping the expiry into copy-then-publish should know that before it starts, so the roster append is still owed. Carry: R10-LIVESTATE
+- **Round-2 item 9b5e6fd8, "CI is not settled at this head".** It does not apply at this head. It described ab6216ce, where mutation-pins (1) was still running and mutation was red. At edc3158d every check run has concluded, none red, and the mutation lane passed (Evidence). Carry: dismissed: settled at edc3158d, every check concluded green including mutation (item 9b5e6fd8)
+- **Round-2 item 325975e1, "Round 1's two dismissed findings stand".**
+  - Its HASTUB_TZ half still applies at this head and predates it. With `HASTUB_TZ=Europe/Stockholm`, tests/features.py reads `4 of 4323 FEATURE CHECKS FAILED` at the base a6620c30 and `4 of 4328` at the head. The same four checks fail at both ends: the house-meter preference check, the naive/aware timestamp check, and the R9-F1.1 N-shared-config pair. Without the variable the head reads `ALL 4335 FEATURE CHECKS PASSED`.
+  - R10-FLY-SUITE-ENV-FLAKES (stage not-started) owns this in its brief and carries. The house-meter check is new since round 1's list, and that group should see it.
+  - Its architect-note half (the after-edge ruling) is the orchestrator's. R10-LIVESTATE's `after` already includes R10-LOOP-CPU, which serialises the touched hunks.
+  - Carry: R10-FLY-SUITE-ENV-FLAKES (item 325975e1)
 
-- The `mutation` lane's red at 5b068048 is `MUTATION TABLE REFUSED -- 4062 unpinned site(s) against 4062 at the ratchet base f38f9185, 1 of them added by this diff`: `ADDED UNPINNED coordinator.py:9553 RETURN_DEL: return active, ret` (ev/mutation-5b068048-120230312005.log).
-- **It is not gone at this head.** The head reads the same refusal at the same site, now line 9568 (ev/mutation-head-120235979635.log).
-- **The body's answer has failed again.** The body answers this site in `## Red checks` (the `mutation` and `mutation-pins (1)` bullet, read at ab6216ce) and in `## Unpinned sites`. Both answers rest on "re-measured by CI's next pin run" and "`mutation-autofix` pins what CI kills". That next pin run is job 120236183357 at this head, and it timed out on the site again: `UNPINNED ...:9568 RETURN_DEL -- skip-timed-out in tests/features.py`, `PIN KILLED: 1 pinned, 1 left unpinned (... 1 timed out ...)`.
-- **No bot pin will come.** mutation-autofix pins only killed mutants (ci-autofix.md, `mutation_table.apply_pins`). This is the second consecutive pin run to time out on this site through features.py, after ab6216ce's job 120155543073. Waiting on the bot does not converge.
-- **The mutant is genuinely killed.** I applied M4 (`return active, ret` -> `pass`) at this head and ran `replay.kernel_checks()` (ev/M4-barrier.txt, ev/M4.diff, ev/barrier.py). It reads 5 of 5 unmutated and 3 of 5 mutated. The two that fail are `P10: an armed system identification ...` and `P10: an away override's recovery estimate ...`, which confirms the body's M4.
-- **What is owed.** A recorded disposition for coordinator.py:9568 RETURN_DEL, as the refusal itself asks: a `killed_by` pin naming the driver that kills it within budget (tests/entities.py, which runs the barrier), or a features.py check that kills it before the pin run's timeout. Then the body's mutation answer should name the 5b068048 and head runs. `ci_predict.py` listed this site before the handoff (the body's own `## Unpinned sites`), so the repair was visible before handoff.
+## Evidence
 
-## RESULT lines
+### (1) The round-3 block is settled
 
-### (a) The new tests fail at a4ccf176's code and pass at the head; each mutant turns red
+- **The keystone goes red under the round-3 mutant.** M4 is the round-3 timed-out mutant (RETURN_DEL, `return active, ret` -> `pass`, ev/M4.diff). Under it, whole tests/features.py prints `FAIL keystone: ... [(None, None, ['persist_override'])]` and `1 of 1 FEATURE CHECKS FAILED`, rc 1, wall 1.70 s (ev/features-M4.log). The round-3 pin runs timed out on this mutant at 3 x the driver's measured seconds. CI's driver baseline at this head is 360 s, so the budget is about 1080 s; the mutant now dies 2-3 orders of magnitude inside it.
+- **M3 also goes red.** M3 is GUARD_OFF, `if active != ...` -> `if False:` (ev/M3.diff). The keystone is red, `[((True, ...18:00...), (False, None), [])]`, rc 1, 1.79 s (ev/features-M3.log).
+- **Null: the unmutated head passes.** It prints `ok keystone: ...` as check 1, both R10-LOOP-CPU worker checks `ok`, the D14-s1-01 guard check `ok`, and `ALL 4335 FEATURE CHECKS PASSED`, rc 0 (ev/features-head.log).
+- **CI's mutation lane at this head.** Job 120375371389 printed `MUTATION TABLE PASSED` and `PIN RE-VERIFICATION: 3 reproduced, 0 not reproduced`. That includes `coordinator.py:9701 RETURN_DEL -- killed by tests/features.py`, the round-3 site after main's line drift. It reports 4020 unpinned sites against 4022 at the ratchet base, so no site was added unpinned, and `0 survivor(s) of 3 evaluated` (ev/mutation-120375371389-excerpt.txt). The run was not inconclusive: the features.py and entities.py baselines read rc=0 failed=0, and the null control survived.
 
-Each run is whole `tests/features.py` under /opt/hpo/venv-ci (3.14.7), run through my own spawn probe (ev/probe.py). The probe wraps `subprocess.Popen`, counts process_worker spawns, and reports the live ones at exit, after the pool's own atexit.
+### (2) Off the event loop: the finder's harness at both ends
 
-| run | features.py | spawns | live at exit | log |
-|---|---|---|---|---|
-| head 577ec62 | `ALL 4310 FEATURE CHECKS PASSED`, rc 0 | 27 | 0 | ev/features-wt.log |
-| head tests over a4ccf176's `custom_components/` | `2 of 4310 FEATURE CHECKS FAILED`, rc 1: both R10-LOOP-CPU checks (`pid before=3638 after=3639 handle kept=False`; `child returncode=None`) | 767 | 742 | ev/features-base.log |
-| M1: pre-pipe `pickle.dumps` try deleted, `pickle.dump((fn, args), stdin, ...)` restored | `1 of 4310 FAILED`, rc 1: "a job that will not pickle degrades without touching the worker ..." (`before=3642 after=3643 handle kept=False`) | 767 | 0 | ev/features-m1.log, ev/M1.diff |
-| M2: the guarded `worker.kill()`/`worker.wait()` reap deleted | `1 of 4310 FAILED`, rc 1: "a reply stream that faults reaps the child ..." (`child returncode=None`) | 27 | 1 | ev/features-m2.log, ev/M2.diff |
+The finder's harness is `dev/audit/rounds/round10/D14/s1/p10_seams.py`, sha1 c8ba174c at both ends. I ran it as `HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub`, venv-ci python 3.14 (ev/finder-base.txt, ev/finder-head.txt).
 
-- 742 = the body's 740 at ab6216ce, plus the two new checks' own leaked children at round-2 code.
-- M1 alone leaves 0 live because the round-3 reap still kills each faulted child. M1's red is the respawn the check pins (a worker lost per unpicklable job), not the leak.
-- The mutants were applied by an exact-once replace (ev/mut.py).
+| run | base a6620c30 | head edc3158d |
+|---|---|---|
+| `--away` | `loop_kernels_all=183`, `loop_kernels_away_seam=183`, 30.50 per cycle | 0, 0, 0.00 |
+| `--away --deficit 0` (null control) | 0, 0, 0.00 | 0, 0, 0.00 |
+| `worker_kernels` | 70 | 70 |
 
-### (b) Leaked children and CI's coverage, mutation and fast lanes
+- RESULT `--away`: the loop-kernel delta is -183 calls over 6 cycles.
+- RESULT null: the delta is 0. The roster's carried null ("with the deficit at 0 the count reads 0 before and after") holds.
+- RESULT head `--away --perturb`: `loop_kernels_away_seam=183`, `loop_kernels_all=2625` (ev/finder-head-perturb.txt). The harness still sees the seam at the head, so the 0 is not vacuous.
+- **The interval replay.** Its move (`_replay_interval` -> `_replay_step` in the worker) was measured in round 1 with the barrier `replay.kernel_checks()`. That production code is unchanged since: the branch-own diff over custom_components, features.py, replay.py and dst_checks.py has the same `git patch-id --stable` (e5cc819d) at 4bae3ae2 and at edc3158d.
 
-- **Leaked children.** 0 at features.py's exit at the head (table above).
-- **coverage.** Job 120236094626 succeeded and ran `tests/features.py exit=0 wall=1097s`, with no nodata or could-not-combine line (ev/coverage-head-120236094626.log).
-- **coverage-ratchet.** Job 120243722102 printed `ok package coverage 98.67 % >= 96.0 % (21822/22117 ...)`, `ok config_flow.py coverage 100.00 %` and `ok every module >= 95.0 % (0 below)`, ending `COVERAGE RATCHET PASSED`. That is against 85.89 % in the round-2 red run.
-- **fast (3.14).** Job 120236094709 succeeded.
-- **closures.** Succeeded, and closures-autofix was skipped.
-- **mutation.** Job 120235979635 failed: the blocker above.
-- **mutation-pins (1).** Job 120236183357 "succeeded" with 1 site timed out and left unpinned.
-- **nightly-status.** Job 120235979624 failed. It grades main, and this diff does not reach what it reads (per the brief and fix-review.md step 11), so it is not counted against this PR.
-- **Everything else.** All other runs concluded success or skipped (ev/checks-head-final.tsv).
-- **pr-contract.** Ran twice at this head (04:12:11Z and 04:12:42Z), both success, after the last red run concluded (mutation at 04:12:23Z).
+### (3) archscore
 
-### (c) The mutation red at 5b068048
+- **Re-derived.** `score.py --diff a6620c30 edc3158d` gives `dS +0.1687 WORSENS (inadmissible: coord_footprint 2471->2473)`, with `params_over_10 8 -> 7 +0.1699` (ev/archscore.txt). The dS and the +2 match the body. The body's absolute figures, 2489 -> 2491, were read against its own base bfd61aaf, not this head's merge base: the body says "this head" of 4bae3ae2. The delta is identical.
+- **The justification holds.** I planted the two obvious alternative placements on the head (ev/plant.diff, ev/plant2.diff):
+  - Moving the expiry write-back into away.py (`expire_state`, which writes the AwayState there) clears the coord_footprint rise. It reads `dS -0.6574 WORSENS (inadmissible: shared_inplace_writes 17->19)` (ev/archscore-plant.txt), which re-derives the body's round-1 claim.
+  - A pure `expire_lapse` in away.py, with the coordinator keeping the writes, leaves `coord_footprint 2471 -> 2473` unchanged (ev/archscore-plant2.txt).
+  - Either reshape also touches the away override path that R10-LIVESTATE owns next, and the carry tells this group not to reshape it.
+  - So I find no sounder placement inside this group's mandate. The +2 is the publish guard plus the sync expiry split that the P10 await requires; the gate's own `## Architecture score` section names it, and arch-score is green at this head.
+- **structure.py.** At the head it prints `STRUCTURE RATCHET PASSED` (ev/structure-head.txt). The only budget move against main is `class_excess_loc` 18244 -> 18234, which is down (ev/budgets.diff). No budget is higher than main's.
 
-Not met; see the blocker above.
+### (4) The two unrouted items
 
-### (d) `Closes #2237`
+They are under `## Findings` above, each with its own `Carry:` naming the item id. Before this verdict, carry_audit read `CARRY-AUDIT #2632: 7 finding item(s): 5 routed, 2 unrouted` (ev/carry-audit-before.txt).
 
-Intended. #2237 is "[R10-P10] CPU work ... starves the loop", class P10, finding D14-s1-01 (ev/issue-2237.txt). The roster group lists `issues: [2237]` and `fixes: [2237]`.
+### (5) Merge, ledger, CI, version
 
-### Other checks
-
-- **Merge.** `git merge-tree --write-tree origin/main 577ec62d` gives tree e5bcd2ff, rc 0, no conflict (ev/merge-tree.txt). origin/main was f38f9185 at that point, and is c26499e0 now.
-- **Finder's harness.** `dev/audit/rounds/round10/D14/s1/p10_seams.py` has sha1 c8ba174c at both ends (ev/finder-harness.txt).
-  - `--away`: 30.50 loop kernel calls per cycle at fef4a135 (183 over 6 cycles), 0.00 at the head.
-  - Null control, `--away --deficit 0`: 0.00 at both ends.
-- **Class census.** The body's grep returns 6 sites at the head (ev/class-census.txt), and each matches its disposition in the body. The `pipes missing` branch re-raises with the handle still installed, so it leaves no unheld child.
-- **Structure.** `tests/structure.py` passes at the head (ev/structure-head.txt). The only budget movements in the branch are `class_excess_loc` going down, 18268 -> 18258, and `recorded_at`.
-- **Untouched files.** VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched in the three-dot diff.
-- **Not re-derived by me:**
-  - the body's archscore dS +0.1687;
-  - the carry-audit counts;
-  - the scoped-gate line `25 TEST SCRIPT(S) PASSED`.
-
-Round 3: a fourth round would owe a re-cut under fixer.md, though the repair owed here is a ledger pin, not a code change.
+- **Merge.** `git merge-tree --write-tree origin/main edc3158d` gives tree 11c208aa, rc 0, no conflict and no claim-driver line (ev/merge-tree.txt).
+- **The ledger.** `git diff a1fb830e edc3158d -- tests/mutation_ledger` is not empty: 26 files. Every one of them is main's movement since a1fb830e. No ledger path at the head differs from both a1fb830e and origin/main, and each of the branch's four own ledger files is byte-equal to a1fb830e's (ev/ledger-check.txt). That includes the 221ff40f conflict file `..._expire_away_override.RETURN_DEL.67e36ad4.json`, whose diff to a1fb830e is 0 lines and whose reason names c6ef0668. So the substantive property holds, but not the literal empty diff the brief states.
+- **The scoped gate.** At the head, `tests/closure.py select --diff <merge-base>` prints `MODE: SCOPED -- 23 script(s) run, 10 scoped out.` (ev/scope-select.txt). `ci_predict.py --base origin/main` prints `CI PREDICT: no closures or fast red predicted against a6620c30adcd` (ev/ci-predict.txt). I did not run the gate itself; CI's heavy runs are cited.
+- **CI**, from one bulk check-runs read at the head after all runs concluded (ev/checks-head.json, ev/checks-head.tsv): 41 runs, none failure or cancelled.
+  - mutation 120375371389 success, read in its log above.
+  - fast (3.14) 120375504577 success.
+  - coverage and coverage-ratchet success.
+  - closures success, with closures-autofix skipped.
+  - arch-score, budget-raise-gate, typing and env-matrix success.
+  - nightly-status and delivery-status success.
+  - pr-contract 120375367781 and 120375612866 success.
+  - No red check at this head, so step 11 owes nothing new. The body's `## Red checks` answers the earlier heads' reds, and round 3's mutation red is answered by the keystone and its pin.
+- **Version.** VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched in the three-dot diff. No golden fixture moved, so env_drift has nothing to compare.
+- **Head and carry (steps 7 and 12).**
+  - The body's `## Head` names edc3158d.
+  - It also keeps a stale paragraph naming 015df0a2, which is not an ancestor of this head. That was an earlier merge attempt.
+  - The resolution delta from the body's measured 4bae3ae2 to edc3158d is: main merges, plus the a1fb830e ledger file resolved to the bot's version. I judged it above.
+- **Forward-carry (step 10).**
+  - bf112946 (R10-FLY-SUITE-ENV-FLAKES, `correcting the carry above`) and cccbf4fb (R10-LIVESTATE) are both ancestors of the roster tip, and each states its control.
+  - On the two extra LIVESTATE controls, see `## Findings`.
+- **Not re-derived:**
+  - the body's `25 TEST SCRIPT(S) PASSED` scoped-gate count;
+  - the pin run's 549 s baseline;
+  - the round-1 `shared_inplace_writes 17 -> 19` as measured before the split (I re-derived the same figure through plant 1 instead).

@@ -1,0 +1,28 @@
+# ledger paths where head differs from a1fb830e
+26
+# of those, paths where head differs from origin/main (a6620c30)
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._expire_away_override.GUARD_OFF.3de10663.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._expire_away_override.RETURN_DEL.67e36ad4.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._resolve_away.GUARD_OFF.aa347208.json
+tests/mutation_ledger/killed_by/coordinator.py/_recovery_off_loop.RETURN_DEL.3b4fcc48.json
+# head ledger vs origin/main ledger, full diff:
+ ...timizerCoordinator._expire_away_override.GUARD_OFF.3de10663.json | 6 ++++++
+ ...imizerCoordinator._expire_away_override.RETURN_DEL.67e36ad4.json | 6 ++++++
+ ...atPumpOptimizerCoordinator._resolve_away.GUARD_OFF.aa347208.json | 6 ++++++
+ .../coordinator.py/_recovery_off_loop.RETURN_DEL.3b4fcc48.json      | 6 ++++++
+ 4 files changed, 24 insertions(+)
+# paths where head differs from BOTH a1fb830e and origin/main:
+# branch's own ledger additions (merge-base...head) vs a1fb830e's version:
+equal-to-a1fb830e tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._expire_away_override.GUARD_OFF.3de10663.json
+equal-to-a1fb830e tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._expire_away_override.RETURN_DEL.67e36ad4.json
+equal-to-a1fb830e tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._resolve_away.GUARD_OFF.aa347208.json
+equal-to-a1fb830e tests/mutation_ledger/killed_by/coordinator.py/_recovery_off_loop.RETURN_DEL.3b4fcc48.json
+# 221ff40f resolution file vs a1fb830e:
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._expire_away_override.RETURN_DEL.67e36ad4.json
+0
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._expire_away_override RETURN_DEL 67e36ad4",
+  "killed_by": "tests/features.py",
+  "old": "        return active, ret",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c6ef0668463b5e9291d0bf41061b06940ecb11ef: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
