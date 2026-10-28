@@ -1,0 +1,2 @@
+Architecture score: dS +2.3483 IMPROVES
+  duplication_copies 35 -> 29  +2.3483
