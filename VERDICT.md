@@ -1,43 +1,89 @@
-Fix review: blocked 5d79db511e0f801cc17605e1f8e3d935b3a7980e class-open: spellings gh accepts still pass unseen, and the quoted arm's gap survives its mutant
+Fix review: blocked d0d35231c633ca447acf04770f9034281417b72d class-open: program spellings outside PROGRAM remain unread and undispositioned, an interpolated program in one string literal (Python f"{GH} pr merge {n} --subject x", "%s pr merge" % GH, "{} pr merge".format(GH), JS `${cfg.gh} pr merge`)
 
-bus-nonce: 0e8eb369ea0bce8a86039289b56b5ed6
-
-## Round
-
-This is the fourth review of #2697. By `fixer.md` "Past three rounds, re-cut rather than repair", the next handoff owes a re-cut body, not a repair (see Findings).
+bus-nonce: 1eefc0553e18f66d3a0ba6b90e5fd480
 
 ## Block
 
-Both round-3 items the brief names are settled at this head (Evidence). The class they belong to is not. The body claims the parts close it "by construction for everything a lexical scan can read". Measured against the head's own `subjectWriters` (`ev/reviewer_probe.out`, `ev/reviewer_probe2.out`) and the finder's harness under plants (`ev/reviewer_plants.out`), that claim does not hold:
+This is review round 5. `fixer.md` owes a re-cut from round 4 on, and the body was re-cut.
 
-1. **An option value with whitespace in a gap (fix-review.md step 6, class-open).** `OPTION`'s value is `QUOTE?[^\s,'"`\]]+QUOTE?`, a single run with no whitespace, so a quoted multi-word value in a gap breaks the match, and the call is not even counted. gh 2.89.0 parses both `gh pr --subject "x y" merge 9 --merge` and `gh pr -t "x y" merge 9 --merge`. They pass flag parsing and reach the network, while `gh pr --bogus "x y" merge` is refused as an unknown flag (`ev/gh_spellings.txt`). Each gives `calls=0 bad=[]` at head. So does the argv `run(["gh", "pr", "--subject", "x y", "merge", n])` and `gh -R "o/r x" pr merge 9 --subject x`. On the tree, `gh pr --subject "Merge pull request #1 (x)" merge 1 --merge` planted in `tools/audit/seat/merge_pr.sh` leaves `56 merge call(s)` and `refused=0` at head. This is the subject flag itself placed in the gap the body says `OPTIONS` covers ("gh options, with or without a value, in any gap"; "a quoted option value" is listed as a member).
-2. **Program spellings outside `PROGRAM` (class-open).** Planted in `merge_pr.sh`, `${GH:-gh} pr merge 1 --merge --subject ...` and `$(command -v gh) pr merge 1 --merge --subject ...` each give `56 merge call(s)` and `refused=0` at head. The body says the program is "`gh` on any path, or a shell variable". `${GH:-gh}` is a shell variable expansion that the unbraced and braced arms do not read, because the `:-` default breaks `\$\{?[A-Za-z_]\w*\}?`. A command-substitution program is not dispositioned either. (`gh.exe pr merge` is missed too. That is Windows-only and minor, and is listed only for completeness.)
-3. **A surviving mutant on a part the body says cannot be narrowed alone (step 1, mutation-vacuous).** The body says `GAP` is one part, so "no gap can be mutated alone". `GAP` is one constant used at three sites, and each site can be narrowed alone. RV3 narrows only the quoted arm's gap, `${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}` → `..., ${QUOTE}merge...`. It holds `SELF-TEST 84 of 84 probes held` (`ev/reviewer_mutants.out`). It is a real writer miss. `run([GH, "pr" , "merge", n, "-t", s])`, `run([GH, "pr",\n    "merge", n, "-t", s])` and `execFileSync(GH, ['pr',  'merge', n, '--subject', s])` each give `bad ["f:1"]` at head and `calls=0 bad=[]` under RV3 (`ev/reviewer_probe_rv3.out`). No probe combines a variable program with a non-`, ` gap. The other per-site narrowings are killed: RV1 (program→pr, the brief's item 1) at 82 of 84, RV2 (pr→merge) at 81, RV4 (no options before pr) at 83 and RV5 (no options between pr and merge) at 81.
+The body claims that `MERGE_CALL` "reads every spelling of one call that gh's argv and the Python, JS and shell call forms accept". It pins `os.system(f"gh pr merge {n} ...")` and the JS template `${GH} pr merge` as such spellings. The same call with its program interpolated into the one string literal is not read. With the head's `subjectWriters` extracted by the argv-seam harness's own method (`ev/probe.mjs`, `ev/probes.json`, output in `ev/own_probes_head.txt`), each of these returns `[]`:
+- `os.system(f"{GH} pr merge {n} --subject x")`
+- `os.system(f"{gh_bin} pr merge {n} --subject x")`
+- `subprocess.run(f"{self.gh} pr merge {n} -t x", shell=True)`
+- `os.system("%s pr merge %s --subject x" % (GH, n))`
+- `os.system("{} pr merge {} -t x".format(GH, n))`
+- `` execSync(`${cfg.gh} pr merge ${n} --subject x`) ``
 
-Any one of these settles it: a value part that reads a quoted value with whitespace, a program part that reads `${VAR:-...}` and `$(...)`, and a probe for RV3. Or the body names each member as dispositioned, with its reason, the way it already does for the argv-across-expressions seam. The census found no live site of these shapes on the tree (`ev/census.out`: 0 of 60 uncovered lines is a call), so this is a seam of the guard, not a live writer.
+The control `` execSync(`${GH} pr merge ${n} --subject x`) `` is refused.
+
+This is the round-4 block's class (2), program spellings outside PROGRAM, not a new class. `PROGRAM`'s `$` arm takes only an identifier inside `${...}`, and nothing takes a Python `{...}`, `%s` or `{}` placeholder. The f-string and `${cfg.gh}` shapes are one literal in one expression, so the Unpinned sites disposition "argv built across expressions" does not cover them. The `%`/`.format` shapes are arguable under it, but the body does not name them.
+
+The census rule finds no live site of these shapes. Every such line holds both words and falls among its 60 read-and-cleared lines. So this is the same synthetic-shape standard the round-4 block applied to `${GH:-gh}`.
+
+Either remedy settles it:
+- **Code.** Give `PROGRAM` an interpolation-slot arm: `\{[^{}\n]*\}`, `%s`, and a `${...}` arm that is not limited to an identifier. Add one probe per arm in `SPELLINGS`, a null control (`f"{GH} pr view {n} -t x"`), and a mutant per arm.
+- **Body.** Narrow the "every spelling" claim, and disposition interpolated programs under Unpinned sites with their reason.
 
 ## Findings
 
-- Round 4: `fixer.md` "Past three rounds, re-cut rather than repair" makes this handoff a re-cut. The body still restates round 1, 2 and 3 history and repairs it in place. The next handoff owes a replaced body: the template's headings, only the figures re-taken in that pass, and no round history. Carry: R10-MERGE-SUBJECT-HARDEN
-- Multi-line GraphQL in a Python triple-quoted string whose first line opens the mutation (`Q = """mutation { mergePullRequest(input: {` then `commitHeadline: "x"` on a later line) gives `calls=1 bad=[]`. The quote reader toggles on each `"` of `"""`, so the rest of the opening line reads as quoted and the extent ends at that line. The shell, JS-template and triple-quoted forms with the mutation on its own line are refused (`f:3`) (`ev/reviewer_probe2.out`). Carry: R10-MERGE-SUBJECT-HARDEN
-- A blank line inside a bracketed argv (`run(["gh", "pr", "merge", n,` + blank line + `"--subject", "x"])`) ends the extent. That is a writer miss Python accepts: `56 merge call(s)`, `refused=0` when planted in `merge_train.py`. The body states the blank-line rule as a design choice against a stray parenthesis in prose, but it does not name this miss as its cost. Carry: R10-MERGE-SUBJECT-HARDEN
-- X5, Y9 and Y10 survive as the body says (`ev/mutants_table.out`). I agree with the dispositions carried from rounds 2 and 3. Carry: dismissed: near-equivalent or widening-only mutants, re-confirmed at this head with no writer miss
+- Interpolated-program spellings of a merge call are unread by `MERGE_CALL` and absent from the body's dispositions (Block). Carry: R10-MERGE-SUBJECT-HARDEN
+- `gh pr -R $(cat r) merge 9 -t x` is unread: `VALUE` takes no unquoted command substitution that holds whitespace. The miss is in the same family (an option value in a gap), and the body does not disposition it. Fold it into the same re-cut, by code (a `\$\([^()\n]*\)` VALUE arm) or by disposition. Carry: R10-MERGE-SUBJECT-HARDEN
+- The brief asked for a body with no round history, and the body still carries some: "The kills this pass adds", "the three writer misses the review showed under RV3", "the Block's shapes", "this pass's parts". Restate these as what the code does at its head. Carry: R10-MERGE-SUBJECT-HARDEN
 
 ## Evidence
 
-- Head measured: `5d79db511e0f801cc17605e1f8e3d935b3a7980e` (`ev/HEAD.txt`), the head the body's `## Head` names. `refs/pull/2697/head` still points to it at verdict time (`ev/head_at_verdict.txt`).
-- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Merge: `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main `343fb2a2c` (`ev/merge_tree.txt`).
-- Brief item (1), R-first-gap: the round-3 string no longer applies. Its per-site equivalent RV1 (the first `${GAP}` narrowed to `\s+`) is killed at 82 of 84 by `spelling: a continuation between "gh" and "pr"` and `a continuation in every gap`. The `gh \`-newline-`pr merge` plant in `merge_pr.sh` gives `refused=0` with the guard at base `87ecf385b` and `refused=1` at head.
-- Brief item (2): with the guard at head, each brief spelling is refused at its line (`ev/reviewer_probe.out`): `gh pr "merge"`, `gh "pr" merge`, `gh pr -R o/r merge`, `gh --repo o/r pr merge`, the single-quoted argv, and whitespace before the comma. Planted perturbations (`ev/reviewer_plants.out`, my own runner `ev/reviewer_plants.sh` over `python3 -I tools/policy/agreement_py.py --run`):
-  - Base `87ecf385b`: the `merge_pr.sh` plants (`gh pr "merge"`, `gh "pr" merge`, `gh pr -R o/r merge`, `gh --repo o/r pr merge`, gh-continuation-pr, `-mt`) each give `refused=0`. The single-quoted rewrite of `merge_train.py:864` with `--subject` gives `51 merge call(s)` and `refused=0`, as do the spaced-comma and `--repo`-between rewrites.
-  - Head: each of those gives `refused=1` at the planted line (`merge_pr.sh:258` or `merge_train.py:864`), with 57 or 56 calls.
-  - The null plant `gh pr view 1 --json title -t x` gives `refused=0` at both ends.
-- Unperturbed finder's harness: base `52 merge call(s) in 11 file(s)`, `refused=0`; head `56 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0`. This matches the body. The first-parent count (`277` now) grows with main, as the body says, so it is not re-derivable as a fixed figure.
-- Self-test at head: `SELF-TEST 84 of 84 probes held`.
-- Mutation table (`python3 dev/audit/harnesses/r10_merge_subject_mutants.py` at head, `ev/mutants_table.out`): 55 rows. Exactly X5, Y9 and Y10 hold 84 of 84, and every other row's count matches the body's table row for row. The worktree is clean afterwards.
-- Census (`node dev/audit/harnesses/r10_merge_subject_census.mjs <455d7c20 agreement.mjs>`, `ev/census.out`): `DIFF tools/audit/seat/merge_train.py:2874 old=0 new=1`, `TOTAL old=55 new=56 over 287 file(s)` and `UNCOVERED 60 of 95`, as the body says. I read the 60 lines: none is a merge call. The census rule is spelling-agnostic over the words `pr` and `merge`, so it would return a tree site of the Block's shapes, and none exists.
-- Argv seam harness: `[] [] ["f:1"]`, as the body says (`ev/argv_seam.out`).
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched by the three-dot diff.
-- CI on this head (`ev/ci.txt`, check-runs API): every completed gate check is success, skipped or neutral. `tests / closures`, `codeql / Analyze (python)` and one `prelude` are still in progress, and no `gate` or `pr-contract` run is listed yet. The head's workflows have not all concluded, so step 11 (the red-check answer) is not judged in this verdict.
-- Instruments built for this review, disclosed as my own and not the finder's or the fixer's (fix-review.md step 9): `ev/reviewer_plants.sh`, `ev/reviewer_probe.mjs`, `ev/reviewer_probe2.mjs`, `ev/reviewer_probe_rv3.mjs` and `ev/reviewer_mutants.py`. The probes use the guard-block extraction from `dev/audit/harnesses/r10_merge_subject_argv_seam.mjs`.
+The three round-4 block items, each confirmed fixed by code and probe at this head:
+- **(1) Option values holding whitespace, and the argv form.** `VALUE` gained a quoted run that holds whitespace. Five new `SPELLINGS` probes cover it: `gh pr --subject "x y" merge`, `-t 'x y'`, `-R "o/r x"` before `pr`, the argv `"--subject", "x y"`, and `--subject="x y"`. RV4 kills at 99 of 101 and RV5 at 95 of 101. R11, R11a, R11b and R11c kill at 95, 100, 96 and 96 of 101. The plants `gh pr --subject "x y" merge` and `gh pr -t "x y" merge` give refused=0 at the before end and refused=1 at the head. My own probe of `run([GH, "pr", "--subject", "x y", "merge", n])` is refused at the head and missed at the before end.
+- **(2) `${GH:-gh}` and `$(command -v gh)`.** Each is read by code, pinned by a probe, and killed by its mutant: R13a and R13b, each 100 of 101. Each plant gives refused=0 at the before end and refused=1 at the head. My own probes of `` `command -v gh` ``, `"$(command -v gh)"`, `${GH:-/usr/bin/gh}` and `env gh` are all refused at the head.
+- **(3) RV3.** It is killed at 98 of 101 by three variable-program probes, each with a gap other than `, `: whitespace before a comma, a split over lines, and a run of spaces in a JS argv. RV1, RV2 and RV6 kill at 99, 98 and 100 of 101.
+
+Self-test and mutation table:
+- `node tools/policy/agreement.mjs --self-test` gives `SELF-TEST 101 of 101 probes held` (`ev/selftest.txt`).
+- `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` gives 71 rows (`ev/mutants.txt`). Exactly X5, Y9 and Y10 print `101 of 101`, and no row prints `NOT APPLIED`.
+- I did not re-run the before-end guard block substitution (`90 of 101`).
+- X5, Y9 and Y10 are near-equivalent or widening-only, as the body says. I read each and concur.
+
+Finder's harness, at both ends under plants (`ev/plants_head.txt`, `ev/plants_before.txt`):
+- Unperturbed, both ends give `56 merge call(s) in 11 file(s)` and `RESULT divergent=0 unregistered=0 dead=0 refused=0`.
+- The five pre-existing plants give refused=1 at both ends.
+- The five new plants give refused=0 at the before end and refused=1 at the head.
+- The null plant `gh pr view 1 -t ...` gives refused=0 at both ends.
+- `python3 -I tools/policy/agreement_py.py --run` at the head gives refused=0 (`ev/finder_head.txt`).
+- The first-parent count, 297, describes this SHA only.
+
+Census and argv seam:
+- The census against the before end's guard gives `TOTAL old=56 new=56 over 290 file(s)` and `UNCOVERED 60 of 95 line(s)` (`ev/census.txt`). This matches the body.
+- The argv-seam harness gives `[]`, `[]`, `["f:1"]` (`ev/argv_seam.txt`). This matches the body.
+
+Figures at this head (`ev/figures.txt`, `ev/policy_lint.txt`, `ev/ci_predict.txt`):
+- `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`
+- `STRUCTURE RATCHET PASSED`
+- `RULES-SYNC ok`
+- `claims hygiene: origin/main ok`
+- `ALL 117 closure shrink pins PASSED`
+- `layout self-test: ok`
+- `ALL 112 HARNESS HEADER CHECKS PASSED`
+- `Architecture score: dS +0.0000 NULL`
+- `TOTAL: 0 error(s) across 50 policy file(s)`
+- `CI PREDICT: no ... red predicted against 5c0ee109305f`. The body's figure names `fe5884445452` because it was taken at the code head `4b12f738`, before the main merge.
+
+`tests/entities.py` summary not re-derived:
+- My capture truncated the output before its summary line.
+- Its FAIL lines are the self-test's planted a3 cases.
+- The body's `2 of 2429` figure is not re-derived by me.
+- CI's `tests / closures` and `tests / fast (3.14)` are success on this head.
+
+Head, merge, versions and template:
+- VERSION, the manifest and RELEASE_NOTES.md are untouched, checked three-dot against the merge base.
+- `git merge-tree --write-tree origin/main d0d35231` exits 0 with tree `8f357e2f` and no conflict (`ev/merge_tree.txt`).
+- The body names the head `d0d35231c633ca447acf04770f9034281417b72d`, and the head is unchanged at verdict time.
+- The body carries every template heading: Head, Mutation proof, Null control, Figures, Red checks, Forward-carry, Friction.
+
+CI at this head (check-runs API, 43 runs):
+- No run is red, and every completed run is success or skipped.
+- Still running at read time: `tests / lane-proofs` (queued), `tests / coverage-ratchet` (queued), `tests / graders-head-copy` (in progress) and one `prelude` (in progress).
+- The body's "No check has run on this head yet" is stale but claims no red. The red-check trigger is not engaged.
+
+Role contract: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
+
+Instruments: the probe instrument `ev/probe.mjs` is my own. It extracts `subjectWriters` exactly as `dev/audit/harnesses/r10_merge_subject_argv_seam.mjs` does. Its before-end output is in `ev/own_probes_before.txt`.
