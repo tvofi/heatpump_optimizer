@@ -1,56 +1,55 @@
-Fix review: blocked ad1ba9adb7341d31288d27648da09f0ce61def19 harness: design-trace-missing sigkill-escalation: SIGKILL 10 s after SIGTERM (design §2 Run) is never sent once the group leader exits on SIGTERM, so a TERM-ignoring descendant outlives its timeout after the job lock is released; mutant x1 (drop the SIGKILL) survives case (3)
+Fix review: blocked ca2dc27d74252606afb264c514585f9ea0e405b5 mutation-vacuous: kill_group's grace poll (while time.time() < at -> while False) and KILL_GRACE_S 10.0 -> 0.5 each survive case (3); the 10 s SIGTERM-to-SIGKILL grace the repair claims to keep is unpinned
 
-bus-nonce: acf0604d60118fb96f235cad0ed2487f
+bus-nonce: fd7f49523c6e0b5146aaad9376619e5a
 
 ## Round
 
-This is round 1: PR #2916 has no earlier `Fix review:` comment. Measured head: ad1ba9adb7341d31288d27648da09f0ce61def19, still the PR head when this was written. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
+This is round 2. Round 1 was `Fix review: blocked ad1ba9adb7341d31288d27648da09f0ce61def19` (review/2916 at 803820f94). The measured head is ca2dc27d74252606afb264c514585f9ea0e405b5, and it was still the PR head when this was written. `git diff 593f57c44...origin/main -- dev/governance/roles/` is empty, so the role contract is current. The head merges code head 84e5684e5 with origin/main 593f57c44. `git diff 84e5684e5 ca2dc27d7` over the seven PR paths is empty, so the merge carries none of this PR's lines.
 
 ## Block
 
-The approved note, `dev/programme/designs/R10-ORCH-BEATD.md` §2 **Run**, at 32e249d2e, says: "At its timeout it gets SIGTERM, then SIGKILL 10 s later." `Beat.supervise` sends SIGKILL to the group only from inside `while p.poll() is None:`. When the direct child (the group leader) exits on SIGTERM, the loop ends and the SIGKILL is never sent. A descendant that ignores TERM, or traps it and keeps running, is left alive in the job's process group. `run_one` then drops `<job>.lock` and journals `outcome=timeout`, so the next instance of the job can start beside the orphan. The job lock exists to prevent exactly that overlap.
+The round-1 repair adds `kill_group(pgid, at)`. It polls the group with `killpg(pgid, 0)` until `at` and only then sends SIGKILL. The body chose this design for its grace: "Sending SIGKILL at once when the leader exits drops the 10 s grace the note gives a trapping descendant to clean up. The poll keeps both." The approved note's §2 **Run** gives the same timing: "At its timeout it gets SIGTERM, then SIGKILL 10 s later." No check pins that grace:
 
-- **Probe** (`ev/probe-sigkill-escalation.sh`, output `ev/probe-sigkill-escalation.txt`). The job is `bash -c "bash -c 'trap \"\" TERM; …; exec sleep 300' & wait"` with `timeout_s: 2`. beatd returned after 2 s with `rc=-15 outcome=timeout`. 15 s after the timeout, which is past the 10 s grace, the grandchild's `/proc/<pid>/stat` state was `S` (alive). `stubborn.lock` was empty (released).
-- **Null control** (`ev/probe-sigkill-null.sh`, output `ev/probe-sigkill-null-leader-ignores-term.txt`). This is the same job, except the leader also ignores TERM. beatd waited the grace and journalled `dur=12 rc=-9 outcome=timeout`, and the grandchild was gone. So the escalation works only while the leader survives SIGTERM.
-- **Untested.** The mutant `x1_no_sigkill` replaces `os.killpg(p.pid, signal.SIGKILL)` with `pass`. It survives case (3), so no check in the self-test covers the SIGKILL clause the design names.
+- **y1_kill_group_no_grace.** The plant replaces `while time.time() < at:` with `while False:`, so a timed-out job's group gets SIGKILL the moment its leader exits. Cases (3) and (2) all stay green: `RESULT y1_kill_group_no_grace: SURVIVED` (`ev/ymut-head.txt`). The arm `a TERM-ignoring grandchild is killed after its leader exits` checks only that one PASS reads `outcome=timeout` and that the grandchild is gone. It never checks when the SIGKILL came.
+- **y16_grace_half_second.** The plant sets `KILL_GRACE_S = 10.0` to `0.5`, which also shortens the live-leader path. It survives too (`ev/ymut-y16-head.txt`). The null `a leader ignoring TERM too is killed at the grace, rc -9` checks `rc=-9`, not the grace.
 
-The fix is in scope for arm (a). On a timeout, deliver the group SIGKILL after the grace even when the leader has already exited (`killpg` raising `ProcessLookupError` means the group is empty). Then add a case (3) arm with a TERM-ignoring descendant, its null, and x1 as a `MUTANTS` entry.
+The behaviour itself is correct at this head. The round-1 finder probe, run unchanged against this head, gives `beatd rc=0 after 12s`, `PASS … dur=12 rc=-15 outcome=timeout`, then `grandchild … state: gone` and an empty owner-only `stubborn.lock` (`ev/probe-sigkill-escalation-head.txt`). What is unproven is the test: deleting the line the repair names fails nothing (fix-review.md step 1).
+
+The fix is small and inside arm (a). In `_stubborn`, require the PASS `dur=` to be at least 10 on both arms, the stubborn one and the `both` null. Then add y1 and y16 as `MUTANTS` entries targeting those arms. The marker-based arm (`its process group took SIGTERM before any SIGKILL`) still covers TERM-before-KILL. A `dur` lower bound is safe against the zombie concern the body raises, because beatd measures `dur` itself.
 
 ## Findings
 
-- The SIGKILL escalation does not reach the process group once the group leader has exited (see `## Block`): a TERM-ignoring descendant survives its timeout after its job lock is released. Owed: fixed in this PR's next round, pinned by a case (3) arm and mutant x1. Carry: R10-ORCH-BEATD
-- Five reviewer mutants of authored lines survive their nearest case, so these behaviours stated in the docstring or §2 are unpinned (`ev/reviewer-mutants.txt`, harness `ev/xmut.py`, the reviewer's own and not the finder's):
-  - `x4_no_heartbeat`: no `RUNNING … elapsed=` heartbeat line every `heartbeat_s`.
-  - `x8_watch_as_periodic`: a watch job restarts `interval_s` after its instance ends, not on the periodic grid.
-  - `x13_unreadable_staleness_clean`: `status` rc 2 when the staleness read fails.
-  - `x15_sigterm_handler_off`: on SIGTERM, beatd stops scheduling and TERMs its running groups.
-  - `x16_held_never_dead_clear`: a `RUNNING` line with no `PASS` under a free `beatd.lock` reads as a dead instance, not `running`.
+- The 10 s SIGTERM-to-SIGKILL grace in `kill_group` and in `supervise`'s live-leader path is unpinned (see `## Block`). Owed: a `dur` bound on case (3)'s two stubborn arms, with plants y1 and y16, in this PR's next round. Carry: R10-ORCH-BEATD
+- Seven of my own plants survive their cases (`ev/ymut.py`, my harness and not the finder's; output in `ev/ymut-head.txt`). Each one is a behaviour the docstring or the note's §2 states but no check pins. None is a defect at this head:
+  - `y2_drop_keeps_pid`: `Lock.drop` skips its `ftruncate`. The docstring says "emptied on release"; without the truncate, `status` would print a false `ALERT lock-owner-dead` for every lock once a beat exits cleanly. Survives (2), (3) and (8).
+  - `y3_no_state_subst`: the `$S` substitution in `argv` is dropped. Survives (1), (4) and (5).
+  - `y6_shim_no_pull`: the shim retries `fetch` only, though §2 says "fetch or pull". Survives (6).
+  - `y7_shim_no_export`: the shim no longer exports `HPO_REAL_GIT` ("so that children never walk again", §2). Survives (6).
+  - `y9_duplicate_name_ok`: duplicate job names are accepted, against the docstring's refusal. Survives (1).
+  - `y13_idle_hides_failure`: a watch job whose last outcome was not `ok` reads `idle` with no alarm. Survives (7).
+  - `y14_shim_skip_no_c`: the shim stops skipping `-c <value>` (§2's option skip). Survives (6).
 
-  Each needs a case arm or an explicit deferral. dr3-heartbeat-argv defers only the heartbeat argv to (b), not the journal heartbeat line. Owed: owed in this PR's next round beside the block's fix. Carry: R10-ORCH-BEATD
-- `governance / instrument-self-tests` took 26 min 01 s at this head (20:44:19Z to 21:10:20Z) against the new 30-min `timeout-minutes`, so about 4 min of headroom. The body's estimate was about 24.5 min. One slow runner, or the next self-test added to the job, cancels it again. Owed: answer in this PR's next round, by a cap with stated margin or by moving the sleep-bound beatd step to its own job. Carry: R10-ORCH-BEATD
+  Each needs a case arm and a `MUTANTS` entry, or a stated deferral, in the next round, since that round reopens the self-test anyway. Owed: in this PR's next round. Carry: R10-ORCH-BEATD
+- The beat's own SIGTERM handler TERMs its running groups but never escalates. A TERM-ignoring descendant of a job that is running when beatd is stopped can therefore outlive the beat, and its lock drops as beatd exits. The body defers this "to (b)" as a design question, but its `## Forward-carry` reads `none`, so (b)'s brief does not yet state it. Owed: written into arm (b)'s brief on the R10-ORCH-BEATD roster group as a precondition (finding-propagation.md). Carry: R10-ORCH-BEATD
 
 ## Evidence
 
-- **Merge.** `git merge-tree --write-tree origin/main ad1ba9adb` exited 0 against origin/main b0b2d7697f8c5baaef2c082d9bf3242b57249e68 (`ev/merge-tree.txt`). No conflict, and no claim file is touched.
-- **The PR's mutation proof, re-run.** The run used `HOME=<empty> GIT_CONFIG_GLOBAL=/dev/null /opt/hpo/venv-ci/bin/python -I tools/audit/seat/beatd.py --self-test` at the head (Linux, no committer identity). It printed `beatd self-test: 87 checks, 0 failed`, rc 0. That is 53 case, 17 anchor and 17 mutant `ok` lines (`grep -c`), the body's figure re-derived under its own rule (`ev/selftest-full.txt`).
-- **Crash accounting.** The PR's mutant loop records a crashing case as `{target: False}`, so it counts a crash as a kill. `ev/xmut.py` reports a crash separately. None of the reviewer mutants crashed.
-- **Reviewer mutants that killed.** x2 (drop `HPO_REAL_GIT` from the job env), x5 (DOWN), x6 (lock-owner-dead), x7 (STALE off by one), x9 (class lock waits 0), x10 (journal line unchecked), x11 (retry any failure), x12 (shim accepted as the real git) and x14 (running ignored).
-- **x3 not run.** The anchor `GIT_CONFIG_VALUE_0="30000"` occurs twice (lines 284 and 697), so x3 (dropping `core.filesRefLockTimeout`) was not run. The design's own null has B fail with that env and no shim, so the setting carries no tested effect. This is evidence only.
-- **Design §2 failing-test list.** Items 1 to 8 and their mutants and nulls are each present in the self-test and kill.
-- **The `named-docs` exclusion.**
-  - At the head, `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 50 policy file(s)`, rc 0, and `git diff origin/main -- tools/policy/policy_lint.mjs` is empty (`ev/policy_lint.txt`).
-  - Null: with `tools/audit/seat/beatd_shims/git` removed from `corpus_excluded.json`, it printed the `[named-docs] tools/audit/seat/beatd_shims/git` error, `TOTAL: 1 error(s)`, rc 1 (`ev/policy_lint-null-no-exclusion.txt`).
-  - Step 14: the movement is earned. The file is an executable that the bare-name pass matched to the English word `git`, which is the exclusion list's stated purpose.
-- **Cheap checks at the head** (`ev/cheap-checks.txt`):
-  - `throwaway_git.py --check`: `0 raw git init or clone site(s) refused`.
+- **Self-test re-run at head.** Command: `HOME=<empty> GIT_CONFIG_GLOBAL=/dev/null /opt/hpo/venv-ci/bin/python -I tools/audit/seat/beatd.py --self-test` (Linux, Python 3.14.7, no committer identity). It printed `beatd self-test: 115 checks, 0 failed`, rc 0, in 4 min 28 s of wall time. The `grep -c` counts are 65 `ok   (`, 25 `ok   anchor` and 25 `ok   mutant`, which re-derives the body's 115 under its own rule (`ev/selftest-head.txt`). The body's mutation proof stands: all 25 named plants kill, and none crashes.
+- **Round-1 items answered.** The SIGKILL escalation now fires after the leader exits: the finder probe gives `dur=12`, the grandchild is gone, and the lock is empty. The round-1 mutants x4, x8, x13, x15 and x16 are each now a `MUTANTS` entry that kills in the run above.
+- **The instrument-self-tests cap.** It moved from 20 to 30 min, and the self-test now takes about 4.5 min, matching this host's 4 min 28 s. The job was still in progress when CI was read, so its wall time at this head is not verified here.
+- **My other plants that killed.** These were y4 (relative argv), y5 (env_pass), y8 (watch under 60 s), y10 (non-ok outcome reads ok), y11 (HPO_BEATD_JOB), y12 (`GIT_CONFIG_COUNT=0`, killed by case (6b)'s env check) and y15 (`--for` ignored).
+- **Merge.** `git merge-tree --write-tree origin/main ca2dc27d7` exited 0 against origin/main 593f57c44 (`ev/merge-tree.txt`). No claim file is in the diff.
+- **Cheap checks at head** (`ev/cheap-checks.txt`):
   - `selftest_wiring.py --check`: `100 self-testing, 100 wired, 0 unwired`.
-  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-  - Three-dot `git diff --stat b6f6ceca4...HEAD -- VERSION tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt custom_components RELEASE_NOTES.md`: empty. VERSION, the notes and the claim files are untouched, and no manifest change is in the 7-file diff.
-  - `PYTHONPATH=tests/hastub tests/entities.py`: `ALL 2467 ENTITY CHECKS PASSED`.
-- **CI on this head** (check-runs API, `ev/check-runs.txt`):
-  - Green: `governance / instrument-self-tests`, `governance / policy-docs`, `governance / env-matrix`, `tests / closures`, `tests / fast (3.14)`, `tests / mutation`, `arch-score`, `budget-raise-gate`, `codeql / Analyze (actions)` and `codeql / Analyze (javascript-typescript)`.
-  - Still running when read: `tests / coverage`, `codeql / Analyze (python)` and the `prelude` of run 40765787881.
-  - No `pr-contract` or `gate` run exists on this head yet. The body's `## Red checks` names and answers each check that went red at e09b123f9.
-  - The verdict does not rest on CI: the block is a measured defect.
-- **Body figures not re-derived** (they are other SHAs or hosts): the macOS bash 3.2 run at f008c2b75, prepr's 29/9/0 counts, and the earlier 16-plant history.
-- **The finder's harness.** The packet names none. The design note's §2 test list is the harness, and it is in the self-test. The probes above are the reviewer's own instruments, disclosed as such.
+  - `throwaway_git.py --check`: `0 raw git init or clone site(s) refused`.
+  - `policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`, and `policy_lint.mjs` is byte-identical to main.
+  - `structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `entities.py` (venv-ci 3.14.7): `ALL 2470 ENTITY CHECKS PASSED`. That is 2470 at this head against the body's 2467 at 84e5684e5; the body's figure was taken before main moved, so it was not re-derived at its own SHA.
+  - `harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`.
+  - `closure.py select --diff 593f57c44`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`.
+  - `archscore --diff 593f57c44 HEAD`: `Architecture score: dS +0.0000 NULL`.
+  - The three-dot diff over VERSION, `tests/golden`, `custom_components` and `RELEASE_NOTES.md` is empty.
+- **CI on this head** (`ev/check-runs.txt`). There is no failure or cancellation. Twenty runs are green, among them policy-docs, env-matrix, mutation, arch-score and budget-raise-gate. Still in progress at read time: closures, coverage, fast (3.14), instrument-self-tests and codeql python. No `pr-contract` or `gate` run had concluded. The block does not rest on CI.
+- **Figures not re-derived.** These are the macOS bash 3.2 run at f008c2b75, prepr's 29/9/0 counts, the 688 s serial control, and #2873's 16 min 32 s.
+- **Step 6, the class.** The body enumerates `supervise`'s exits and dispositions each one. I agree with that enumeration for the timeout clause; the SIGTERM-handler gap is carried above.
+- **Harnesses.** The packet names no finder harness. The round-1 probe (`ev/probe-sigkill-escalation.sh`, copied from 803820f94) is the block's finder harness, and it reproduces the fix. `ev/ymut.py` is my own instrument, disclosed as such: it reuses beatd's `_mutant_copy` and runs the unmutated module's case functions against each planted copy, with a baseline run of the same cases. Every baseline check was true.

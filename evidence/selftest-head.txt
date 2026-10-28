@@ -7,11 +7,20 @@ ok   (2) second run exits 75
 ok   (2) held reads 0 while it runs
 ok   (2) lock files are owner-only under umask 022
 ok   (2) null: a run after the first exits 0
+ok   (2) SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP
+ok   (2) null: the job was running when the beat got SIGTERM
 ok   (3) over-time job reads timeout
 ok   (3) its process group was killed
+ok   (3) its process group took SIGTERM before any SIGKILL
 ok   (3) null: in-time job reads ok
+ok   (3) a heartbeat job journals RUNNING past elapsed=0
+ok   (3) null: a job with no heartbeat journals RUNNING once
+ok   (3) a TERM-ignoring grandchild is killed after its leader exits
+ok   (3) null: a leader ignoring TERM too is killed at the grace, rc -9
 ok   (4) fast passes while slow runs
 ok   (4) null: fast alone passes as often
+ok   (4) a watch job restarts interval_s after its instance ends
+ok   (4) null: a periodic job keeps its grid, or restarts from a late start
 ok   (5) class jobs never interleave
 ok   (5) null: class-less jobs overlap
 ok   (5) past class_wait_s records busy
@@ -46,6 +55,9 @@ ok   (7) null: a live owner is no alarm
 ok   (7) pulse-silent while beatd reads healthy
 ok   (7) null: a pulse with nothing stopped is no alarm
 ok   (7) STALE-CODE behind=1
+ok   (7) an unreadable staleness read is rc 2, never clean
+ok   (7) a RUNNING line with no PASS under a free beatd.lock is a dead instance
+ok   (7) null: the same lines under a held beatd.lock read running
 ok   (7) an unreadable journal line refuses rc 2
 ok   (7c) status CLI: late job, rc 1
 ok   (8) held: rc 0 while held
@@ -56,6 +68,12 @@ ok   anchor m1b_unknown_key_accepted occurs once in production, changes it, name
 ok   anchor m2_no_instance_flock occurs once in production, changes it, names a check of (2)
 ok   anchor m2_lock_world_readable occurs once in production, changes it, names a check of (2)
 ok   anchor m3_no_killpg occurs once in production, changes it, names a check of (3)
+ok   anchor m3_no_group_kill_after_leader occurs once in production, changes it, names a check of (3)
+ok   anchor m3_kill_group_no_sigkill occurs once in production, changes it, names a check of (3)
+ok   anchor m3_no_sigkill_live_leader occurs once in production, changes it, names a check of (3)
+ok   anchor m3_no_heartbeat occurs once in production, changes it, names a check of (3)
+ok   anchor m4_watch_as_periodic occurs once in production, changes it, names a check of (4)
+ok   anchor m2_sigterm_handler_off occurs once in production, changes it, names a check of (2)
 ok   anchor m4_serial_jobs occurs once in production, changes it, names a check of (4)
 ok   anchor m5_class_ignored occurs once in production, changes it, names a check of (5)
 ok   anchor m6_retries_zero occurs once in production, changes it, names a check of (6)
@@ -67,12 +85,20 @@ ok   anchor m6_real_git_dir_accepted occurs once in production, changes it, name
 ok   anchor m6_beatd_trusts_any_git occurs once in production, changes it, names a check of (6)
 ok   anchor m7_late_without_timeout occurs once in production, changes it, names a check of (7)
 ok   anchor m7_no_pulse_alarm occurs once in production, changes it, names a check of (7)
+ok   anchor m7_unreadable_staleness_clean occurs once in production, changes it, names a check of (7)
+ok   anchor m7_dead_running_kept occurs once in production, changes it, names a check of (7)
 ok   anchor m8_held_always_free occurs once in production, changes it, names a check of (8)
 ok   mutant m1_parse_defaults_to_zero_jobs turns (1) 'unreadable' red
 ok   mutant m1b_unknown_key_accepted turns (1) 'unknown key' red
 ok   mutant m2_no_instance_flock turns (2) 'second run exits 75' red
 ok   mutant m2_lock_world_readable turns (2) 'lock files are owner-only under umask 022' red
-ok   mutant m3_no_killpg turns (3) 'its process group was killed' red
+ok   mutant m3_no_killpg turns (3) 'its process group took SIGTERM before any SIGKILL' red
+ok   mutant m3_no_group_kill_after_leader turns (3) 'a TERM-ignoring grandchild is killed after its leader exits' red
+ok   mutant m3_kill_group_no_sigkill turns (3) 'a TERM-ignoring grandchild is killed after its leader exits' red
+ok   mutant m3_no_sigkill_live_leader turns (3) 'null: a leader ignoring TERM too is killed at the grace, rc -9' red
+ok   mutant m3_no_heartbeat turns (3) 'a heartbeat job journals RUNNING past elapsed=0' red
+ok   mutant m4_watch_as_periodic turns (4) 'a watch job restarts interval_s after its instance ends' red
+ok   mutant m2_sigterm_handler_off turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
 ok   mutant m4_serial_jobs turns (4) 'fast passes while slow runs' red
 ok   mutant m5_class_ignored turns (5) 'class jobs never interleave' red
 ok   mutant m6_retries_zero turns (6) 'race: B through the shim exits 0, origin/main current, a retry logged' red
@@ -84,6 +110,12 @@ ok   mutant m6_real_git_dir_accepted turns (6) 'discovery real-git-is-dir: rc 0 
 ok   mutant m6_beatd_trusts_any_git turns (6) 'beatd refuses rc 2 when its git is not git' red
 ok   mutant m7_late_without_timeout turns (7) 'null: past interval, inside interval + timeout, is not late' red
 ok   mutant m7_no_pulse_alarm turns (7) 'pulse-silent while beatd reads healthy' red
+ok   mutant m7_unreadable_staleness_clean turns (7) 'an unreadable staleness read is rc 2, never clean' red
+ok   mutant m7_dead_running_kept turns (7) 'a RUNNING line with no PASS under a free beatd.lock is a dead instance' red
 ok   mutant m8_held_always_free turns (8) 'held: rc 0 while held' red
-beatd self-test: 87 checks, 0 failed
+beatd self-test: 115 checks, 0 failed
+
+real	4m28.228s
+user	0m33.317s
+sys	0m9.888s
 rc=0

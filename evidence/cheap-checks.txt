@@ -1,15 +1,30 @@
-## throwaway_git --check
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
-rc=0
-## selftest_wiring --check
+== selftest_wiring
 selftest_wiring: 100 self-testing, 100 wired, 0 unwired
-## policy_lint
-
+== throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+== policy_lint
 FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-## policy_lint diff vs main
-0
-## structure
+== structure
 STRUCTURE RATCHET PASSED
-## entities
-ALL 2467 ENTITY CHECKS PASSED
-## harness_headers
+== entities
+SyntaxError: f-string: f-string: expecting '}'
+== harness_headers
+ModuleNotFoundError: No module named 'voluptuous'
+== closure select vs merge base
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (7), measured against the recorded closures in tests/closures.json:
+      tests/closures.json
+== archscore
+Architecture score: dS +0.0000 NULL
+== version/claims/goldens/component three-dot
+0
+== policy_lint.mjs vs main
+0
+== roles current
+0
+== policy_lint TOTAL
+TOTAL: 0 error(s) across 50 policy file(s)
+== entities (venv-ci Python 3.14.7)
+ALL 2470 ENTITY CHECKS PASSED
+== harness_headers (venv-ci)
+ALL 112 HARNESS HEADER CHECKS PASSED
