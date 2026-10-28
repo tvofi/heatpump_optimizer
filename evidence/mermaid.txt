@@ -1,0 +1,10 @@
+ok   docs/architecture.md block 1
+ok   dev/README.md block 1
+ok   dev/README.md block 2
+ok   dev/README.md block 3
+ok   dev/README.md block 4
+ok   README.md block 1
+ok   README.md block 2
+ok   README.md block 3
+mermaid 12.1.0 parse+render in Chromium: 8 block(s), 0 failure(s)
+rc=0

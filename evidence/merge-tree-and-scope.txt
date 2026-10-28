@@ -1,0 +1,9 @@
+git merge-tree --write-tree origin/main c00082a9ae41447820af2a73c8fe4d1a2d661c8c  (origin/main 543c8087c57973ee58033a0c62520b5ec3a58621)
+36f5fe3ed4c5c777fe9319c2a29b3f8649502ebc
+rc=0
+
+roles diff merge-base...origin/main -- dev/governance/roles/: 0 lines
+tools/policy/ vs origin/main: 0 file(s) differ
+policy paths changed (three-dot):
+dev/governance/config/corpus_excluded.json
+dev/governance/dimensions/D9.md

@@ -1,0 +1,34 @@
+== O1 README button image hotlinked off-origin
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL README top, the product page footer and every built page's footer link the button, from in-tree tokens  [README.md: the button's image https://img.buymeacoffee.com/button-api/?text=coffee is not a tracked file]
+1 of 203 checks FAILED
+== O2 index footer: off-origin <img> in the button
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL every image resolves, names its path under docs/ and has alt text  [image without alt text: https://cdn.buymeacoffee.com/buttons/bmc.png; image data-repo None is not in the tree]
+  FAIL the page requests nothing from a third party (script, stylesheet, icon, preload, iframe, image)  [third-party image: https://cdn.buymeacoffee.com/buttons/bmc.png]
+  FAIL the product page is clean before planting  [['third-party']]
+3 of 203 checks FAILED
+== O3 docs.css: off-origin url() on .bmc
+ 1 file changed, 1 insertion(+)
+  FAIL no built page requests anything from a third party  [architecture.html: third-party resource in site/docs.css: https://cdn.buymeacoffee.com/b.png; automations.html: third-party resource in site/docs.css: https://cdn.buymeacoffee.com/b.png; configuration.html: third-party resource in site/docs.css: https://cdn.buymeacoffee.com/b.png; dashboard-card.html: third-party resource in site/docs.css: https://cdn.buymeacoffee.com/b.png (+5)]
+  FAIL the real docs/site/docs.css is clean (baseline for the stylesheet scan)
+  FAIL a same-origin icon is not refused (the rule is not over-broad)
+3 of 203 checks FAILED
+== O4 build_docs: off-origin script in every page
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL no built page requests anything from a third party  [architecture.html: external script: https://cdnjs.buymeacoffee.com/widget.js; automations.html: external script: https://cdnjs.buymeacoffee.com/widget.js; configuration.html: external script: https://cdnjs.buymeacoffee.com/widget.js; dashboard-card.html: external script: https://cdnjs.buymeacoffee.com/widget.js (+5)]
+  FAIL the real docs/site/docs.css is clean (baseline for the stylesheet scan)
+  FAIL a same-origin icon is not refused (the rule is not over-broad)
+3 of 203 checks FAILED
+== O5 README button moved below the first ## section
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+  FAIL README top, the product page footer and every built page's footer link the button, from in-tree tokens  [README.md: no button linking https://buymeacoffee.com/rpgshcwb2tp above the first section]
+1 of 203 checks FAILED
+== O6 SVG dark fg off-token
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL README top, the product page footer and every built page's footer link the button, from in-tree tokens  [docs/img/brand/coffee.svg: .fg in dark is '#000000', docs.css --accent-ink is '#0b1a28']
+1 of 203 checks FAILED
+== O7 index .bmc rule hardcodes the accent hex
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL README top, the product page footer and every built page's footer link the button, from in-tree tokens  [docs/index.html: no .bmc rule drawn from var(--accent)]
+1 of 203 checks FAILED
