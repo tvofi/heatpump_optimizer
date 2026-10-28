@@ -11162,6 +11162,47 @@
     "pr": 2936
    },
    "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gap 6 (re-read cost of CLAUDE.md and tools/audit/seat/INSTRUMENTS.md): INSTRUMENTS.md is split so a seat loads the index and only the section for the instrument it runs, the index naming every part; no instrument entry is deleted. Controls: every instrument named before the split is named after it (set equality); the index is smaller than the old file; null: an entry's text is byte-identical in its new part."
+  },
+  {
+   "group": "R10-FLY-MUTANT-RESTORE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/harnesses/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-mutant-restore",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "triage P247, 2026-10-28"
+   },
+   "brief": "From triage P247 (V161, fixer s10 #2903): the mutant harnesses under dev/audit/harnesses/*_mutants.py mutate a tracked file in place and restore it in `finally`, which a kill (a tool timeout) skips, so the next run measures a mutant or refuses on a dirty tree (#2874's reviewer 2026-10-27: tools/plan/replan.py left carrying E-explicit-ref-wins; #2903's fixer; #2873 r4 reviewer). Add one shared helper in dev/audit/harnesses/: before the first mutant it refuses rc 2 when any file it will mutate differs from `git show HEAD:<path>` (naming the file); it installs SIGTERM/SIGINT handlers that restore; after restoring it verifies each file's sha256 against HEAD's blob and exits 1 on a mismatch. Do NOT run mutants from a `git archive` copy (fixer.md step 2: that fails the #363 recorded_at check on every mutant). Adopt it in every harness that writes a tracked file in place: at least carry_parser, flow_dispatch, merge_subject, plan_issues_chart, plan_page, policy_lint_family, sav_baseline, train_upgrade (no copy at all); read the other nine. Controls: a harness killed with SIGTERM mid-mutant leaves the file at HEAD's digest; a planted leftover mutant makes the next run refuse rc 2 naming the file; null: a clean tree runs as today; mutant: dropping the start check lets the planted run measure the mutant. Classify the new file (tests/closure.py INERT or a measured closure) so tests/entities.py passes. triage: dev/programme/triage/s6-batch49.md#P247"
   }
  ]
 }
