@@ -10,14 +10,14 @@
 #2365	2026-10-18T14:28	S	before	carry-no	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/pump_arbite
 #2379	2026-10-18T20:05	G	before	carry-no	tests/closures.json,tests/entities.py,tests/finite_boundary.py,tests/structure_budgets.json
 #2401	2026-10-18T20:45	M	before	P11	
-#2411	2026-10-19T03:05	S	before	carry-no	tests/closures.json,tests/features.py,tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._cover
+#2411	2026-10-19T03:05	G	before	carry-no	tests/closures.json,tests/features.py,tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._cover
 #2408	2026-10-19T04:59	M	before	carry-no	tools/policy/policy_lint.mjs
 #2399	2026-10-19T05:13	M	before	overlap	tests/closures.json
 #2368	2026-10-19T08:24	G	before	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/card.mjs,tests/closures.json,tests/entitie
 #2415	2026-10-19T08:35	M	before	carry-no	dev/audit/config/bugclasses.json,tests/closures.json,tests/structure_budgets.json
 #2463	2026-10-20T01:21	M	before	overlap	tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json,tests/
 #2463	2026-10-20T02:29	M	before	P11	
-#2465	2026-10-20T14:18	S	before	carry-no	tests/closures.json,tests/features.py,tests/mutation_ledger/killed_by/coordinator.py/_valve_write_pr
+#2465	2026-10-20T14:18	G	before	carry-no	tests/closures.json,tests/features.py,tests/mutation_ledger/killed_by/coordinator.py/_valve_write_pr
 #2525	2026-10-21T14:11	M	before	P11	
 #2576	2026-10-21T19:56	G	before	carry-no	dev/programme/rosters/wave-r10-groups.json
 #2569	2026-10-21T20:18	S	before	carry-no	tools/audit/seat/INSTRUMENTS.md,tools/audit/seat/roster_edit.py
@@ -53,7 +53,7 @@
 #2753	2026-10-25T03:55	M	before	overlap	tests/closures.json,tests/structure_budgets.json
 #2762	2026-10-25T06:15	G	before	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/features.py,tests/structure_budgets.json
 #2762	2026-10-25T09:03	M	after	P11	
-#2745	2026-10-25T09:08	S	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/closures.json,tests/features.py,tests/muta
+#2745	2026-10-25T09:08	G	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/closures.json,tests/features.py,tests/muta
 #2775	2026-10-25T11:37	M	after	overlap	custom_components/heatpump_optimizer/coordinator.py,tests/features.py,tests/mutation_ledger/killed_b
 #2753	2026-10-25T14:31	M	after	overlap	custom_components/heatpump_optimizer/coordinator.py,tests/features.py,tests/structure_budgets.json
 #2745	2026-10-25T15:45	M	after	overlap	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/payload.py,
@@ -62,8 +62,8 @@
 #2753	2026-10-26T01:36	G	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/thermal_mod
 #2824	2026-10-26T03:10	S	after	carry-no	custom_components/heatpump_optimizer/diagnostics.py,tests/debug_collect.py,tests/mutation_ledger/kil
 #2844	2026-10-26T03:47	G	after	carry-no	dev/programme/rosters/wave-r10-groups.json
-#2819	2026-10-26T04:02	S	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/thermal_mod
-#2834	2026-10-26T09:07	S	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/closures.json,tests/features.py,tests/gold
+#2819	2026-10-26T04:02	G	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_optimizer/thermal_mod
+#2834	2026-10-26T09:07	G	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,tests/closures.json,tests/features.py,tests/gold
 #2834	2026-10-26T16:57	M	after	overlap	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js,docs/dashboard-card.md,tests/car
 #2745	2026-10-26T17:18	G	after	carry-no	custom_components/heatpump_optimizer/coordinator.py,docs/dashboard-card.md,tests/card.mjs,tests/clos
 #2745	2026-10-26T20:38	S	after	carry-no	custom_components/heatpump_optimizer/ledger.py,custom_components/heatpump_optimizer/payload.py,custo
@@ -73,13 +73,13 @@
 #2876	2026-10-27T21:21	M	after	carry-no	custom_components/heatpump_optimizer/payload.py,tests/card.mjs,tests/closures.json,tests/features.py
 #2853	2026-10-27T21:55	S	after	carry-no	tools/pr/ci_predict.py
 #2876	2026-10-28T03:38	M	after	carry-no	custom_components/heatpump_optimizer/config_flow.py,custom_components/heatpump_optimizer/coordinator
-SUM ('G', 'after', 'carry-no') 4
-SUM ('G', 'before', 'carry-no') 19
+SUM ('G', 'after', 'carry-no') 7
+SUM ('G', 'before', 'carry-no') 21
 SUM ('M', 'after', 'P11') 1
 SUM ('M', 'after', 'carry-no') 3
 SUM ('M', 'after', 'overlap') 4
 SUM ('M', 'before', 'P11') 5
 SUM ('M', 'before', 'carry-no') 7
 SUM ('M', 'before', 'overlap') 9
-SUM ('S', 'after', 'carry-no') 9
-SUM ('S', 'before', 'carry-no') 14
+SUM ('S', 'after', 'carry-no') 6
+SUM ('S', 'before', 'carry-no') 12
