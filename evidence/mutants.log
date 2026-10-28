@@ -1,0 +1,37 @@
+restored
+MUTANT A_dropguard rc=0 0 FAIL lines
+restored
+MUTANT B_boolop rc=0 0 FAIL lines
+restored
+MUTANT C_ftol rc=1 2 FAIL lines
+  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 8.465e-06 kW]
+1 of 4 FEATURES BLOCK FAILED
+restored
+MUTANT D_rowlast rc=1 2 FAIL lines
+  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 2.507e+00 kW]
+1 of 4 FEATURES BLOCK FAILED
+restored
+MUTANT E_valfirst rc=0 0 FAIL lines
+restored
+MUTANT F_fdeps rc=0 0 FAIL lines
+restored
+MUTANT G_restartNone rc=0 0 FAIL lines
+restored
+MUTANT H_msNone rc=1 2 FAIL lines
+  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 3.273e+00 kW]
+1 of 4 FEATURES BLOCK FAILED
+restored
+MUTANT I_contiter rc=0 0 FAIL lines
+restored
+MUTANT J_relaxeps rc=0 0 FAIL lines
+restored
+MUTANT K_valplus rc=1 2 FAIL lines
+  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 2.301e-04 kW]
+1 of 4 FEATURES BLOCK FAILED
+REVERT rc=1
+  ok   R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the continuation, the relaxed candidate and the multi-start's own runs on the batched jac
+  FAIL R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the scalar trajectory -- the value rides in the gradient's batch  [(supplied-jac runs, scalar simulations) per kind: {'relaxed': (1, 134), 'continuation': (1, 234), 'multi-start': (12, 0)}]
+  ok   R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the same runs is seen by the meter
+  ok   R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit
+1 of 4 FEATURES BLOCK FAILED
+DONE
