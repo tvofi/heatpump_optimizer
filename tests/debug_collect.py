@@ -2116,12 +2116,13 @@ _found = _literal_classes(ast.parse(Path(inputs_mod.__file__).read_text()))
 _driven = {row[0] for row in _PRECEDENCE_ROWS}
 R.check(
     "the precedence census covers every class inputs.py sets: each is driven past "
-    "its age gate, set before it, or stale itself, and every worded class is one "
-    "the scan sees",
+    "its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the "
+    "card enumerates its wording by, names exactly the published ones",
     _found == _driven | _PRE_GATE | {"stale"}
-    and set(inputs_mod.PROBLEM_WORDS) <= _found
+    and set(inputs_mod.PROBLEM_WORDS) == _found - {"not_configured"}
     and all(row["pre"] for row in _census),
-    str([sorted(_found), [row["row"] for row in _census if not row["pre"]]]),
+    str([sorted(_found), sorted(set(inputs_mod.PROBLEM_WORDS) ^ (_found - {"not_configured"})),
+         [row["row"] for row in _census if not row["pre"]]]),
 )
 R.check(
     "exported a minute past its own limit, every class reads what the reader says "
