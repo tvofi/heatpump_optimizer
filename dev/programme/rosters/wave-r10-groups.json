@@ -2620,9 +2620,7 @@
    "group": "R10-PREPR-CAP",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [
-    2267
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [
     "R10-PREPR-CAP lead"
