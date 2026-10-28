@@ -11145,12 +11145,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "handoff",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-instruments-split",
     "commit": "f5f87c8e34658da7fb0ed7c41eb411a47af3edf5",
     "last_step": null,
     "next_step": "review the handoff",
-    "note": "Owner order (tvofi, 2026-10-28)"
+    "note": "Owner order (tvofi, 2026-10-28)",
+    "pr": 2936
    },
    "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gap 6 (re-read cost of CLAUDE.md and tools/audit/seat/INSTRUMENTS.md): INSTRUMENTS.md is split so a seat loads the index and only the section for the instrument it runs, the index naming every part; no instrument entry is deleted. Controls: every instrument named before the split is named after it (set equality); the index is smaller than the old file; null: an entry's text is byte-identical in its new part."
   }
