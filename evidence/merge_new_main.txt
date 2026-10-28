@@ -1,0 +1,14 @@
+origin/main now b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa at 2026-10-28T20:24:31Z
+behind: 12 commits
+roles diff merge-base...origin/main lines: 0
+LEDGER-MERGE: refused dev/audit/config/bugclasses.json: a side is not in its writer's own JSON format
+845bae4ced357db23e3d24bd20d09b868c58b861
+100644 d48d291b15de883f0ecb4cdda9b147859980e24b 1	dev/audit/config/bugclasses.json
+100644 cbee2136055e4e4967e0cc6eac1bf9d073ef0c9c 2	dev/audit/config/bugclasses.json
+100644 a2d0b139ae4bebbd06fbc175d39c6ae2aa1e592a 3	dev/audit/config/bugclasses.json
+
+Auto-merging dev/audit/config/bugclasses.json
+CONFLICT (content): Merge conflict in dev/audit/config/bugclasses.json
+merge-tree rc=1
+files new main touches that the PR touches:
+dev/audit/config/bugclasses.json

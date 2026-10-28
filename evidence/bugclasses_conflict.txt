@@ -1,0 +1,11 @@
+--- plain text merge-file (theirs=origin/main, ours-head) conflicts: 1
+o trailing-newline:    }
+a trailing-newline:    }
+b trailing-newline:    }
+o +\n: True
+a +\n: True
+b +\n: True
+--- driver on files with a trailing newline appended:
+LEDGER-MERGE: resolved dev/audit/config/bugclasses.json
+driver rc=0
+merged _rca has RESIDUE: True has CLOSURE-ARGV: True
