@@ -1,7 +1,7 @@
-# Proposal triage, session s7, batch 51 (P249-P252)
+# Proposal triage, session s7, batch 51 (P249-P253)
 
-Four entries, V163-V166, filed by the orchestrator after the 12:42Z power loss on 2026-10-28.
-They are quoted from `proposals.md` as it stands. The owner approved all four as decision cards.
+Five entries, all filed by the orchestrator on 2026-10-28. V163-V166 were filed after the 12:42Z power loss, and V167 came from the #2910 round-2 reviewer.
+They are quoted from `proposals.md` as it stands. The owner approved V163-V166 as decision cards.
 That approval makes each one worth triaging, but it does not exempt any of them from
 `proposal-triage.md`'s bar. The owner's correction of the same day still governs: "triage should
 still do cost/benefit and is allowed to reject poor proposals".
@@ -167,3 +167,61 @@ is wt_sync's cadence, and the orchestrator's loop can close it without a tree ch
 worktree arm in its own loop without `--scratch` puts worktree snapshots back near 15-20 min,
 and the scratch arm can run less often. What would change the answer: a recorded loss of
 committed or dirty seat work that a snapshot 30 min old would have saved.
+
+## P253: refuse an Anthropic author or committer identity on a pushed commit
+
+Verdict: ACCEPT, narrowed to the guard arm, into **R10-FLY-NO-FOOTERS**. Not the prompt line:
+the seat preamble already sets the seat identity.
+
+Source: `proposals.md` V167 (the #2910 round-2 reviewer, via the orchestrator, 2026-10-28).
+Instance: `b9a66d28d0554c95c4e961684bc3b91ed1b1c719`.
+
+Instances (read at origin/main `f844df1fe`):
+- **The rough count was right, not overstated.** `git log --since=7.days --format='%ae'
+  origin/main | grep -ic anthropic` gives 500 of 3906 commits. The filing's grep also gives 500:
+  its format string has no subject, so it could only match the name or email. Over all of history
+  the count is 919 of 12434. The committer email gives 482 over 7 days and 863 over history.
+- **The identities in those 7 days:**
+  - `Claude <noreply@anthropic.com>` as author and committer: 453 commits.
+  - `Claude` as author with tvofi as committer: 20.
+  - Seat names on the Anthropic address (`hpo-fixer-seat`, `hpo seat`, `hpo fixer seat`,
+    `hpo-author`, `hpo-fixer`): 27.
+- **The class has almost stopped, but not quite.** By author date, Anthropic-authored commits
+  ran from 47 to 168 a day between 10-18 and 10-25, with the last of that run on
+  10-25T20:07:12Z (`70b57a370`). Since 2026-10-26T00:00Z, 1 of 1002 commits on main carries it:
+  `b9a66d28d`, authored and committed as `Claude` at 2026-10-28T01:41:39Z.
+- **The source is a cloud fixer that did not set its identity.** `cloud-sessions.tsv` records
+  "r10-roster-freeze-close fixer s8 (critical path)" dispatched at 2026-10-28T01:27:46Z, 14 min
+  before the commit. It reached main through #2903 (`71fe1f7fc`). Nothing in the tree sets a
+  cloud fixer's identity: `cloud_dispatch.py` sets one only on its own verdict commits (lines
+  150-151, 225). The seat preamble's identity step (item 4) is out of tree, so a seat that skips
+  it falls back to the runner's default.
+- **The guard already reads both emails and lets this one through deliberately.**
+  `ref_privacy.py guard --commits` adds the author and committer email of every commit not on a
+  remote ref (`tools/audit/seat/ref_privacy.py:347`). It runs on both push paths:
+  `handoff_push.sh:141` and `app_push.sh:376`, each with `--over refs/remotes/origin/main`.
+  But `email_leaks` refuses only host domains (line 240), and the self-test pins
+  `email_leaks("noreply@anthropic.com", fid) == []` as a null control (lines 704-706).
+
+Carry (guard arm only):
+- `email_leaks` refuses an `@anthropic.com` address as a new class, `anthropic-identity`.
+- The line-706 null control moves to a refusal arm, and a seat noreply address
+  (`hpo-fixer@users.noreply.github.com`) becomes the null control.
+- A guard-CLI arm, built like the `host-email` arm at lines 780-785, refuses an unpushed commit
+  whose author or committer is `Claude <noreply@anthropic.com>`, and passes it once re-authored.
+- Controls: a mutant that drops the class fails the refusal arm. History is not judged, because
+  the guard reads only commits not under `--over`, so main's 919 are out of reach. That is the
+  null control for false fires on old commits.
+- Not in scope: rewriting main's history, and a `cloud_dispatch.py` prompt line, since the
+  preamble carries it and a guard at both push paths catches what a prompt misses.
+
+Cost: one class in `email_leaks`, about 5 lines, and two self-test arms in an existing file. A
+refusal costs the pushing seat a `git commit --amend --reset-author` (or a rebase that re-authors)
+before review, not after it, at the measured rate of 1 per 1002 commits.
+
+Binding: the owner's ruling (R10-FLY-NO-FOOTERS: no Claude attribution "in commits, pull request
+bodies or comments") is wider than the guard enforcing it. A runner default reached main 2 days
+after the preamble fix had taken the rate from 13 % to 0.1 %. Widening the existing arm costs a
+few lines, and the alternative is a review catching it by eye. If the owner rules that the author
+field is outside the attribution rule (the filing's option (b)), this ruling falls and nothing
+lands.
