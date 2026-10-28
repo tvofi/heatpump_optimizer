@@ -1,0 +1,26 @@
+# fixture (a)8 vs its mutant: alarm iff now-since > 1200
+age=1140 correct(>1200)=none mutant(>=1260)=none
+age=1260 correct(>1200)=ALERT mutant(>=1260)=ALERT
+-> the 21-min fixture (1260 s) alarms under both: the >=1260 mutant survives
+
+# confirm arm carries an old confirm-owed line from a read at 315 to the write at 337; dispose between them is undone
+    git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "+$ref:refs/hpo-relay/review/$pr" 2>/dev/null
+    if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then  # unknown is not "nothing owed": keep its line
+      [ -f "$lv" ] && awk -v r="$ref" -v s="$sha" '$3 == "confirm-owed" && $4 == r && $5 == s' "$lv" >> "$state/cloud-level-confirm.$$"; continue
+    fi
+
+# cloud_relay.sh:380 is review_freeze, called by handoff_arm, not relay-probe
+# bus.sh's dispatch record is the worker registry (R10-ORCH-DISPATCH-REG), so the REVIEW read
+# above is the registry's live-reviewer read.
+review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or UNREAD and rc 0 when frozen; rc 1 when not
+  local vs v bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+  vs=$(awk -v r="refs/heads/verdict/$1" '$2 == r { print $1; exit }' "$3")
+  if [ -n "$vs" ]; then
+    git fetch -q origin "refs/heads/verdict/$1" 2>/dev/null && git cat-file -e "$vs^{commit}" 2>/dev/null || { echo UNREAD; return 0; }
+    v=$(git log -1 --format=%s "$vs" | sed -nE "s/^verdict: #$1 Fix review: (merge|blocked) ([0-9a-f]{40})( .*)?\$/\1 \2/p")
+
+# bus.sh dispatch appends the registry with no lock (two concurrent dispatchers both mint)
+    [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch: could not mint a nonce"
+  fi
+  mkdir -p "$S" && printf '%s %s %s %s %s %s\n' "$pr" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
+    || die "dispatch: cannot record in $S"

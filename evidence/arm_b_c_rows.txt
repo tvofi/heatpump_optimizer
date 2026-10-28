@@ -1,0 +1,22 @@
+# note a202285df, arm (b) vs (c)
+108:- **(b) The table, the jobs and the double start** (`beatd.jobs.json` lands here with every row; `tick_loop.sh --no-relay --no-heartbeat` and loop-mode refusal; `cloud_relay.sh pass --arms`, `level_set`'s lock, `handoff-ahead` with `since=`, and `pass --loop` refusal; `state_docs.py beat` loop refusal; `sweep_template.md` step 5 with item 26's board text; `handover_prompt.py`). The self-test asserts that the code
+114:- **(c) Seat retirement and the policy text** (`roster_queue.py --cursor`; the `dispatch`, `ci-watch` and `proof-watch` jobs; the digest; `standing-tick.md`, `standing-roster.md`, `standing-dispatch.md`, `orchestrator.md` §5, and `sweep_template.md` steps 2, 3, 4 and 6 queueing to the beat). Controls:
+
+$ table rows whose flag or job the note lands in (c)
+42:| `roster-queue` | `roster_queue.py run --cursor $S/beatd/roster.cursor --queue $S/roster.queue --report $S/beatd/roster.report --edit-checkout orch …` | orch for the edit checkout; its own `--lint-clone` | yes: 110 (edit checkout); 123 is its own clone | 120/600 | `orch-checkout` |
+43:| `dispatch` | `bus.sh dispatch` for each `REVIEW OWED:` (pr, head) the registry does not hold | orch | yes: 443 | 300/300 | `orch-checkout` |
+44:| `ci-watch`, `proof-watch` | `beatd.py watch <job> -- <args>` | caller's | no (API polls) | watch/budget | none |
+
+$ roster_queue.py run at 6349205b6 has no --cursor
+    r = sub.add_parser("run")
+    r.add_argument("first", type=int)
+    r.add_argument("last", type=int)
+    for k in ("queue", "report", "edit-checkout", "worktree", "lint-clone"):
+        r.add_argument("--" + k, required=True)
+    r.add_argument("--alive")
+    r.add_argument("--branch")
+    r.add_argument("--editor")
+    b = sub.add_parser("readback")
+
+$ the phase key
+29:**Job table** (`beatd.jobs.json`, `{"version":1,"jobs":[…]}`). Keys: `name`, `argv` (repo-relative), `cwd` (`orch` = the beat's own checkout, or a path), `interval_s`, `timeout_s`, `heartbeat_s|n

@@ -1,0 +1,12 @@
+$ git show 6349205b6:dev/governance/roles/nudge.md | sed -n 113p  (hand launch of wt_sync, no daemonize.py)
+If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `~/hpo-orch`. Do not start a second.
+
+$ wt_sync.sh has no loop mode to refuse (usage line)
+# Usage: tools/audit/seat/wt_sync.sh [--scratch <dir>]
+#   run from any checkout of the repo; loop it detached, e.g. every 15 min.
+
+$ the note's §5 hand-launch grep keys on daemonize.py only
+11:| no supervisor; daemons launched by hand (S5, M30) | holds. `beatd.py` and `beatd.jobs.json` do not exist; `tools/audit/seat/daemonize.py` keeps no bookkeeping. |
+81:2. **One unit per job under `daemonize.py`.** Lost: about ten units, no single journal, and no single owner of a cross-job lock.
+92:The level race class is `git grep -n 'mv -f "\$lv' -- 'tools/audit/seat/*.sh'`: two sites, `cloud_relay.sh:169` (`level_set`) and `:262` (`dispose`), both behind `level_rmw`. The tick only reads the level, and `mv` is atomic, so a reader never see
+138:  - The supervisor unit and the two `git config` lines are host config the owner applies. Until then the beat runs under `daemonize.py`, and `status` prints `supervisor=none`.

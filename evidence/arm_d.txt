@@ -1,0 +1,15 @@
+# writers of a <seat>.alive file at 6349205b6 (git grep -n -E "\.alive|--alive" -- tools dev/governance, self-tests excluded)
+6349205b6:tools/audit/seat/roster_queue.py:5:        --edit-checkout DIR --worktree WT --lint-clone LC [--alive FILE] [--branch B]
+6349205b6:tools/audit/seat/roster_queue.py:25:or `roster: <op> <group> refused rc=N <last three lines>`. `--alive` is
+6349205b6:tools/audit/seat/roster_queue.py:107:        if a.alive:
+6349205b6:tools/audit/seat/roster_queue.py:108:            Path(a.alive).touch()
+6349205b6:tools/audit/seat/roster_queue.py:231:    r.add_argument("--alive")
+
+# seats arm (c) retires (carries 11, 23, 33) vs pulse.py STANDING
+STANDING = {"tick": 70, "merge": 120, "dispatch": 60, "roster": 60}
+
+# note (d1), (d3)
+125:  - **(d1) `pulse.py --seat-alive` and DUPLICATE** (items 16, 22; `pulse.py`, `sweep_template.md` step 1b, after (c) for the step text). `--seat-alive SEAT=FILE[:MIN]` reads `<seat>.alive` mtimes and one entry per seat id: `ok`, `STOPPED` past MIN or the seat's STANDING cadence, `UNREADABLE` when absent, `DUPLICATE seat <role>: <id> <id>` when two ids of one role are fresh. Failing tests: a stale alive reads `STOPPED` (today the flag is refused, rc 2); two fresh ids read `DUPLICATE`. Nulls: 
+130:  - **(d3) `seat_gen.py`** (item 19; would be new). First, measure the tracked writers per standing seat at main, and wire only those. `bump <seat>` and `check <seat> <gen>`; `check` with a lower generation exits 1 with `SUPERSEDED`. Failing test: a writer given a superseded generation writes nothing. Null: the current generation exits 0 and writes. Mutant on the comparison.
+134:- **Hot files:** `cloud_relay.sh`, `tick_loop.sh`, `sweep_template.md`, `orchestrator.md`, `orchestrator_tick.py` (d2), `pulse.py` (d1).
+135:- **Order:** (a) → (b) → (c) → (d1). (d2) and (d3) are independent; (d2) goes serial with any other open `orchestrator_tick.py` head. Before R10-ORCH-PLANPAGE.

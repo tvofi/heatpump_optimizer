@@ -1,0 +1,39 @@
+# read at 6349205b6
+$ ledger.py KINDS (the one schema of level kinds)
+KINDS = {
+    "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
+    "handoff-hold-malformed": "derived", "handoff-held": "derived",
+    "design-build": "derived", "review-owed": "derived",
+    "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
+    "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
+    "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
+
+$ orchestrator_tick.py:742-754 (every level line printed flagged; an unknown kind REFUSED)
+            with open(self.relay_log + ".level", encoding="utf-8", errors="replace") as fh:
+                level = [r.strip() for r in fh if r.startswith("OWED ")]
+        except FileNotFoundError:
+            level = []
+        except OSError as e:
+            level = []
+            self.unreadable(S, "cloud-relay level", str(e)[:100])
+        for row in level:
+            f = row.split()
+            if len(f) > 2 and f[2] in lg.KINDS:
+                self.line(S, f"OWED: {row}", flag=True)
+            else:
+                self.line(S, f"REFUSED: a level line of no ledger kind: {row}", flag=True)
+
+$ cloud_relay.sh:413-421 (ahead test at 415 precedes the update; a successful update at 431-447 leaves the tip an ancestor)
+    git fetch -q origin "refs/heads/handoff/$topic" "refs/heads/$br" 2>/dev/null
+    git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
+    git merge-base --is-ancestor "$hs" "$head" && continue
+    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
+    if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
+      echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
+    fi
+    if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; continue; fi
+
+$ grep -n "ledger\.py\|KINDS" on the note
+14:| ledger has `postmerge-owed` (K17 (2)) | landed (`tools/audit/seat/ledger.py`). |
+192:Item 1 (7) needs no build: inventory row M43 is part of the design's history, not a file in the tree. Parts (2) and (4b) have landed (`ledger.py` `postmerge

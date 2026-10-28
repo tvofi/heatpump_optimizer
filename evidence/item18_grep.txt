@@ -1,1 +1,0 @@
-rc=1 (lines naming 'ahead' or '20 min' in the note)
