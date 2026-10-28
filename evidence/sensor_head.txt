@@ -1,2 +1,0 @@
-1996:        {"internal_gains_kw", "capacity_envelope", "system_identification", "learner_progress"}
-2043:            "learner_progress": data.get("learner_progress"),

@@ -1,0 +1,11 @@
+mutant MA at af3b69b4de43393384436303298c5ac71718400d: custom_components/heatpump_optimizer/coordinator.py
+old: SOLAR_APERTURE_MIN_IRRADIANCE else house_cold
+new: SOLAR_APERTURE_MIN_IRRADIANCE else house_wait
+applied
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+exit 1
+  FAIL R10-LEARNER-ETA: no settling learner carries a day count, on any weather or rate  [[(True, True, True, {'house': ('settling', None), 'lower': ('off', None), 'solar': ('settling', None), 'gains': ('settling', None)}), (True, True, False, {'house': ('waiting', None), 'lower': ('off', None), 'so
+  FAIL R10-LEARNER-ETA: in the sun the dark-gated learners wait for dark, and the aperture counts  [sun {'house': {'phase': 'waiting', 'progress': 0.6, 'waiting_for': 'darker', 'eta_days': None, 'samples': 30, 'samples_needed': 50}, 'lower': {'phase': 'waiting', 'progress': 0.332, 'waiting_for': 'da
+  FAIL R10-LEARNER-ETA: the ΔT and irradiance edges admit a sample, and the gate count settles  [edge {'house': {'phase': 'counting', 'progress': 0.6, 'waiting_for': None, 'eta_days': None, 'samples': 30, 'samples_needed': 50}, 'solar': {'phase': 'waiting', 'progress': 0.133, 'waiting_for': 'darker
+3 of 4384 FEATURE CHECKS FAILED
