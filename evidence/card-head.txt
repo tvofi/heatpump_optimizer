@@ -1284,8 +1284,9 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    with the Input Problem sensor unavailable the inputs block claims no healthy inputs
   ok    with the Input Problem sensor unknown the header pill does not claim All inputs fresh
   ok    with the Input Problem sensor unknown the inputs block claims no healthy inputs
-  FAIL  inputs.py publishes problem codes the card can be enumerated against
-        missing_entity,unavailable,stale,not_numeric,unknown_value,not_boolean,unknown_unit
+  ok    inputs.py publishes problem codes the card can be enumerated against
+  ok    every published problem code has its own words in the card's en table
+  ok    every published problem code has its own words in the card's sv table
   ok    every published problem code has words in en, none prints as a raw token
   ok    every published problem code has words in sv-SE, none prints as a raw token
   ok    an unknown_unit problem reads as words in English and Swedish
@@ -1294,54 +1295,22 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    the savings tab still renders beside Health
   ok    the advisor tab still renders beside Health
   ok    the census records through the navigation surface the card loaded against
+  ok    haLink builds the three deep links Home Assistant routes
+  ok    haLink refuses an unknown kind and an entity link with no entity
+  ok    haLink without a resolved entry falls back to the domain, never a guessed entry
+  ok    the act set the census declares is the one the card's source dispatches
+  ok    the census pressed every act branch the card can dispatch
+  ok    the event arm has a literal type to allow, so it measures something
+  ok    no primitive this census does not instrument is reached for on a page or a press
+  ok    the census reached every navigateTo and openHaLink mention
+  ok    the census drove a listener from every addEventListener site in the card
+  ok    the card wires no handler outside addEventListener
+  ok    no press throws
+  ok    every link the census records from a press is one haLink builds for this entry
+  ok    every PENDING row still names a button that makes its unconverted navigation
+  ok    openSetupSlot opens the slot's picker, focused only from the keyboard
+  ok    openHaLink asks the registry for its own plan sensor and links this entry
+  ok    openHaLink falls back to the whole integration when the registry refuses
 
-<--- Last few GCs --->
-
-[38892:0x7b2c40c000]   609173 ms: Scavenge (interleaved) 2046.0 (2086.6) -> 2044.3 (2086.9) MB, pooled: 0 MB, 7.12 / 0.00 ms  (average mu = 0.395, current mu = 0.437) allocation failure; 
-[38892:0x7b2c40c000]   610755 ms: Mark-Compact (reduce) 2046.2 (2087.0) -> 2044.6 (2084.3) MB, pooled: 0 MB, 783.92 / 0.00 ms  (+ 360.5 ms in 28 steps since start of marking, biggest step 77.9 ms, walltime since start of marking 1192 ms) (average mu = 0.3
-FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
------ Native stack trace -----
-
- 1: 0x10016760c node::(anonymous namespace)::DefaultAbortHandler(char const*, char const*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 2: 0x100167870 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 3: 0x1003fad94 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 4: 0x10065a248 v8::internal::Heap::stack() [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 5: 0x10065d61c v8::internal::Heap::HasLowYoungGenerationAllocationRate() [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 6: 0x10066e810 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_1::operator()() const [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 7: 0x10066e0e4 void heap::base::Stack::SetMarkerAndCallbackImpl<v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_1>(heap::base::Stack*, void*, void const*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 8: 0x101033108 PushAllRegistersAndIterateStack [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
- 9: 0x100657f4c v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-10: 0x10064cc58 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-11: 0x10062e338 v8::internal::Factory::NewFillerObject(int, v8::internal::AllocationAlignment, v8::internal::AllocationType, v8::internal::AllocationOrigin) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-12: 0x100abbfb4 v8::internal::Runtime_AllocateInYoungGeneration(int, unsigned long*, v8::internal::Isolate*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-13: 0x101122234 Builtins_CEntry_Return1_ArgvOnStack_NoBuiltinExit [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-14: 0x101123630 Builtins_SubString [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-15: 0x1011a5324 Builtins_RegExpStringIteratorPrototypeNext [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-16: 0x124936d24 
-17: 0x1249238b0 
-18: 0x1010d81a4 Builtins_StoreIC [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-19: 0x1242fe17c 
-20: 0x12492e8dc 
-21: 0x1242fec98 
-22: 0x1242e5ba0 
-23: 0x124891df8 
-24: 0x1243f8dc4 
-25: 0x12455e2dc 
-26: 0x1010c37e8 Builtins_AsyncFunctionAwaitResolveClosure [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-27: 0x101198e58 Builtins_PromiseFulfillReactionJob [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-28: 0x1010b2bd0 Builtins_RunMicrotasks [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-29: 0x1010827b0 Builtins_JSRunMicrotasksEntry [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-30: 0x10059e424 v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-31: 0x10059ec98 v8::internal::(anonymous namespace)::InvokeWithTryCatch(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-32: 0x10059edd4 v8::internal::Execution::TryRunMicrotasks(v8::internal::Isolate*, v8::internal::MicrotaskQueue*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-33: 0x1005cdb78 v8::internal::MicrotaskQueue::RunMicrotasks(v8::internal::Isolate*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-34: 0x1005ce4d8 v8::internal::MicrotaskQueue::PerformCheckpoint(v8::Isolate*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-35: 0x1000330b8 node::InternalCallbackScope::Close() [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-36: 0x100032a90 node::InternalCallbackScope::~InternalCallbackScope() [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-37: 0x1000d01ec node::Environment::RunTimers(uv_timer_s*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-38: 0x10105fbf8 uv__run_timers [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-39: 0x101063500 uv_run [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-40: 0x1000346a8 node::SpinEventLoopInternal(node::Environment*) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-41: 0x1001c3828 node::NodeMainInstance::Run() [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-42: 0x100113dfc node::Start(int, char**) [/Users/timmalmstrom/.nvm/versions/node/v24.22.1/bin/node]
-43: 0x19c274d7c start [/usr/lib/dyld]
+ALL CARD CHECKS PASSED
+rc=0

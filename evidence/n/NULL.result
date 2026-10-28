@@ -1,0 +1,1 @@
+RESULT NULL tests/debug_collect.py: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED

@@ -1,0 +1,9 @@
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9147:      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9292:      : L(`health.p_${p.problem}`) === `health.p_${p.problem}` ? String(p.problem) : L(`health.p_${p.problem}`);
+tests/card.mjs:12058:  // The codes are the keys of inputs.py's PROBLEM_WORDS, the reader's one table of
+tests/card.mjs:12064:  const table = /^PROBLEM_WORDS: dict\[str, str\] = \{\n([\s\S]*?)^\}/m.exec(inputsPy);
+tests/card.mjs:12070:    `${codes.join(",")} | set but not in PROBLEM_WORDS: ${assigned.join(",")}`);
+tests/card.mjs:12074:  const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
+tests/debug_collect.py:2119:    "its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the "
+tests/debug_collect.py:2122:    and set(inputs_mod.PROBLEM_WORDS) == _found - {"not_configured"}
+tests/debug_collect.py:2124:    str([sorted(_found), sorted(set(inputs_mod.PROBLEM_WORDS) ^ (_found - {"not_configured"})),

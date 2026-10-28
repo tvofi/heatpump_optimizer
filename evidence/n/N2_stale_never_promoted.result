@@ -1,0 +1,3 @@
+RESULT N2_stale_never_promoted tests/debug_collect.py: rc=1 FAIL(non-a16)=2 | 2 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an input's own limit is the boundary: at it the reading is not stale, a minute past it the export makes it stale and its verdicts follow the age  [[{'input_health': '1 missing', 'stale_inputs': [], 'input_problems':
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with

@@ -1,0 +1,4 @@
+RESULT K1_implausible_unworded debug_collect: rc=1 FAIL(non-a16)=3 | 3 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 missing', 'stale_inputs': [], 'input_problems': [{'input': 
+    FAIL the null control: the same implausible entry exported inside its limit reads the same, so the check above is about the age crossing the limit  [{'input_health': '1 missing', 'stale_inputs': [], 'input_problems': [{'input': 'indoor', 'e
+    FAIL the precedence census covers every class inputs.py sets: each is driven past its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the card enumerates its wording by, names exactly the published ones  [[['implausible',

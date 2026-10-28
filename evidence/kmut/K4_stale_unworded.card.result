@@ -1,0 +1,2 @@
+RESULT K4_stale_unworded card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  inputs.py publishes problem codes the card can be enumerated against

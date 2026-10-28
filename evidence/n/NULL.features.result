@@ -1,0 +1,2 @@
+RESULT NULL tests/features.py: rc=1 FAIL(non-a16)=1 |   return _methods._mean(a, axis=axis, dtype=dtype,
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
