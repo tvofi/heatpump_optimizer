@@ -3884,6 +3884,12 @@ def _p2_registry(sources):
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
+                 # R10-HEAT-METER: where a mode split falls, never an age.
+                 "pump_signals.py::read":
+                     "carries the live mode's last_changed as the instant its "
+                     "VALUE changed, where heat_energy.ModeDwell splits a span; "
+                     "state_stamp answers when the entity was last heard from, "
+                     "which a re-reported 'heat' resets",
                  # #2271: the replay half copies the recorder's rows, as the
                  # export copies them out of SQLite; no age is decided there.
                  "debugger.py::_since":
