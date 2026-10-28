@@ -1,0 +1,4 @@
+  sleep 300
+POLL_SECONDS = 300
+( sleep 300 ) & echo "\$!" > "$SP.lane"
+( sleep 300 ) & echo "\$!" > "$HR/pid.lane"
