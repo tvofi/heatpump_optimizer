@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 57 (P268-P269)
+# Proposal triage, session s7, batch 57 (P268-P270)
 
 One entry, covering the owner's fourth and fifth amendments to V181 and the owner's
 clarification of the fifth. All three are quoted from `proposals.md` as it stands.
@@ -16,6 +16,11 @@ clarification of the fifth. All three are quoted from `proposals.md` as it stand
   only if it is a bug touching production code, or a feature request the owner explicitly calls a
   hotfix. Not every "Owner request" brief qualifies, so R10-ROUND-PLAYBOOK is not a hotfix. A
   user-submitted bug in production code is a hotfix.
+- **Sixth amendment (owner, 2026-10-28T20:28:56Z).** "hotfix also covers (a) a critical bug
+  found by the programme during the fixing phase, (b) any bug on main, (c) a CI- or
+  programme-machinery bug that deadlocks all merges. hotfix_by records which rule applied."
+  The owner then corrected case (b): it is "any bug making main red on a required check", not
+  "any bug on main". Cases (a) and (c) stand.
 
 Batch 56 (P267) was already pushed as `handoff/triage-s7-batch56` `86d399b50` when the fourth
 amendment arrived. All three are therefore ruled here, and batch 56's head does not move. This
@@ -67,13 +72,25 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
    - `source` is one of `"user"`, `"audit"` or `"programme"`. `"user"` means an item submitted
      by the owner or an end user, either a report or a request. It does not make the group a
      hotfix by itself.
-   - `hotfix` is an optional boolean, set at intake under the owner's definition:
-     - `true` for a user-submitted **bug touching production code** (`source: "user"`, a bug
-       report, and a group that `touches_production`);
-     - `true` for a feature request **the owner explicitly calls a hotfix**, which then needs
-       `hotfix_by`, citing the owner's words;
-     - anything else is not a hotfix, including an owner request for a document or an
-       instrument such as R10-ROUND-PLAYBOOK.
+   - `hotfix` is an optional boolean, set at intake under the owner's definition. It is
+     `true` only under one of five rules, and `hotfix_by` records which rule applied as
+     `{rule, evidence}`:
+     - `user-production-bug`: a user-submitted bug touching production code (`source: "user"`,
+       a bug report, and a group that `touches_production`). The evidence is the report, an issue
+       or brief line.
+     - `owner-called`: a feature request the owner explicitly calls a hotfix. The evidence is the
+       owner's words, cited.
+     - `fixing-phase-critical`: a critical bug the programme finds during the fixing phase. The
+       evidence is the finding or verdict that names it critical.
+     - `main-red-required`: a bug that makes main red on a **required** check, as the owner
+       corrected it. The evidence is the red required check-run on a main SHA, by its run id and
+       context name. A bug on main that turns no required check red is not a hotfix under this
+       rule.
+     - `merge-deadlock`: a CI or programme-machinery bug that deadlocks all merges. The evidence
+       is the stop that shows no merge can land, for example the train's stop line, or a required
+       check red on every open head.
+     - Anything else is not a hotfix. That includes an owner request for a document or an
+       instrument, such as R10-ROUND-PLAYBOOK.
    - `savings_source` cites the ruling or cost test, for example
      `dev/programme/triage/<batch>.md#P<n>`. It is required whenever the existing numeric
      `savings` is set.
@@ -90,8 +107,10 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
    - A new op, `set-field <group> source|hotfix|hotfix_by|savings|savings_source|class <value>`,
      is restricted to those six fields and validated. It refuses:
      - a `savings` with no `savings_source`;
-     - `hotfix true` unless `source` is `"user"` and either the group `touches_production` or
-       `hotfix_by` is set.
+     - `hotfix true` without a `hotfix_by` whose `rule` is one of the five and whose `evidence`
+       is non-empty;
+     - `rule: user-production-bug` unless `source` is `"user"` and the group
+       `touches_production`.
 4. **Backfill.**
    - Briefs that open "Owner-reported", "User-reported" or "Owner request" get `source: "user"`.
    - Those that report a bug and touch production also get `hotfix: true`. On the live roster that
@@ -99,13 +118,23 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
      files under `custom_components/`.
    - R10-ROUND-PLAYBOOK ("Owner request"; files `dev/audit/README.md` and `CLAUDE.md`) gets
      `source: "user"` and is **not** a hotfix, as the owner ruled.
+   - R10-HOTFIX-BATCH-ERREXIT keeps its prefix, and `is_hotfix` still reads the prefix. This
+     carry sets no `hotfix_by` for it, because no rule's evidence is recorded for it here.
+   - The three programme rules (`fixing-phase-critical`, `main-red-required` and `merge-deadlock`) are
+     applied by the orchestrator at intake as they arise. They are not backfilled from brief
+     text.
 5. **Controls:**
    - an append-group without `source` is refused;
    - `set-field X savings 14` without a source is refused;
    - `is_hotfix` is true for a `hotfix: true` fixture and for a `R10-HOTFIX-` fixture, and false
      for a `source: "user"` request that touches only `dev/`;
-   - `set-field X hotfix true` is refused on a `source: "audit"` group, and on a user group that
-     touches no production file and has no `hotfix_by`;
+   - `set-field X hotfix true` with no `hotfix_by`, or with an unknown rule, is refused;
+   - `rule: user-production-bug` is refused on a `source: "audit"` group and on a user group that
+     touches no production file;
+   - each of `fixing-phase-critical`, `main-red-required` and `merge-deadlock` is accepted with
+     evidence, and refused without it;
+   - `main-red-required` whose evidence names a context outside the ruleset's required checks is
+     refused;
    - `group_class` falls back to lane only when `class` is absent;
    - null: today's roster with no new fields loads unchanged.
 
@@ -243,3 +272,45 @@ differently.
 
 Binding: owner-directed. The shape keeps one definition of the set, read by both launch paths and
 named by the contract, and it keeps the mandate under the gate's existing checks.
+
+## P270: prompt-cache and context efficiency: stable text first, variables last
+
+Verdict: DEFER. The measurement that decides it is already being taken. The owner approved the
+card, and the orchestrator has a measurement seat quantifying it, which will amend V184. Until
+that amendment arrives, the benefit is unmeasured.
+
+Source: `proposals.md` V184 (owner-approved, 2026-10-28T20:28:06Z).
+
+Instances (read at origin/main `b6f6ceca4`):
+- **(1) The cloud prompt does put variables early.** `tools/audit/seat/cloud_dispatch.py`
+  `_prompt` (line 107) builds its first sentence from the subject, which names the PR, the repo
+  and the 40-hex head (line 109), and appends the bus nonce at line 112. The head reappears
+  inside fixed instructions at lines 120, 123 and 130, and the nonce at line 132. So no two
+  seats share a prefix past the first sentence. The function's text is about 4.9 kB
+  (`sed -n 107,160p | wc -c` gives 4872).
+- **(2) A RemoteTrigger run-body override is untested.** The card itself says "if the API
+  supports a run-body override (test first)".
+- **(3) Local briefs are already stable-first.** This seat's own brief opens with a fixed SEAT
+  PREAMBLE. Its line 13 reads "--- SEAT BRIEF (everything below this line varies per seat;
+  nothing above it may change mid-session) ---". So the local half is the practice already. Only
+  the cloud prompt departs from it.
+- **The owner groups.** `cloud_dispatch.py` is in the `files` of R10-FLOW-DESIGN-STAGES (M,
+  `not-started`), R10-FLOW-DISPATCH (`done`) and R10-FLY-POOL-INSTRUMENT (`absorbed`). The one
+  live owner is R10-FLOW-DESIGN-STAGES.
+
+What would change the answer: the measurement seat's numbers. Two of them decide it:
+- cache-read against uncached input tokens for a burst of cloud seats, dispatched within the
+  cache window with today's prompt, then with a reordered render;
+- whether RemoteTrigger accepts a per-run body.
+
+If the reorder shows a clear saving, (1) goes to R10-FLOW-DESIGN-STAGES as a carry. The fixed role
+text comes first, then one variable block (PR, head, nonce, brief path), and commands read
+`$SEAT` or the environment. A render self-test would assert that two seats' prompts share every
+byte before that block. (2) would join it only if the API test passes. (3) needs nothing.
+
+Cost of the carry, when ruled: about 30 lines of template reordering and one prefix-identity
+check in a 4.9 kB prompt builder. The reviewer prompt's own wording must not change, because
+`cloud_relay.sh` and the verdict grammar read what it asks for.
+
+Binding: an unmeasured benefit, against a measurement already in flight. The ruling waits for the
+amendment and does not pre-empt it.
