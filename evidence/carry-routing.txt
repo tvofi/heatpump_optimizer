@@ -1,19 +1,24 @@
-head 345daba44851215b9510f27826957e1bd5fc0a30 vs origin/main 07295d4ea1471048ee2a76a6776b5cd364dcf141
-== R10-REVIEW-CARRY stage fixing carries 3 -> 3
-   P199 in carry: False
-   P200 in carry: False
-   P203 in carry: False
-== R10-FLOW-TOOLKIT-MODEL stage not-started carries 10 -> 12
-  ADDED/REWRITTEN: `replan.py:94`'s `LIVE_STAGES` is a second copy of the live-stage view. Equal to `roster_lib.LIVE` at this head, so adopting the import changes no schedule; the file belongs to `R10-FLOW-TOOLKIT-MODEL`, which lists `tools/plan/replan.py` and is not started (`R10-PLAN-PRIO`, which the wave brief named, is done), and this pull request does not touch it. Carry: R10-FLOW-TOOLKIT-MODEL
-  ADDED/REWRITTEN: `brief-citations: contradiction: the brief assigns the XS measurement to R10-FLOW-TOOLKIT-MODEL while asking this group's reader to refuse a size the model lacks over the tree's own rosters, so the arm is red until the drifted data is cleared here; cleared by relabelling XS to S and carrying the measurement` Carry: R10-FLOW-TOOLKIT-MODEL
-   P199 in carry: False
-   P200 in carry: False
-   P203 in carry: False
-== R10-FLOW-WIP stage not-started carries 9 -> 10
-  ADDED/REWRITTEN: `orchestrator_tick.py:206`'s `DEFERRED_STAGES = ("deferred", "refused")` is narrower than `roster_lib.DISPOSITION`, so a `refuted` or `absorbed` group prints as in progress and its after-edges keep dependents blocked. No instance today (no refuted group in the round-10 roster; the four absorbed groups have no dependents), and `carries-open`'s blocking is wanted until carry 19 lands. Measured and controlled in the new carry. Carry: R10-FLOW-WIP
-   P199 in carry: True
-   P200 in carry: False
-   P203 in carry: False
-cites P199 -> R10-FLOW-WIP not-started
-cites P203 -> R10-ORCH-ROSTER-SCHEMA done
-cites P200 -> R10-ORCH-REVIEW-PACKET done
+P200 src R10-ORCH-REVIEW-PACKET stage done n_src 1 | dst R10-REVIEW-CARRY stage fixing n_dst 1 dst carries main->head 3 4
+  dst len 1986
+  src len 1992
+  verbatim: False
+  TEXT: Triage P200 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P200): the reviewer verdict relay format is unstated where reviewers read. ACCEPT narrowed to stating the four checked items in fix-review.md; a bus.sh verdict-template verb is REJECTED because the reviewer reads the role file and never runs bus.sh, and a template verb would be a second statement of cloud_relay.sh's probe-acceptance checks that can drift from them. Instances: four verdicts in one day cost seven defects, one probe needing four orchestrator repairs (rev-2745: the full nonce instead of its first 8, blocked: instead of the blocked <head> <class>: marker, no bus-nonce: line, and no ev/ file naming the head), plus a refused relay subject, an old head and an old free-text subject on three later verdicts; the two reviewer briefs that spelled the layout out relayed first time. What cloud_relay.sh actually checks and fix-review.md does not state: the ref name probe/rev-<pr>-<nonce first 8>, the exact commit subject 'verdict <pr> <head40>', the first-line grammar 'Fix review: merge <head40>' or 'Fix review: blocked <head40> <class>: <reason>' with class matching a lowercase-hyphen token, and the ev/ directory. Carried arm: fix-review.md states those four beside the two it already states (the evidence file naming the head and the bus-nonce: line), about 8-10 lines at the file's density. Binding: fix-review.md is at its policy cap (policy_lint --budgets), so the carry must pay by deleting prose in the same file, not by appending; if the payment cannot be found, the sentence goes into the reviewer brief template that handover_prompt.py renders instead and the role file keeps a one-line pointer. Cost: one opus fixer round inside the group's own dispatch, no second dispatch; policy, so the merge takes the owner-approved route under the mandate in force. Benefit: seven relay defects on four verdicts in one day, each a round-trip that leaves a verdict unrelayed. Carry: R10-REVIEW-CARRY
+  files dst: ['dev/governance/roles/fix-review.md', 'dev/governance/roles/orchestrator.md', 'tools/audit/seat/']
+P203 src R10-ORCH-ROSTER-SCHEMA stage done n_src 1 | dst R10-FLOW-TOOLKIT-MODEL stage not-started n_dst 1 dst carries main->head 10 13
+  dst len 2366
+  src len 2366
+  verbatim: False
+  TEXT: Triage P203 (s6 batch 35; triage: dev/programme/triage/s6-batch35.md#P203): the tick marks mandate-approved owner gates as blocked. ACCEPT narrowed to a gate-kind classifier in roster_lib that the tick calls; a tick-only string heuristic is REJECTED because the gate's meaning belongs to the roster schema (the tick already imports roster_lib for its group and open-group reads) and a regex in the tick would be the second reader of one fact. Instances: every tick, and the board's own gated count carries it -- the ruling's census, re-derived with the tick's own loader at the roster-branch tip it names, found every open group with a non-empty owner_gate covered (one family naming a mandate, two beginning code-owned:, three beginning policy:, several matching more than one) and none stating a decision still to be taken; the older instance in the ledger read the same class at its own roster. Cause: the tick's gated test is the presence of any owner_gate string, it sets the flag unconditionally, and it makes one issues read of the oldest gated issue to print its age. Carried arm: roster_lib gains a gate-kind helper (the ruling names it gate_kind, over the gate text) returning covered (names a mandate id, or begins code-owned:, policy: or budget:, which the mandate in force covers) or owner (the text states a decision not yet taken, today only 'owner decision after the probe'); the tick reports covered gates informationally with no flag and flags only owner ones, and makes the oldest-issue age read only when an owner gate exists (on today's roster, zero calls per tick instead of one). Controls: a fixture of the gate strings from the roster, all classifying covered; the 'owner decision after the probe' text classifying owner; one mutant that treats every gate as owner fails the covered fixture; one that treats every gate as covered fails the owner row; null -- a group with no gate is not in the line at all. The roster moves under the count, so the fixture pins the class, not a total. One helper (about 15-25 lines) plus the tick's call site (about 3), and the fixture rows; no roster data migration, so roster_edit.py and roster_sync.py are not touched in this arm. Benefit: the false gated line is the one the completion criterion's last step is judged on, so a false positive costs a re-derivation every pass. Carry: R10-FLOW-TOOLKIT-MODEL
+  files dst: ['tools/plan/replan.py', 'tools/audit/seat/roster_lib.py', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/INSTRUMENTS.md']
+---- diffs src vs dst
+P200 delete 'ORCH-' -> ''
+P200 replace 'P' -> 'C'
+P200 replace 'CKET' -> 'RRY'
+P200 strip-marker equal: True
+P203 insert '' -> 'FL'
+P203 replace 'RCH' -> 'W'
+P203 replace 'R' -> 'T'
+P203 replace 'S' -> 'OLKI'
+P203 insert '' -> '-MOD'
+P203 replace 'R-SCHEMA' -> 'L'
+P203 strip-marker equal: True

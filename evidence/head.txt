@@ -1,0 +1,1 @@
+head 45ce3c6e9aa00bab7c57bb1d7ab3bd72f951c52d (PR #2899), measured in a detached worktree at that head
