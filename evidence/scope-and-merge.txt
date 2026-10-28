@@ -1,0 +1,9 @@
+head 09ed5f73f99a2b9048c18ac7bfb9b7832f3fce02
+origin/main bc52ad2af1d0cfe95896119b649fa56e14c74b5b
+merge-base bc52ad2af1d0cfe95896119b649fa56e14c74b5b
+ dev/programme/delivery/2812.md             |  1 +
+ dev/programme/rosters/wave-r10-groups.json | 24 ++++++++++++++----------
+ 2 files changed, 15 insertions(+), 10 deletions(-)
+merge-tree:
+78c3b9827cbd6922fe84d194a5ca51e0c7db59bb
+rc=0

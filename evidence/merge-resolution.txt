@@ -1,4 +1,0 @@
-BOTH/ODD R10-UX-HEALTH carry
-  head ['"From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2', '"#2809 [D15]: Finalize Debug Collection publishes the wrong unavailabl', '"#2815 [D15]: no UI control starts a new debug collection; only the de', '"Owner\'s spec: the card\'s driving scale (what drives the optimizer\'s c']
-  ours-new ['"#2809 [D15]: Finalize Debug Collection publishes the wrong unavailabl', '"#2815 [D15]: no UI control starts a new debug collection; only the de', '"Owner\'s spec: the card\'s driving scale (what drives the optimizer\'s c']
-  theirs-new ['"From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2']
