@@ -1,0 +1,4 @@
+transient | error connecting to api.github.com
+refuse    | gh: API rate limit exceeded for installation ID 1. (HTTP 403)
+transient | gh: You have exceeded a Secondary Rate Limit (HTTP 403)
+transient | gh: Bad Gateway (HTTP 520)
