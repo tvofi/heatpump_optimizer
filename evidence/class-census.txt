@@ -1,0 +1,6 @@
+custom_components/heatpump_optimizer/coordinator.py:1441:    _PROCESS_WORKER = subprocess.Popen(
+custom_components/heatpump_optimizer/coordinator.py:1507:            _PROCESS_WORKER = None
+custom_components/heatpump_optimizer/coordinator.py:1558:            stdin.write(job)
+custom_components/heatpump_optimizer/coordinator.py:1566:            _PROCESS_WORKER = None
+custom_components/heatpump_optimizer/coordinator.py:1586:            _PROCESS_WORKER = None
+custom_components/heatpump_optimizer/process_worker.py:63:    stdout.write(blob)

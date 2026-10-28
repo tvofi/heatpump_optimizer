@@ -1,0 +1,17 @@
+[R10-P10] CPU work (a model kernel, a fit, a batch simulation) runs outside the process worker, on the event loop or on a GIL-holding executor thread, and starves the loop
+open
+## Class P10
+
+**Mechanism.** CPU work (a model kernel, a fit, a batch simulation) runs outside the process worker, on the event loop or on a GIL-holding executor thread, and starves the loop
+
+## Findings
+
+| id | severity | verdict | harness |
+|---|---|---|---|
+| D14-s1-01 | low | verified (183 loop kernel calls over 6 cycles) | `dev/audit/rounds/round10/D14/s1/p10_seams.py` |
+
+## Sweep instances
+
+| file | symbol | beyond finding | probe |
+|---|---|---|---|
+| `custom_components/heatpump_optimizer/away.py` | estimate_recovery_hours | no | `HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/p10_seams.py --away (loop_kernels_away_seam=183); python3 dev/audit/rounds/round10/D14/sweep-P10/p10_loop_reach.py --seam away.py:estimate_recovery_hours (exit 1)` |

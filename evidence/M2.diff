@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 43463e200..8b1ec9fe5 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1569,11 +1569,6 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+                     f"process worker cannot start: {err}"
+                 ) from err
+             rc = worker.poll()
+-            try:  # a no-op on a child poll() has already reaped
+-                worker.kill()
+-                worker.wait()
+-            except Exception:  # noqa: BLE001 - must not mask the cause
+-                pass
+             raise ProcessWorkerUnavailable(
+                 f"process worker exited rc={rc}: {err}"
+             ) from err

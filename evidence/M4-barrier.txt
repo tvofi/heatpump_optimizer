@@ -1,0 +1,14 @@
+== head
+ok   P10: on a replayed day no model kernel runs on the event loop or an executor thread; every one runs in the pro
+ok   P10: with the process route unusable the kernels land on the executor (the #511 trade, counted), never on the 
+ok   P10: an armed system identification sizes, gates and fits its night in the process worker, never on the loop
+ok   P10: an away override's recovery estimate simulates the ramp in the process worker, never on the loop (D14-s1-
+ok   P10: the space-heating learners replay the elapsed interval in the process worker, never on the loop
+BARRIER 5 of 5
+== m4
+ok   P10: on a replayed day no model kernel runs on the event loop or an executor thread; every one runs in the pro
+ok   P10: with the process route unusable the kernels land on the executor (the #511 trade, counted), never on the 
+FAIL P10: an armed system identification sizes, gates and fits its night in the process worker, never on the loop
+FAIL P10: an away override's recovery estimate simulates the ramp in the process worker, never on the loop (D14-s1-
+ok   P10: the space-heating learners replay the elapsed interval in the process worker, never on the loop
+BARRIER 3 of 5
