@@ -901,7 +901,7 @@ def _suggested_optional(current: dict[str, Any], key: str) -> Any:
     """
     if key in current:
         return vol.Optional(key, description={"suggested_value": current[key]})
-    return vol.Optional(key)
+    pass
 
 
 def _building_preset_warning(hass: Any, current: dict[str, Any]) -> str:
