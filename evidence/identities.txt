@@ -1,0 +1,8 @@
+identities since 2026-10-21T16:40Z at f844:
+    453 Claude <noreply@anthropic.com> | Claude
+     20 Claude <noreply@anthropic.com> | tvofi
+      8 hpo-fixer-seat <noreply@anthropic.com> | hpo-fixer-seat
+      7 hpo seat <noreply@anthropic.com> | hpo seat
+      5 hpo fixer seat <noreply@anthropic.com> | hpo fixer seat
+      4 hpo-author <noreply@anthropic.com> | hpo-author
+      3 hpo-fixer <noreply@anthropic.com> | hpo-fixer
