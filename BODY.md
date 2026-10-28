@@ -22,52 +22,105 @@ forward-carried inverse conversions.
 
 ## Head
 
-`c221d2ac4eb579853953f00eefa75f8b8712b738` is the authored code head, pushed to `handoff/r10-cop-partload`.
-It is six commits on `54437ac84` (the previous handoff tip), and its merge
-base is origin/main `edd7e0e14`:
+`e0b5805a07e761ec56648b4320322f81496eb574` is the authored code head, pushed to `handoff/r10-cop-partload`. It is
+five commits on the PR head `ea4630ace` (round 1's code head `c221d2ac4`
+merged with origin/main `0b8f8b585`, plus the bot's `ci: pin killed
+mutants`), so the round-1 pins are in its ancestry.
 
-- `6d14230a8` merges origin/main `edd7e0e14` into `54437ac84`.
-  `tests/structure_budgets.json` and `tests/closures.json` merged through the
-  ledger driver; the claim file was re-cut in `e03722e94`.
-- `e03722e94` repairs two things. `tests/features.py` did not parse at
-  `54437ac84`: the merge `5599dcd19` placed main's #2261 heat-meter section
-  after the part-load hot-water `R.check` and dropped that call's closing
-  `)` (`SyntaxError: '(' was never closed`; prepr's `no-copies` step refused
-  on it too). The `)` and its two blank lines are back, and that is the
-  file's whole edit; `git diff origin/main...HEAD -- tests/features.py` is
-  pure additions. `tests/golden/claimed_drift.txt` is main's file byte for
-  byte plus this branch's one `config_flow` claim, `claims-for: 7.0.5` ==
-  `VERSION`. The claimnotes driver refused the merge (both sides rewrote the
-  list); main's R10-HOUSE-GRADE `coord_*` claims stay, because deleting them
-  here would delete them from main while their drift is unstamped.
-  `card_claimed_drift.txt` is byte-identical to main.
-- `639ba901f` pays the production-call red in `tests/stress.py` with code
-  (`## Red checks`): `thermal_model.heat_per_cop_kw(params, power)` is the
-  draw's heat per unit of COP (the draw at derate 0, else draw times
-  `partload_factor`), and `delivered_heat_kw` is `cop * heat_per_cop_kw(...)`.
-  The part-load factor depends on the draw alone, so the batch twin takes it
-  once for its power matrix and `extend_dhw_temps` once for its schedule,
-  and each sub-step multiplies in its own COP. Before, those two loops called
-  the helper once per interval and sub-step: 30432 and 5566 of the 38014
-  `delivered_heat_kw` calls on `heavy_old/winter`. After, 0 and 0 of 2016
-  (the 1920 scalar-step calls and the 96 hot-water trajectory calls are
-  unchanged). Out-of-tree counter `$SCRATCH/probe/site_count.py`. The
-  association is now `cop * (power * factor)` at every site, scalar and
-  batch, so the twins stay bitwise; at derate 0 every product is still
-  exactly `cop * power`.
-- `ad2bf7fd6` pays the six class lines the hoist first cost
-  (`class_excess_loc 17992 > 17986`): both loops build `heat_per_cop` from
-  the `asarray` and read their shapes from it, and the batch's existing COP
-  comment carries the note. `class_excess_loc 17986 <= 17986`.
-- `c221d2ac4` closes the last firing scenario: at `f041578bd` the channel
-  read `summer/1z/space/valve` 88705 against 84434 = 1.051x, because
-  `delivered_heat_kw` now made a second call per scalar step. Both zone
-  steps and the hot-water trajectory write `cop * heat_per_cop_kw(...)`, the
-  product `delivered_heat_kw` returns, and `delivered_heat_kw` stays the
-  optimizer ceiling's.
-- `f041578bd` deletes `delivered_heat_kw`'s two pins (`GUARD_OFF 54581fbd`,
-  `RETURN_DEL 8c667869`), which `ci_predict` reads as STALE PIN once their
-  lines moved into `heat_per_cop_kw`.
+## Round 2 delta
+
+The round-1 review blocked at `ea4630ace`:
+`_partload_derate` took any derate in [0, 0.5] whatever the band, and above
+band/(band + p_max) `delivered_heat_kw` falls with power. Heat is
+`cop * P * (1 - d * (P - p_min) / band)`. Its slope at p_max is
+`cop * (1 - d * (band + p_max) / band)`, the least anywhere on the band, so
+heat rises across the band exactly while d < band/(band + p_max).
+
+- `7c1f1e5f5`, failing first. Two `tests/features.py` checks on a 4-5 kW
+  band, where the limit is 1/6, with derate-0 and default-band null
+  controls. At this commit the part-load block reads `2 of 10 PART-LOAD
+  BLOCK FAILED`: 0.19 and the limit itself were kept on both construction
+  paths, and the options page had no refusal.
+- `773af6e7b`, the fix.
+  - `thermal_model.partload_derate_limit(p_min, p_max)` is band/(band +
+    p_max). It is infinite for an empty band, where the factor is 1 and a
+    derate prices nothing.
+  - `_partload_derate(value, params)` refuses a derate that is not strictly
+    below the limit to the 0 default. This is the reader's existing refusal,
+    applied to one more bound. It refuses rather than clamps because a clamp
+    would price a derate nobody configured, and a derate at the limit is a
+    pump whose heat stops rising at max power. 0 is the term off: the plan
+    is the one priced before the term existed.
+  - `ThermalParameters.clamp`, which every construction path runs, applies
+    the reader. A direct construction is now bounded too, and the
+    `from_config` call is gone, so the class's line count is unchanged.
+  - The options page refuses the derate on its own field
+    (`config_flow._partload_errors`, error `partload_derate_above_limit`,
+    en and sv). It judges against the stored band when the page posts only
+    the derate.
+  - The option's description and `docs/configuration.md` name the bound:
+    0.44 for a 1-5 kW pump, 0.17 for a 4-5 kW one. The selector stays 0-0.5,
+    because the bound depends on the two power fields and a static selector
+    cannot carry it.
+  - The existing range check's 0.5 cell now reads 0 through `from_config`
+    on the default 1-5 kW band, which is past 4/9. The reader alone still
+    keeps 0.5 and refuses the next float up, so the cap stays pinned.
+- `0910e0955` corrects `r10_cop_partload_equiv.py`'s header. Its control
+  lines read 15 and 8, not 7 and 0, both at `ea4630ace` and here. Since
+  `54437ac84` routed the reader through `const.finite_float`, the eight
+  refused cells reach the rewritten line as 0.0. The equivalence counts are
+  unchanged: `equiv_differs=0`, `equiv_config_differs=0`, positive 4.
+  `--identity` reads 0 on every line but the 7 ties.
+- `1617eaa73`: the docs row.
+- `e0b5805a0` adds a cell for each new site's mutant: the exact limit and
+  the float below it on the page, a fixed-speed 3-3 kW band keeping its
+  derate, and a -2..-1 kW band reading no limit. It also drops the page's
+  redundant `derate > 0.0 and`: the limit is positive or infinite, so that
+  conjunct was an equivalent mutant.
+
+Measured on this arm64 host at `e0b5805a0` unless named, with the 1-minute
+load average at 76 to 110 (triage P251: the part-load block alone, no full
+`features.py` and no mutation table):
+
+- The part-load block, `tests/features.py` from its R10-COP-PARTLOAD marker
+  to the #2261 one under the header: `ALL 10 PART-LOAD BLOCK PASSED`, and
+  `2 of 10` failing at `7c1f1e5f5`. The runner is
+  `$SCRATCH/probe/pl_block.py`. `features_block.py` cannot run this block:
+  it needs `_PvOpt` and `_WS` from earlier in the file.
+- The reviewer's `monotone_probe.py` at `773af6e7b`: every band and derate
+  row reads `monotone`, including 4-5 kW at 0.19, 3-5 kW at 0.3 and 1-5 kW
+  at 0.5 (each refused to 0, so heat is `cop * P`). Null: `d=0` is bitwise
+  `cop*P`. Parity at 0.15: scalar against vector bitwise, n 20000.
+- Mutation proof of the round's eight added sites
+  (`$SCRATCH/probe/r2_mutants.py`, each applied to an archived copy of the
+  tree, then the block run). Every mutant is killed:
+  - the limit's `GUARD_OFF`: 1 of 10 checks fail
+  - `band < 0.0`: 1 of 10 fail
+  - `band + p_max < 0.0`: `ZeroDivisionError`
+  - the limit's `RETURN_DEL`: `TypeError`
+  - the reader's `<` written `<=`: 1 of 10 fail
+  - the page's `GUARD_OFF`, `>` and `RETURN_DEL`: 1 of 10 fail each
+
+  The null control is the unmutated tree, which passes 10 of 10.
+- `r10_cop_partload.py` reproduces the body's figures: grid 27 plants with
+  the ratio at p_max >= 0.808; spread term against none min -0.0598, max
+  -0.0094, cheaper 16, dearer 0; flat min -0.0754, max +0.0046, cheaper 10,
+  dearer 4; `failures 0`. Every plant's derate sits below its band's limit.
+- `tests/env_drift.py --all` at `773af6e7b`: `CLAIMED config_flow: 2 leaves
+  moved`, `NO UNCLAIMED DRIFT: 56`, `NO STALE FIXTURE: 56`, rc 0. The claim
+  file is untouched this round.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. No
+  `*_budgets.json` is touched.
+- `tests/finite_boundary.py` at `773af6e7b`: `ALL 108 FINITE BOUNDARY CHECKS
+  PASSED`. The new reads go through `const.finite_float`.
+- `ci_predict --base origin/main`: no closures, fast, wave-script or
+  instrument red. It reports 7 unpinned sites, listed below.
+- Not re-run this round, because of the load and because the round adds no
+  per-step work: full `tests/features.py`, `tests/stress.py` and the
+  mutation table. Round 1's CI readings at `ea4630ace` (stress 113 of 113,
+  mutation table passed) are the last full ones.
+
+Round 1, carried.
 
 Every comparison below is three-dot against `edd7e0e14`. Figures measured at
 an earlier head say which. The mutation proof and the null control are
@@ -77,18 +130,17 @@ the two `_grad_parity` cells at derate 0.15 hold the twins bitwise.
 
 ## Unpinned sites
 
-`ci_predict` names three sites `639ba901f` adds and nothing pins yet. Each is
-disposed as pinned by `mutation-autofix`, which pins a killed added site:
+The bot's `ci: pin killed mutants` pinned round 1's three sites. Round 2 adds
+seven, each killed by the part-load block (`## Round 2 delta`, mutation
+proof). Disposition for each: pinned by `mutation-autofix`.
 
-- `custom_components/heatpump_optimizer/thermal_model.py:1704 GUARD_OFF`
-  (`heat_per_cop_kw`'s `if params.cop_partload_derate:`): it carries the
-  derate, the guard R1 below removes, killed by 7 feature checks.
-- `custom_components/heatpump_optimizer/thermal_model.py:1706 RETURN_DEL`
-  (`return electrical_power`) and
-  `custom_components/heatpump_optimizer/thermal_model.py:1716 RETURN_DEL`
-  (`delivered_heat_kw`'s `return cop * heat_per_cop_kw(...)`): either
-  dropped makes every conversion `cop * None`, so every `tests/features.py`
-  plan check raises.
+- `custom_components/heatpump_optimizer/thermal_model.py:1681 GUARD_OFF`, the limit's empty-band guard: 1 of 10 fail
+- `custom_components/heatpump_optimizer/thermal_model.py:1681 CMP_BOUND*2`: `band < 0.0` fails 1 of 10, and `band + p_max < 0.0` raises `ZeroDivisionError`
+- `custom_components/heatpump_optimizer/thermal_model.py:1683 RETURN_DEL`: raises `TypeError`
+- `custom_components/heatpump_optimizer/thermal_model.py:1699 CMP_BOUND`, the reader's `<`: 1 of 10 fail
+- `custom_components/heatpump_optimizer/config_flow.py:906 GUARD_OFF`: 1 of 10 fail
+- `custom_components/heatpump_optimizer/config_flow.py:906 CMP_BOUND`: 1 of 10 fail
+- `custom_components/heatpump_optimizer/config_flow.py:908 RETURN_DEL`: 1 of 10 fail
 
 ## Mutation proof
 
@@ -234,9 +286,8 @@ carried (`## Head` says why).
   `config_flow`, is `ok`. Not this branch's.
   `GOLDEN_MODE=strict PYTHONPATH=tests/hastub python3 tests/golden.py`
 - `tests/stress.py`, `shoulder: cheaper than holding the setpoint [4.67 vs
-  3.96]`: the branch's only production change is the derate at its 0 default,
-  where the null control shows the plans byte-identical, so this comparison is
-  the merge base's. Not this branch's.
+  3.96]`: on this arm64 host only. CI reads it ok at `ea4630ace` and at the
+  merge base, so it is the host, not the branch.
 - `tests/stress.py`, the production-call channel: **this branch's**, and paid
   in code, not passed by review. At `6d14230a8` (54437ac84 plus main) 13
   scenarios grew 1.051x to 1.064x past the 1.05 allowance on work their counts
@@ -254,8 +305,9 @@ carried (`## Head` says why).
   486204/482519 = 1.008x, `heavy_old/winter` 1187891/1182874 = 1.004x,
   `summer_negative/1z/dhw` 277773/275086 = 1.010x, all under 1.05. The
   baselines are the stress run's own to the call. Driver
-  `$SCRATCH/probe/calls.py`. The full `tests/stress.py` was not re-run at
-  `c221d2ac4`; CI's `tests / stress` run is the authority.
+  `$SCRATCH/probe/calls.py`. CI's `tests / stress` at `ea4630ace`: `ALL
+  113 STRESS CHECKS PASSED`, the production-call channel included (the
+  round-1 review's reading).
   Answer: no cheaper detector exists. A per-sub-step call costs nothing the
   CPU kernels' 3.0x factor sees, so only this exact count finds it, and it
   costs a stress run.
@@ -275,10 +327,8 @@ carried (`## Head` says why).
 - `tests/harness_headers.py`: green. `ALL 112 HARNESS HEADER CHECKS PASSED` at
   `54437ac84`, which executes the two headers the merge re-measured.
   `PYTHONPATH=tests/hastub:custom_components:tests python3 tests/harness_headers.py`
-- `mutation` at `c221d2ac4`: red by construction on the 3 sites under
+- `mutation` at `e0b5805a0`: red by construction on the 7 sites under
   `## Unpinned sites`; mutation-autofix pins killed sites after the push.
-  The ten rows `d2e128d49` and `24bd25b92` added stand, less the two
-  `delivered_heat_kw` pins `f041578bd` deletes as stale.
   `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
 
 ## Forward-carry
