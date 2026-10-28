@@ -1,0 +1,6 @@
+RESULT entities-pin head: ok
+RESULT entities-pin batch arm deleted: FAIL
+RESULT entities-pin closure.py dropped: FAIL
+RESULT entities-pin own tip restored: FAIL
+RESULT entities-pin main tip restored (not merge base): FAIL
+RESULT entities-pin merge base kept as comment, arm sets tip: ok
