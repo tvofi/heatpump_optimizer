@@ -1,0 +1,29 @@
+## structure
+STRUCTURE RATCHET PASSED
+## archscore
+Architecture score: dS +0.0000 NULL
+## ref_privacy
+ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 482 line(s) added since 07295d4ea147 judged, 0 refused
+## env_drift claims
+claims hygiene: origin/main ok
+## throwaway
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 07295d4ea147
+## ci_predict self-test
+ci_predict self-test: 0 failed
+## ci_predict
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 07295d4ea147 (a data-file read is not seen)
+## --only bogus
+rc=2
+## harness_headers
+ALL 112 HARNESS HEADER CHECKS PASSED
+## entities
+ModuleNotFoundError: No module named 'homeassistant'
+## closure select
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+## version untouched
+(empty above = untouched)
+## claim files
+(empty = byte-identical)
+ModuleNotFoundError: No module named 'paho'
