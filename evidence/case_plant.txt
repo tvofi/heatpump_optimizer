@@ -1,0 +1,9 @@
+e73424f247781b8d5e55abe52f54d7005cb51f39 unperturbed: 63 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+e73424f247781b8d5e55abe52f54d7005cb51f39 case-arm plant: 64 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+e73424f247781b8d5e55abe52f54d7005cb51f39 (never) control plant: 64 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:260: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+683dd52cbb938ad00b38857117710791f5581f4b unperturbed: 63 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+683dd52cbb938ad00b38857117710791f5581f4b case-arm plant: 64 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+683dd52cbb938ad00b38857117710791f5581f4b (never) control plant: 64 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:260: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+d0d35231c633ca447acf04770f9034281417b72d unperturbed: 58 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+d0d35231c633ca447acf04770f9034281417b72d case-arm plant: 59 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+d0d35231c633ca447acf04770f9034281417b72d (never) control plant: 59 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:260: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
