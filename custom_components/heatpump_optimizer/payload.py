@@ -41,7 +41,7 @@ mypy now checks. Values read through a coordinator's hubs are checked too:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
@@ -277,6 +277,9 @@ class Scores(TypedDict, total=False):
     envelope: float | None
     #: One code per score that is None, and only for those (#2258).
     reasons: dict[str, str]
+    #: What moves the house grade off 50: ``code`` and signed ``points``,
+    #: summing to ``envelope - 50`` (#2816).
+    envelope_drivers: list[dict[str, Any]]
 
 
 class CompressorStarts(TypedDict, total=False):

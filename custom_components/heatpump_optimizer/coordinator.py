@@ -2923,17 +2923,17 @@ def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
 
 
 def envelope_score(
-    params: ThermalParameters, samples: int, advice: Mapping[str, Any]
-) -> tuple[float | None, str | None]:
-    """The house grade (#65) and, when it is None, the one code saying why.
+    params: ThermalParameters,
+    samples: int,
+    advice: Mapping[str, Any],
+    config: Mapping[str, Any],
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The house grade (#65), the code saying why it is None, and its drivers.
 
-    The time constant ``envelope_thermal_mass / loss`` in hours, placed on a
-    log scale between the shortest and the longest any shipped preset
-    derives (``presets.envelope_band_hours``). ``loss`` is the model's own
-    whole-house figure, both zones with the learned split -- the one the
-    Health tab publishes (#2239) -- and the mass is the one the dynamics
-    store, slab and zones included, so the grade is the house the model
-    simulates, as measured. The codes, in precedence (#2258):
+    ``presets.house_grade``: the model's own whole-house loss, both zones
+    with the learned split -- the one the Health tab publishes (#2239) --
+    and the mass the dynamics store, against the configured type and era
+    (#2816). The codes, in precedence (#2258):
     nothing to grade; the learner still walking from its prior; a refit
     of settled evidence outside its band of the learned scale.
     """
@@ -2943,14 +2943,13 @@ def envelope_score(
     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
     if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
-        return None, "no_house_model"
+        return None, "no_house_model", []
     if not house_loss_converged(samples):
-        return None, "heat_loss_learning"
+        return None, "heat_loss_learning", []
     if _refit_disagrees(advice, scale):
-        return None, "heat_loss_refit_disagrees"
-    low_h, high_h = presets.envelope_band_hours()
-    tau_h = params.envelope_thermal_mass / loss
-    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None
+        return None, "heat_loss_refit_disagrees", []
+    grade, drivers = presets.house_grade(params, scale, config)
+    return grade, None, drivers
 
 
 def machine_score(
@@ -2973,7 +2972,7 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
 
 
 def compose_scores(
-    envelope: tuple[float | None, str | None],
+    envelope: tuple[float | None, str | None, list[dict[str, Any]]],
     machine: tuple[float | None, str | None],
     operation: tuple[float | None, str | None],
 ) -> Scores:
@@ -2982,19 +2981,24 @@ def compose_scores(
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none.
+    code in ``reasons`` (#2258), and a grade carries none. The house grade's
+    drivers ride ``envelope_drivers`` (#2816).
     """
-    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    house = envelope[:2]
+    parts = {"envelope": house, "machine": machine, "operation": operation}
     reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
     available = [g for g, _why in (machine, operation) if g is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
     return {
-        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "envelope": None if house[0] is None else round(house[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
+        "envelope_drivers": [
+            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
+        ],
     }
 
 
@@ -10452,8 +10456,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return compose_scores(
             envelope_score(
                 getattr(self, "_ctx", self)._thermal_params,
-                self._house_heat_loss_samples,
-                advice,
+                self._house_heat_loss_samples, advice,
+                getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
             (operation, None if operation is not None else operation_reason(self._score_day)),
