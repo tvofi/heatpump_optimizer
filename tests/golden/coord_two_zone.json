@@ -264,6 +264,7 @@
    "price_tiles": {},
    "scores": {
     "envelope": null,
+    "envelope_drivers": [],
     "machine": null,
     "operation": null,
     "overall": null,
@@ -1984,6 +1985,7 @@
   "optimization_score": {
    "extra_state_attributes": {
     "envelope": null,
+    "envelope_drivers": [],
     "machine": null,
     "operation": null,
     "overall": null,
