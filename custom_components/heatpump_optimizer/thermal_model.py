@@ -1342,7 +1342,9 @@ def probe_install(config: Any) -> InstallCapability:
         frequency=bool(
             freq_entity or cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR)
         ),
-        measured_heat=bool(cfg.get(const.CONF_THERMAL_POWER_ENTITY)),
+        measured_heat=bool(
+            cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
+        ),
     )
 
 
@@ -1439,9 +1441,14 @@ def learner_unmetered(config: Any) -> str | None:
     )
 
 
-def heat_loss_basis(config: Any) -> str:
-    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install."""
-    return const.HEAT_LOSS_BASES[1 if probe_install(config or {}).measured_power else 0]
+def heat_loss_basis(config: Any, earned: bool = False) -> str:
+    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install.
+
+    ``earned``: a fold has replayed a measured heat, which counts while the
+    install still has a heat meter.
+    """
+    cap = probe_install(config or {})
+    return const.HEAT_LOSS_BASES[2 if earned and cap.measured_heat else 1 if cap.measured_power else 0]
 
 
 def heat_loss_basis_voids(stored: Any, basis: str) -> bool:

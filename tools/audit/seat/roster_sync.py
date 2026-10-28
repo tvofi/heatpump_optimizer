@@ -387,6 +387,62 @@ def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
     return out
 
 
+RULING_CITE = re.compile(r"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)"
+                         r"#(P\d+)\b")
+RULING_PROSE = re.compile(r"\btriage\s+P(\d+)(?:/Q(\d+))?\s*\((s\d+)\)", re.I)
+MARKUP = re.compile(r"[`*_]")
+
+
+def finding_words(text: str) -> str:
+    """<text> with markup dropped, whitespace collapsed, case folded: the form
+    two records of one finding agree on even when they were written apart."""
+    return " ".join(MARKUP.sub("", str(text)).lower().split())
+
+
+def rulings(text: str) -> set[tuple[str, str]]:
+    """(round, item) for every triage ruling <text> cites, in the resolvable
+    form (`triage: <file>#P<n>`) or the routing seat's prose form
+    (`triage P3 (s4)`). A triage item is one finding, so its ruling is the
+    finding's identity across two phrasings; P ids are unique within a round
+    (the s6 `## P<n>:` headings across `dev/programme/triage/s6-batch*.md`
+    define 169 ids with no duplicate)."""
+    out: set[tuple[str, str]] = set()
+    for path, pid in RULING_CITE.findall(str(text)):
+        m = re.match(r"s\d+", path.rsplit("/", 1)[-1])
+        if m:
+            out.add((m.group(0), pid))
+    for p, q, rnd in RULING_PROSE.findall(str(text)):
+        out.add((rnd.lower(), "P" + p))
+        if q:
+            out.add((rnd.lower(), "Q" + q))
+    return out
+
+
+def already_carried(carries: list, text: str) -> str | None:
+    """The destination carry that records this same finding, or None.
+
+    The key is the finding, never the pull request (#2889's B1): one pull
+    request legitimately routes several findings to one destination, so a key
+    on the number refuses a genuine second finding, and a carry that mentions
+    a number in prose (`a second instance beside #2447's`) matches it too. Two
+    records are the same finding when they cite the same triage ruling, or
+    when their substantive text is equal once markup and whitespace are
+    normalised. A derived copy
+    the destination already holds is refused before the write path's triage
+    gate sees it: that gate refuses an unresolvable `triage P<n>` citation,
+    and `write_roster` is atomic, so the duplicate would abort the stage
+    changes that stop it being re-derived.
+    """
+    want = finding_words(text)
+    want_rulings = rulings(text)
+    for c in carries:
+        if finding_words(c) == want:
+            return str(c)
+        if want_rulings & rulings(c):
+            return str(c)
+    return None
+
+
 def carry_plan(roster: dict, transitions: list[PR], repo: str,
                pr_state: str | None) -> tuple[list[tuple], list[tuple]]:
     """(appends, refusals) from a merged body's `Carry: <GROUP>` items.
@@ -394,7 +450,11 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
     The parser is `carry_audit.py`'s (`audit`, hence `items` and `carry_dests`);
     a second one is refused. Only a group token is appended -- an issue, an
     O-brief and a dismissal keep their own record -- and a destination that
-    is done is refused, never appended.
+    is done is refused, never appended. A destination that already records
+    the same finding (`already_carried`) is refused too: the derived text is
+    that finding again in the body's words, and re-appending it would
+    duplicate the carry. A different finding from the same pull request
+    still appends.
     """
     groups = roster_lib.groups_of(roster)
     appends: list[tuple] = []
@@ -416,6 +476,12 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
                 else:
                     text = " ".join(BULLET.sub("", row["text"], count=1).split())
                     if text in (g.get("carry") or []) or (dest, text) in appends:
+                        continue
+                    held = already_carried(g.get("carry") or [], text)
+                    if held is not None:
+                        refusals.append((pr.number, dest,
+                                         "already carried (the same finding, "
+                                         f"from #{pr.number}): {held[:60]!r}"))
                         continue
                     appends.append((dest, text))
     return appends, refusals
@@ -795,6 +861,41 @@ def self_test() -> int:
         {"group": "R9-HELD", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "held", "carry": ["already held. Carry: R9-HELD"],
          "resume": {"stage": "not-started"}},
+        # A destination already holding THIS finding: both its carry and the
+        # derived row cite triage ruling P3 of s4, so the derived copy is the
+        # same finding in the body's words and is not appended (its unresolved
+        # `triage P3` tail would otherwise reach the write path's triage gate).
+        {"group": "R9-FROM", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from",
+         "carry": ["From #15 (R9-CARRY): the base-pinned replay, triage P3 (s4)."],
+         "resume": {"stage": "not-started"}},
+        # The NULL CONTROL for the finding key: this carry names a DIFFERENT
+        # source pull request and a different finding, so #15's item appends.
+        {"group": "R9-FROM-2", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from 2", "carry": ["From #1525 (other): landed."],
+         "resume": {"stage": "not-started"}},
+        # (b-ii) The same pull request, a GENUINELY different finding: the
+        # destination already carries one finding from #15, but this one is not
+        # that finding, so it must still append (B1: the finding is the key,
+        # never the pull request).
+        {"group": "R9-FROM-3", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from 3",
+         "carry": ["From #15 (R9-CARRY): the widget parser drops a unit."],
+         "resume": {"stage": "not-started"}},
+        # A prose mention of the source number is not provenance: this carry
+        # records a finding from another pull request and merely cites #15.
+        {"group": "R9-PROSE", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "prose",
+         "carry": ["From the R10-BRIEFS-FOLD body, a second instance beside "
+                   "#15's: the page cache."],
+         "resume": {"stage": "not-started"}},
+        # The same finding with formatting drift: the held carry quotes its
+        # destination marker in backticks, the derived row does not. The text
+        # key normalises markup, so this is refused.
+        {"group": "R9-ECHO", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "echo",
+         "carry": ["the widget parser drops a unit. `Carry: R9-ECHO`"],
+         "resume": {"stage": "not-started"}},
     ]
     ROSTER_FIXTURE = {"repo": "fixture/roster", "session": "r9-sync",
                       "groups": groups}
@@ -803,6 +904,15 @@ def self_test() -> int:
             "- a quoted example `Carry: R9-DEST` in a code span routes nothing.\n\n"
             "- a real finding for a done group. Carry: R9-OVER\n\n"
             "- already held. Carry: R9-HELD\n\n"
+            "- the same finding again, where triage P3 (s4) gives it. "
+            "Carry: R9-FROM\n\n"
+            "- the same finding for a destination naming another pull request. "
+            "Carry: R9-FROM-2\n\n"
+            "- the batch loader double-counts; a genuinely distinct finding "
+            "from #15. Carry: R9-FROM-3\n\n"
+            "- the prose control: a distinct finding for a destination that "
+            "only mentions the number. Carry: R9-PROSE\n\n"
+            "- the widget parser drops a unit. Carry: R9-ECHO\n\n"
             "- an issue keeps its own record. Carry: #77\n")
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
@@ -848,6 +958,18 @@ def self_test() -> int:
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
         check("the dry run plans no append of an item the destination holds",
               "carry R9-HELD +=" not in out, out)
+        check("the dry run refuses an item the destination already carries: "
+              "same finding, same triage ruling", "REFUSED Carry: R9-FROM "
+              "from #15: already carried" in out, out)
+        check("a held carry naming another pull request does not suppress the "
+              "append (#15 is not #1525)", "carry R9-FROM-2 +=" in out, out)
+        check("a genuinely different finding from a pull request the "
+              "destination already carries one from still appends (B1)",
+              "carry R9-FROM-3 +=" in out, out)
+        check("a prose mention of the source number does not suppress the "
+              "append", "carry R9-PROSE +=" in out, out)
+        check("a duplicate differing only in markup is refused",
+              "REFUSED Carry: R9-ECHO from #15: already carried" in out, out)
         check("an issue destination is neither appended nor refused (it keeps "
               "its own record)", "#77" not in out, out)
         check("a commit the checkout does not hold is RECORD-INVALID, printed "
@@ -892,6 +1014,33 @@ def self_test() -> int:
               by["R9-DEST"].get("carry"))
         check("a Carry: to a done group is refused, not appended",
               "carry" not in by["R9-OVER"], by["R9-OVER"].get("carry"))
+        check("a duplicate of a carry already landed from that pull request is "
+              "not appended", by["R9-FROM"].get("carry")
+              == ["From #15 (R9-CARRY): the base-pinned replay, triage P3 (s4)."],
+              by["R9-FROM"].get("carry"))
+        check("a genuinely different finding from the same pull request "
+              "appends beside the one already held (B1)",
+              by["R9-FROM-3"].get("carry")
+              == ["From #15 (R9-CARRY): the widget parser drops a unit.",
+                  "the batch loader double-counts; a genuinely distinct "
+                  "finding from #15. Carry: R9-FROM-3"],
+              by["R9-FROM-3"].get("carry"))
+        check("a prose mention of the source number leaves the append alone",
+              by["R9-PROSE"].get("carry")
+              == ["From the R10-BRIEFS-FOLD body, a second instance beside "
+                  "#15's: the page cache.",
+                  "the prose control: a distinct finding for a destination "
+                  "that only mentions the number. Carry: R9-PROSE"],
+              by["R9-PROSE"].get("carry"))
+        check("a duplicate differing only in markup is not appended",
+              by["R9-ECHO"].get("carry")
+              == ["the widget parser drops a unit. `Carry: R9-ECHO`"],
+              by["R9-ECHO"].get("carry"))
+        check("the dedupe's null control: a held carry naming another pull "
+              "request leaves the append alone", by["R9-FROM-2"].get("carry")
+              == ["From #1525 (other): landed.",
+                  "the same finding for a destination naming another pull "
+                  "request. Carry: R9-FROM-2"], by["R9-FROM-2"].get("carry"))
         check("a head matching only through the <topic>- arm decides its group",
               by["R9-ARM"]["resume"]["stage"] == "done"
               and by["R9-ARM"]["resume"].get("commit") == "1" * 40,
