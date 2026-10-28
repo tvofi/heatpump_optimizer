@@ -1,25 +1,33 @@
-Fix review: merge f9a920e33f34e89608b6dbaf8e89896ac3d84af8
+Fix review: blocked a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf figures-unverified: body quotes 186 groups, 35 changed and done 112 then 114; the head measures 189, 34 and 115 then 117
 
-bus-nonce: 7bcb596d8783341d8336e08436ce62ce
+bus-nonce: 56b8c3d83ee58f04799a06e009cef573
 
-Round 2 of the fix review, after the round-1 figures-unverified block at `a2cd2f659`. Measured head: `f9a920e33f34e89608b6dbaf8e89896ac3d84af8`, re-read by ls-remote just before writing (refs/pull/2799/head and fix/audit-r10-roster-pr both point at it). Main is `b89fea13e99f23cc75f01bb1604030cabea4ca66`, which is also the merge base. The head moved from round 1 by one merge of the roster tip `54d78f9bb`. I judged that delta and re-took every figure in the body at this head.
+Round 1 of the fix review. Measured head: `a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf`. I re-read it via ls-remote just before writing: refs/pull/2799/head and fix/audit-r10-roster-pr both still point at it. Main is `b89fea13e99f23cc75f01bb1604030cabea4ca66`, which is also the merge base.
+
+## Block
+
+- The body's **Null control** says "186 groups on each side, none removed, none new, 35 changed". Loading both roster files as JSON at main `b89fea13e` and at the head gives **189** groups on each side, none removed, none new, and **34** changed (`ev/roster_figures.txt`). Its stated rule, "comparing groups by id", cannot be run as written. No group carries an `id` key; the key is `group`. I keyed on `group` instead, which is a definition I chose myself (step 8).
+- The body's **Figures** gives `done 112 then 114`. Main measures 115 and the head 117. The deltas (+2 done, -2 in-progress, -3 not-started, +3 absorbed) and the other stage counts (in-progress 12 then 10, not-started 50 then 47, queued 6, absorbed 1 then 4, carries-open 5) do match. The done totals are 3 too low on both sides, as is the group total. No nearby ref reproduces 186 or 112: origin/main^1, the merge base and the previous head e6f48a480 all have 189 groups, and their done counts are 115/115/116.
+- The **Other changed groups** list is incomplete. It names an `issues` change only on R10-FLY-LEDGER-SAMPLE, R10-RCA-FRICTION-RESIDUE (plus the "issues field" on R10-ORCH-ROSTER-SCHEMA, and on FLY-POOL-INSTRUMENT and FLY-RECORD-BEAT, which it lists under `resume`). `issues` also changed on R10-FLOW-DESIGN-STAGES (+2800), R10-FLOW-POSTMERGE (+2801), R10-ORCH-LEDGER (+2265), R10-IMMERSION-LATCH (+2805) and R10-MERGE-SUBJECT-CASEARM (+2803). The ops list does show each of them as wire-issue.
+- The title still says "roster ops ... through 00ceb9aa4". The body and head carry ops through 0574da74a.
+- To clear it: correct the body (and the title) to the measured figures and state the key the comparison uses. A body-only edit does not move the head, so this verdict's other measurements carry.
 
 ## Findings
 
-- The PR's own delivery row, `dev/programme/delivery/2799.md`, still describes the PR as "roster ops on handoff/audit-r10-roster through 00ceb9aa4: IMMERSION-LATCH brief re-pin, CONFIG-NOTICES done, #2798 precondition carries ...". The title was corrected and the body now runs through `54d78f9bb`, but this row was not. `delivery-status-tracking.md` says the orchestrator writes this row and that nothing reconciles it, so the stale text lands on main unless whoever writes the merge row corrects it. Carry: #201
+none
 
 ## Evidence
 
-- RESULT round-1 block cleared. The body's figures now match the head. The groups are keyed by `group`, as the body states: 189 on main and 189 at the head, none removed, none new, 35 changed. Stage counts are done 115 then 117, in-progress 12 then 10, not-started 50 then 47, absorbed 1 then 4, queued 6 and carries-open 5. All 35 per-group lines match the body's pasted output line for line (`ev/fig_out.txt`). The 35 against round 1's 34 comes from the new R10-FLY-DEPGRAPH-STALE change (carry 1->3, issues +2777 +2806) that the delta adds. The title now reads "through 54d78f9bb".
-- RESULT fig.py is not in the tree. I rebuilt it from the body's description (both rosters loaded as JSON, a group being an object holding both `group` and `resume`, keyed by `group`). This instrument is mine, `ev/fig.py`, not the body's script (step 8/9). Its output equals the body's byte for byte in content.
-- RESULT parents: `git log -1 --format=%P` prints a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf 54d78f9bbb7526767ac9f7b5df1c7e7173f96398, as the body says.
-- RESULT diff stat: 2 files, 102 insertions and 69 deletions, as the body says (`ev/diffstat.txt`).
-- RESULT null-control hashes: main ae5988d3415d399099e4dae250a8380da56e3c78 and head ce5e01b869142042371e63adfaae18017773af2d, as the body says.
-- RESULT roster commits: 62 in `origin/main..head -- dev/programme/rosters/`, and 2 are not roster_edit (`5f94b943b`, `0574da74a`), as the body says. The oldest-first ops list matches the body's 62 lines in order (`ev/ops.txt`).
-- RESULT merge: `git merge-tree --write-tree origin/main head` exits 0 (`ev/merge-tree.txt`). No claim file is touched.
-- RESULT VERSION, manifest version and RELEASE_NOTES.md are untouched (no diff under them).
-- RESULT brief_lint at the head: `TOTAL: 0 error(s) across 48 file(s)` (`ev/brief_lint.txt`). The head roster parses as JSON.
+- RESULT parents: `git log -1 --format=%P` prints e6f48a48022ec8c06e5a015c8ec0dffe8b236d61 0574da74ae2f7ddf7c9250548f08c2f8b06d8775, as the body says.
+- RESULT diff: two files against main, `dev/programme/delivery/2799.md` (+1) and `dev/programme/rosters/wave-r10-groups.json` (162 lines), as the body says.
+- RESULT roster commits: 58 in `origin/main..head -- dev/programme/rosters/`. Two are not roster_edit: `5f94b943b` and `0574da74a`, as the body says.
+- RESULT null-control hashes: main ae5988d3415d399099e4dae250a8380da56e3c78, head 91f41425e74d3ebe030ac5230bcd8408dee6f35b, as the body says.
+- RESULT carry counts: all 21 moved carry counts the body quotes match (`ev/roster_figures.txt`), including R10-ORCH-ROSTER-SCHEMA 10 then 16.
+- RESULT stage transitions: R10-CONFIG-NOTICES and R10-FLY-ENVMATRIX-NOREMOTE in-progress to done. R10-ROUTING-INVARIANTS, R10-FLY-POOL-INSTRUMENT and R10-FLY-RECORD-BEAT not-started to absorbed.
+- RESULT merge: `git merge-tree --write-tree origin/main head` exits 0 (tree 6b07bef5b). No claim file is touched.
+- RESULT VERSION, manifest version and RELEASE_NOTES.md are untouched.
+- RESULT brief_lint: `node tools/policy/brief_lint.mjs` at the head prints `TOTAL: 0 error(s) across 48 file(s)`.
 - Role drift: `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- The mutation proof, finder's harness, null-control perturbation and class rule do not apply. This is roster state and a delivery row only, with no production or test code, so there is no mutant to draw. Step 14: the moved figures are the roster ops themselves, and each traces to a named roster_edit or roster_sync commit.
-- CI at the head: 49 check-runs read, none failed. 31 succeeded, 13 were skipped and 5 were still in progress: env-matrix, instrument-self-tests and three preludes (`ev/checks.txt`). No pr-contract run was listed at read time. Step 11 has no red check to answer. The orchestrator should re-read once the in-progress runs conclude.
-- Forward-carry: the body says none. The diff is itself the carry record.
+- Mutation proof, finder's harness, null-control perturbation and the class rule do not apply. This is roster state only, with no production or test code, so there is no mutant to draw.
+- CI at the head: 42 check-runs read, none failed. Several were still queued or in progress, and no pr-contract run was listed yet (`ev/checks.txt`). So the step-11 red-check question has nothing to answer at read time. The body's "Red checks" section defers the read to the orchestrator.
+- Forward-carry: the body says none. The diff is itself the carry record (appended carries), so no later-stage brief is owed from this PR.

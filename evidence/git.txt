@@ -1,0 +1,15 @@
+head a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf
+main b89fea13e99f23cc75f01bb1604030cabea4ca66
+parents e6f48a48022ec8c06e5a015c8ec0dffe8b236d61 0574da74ae2f7ddf7c9250548f08c2f8b06d8775
+ dev/programme/delivery/2799.md             |   1 +
+ dev/programme/rosters/wave-r10-groups.json | 162 +++++++++++++++++------------
+ 2 files changed, 96 insertions(+), 67 deletions(-)
+roster commits: 58
+0574da74a roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
+5f94b943b line shift after #2762; pins only
+hash origin/main ae5988d3415d399099e4dae250a8380da56e3c78
+hash a2cd2f659883ce2e340f20b7c4aa5003ebc20fbf 91f41425e74d3ebe030ac5230bcd8408dee6f35b
+6b07bef5bef03cb5b5dcc7ad4ea7c1ea893b3acb
+merge-tree rc=0
+VERSION/manifest/notes diff:
+roles drift lines: 0
