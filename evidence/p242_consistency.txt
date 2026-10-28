@@ -1,0 +1,14 @@
+Triage P242 (dev/programme/triage/s6-batch49.md, commit 40bec0ab6, on origin/handoff/triage-s7-batch49 only:
+not on origin/main, not on the fixer's base 6d86acc9, and not in R10-RCA-HEADMOVED's roster carry at
+handoff/audit-r10-roster 7bbdb78d) routes 8 head moves: 3 bot (#2887 fdf33f466, cf5beb181 `ci: merge main`;
+#2894 65dcf9b2c `ci: pin killed mutants`), 5 seat/orchestrator (#2894 e6c2df546 row, cf025530d, 14a9f1cd;
+#2883 7b071dbd7, a7f644700 `Merge remote-tracking branch 'origin/main'`).
+- Direction consistent: the record refuses a bot hold / bot-pin predicate (CM-2) because bot commits carry,
+  and puts the cost on seat-side main merges (bucket 2) and orchestrator pushes (post-split breaches).
+- None of the 8 is a re-verification under the record's keying: hm.py re-run now (592 refs) still prints
+  TOTAL 75, and #2883, #2887, #2894 have 0 entries (hm_rerun.tsv).
+- Not recorded: the record never names P242, its 8 moves, or the cost P242 assigns to the RCA
+  (#2887's stranded fixer branch; the 5 seat-side `Merge remote-tracking branch` merges).
+- CM-2's figure is wrong against the record's own outputs: hm2_out.tsv has 23 entries whose delta holds a
+  bot commit (13 of them alongside a code merge, all carry@t=no); of the 10 whose kind is `bot`, 9 carried
+  and the tenth is #2753 at 2026-10-26T01:36 (carry@t=no), not #2772, which is kind `empty`.
