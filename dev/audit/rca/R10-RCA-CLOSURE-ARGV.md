@@ -84,8 +84,9 @@ instance-or-process RCA with `class: null`, as `R10-RCA-INERT-PREDICT` was.
 `--self-test` and is listed in some committed closure or `inert_reads`
 (`ev/nullsweep-main.txt`, 9 min 25 s):
 
-- 95 tracked files carry `--self-test`. 32 of them are listed by a host, which makes 38
-  (file, host) pairs.
+- 95 tracked files carry `--self-test`. 32 of them are listed in some script's `closures`
+  entry, which makes 38 (file, host) pairs. The sweep built its host set from `closures`
+  alone.
 - Recording each file and grading it as every listing host's record gives 11 rc-1 pairs on a
   green main. Each is a host that lists the file as text without running it, such as
   `harness_headers.py`'s header scan, `doc_claims.py` and `arch_score.py`. Two timed out at
@@ -96,6 +97,18 @@ instance-or-process RCA with `class: null`, as `R10-RCA-INERT-PREDICT` was.
   `state_docs.py`, `tools/ci/gate.py`, `ledger_merge.py` and `stamp.py`, each with
   `tests/entities.py` or `tests/arch_score.py` as host. **All 8 grade rc 0 on main**, which
   is the null control. Both #2883 pairs, roster_lib and state_docs, are among the 8.
+- **Round 2 (#2910 review 1).**
+  - The code shipped in round 1 did not match this sweep. `self_test_hosts` also counted a
+    script that lists the file under `inert_reads` alone, which gave 10 pairs, not 8. The
+    two extra were `budget_raise_gate.py` and `selftest_wiring.py`, both hosted by
+    `tests/entities.py`, which reads both files as text. On a green tree each predicted a
+    red that is false.
+  - Four PRs merged in the window touched one of those two files, so each would have taken
+    a false 6d refusal. That is 4 false reds against 2 true catches.
+  - The rule now reads `closures` alone and never takes a file as its own host.
+  - Re-run over the shipped code (`ev/nullsweep-r2.txt`, `ev/nullsweep2.py`), the head's own
+    `self_test_hosts` and `self_test_reads`, at merge base `6d86acc90`, give the figures
+    listed under `## Null control` in the PR body.
 
 **The argv shape is wider than #2883.** On main, `roster_edit.py`'s and `roster_sync.py`'s
 self-tests also put `dev/programme/rosters/wave-r9-groups.json` on a git command line, and
@@ -134,8 +147,14 @@ when it does.
     averaged over all 300.
   - A diff that changes none of the 8 pays one source scan per changed self-testing file.
   - Even at 5 prepr runs a PR, that is about 5.3 min in 7 days.
-- **Verdict.** About 5 min of standing cost against 2 demonstrated reds at about 85 min
-  each, which is 170 min in the same window. **Build it.**
+- **False reds** are a standing cost too. Round 1's rule would have charged 4 false 6d
+  refusals in the window, and each sends a fixer to a 15 min `--single` for nothing. With
+  the closures-only rule, the 8 pairs grade rc 0 on a green tree. The 15 PRs and 63.4 s
+  above were computed over exactly those 8 files.
+- **Verdict.** About 5 min of standing cost and no false red, against 2 demonstrated reds
+  at about 85 min each, which is 170 min in the same window. **Build it.** Under round 1's
+  rule the same window costs 4 false reds, at least 60 min of `--single` plus the
+  refusals, against 170 min: positive, but not the figure round 1 claimed.
 
 ## 6. Countermeasure, on this branch
 
@@ -143,8 +162,9 @@ It addresses state (c) by changing the predictor's unit from "an import edge" to
 edge, plus the reads a changed file's own self-test makes in the gate script that runs it".
 
 1. `tools/pr/ci_predict.py` gains the arm `self-test-reads` (SELF-TEST READS). For each
-   changed `.py` that carries `--self-test`, and each host whose table lists the file and
-   whose source runs its self-test:
+   changed `.py` that carries `--self-test`, and each host whose `closures` entry lists the
+   file (never `inert_reads` alone, never the file itself) and whose source runs its
+   self-test:
    - It records `<file> --self-test` with CI's recorder, `closure._exec_record`, in a child
      with a 180 s timeout.
    - It writes the record as the host's and grades it with CI's own
@@ -186,15 +206,27 @@ self-test arms ran on the final text.
 file's own self-test makes it"). The 8-pair null sweep and the self-test's null arms show
 it does not fire on a healthy tree.
 
-**Mutation proof** (`ev/mutants.txt`): 5 of 5 killed by the arm's self-test.
+**Mutation proof, round 2** (`ev/mutants-r2.txt`): 8 of 8 killed by the arm's self-test.
+These include the three that survived review 1.
 
+- R2, window 0: 4 FAIL.
+- R3, round 1's closures-or-inert_reads rule: 3 FAIL.
+- R6, a file as its own host: 2 FAIL.
 - M1, the host rule always true: 2 FAIL.
 - M2, a failing `check` skipped: 2 FAIL.
 - M3, a recorder failure graded: 1 FAIL.
 - M4, the INERT header unparsed: 1 FAIL.
 - M5, unchanged files recorded: 1 FAIL.
 
+The plant's host names the file on one line and its `--self-test` on the next, which is
+what kills R2. A null host names it one line past the window. A third host lists the file
+under `inert_reads` alone. The file is also a key of its own.
+
 The unmutated arm passes with rc 0, and `ci_predict.py` was byte-identical afterwards.
+
+`prepr.sh --self-test` pins the wiring: 6d passes `record`, and `predict_line` maps its
+fifth argument to `--record-self-tests`. Each pin's predicate was driven over a copy with
+that line removed: `6d-record=1`, and `predict_line-maps=1` (`ev/pin6d.sh`).
 
 **Considered and not built.** Narrowing `_exec_record`'s argv rule to resolve a relative
 token against the child's cwd would remove instance 2's false read. It would not touch
